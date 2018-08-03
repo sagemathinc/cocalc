@@ -3,7 +3,7 @@ Rendering a Sage worksheet cell
 
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 {CellInput} = require('./input')
 {CellOutput} = require('./output')

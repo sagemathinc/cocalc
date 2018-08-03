@@ -44,7 +44,7 @@ winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
@@ -52,6 +52,7 @@ misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
 db_doc     = require('smc-util/db-doc')
+schema     = require('smc-util/schema')
 
 sage_session = require('./sage_session')
 
@@ -78,9 +79,14 @@ if fs.existsSync(DEBUG_FILE)
 else
     winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
 
-
+ALREADY_CREATED = false
 class exports.Client extends EventEmitter
-    constructor: (@project_id) ->
+    constructor: (project_id) ->
+        super()
+        if ALREADY_CREATED
+            throw Error("BUG: Client already created!")
+        ALREADY_CREATED = true
+        @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         # initialize two caches
@@ -327,7 +333,7 @@ class exports.Client extends EventEmitter
     # Declare that the given socket is active right now and can be used for
     # communication with some hub (the one the socket is connected to).
     active_socket: (socket) =>
-        dbg = @dbg("active_socket(id=#{socket.id})")
+        dbg = @dbg("active_socket(id=#{socket.id},ip='#{socket.remoteAddress}')")
         x = @_hub_client_sockets[socket.id]
         if not x?
             dbg()
@@ -353,6 +359,7 @@ class exports.Client extends EventEmitter
                 socket.end()
 
             socket.on('end', socket_end)
+            socket.on('error', socket_end)
 
             check_heartbeat = =>
                 if not socket.heartbeat? or new Date() - socket.heartbeat >= 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000
@@ -374,7 +381,7 @@ class exports.Client extends EventEmitter
     # for the given message, then return true. Otherwise, return
     # false, meaning something else should try to handle this message.
     handle_mesg: (mesg, socket) =>
-        dbg = @dbg("handle_mesg(#{json(mesg)})")
+        dbg = @dbg("handle_mesg(#{misc.trunc_middle(json(mesg),512)})")
         f = @_hub_callbacks[mesg.id]
         if f?
             dbg("calling callback")
@@ -387,17 +394,16 @@ class exports.Client extends EventEmitter
             dbg("no callback")
             return false
 
-    # Get a socket connection to the hub from one in our cache; choose the
-    # connection that most recently sent us a message.  There is no guarantee
-    # to get the same hub if you call this twice!  Returns undefined if there
-    # are currently no connections from any hub to us (in which case, the project
-    # must wait).
+    # Get a socket connection to the hub from one in our cache; choose one at random.
+    # There is obviously no guarantee to get the same hub if you call this twice!
+    # Returns undefined if there are currently no connections from any hub to us
+    # (in which case, the project must wait).
     get_hub_socket: =>
-        v = misc.values(@_hub_client_sockets)
-        if v.length == 0
+        socket_ids = misc.keys(@_hub_client_sockets)
+        @dbg("get_hub_socket")("there are #{socket_ids.length} sockets -- #{JSON.stringify(socket_ids)}")
+        if socket_ids.length == 0
             return
-        v.sort (a,b) -> misc.cmp(a.activity ? 0, b.activity ? 0)
-        return v[v.length-1].socket
+        return @_hub_client_sockets[misc.random_choice(socket_ids)].socket
 
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
@@ -507,12 +513,22 @@ class exports.Client extends EventEmitter
         #    debounce_interval : 2000
         #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
 
+    # WARNING: making two of the exact same sync_string or sync_db will definitely
+    # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
+    # right now, so we are OK.  Will need to improve this in the longrun!
+
     # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
             path            : required
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            @dbg("sync_string")("string_id='#{string_id}', keys=#{JSON.stringify(misc.keys(@_open_syncstrings))}")
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
@@ -526,6 +542,11 @@ class exports.Client extends EventEmitter
             change_throttle : 0      # amount to throttle change events (in ms)
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()

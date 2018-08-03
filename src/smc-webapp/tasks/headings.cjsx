@@ -8,7 +8,7 @@ Headings of the task list:
 
 {Row, Col} = require('react-bootstrap')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Icon, Space} = require('../r_misc')
 
@@ -99,6 +99,6 @@ exports.Headings = rclass
         </Row>
 
     render: ->
-        <div style={padding:'0 10px'}>
+        <div style={padding:'0 10px'}  className={'visible-lg-inline'}>
             {@render_headings()}
         </div>

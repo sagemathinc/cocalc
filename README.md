@@ -32,6 +32,7 @@ The name was coined in fall 2016 and changed around spring 2017.
    * Harald Schilly
    * Hal Snyder
    * William Stein
+   * Travis Scholl
 
 ### Past contributors
 
@@ -119,7 +120,7 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 
 The following instruction **don't** install SMC. They're for development purposes only!
 
-   * `git clone https://github.com/sagemathinc/cocalc` -- copy repo
+   * `git clone --recurse-submodules https://github.com/sagemathinc/cocalc` -- copy repo
    * `cd cocalc/src`
    * `npm run install-all` -- build
    * `npm test` -- run test suite (expected failures if your clock is not UTC)

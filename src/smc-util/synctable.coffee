@@ -147,8 +147,10 @@ class Plug
         @connect()
 
     dbg: (f) =>
-        #return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
-        return =>
+        if @_opts.client.is_project()
+            return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
+        else
+            return =>
 
     # Keep trying until we connect - always succeeds if it terminates
     connect: (cb) =>
@@ -207,7 +209,15 @@ class Plug
             give_up_timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
+    constructor: (_query, _options, _client, _debounce_interval, _throttle_changes, _cache_key) ->
+        super()
+        @_query = _query
+        @_options = _options
+        @_client = _client
+        @_debounce_interval = _debounce_interval
+        @_throttle_changes = _throttle_changes
+        @_cache_key = _cache_key
+
         @_init_query()
         # The value of this query locally.
         @_value_local = undefined
@@ -362,15 +372,20 @@ class SyncTable extends EventEmitter
         @_state = 'disconnected'
         @_plug.connect()  # start trying to connect again
 
+    # disconnect, then connect again.
+    reconnect: =>
+        @_disconnected('reconnect called')
+
     # Return string key used in the immutable map in which this table is stored.
     key: (obj) =>
         return @_key(obj)
 
     # Return true if there are changes to this synctable that
     # have NOT been confirmed as saved to the backend database.
+    # Returns undefined if not initialized.
     has_uncommitted_changes: () =>
         if not @_value_server? and not @_value_local?
-            return false
+            return
         if @_value_local? and not @_value_server?
             return true
         return not @_value_server.equals(@_value_local)
@@ -1047,4 +1062,5 @@ class exports.TestBrowserClient1 extends EventEmitter
             timeout : 30
             cb      : undefined
         @emit 'query', opts
+
 

@@ -2,7 +2,7 @@
 Edit description of a single task
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {three_way_merge} = require('smc-util/syncstring')
 
@@ -46,8 +46,7 @@ exports.DescriptionEditor = rclass
         return @props.task_id    != next.task_id    or \
                @props.desc       != next.desc       or \
                @props.font_size  != next.font_size  or \
-               @props.is_current != next.is_current or \
-               @props.font_size  != next.font_size
+               @props.is_current != next.is_current
 
     componentDidMount: ->
         @init_codemirror(@props.desc)
@@ -150,14 +149,22 @@ exports.DescriptionEditor = rclass
         @cm.on('change', @_cm_change)
         @cm.on('focus',=> @props.actions.disable_key_handler())
 
-        # NOTE: for vim, we have to deal with trickier vim mode, since editor looses focus
-        # when entering colon command... but we do NOT want to stop editing in this case.
         if options.keyMap != 'vim'
             @cm.on('blur', @stop_editing)
+        else
+            # NOTE: for vim, we have to deal with trickier vim mode, since editor looses focus
+            # when entering colon command mode... but we do NOT want to stop editing in this case.
+            # This depends on the modeline being displayed in something with the class CodeMirror-dialog-bottom;
+            # I hope this doesn't randomly change someday!
+            @cm.on 'blur', =>
+                if $(ReactDOM.findDOMNode(@)).find(".CodeMirror-dialog-bottom").length == 0
+                    # no mode line -- so genuine blur
+                    @stop_editing()
 
         # replace undo/redo by our sync aware versions
         @cm.undo = @_cm_undo
         @cm.redo = @_cm_redo
+        @cm.save = @stop_editing
 
         if @props.is_current
             @cm?.focus()

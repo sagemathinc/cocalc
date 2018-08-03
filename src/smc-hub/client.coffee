@@ -87,6 +87,7 @@ if not misc.is_object(client_metrics)
 
 class exports.Client extends EventEmitter
     constructor: (opts) ->
+        super()
         @_opts = defaults opts,
             conn           : undefined
             logger         : undefined
@@ -219,6 +220,7 @@ class exports.Client extends EventEmitter
             # cancel any outstanding queries.
             @database.cancel_user_queries(client_id:@id)
 
+        delete @_project_cache
         delete client_metrics[@id]
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
@@ -928,11 +930,10 @@ class exports.Client extends EventEmitter
             else
                 project = hub_projects.new_project(mesg.project_id, @database, @compute_server)
                 @database.touch_project(project_id:mesg.project_id)
-                if not @_project_cache?
-                    @_project_cache = {}
+                @_project_cache ?= {}
                 @_project_cache[key] = project
                 # cache for a while
-                setTimeout((()=>delete @_project_cache[key]), CACHE_PROJECT_AUTH_MS)
+                setTimeout((()=>delete @_project_cache?[key]), CACHE_PROJECT_AUTH_MS)
                 dbg("got project; caching and returning")
                 cb(undefined, project)
         )
@@ -1152,18 +1153,32 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_user_search: (mesg) =>
-        if not mesg.limit? or mesg.limit > 50
-            # hard cap at 50...
+        if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
+            # hard cap at 50... (for non-admin)
             mesg.limit = 50
-        @touch()
-        @database.user_search
-            query : mesg.query
-            limit : mesg.limit
-            cb    : (err, results) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
+        locals = {results: undefined}
+        async.series([
+            (cb) =>
+                if mesg.admin
+                    @assert_user_is_in_group('admin', cb)
                 else
-                    @push_to_client(message.user_search_results(id:mesg.id, results:results))
+                    cb()
+            (cb) =>
+                @touch()
+                @database.user_search
+                    query  : mesg.query
+                    limit  : mesg.limit
+                    admin  : mesg.admin
+                    active : mesg.active
+                    cb     : (err, results) =>
+                        locals.results = results
+                        cb(err)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.user_search_results(id:mesg.id, results:locals.results))
+        )
 
     mesg_invite_collaborator: (mesg) =>
         @touch()
@@ -1475,39 +1490,45 @@ class exports.Client extends EventEmitter
                 # Wait 1 minute to give them a chance to save data...
                 setTimeout((()=>@conn.end()), 60000)
 
-    user_is_in_group: (group) =>
+    _user_is_in_group: (group) =>
         return @groups? and group in @groups
 
+    assert_user_is_in_group: (group, cb) =>
+        @get_groups (err) =>
+            if not err and not @_user_is_in_group('admin')  # user_is_in_group works after get_groups is called.
+                err = "must be logged in and a member of the admin group"
+            cb(err)
+
     mesg_project_set_quotas: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
-        else if not misc.is_valid_uuid_string(mesg.project_id)
+        if not misc.is_valid_uuid_string(mesg.project_id)
             @error_to_client(id:mesg.id, error:"invalid project_id")
-        else
-            project = undefined
-            dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
-            async.series([
-                (cb) =>
-                    dbg("update base quotas in the database")
-                    @database.set_project_settings
-                        project_id : mesg.project_id
-                        settings   : misc.copy_without(mesg, ['event', 'id'])
-                        cb         : cb
-                (cb) =>
-                    dbg("get project from compute server")
-                    @compute_server.project
-                        project_id : mesg.project_id
-                        cb         : (err, p) =>
-                            project = p; cb(err)
-                (cb) =>
-                    dbg("determine total quotas and apply")
-                    project.set_all_quotas(cb:cb)
-            ], (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
-                else
-                    @push_to_client(message.success(id:mesg.id))
-            )
+            return
+        project = undefined
+        dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
+        async.series([
+            (cb) =>
+                @assert_user_is_in_group('admin', cb)
+            (cb) =>
+                dbg("update base quotas in the database")
+                @database.set_project_settings
+                    project_id : mesg.project_id
+                    settings   : misc.copy_without(mesg, ['event', 'id'])
+                    cb         : cb
+            (cb) =>
+                dbg("get project from compute server")
+                @compute_server.project
+                    project_id : mesg.project_id
+                    cb         : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                dbg("determine total quotas and apply")
+                project.set_all_quotas(cb:cb)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
 
     ###
     Public/published projects data
@@ -2156,20 +2177,6 @@ class exports.Client extends EventEmitter
                                 options.tax_percent = Math.round(tax_rate*100*100)/100
                             cb(err)
                 (cb) =>
-                    if options.coupon
-                        dbg("add coupon to customer history")
-                        @validate_coupon options.coupon, (err, coupon, coupon_history) =>
-                            if err
-                                cb(err)
-                                return
-                            coupon_history[coupon.id] += 1
-                            @database.update_coupon_history
-                                account_id     : @account_id
-                                coupon_history : coupon_history
-                                cb             : cb
-                    else
-                        cb()
-                (cb) =>
                     dbg("add customer subscription to stripe")
                     @_stripe.customers.createSubscription customer_id, options, (err, s) =>
                         if err
@@ -2186,6 +2193,20 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     dbg("Successfully added subscription; now save info in our database about subscriptions....")
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
+                (cb) =>
+                    if not options.coupon
+                        cb()
+                        return
+                    dbg("add coupon to customer history")
+                    @validate_coupon options.coupon, (err, coupon, coupon_history) =>
+                        if err
+                            cb(err)
+                            return
+                        coupon_history[coupon.id] += 1
+                        @database.update_coupon_history
+                            account_id     : @account_id
+                            coupon_history : coupon_history
+                            cb             : cb
             ], (err) =>
                 if err
                     dbg("fail -- #{err}")
@@ -2233,6 +2254,18 @@ class exports.Client extends EventEmitter
             subscription = undefined
             async.series([
                 (cb) =>
+                    dbg("Update the subscription.")
+                    changes =
+                        quantity : mesg.quantity
+                        plan     : mesg.plan
+                        coupon   : mesg.coupon_id
+                    @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
+                (cb) =>
+                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
+                (cb) =>
+                    if not mesg.coupon_id
+                        cb()
+
                     if mesg.coupon_id
                         @validate_coupon mesg.coupon_id, (err, coupon, coupon_history) =>
                             if err
@@ -2243,15 +2276,6 @@ class exports.Client extends EventEmitter
                                 account_id     : @account_id
                                 coupon_history : coupon_history
                                 cb             : cb
-                (cb) =>
-                    dbg("Update the subscription.")
-                    changes =
-                        quantity : mesg.quantity
-                        plan     : mesg.plan
-                        coupon   : mesg.coupon_id
-                    @_stripe.customers.updateSubscription(customer_id, subscription_id, changes, cb)
-                (cb) =>
-                    @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -2356,9 +2380,6 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
 
     mesg_stripe_admin_create_invoice_item: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
-            return
         dbg = @dbg("mesg_stripe_admin_create_invoice_item")
         @_stripe = get_stripe()
         if not @_stripe?
@@ -2371,6 +2392,8 @@ class exports.Client extends EventEmitter
         email       = undefined
         new_customer = true
         async.series([
+            (cb) =>
+                @assert_user_is_in_group('admin', cb)
             (cb) =>
                 dbg("check for existing stripe customer_id")
                 @database.get_account
@@ -2537,3 +2560,16 @@ class exports.Client extends EventEmitter
                     available : locals.x.available
                 @push_to_client(locals.resp)
         )
+
+    mesg_remove_all_upgrades: (mesg) =>
+        dbg = @dbg("mesg_remove_all_upgrades")
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:'you must be signed in')
+            return
+        @database.remove_all_user_project_upgrades
+            account_id : @account_id
+            cb         : (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))

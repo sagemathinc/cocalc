@@ -14,7 +14,7 @@
     "async": "^1.4.2",
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
-    "coffee-script": "^1.12.7",
+    "coffeescript": "^2.1.0",
     "jsdom": "^7.2.2",
     "memwatch-next": "^0.3.0",
     "shell-escape": "^0.2.0",

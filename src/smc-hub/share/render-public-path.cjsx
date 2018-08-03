@@ -15,7 +15,7 @@ fs                   = require('fs')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
-{React}              = require('smc-webapp/smc-react')
+{React}              = require('smc-webapp/app-framework')
 {PublicPath}         = require('smc-webapp/share/public-path')
 {DirectoryListing}   = require('smc-webapp/share/directory-listing')
 
@@ -112,7 +112,7 @@ exports.render_public_path = (opts) ->
                 viewer   = {opts.viewer}
                 path     = {opts.path}
                 size     = {stats.size}
-                max_size = {MAX_SIZE}
-                />
+                max_size = {MAX_SIZE} />
+
             opts.react(opts.res, component, opts.path)
 

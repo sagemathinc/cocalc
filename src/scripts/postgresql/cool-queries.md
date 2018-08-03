@@ -1,3 +1,7 @@
+UTM:
+
+    select time, event, value -> 'utm', value ->> 'referrer' from central_log where value ->> 'utm' is not null order by time desc limit 100;
+
 Files being edited right now:
 
 
@@ -28,6 +32,19 @@ Recently added collaborators:
 
     select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
 
+Top collaborators (users who have many projects)
+
+    WITH collabs AS (
+        SELECT COUNT(*) AS num, jsonb_object_keys(users) AS account_id
+        FROM projects
+        GROUP BY account_id
+    )
+    SELECT num, first_name, last_name, email_address
+    FROM collabs, accounts
+    WHERE accounts.account_id = collabs.account_id::UUID
+      AND num > 100
+    ORDER BY num DESC
+
 Exclude course projects:
 
     select now()-a.time,a.project_id from project_log as a, projects as b where a.time >= now() - interval '1 day' and a.time <= now() and a.event#>>'{event}' = 'invite_user'  and a.project_id = b.project_id and b.course is null order by a.time desc;
@@ -50,7 +67,9 @@ Problems people are having right now:
 
     select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%Error saving file%' order by time desc limit 50;
+
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%has_unsaved_changes%' order by time desc limit 50;
 
 File access for a user with given email address:
 
@@ -179,6 +198,24 @@ Copied library entries .. timestamp is about when the feature was released
     GROUP BY title, docid
     ORDER BY count DESC;
 
+Usage of Assistant Examples
+
+    WITH stats AS (
+        SELECT COUNT(*) AS cnt
+             , event ->> 'lang' AS lang
+             , event ->> 'entry' as entry
+             , lower(reverse(split_part(reverse(event ->> 'path'), '.', 1))) AS filetype
+         FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
+          AND event ->> 'event' = 'assistant'
+        GROUP BY lang, entry, filetype
+    )
+    SELECT * FROM stats
+    WHERE cnt > 1
+    ORDER BY cnt DESC;
+
+Jupyter kernel defaults
+
+    SELECT COUNT(*), editor_settings ->> 'jupyter' AS kernel from accounts GROUP BY kernel ORDER BY count DESC;
 
 ## Stripe
 

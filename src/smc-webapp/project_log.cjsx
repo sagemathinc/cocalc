@@ -24,11 +24,11 @@ misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
-{file_actions} = require('./project_files')
+{file_actions} = require('./project_store')
 {ProjectTitleAuto} = require('./projects')
 
 {file_associations} = require('./file-associations')
@@ -127,7 +127,7 @@ LogEntry = rclass
                 path       = {@props.event.filename}
                 full       = {true}
                 style      = {if @props.cursor then selected_item}
-                trunc      = 50
+                trunc      = {50}
                 project_id = {@props.project_id} />
             {@render_took()}
         </span>
@@ -164,7 +164,7 @@ LogEntry = rclass
             full       = {true}
             style      = {if @props.cursor then selected_item}
             key        = {i}
-            trunc      = 50
+            trunc      = {50}
             link       = {link}
             project_id = {project_id ? @props.project_id} />
 
@@ -215,6 +215,23 @@ LogEntry = rclass
     render_library: ->
         return if not @props.event.target?
         <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
+
+    render_assistant: ->
+        e = @props.event
+        switch e?.action
+            when 'insert'
+                lang = misc.jupyter_language_to_name(e.lang)
+                <span>used the <i>assistant</i> to insert the "{lang}" example{' '}
+                    {'"'}{e.entry.join(' → ')}{'"'}
+                    {' into '}
+                    <PathLink
+                        path       = {@props.event.path}
+                        full       = {true}
+                        style      = {if @props.cursor then selected_item}
+                        trunc      = {50}
+                        project_id = {@props.project_id}
+                    />
+                </span>
 
     render_upgrade: ->
         params = require('smc-util/schema').PROJECT_UPGRADES.params
@@ -276,6 +293,8 @@ LogEntry = rclass
                 return <span>opened this project</span>
             when 'library'
                 return @render_library()
+            when 'assistant'
+                return @render_assistant()
             # ignore unknown -- would just look mangled to user...
             #else
             # FUTURE:
@@ -322,10 +341,10 @@ LogEntry = rclass
     render: ->
         style = if @props.cursor then selected_item else @props.backgroundStyle
         <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
-            <Col sm=1 style={textAlign:'center'}>
+            <Col sm={1} style={textAlign:'center'}>
                 <Icon name={@icon()} style={style} />
             </Col>
-            <Col sm=11>
+            <Col sm={11}>
                 {@render_user()}<Space/>
                 {@render_desc()}<Space/>
                 <TimeAgo style={style} date={@props.time} popover={true} />
@@ -541,7 +560,7 @@ exports.ProjectLog = rclass ({name}) ->
 
         <Panel>
             <Row>
-                <Col sm=4>
+                <Col sm={4}>
                     <LogSearch
                         actions          = {@actions(name)}
                         search           = {@props.search}
@@ -551,17 +570,17 @@ exports.ProjectLog = rclass ({name}) ->
                         reset_cursor     = {@reset_cursor}
                     />
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
             <Row>
-                <Col sm=4 style={marginTop:'15px'}>
+                <Col sm={4} style={marginTop:'15px'}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
             </Row>

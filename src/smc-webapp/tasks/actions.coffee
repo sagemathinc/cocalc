@@ -9,7 +9,7 @@ WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
 immutable  = require('immutable')
 underscore = require('underscore')
 
-{Actions}  = require('../smc-react')
+{Actions}  = require('../app-framework')
 
 misc = require('smc-util/misc')
 
@@ -18,6 +18,8 @@ misc = require('smc-util/misc')
 {update_visible} = require('./update-visible')
 
 keyboard = require('./keyboard')
+
+{toggle_checkbox} = require('./desc-rendering')
 
 class exports.TaskActions extends Actions
     _init: (project_id, path, syncdb, store, client) =>
@@ -58,7 +60,7 @@ class exports.TaskActions extends Actions
         if @_state == 'closed'
             return
         @_key_handler ?= keyboard.create_key_handler(@)
-        @redux.getActions('page').set_active_key_handler(@_key_handler)
+        @redux.getActions('page').set_active_key_handler(@_key_handler, @project_id, @path)
 
     disable_key_handler: =>
         @redux.getActions('page').erase_active_key_handler(@_key_handler)
@@ -460,11 +462,16 @@ class exports.TaskActions extends Actions
         if not new_id? or not new_pos?
             return
         if new_index == 0
+            # moving to very beginning
             set_pos = new_pos - 1
-        else
+        else if new_index < old_index
             before_id = visible.get(new_index-1)
             before_pos = @store.getIn(['tasks', before_id, 'position']) ? (new_pos - 1)
             set_pos = (new_pos + before_pos)/2
+        else if new_index > old_index
+            after_id = visible.get(new_index+1)
+            after_pos = @store.getIn(['tasks', after_id, 'position']) ? (new_pos + 1)
+            set_pos = (new_pos + after_pos)/2
         @set_task(old_id, {position:set_pos}, true)
         @__update_visible()
 
@@ -498,3 +505,9 @@ class exports.TaskActions extends Actions
 
     delete_timer: (task_id) =>
 
+    toggle_desc_checkbox: (task_id, index, checked) =>
+        desc = @store.getIn(['tasks', task_id, 'desc'])
+        if not desc?
+            return
+        desc = toggle_checkbox(desc, index, checked)
+        @set_desc(task_id, desc)

@@ -28,9 +28,10 @@
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
+misc_page = require('./misc_page')
 
 misc     = require("misc")
-{redux}   = require('./smc-react')
+{redux}   = require('./app-framework')
 
 {reset_password_key} = require('./password-reset')
 
@@ -65,7 +66,7 @@ signed_in = (mesg) ->
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
     console.log("Signed into #{mesg.hub} at #{new Date()}")
-    load_file = window.smc_target and window.smc_target != 'login'
+    load_file = window.smc_target and window.smc_target != 'login' and not misc_page.get_query_param('test')
     if first_login
         first_login = false
         if not load_file
@@ -78,7 +79,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
-                require('./history').load_target(window.smc_target)
+                #if DEBUG then console.log("account/signed_in/load_file -> #{window.smc_target}")
+                require('./history').load_target(window.smc_target, true)
                 window.smc_target = ''
 
 
@@ -104,7 +106,7 @@ if misc.get_local_storage(remember_me)
     ), 45000
 webapp_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
-    if redux.getStore('account')?.is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
+    if redux.getStore('account')?.get('is_logged_in')  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
             if not misc.get_local_storage(remember_me)
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)

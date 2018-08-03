@@ -26,7 +26,10 @@ many Sage sessions, and PostgreSQL database.  There are
 many HUBs running.
 ###
 
-require('coffee-cache')
+require('coffee2-cache')
+
+# Make loading typescript just work.
+require('ts-node').register()
 
 DEBUG = false
 
@@ -311,8 +314,8 @@ connect_to_database = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host     : program.database_nodes.split(',')[0]  # postgres has only one master server
-        database : program.keyspace
+        host            : program.database_nodes.split(',')[0]  # postgres has only one master server
+        database        : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
 
@@ -466,8 +469,6 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            init_smc_version(database, cb)
-        (cb) ->
             if not program.port
                 cb(); return
             if program.dev or program.update
@@ -475,6 +476,9 @@ exports.start_server = start_server = (cb) ->
                 database.update_schema(cb:cb)
             else
                 cb()
+        (cb) ->
+            # This must happen *AFTER* update_schema above.
+            init_smc_version(database, cb)
         (cb) ->
             if not program.port
                 cb(); return
@@ -625,7 +629,7 @@ command_line = () ->
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
-        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
@@ -689,3 +693,4 @@ command_line = () ->
 
 if process.argv.length > 1
     command_line()
+

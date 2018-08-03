@@ -25,7 +25,7 @@ misc = require('smc-util/misc')
 
 {server_time} = require('./webapp_client').webapp_client
 
-{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./smc-react')
+{rclass, React, ReactDOM, redux, Redux, rtypes} = require('./app-framework')
 {Loading, SetIntervalMixin, Space} = require('./r_misc')
 {OverlayTrigger, Tooltip} = require('react-bootstrap')
 
@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 # This is only needed to ensure that faces fade out; any newly added faces
 # will still be displayed instantly.  Also, updating more frequently updates
 # the line positions in the tooltip.
-UPDATE_INTERVAL_S = 5
+UPDATE_INTERVAL_S = 15
 
 # Cutoff for how recent activity must be to show users.  Should be significantly
 # longer than default for the mark_file function in the file_use actions.
@@ -64,7 +64,7 @@ exports.Avatar = Avatar = rclass
         activity   : rtypes.object   # if given; is most recent activity -- {project_id:?, path:?, last_used:?} object;
                                      # When defined, fade out over time; click goes to that file.
         no_tooltip : rtypes.bool     # if true, do not show a tooltip with full name info
-        no_loading : rtypes.bool     # if true do not show a loading indicator (show nothing)
+        no_loading : rtypes.bool     # if true, do not show a loading indicator (show nothing)
 
     getDefaultProps: ->
         size      : 30
@@ -112,14 +112,20 @@ exports.Avatar = Avatar = rclass
     render_line: ->
         return if not @props.activity?
         {project_id, path} = @props.activity
-        line = @get_cursor_line(project_id, path)
+        line = @get_cursor_line()
         if line?
             <span><Space/> (Line {line})</span>
 
     get_cursor_line: ->
         return if not @props.activity?
         {project_id, path} = @props.activity
-        line = redux.getProjectStore(project_id).get_users_cursors(path, @props.account_id)?[0]?['y']
+        cursors = redux.getProjectStore(project_id).get_users_cursors(path, @props.account_id)
+        if not cursors?
+            return
+        # TODO -- will just assume immutable.js when react rewrite is done.
+        if cursors.toJS?
+            cursors = cursors.toJS()
+        line = cursors[0]?['y']
         if line?
             return line + 1
         else
@@ -225,6 +231,12 @@ exports.UsersViewing = rclass
         size       : rtypes.number
         style      : rtypes.object
 
+    reduxProps:
+        file_use :
+            file_use : rtypes.immutable   # only so component is updated immediately whenever file use changes
+        account :
+            account_id : rtypes.string    # so we can exclude ourselves from list of faces
+
     getDefaultProps: ->
         max_age_s : MAX_AGE_S
         size      : 24
@@ -234,12 +246,6 @@ exports.UsersViewing = rclass
 
     componentDidMount: ->
         @setInterval((=> @forceUpdate()), UPDATE_INTERVAL_S*1000)
-
-    reduxProps:
-        file_use :
-            file_use : rtypes.immutable   # only so component is updated immediately whenever file use changes
-        account :
-            account_id : rtypes.string    # so we can exclude ourselves from list of faces
 
     render_active_users: (users) ->
         v = ({account_id:account_id, activity:most_recent(activity)} for account_id, activity of (users ? {}))

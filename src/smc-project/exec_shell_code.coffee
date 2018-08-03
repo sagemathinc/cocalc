@@ -23,6 +23,7 @@ exports.exec_shell_code = (socket, mesg) ->
         timeout     : mesg.timeout
         err_on_exit : mesg.err_on_exit
         max_output  : mesg.max_output
+        aggregate   : mesg.aggregate
         bash        : mesg.bash
         cb          : (err, out) ->
             if err

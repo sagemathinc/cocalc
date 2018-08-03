@@ -21,7 +21,7 @@
 
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./app-framework')
 
 {Col, Row, Button, FormControl, FormGroup, Well, InputGroup, Alert, Checkbox} = require('react-bootstrap')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
@@ -85,12 +85,12 @@ ProjectSearchOutput = rclass
         if @props.results?.length == 0
             return <Alert bsStyle='warning'>There were no results for your search</Alert>
         for i, result of @props.results
-                <ProjectSearchResultLine
-                    key              = {i}
-                    filename         = {result.filename}
-                    description      = {result.description}
-                    most_recent_path = {@props.most_recent_path}
-                    actions          = {@props.actions} />
+            <ProjectSearchResultLine
+                key              = {i}
+                filename         = {result.filename}
+                description      = {result.description}
+                most_recent_path = {@props.most_recent_path}
+                actions          = {@props.actions} />
 
     render: ->
         results_well_styles =
@@ -212,14 +212,14 @@ ProjectSearchBody = rclass ({name}) ->
     render: ->
         <Well>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     <Row>
-                        <Col sm=9>
+                        <Col sm={9}>
                             <ProjectSearchInput
                                 user_input = {@props.user_input}
                                 actions    = {@props.actions} />
                         </Col>
-                        <Col sm=3>
+                        <Col sm={3}>
                             <Button bsStyle='primary' onClick={@props.actions.search} disabled={not @valid_search()}>
                                 <Icon name='search' /> Search
                             </Button>
@@ -228,7 +228,7 @@ ProjectSearchBody = rclass ({name}) ->
                     {@render_output_header() if @props.most_recent_search? and @props.most_recent_path?}
                 </Col>
 
-                <Col sm=4 style={fontSize:'16px'}>
+                <Col sm={4} style={fontSize:'16px'}>
                     <Checkbox
                         checked  = {@props.subdirectories}
                         onChange = {@props.actions.toggle_search_checkbox_subdirectories}>
@@ -252,7 +252,7 @@ ProjectSearchBody = rclass ({name}) ->
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     {@render_output()}
                 </Col>
             </Row>
@@ -304,12 +304,12 @@ exports.ProjectSearch = rclass ({name}) ->
     render: ->
         <div style={padding:'15px'}>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     <ProjectSearchHeader actions={@actions(name)} name={name} />
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     <ProjectSearchBody actions={@actions(name)} name={name} />
                 </Col>
             </Row>

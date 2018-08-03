@@ -30,7 +30,7 @@ feature = require('./feature')
 {COLORS} = require('smc-util/theme')
 
 # SMC Components
-{React, ReactDOM, rclass, rtypes} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes} = require('./app-framework')
 {Loading, Icon, Tip} = require('./r_misc')
 {NavTab} = require('./app_shared')
 
@@ -49,7 +49,6 @@ GhostTab = (props) ->
 ProjectTab = rclass
     reduxProps:
         projects:
-            get_title : rtypes.func
             public_project_titles : rtypes.immutable.Map
 
     propTypes:
@@ -61,14 +60,21 @@ ProjectTab = rclass
     getInitialState: ->
         x_hovered : false
 
+    ###
+    This strip_href is a hack below to workaround issues with Firefox.  In particular, without this hack:
+    In the project bar in the dev app, I can grab the tab for a project and pull it down
+    from the bar. Just the label, not the whole browser tab. And when I let go, the
+    tab returns to the project bar but its horizontal motion still tracks mouse
+    cursor position. Clicking mouse releases the tab to a correct position in the
+    project bar. That does not happen in with Chrome.
+    ###
+    strip_href: ->
+        @refs.tab?.node.children[0].removeAttribute('href')
     componentDidMount: ->
         @strip_href()
-
     componentDidUpdate: () ->
         @strip_href()
 
-    strip_href: ->
-        @refs.tab?.node.children[0].removeAttribute('href')
 
     close_tab: (e) ->
         e.stopPropagation()
@@ -76,8 +82,7 @@ ProjectTab = rclass
         @actions('page').close_project_tab(@props.project_id)
 
     render: ->
-        title = @props.get_title(@props.project_id)
-        title ?= @props.public_project_titles?.get(@props.project_id)
+        title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
         if not title?
             if @props.active_top_tab == @props.project_id
                 set_window_title("Loading")
@@ -93,7 +98,7 @@ ProjectTab = rclass
         project_name_styles =
             whiteSpace: 'nowrap'
             overflow: 'hidden'
-            textOverflow: 'ellipsis'
+            #textOverflow: 'ellipsis'
 
         if @props.project_id == @props.active_top_tab
             text_color = COLORS.TOP_BAR.TEXT_ACTIVE
@@ -113,14 +118,14 @@ ProjectTab = rclass
         >
             <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
                 <Icon
-                    name = 'times'
-                    onClick = {@close_tab}
+                    name        = 'times'
+                    onClick     = {@close_tab}
                     onMouseOver = {(e)=>@setState(x_hovered:true)}
-                    onMouseOut = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
+                    onMouseOut  = {(e)=>@actions('page').clear_ghost_tabs();@setState(x_hovered:false)}
                 />
             </div>
             <div style={project_name_styles}>
-                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small' always_update={true}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: 5, position:'relative', top:-2}>{misc.trunc(title,24)}</span>
                 </Tip>
@@ -143,12 +148,12 @@ FullProjectsNav = rclass
     on_sort_end: ({oldIndex, newIndex}) ->
         @actions('projects').move_project_tab({old_index:oldIndex, new_index:newIndex, open_projects:@props.open_projects})
 
-    project_tabs: ->
+    render_project_tabs: ->
         v = []
         if not @props.open_projects?
             return
         @props.open_projects.map (project_id, index) =>
-            v.push(@project_tab(project_id, index))
+            v.push(@render_project_tab(project_id, index))
 
         if @props.num_ghost_tabs == 0
             return v
@@ -159,31 +164,26 @@ FullProjectsNav = rclass
             v.push(<GhostTab index={index} key={index}/>)
         return v
 
-    project_tab: (project_id, index) ->
+    render_project_tab: (project_id, index) ->
         <ProjectTab
-            index          = {index}
-            key            = {project_id}
-            project_id     = {project_id}
-            active_top_tab = {@props.active_top_tab}
-            project        = {@props.project_map?.get(project_id)}
+            index                 = {index}
+            key                   = {project_id}
+            project_id            = {project_id}
+            active_top_tab        = {@props.active_top_tab}
+            project               = {@props.project_map?.get(project_id)}
             public_project_titles = {@props.public_project_titles}
         />
 
     render: ->
-        shim_style =
-            position    : 'absolute'
-            left        : '0'
-            marginRight : '0px'
-            marginLeft  : '0px'
-            paddingLeft : '0px'
-            width       : '100%'
-            display     : 'flex'
+        # NOTE!!! The margin:'0' in the style in SortableNav below is critical; without
+        # it, when you make the screen skinny, the tabs get mangled looking.  DO NOT
+        # delete without being aware of this!
         <div
             style = {display:'flex', flex:'1', overflow:'hidden', height:'40px', margin:'0'}
         >
             <SortableNav
                 className            = "smc-project-tab-sorter"
-                style                = {display:'flex', overflow: 'hidden'}
+                style                = {display:'flex', overflow: 'hidden', margin:'0'}
                 helperClass          = {'smc-project-tab-floating'}
                 onSortEnd            = {@on_sort_end}
                 axis                 = {'x'}
@@ -192,7 +192,7 @@ FullProjectsNav = rclass
                 distance             = {3 if not feature.IS_TOUCH}
                 pressDelay           = {200 if feature.IS_TOUCH}
             >
-                {@project_tabs()}
+                {@render_project_tabs()}
             </SortableNav>
         </div>
 
@@ -230,10 +230,12 @@ OpenProjectMenuItem = rclass
         project_state = @props.project?.getIn(['state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
 
-        project_name_styles =
-            whiteSpace: 'nowrap'
-            overflow: 'hidden'
-            textOverflow: 'ellipsis'
+        menu_item_project_name_styles =
+            whiteSpace   : 'nowrap'
+            overflow     : 'hidden'
+            #textOverflow : 'ellipsis'
+            marginRight  : '3px'
+            width        : '100%'
 
         if @props.project_id == @props.active_top_tab
             text_color = COLORS.TOP_BAR.TEXT_ACTIVE
@@ -243,20 +245,20 @@ OpenProjectMenuItem = rclass
         else
             x_color = COLORS.TOP_BAR.X
 
-        <MenuItem onClick={@open_project} style={width:'100%', lineHeight:'1.75em', color:text_color}>
-            <Button
-                bsStyle="warning"
-                onClick={@close_tab}
-                style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}
-            >
-                <Icon name='times'/>
-            </Button>
-            <Tip style={project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+        <MenuItem onClick={@open_project} style={lineHeight:'1.75em', color:text_color}>
+            <Tip style={menu_item_project_name_styles} title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                 <div style={height: '36px', padding: [7, 5], fontSize: '18px'}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
             </Tip>
+            <Button
+                bsStyle="warning"
+                onClick={@close_tab}
+                style = {height: '34px', paddingTop: '4px', whiteSpace:'nowrap', fontSize:'16px', color:x_color}
+            >
+                <Icon name='times'/>
+            </Button>
         </MenuItem>
 
 DropdownProjectsNav = rclass
@@ -264,7 +266,6 @@ DropdownProjectsNav = rclass
         projects :
             open_projects  : rtypes.immutable.List # Open projects and their state
             project_map    : rtypes.immutable.Map  # All projects available to the user
-            get_title      : rtypes.func
             public_project_titles : rtypes.immutable.Map
         page :
             active_top_tab    : rtypes.string    # key of the active tab
@@ -291,7 +292,7 @@ DropdownProjectsNav = rclass
             project_id = @props.active_top_tab
 
             title = null
-            title ?= @props.get_title(project_id)
+            title ?= @props.project_map.getIn([project_id, 'title'])
             title ?= @props.public_project_titles?.get(project_id)
             title ?= <Loading key={@props.project_id} />
         else
@@ -299,7 +300,7 @@ DropdownProjectsNav = rclass
 
         <Nav
             className = 'smc-dropdown-projects'
-            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px'}
+            style     = {display:'flex', margin:'0', flex:'1', fontSize:'25px', textAlign:'center', padding:'5px', zIndex: 1, background: 'white'}
             >
             <NavDropdown
                 id        = "smc-top-project-nav-dropdown"
@@ -315,8 +316,10 @@ DropdownProjectsNav = rclass
         project_name_styles =
             whiteSpace   : 'nowrap'
             overflow     : 'hidden'
-            textOverflow : 'ellipsis'
-        title = @props.get_title(project_id)
+            #textOverflow : 'ellipsis'
+            marginRight  : '3px'
+
+        title = @props.project_map?.getIn([project_id, 'title'])
 
         desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
@@ -324,15 +327,15 @@ DropdownProjectsNav = rclass
 
         <Nav style={margin:'0', flex:'1', fontSize:'20px', padding:'15px'}>
             <NavItem onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').set_active_tab(project_id)}>
-                <Icon
-                    name = 'times'
-                    style = {float:'right', whiteSpace:'nowrap', fontSize:'12pt'}
-                    onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
-                />
                 <div style={project_name_styles}>
                     <Icon name={icon} style={fontSize:'20px'} />
                     <span style={marginLeft: "5px"}>{misc.trunc(title,24)}</span>
                 </div>
+                <Icon
+                    name = 'times'
+                    style = {whiteSpace:'nowrap', fontSize:'12pt'}
+                    onClick={(e)=>e.stopPropagation();e.preventDefault();@actions('page').close_project_tab(project_id)}
+                />
             </NavItem>
         </Nav>
 

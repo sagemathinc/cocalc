@@ -2,7 +2,7 @@
 A single task
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Row, Col} = require('react-bootstrap')
 
@@ -14,6 +14,7 @@ A single task
 {DragHandle}   = require('./drag')
 {DoneCheckbox} = require('./done')
 {Timer}        = require('./timer')
+{header_part}  = require('./desc-rendering')
 
 exports.Task = rclass
     propTypes :
@@ -68,13 +69,13 @@ exports.Task = rclass
             has_body  = {has_body}
         />
 
-    render_desc: (desc) ->
+    render_desc: ->
         <Description
             actions           = {@props.actions}
             path              = {@props.path}
             project_id        = {@props.project_id}
             task_id           = {@props.task.get('task_id')}
-            desc              = {desc}
+            desc              = {@props.task.get('desc')}
             full_desc         = {@props.full_desc}
             editing           = {@props.editing_desc}
             is_current        = {@props.is_current}
@@ -99,6 +100,7 @@ exports.Task = rclass
                 task_id   = {@props.task.get('task_id')}
                 due_date  = {@props.task.get('due_date')}
                 editing   = {@props.editing_due_date}
+                is_done   = {!!@props.task.get('done')}
                 />
         </span>
 
@@ -125,23 +127,22 @@ exports.Task = rclass
         if @props.font_size?
             style.fontSize = "#{@props.font_size}px"
 
-        desc = @props.task.get('desc')
+        desc = @props.task.get('desc') ? ''
         if @props.editing_desc
             # while editing no min toggle
-            body = undefined
+            min_toggle = false
         else
             # not editing, so maybe a min toggle...
-            {head, body} = parse_desc(desc)  # parse description into head, then body (sep by blank line)
-            if not @props.full_desc
-                desc = head
+            min_toggle = header_part(desc) != desc.trim()
+
         <div style={style} onClick={@on_click}>
             <Row>
                 <Col md={1}>
                     {@render_drag_handle()}
-                    {@render_min_toggle(!!body)}
+                    {@render_min_toggle(min_toggle)}
                 </Col>
                 <Col md={8}>
-                    {@render_desc(desc)}
+                    {@render_desc()}
                 </Col>
                 <Col md={1}>
                     {@render_due_date()}
@@ -154,14 +155,3 @@ exports.Task = rclass
                 </Col>
             </Row>
         </div>
-
-
-parse_desc = (s) ->
-    lines = s.trim().split('\n')
-    for i in [0...lines.length]
-        if lines[i].trim() == ''
-            if i == lines.length - 1
-                break  # all head
-            else
-                return {head:lines.slice(0,i).join('\n'), body: lines.slice(i).join('\n')}
-    return {head:s}

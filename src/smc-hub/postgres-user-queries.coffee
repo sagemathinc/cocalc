@@ -1,9 +1,9 @@
-###
+"""
 User (and project) client queries
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
-###
+"""
 
 MAX_CHANGEFEEDS_PER_CLIENT = 2000
 
@@ -14,8 +14,7 @@ EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
 
-{PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
 {UserQueryQueue} = require('./postgres-user-query-queue')
 
@@ -24,7 +23,7 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
         opts = defaults opts,
@@ -42,6 +41,27 @@ class exports.PostgreSQL extends PostgreSQL
             changes    : undefined
             cb         : undefined
 
+        if opts.account_id?
+            # Check for "sudo" by admin to query as a different user, which is done by specifying
+            #    options = [..., {account_id:'uuid'}, ...].
+            for x in opts.options
+                if x.account_id?
+                    # Check user is an admin, then change opts.account_id
+                    @get_account
+                        columns    : ['groups']
+                        account_id : opts.account_id
+                        cb         : (err, r) =>
+                            if err
+                                opts.cb?(err)
+                            else if r['groups']? and 'admin' in r['groups']
+                                opts.account_id = x.account_id
+                                opts.options = (y for y in opts.options when not y['account_id']?)
+                                # now do query with new opts and options not including account_id sudo.
+                                @user_query(opts)
+                            else
+                                opts.cb?('user must be admin to sudo')
+                    return
+
         if not opts.client_id?
             # No client_id given, so do not use query queue.
             delete opts.priority
@@ -49,7 +69,7 @@ class exports.PostgreSQL extends PostgreSQL
             @_user_query(opts)
             return
 
-        if not @_user_query_queue?
+        if not @_user_query_queue?
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')
@@ -71,7 +91,7 @@ class exports.PostgreSQL extends PostgreSQL
             changes    : undefined  # id of change feed
             cb         : undefined  # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         id = misc.uuid().slice(0,6)
-        dbg = @_dbg("user_query(id=#{id})")
+        dbg = @_dbg("_user_query(id=#{id})")
         dbg(misc.to_json(opts.query))
         if misc.is_array(opts.query)
             dbg('array query instead')
@@ -305,6 +325,8 @@ class exports.PostgreSQL extends PostgreSQL
         for x in options
             for name, value of x
                 switch name
+                    when 'only_changes'
+                        r.only_changes = !!value
                     when 'limit'
                         r.limit = value
                     when 'slice'
@@ -1107,10 +1129,12 @@ class exports.PostgreSQL extends PostgreSQL
             options = options.concat(schema_options)
 
         # Parse option part of the query
-        {limit, order_by, slice, err} = @_query_parse_options(options)
+        {limit, order_by, slice, only_changes, err} = @_query_parse_options(options)
 
         if err
             return {err: err}
+        if only_changes
+            r.only_changes = true
         if limit?
             r.limit = limit
         else if not multi
@@ -1428,13 +1452,18 @@ class exports.PostgreSQL extends PostgreSQL
                 else
                     cb()
             (cb) =>
-                dbg("finally doing query")
-                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
-                    if err
-                        cb(err)
-                        return
-                    locals.result = result
+                if _query_opts.only_changes
+                    dbg("skipping query")
+                    locals.result = undefined
                     cb()
+                else
+                    dbg("finally doing query")
+                    @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
+                        if err
+                            cb(err)
+                            return
+                        locals.result = result
+                        cb()
         ], (err) =>
             if err
                 dbg("series failed -- err=#{err}")

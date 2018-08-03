@@ -2,7 +2,7 @@
 Toggle whether or not to show tasks (deleted, done)
 ###
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {Icon, Space} = require('../r_misc')
 
@@ -56,6 +56,6 @@ exports.ShowToggle = rclass
             </span>
             <Space />
             <span>
-                Show {@props.type}{# ({@props.count})}
+                Show {@props.type}{### ({@props.count}) ###}
             </span>
         </div>

@@ -1,3 +1,5 @@
---compilers coffee:coffee-script/register
+--require coffeescript/register
+--require cjsx-register
+--require ts-node/register
 --reporter spec
 --recursive

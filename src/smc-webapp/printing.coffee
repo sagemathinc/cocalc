@@ -26,7 +26,7 @@ _               = require('underscore')
 async           = require('async')
 misc            = require('smc-util/misc')
 {webapp_client} = require('./webapp_client')
-{redux}         = require('./smc-react')
+{redux}         = require('./app-framework')
 {project_tasks} = require('./project_tasks')
 markdown        = require('./markdown')
 
@@ -336,9 +336,9 @@ class SagewsPrinter extends Printer
             @editor.syncdoc.process_html_output($html)
             out += "<div class='output html'>#{$html.html()}</div>"
         if mesg.md?
-            x = markdown.markdown_to_html(mesg.md)
+            s = markdown.markdown_to_html(mesg.md)
             $out = $("<div>")
-            $out.html_noscript(x.s) # also, don't process mathjax!
+            $out.html_noscript(s) # also, don't process mathjax!
             @editor.syncdoc.process_html_output($out)
             out += "<div class='output md'>#{$out.html()}</div>"
         if mesg.interact?

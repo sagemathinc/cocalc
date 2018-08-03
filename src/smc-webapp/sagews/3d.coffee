@@ -32,13 +32,13 @@ VERSION = '73'
 
 window.THREE = require("three")
 #for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
-    # require("script!threejs/r#{VERSION}/#{m}")
+    # require("script-loader!threejs/r#{VERSION}/#{m}")
 
-require("script!../node_modules/three/examples/js/controls/OrbitControls")
-require("script!../node_modules/three/examples/js/renderers/CanvasRenderer")
-require("script!../node_modules/three/examples/js/renderers/Projector")
+require("script-loader!../node_modules/three/examples/js/controls/OrbitControls")
+require("script-loader!../node_modules/three/examples/js/renderers/CanvasRenderer")
+require("script-loader!../node_modules/three/examples/js/renderers/Projector")
 
-require("script!../node_modules/three/examples/js/Detector")
+require("script-loader!../node_modules/three/examples/js/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}

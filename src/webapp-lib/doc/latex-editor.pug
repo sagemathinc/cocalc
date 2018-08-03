@@ -1,0 +1,288 @@
+//- latex landing page
+
+extends ../_base.pug
+
+block vars
+  - var subtitle = 'Online LaTeX Editor';
+
+block header
+  meta(name="description" content=NAME + ' - ' + subtitle)
+  script(type="text/javascript")
+    include:coffee-script ../index.coffee
+
+block content
+
+  //- CSS overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+            > div
+              margin-bottom : 1rem
+
+  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      div.col-sm-4.col-sm-offset-4.center
+        a(href=PREFIX + "app")
+          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
+        +start_button
+
+    div.row
+      div.col-md-12.center
+        h1 Online LaTeX Editor
+      div.col-sm-6
+        img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
+      div.col-sm-6
+        p.
+          #{NAME} is a web service where you can
+          #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] online right inside your browser].
+        p.
+          It handles all tedious details for you. You no longer have to:
+        ul
+          li Install a LaTeX environment,
+          li Configure its engine and install packages,
+          li Periodically backup versions of your LaTeX files.
+        p.
+          Instead, all you need to do to get started is to
+        ol
+          li Create an account,
+          li Create a project,
+          li Write or upload your #[code *.tex] files and open them in #{NAME}'s online environment.
+
+  a.anchor#a-overview
+  div.space#overview
+    div.container
+      div.row
+        div.col-md-8.col-md-offset-2.center
+          h1 Focus on the content and #{NAME} takes care of everything else
+
+    a.anchor#a-environments
+    div.container.space#environments
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] Managed LaTeX environments
+        div.col-md-6
+          img(src=require("webapp-lib/assets/latex-custom-command-02.png")).fit
+        div.col-md-6
+          div.
+            #{NAME} makes sure that your desired LaTeX engine is available and ready to use.
+            You can choose between #[a(href="http://www.tug.org/applications/pdftex/") PDF Latex],
+            #[a(href="http://xetex.sourceforge.net/") XeLaTeX] or #[a(href="http://www.luatex.org/") LuaTeX].
+          div.
+            Many packages and utilities like #[a(href="https://sourceforge.net/projects/pgf/") PGF&TikZ] are pre-installed.
+          div.
+            On top of that, by default #[a(href="http://mg.readthedocs.io/latexmk.html") LatexMK] is configured to manage the compilation process,
+            which means that you do not have to bother too much about any additional configuration.
+          div.
+            Finally, it is possible to fully customize the compilation command.
+            This means you can bring your own Shell-script or Makefile!
+
+    a.anchor#a-computational
+    div.container.space#computational
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Full computational environment
+        div.col-md-6
+          img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
+        div.col-md-6
+          div.
+            What sets #{NAME} apart from other online LaTeX editors is #[strong full access to computational software].
+            This means you can seamlessly transition from #[em computing] your results to #[em publishing] them.
+          div.
+            You can run #[a(href="https://www.python.org") Python],
+            #[a(href="http://www.sagemath.org/") SageMath],
+            #[a(href="http://www.r-project.org/") R Statistical Software],
+            #[a(href="http://julialang.org") Julia] right inside your browser in the same project as your LaTeX document.
+          div.
+            Consult the #[a(href=PREFIX + "doc/software.html") Available Software page]
+            or look at our #[a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook information page]
+            for more information.
+
+    a.anchor#a-realtimesync
+    div.container.space#realtimesync
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Collaborative editing
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-latex-concurrent-editing.png")).fit
+        div.col-md-6
+          div.
+            Once you share your project privately with collaborators,
+            concurrent modifications of the same file are #[strong synchronized in real time].
+            You can watch the cursors of others while they edit the document!
+            You are also notified about the presence of watching collaborators.
+          div.
+            Additionally, the compilation status and the resulting output is synchronized between everyone,
+            because everything is fully managed by #{NAME}.
+          div.
+            This ensures that everyone involved experiences editing the document in exactly the same way.
+
+    a.anchor#a-sagetex
+    div.container.space#sagetex
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] SageTeX
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-sagetex.png")).fit
+        div.col-md-6
+          div
+            strong #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX] lets you embed #[a(href="https://www.sagemath.org/") SageMath] in your document!
+          div.
+            This means you can write LaTeX like #[code \sage{2 + 2}] and the document will contain "4",
+            or #[code \sage{f.taylor(x, 0, 10)}] for the Taylor-expansion of a function "f".
+            Drawing graphs becomes as simple as this: #[code \sageplot{sin(x)}].
+          div.
+            #{NAME} deals with all the underlying details for you:
+          ul
+            li It runs the initial compilation pass,
+            li uses Sage to produce all output and graphs/images,
+            li and then runs the second compilation pass to produce the final output.
+
+    a.anchor#a-knitr
+    div.container.space#knitr
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] R/Knitr
+        div.col-md-6
+          img(src=require("webapp-lib/assets/latex-editor-rnw-01.png")).fit
+        div.col-md-6
+          div.
+            #{NAME}'s Latex editor also supports #[strong #[a(href="https://yihui.name/knitr/") Knitr .Rnw]] documents.
+            This gives you the ability to embed arbitrary #[a(href="https://www.r-project.org/") R Project] commands and plots in your LaTeX file.
+          div.
+            Behind the scenes, #{NAME} deals with all underlying details for you:
+          ul
+            li installation and management of #[a(href="./software-r.html") all R packages],
+            li orchestrates the full compilation pipeline for LaTeX and running R, and
+            li.
+              reconciles the line-numbers of the .Rnw file with the corresponding .tex document
+              for correct #[a(href="#a-forwardinverse") #[strong forward/inverse search]].
+
+    a.anchor#a-forwardinverse
+    div.container.space#forwardinverse
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Forward/Inverse search
+        div.col-md-6
+          div
+            +video-player
+              source(src="https://storage.googleapis.com/cocalc-extra/latex-forward-inverse-02.webm" type="video/webm; codecs=vp9")
+        div.col-md-6
+          div.
+            Let #{NAME} help you find your way around in large documents!
+          div.
+            #[strong Forward Search] let's you jump from the LaTeX source to the corresponding part in the rendered preview.
+            That saves you time looking for the output by scrolling around.
+          div.
+            #[strong Inverse search] does the opposite: double-click on a part in the output and
+            your cursor jumps (roughly) to the line in the source file for that output.
+          div.
+            Under the hood, #{NAME} uses #[a(href="https://github.com/jlaurens/synctex") SyncTeX] seamlessly.
+
+    a.anchor#a-timetravel
+    div.container.space#timetravel
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-history] Time-Travel
+        div.col-md-6
+          div
+            img(src=require("webapp-lib/assets/latex-editor-timetravel-01.png")).fit
+        div.col-md-6
+          div.
+            The #[strong Time-travel] feature is specific to the #{NAME} platform.
+            It records all changes in the LaTeX notebook in fine detail.
+            You can go back and forth in time across hundreds of changes to recover your previous edits.
+          div.
+            This is especially helpful for pinpointing which of the recent changes did cause a #[strong compilation error].
+            You can see the most recent changes during the past few minutes and see exactly where the modification happenend.
+
+    a.anchor#a-chat
+    div.container.space#chat
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-comments-o] Side-Chat panel
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-latex-side-chat-v2.png")).fit
+        div.col-md-6
+          div.
+            A #[strong side-by-side chat] for each LaTeX file
+            gives you the ability to discuss the content with your project collaborators
+            or give feedback to your students working on their assignments.
+          div.
+            Collaborators who are offline will be notified about new messages the next time they sign in.
+          div.
+            Chat messages also support #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] formatting and LaTeX formulas.
+
+    a.anchor#a-backups
+    div.container.space#backups
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-camera-retro] Backups
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+        div.col-md-6
+          div.
+            Every couple of minutes, #[strong all files in your project are saved in consistent read-only snapshots].
+          div.
+            This means you can always recover older versions of your files
+            in case they got corrupted or accidentally deleted.
+
+    a.anchor#a-publishing
+    div.container.space#publishing
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-camera-retro] Publishing
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-share-latex-document.png")).fit
+        div.col-md-6
+          div.
+            #{NAME} helps you #[strong sharing your work with the world].
+            It offers its own hosting of #[a(href="/shared") shared documents],
+            alongside with any associated data files.
+          div.
+            You can configure if your published files should be listed publicly, or rather only be available via a confidential URL.
+
+  div
+    div.container
+      div.row
+        div.col-sm-12.center(style="margin-top: 6rem")
+          +start_button
+

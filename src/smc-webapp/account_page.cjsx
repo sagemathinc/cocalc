@@ -25,7 +25,7 @@ immutable = require('immutable')
 # Import redux_account, so the account store is initialized.
 require('./redux_account')
 
-{React, ReactDOM, rclass, rtypes, redux} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, redux} = require('./app-framework')
 {Tab, Tabs, Grid, Col, Row}              = require('react-bootstrap')
 {LandingPage}                            = require('./landing_page')
 {AccountSettingsTop}                     = require('./r_account')
@@ -36,54 +36,60 @@ require('./redux_account')
 {Icon}                                   = require('./r_misc')
 {set_url}                                = require('./history')
 
+ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
+    account_id              : rtypes.string
+    active_page             : rtypes.string
+    strategies              : rtypes.immutable.List
+    sign_up_error           : rtypes.immutable.Map
+    sign_in_error           : rtypes.string
+    signing_in              : rtypes.bool
+    signing_up              : rtypes.bool
+    is_logged_in            : rtypes.bool
+    forgot_password_error   : rtypes.string
+    forgot_password_success : rtypes.string # is this needed?
+    show_forgot_password    : rtypes.bool
+    token                   : rtypes.bool
+    reset_key               : rtypes.string
+    reset_password_error    : rtypes.string
+    remember_me             : rtypes.bool
+    has_remember_me         : rtypes.bool
+    first_name              : rtypes.string
+    last_name               : rtypes.string
+    email_address           : rtypes.string
+    email_address_verified  : rtypes.immutable.Map
+    passports               : rtypes.immutable.Map
+    show_sign_out           : rtypes.bool
+    sign_out_error          : rtypes.string
+    everywhere              : rtypes.bool
+    terminal                : rtypes.immutable.Map
+    evaluate_key            : rtypes.string
+    autosave                : rtypes.number
+    font_size               : rtypes.number
+    editor_settings         : rtypes.immutable.Map
+    other_settings          : rtypes.immutable.Map
+    groups                  : rtypes.immutable.List
+    stripe_customer         : rtypes.immutable.Map
+    ssh_keys                : rtypes.immutable.Map
+
+ACCOUNT_FIELDS = misc.keys(ACCOUNT_SPEC)
+
 exports.AccountPage = rclass
     displayName : 'AccountPage'
 
     reduxProps :
         projects :
             project_map             : rtypes.immutable.Map
-        users :
-            user_map                : rtypes.immutable.Map
         customize :
             kucalc                  : rtypes.string
-        account :
-            account_id              : rtypes.string
-            active_page             : rtypes.string
-            strategies              : rtypes.array
-            sign_up_error           : rtypes.object
-            sign_in_error           : rtypes.string
-            signing_in              : rtypes.bool
-            signing_up              : rtypes.bool
-            forgot_password_error   : rtypes.string
-            forgot_password_success : rtypes.string # is this needed?
-            show_forgot_password    : rtypes.bool
-            token                   : rtypes.bool
-            reset_key               : rtypes.string
-            reset_password_error    : rtypes.string
-            remember_me             : rtypes.bool
-            has_remember_me         : rtypes.bool
-            first_name              : rtypes.string
-            last_name               : rtypes.string
-            email_address           : rtypes.string
-            email_address_verified  : rtypes.object
-            passports               : rtypes.object
-            show_sign_out           : rtypes.bool
-            sign_out_error          : rtypes.string
-            everywhere              : rtypes.bool
-            terminal                : rtypes.object
-            evaluate_key            : rtypes.string
-            autosave                : rtypes.number
-            font_size               : rtypes.number
-            editor_settings         : rtypes.object
-            other_settings          : rtypes.immutable.Map
-            profile                 : rtypes.object
-            groups                  : rtypes.array
-            stripe_customer         : rtypes.immutable.Map
-            ssh_keys                : rtypes.immutable.Map
+        account : ACCOUNT_SPEC
 
     propTypes :
         actions : rtypes.object.isRequired
         redux   : rtypes.object.isRequired
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['project_map', 'kucalc']) or \
+               misc.is_different(@props, props, ACCOUNT_FIELDS)
 
     getDefaultProps: ->
         actions : redux.getActions('account')
@@ -112,24 +118,25 @@ exports.AccountPage = rclass
 
     render_account_settings: ->
         <AccountSettingsTop
-            redux           = {@props.redux}
-            account_id      = {@props.account_id}
-            first_name      = {@props.first_name}
-            last_name       = {@props.last_name}
-            email_address   = {@props.email_address}
+            redux                  = {@props.redux}
+            account_id             = {@props.account_id}
+            first_name             = {@props.first_name}
+            last_name              = {@props.last_name}
+            email_address          = {@props.email_address}
             email_address_verified = {@props.email_address_verified}
-            passports       = {@props.passports}
-            show_sign_out   = {@props.show_sign_out}
-            sign_out_error  = {@props.sign_out_error}
-            everywhere      = {@props.everywhere}
-            terminal        = {@props.terminal}
-            evaluate_key    = {@props.evaluate_key}
-            autosave        = {@props.autosave}
-            font_size       = {@props.font_size}
-            editor_settings = {@props.editor_settings}
-            stripe_customer = {@props.stripe_customer}
-            other_settings  = {@props.other_settings.toJS()}
-            groups          = {@props.groups} />
+            passports              = {@props.passports}
+            show_sign_out          = {@props.show_sign_out}
+            sign_out_error         = {@props.sign_out_error}
+            everywhere             = {@props.everywhere}
+            terminal               = {@props.terminal}
+            evaluate_key           = {@props.evaluate_key}
+            autosave               = {@props.autosave}
+            tab_size               = {@props.editor_settings?.get('tab_size')}
+            font_size              = {@props.font_size}
+            editor_settings        = {@props.editor_settings}
+            stripe_customer        = {@props.stripe_customer}
+            other_settings         = {@props.other_settings}
+            groups                 = {@props.groups} />
 
     render_landing_page: ->
         <LandingPage
@@ -169,7 +176,7 @@ exports.AccountPage = rclass
         return v
 
     render: ->
-        logged_in = @props.redux.getStore('account')?.is_logged_in()
+        logged_in = @props.is_logged_in
         <div style={overflow:'auto'}>
             <Grid className='constrained'>
                 {@render_landing_page() if not logged_in}

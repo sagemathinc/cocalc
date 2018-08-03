@@ -66,7 +66,7 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')
 {webapp_client}      = require('./webapp_client')
-{redux}              = require('./smc-react')
+{redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
 
@@ -157,7 +157,13 @@ syncstring also does the same sort of merging process.
 underscore = require('underscore')
 
 class JupyterWrapper extends EventEmitter
-    constructor: (@element, @server_url, @filename, @read_only, @project_id, timeout, cb) ->
+    constructor: (element, server_url, filename, read_only, project_id, timeout, cb) ->
+        super()
+        @element = element
+        @server_url = server_url
+        @filename = filename
+        @read_only = read_only
+        @project_id = project_id
         @blobs = {}
         @blobs_pending = {}
         @state = 'loading'
@@ -815,14 +821,17 @@ exports.jupyter_server_url = (project_id) ->
 
 
 class JupyterNotebook extends EventEmitter
-    constructor: (@parent, @filename, opts={}) ->
+    constructor: (parent, filename, opts={}) ->
+        super()
+        @parent = parent
+        @filename = filename
         opts = @opts = defaults opts,
             read_only         : false
             mode              : undefined   # ignored
             default_font_size : 14          # set in editor.coffee
             cb                : undefined   # optional
         if $.browser.firefox
-            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter classic does not work on Firefox; please switch to the modern Jupyter notebook server.</div>")
+            @element = $("<div class='alert alert-info' style='margin: 15px;'>Jupyter *classic* does not work on Firefox; please switch to the CoCalc Jupyter notebook.</div>")
             @element.data("jupyter_notebook", @)
             @modern()
             opts.cb?()
@@ -1180,7 +1189,7 @@ class JupyterNotebook extends EventEmitter
     failed_to_load: =>
         @element.find(".smc-jupyter-notebook-notebook").remove()
         t = "<div style='margin:15px'><h3>Classical Jupyter is not working</h3>"
-        t += "Please try the <a href='#{@server_url}#{@filename}' target='_blank'>plain non-collaborative server</a>, or <a href='#jupyter-switch-to-modern-notebook'>switch back to the modern Jupyter notebook server</a>.</div>"
+        t += "Please try the <a href='#{@server_url}#{@filename}' target='_blank'>plain non-collaborative server</a>, or <a href='#jupyter-switch-to-modern-notebook'>switch back to the CoCalc Jupyter notebook server</a>.</div>"
         @element.append(t)
         $("a[href='#jupyter-switch-to-modern-notebook']").click () =>
             bootbox.hideAll()
@@ -1214,10 +1223,10 @@ class JupyterNotebook extends EventEmitter
         return false
 
     modern: () =>
-        t = "<h3><i class='fa fa-exchange'></i> Switch to the Modern Notebook</a></h3>"
-        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the modern Jupyter notebook server (or use Google Chrome or Safari).<br><br>The modern Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the modern notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>More info and the latest status...</a>"
+        t = "<h3><i class='fa fa-exchange'></i> Switch to the CoCalc Jupyter Notebook</a></h3>"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>More info and the latest status...</a>"
         t += "<br><hr>"
-        t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to Modern Notebook</a>"
+        t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to CoCalc Jupyter Notebook</a>"
         bootbox.alert(t)
 
         $("a[href='#jupyter-switch-to-modern-notebook']").click () =>
@@ -1275,8 +1284,8 @@ class JupyterNotebook extends EventEmitter
         webapp_client.exec
             path        : @path
             project_id  : @project_id
-            command     : 'sage'
-            args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
+            command     : 'jupyter'
+            args        : ['nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30
@@ -1327,15 +1336,15 @@ class JupyterNotebook extends EventEmitter
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                redux.getProjectActions(@project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(@filename, {description : "Jupyter notebook #{@filename}"})
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                redux.getProjectActions(@project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@project_id).set_public_path(html, {description : "Jupyter html version of #{@filename}"})
                 cb()
             ], (err) =>
-            status?("done", 100)
-            @publish_button.find("fa-refresh").hide()
-            cb?(err)
+                status?("done", 100)
+                @publish_button.find("fa-refresh").hide()
+                cb?(err)
         )
 
     refresh: (cb) =>

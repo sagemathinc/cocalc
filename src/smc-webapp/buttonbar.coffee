@@ -296,6 +296,14 @@ exports.commands =
             wrap :
                 left  : "\n\\begin{quote}\n"
                 right : "\n\\end{quote}\n"
+        quote :
+            wrap :
+                left  : "\n\\begin{quote}\n"
+                right : "\n\\end{quote}\n"
+        table:
+            wrap :
+                left  : "\n\\begin{center}\\begin{tabular}{|c|c|}\n\\hline\ncell1 & cell2 \\\\\ncell3 & cell4 \\\\\n\\hline"
+                right : "\n\\end{tabular}\\end{center}\n"
         subscript :
             wrap :
                 left  : '_{'
@@ -315,6 +323,18 @@ exports.commands =
                 left  : "\\hrulefill"
                 #left  : "\n\\noindent\\makebox[\\linewidth]{\\rule{\\paperwidth}{0.4pt}}\n"
                 right : ""
+        justifyleft :
+            wrap :
+                left  : '\n\\begin{flushleft}\n'
+                right : '\n\\end{flushleft}\n'
+        justifyright :
+            wrap :
+                left  : '\n\\begin{flushright}\n'
+                right : '\n\\end{flushright}\n'
+        justifycenter :
+            wrap :
+                left  : '\n\\begin{center}\n'
+                right : '\n\\end{center}\n'
 
     md :
         bold :
@@ -349,26 +369,6 @@ exports.commands =
                 space   : false
                 newline : true
                 trim    : false
-        format_heading_1 :  # FUTURE -- define via for loop below
-            strip : ['format_heading_2','format_heading_3','format_heading_4']
-            wrap :
-                left  : "\n# "
-                right : ""
-        format_heading_2 :
-            strip : ['format_heading_1','format_heading_3','format_heading_4']
-            wrap :
-                left  : "\n## "
-                right : ""
-        format_heading_3 :
-            strip : ['format_heading_1','format_heading_2','format_heading_4']
-            wrap :
-                left  : "\n### "
-                right : ""
-        format_heading_4 :
-            strip : ['format_heading_1','format_heading_2','format_heading_3']
-            wrap :
-                left  : "\n#### "
-                right : ""
         format_code :
             wrap :
                 left    : '    '
@@ -385,9 +385,17 @@ exports.commands =
                 space   : false
                 newline : true
                 trim    : false
+        quote :
+            wrap :
+                left    : '> '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         horizontalRule:
             wrap:
-                left  : "\n------------------\n"
+                left  : "\n---\n"
                 right : ""
         table :
             wrap:
@@ -1405,9 +1413,23 @@ exports.commands =
                     """
 ###
 
-#
-# programmatically creating the menu entries and buttons
-#
+###
+Programmatically adding to above data structure
+###
+
+# 6 markdown heading levels:
+for i in [1..6]
+    strip = ("format_heading_#{j}" for j in [1..6] when j != i)
+    left  = '\n' + ("#" for j in [1..i]).join('') + ' '
+    exports.commands.md["format_heading_#{i}"] =
+        strip : strip
+        wrap  :
+            left  : left
+            right : ""
+
+###
+Programmatically creating the menu entries and buttons
+###
 
 #
 # helper functions
@@ -1634,7 +1656,7 @@ initialize_sage_python_r_toolbar = () ->
 
     # -- python specific --
     pybar    = make_bar("webapp-editor-codeedit-buttonbar-python")
-    add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+    add_icon(pybar, "#", "#comment", "Comment selected text")
 
     py_control = ["Data", "Basic Data Types",
            [["Construction"],

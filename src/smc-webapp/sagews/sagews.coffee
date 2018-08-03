@@ -34,7 +34,7 @@ misc_page         = require('../misc_page')
 message           = require('smc-util/message')
 markdown          = require('../markdown')
 {webapp_client}   = require('../webapp_client')
-{redux}           = require('../smc-react')
+{redux}           = require('../app-framework')
 {alert_message}   = require('../alerts')
 
 {sagews_eval}     = require('./sagews-eval')
@@ -73,15 +73,13 @@ folded_gutter_elt = $('<div class="CodeMirror-foldgutter-folded CodeMirror-gutte
 line_number_elt   = $("<div style='color:#88f'></div>")
 
 class SynchronizedWorksheet extends SynchronizedDocument2
-    constructor: (@editor, @opts) ->
-        # window.w = @
-
-        # these two lines are assumed, at least by the history browser
-        @codemirror  = @editor.codemirror
-        @codemirror1 = @editor.codemirror1
-
-        # Code execution queue.
-        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
+    constructor: (editor, opts) ->
+        if opts.static_viewer
+            super(editor, opts)
+            @readonly   = true
+            @project_id = editor.project_id
+            @filename   = editor.filename
+            return
 
         # We set a custom rangeFinder that is output cell marker aware.
         # See https://github.com/sagemathinc/cocalc/issues/966
@@ -99,103 +97,101 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                             cur.to.ch = cm.getLine(i).length
                         return cur
 
-        for cm in @codemirrors()
-            cm.setOption('foldOptions', foldOptions)
-
-        if @opts.static_viewer
-            @readonly   = true
-            @project_id = @editor.project_id
-            @filename   = @editor.filename
-            return
-
         opts0 =
-            cursor_interval : @opts.cursor_interval
-            sync_interval   : @opts.sync_interval
-        super @editor, opts0, () =>
+            cursor_interval : opts.cursor_interval
+            sync_interval   : opts.sync_interval
+            cm_foldOptions  : foldOptions
 
-            @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+        super editor, opts0
 
-            @init_hide_show_gutter()  # must be after @readonly set
+        # Code execution queue.
+        @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
-            @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
+    # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
+    _init_cb: =>
+        @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
-            if not @readonly
-                @status cb: (err, status) =>
-                    if not status?.running
-                        @execute_auto_cells()
-                    else
-                        # Kick the worksheet process into gear if it isn't running already
-                        @introspect_line
-                            line     : "return?"
-                            timeout  : 30
-                            preparse : false
-                            cb       : (err) =>
+        @init_hide_show_gutter()  # must be after @readonly set
 
-            @on 'sync', () =>
-                #console.log("sync")
+        @process_sage_updates(caller:"constructor")   # MUST be after @readonly is set.
+
+        if not @readonly
+            @status cb: (err, status) =>
+                if not status?.running
+                    @execute_auto_cells()
+                else
+                    # Kick the worksheet process into gear if it isn't running already
+                    @introspect_line
+                        line     : "return?"
+                        timeout  : 30
+                        preparse : false
+                        cb       : (err) =>
+
+        @on 'sync', () =>
+            #console.log("sync")
+            @process_sage_update_queue()
+
+        @editor.on 'show', (height) =>
+            @set_all_output_line_classes()
+
+        @editor.on 'toggle-split-view', =>
+            @process_sage_updates(caller:"toggle-split-view")
+
+        @init_worksheet_buttons()
+
+        v = [@codemirror, @codemirror1]
+        for cm in v
+            cm.on 'beforeChange', (instance, changeObj) =>
+                #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
+                # Set the evaluated flag to false for the cell that contains the text
+                # that just changed (if applicable)
+                if changeObj.origin == 'redo'
+                    return
+                if changeObj.origin == 'undo'
+                    return
+                if changeObj.origin? and changeObj.origin != 'setValue'
+                    @remove_this_session_flags_from_changeObj_range(changeObj)
+
+                if changeObj.origin == 'paste'
+                    changeObj.cancel()
+                    # WARNING: The Codemirror manual says "Note: you may not do anything
+                    # from a "beforeChange" handler that would cause changes to the
+                    # document or its visualization."  I think this is OK below though
+                    # since we just canceled the change.
+                    @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
+                    @_apply_changeObj(changeObj)
+                    @process_sage_updates(caller:"paste")
+                    @sync()
+
+            cm.on 'change', (instance, changeObj) =>
+                #console.log('changeObj=', changeObj)
+                if changeObj.origin == 'undo' or changeObj.origin == 'redo'
+                    return
+                start = changeObj.from.line
+                stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
+
+                if @editor.opts.line_numbers
+                    # If stop isn't at a marker, extend stop to include the rest of the input,
+                    # so relative line numbers for this cell get updated.
+                    x = cm.getLine(stop)?[0]
+                    if x != MARKERS.cell and x != MARKERS.output
+                        n = cm.lineCount() - 1
+                        while stop < n and x != MARKERS.output and x != MARKERS.cell
+                            stop += 1
+                            x = cm.getLine(stop)?[0]
+
+                    # Similar for start
+                    x = cm.getLine(start)?[0]
+                    if x != MARKERS.cell and x != MARKERS.output
+                        while start > 0 and x != MARKERS.cell and x != MARKERS.output
+                            start -= 1
+                            x = cm.getLine(start)?[0]
+
+                if not @_update_queue_start? or start < @_update_queue_start
+                    @_update_queue_start = start
+                if not @_update_queue_stop? or stop > @_update_queue_stop
+                    @_update_queue_stop = stop
                 @process_sage_update_queue()
-
-            @editor.on 'show', (height) =>
-                @set_all_output_line_classes()
-
-            @editor.on 'toggle-split-view', =>
-                @process_sage_updates(caller:"toggle-split-view")
-
-            @init_worksheet_buttons()
-
-            v = [@codemirror, @codemirror1]
-            for cm in v
-                cm.on 'beforeChange', (instance, changeObj) =>
-                    #console.log("beforeChange (#{instance.name}): #{misc.to_json(changeObj)}")
-                    # Set the evaluated flag to false for the cell that contains the text
-                    # that just changed (if applicable)
-                    if changeObj.origin == 'redo'
-                        return
-                    if changeObj.origin == 'undo'
-                        return
-                    if changeObj.origin? and changeObj.origin != 'setValue'
-                        @remove_this_session_flags_from_changeObj_range(changeObj)
-
-                    if changeObj.origin == 'paste'
-                        changeObj.cancel()
-                        # WARNING: The Codemirror manual says "Note: you may not do anything
-                        # from a "beforeChange" handler that would cause changes to the
-                        # document or its visualization."  I think this is OK below though
-                        # since we just canceled the change.
-                        @remove_cell_flags_from_changeObj(changeObj, ACTION_SESSION_FLAGS)
-                        @_apply_changeObj(changeObj)
-                        @process_sage_updates(caller:"paste")
-                        @sync()
-
-                cm.on 'change', (instance, changeObj) =>
-                    #console.log('changeObj=', changeObj)
-                    if changeObj.origin == 'undo' or changeObj.origin == 'redo'
-                        return
-                    start = changeObj.from.line
-                    stop  = changeObj.to.line + changeObj.text.length + 1 # changeObj.text is an array of lines
-
-                    if @editor.opts.line_numbers
-                        # If stop isn't at a marker, extend stop to include the rest of the input,
-                        # so relative line numbers for this cell get updated.
-                        x = cm.getLine(stop)?[0]
-                        if x != MARKERS.cell and x != MARKERS.output
-                            n = cm.lineCount() - 1
-                            while stop < n and x != MARKERS.output and x != MARKERS.cell
-                                stop += 1
-                                x = cm.getLine(stop)?[0]
-
-                        # Similar for start
-                        x = cm.getLine(start)?[0]
-                        if x != MARKERS.cell and x != MARKERS.output
-                            while start > 0 and x != MARKERS.cell and x != MARKERS.output
-                                start -= 1
-                                x = cm.getLine(start)?[0]
-
-                    if not @_update_queue_start? or start < @_update_queue_start
-                        @_update_queue_start = start
-                    if not @_update_queue_stop? or stop > @_update_queue_stop
-                        @_update_queue_stop = stop
-                    @process_sage_update_queue()
 
     close: =>
         @execution_queue?.close()
@@ -204,6 +200,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     init_hide_show_gutter: () =>
         gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter", "smc-sagews-gutter-hide-show"]
         for cm in [@codemirror, @codemirror1]
+            continue if not cm?
             cm.setOption('gutters', gutters)
             cm.on 'gutterClick', @_handle_input_hide_show_gutter_click
 
@@ -1519,7 +1516,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 e.html(mesg.html)
             else
                 e.html_noscript(mesg.html)
-            e.mathjax(hide_when_rendering:true)
+            e.katex()
             output.append(e)
             @process_html_output(e)
 
@@ -1529,7 +1526,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.d3?
             e = $("<div>")
             output.append(e)
-            require.ensure [], () =>
+            # TODO this is a hotfix. Make this loading lazy again -- #2860
+            #require.ensure [], () =>
+            if true
                 require('./d3')  # install the d3 plugin
                 e.d3
                     viewer : mesg.d3.viewer
@@ -1537,28 +1536,30 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         if mesg.md?
             # markdown
-            x = markdown.markdown_to_html(mesg.md)
+            # we replace all backslashes by double backslashes since bizarely the markdown-it processes replaces \$ with $, which
+            # breaks later use of mathjax :-(.  This will get deleted soon.
+            html = markdown.markdown_to_html(mesg.md)
             t = $('<div class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
-                t.html(x.s)
+                t.html(html)
             else
-                t.html_noscript(x.s)
-            #console.log 'sagews:mesg.md, t:', t
-            t.mathjax(hide_when_rendering:true)
+                t.html_noscript(html)
+            t.katex()
             output.append(t)
             @process_html_output(t)
 
         if mesg.tex?
             # latex
             val = mesg.tex
-            elt = $("<div class='sagews-output-tex'>")
-            arg = {tex:val.tex}
             if val.display
-                arg.display = true
+                delim = '$$'
             else
-                arg.inline = true
-            arg.hide_when_rendering = true
-            output.append(elt.mathjax(arg))
+                delim = '$'
+            html = markdown.markdown_to_html(delim + val.tex + delim)
+            t = $("<div class='sagews-output-tex'>")
+            t.html(html)
+            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
+            output.append(t)
 
         if mesg.raw_input?
             output.append(@raw_input(mesg.raw_input))
@@ -1593,8 +1594,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        require.ensure [], () =>   # only load 3d library if needed
-                            require('./3d').render_3d_scene
+                        # TODO this is a temporary fix -- uncomment it again and remove the if true line once "require.ensure" works again
+                        #require.ensure [], () =>   # only load 3d library if needed
+                        if true
+                            {render_3d_scene} = require('./3d')
+                            render_3d_scene
                                 url     : target
                                 element : elt
                                 cb      : (err, obj) =>

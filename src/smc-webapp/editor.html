@@ -102,7 +102,7 @@ Editor for files in a project
                     </span>
                     <span class="hidden-xs btn-group editor-btn-group">
                         <a href="#vim-mode-toggle" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Toggle VIM mode" style="width:4em">esc</a>
-                        <a href="#autoindent" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
+                        <a href="#autoindent" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-indent"></i></a>
                         <a href="#undo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
                         <a href="#redo" class="btn btn-default webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
                         <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
@@ -121,7 +121,7 @@ Editor for files in a project
                         <a href="#paste" class="btn btn-default btn-history webapp-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Paste"><i class="fa fa-paste"> </i> </a>
                         <a href="#sagews2pdf" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to PDF"><i class="fa fa-file-pdf-o"> </i> </a>
                         <a href="#print" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
-                        <a href="#sagews2ipynb" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="fa cc-icon-ipynb"> </i> <span class="hidden-sm">Jupyter</span></a>
+                        <a href="#sagews2ipynb" class="btn btn-default webapp-editor-write-only hide" data-toggle="tooltip" data-placement="bottom" title="Convert to ipynb"><i class="cc-icon-ipynb"> </i> <span class="hidden-sm">Jupyter</span></a>
                     </span>
 
                     <span class="btn-group webapp-editor-read-only hide">
@@ -176,9 +176,15 @@ Editor for files in a project
 
                 <div class="webapp-editor-buttonbars webapp-editor-write-only">
                     <div class="webapp-editor-latex-buttonbar hide"></div>
-                    <div class="webapp-editor-codemirror-textedit-buttons hide  visible-md-block visible-lg-block">
+                    <div class="webapp-editor-codemirror-textedit-buttons hide visible-md-block visible-lg-block">
                         <code class="webapp-editor-codeedit-buttonbar-mode pull-right hide"></code>
                         <span class="react-target"></span>
+                        <span class="webapp-editor-codeedit-buttonbar-assistant pull-right hide">
+                            <a href="#assistant" class="btn btn-default"
+                               data-toggle="tooltip" data-placement="bottom" title="Insert examples">
+                               <i class="fa fa-magic"></i> <span class="hidden-sm">Assistant</span>
+                            </a>
+                        </span>
                     </div>
                     <div class="webapp-editor-codemirror-worksheet-editable-buttons hide">
                         <span class="btn-group">
@@ -307,25 +313,6 @@ Editor for files in a project
 
     <div class="smc-editor-codemirror-cursor"><span class="smc-editor-codemirror-cursor-label"></span><div class="smc-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
-    <!-- Image viewer -->
-    <div class="webapp-editor-image" style="margin-left: 1ex;">
-        <span class="visible-xs">
-            <span class="btn-group">
-                <a href="#close" class="btn btn-default btn-lg"><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
-                <a class="btn btn-default btn-lg" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
-            </span>
-        </span>
-        <span class="hidden-xs">
-            <a class="btn btn-default" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
-        </span>
-        <div class="hidden-xs webapp-editor-image-title pull-right"> The title </div>
-        <div class="webapp-editor-image-container">
-            <img style="max-width:100%">
-            <video style="max-width:100%" controls autoplay loop></video>
-            <span>Loading...</span>
-        </div>
-    </div>
-
     <!-- Static HTML viewer -->
     <div class="webapp-editor-static-html">
         <div class="webapp-editor-static-html-content">
@@ -387,119 +374,6 @@ Editor for files in a project
             </iframe>
         </div>
     </div>
-
-    <!-- Template for the LaTeX editor -->
-    <div class="webapp-editor-latex smc-vfill">
-        <div style="display:flex; flex-direction:row; height:100%" class="webapp-editor-latex-content">
-            <div class="webapp-editor-latex-latex_editor" style="flex-basis:60%; display: flex; flex-direction: column">
-            </div>
-            <div class="webapp-editor-latex-resize-bar">
-            </div>
-            <div class="webapp-editor-latex-right-pane smc-vfill" style="flex:1; overflow-y:auto; background: #efefef;">
-                <ul class="nav nav-tabs" role="tablist">
-                    <li role="presentation" class="active">
-                        <a href="#png-preview" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show preview"><i class="fa fa-building"></i> Preview</a>
-                    </li>
-                    <li role="presentation">
-                        <a href="#errors" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show errors and warnings"><i class="fa fa-bug"></i><span class="hidden-xs">  Issues </span><span class="webapp-latex-errors-counter"></span> <span class="webapp-latex-warnings-counter"></span></a>
-                    </li>
-                    <li role="presentation">
-                        <a href="#pdf-preview" role="tab" data-toggle="tooltip" data-placement="bottom" title="Show final rendered PDF"><i class="fa fa-eye"></i> PDF</a>
-                    </li>
-                    <li role="presentation">
-                        <a href="#log" role="tab" data-toggle="tooltip" data-placement="bottom" title="Build control and compilation log"><i class="fa fa-bolt"></i><span class="hidden-xs">  Build</span>
-                        <span class="webapp-latex-build-status"></span>
-                        </a>
-                    </li>
-                    <li role="presentation">
-                        <a href="#help" role="tab" data-toggle="tooltip" data-placement="bottom" title="Usage information for the LaTeX editor"><i class="fa fa-question-circle"></i> Help</a>
-                    </li>
-                </ul>
-                <div class="webapp-editor-latex-pdf-preview smc-vfill hide">
-                </div>
-                <div class="webapp-editor-latex-png-preview smc-vfill hide">
-                </div>
-                <div class="webapp-editor-latex-help smc-vfill hide">
-                </div>
-                <div class="webapp-editor-latex-errors hide" style="overflow-y: auto; border: 1px solid lightgrey;">
-                    <div style="margin-left:2em">
-                        <h3>Errors</h3>
-                        <div class="webapp-latex-errors">
-                        </div>
-                        <h3>Typesetting Issues</h3>
-                        <div class="webapp-latex-typesetting">
-                        </div>
-                        <h3>Other Warnings</h3>
-                        <div class="webapp-latex-warnings">
-                        </div>
-                        <div style="height:10em"></div>
-                    </div>
-                </div>
-                <!-- error/warning message templates -->
-                <div class="webapp-editor-latex-mesg-template well hide">
-                    <a class="btn btn-default" style="max-width:80%">
-                        <i class="fa fa-mail-reply"></i>
-                        <span class="webapp-latex-mesg-line"></span>
-                        <span class="webapp-latex-mesg-page"></span>
-                        <span class="webapp-latex-mesg-file"></span>
-                        <span class="webapp-latex-mesg-message"></span>
-                    </a>
-                    <a class="btn pull-right btn-default">
-                        <i class="fa fa-mail-forward"></i>
-                    </a>
-                    <pre class="webapp-latex-mesg-content lighten hide"></pre>
-                </div>
-                <div class="webapp-editor-latex-log smc-vfill hide">
-                    <span class="btn-group">
-                        <a href="#latex-recompile" class="btn btn-sm btn-success" data-toggle="tooltip" data-placement="bottom" title="Recompile everything"><i class="fa fa-bolt"></i> Recompile</a>
-                        <a href="#latex-latex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Latex"><i class="fa fa-bolt"></i> Latex</a>
-                        <a href="#latex-bibtex" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Bibtex"><i class="fa fa-bolt"></i> Bibtex</a>
-                        <a href="#latex-sage" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Run Sagetex"><i class="fa fa-bolt"></i> Sage</a>
-                        <a href="#latex-trash-aux" class="btn btn-sm btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete auxiliary build files."><i class="fa fa-trash-o"></i> Clean</a>
-                    </span>
-
-                    <div class="input-group smc-editor-latex-log-cmd">
-                      <input type="text" class="form-control" data-toggle="tooltip" data-placement="bottom" title="Hit return after customizing build command">
-                      <div class="input-group-btn">
-                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span style="white-space: nowrap;">Command <span class="caret"></span></span></button>
-                        <ul class="dropdown-menu dropdown-menu-right">
-                          <li><a href="#pdflatex">PDFLatex (default)</a></li>
-                          <li><a href="#xelatex">XeLaTeX</a></li>
-                          <li><a href="#luatex">LuaTex</a></li>
-                          <li role="separator" class="divider"></li>
-                          <li><a href="#old">Old command</a></li>
-                        </ul>
-                      </div>
-                    </div>
-                    <textarea  readonly="" style="padding:15px; flex:1; width:100%; color:#666; background: #f8f8f0;">You have not run LaTeX yet.</textarea>
-                </div>
-                <div class="webapp-editor-latex-settings hide">
-                    <h1>Settings</h1>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Template for the HTML-MD editor -->
-    <div class="webapp-editor-html-md smc-vfill">
-        <div class="webapp-editor-html-md-editor-buttonbar">
-        </div>
-        <div class="webapp-editor-html-md-textedit-buttonbar">
-        </div>
-        <div style="display:flex; flex-direction:row; height:100%" class="webapp-editor-html-md-content">
-            <div class="webapp-editor-html-md-source-editor" style="flex-basis:70%; display: flex; flex-direction: column">
-            </div>
-            <div class="webapp-editor-html-md-resize-bar">
-            </div>
-            <div class="webapp-editor-html-md-preview" style="flex:1">
-                <a href="#disable-preview" class="pull-right btn btn-default"><i class="fa fa-check-square-o"></i> Preview</a>
-                <a href="#enable-preview" class="pull-right btn btn-default btn-lg hide"><i class="fa fa-square-o"></i> Enable Preview</a>
-                <div class="webapp-editor-html-md-preview-content">
-                </div>
-            </div>
-        </div>
-    </div>
-
 
     <div class="webapp-editor-history smc-vfill">
         <div class="webapp-editor-history-controls" style="display:flex; padding-left: 10px; padding-right: 10px; border-bottom: 1px solid lightgrey; background-color:#efefef">
@@ -777,7 +651,7 @@ Editor for files in a project
                     <button type="button" class="close btn-close" aria-hidden="true">
                         <span style="font-size:20pt;">×</span>
                     </button>
-                    <h3><i class="fa">&Omega;</i> Insert Symbol</h3>
+                    <h3><span>&Omega;</span> Insert Symbol</h3>
                 </div>
                 <div class="well" style="margin:1em;font-size:12pt;cursor:pointer">
                     <table class="webapp-html-editor-symbols-dialog-table" width="100%" align="center">
@@ -1078,8 +952,8 @@ Editor for files in a project
             <a href="#link" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert link..."><i class="fa fa-link"></i></a>
             <a href="#image" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert image..."><i class="fa fa-image"></i></a>
             <a href="#table" data-args="special" class="btn btn-default"  data-toggle="tooltip" data-placement="bottom" title="Insert table"><i class="fa fa-table"></i></a>
-            <a href="#horizontalRule" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert horizontal line"><i class="fa">&mdash;</i></a>
-            <a href="#SpecialChar" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert Special Character ..."><i class="fa">&Omega;</i></a>
+            <a href="#horizontalRule" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert horizontal line">&mdash;</a>
+            <a href="#SpecialChar" data-args="special" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Insert Special Character ...">&Omega;</a>
         </span>
         <span class="btn-group">
             <a href="#justifyleft" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Left justify"><i class="fa fa-align-left"></i></a>

@@ -70,7 +70,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store, redux}  = require('./app-framework')
 {Button, Col, Grid, FormControl, FormGroup, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -135,7 +135,7 @@ exports.blank_column = blank_column = ->
 exports.render_markdown = render_markdown = (value, project_id, file_path, className) ->
     # the marginBottom offsets that markdown wraps everything in a p tag
     <div style={marginBottom:'-10px'}>
-        <Markdown value={value} project_id={project_id} file_path={file_path} className={className} />
+        <Markdown value={value} project_id={project_id} file_path={file_path} className={className} checkboxes={true} />
     </div>
 
 exports.render_history_title = render_history_title =  ->
@@ -150,7 +150,7 @@ exports.render_history_footer = render_history_footer = ->
 exports.render_history = render_history = (history, user_map) ->
     if not history?
         return
-    historyList = history.toJS().slice(1)  # convert to javascrip from immutable, and remove current version.
+    historyList = history.toJS().slice(1)  # convert to javascript from immutable, and remove current version.
     for index, objects of historyList
         value = objects.content
         value = misc.smiley
@@ -164,7 +164,7 @@ exports.render_history = render_history = (history, user_map) ->
             text = "Last edit "
         <Well key={index} bsSize="small" style={marginBottom:'0px'}>
             <div style={marginBottom: '-10px', wordWrap:'break-word'}>
-                <Markdown value={value}/>
+                <Markdown value={value} checkboxes={true} />
             </div>
             <div className="small">
                 {text}

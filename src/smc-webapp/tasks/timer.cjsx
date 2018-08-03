@@ -2,9 +2,9 @@
 Stopwatch for timing a particular task
 ###
 
-{Stopwatch} = require('../editor_time')
+{Stopwatch} = require('../stopwatch/stopwatch')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 exports.Timer = rclass
     propTypes :

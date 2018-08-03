@@ -25,18 +25,11 @@ misc           = require('smc-util/misc')
 misc_page      = require('./misc_page')
 os_path        = require('path')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
 {COLORS}        = require('smc-util/theme')
-
-# src: where the library files are
-# start: open this file after copying the directory
-exports.LIBRARY = LIBRARY =
-    first_steps :
-        src    : '/ext/library/first-steps/src'
-        start  : 'first-steps.tasks'
 
 # used for some styles
 HEIGHT = '275px'
@@ -66,7 +59,6 @@ exports.Library = rclass ({name}) ->
     getInitialState: ->
         lang        : 'python'
         show_thumb  : false
-        # sorted_docs : undefined    # depends('library') ->
 
     metadata: ->
         @props.library?.getIn(['examples', 'metadata'])
@@ -242,7 +234,7 @@ exports.Library = rclass ({name}) ->
                         Tags: {tags.join(', ')}
                     </p>
             }
-            {#<p style={color: '#666'}>copies <code>{@props.library_selected.src}</code> into <code>{@target_path()}</code></p>}
+            {### <p style={color: '#666'}>copies <code>{@props.library_selected.src}</code> into <code>{@target_path()}</code></p> ###}
             {
                 if tag_extra_info.length > 0
                     info = tag_extra_info.join(' ')
@@ -277,8 +269,7 @@ exports.Library = rclass ({name}) ->
 
         thumb = @props.library_selected?.get('thumbnail')
         <Row>
-            <Col sm=4>{@selector()}</Col>
+            <Col sm={4}>{@selector()}</Col>
             <Col sm={if thumb then 6 else 8}>{@details()}</Col>
-            {<Col sm=2>{@thumbnail()}</Col> if thumb}
+            {<Col sm={2}>{@thumbnail()}</Col> if thumb}
         </Row>
- 

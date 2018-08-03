@@ -2,11 +2,11 @@
 {Alert} = require('react-bootstrap')
 
 # Internal & React Libraries
-{React} = require('./smc-react')
+{React} = require('./app-framework')
 
 # Sibling Libraries
 
 exports.UpgradeRestartWarning = ({style}) ->
     <Alert style={style}>
-        Removing upgrades from runnings projects will restart those project, which will terminate any running computations.
+        WARNING: Adjusting upgrades may restart running projects, which would terminate computations.
     </Alert>

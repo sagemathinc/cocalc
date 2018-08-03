@@ -835,6 +835,9 @@ API message2
         timeout:
             init  : 10
             desc  : 'maximum allowed time, in seconds'
+        aggregate:
+            init  : undefined
+            desc  : 'If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.'
         max_output:
             init  : undefined
             desc  : 'maximum number of characters in the output'
@@ -1114,10 +1117,6 @@ message
     project_id : required
 
 
-# hub --> client(s)
-message
-    event      : 'project_list_updated'
-
 ## search ---------------------------
 
 # client --> hub
@@ -1130,6 +1129,12 @@ API message2
         query:
             init  : required
             desc  : "comma separated list of email addresses or strings such as 'foo bar'"
+        admin:
+            init  : false
+            desc  : "if true and user is an admin, includes email addresses in result, and does more permissive search"
+        active:
+            init  : '6 months'
+            desc  : "only include users active for this interval of time"
         limit:
             init  : 20
             desc  : 'maximum number of results returned'
@@ -1207,7 +1212,7 @@ Email and string search types may be mixed in a single query:
 message
     event   : 'user_search_results'
     id      : undefined
-    results : required  # list of {first_name:, last_name:, account_id:} objects.
+    results : required  # list of {first_name:, last_name:, account_id:, last_active:?, created:?, email_address:?} objects.; email_address only for admin
 
 # hub --> client
 message
@@ -1798,6 +1803,7 @@ via the API and is intended for use by CoCalc support only:
 
 message
     event        : 'webapp_error'
+    id           : undefined # ignored
     name         : required  # string
     message      : required  # string
     comment      : undefined # string
@@ -2297,9 +2303,9 @@ if you are only setting the `cpu_shares` attribute because changes are merged in
 ```
 
 Set present user to open Jupyter notebooks in
-"Modern Notebook" as opposed to "Classical Notebook".
+"CoCalc Jupyter Notebook" as opposed to "Classical Notebook".
 This change not usually needed, because accounts
-default to "Modern Notebook".
+default to "CoCalc Jupyter Notebook".
 
 It is not necessary to specify the entire `editor_settings` object
 if you are only setting the `jupyter_classic` attribute because changes are merged in.
@@ -2454,9 +2460,8 @@ API message2
 This request returns information on project upgrdes for the user
 whose API key appears in the request.
 Two objects are returned, total upgrades and available upgrades.
-Values for `mintime` are in units of seconds.
-Values for `cpu shares` correspond the number of CPU shares shown
-in the web UI in 'Account Settings / Upgrades' multiplied by 256.
+
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
 
 Example:
 ```
@@ -2488,19 +2493,59 @@ Example:
 
 # client <-- hub
 
-API message2
-    event : 'available_upgrades'
-    fields :
-        id:
-           init  : undefined
-           desc  : 'A unique UUID for the query'
-        total :
-            init : required
-            desc : 'info about the total upgrades that the user has purchased'
-        excess :
-            init : required
-            desc : 'info about upgrades where the total allocated exceeds what user has purchased'
-        available :
-            init : required
-            desc : 'how much of each purchased upgrade is available'
-    desc : 'See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units'
+message
+    event      : 'available_upgrades'
+    id         : undefined
+    total      : required  # total upgrades the user has purchased
+    excess     : required  # upgrades where the total allocated exceeds what user has purchased
+    available  : required  # how much of each purchased upgrade is available
+
+# Remove *all* upgrades applied by the signed in user to any projects.
+# client --> hub
+message
+    event      : 'remove_all_upgrades'
+    id         : undefined
+
+
+###
+Sage Worksheet Support, v2
+###
+# client --> project
+message
+    event        : 'sagews_execute_code'
+    id           : undefined
+    path         : required
+    code         : required
+    data         : undefined
+    cell_id      : undefined  # if is a cell, which is being executed (so if client does not ack, output is still recorded)
+    preparse     : true
+
+# project --> client
+message
+    event        : 'sagews_output'
+    id           : required
+    path         : required
+    output       : required     # the actual output message
+
+# client --> project
+message
+    event        : 'sagews_output_ack'
+    id           : required
+
+# client --> project
+message
+    event        : 'sagews_interrupt'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_quit'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_start'
+    id           : undefined
+    path         : required

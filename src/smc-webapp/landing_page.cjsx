@@ -22,9 +22,9 @@
 ###
 The Landing Page
 ###
-{rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
-{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox} = require('./r_misc')
+{rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
+{Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 DESC_FONT = 'sans-serif'
@@ -45,8 +45,11 @@ Passports = rclass
     displayName : 'Passports'
 
     propTypes :
-        strategies  : rtypes.array
+        strategies  : rtypes.immutable.List
         get_api_key : rtypes.string
+        small_size  : rtypes.bool
+        no_header   : rtypes.bool
+        style       : rtypes.object
 
     styles :
         facebook :
@@ -59,7 +62,7 @@ Passports = rclass
             backgroundColor : "#55ACEE"
             color           : "white"
         github   :
-            backgroundColor : "black"
+            backgroundColor : 'white'
             color           : "black"
 
     render_strategy: (name) ->
@@ -68,18 +71,38 @@ Passports = rclass
         url = "#{window.app_base_url}/auth/#{name}"
         if @props.get_api_key
             url += "?get_api_key=#{@props.get_api_key}"
-        <a href={url} key={name}>
-            <Icon size='2x' name='stack' href={url}>
-                {<Icon name='circle' stack='2x' style={color: @styles[name].backgroundColor} /> if name isnt 'github'}
-                <Icon name={name} stack='1x' size={'2x' if name is 'github'} style={color: @styles[name].color} />
-            </Icon>
+        if @props.small_size
+            size = undefined
+        else
+            size = '2x'
+        style = misc.copy(@styles[name])
+        style.display = 'inline-block'
+        style.padding = '6px'
+        style.borderRadius = '50%'
+        style.width = '50px'
+        style.height=  '50px'
+        style.marginRight = '10px'
+        style.textAlign = 'center'
+        cname = misc.capitalize(name)
+        title = <span><Icon name={name} /> {cname}</span>
+        <a href={url} key={name} style={fontSize:'28px'}>
+            <Tip placement='bottom' title={title} tip={"Use #{cname} to sign into your CoCalc account instead of an email address and password."}>
+                <Icon name={name} style={style} />
+            </Tip>
         </a>
 
+    render_heading: ->
+        if @props.no_heading
+            return
+        <h3 style={marginTop: 0}>Connect with</h3>
+
     render: ->
-        <div style={textAlign: 'center'}>
-            <h3 style={marginTop: 0}>Connect with</h3>
+        strategies = @props.strategies?.toJS() ? []
+        ## strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
+        <div style={@props.style}>
+            {@render_heading()}
             <div>
-                {@render_strategy(name) for name in @props.strategies}
+                {@render_strategy(name) for name in strategies}
             </div>
             <hr style={marginTop: 10, marginBottom: 10} />
         </div>
@@ -97,39 +120,120 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies      : rtypes.array
-        sign_up_error   : rtypes.string
+        strategies      : rtypes.immutable.List
+        get_api_key     : rtypes.string
+        sign_up_error   : rtypes.immutable.Map
         token           : rtypes.bool
         has_account     : rtypes.bool
         signing_up      : rtypes.bool
         style           : rtypes.object
         has_remember_me : rtypes.bool
-        get_api_key     : rtypes.string
+
+    getInitialState: ->
+        terms_checkbox : false
+        first_name     : ''
+        last_name      : ''
+        email          : ''
+        password       : ''
+        user_token     : ''
 
     make_account: (e) ->
         e.preventDefault()
-        first_name = ReactDOM.findDOMNode(@refs.first_name).value
-        last_name  = ReactDOM.findDOMNode(@refs.last_name).value
-        email      = ReactDOM.findDOMNode(@refs.email).value
-        password   = ReactDOM.findDOMNode(@refs.password).value
-        token      = ReactDOM.findDOMNode(@refs.token)?.value
-        @actions('account').create_account(first_name, last_name, email, password, token)
+        @actions('account').create_account(@state.first_name, @state.last_name, @state.email, @state.password, @state.user_token)
 
-    display_error: (field)->
-        if @props.sign_up_error?[field]?
-            <div style={ERROR_STYLE}>{@props.sign_up_error[field]}</div>
+    render_error: (field)->
+        err = @props.sign_up_error?.get(field)
+        if err?
+            <div style={ERROR_STYLE}>{err}</div>
 
-    display_passports: ->
+    render_passports: ->
         if not @props.strategies?
             return <Loading />
-        if @props.strategies.length > 1
-            return <Passports strategies={@props.strategies} get_api_key={@props.get_api_key} />
+        if @props.strategies.size > 1
+            <div>
+                <Passports
+                    strategies  = {@props.strategies}
+                    get_api_key = {@props.get_api_key}
+                    style       = {textAlign: 'center'}
+                />
+                Or sign up via email
+                <br/>
+            </div>
 
-    display_token_input: ->
+    render_token_input: ->
         if @props.token
             <FormGroup>
-                <FormControl ref='token' type='text' placeholder='Enter the secret token' />
+                <FormControl
+                    type        = {'text'}
+                    placeholder = {'Enter the secret token'}
+                    onChange    = {(e)=>@setState(user_token: e.target.value)}
+                    />
             </FormGroup>
+
+    render_terms: ->
+        <FormGroup style={fontSize: '12pt', margin:'20px'}>
+            <Checkbox
+                onChange = {(e)=>@setState(terms_checkbox: e.target.checked)}
+                >
+                <TermsOfService />
+            </Checkbox>
+        </FormGroup>
+
+    render_creation_form: ->
+        <div>
+            {@render_token_input()}
+            {@render_error("token")}
+            {@render_error("generic")}                   {### a generic error ###}
+            {@render_error("account_creation_failed")}
+            {@render_passports() if @state.terms_checkbox}
+            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
+                <FormGroup>
+                    {@render_error("first_name")}
+                    <FormControl
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'First name'
+                        onChange    = {(e)=>@setState(first_name: e.target.value)}
+                        maxLength   = {120} />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("last_name")}
+                    <FormControl
+                        type        = 'text'
+                        autoFocus   = {false}
+                        placeholder = 'Last name'
+                        onChange    = {(e)=>@setState(last_name: e.target.value)}
+                        maxLength   = {120} />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("email_address")}
+                    <FormControl
+                        type        = 'email'
+                        placeholder = 'Email address'
+                        maxLength   = {254}
+                        onChange    = {(e)=>@setState(email: e.target.value)}
+                        />
+                </FormGroup>
+                <FormGroup>
+                    {@render_error("password")}
+                    <FormControl
+                        type        = 'password'
+                        placeholder = 'Choose a password'
+                        maxLength   = {64}
+                        onChange    = {(e)=>@setState(password: e.target.value)}
+                        />
+                </FormGroup>
+                <Button
+                    style    = {marginBottom: UNIT, marginTop: UNIT}
+                    disabled = {@props.signing_up}
+                    bsStyle  = {'success'}
+                    bsSize   = {'large'}
+                    type     = {'submit'}
+                    block >
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
+                </Button>
+            </form>
+        </div>
 
     render: ->
         well_style =
@@ -142,51 +246,11 @@ SignUp = rclass
         #    well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
         #    well_style.color           = 'white'
         #    well_class = 'webapp-landing-sign-up-highlight'
-        <Well style=well_style className={well_class}>
-            <TermsOfService style={fontWeight:'bold', textAlign: "center"} />
-            <br />
-            {@display_token_input()}
-            {@display_error("token")}
-            {@display_error("account_creation_failed")}   {# a generic error}
-            {@display_passports()}
+        <Well style={well_style} className={well_class}>
+            {### <TermsOfService style={fontWeight:'bold', textAlign: "center"} />  <br /> ###}
             <AccountCreationEmailInstructions />
-            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
-                <FormGroup>
-                    {@display_error("first_name")}
-                    <FormControl
-                        ref         = 'first_name'
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'First name'
-                        maxLength   = 120 />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("last_name")}
-                    <FormControl
-                        ref         = 'last_name'
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'Last name'
-                        maxLength   = 120 />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("email_address")}
-                    <FormControl ref='email' type='email' placeholder='Email address' maxLength=254 />
-                </FormGroup>
-                <FormGroup>
-                    {@display_error("password")}
-                    <FormControl ref='password' type='password' placeholder='Choose a password' maxLength=64 />
-                </FormGroup>
-                <Button
-                    style    = {marginBottom: UNIT, marginTop: UNIT}
-                    disabled = {@props.signing_up}
-                    bsStyle  = "success"
-                    bsSize   = 'large'
-                    type     = 'submit'
-                    block >
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
-                </Button>
-            </form>
+            {@render_terms()}
+            {@render_creation_form() if @state.terms_checkbox}
             <div style={textAlign: "center"}>
                 Email <HelpEmailLink /> if you need help.
             </div>
@@ -201,6 +265,8 @@ SignIn = rclass
         has_account   : rtypes.bool
         xs            : rtypes.bool
         color         : rtypes.string
+        strategies    : rtypes.immutable.List
+        get_api_key   : rtypes.string
 
     componentDidMount: ->
         @actions('page').set_sign_in_func(@sign_in)
@@ -224,6 +290,16 @@ SignIn = rclass
                 onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
 
+    render_passports: ->
+        <div>
+            <Passports
+                strategies  = {@props.strategies}
+                get_api_key = {@props.get_api_key}
+                small_size  = {true}
+                no_heading  = {true}
+            />
+        </div>
+
     remove_error: ->
         if @props.sign_in_error
             @actions('account').setState(sign_in_error : undefined)
@@ -236,7 +312,7 @@ SignIn = rclass
 
     render: ->
         if @props.xs
-            <Col xs=12>
+            <Col xs={12}>
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
                         <FormGroup>
@@ -268,19 +344,19 @@ SignIn = rclass
             </Col>
         else
             <form onSubmit={@sign_in} className='form-inline'>
-                <Grid fluid=true style={padding:0}>
+                <Grid fluid={true} style={padding:0}>
                 <Row>
-                    <Col xs=5>
+                    <Col xs={5}>
                         <FormGroup>
                             <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
-                    <Col xs=4>
+                    <Col xs={4}>
                         <FormGroup>
                             <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
-                    <Col xs=3>
+                    <Col xs={3}>
                         <Button
                             type      = "submit"
                             disabled  = {@props.signing_in}
@@ -291,14 +367,19 @@ SignIn = rclass
                     </Col>
                 </Row>
                 <Row>
-                    <Col xs=7 xsOffset=5 style={paddingLeft:15}>
+                    <Col xs={7} xsOffset={5} style={paddingLeft:15}>
                         <div style={marginTop: '1ex'}>
                             <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
                         </div>
                     </Col>
                 </Row>
+                <Row>
+                    <Col xs={12}>
+                        {@render_passports()}
+                    </Col>
+                </Row>
                 <Row className='form-inline pull-right' style={clear : "right"}>
-                    <Col xs=12>
+                    <Col xs={12}>
                         {@display_error()}
                     </Col>
                 </Row>
@@ -445,10 +526,10 @@ ContentItem = rclass
 
     render: ->
         <Row>
-            <Col sm=2>
+            <Col sm={2}>
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
-            <Col sm=10>
+            <Col sm={10}>
                 <h2 style={fontFamily: DESC_FONT}>{@props.heading}</h2>
                 {@props.text}
             </Col>
@@ -526,12 +607,12 @@ SagePreview = rclass
         <div className="hidden-xs">
             <Well>
                 <Row>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Interactive Worksheets" index={0}>
                             Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real time</strong>. You can see their cursors moving around while they type &mdash; this works for Sage Worksheets and even Jupyter Notebooks!
                         </ExampleBox>
                     </Col>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Course Management" index={1}>
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
@@ -542,7 +623,7 @@ SagePreview = rclass
                 </Row>
                 <br />
                 <Row>
-                    <Col sm=6>
+                    <Col sm={6}>
                       <ExampleBox title="LaTeX Editor" index={2}>
                             <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.
                             The <strong>preview</strong> helps you understanding what&#39;s going on.
@@ -550,7 +631,7 @@ SagePreview = rclass
                             CoCalc also allows you to publish documents online.
                         </ExampleBox>
                     </Col>
-                    <Col sm=6>
+                    <Col sm={6}>
                         <ExampleBox title="Jupyter Notebooks and Linux Terminals" index={3}>
                             <SiteName /> does not arbitrarily restrict you.
                             Work with <strong>Jupyter Notebooks</strong>,
@@ -569,9 +650,11 @@ Connecting = () ->
     </div>
 
 exports.LandingPage = rclass
+    displayName: 'LandingPage'
+
     propTypes:
-        strategies              : rtypes.array
-        sign_up_error           : rtypes.object
+        strategies              : rtypes.immutable.List
+        sign_up_error           : rtypes.immutable.Map
         sign_in_error           : rtypes.string
         signing_in              : rtypes.bool
         signing_up              : rtypes.bool
@@ -587,7 +670,9 @@ exports.LandingPage = rclass
 
     reduxProps:
         page:
-            get_api_key : rtypes.string
+            get_api_key   : rtypes.string
+        customize:
+            is_commercial : rtypes.bool
 
     render_password_reset: ->
         reset_key = reset_password_key()
@@ -606,27 +691,60 @@ exports.LandingPage = rclass
             forgot_password_success = {@props.forgot_password_success}
         />
 
+    # this is an info blob on the landing page, clarifying to the user that "free" is a perpetual trial
+    render_trial_info: ->
+        if not @props.is_commercial
+            return
+        <React.Fragment>
+            <Alert bsStyle={'info'} style={marginTop: '15px'}>
+                <div>
+                    Trial access to CoCalc is free.
+                    If you intend to use CoCalc often, then you or your university
+                    should pay for it.
+                    Existence of CoCalc depends on your subscription dollars!
+                </div>
+                <Space />
+                <div>
+                    If you are economically disadvantaged or doing open source math software
+                    development,{' '}
+                    <a href="mailto:help@sagemath.com" target="_blank">contact us</a>{' '}
+                    for special options.
+                </div>
+            </Alert>
+            <div>
+                If you have any questions or comments, create a <ShowSupportLink />.
+            </div>
+        </React.Fragment>
+
     render_main_page: ->
         if @props.remember_me and not @props.get_api_key
             # Just assume user will be signing in.
             # CSS of this looks like crap for a moment; worse than nothing. So disabling unless it can be fixed!!
             #return <Connecting />
             return <span/>
+
         topbar =
-          img_icon    : APP_ICON_WHITE
-          img_name    : APP_LOGO_NAME_WHITE
-          img_opacity : 1.0
-          color       : 'white'
-          bg_color    : COLORS.LANDING.LOGIN_BAR_BG
-          border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+            img_icon    : APP_ICON_WHITE
+            img_name    : APP_LOGO_NAME_WHITE
+            img_opacity : 1.0
+            color       : 'white'
+            bg_color    : COLORS.LANDING.LOGIN_BAR_BG
+            border      : "5px solid #{COLORS.LANDING.LOGIN_BAR_BG}"
+
+        main_row_style =
+            fontSize        : UNIT
+            backgroundColor : COLORS.LANDING.LOGIN_BAR_BG
+            padding         : 5
+            margin          : 0
+            borderRadius    : 4
 
         <div style={margin: UNIT}>
             {@render_password_reset()}
             {@render_forgot_password()}
-            <Row style={fontSize: UNIT,\
-                        backgroundColor: COLORS.LANDING.LOGIN_BAR_BG,\
-                        padding: 5, margin: 0, borderRadius:4}
-                 className="visible-xs">
+            <Row
+                style     = {main_row_style}
+                className = {"visible-xs"}
+             >
                     <SignIn
                         signing_in    = {@props.signing_in}
                         sign_in_error = {@props.sign_in_error}
@@ -650,19 +768,21 @@ exports.LandingPage = rclass
                               top      : UNIT,\
                               right    : UNIT,\
                               fontSize : '11pt',\
-                              float    : "right"}
-                      >
+                              float    : "right"} >
                       <SignIn
+                          strategies    = {@props.strategies}
+                          get_api_key   = {@props.get_api_key}
                           signing_in    = {@props.signing_in}
                           sign_in_error = {@props.sign_in_error}
                           has_account   = {@props.has_account}
                           xs            = {false}
                           color         = {topbar.color} />
                   </div>
+                  {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}
                   <div style={ display          : 'inline-block', \
                                backgroundImage  : "url('#{topbar.img_icon}')", \
                                backgroundSize   : 'contain', \
-                               height           : UNIT * 5, width: UNIT * 5, \
+                               height           : 55, width: 55, \
                                margin           : 5,\
                                verticalAlign    : 'center',\
                                backgroundRepeat : 'no-repeat'}>
@@ -694,29 +814,30 @@ exports.LandingPage = rclass
                               color        : topbar.color} />
                   </div>
             </Row>
-            <Row>
-                <Col sm=6>
+            <Row style={minHeight : '60vh'}>
+                <Col sm={6}>
                     <SignUp
                         sign_up_error   = {@props.sign_up_error}
                         strategies      = {@props.strategies}
+                        get_api_key     = {@props.get_api_key}
                         token           = {@props.token}
                         has_remember_me = {@props.has_remember_me}
                         signing_up      = {@props.signing_up}
                         has_account     = {@props.has_account}
-                        get_api_key     = {@props.get_api_key}
                         />
                 </Col>
-                <Col sm=6>
-                    <div style={color:"#333", fontSize:'12pt', marginTop:'2em'}>
+                <Col sm={6}>
+                    <div style={color:"#333", fontSize:'12pt', marginTop:'5px'}>
                         Create a new account here or sign in with an existing account above.
                         <br/>
+                        {@render_trial_info()}
                         <br/>
-
-                        If you have any questions create a <ShowSupportLink />.
-
-                        <br/>
-                        <br/>
-                        {<a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a> if not @props.get_api_key}
+                        {
+                            if not @props.get_api_key
+                                <div>
+                                    <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                                </div>
+                        }
                     </div>
                 </Col>
             </Row>

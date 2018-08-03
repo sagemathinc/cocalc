@@ -37,7 +37,7 @@ templates = $("#webapp-editor-templates")
 
 account = require('./account')
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 {EventEmitter} = require('events')
 
@@ -79,6 +79,7 @@ underscore = require('underscore')
 
 class SynchronizedString extends AbstractSynchronizedDoc
     constructor: (opts) ->
+        super()
         @opts = defaults opts,
             project_id        : required
             filename          : required
@@ -173,10 +174,18 @@ class SynchronizedString extends AbstractSynchronizedDoc
         return @_syncstring.exit_undo_mode()
 
 class SynchronizedDocument2 extends SynchronizedDocument
-    constructor: (@editor, opts, cb) ->
+    constructor: (editor, opts) ->
+        super()
+        @editor = editor
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
+            cm_foldOptions  : undefined
+            static_viewer   : undefined # must be considered now due to es6 classes
+            allow_javascript_eval : true   # used only by sage worksheets, which derive from this -- but we have to put this here due to super being called.
+
+        if @opts.static_viewer?
+            return
 
         @project_id  = @editor.project_id
         @filename    = @editor.filename
@@ -186,7 +195,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
-        window.w = @
+        if @opts.cm_foldOptions?
+            for cm in @codemirrors()
+                cm.setOption('foldOptions', @opts.foldOptions)
 
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
@@ -299,7 +310,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
-                cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
+                @_init_cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
     _debug_sync_state: (info) =>
         console.log "--- #{info}"
@@ -532,6 +543,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @_syncstring?.close()
         # TODO -- this doesn't work...
         for cm in [@codemirror, @codemirror1]
+            continue if not cm?
             cm.setOption("mode", "text/x-csrc")
             cmElem = cm.getWrapperElement()
             cmElem.parentNode.removeChild(cmElem)

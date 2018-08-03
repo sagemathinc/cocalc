@@ -79,8 +79,16 @@ exports.init_express_http_server = (opts) ->
     app    = express()
     app.use(cookieParser())
 
-    router.use(body_parser.json())
-    router.use(body_parser.urlencoded({ extended: true }))
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    # NOTE "Express runs everything in order" -- https://github.com/expressjs/compression/issues/35#issuecomment-77076170
+    compression = require('compression')
+    app.use(compression())
+
+    # Very large limit, since can be used to send, e.g., large single patches, and
+    # the default is only 100kb!  https://github.com/expressjs/body-parser#limit-2
+    router.use(body_parser.json({limit: '3mb'}))
+    router.use(body_parser.urlencoded({extended: true, limit: '3mb'}))
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
@@ -179,7 +187,7 @@ exports.init_express_http_server = (opts) ->
         # looks for the has_remember_me value (set by the client in accounts).
         # This could be done in different ways, it's not clear what works best.
         #remember_me = req.cookies[opts.base_url + 'remember_me']
-        has_remember_me = req.cookies[opts.base_url + 'has_remember_me']
+        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url)]
         if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
             res.redirect(opts.base_url + '/app')
         else
@@ -260,6 +268,17 @@ exports.init_express_http_server = (opts) ->
                 else
                     res.send(resp)
 
+    # HTTP-POST-based user queries
+    require('./user-query').init(router, auth.remember_me_cookie_name(opts.base_url), opts.database)
+
+    # HTTP-POST-based user API
+    require('./user-api').init
+        router         : router
+        cookie_name    : auth.remember_me_cookie_name(opts.base_url)
+        database       : opts.database
+        compute_server : opts.compute_server
+        logger         : winston
+
     # stripe invoices:  /invoice/[invoice_id].pdf
     stripe_connections = require('./stripe/connect').get_stripe()
     if stripe_connections?
@@ -328,7 +347,7 @@ exports.init_express_http_server = (opts) ->
         res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
-    router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
+    router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*'], (req, res) ->
         url = require('url')
         q = url.parse(req.url, true).search # gives exactly "?key=value,key=..."
         res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
@@ -380,6 +399,8 @@ exports.init_express_http_server = (opts) ->
         # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
         # Jupyter2 works fine though.
         dev_proxy_port = (req, res) ->
+            if req.headers['cookie']?
+                req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
             req_url = req.url.slice(opts.base_url.length)
             {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
             proxy = proxy_cache[key]
@@ -402,11 +423,21 @@ exports.init_express_http_server = (opts) ->
                     res.status(500).send("internal error: #{err}")
                 else
                     target = "http://localhost:#{port}"
-                    proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
+                    proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:7000)
+
+                    # Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142; otherwise
+                    # POST's with body just hang.
+                    proxy.on 'proxyReq', (proxyReq, req) =>
+                        if req.body and req.complete
+                            bodyData = JSON.stringify(req.body)
+                            proxyReq.setHeader('Content-Type', 'application/json')
+                            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+                            proxyReq.write(bodyData)
+
                     proxy_cache[key] = proxy
                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
                     # also delete after a few seconds  - caching is only to optimize many requests near each other
-                    setTimeout((-> delete proxy_cache[key]), 10000)
+                    setTimeout((-> delete proxy_cache[key]), 60*1000*60)
                     proxy.web(req, res)
 
         port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
@@ -417,14 +448,16 @@ exports.init_express_http_server = (opts) ->
         # Also, ensure the raw server works
         dev_proxy_raw = (req, res) ->
             # avoid XSS...
-            req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
+            if req.headers['cookie']?
+                req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
 
             #winston.debug("cookie=#{req.headers['cookie']}")
             req_url = req.url.slice(opts.base_url.length)
             {key, project_id} = hub_proxy.target_parse_req('', req_url)
-            winston.debug("dev_proxy_raw", project_id)
+            winston.debug("dev_proxy_raw '#{project_id}', '#{key}','#{req_url}'")
             proxy = proxy_cache[key]
             if proxy?
+                winston.debug("dev_proxy_raw: use cache")
                 proxy.web(req, res)
                 return
             opts.compute_server.project
@@ -442,8 +475,19 @@ exports.init_express_http_server = (opts) ->
                                 else
                                     port   = status['raw.port']
                                     target = "http://localhost:#{port}"
-                                    proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
+                                    winston.debug("dev_proxy_raw: connnect to #{target}")
+                                    proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:7000)
+
+                                    # Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142
+                                    proxy.on 'proxyReq', (proxyReq, req) =>
+                                        if req.body and req.complete
+                                            bodyData = JSON.stringify(req.body)
+                                            proxyReq.setHeader('Content-Type', 'application/json')
+                                            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
+                                            proxyReq.write(bodyData)
+
                                     proxy_cache[key] = proxy
+
                                     # when connection dies, clear from cache
                                     proxy.on("error", -> delete proxy_cache[key])
                                     proxy.web(req, res)
@@ -465,7 +509,6 @@ exports.init_express_http_server = (opts) ->
                 logger   : winston
             app.use(opts.base_url + '/share', share_router)
 
-
     app.on 'upgrade', (req, socket, head) ->
         winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
         req_url = req.url.slice(opts.base_url.length)
@@ -474,11 +517,6 @@ exports.init_express_http_server = (opts) ->
         # this upgrade is never hit, since the main site (that is
         # proxying to this server) is already trying to do something.
         # I don't know if this sort of multi-level proxying is even possible.
-
-    # Enable compression, as
-    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
-    compression = require('compression')
-    app.use(compression())
 
     http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}

@@ -26,7 +26,7 @@
 
 {debounce} = require('underscore')
 
-{rclass, rtypes, ReactDOM, React} = require('./smc-react')
+{rclass, rtypes, ReactDOM, React} = require('./app-framework')
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->
@@ -96,6 +96,11 @@ exports.register_nonreact_editor = (opts) ->
         icon      : undefined
         is_public : false
 
+    if window?.smc?
+        # make it much clearer which extensions use non-react editors
+        window.smc.nonreact ?= []
+        window.smc.nonreact.push({ext:opts.ext, is_public:opts.is_public})
+
     require('project_file').register_file_editor
         ext       : opts.ext
         is_public : opts.is_public
@@ -112,7 +117,7 @@ exports.register_nonreact_editor = (opts) ->
 
         generator : (path, redux, project_id) ->
             key = get_key(project_id, path)
-            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name=project_name />
+            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name={project_name} />
             wrapper_generator.get_editor = -> editors[key]
             return wrapper_generator
 

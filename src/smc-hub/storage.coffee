@@ -39,7 +39,7 @@ Low level functions:
 NOTES:
   - save_BUP always saves to GCS as well, so there is no save_GCS.
 ###
-require('coffee-cache')
+require('coffee2-cache')
 
 BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
 

@@ -4,7 +4,7 @@ History viewer for Tasks notebooks  --- very similar to same file in jupyter/ di
 
 immutable  = require('immutable')
 
-{React, ReactDOM, rclass, rtypes, redux}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes, redux, Redux}  = require('../app-framework')
 {Icon} = require('../r_misc')
 
 misc         = require('smc-util/misc')
@@ -82,7 +82,7 @@ exports.tasks_history_viewer_jquery_shim = (syncdb) ->
         hide        : -> elt.hide()
         remove      : -> ReactDOM.unmountComponentAtNode(elt[0])
         set_version : (version) ->
-            ReactDOM.render(<HistoryViewer syncdb={syncdb} version={version} />, elt[0])
+            ReactDOM.render(<Redux redux={redux}><HistoryViewer syncdb={syncdb} version={version} /></Redux>, elt[0])
         to_str      : (version) -> syncdb.version(version).to_str()
 
     return obj

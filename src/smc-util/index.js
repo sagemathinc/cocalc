@@ -1,4 +1,4 @@
-require('coffee-script/register') /* so we can require coffeescript */
+require('coffeescript/register') /* so we can require coffeescript */
 require('coffee-cache')  /* so coffeescript doesn't get recompiled every time we require it */
 
 exports.misc       = require('./misc.coffee')

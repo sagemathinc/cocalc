@@ -52,7 +52,7 @@ exports.jupyter_backend = (syncdb, client) ->
     dbg()
     {JupyterActions} = require('smc-webapp/jupyter/project-actions')
     {JupyterStore}   = require('smc-webapp/jupyter/store')
-    smc_react        = require('smc-webapp/smc-react')
+    app_data         = require('smc-webapp/app-framework')
 
     project_id = client.client_id()
 
@@ -60,9 +60,9 @@ exports.jupyter_backend = (syncdb, client) ->
     # official ipynb format:
     path = misc.original_path(syncdb._path)
 
-    redux_name = smc_react.redux_name(project_id, path)
-    actions    = new JupyterActions(redux_name, smc_react.redux)
-    store      = new JupyterStore(redux_name, smc_react.redux)
+    redux_name = app_data.redux_name(project_id, path)
+    store      = app_data.redux.createStore(redux_name, JupyterStore)
+    actions    = app_data.redux.createActions(redux_name, JupyterActions)
 
     actions._init(project_id, path, syncdb, store, client)
 
@@ -101,7 +101,13 @@ node_cleanup =>
 
 logger = undefined
 class Kernel extends EventEmitter
-    constructor : (@name, @_dbg, @_path, @_actions, usage) ->
+    constructor : (name, _dbg, _path, _actions, usage) ->
+        super()
+        @name = name
+        @_dbg = _dbg
+        @_path = _path
+        @_actions = _actions
+
         @store = key_value_store()
         {head, tail} = misc.path_split(@_path)
         @_directory = head
@@ -109,6 +115,7 @@ class Kernel extends EventEmitter
         @_set_state('off')
         @_identity = misc.uuid()
         @_start_time = new Date() - 0
+        @_execute_code_queue = []
         _jupyter_kernels[@_path] = @
         dbg = @dbg('constructor')
         dbg()
@@ -155,9 +162,12 @@ class Kernel extends EventEmitter
                     @emit('execution_state', mesg.content?.execution_state)
                 @emit('iopub', mesg)
 
-            @once 'iopub', (m) =>
+            start_running = (m) =>
+                @removeListener('iopub', start_running)
+                @removeListener('shell', start_running)
+
                 # first iopub message from the kernel means it has started running
-                dbg("iopub: #{misc.to_json(m)}")
+                dbg("start_running: #{misc.to_json(m)}")
                 # We still wait a few ms, since otherwise -- especially in testing --
                 # the kernel will bizarrely just ignore first input.
                 # TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
@@ -166,6 +176,9 @@ class Kernel extends EventEmitter
                     for cb in @_spawn_cbs
                         cb?()
                 setTimeout(f, 100)
+
+            @once('iopub', start_running)
+            @once('shell', start_running)
 
             kernel.spawn.on('close', @close)
 
@@ -183,7 +196,7 @@ class Kernel extends EventEmitter
                 max_delay   : 5000
                 factor      : 1.4
                 max_time    : 2*60000  # long in case of starting many at once -- we don't want them to all fail and start again and fail ad infinitum!
-                f : (cb) =>
+                f           : (cb) =>
                     @kernel_info(cb : =>)
                     cb(@_state == 'starting')
 
@@ -624,9 +637,10 @@ class Kernel extends EventEmitter
                     info.nodejs_version   = process.version
                     info.start_time = @_actions?.store.get('start_time')
                     @_kernel_info = info
-                for cb in @_kernel_info_cbs
-                    cb(err, info)
-                delete @_kernel_info_cbs
+                if @_kernel_info_cbs?  # it could have been deleted by closing before finishing.
+                    for cb in @_kernel_info_cbs
+                        cb(err, info)
+                    delete @_kernel_info_cbs
 
     more_output: (opts) =>
         opts = defaults opts,

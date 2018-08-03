@@ -107,18 +107,21 @@ INPUT         = path.resolve(__dirname, WEBAPP_LIB)
 OUTPUT        = path.resolve(__dirname, misc_node.OUTPUT_DIR)
 DEVEL         = "development"
 NODE_ENV      = process.env.NODE_ENV || DEVEL
+NODE_DEBUG    = process.env.NODE_DEBUG
 PRODMODE      = NODE_ENV != DEVEL
 COMP_ENV      = (process.env.CC_COMP_ENV || PRODMODE) and (fs.existsSync('webapp-lib/compute-components.json'))
 CDN_BASE_URL  = process.env.CDN_BASE_URL    # CDN_BASE_URL must have a trailing slash
 DEVMODE       = not PRODMODE
 MINIFY        = !! process.env.WP_MINIFY
 DEBUG         = '--debug' in process.argv
+MEASURE       = process.env.MEASURE
 SOURCE_MAP    = !! process.env.SOURCE_MAP
 STATICPAGES   = !! process.env.CC_STATICPAGES  # special mode where just the landing page is built
 date          = new Date()
 BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
 GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
+CC_NOCLEAN    = !! process.env.CC_NOCLEAN
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
@@ -135,14 +138,18 @@ else
 console.log "SMC_VERSION      = #{SMC_VERSION}"
 console.log "SMC_GIT_REV      = #{GIT_REV}"
 console.log "NODE_ENV         = #{NODE_ENV}"
+console.log "NODE_DEBUG       = #{NODE_DEBUG}"
 console.log "COMP_ENV         = #{COMP_ENV}"
 console.log "BASE_URL         = #{BASE_URL}"
 console.log "CDN_BASE_URL     = #{CDN_BASE_URL}"
 console.log "DEBUG            = #{DEBUG}"
 console.log "MINIFY           = #{MINIFY}"
+console.log "MEASURE          = #{MEASURE}"
 console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
+console.log "CC_NOCLEAN       = #{CC_NOCLEAN}"
+
 
 # mathjax version → symlink with version info from package.json/version
 if CDN_BASE_URL?
@@ -180,25 +187,23 @@ class MathjaxVersionedSymlink
         symto = path.resolve(__dirname, "#{MATHJAX_LIB}")
         console.log("mathjax symlink: pointing to #{symto}")
         mksymlink = (dir, cb) ->
-            fs.exists dir,  (exists, cb) ->
-                if not exists
+            fs.access dir, (err) ->
+                if err
                     fs.symlink(symto, dir, cb)
-        compiler.plugin "done", (compilation, cb) ->
-            async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink, -> cb())
+        done = (compilation) ->
+            async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink)
+        plugin = name: 'MathjaxVersionedSymlink'
+        compiler.hooks.done.tap(plugin, done)
 
 mathjaxVersionedSymlink = new MathjaxVersionedSymlink()
 
-# deterministic hashing for assets
-# TODO this sha-hash lib sometimes crashes. switch to https://github.com/erm0l0v/webpack-md5-hash and try if that works!
-#WebpackSHAHash = require('webpack-sha-hash')
-#webpackSHAHash = new WebpackSHAHash()
-
-# cleanup like "make distclean"
-# otherwise, compiles create an evergrowing pile of files
-CleanWebpackPlugin = require('clean-webpack-plugin')
-cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
-                                            verbose: true
-                                            dry: false
+if not CC_NOCLEAN
+    # cleanup like "make distclean"
+    # otherwise, compiles create an evergrowing pile of files
+    CleanWebpackPlugin = require('clean-webpack-plugin')
+    cleanWebpackPlugin = new CleanWebpackPlugin [OUTPUT],
+                                                verbose: true
+                                                dry: false
 
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
@@ -218,7 +223,7 @@ HtmlWebpackPlugin = require('html-webpack-plugin')
 # we need our own chunk sorter, because just by dependency doesn't work
 # this way, we can be 100% sure
 smcChunkSorter = (a, b) ->
-    order = ['css', 'lib', 'smc']
+    order = ['css', 'fill', 'vendor', 'smc']
     if order.indexOf(a.names[0]) < order.indexOf(b.names[0])
         return -1
     else
@@ -239,6 +244,7 @@ htmlMinifyOpts =
 base_url_html = BASE_URL # do *not* modify BASE_URL, it's needed with a '/' down below
 while base_url_html and base_url_html[base_url_html.length-1] == '/'
     base_url_html = base_url_html.slice(0, base_url_html.length-1)
+
 
 # this is the main app.html file, which should be served without any caching
 # config: https://github.com/jantimon/html-webpack-plugin#configuration
@@ -261,6 +267,7 @@ pug2app = new HtmlWebpackPlugin(
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
 )
+
 
 # static html pages
 # they only depend on the css chunk
@@ -380,72 +387,9 @@ if COMP_ENV
                         PREFIX           : '../'
         ))
 
-#video chat is done differently, this is kept for reference.
-## video chat: not possible to render to html, while at the same time also supporting query parameters for files in the url
-## maybe at some point https://github.com/webpack/webpack/issues/536 has an answer
-#videoChatSide = new HtmlWebpackPlugin
-#                        filename : "webrtc/group_chat_side.html"
-#                        inject   : 'head'
-#                        template : 'webapp-lib/webrtc/group_chat_side.html'
-#                        chunks   : ['css']
-#                        minify   : htmlMinifyOpts
-#videoChatCell = new HtmlWebpackPlugin
-#                        filename : "webrtc/group_chat_cell.html"
-#                        inject   : 'head'
-#                        template : 'webapp-lib/webrtc/group_chat_cell.html'
-#                        chunks   : ['css']
-#                        minify   : htmlMinifyOpts
 
 # global css loader configuration
 cssConfig = JSON.stringify(minimize: true, discardComments: {removeAll: true}, mergeLonghand: true, sourceMap: false)
-
-###
-# ExtractText for CSS should work, but doesn't. Also not necessary for our purposes ...
-# Configuration left as a comment for future endeavours.
-
-# https://webpack.github.io/docs/stylesheets.html
-ExtractTextPlugin = require("extract-text-webpack-plugin")
-
-# merge + minify of included CSS files
-extractCSS = new ExtractTextPlugin("styles-[hash].css")
-extractTextCss  = ExtractTextPlugin.extract("style", "css?sourceMap&#{cssConfig}")
-extractTextSass = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap&indentedSyntax")
-extractTextScss = ExtractTextPlugin.extract("style", "css?#{cssConfig}!sass?sourceMap")
-extractTextLess = ExtractTextPlugin.extract("style", "css?#{cssConfig}!less?sourceMap")
-###
-
-# Custom plugin, to handle the quirky situation of extra *.html files.
-# It was originally used to copy auxiliary .html files, but since there is
-# no processing of the included style/js files (hashing them), it cannot be used.
-# maybe it will be useful for something else in the future...
-class LinkFilesIntoTargetPlugin
-    constructor: (@files, @target) ->
-
-    apply: (compiler) ->
-        compiler.plugin "done", (comp) =>
-            #console.log('compilation:', _.keys(comp.compilation))
-            _.forEach @files, (fn) =>
-                if fn[0] != '/'
-                    src = path.join(path.resolve(__dirname, INPUT), fn)
-                    dst = path.join(@target, fn)
-                else
-                    src = fn
-                    fnrelative = fn[INPUT.length + 1 ..]
-                    dst = path.join(@target, fnrelative)
-                dst = path.resolve(__dirname, dst)
-                console.log("hard-linking file:", src, "→", dst)
-                dst_dir = path.dirname(dst)
-                if not fs.existsSync(dst_dir)
-                    fs.mkdir(dst_dir)
-                fs.linkSync(src, dst) # mysteriously, that doesn't work
-
-#policies = glob.sync(path.join(INPUT, 'policies', '*.html'))
-#linkFilesIntoTargetPlugin = new LinkFilesToTargetPlugin(policies, OUTPUT)
-
-###
-CopyWebpackPlugin = require('copy-webpack-plugin')
-copyWebpackPlugin = new CopyWebpackPlugin []
-###
 
 # this is like C's #ifdef for the source code. It is particularly useful in the
 # source code of CoCalc's webapp, such that it knows about itself's version and where
@@ -461,33 +405,9 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'BUILD_TS'        : JSON.stringify(BUILD_TS)
                                 'DEBUG'           : JSON.stringify(DEBUG)
 
-# This is not used, but maybe in the future.
 # Writes a JSON file containing the main webpack-assets and their filenames.
 {StatsWriterPlugin} = require("webpack-stats-plugin")
 statsWriterPlugin   = new StatsWriterPlugin(filename: "webpack-stats.json")
-
-# https://webpack.github.io/docs/shimming-modules.html
-# do *not* require('jquery') but $ = window.$
-# this here doesn't work, b/c some modifications/plugins simply do not work when this is set
-# rather, webapp-lib.coffee defines the one and only global jquery instance!
-#provideGlobals      = new webpack.ProvidePlugin
-#                                        '$'             : 'jquery'
-#                                        'jQuery'        : 'jquery'
-#                                        "window.jQuery" : "jquery"
-#                                        "window.$"      : "jquery"
-
-# this is for debugging: adding it prints out a long long json of everything
-# that ends up inside the chunks. that way, one knows exactly where which part did end up.
-# (i.e. if require.ensure really creates chunkfiles, etc.)
-class PrintChunksPlugin
-    apply: (compiler) ->
-        compiler.plugin 'compilation', (compilation, params) ->
-            compilation.plugin 'after-optimize-chunk-assets', (chunks) ->
-                console.log(chunks.map (c) ->
-                        id: c.id
-                        name: c.name
-                        includes: c.modules.map (m) ->  m.request
-                )
 
 # https://webpack.js.org/guides/migrating/#uglifyjsplugin-minimize-loaders
 loaderOptions = new webpack.LoaderOptionsPlugin(
@@ -507,13 +427,19 @@ loaderOptions = new webpack.LoaderOptionsPlugin(
         #context: '/'
 )
 
-plugins = [
-    cleanWebpackPlugin,
-    #provideGlobals,
+if cleanWebpackPlugin?
+    # This is just a horrible hack for now, to get around how
+    # slow the pug/static functionality is (remove this when use
+    # of pug is deprecated in favor of react).
+    plugins = [cleanWebpackPlugin]
+else:
+    plugins = []
+
+plugins = plugins.concat([
     setNODE_ENV,
     banner,
     loaderOptions
-]
+])
 
 
 if STATICPAGES
@@ -524,71 +450,42 @@ else
     # ATTN don't alter or add names here, without changing the sorting function above!
     entries =
         css  : 'webapp-css.coffee'
-        lib  : 'webapp-lib.coffee'
+        fill : '@babel/polyfill'
         smc  : 'webapp-smc.coffee'
+        # code splitting: we take all of our vendor code and put it in a separate bundle (vendor.min.js)
+        # this way it will have better caching/cache hits since it changes infrequently
+        vendor: [
+            # local packages
+            './webapp-lib/primus/primus-engine.min.js'
+            # npm packages are added to vendor code separately in splitChunks config below
+        ]
+        'pdf.worker': './smc-webapp/node_modules/pdfjs-dist/build/pdf.worker.entry'
     plugins = plugins.concat([
         pug2app,
-        #commonsChunkPlugin,
-        #extractCSS,
-        #copyWebpackPlugin
-        #webpackSHAHash,
-        #new PrintChunksPlugin(),
         mathjaxVersionedSymlink,
-        #linkFilesIntoTargetPlugin,
     ])
 
 if DEVMODE
     console.log "******************************************************"
-    console.log "WARNING! For dev you **must** explicitly visit"
+    console.log "WARNING! You might have to visit"
     console.log "     https://cocalc.com/[project_id]/port/[...]/app"
-    console.log "since the / static pages are currently disabled."
-    console.log "See https://github.com/sagemathinc/cocalc/issues/2629"
+    console.log "in case the / static pages are currently not built via"
+    console.log "     npm run webpack-static"
     console.log "******************************************************"
 else
     plugins = plugins.concat(staticPages)
 
-plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
-
 if PRODMODE
-    console.log "production mode: enabling compression"
-    # https://webpack.github.io/docs/list-of-plugins.html#commonschunkplugin
-    # plugins.push new webpack.optimize.CommonsChunkPlugin(name: "lib")
     # configuration for the number of chunks and their minimum size
     plugins.push new webpack.optimize.LimitChunkCountPlugin(maxChunks: 5)
-    plugins.push new webpack.optimize.MinChunkSizePlugin(minChunkSize: 30000)
 
-if PRODMODE or MINIFY
-    # to get source maps working in production mode, one has to figure out how
-    # to get inSourceMap/outSourceMap working here.
-    plugins.push new webpack.optimize.UglifyJsPlugin
-                                sourceMap: false
-                                minimize: true
-                                output:
-                                    comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
-                                mangle:
-                                    except       : ['$super', '$', 'exports', 'require']
-                                    screw_ie8    : true
-                                compress:
-                                    screw_ie8    : true
-                                    warnings     : false
-                                    properties   : true
-                                    sequences    : true
-                                    dead_code    : true
-                                    conditionals : true
-                                    comparisons  : true
-                                    evaluate     : true
-                                    booleans     : true
-                                    unused       : true
-                                    loops        : true
-                                    hoist_funs   : true
-                                    cascade      : true
-                                    if_return    : true
-                                    join_vars    : true
-                                    drop_debugger: true
-                                    negate_iife  : true
-                                    unsafe       : true
-                                    side_effects : true
+plugins = plugins.concat([assetsPlugin, statsWriterPlugin])
 
+UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+minimizer = new UglifyJsPlugin
+    uglifyOptions:
+        output:
+            comments: new RegExp("This file is part of #{TITLE}","g") # to keep the banner inserted above
 
 # tuning generated filenames and the configs for the aux files loader.
 # FIXME this setting isn't picked up properly
@@ -610,15 +507,30 @@ if CDN_BASE_URL?
 else
     publicPath = path.join(BASE_URL, misc_node.OUTPUT_DIR) + '/'
 
-# TODO webpack2: the module.loaders syntax changed, but this here isn't deprecated
-# https://webpack.js.org/guides/migrating/#module-loaders-is-now-module-rules
+if MEASURE
+    BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
+    bundleAnalyzerPlugin = new BundleAnalyzerPlugin({analyzerMode: 'static'})
+    plugins = plugins.concat([bundleAnalyzerPlugin])
+
 module.exports =
     cache: true
 
-    # https://webpack.github.io/docs/configuration.html#devtool
+    # https://webpack.js.org/configuration/devtool/#devtool
     # **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
     # using this in production.  DO NOT use 'source-map', which is VERY slow.
     devtool: if SOURCE_MAP then '#cheap-module-eval-source-map'
+
+    mode: if PRODMODE then 'production' else 'development'
+
+    optimization:
+        minimizer: [minimizer]
+
+        splitChunks:
+            cacheGroups:
+                commons:
+                    test: /[\\/]node_modules[\\/]/
+                    name: 'vendor'
+                    chunks: 'all'
 
     entry: entries
 
@@ -629,40 +541,42 @@ module.exports =
         chunkFilename : if PRODMODE then '[id]-[hash].cacheme.js'   else '[id].nocache.js'
         hashFunction  : 'sha256'
 
-    resolveLoader: # Not reccommended. TODO: Track down missing -loader instances
-        moduleExtensions: ["-loader"]
-
     module:
         rules: [
-            { test: /pnotify.*\.js$/, use: "imports?define=>false,global=>window" },
-            { test: /\.cjsx$/,   use: ['coffee-loader', 'cjsx-loader'] },
-            { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"]}, #loader : extractTextLess }, #
-            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"]}, #loader : extractTextScss }, #
-            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"]}, # ,loader : extractTextSass }, #
-            { test: /\.json$/,   use: ['json-loader'] },
+            { test: /pnotify.*\.js$/, use: "imports-loader?define=>false,global=>window" },
+            {
+                test: /\.(coffee|cjsx)$/
+                use: [
+                    { loader: 'babel-loader' },
+                    { loader: 'coffee-loader' }
+                ]
+            },
+            { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
+            { test: [/latex-editor\/.*\.jsx?$/], loader: 'babel-loader' },
+            # Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
+            # It just kind of does its own thing. See tsconfig.json for further congiration.
+            { test: /\.tsx$/, loader: "babel-loader!ts-loader" },
+            { test: /\.ts$/, loader: "ts-loader" },
+            { test: /\.less$/,   use: ["style-loader", "css-loader", "less-loader?#{cssConfig}"] },
+            { test: /\.scss$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}"] },
+            { test: /\.sass$/,   use: ["style-loader", "css-loader", "sass-loader?#{cssConfig}&indentedSyntax"] },
             { test: /\.png$/,    loader: "file-loader?#{pngconfig}" },
             { test: /\.ico$/,    loader: "file-loader?#{icoconfig}" },
             { test: /\.svg(\?[a-z0-9\.-=]+)?$/,    loader: "url-loader?#{svgconfig}" },
             { test: /\.(jpg|jpeg|gif)$/,    loader: "file-loader?name=#{hashname}"},
-            # .html only for files in smc-webapp!
-            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify?conservativeCollapse"]},
-            # { test: /\.html$/, include: [path.resolve(__dirname, 'webapp-lib')], loader: "html-loader"},
+            { test: /\.html$/, include: [path.resolve(__dirname, 'smc-webapp')], use: ["raw-loader", "html-minify-loader?conservativeCollapse"]},
             { test: /\.hbs$/,    loader: "handlebars-loader" },
             { test: /\.woff(2)?(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?#{woffconfig}" },
-            # this is the previous file-loader config for ttf and eot fonts -- but see #1974 which for me looks like a webpack sillyness
-            #{ test: /\.(ttf|eot)(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
-            #{ test: /\.(ttf|eot)$/, loader: "file-loader?name=#{hashname}" },
             { test: /\.ttf(\?[a-z0-9\.-=]+)?$/, loader: "url-loader?limit=10000&mimetype=application/octet-stream" },
             { test: /\.eot(\?[a-z0-9\.-=]+)?$/, loader: "file-loader?name=#{hashname}" },
             # ---
-            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]}, # loader: extractTextCss }, #
+            { test: /\.css$/, use: ["style-loader", "css-loader?#{cssConfig}"]},
             { test: /\.pug$/, loader: 'pug-loader' },
         ]
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions : ['.js', '.json', '.coffee', '.cjsx', '.scss', '.sass']
+        extensions : ['.js', '.jsx', '.ts', '.tsx', '.json', '.coffee', '.cjsx', '.scss', '.sass']
         modules    : [path.resolve(__dirname),
                       path.resolve(__dirname, WEBAPP_LIB),
                       path.resolve(__dirname, 'smc-util'),
@@ -670,8 +584,5 @@ module.exports =
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules'),
                       path.resolve(__dirname, 'node_modules')]
-        #alias:
-        #    "jquery-ui": "jquery-ui/jquery-ui.js", # bind version of jquery-ui
-        #    modules: path.join(__dirname, "node_modules") # bind to modules;
 
     plugins: plugins

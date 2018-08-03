@@ -2,7 +2,7 @@
 {Alert, Button} = require('react-bootstrap')
 
 # Internal & React Libraries
-{React, rclass, rtypes} = require('./smc-react')
+{React, rclass, rtypes} = require('./app-framework')
 {Icon} = require('./r_misc')
 
 alert_style =
@@ -66,9 +66,12 @@ exports.RamWarning = rclass ({name}) ->
             if not rss
                 return <span />
             memory = Math.round(rss/1000)
-        if quotas.memory > memory + 5
+        if quotas.memory > memory + 100
             return <span />
 
         <Alert bsStyle='danger' style={alert_style}>
-            <Icon name='exclamation-triangle' /> WARNING: This project is running low on RAM memory.  Upgrade memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>, restart your project or kill some processes. (Memory usage is updated about once per minute.)
+            <Icon name='exclamation-triangle' /> WARNING: This project is running low on memory.{' '}
+            Upgrade Shared RAM memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>,{' '}
+            restart your project or kill some processes.{' '}
+            (<a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>more information</a>; memory usage is updated about once per minute.)
         </Alert>

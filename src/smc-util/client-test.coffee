@@ -29,7 +29,8 @@ synctable  = require('./synctable')
 db_doc     = require('./db-doc')
 
 class exports.Client extends syncstring.TestBrowserClient1
-    constructor: (@_client_id=misc.uuid(), @_debounce_interval=0) ->
+    constructor: (_client_id=misc.uuid(), _debounce_interval=0) ->
+        super(_client_id, _debounce_interval)
         # @db is our personal in-memory "database"
         # The keys are the database tables, and the values are
         # the entries in the tables.

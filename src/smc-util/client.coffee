@@ -22,8 +22,8 @@
 DEBUG = false
 
 # Maximum number of outstanding concurrent messages (that have responses)
-# to send at once to the backend.
-MAX_CONCURRENT = 25
+# to send at once to backend.
+MAX_CONCURRENT = 75
 
 {EventEmitter} = require('events')
 
@@ -38,6 +38,9 @@ smc_version = require('./smc-version')
 
 message = require("./message")
 misc    = require("./misc")
+
+client_aggregate = require('./client-aggregate')
+
 
 {validate_client_query} = require('./schema-validate')
 
@@ -63,6 +66,7 @@ class Session extends EventEmitter
     #    - 'close'  -- session's connection is closed/terminated
     #    - 'execute_javascript' -- code that server wants client to run related to this session
     constructor: (opts) ->
+        super()
         opts = defaults opts,
             conn         : required     # a Connection instance
             project_id   : required
@@ -112,6 +116,7 @@ class Session extends EventEmitter
         #console.log("reconnect: #{@type()} session with id #{@session_uuid}...")
         f = (cb) =>
             @conn.call
+                allow_post : false
                 message : message.connect_to_session
                     session_uuid : @session_uuid
                     type         : @type()
@@ -201,7 +206,9 @@ class exports.Connection extends EventEmitter
     #                      e.g., title/description/settings/etc.
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
-    constructor: (@url) ->
+    constructor: (url) ->
+        super()
+        @url = url
         # Tweaks the maximum number of listeners an EventEmitter can have -- 0 would mean unlimited
         # The issue is https://github.com/sagemathinc/cocalc/issues/1098 and the errors we got are
         # (node) warning: possible EventEmitter memory leak detected. 301 listeners added. Use emitter.setMaxListeners() to increase limit.
@@ -289,9 +296,10 @@ class exports.Connection extends EventEmitter
         @_ping_interval ?= 60000 # frequency to ping
         @_last_ping = new Date()
         @call
-            message : message.ping()
-            timeout : 15     # CRITICAL that this timeout be less than the @_ping_interval
-            cb      : (err, pong) =>
+            allow_post : false
+            message    : message.ping()
+            timeout    : 15     # CRITICAL that this timeout be less than the @_ping_interval
+            cb         : (err, pong) =>
                 if not err
                     now = new Date()
                     # Only record something if success, got a pong, and the round trip is short!
@@ -437,6 +445,7 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid].emit("execute_javascript", mesg)
                 else
                     @emit("execute_javascript", mesg)
+
             when "output"
                 cb = @execute_callbacks[mesg.id]
                 if cb?
@@ -446,14 +455,17 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid].emit("output", mesg)
                 else   # stateless exec
                     @emit("output", mesg)
+
             when "terminate_session"
                 session = @_sessions[mesg.session_uuid]
                 session?.emit("close")
+
             when "session_reconnect"
                 if mesg.data_channel?
                     @_sessions[mesg.data_channel]?.reconnect()
                 else if mesg.session_uuid?
                     @_sessions[mesg.session_uuid]?.reconnect()
+
             when "cookies"
                 @_cookies?(mesg)
 
@@ -469,15 +481,15 @@ class exports.Connection extends EventEmitter
                 misc.delete_local_storage(@remember_me_key())
                 @emit(mesg.event, mesg)
 
-            when "project_list_updated", 'project_data_changed'
-                @emit(mesg.event, mesg)
             when 'version'
                 @emit('new_version', {version:mesg.version, min_version:mesg.min_version})
+
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
                     console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
+
             when "start_metrics"
                 @emit("start_metrics", mesg.interval_s)
 
@@ -499,11 +511,12 @@ class exports.Connection extends EventEmitter
 
     change_data_channel: (opts) =>
         opts = defaults opts,
-            prev_channel : required
+            prev_channel : undefined
             new_channel  : required
             session      : required
-        @unregister_data_handler(opts.prev_channel)
-        delete @_sessions[opts.prev_channel]
+        if opts.prev_channel?
+            @unregister_data_handler(opts.prev_channel)
+            delete @_sessions[opts.prev_channel]
         @_sessions[opts.new_channel] = opts.session
         @register_data_handler(opts.new_channel, opts.session.handle_data)
 
@@ -530,6 +543,8 @@ class exports.Connection extends EventEmitter
             params       : required  # must include {path:?, filename:?}
             cb           : required
         @call
+            allow_post : false
+
             message : message.connect_to_session
                 session_uuid : opts.session_uuid
                 type         : opts.type
@@ -565,6 +580,7 @@ class exports.Connection extends EventEmitter
             cb         : required    # cb(error, session)  if error is defined it is a string
 
         @call
+            allow_post : false
             message : message.start_session
                 type       : opts.type
                 params     : opts.params
@@ -618,7 +634,38 @@ class exports.Connection extends EventEmitter
         @register_data_handler(opts.data_channel, session.handle_data)
         opts.cb(false, session)
 
+    _do_post_call: (opts, cb) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : undefined   # TODO: ignored
+            error_event : false       # turn error events into just a normal err
+            cb          : undefined
+        # Use the remember_me-authenticated HTTP POST user_api endpoint instead, since call doesn't
+        # require returning multiple messages.
+        #console.log '_do_post_call', JSON.stringify(opts.message)
+
+        jqXHR = $.post("#{window?.app_base_url ? ''}/user_api", {message:misc.to_json(opts.message)})
+        if not opts.cb?
+            cb()
+            return
+
+        jqXHR.fail ->
+            opts.cb?("failed")
+            cb()
+
+        jqXHR.done (resp) ->
+            if opts.error_event and resp?.error
+                opts.cb?(resp.error)
+            else
+                opts.cb?(undefined, resp)
+            cb()
+
     _do_call: (opts, cb) =>
+        if opts.allow_post and @account_id?  # would never work if account_id not set
+            delete opts.allow_post
+            @_do_post_call(opts, cb)
+            return
+
         if not opts.cb?
             # console.log("no opts.cb", opts.message)
             # A call to the backend, but where we do not wait for a response.
@@ -678,6 +725,7 @@ class exports.Connection extends EventEmitter
             message     : required
             timeout     : undefined
             error_event : false  # if true, turn error events into just a normal err
+            allow_post  : @_enable_post
             cb          : undefined
         if not @is_connected()
             opts.cb?('not connected')
@@ -702,9 +750,9 @@ class exports.Connection extends EventEmitter
             return
         @_call.count += 1
         #console.log('count (call):', @_call.count)
-        mesg = @_call.queue.shift()
+        opts = @_call.queue.shift()
         @_emit_mesg_info()
-        @_do_call mesg, =>
+        @_do_call opts, =>
             @_call.count -= 1
             @_emit_mesg_info()
             #console.log('count (done):', @_call.count)
@@ -734,9 +782,10 @@ class exports.Connection extends EventEmitter
             f = undefined
 
         @call
-            message : m
-            timeout : opts.timeout
-            cb      : f
+            allow_post : not m.multi_response
+            message    : m
+            timeout    : opts.timeout
+            cb         : f
 
 
     #################################################
@@ -767,6 +816,7 @@ class exports.Connection extends EventEmitter
 
         @_create_account_lock = true
         @call
+            allow_post : false
             message : message.create_account
                 first_name      : opts.first_name
                 last_name       : opts.last_name
@@ -789,6 +839,7 @@ class exports.Connection extends EventEmitter
             cb            : required
 
         @call
+            allow_post : false
             message : message.delete_account
                 account_id : opts.account_id
             timeout : opts.timeout
@@ -799,6 +850,7 @@ class exports.Connection extends EventEmitter
             auth_token : required
             cb         : required
         @call
+            allow_post : false
             message : message.sign_in_using_auth_token
                 auth_token : opts.auth_token
             timeout : opts.timeout
@@ -816,6 +868,7 @@ class exports.Connection extends EventEmitter
             get_api_key   : undefined       # if given, will create/get api token in response message
 
         @call
+            allow_post : false
             message : message.sign_in
                 email_address : opts.email_address
                 password      : opts.password
@@ -835,9 +888,10 @@ class exports.Connection extends EventEmitter
         @account_id = undefined
 
         @call
-            message : message.sign_out(everywhere:opts.everywhere)
-            timeout : opts.timeout
-            cb      : opts.cb
+            allow_post : false
+            message    : message.sign_out(everywhere:opts.everywhere)
+            timeout    : opts.timeout
+            cb         : opts.cb
 
         @emit('signed_out')
 
@@ -850,7 +904,7 @@ class exports.Connection extends EventEmitter
             opts.cb?("must be signed in")
             return
         @call
-            message : message.change_password
+            message    : message.change_password
                 account_id    : @account_id
                 old_password  : opts.old_password
                 new_password  : opts.new_password
@@ -865,7 +919,7 @@ class exports.Connection extends EventEmitter
             opts.cb?("must be logged in")
             return
         @call
-            message: message.change_email_address
+            message     : message.change_email_address
                 account_id        : @account_id
                 new_email_address : opts.new_email_address
                 password          : opts.password
@@ -878,7 +932,7 @@ class exports.Connection extends EventEmitter
             only_verify   : true
             cb            : undefined
         @call
-            message : message.send_verification_email
+            message    : message.send_verification_email
                 only_verify : opts.only_verify
                 account_id  : opts.account_id
             cb : opts.cb
@@ -889,22 +943,23 @@ class exports.Connection extends EventEmitter
             email_address : required
             cb            : required
         @call
-            message: message.forgot_password
+            allow_post : false
+            message    : message.forgot_password
                 email_address : opts.email_address
-            cb: opts.cb
+            cb         : opts.cb
 
     # forgot password -- send forgot password request to server
     reset_forgot_password: (opts) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             reset_code    : required
             new_password  : required
             cb            : required
             timeout       : DEFAULT_TIMEOUT # seconds
-        )
-        @call(
-            message : message.reset_forgot_password(reset_code:opts.reset_code, new_password:opts.new_password)
-            cb      : opts.cb
-        )
+        @call
+            allow_post : false
+            message    : message.reset_forgot_password(reset_code:opts.reset_code, new_password:opts.new_password)
+            cb         : opts.cb
+
 
     # forget about a given passport authentication strategy for this user
     unlink_passport: (opts) ->
@@ -913,11 +968,11 @@ class exports.Connection extends EventEmitter
             id       : required
             cb       : undefined
         @call
-            message : message.unlink_passport
+            message    : message.unlink_passport
                 strategy : opts.strategy
                 id       : opts.id
             error_event : true
-            timeout : 15
+            timeout    : 15
             cb : opts.cb
 
      api_key: (opts) ->
@@ -960,7 +1015,7 @@ class exports.Connection extends EventEmitter
     # Individual Projects
     #################################################
 
-    open_project: (opts) ->
+    open_project: (opts) =>
         opts = defaults opts,
             project_id   : required
             cb           : required
@@ -970,7 +1025,7 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
             cb : opts.cb
 
-    write_text_file_to_project: (opts) ->
+    write_text_file_to_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -979,6 +1034,7 @@ class exports.Connection extends EventEmitter
             cb         : undefined
 
         @call
+            error_event : true
             message :
                 message.write_text_file_to_project
                     project_id : opts.project_id
@@ -987,7 +1043,7 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : (err, resp) => opts.cb?(err, resp)
 
-    read_text_file_from_project: (opts) ->
+    read_text_file_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -995,6 +1051,7 @@ class exports.Connection extends EventEmitter
             timeout    : DEFAULT_TIMEOUT
 
         @call
+            error_event : true
             message :
                 message.read_text_file_from_project
                     project_id : opts.project_id
@@ -1007,7 +1064,7 @@ class exports.Connection extends EventEmitter
     # downloaded using standard AJAX.
     # Despite the callback, this function is NOT asynchronous (that was for historical reasons).
     # It also just returns the url.
-    read_file_from_project: (opts) ->
+    read_file_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
@@ -1022,30 +1079,6 @@ class exports.Connection extends EventEmitter
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
         opts.cb?(false, {url:url})
         return url
-
-    project_branch_op: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            branch     : required
-            op         : required
-            cb         : required
-        @call
-            message : message["#{opts.op}_project_branch"]
-                project_id : opts.project_id
-                branch     : opts.branch
-            cb : opts.cb
-
-
-    stopped_editing_file: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            filename   : required
-            cb         : undefined
-        @call
-            message : message.stopped_editing_file
-                project_id : opts.project_id
-                filename   : opts.filename
-            cb      : opts.cb
 
     invite_noncloud_collaborators: (opts) =>
         opts = defaults opts,
@@ -1107,8 +1140,9 @@ class exports.Connection extends EventEmitter
             mesg = message.copy_path_between_projects(opts)
 
         @call
-            message : mesg
-            cb      : (err, resp) =>
+            message    : mesg
+            allow_post : false     # since it may take too long
+            cb         : (err, resp) =>
                 if err
                     cb?(err)
                 else if resp.event == 'error'
@@ -1177,6 +1211,7 @@ class exports.Connection extends EventEmitter
             timeout    : DEFAULT_TIMEOUT
 
         @call
+            error_event : true
             message :
                 message.public_get_text_file
                     project_id : opts.project_id
@@ -1218,10 +1253,22 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.result)
 
-    ######################################################################
-    # Execute a program in a given project
-    ######################################################################
-    exec: (opts) ->
+    ###
+    Execute code in a given project.
+
+    Aggregate option -- use like this:
+
+        webapp.exec
+            aggregate: timestamp (or something else sequential)
+
+    means: if there are multiple attempts to run the given command with the same
+    time, they are all aggregated and run only one time by the project.   If requests
+    comes in with a newer time, they all run in another group after the first
+    one finishes.    The timestamp will usually come from something like the "last save
+    time" (which is stored in the db), which they client will know.  This is used, e.g.,
+    for operations like "run rst2html on this file whenever it is saved."
+    ###
+    exec: (opts) =>
         opts = defaults opts,
             project_id      : required
             path            : ''
@@ -1231,15 +1278,19 @@ class exports.Connection extends EventEmitter
             network_timeout : undefined
             max_output      : undefined
             bash            : false
+            aggregate       : undefined  # see comment above.
             err_on_exit     : true
-            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:...}).
+            allow_post      : true       # set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
+        start_time = new Date()
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
 
         #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
-            message : message.project_exec
+            allow_post : opts.allow_post
+            message    : message.project_exec
                 project_id  : opts.project_id
                 path        : opts.path
                 command     : opts.command
@@ -1248,15 +1299,16 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
-            timeout : opts.network_timeout
-            cb      : (err, mesg) ->
+                aggregate   : opts.aggregate
+            timeout    : opts.network_timeout
+            cb         : (err, mesg) ->
                 #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
                 if err
                     opts.cb(err, mesg)
                 else if mesg.event == 'error'
                     opts.cb(mesg.error)
                 else
-                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code})
+                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code, time:new Date() - start_time})
 
     makedirs: (opts) =>
         opts = defaults opts,
@@ -1293,7 +1345,9 @@ class exports.Connection extends EventEmitter
         @exec
             project_id : opts.project_id
             command    : command
-            timeout    : 15
+            timeout    : 30
+            allow_post : false  # walking tree can be slow!
+            aggregate  : Math.round((new Date() - 0)/5000)  # aggregate calls into 5s windows, in case multiple clients ask for same find at once...
             cb         : (err, result) =>
                 if err
                     opts.cb?(err); return
@@ -1321,10 +1375,12 @@ class exports.Connection extends EventEmitter
             query_id : -1     # So we can check that it matches the most recent query
             limit    : 20
             timeout  : DEFAULT_TIMEOUT
+            active   : '6 months'
+            admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
             cb       : required
 
         @call
-            message : message.user_search(query:opts.query, limit:opts.limit)
+            message : message.user_search(query:opts.query, limit:opts.limit, admin:opts.admin, active:opts.active)
             timeout : opts.timeout
             cb      : (err, resp) =>
                 if err
@@ -1379,47 +1435,19 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, result)
 
-    ############################################
-    # Bulk information about several projects or accounts
-    # (may be used by chat, etc.)
-    # NOTE:
-    #    When get_projects is called (which happens regularly), any info about
-    #    project titles or "account_id --> name" mappings gets updated. So
-    #    usually get_project_titles and get_usernames doesn't even have
-    #    to make a call to the server.   A case where it would is when rendering
-    #    the notifications and the project list hasn't been returned.  Also,
-    #    at some point, project list will probably just return the most recent
-    #    projects or partial info about them.
-    #############################################
-
-    get_usernames: (opts) ->
+    ###
+    Bulk information about several accounts (may be used by chat, etc.).
+    Currently used for admin and public views, mainly.
+    ###
+    get_username: (opts) =>
         opts = defaults opts,
-            account_ids : required
-            use_cache   : true
-            cb          : required     # cb(err, map from account_id to {first_name:?, last_name:?})
-        usernames = {}
-        for account_id in opts.account_ids
-            usernames[account_id] = false
-        if opts.use_cache
-            for account_id, done of usernames
-                if not done and @_usernames_cache[account_id]?
-                    usernames[account_id] = @_usernames_cache[account_id]
-        account_ids = (account_id for account_id, done of usernames when not done)
-        if account_ids.length == 0
-            opts.cb(undefined, usernames)
-        else
-            @call
-                message : message.get_usernames(account_ids : account_ids)
-                cb      : (err, resp) =>
-                    if err
-                        opts.cb(err)
-                    else if resp.event == 'error'
-                        opts.cb(resp.error)
-                    else
-                        for account_id, username of resp.usernames
-                            usernames[account_id] = username
-                            @_usernames_cache[account_id] = username   # TODO: we could expire this cache...
-                        opts.cb(undefined, usernames)
+            account_id : required
+            cb         : required     # cb(err, map from account_id to {first_name:?, last_name:?})
+        client_aggregate.get_username
+            client     : @
+            aggregate  : Math.floor(new Date()/60000)   # so it never actually calls to the backend more than once at a time (per minute).
+            account_id : opts.account_id
+            cb         : opts.cb
 
     #################################################
     # File Management
@@ -1449,22 +1477,6 @@ class exports.Connection extends EventEmitter
         req.fail (err) ->
             #console.log('fail')
             opts.cb(err)
-
-    project_get_state: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required     # cb(err, utc_seconds_epoch)
-        @call
-            message:
-                message.project_get_state
-                    project_id : opts.project_id
-            cb : (err, resp) ->
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(false, resp.state)
 
     #################################################
     # Print file to pdf
@@ -1500,7 +1512,17 @@ class exports.Connection extends EventEmitter
     #################################################
     # Bad situation error loging
     #################################################
+
+    # Log given error to a backend table.  Logs the *same* error
+    # at most once every 15 minutes.
     log_error: (error) =>
+        @_log_error_cache ?= {}
+        if not misc.is_string(error)
+            error = misc.to_json(error)
+        last = @_log_error_cache[error]
+        if last? and new Date() - last <= 1000*60*15
+            return
+        @_log_error_cache[error] = new Date()
         @call(message : message.log_client_error(error:error))
 
     webapp_error: (opts) =>
@@ -1752,6 +1774,13 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : cb
 
+    # Remove all upgrades from all projects that this user collaborates on.
+    remove_all_upgrades: (cb) =>
+        @call
+            message     : message.remove_all_upgrades()
+            error_event : true
+            cb          : cb
+
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>
@@ -1824,6 +1853,33 @@ class exports.Connection extends EventEmitter
         # Will only do something if @_redux has been set.
         @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
+    _post_query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            cb      : undefined
+        data =
+            query   : misc.to_json(opts.query)
+            options : if opts.options then misc.to_json(opts.options)
+        #tt0 = new Date()
+        #console.log '_post_query', data
+        jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)
+        if not opts.cb?
+            #console.log 'no cb'
+            return
+        jqXHR.fail ->
+            #console.log 'failed'
+            opts.cb("failed")
+            return
+        jqXHR.done (resp) ->
+            #console.log 'got back ', JSON.stringify(resp)
+            #console.log 'TIME: ', new Date() - tt0
+            if resp.error
+                opts.cb(resp.error)
+            else
+                opts.cb(undefined, {query:resp.result})
+        return
+
     query: (opts) =>
         opts = defaults opts,
             query   : required
@@ -1833,8 +1889,18 @@ class exports.Connection extends EventEmitter
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
+
+        if not opts.changes and $?.post? and @_enable_post
+            # Can do via http POST request, rather than websocket messages
+            @_post_query
+                query   : opts.query
+                options : opts.options
+                cb      : opts.cb
+            return
+
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
         #console.log("#{(new Date()).toISOString()} -- #{id}: query=#{misc.to_json(opts.query)}")
+        #tt0 = new Date()
         err = validate_client_query(opts.query, @account_id)
         if err
             opts.cb?(err)
@@ -1845,11 +1911,13 @@ class exports.Connection extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         @call
+            allow_post  : false   # since that would happen via @_post_query
             message     : mesg
             error_event : true
             timeout     : opts.timeout
             cb          : (args...) ->
                 #console.log("#{(new Date()).toISOString()} -- #{id}: query_resp=#{misc.to_json(args)}")
+                #console.log 'TIME: ', new Date() - tt0
                 opts.cb?(args...)
 
     query_cancel: (opts) =>
@@ -1857,6 +1925,7 @@ class exports.Connection extends EventEmitter
             id : required
             cb : undefined
         @call
+            allow_post  : false   # since this is cancelling a changefeed
             message     : message.query_cancel(id:opts.id)
             error_event : true
             timeout     : 30
@@ -1866,6 +1935,30 @@ class exports.Connection extends EventEmitter
     # There is no confirmation or response.
     send_metrics: (metrics) =>
         @send(message.metrics(metrics:metrics))
+
+    # Run prettier on a syncstring -- modifies the syncstring from the backend
+    prettier: (opts) =>
+        opts = defaults opts,
+            path       : required
+            project_id : required
+            options    : undefined
+            cb         : undefined
+        base = window?.app_base_url ? ''
+        path = opts.path
+        if path[0] == '/'
+            path = '.smc/root' + path
+        url = "#{base}/#{opts.project_id}/raw/.smc/prettier"
+        data =
+            path    : path
+            options : if opts.options then JSON.stringify(opts.options)
+        jqXHR = $.post(url, data)
+
+        jqXHR.fail ->
+            opts.cb?("failed")
+
+        jqXHR.done (resp) ->
+            opts.cb?(undefined, resp)
+
 
 #################################################
 # Other account Management functionality shared between client and server

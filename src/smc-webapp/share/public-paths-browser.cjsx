@@ -2,7 +2,7 @@
 Share server top-level landing page.
 ###
 
-{rclass, React, ReactDOM, rtypes} = require('../smc-react')
+{rclass, React, ReactDOM, rtypes} = require('../app-framework')
 misc = require('smc-util/misc')
 {Space, TimeAgoElement} = require('../r_misc')
 
@@ -86,6 +86,9 @@ exports.PublicPathsBrowser = rclass
                 continue
             info = @props.public_paths.get(id)
             if not info? or info.get('auth')  # TODO: as in router.cjsx, we skip all public_paths with auth info for now, until auth is implemented... (?)
+                continue
+            if info.get('unlisted')
+                # Do NOT list unlisted public paths.
                 continue
             if j % 2 == 0
                 bgcolor = 'rgb(238, 238, 238)'

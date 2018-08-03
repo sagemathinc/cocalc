@@ -15,6 +15,8 @@ misc_node = require('smc-util-node/misc_node')
 
 {directory_listing_router} = require('./directory-listing')
 
+{prettier_router} = require('./prettier.ts')
+
 {upload_endpoint} = require('./upload')
 
 kucalc = require('./kucalc')
@@ -26,6 +28,7 @@ exports.start_raw_server = (opts) ->
         host       : required
         data_path  : required
         home       : required
+        client     : required
         port       : undefined
         logger     : undefined
         cb         : cb
@@ -40,7 +43,12 @@ exports.start_raw_server = (opts) ->
     raw_server.use(compression())
 
     # Needed for POST file to custom path.
+
+    # parse application/x-www-form-urlencoded
     raw_server.use(body_parser.urlencoded({ extended: true }))
+
+    # parse application/json
+    raw_server.use(body_parser.json())
 
     port = opts.port # either undefined or the port number
 
@@ -84,6 +92,9 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
             # to the hub (at least in KuCalc).
             raw_server.use(base, directory_listing_router(express))
+
+            # Setup the /.smc/prettier POST endpoint, which is used for prettifying code.
+            raw_server.use(base, prettier_router(opts.client, opts.logger))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))

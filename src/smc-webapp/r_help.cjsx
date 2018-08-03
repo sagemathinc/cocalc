@@ -31,7 +31,7 @@ else
 
 $ = window.$
 misc = require('smc-util/misc')
-{React, ReactDOM, redux, rtypes, rclass} = require('./smc-react')
+{React, ReactDOM, redux, rtypes, rclass} = require('./app-framework')
 {Well, Col, Row, Accordion, Panel, ProgressBar, Table} = require('react-bootstrap')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
@@ -59,7 +59,7 @@ HelpPageUsageSection = rclass
     displayName : 'HelpPage-HelpPageUsageSection'
 
     getDefaultProps: ->
-       loading : true
+        loading : true
 
     number_of_active_users: ->
         if @props.hub_servers.length == 0
@@ -139,6 +139,9 @@ HelpPageUsageSection = rclass
             </span>
 
     render: ->
+        # TODO: it would be nice to change the share link to
+        #     https://cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html
+        # but this seems stale for some reason sometimes.
         <Col sm={12} md={6}>
             <h3>
                 <Icon name='dashboard' /> Statistics
@@ -146,7 +149,7 @@ HelpPageUsageSection = rclass
             </h3>
             <div>
                 {@render_active_users_stats()}
-                {# @render_active_projects_stats()}
+                {### @render_active_projects_stats() ###}
                 <div style={marginTop: 20, textAlign:'center'}>
                     Recent user activity
                 </div>
@@ -169,10 +172,11 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
-    live_demo :
-        icon : 'comments-o'
-        link : "Request a live demo about how to teach a course"
-        href : LIVE_DEMO_REQUEST
+    frequently_asked_questions :
+        icon : 'question-circle'
+        bold : true
+        href : WIKI_URL
+        link : <span><SiteName/> documentation</span>
     teaching :
         icon : 'graduation-cap'
         href : 'https://tutorial.cocalc.com/'
@@ -182,11 +186,6 @@ SUPPORT_LINKS =
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
         commercial: true
-    frequently_asked_questions :
-        icon : 'question-circle'
-        bold : true
-        href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
     docker_image:
         icon : 'window-maximize'
         href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
@@ -199,6 +198,10 @@ SUPPORT_LINKS =
         icon : 'gears'
         href : "#{BASE_URL}/doc/api.html"
         link :  <span><SiteName/> API</span>
+    live_demo :
+        icon : 'comments-o'
+        link : "Request a live demo about how to teach a course"
+        href : LIVE_DEMO_REQUEST
 
 CONNECT_LINKS =
     share :
@@ -383,7 +386,7 @@ exports.HelpPage = HelpPage = rclass
         {APP_LOGO}        = require('./art')
 
         <Row style={padding:'10px', margin:'0px', overflow:'auto'}>
-            <Col sm=10 smOffset=1 md=8 mdOffset=2 xs=12>
+            <Col sm={10} smOffset={1} md={8} mdOffset={2} xs={12}>
                 <h3 style={textAlign: 'center', marginBottom: '30px'}>
                 <img src="#{APP_LOGO}" style={width:'33%', height:'auto'} />
                 <br/>
@@ -410,8 +413,8 @@ exports.HelpPage = HelpPage = rclass
                 </Row>
                 {@render_compute_env() if KUCALC_COMP_ENV}
             </Col>
-            <Col sm=1 md=2 xsHidden></Col>
-            <Col xs=12 sm=12 md=12>
+            <Col sm={1} md={2} xsHidden></Col>
+            <Col xs={12} sm={12} md={12}>
                 <Footer/>
             </Col>
         </Row>

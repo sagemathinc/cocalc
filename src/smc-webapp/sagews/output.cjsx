@@ -2,7 +2,7 @@
 Rendering output part of a Sage worksheet cell
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 misc = require('smc-util/misc')
 
@@ -23,6 +23,11 @@ exports.CellOutput = rclass
         output : rtypes.object.isRequired
         flags  : rtypes.string
 
+    render_auto: ->
+        # This is deprecated, but can be in some older worksheets.
+        # It should do nothing for static rendering.
+        return <span/>
+
     render_stdout: (value, key) ->
         <Stdout key={key} message={fromJS(text:value)} />
 
@@ -33,7 +38,7 @@ exports.CellOutput = rclass
         <Markdown key={key} value={value} />
 
     render_html: (value, key) ->
-        <HTML key={key} value={value} />
+        <HTML key={key} value={value} auto_render_math={true} />
 
     render_interact: (value, key) ->
         <div key={key}>
@@ -87,7 +92,7 @@ exports.CellOutput = rclass
         if value.display
             html = "$#{html}$"
         <div key={key}>
-            <HTML value={html} />
+            <HTML value={html} auto_render_math={true} />
         </div>
 
     render_raw_input: (value, key) ->

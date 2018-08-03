@@ -3,7 +3,7 @@
 
 exports.MathJaxConfig =
     skipStartupTypeset: true
-    extensions: ["tex2jax.js","asciimath2jax.js"]  # "static/mathjax_extensions/xypic.js"
+    extensions: ["tex2jax.js","asciimath2jax.js","Safe.js"]  # "static/mathjax_extensions/xypic.js"
     # NOTE: "output/CommonHTML" is the output default: http://docs.mathjax.org/en/latest/output.html
     # However, **DO NOT** use "output/CommonHTML" for the output JAX; it completely breaks
     # Sage worksheet output right now.  Maybe when/if worksheets are rewritten
@@ -21,7 +21,7 @@ exports.MathJaxConfig =
     TeX:
         MAXBUFFER  : 100000  # see https://github.com/mathjax/MathJax/issues/910
         extensions : ["autoload-all.js", "noUndefined.js", "noErrors.js"]
-        Macros     : # get these from sage/misc/latex.py
+        Macros     : # get these from sage/misc/latex.py; also in cocalc/src/smc-webapp/math_katex.coffee
             Bold  : ["\\mathbb{#1}",1]
             ZZ    : ["\\Bold{Z}",0]
             NN    : ["\\Bold{N}",0]

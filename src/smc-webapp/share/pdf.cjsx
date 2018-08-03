@@ -2,7 +2,7 @@
 Embedded PDF viewer.
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 exports.PDF = rclass
     propTypes :

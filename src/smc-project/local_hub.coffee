@@ -13,9 +13,16 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
-
+require('ts-node').register(project:"#{__dirname}/tsconfig.json")
+path    = require('path')
+async   = require('async')
+fs      = require('fs')
+os      = require('os')
+net     = require('net')
+uuid    = require('uuid')
+winston = require('winston')
+request = require('request')
+program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 BUG_COUNTER = 0
 
@@ -31,21 +38,11 @@ process.addListener "uncaughtException", (err) ->
 exports.get_bugs_total = ->
     return BUG_COUNTER
 
-path    = require('path')
-async   = require('async')
-fs      = require('fs')
-os      = require('os')
-net     = require('net')
-uuid    = require('uuid')
-winston = require('winston')
-request = require('request')
-program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
@@ -183,7 +180,7 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
-# Handle a message from the client (=hub)
+# Handle a message from the hub
 handle_mesg = (socket, mesg, handler) ->
     #dbg = (m) -> winston.debug("handle_mesg: #{m}")
     #dbg("mesg=#{json(mesg)}")
@@ -266,9 +263,9 @@ start_tcp_server = (secret_token, port, cb) ->
 
     winston.info("starting tcp server: project <--> hub...")
     server = net.createServer (socket) ->
-        winston.debug("received new connection")
+        winston.debug("received new connection from #{socket.remoteAddress}")
         socket.on 'error', (err) ->
-            winston.debug("socket error - #{err}")
+            winston.debug("socket '#{socket.remoteAddress}' error - #{err}")
 
         misc_node.unlock_socket socket, secret_token, (err) ->
             if err
@@ -318,6 +315,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 home       : process.env.HOME
                 port       : raw_port
                 logger     : winston
+                client     : exports.client
                 cb         : cb
         (cb) ->
             if program.kucalc

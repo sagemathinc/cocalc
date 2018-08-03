@@ -33,7 +33,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
 {Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
@@ -243,7 +243,7 @@ Message = rclass
             <FormGroup>
                 <FormControl
                     autoFocus      = {true}
-                    rows           = 4
+                    rows           = {4}
                     componentClass = 'textarea'
                     ref            = 'editedMessage'
                     onKeyDown      = {@on_keydown}

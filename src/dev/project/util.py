@@ -14,14 +14,16 @@ def chdir():
 
 def base_url(port=None, write=True):
     print("base_url(port=%s)"%port)
-    info_file = join(os.environ['SMC'], 'info.json')
-    info = json.loads(open(info_file).read())
+    try:
+        project_id = os.environ['COCALC_PROJECT_ID']
+    except KeyError:
+        raise RuntimeError("COCALC_PROJECT_ID environment variable not found. You can only use dev/project to run CoCalc from inside of a CoCalc project.")
     if port is None and write:
         write_base_url = True
         port = get_ports()['hub']
     else:
         write_base_url = False
-    base_url = "/{project_id}/port/{port}".format(project_id=info['project_id'], port=port)
+    base_url = "/{project_id}/port/{port}".format(project_id=project_id, port=port)
     if write_base_url:
         open("../../data/base_url",'w').write(base_url)
     return base_url

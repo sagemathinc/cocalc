@@ -7,7 +7,8 @@ PAGE_SIZE            = 100
 
 os_path              = require('path')
 
-{React}              = require('smc-webapp/smc-react')
+{React}              = require('smc-webapp/app-framework')
+
 express              = require('express')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -20,10 +21,6 @@ react_support        = require('./react')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
 util                 = require('./util')
-
-# This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
-# (mathjax from misc_page) that are implicitly loaded by the above requires.
-require('./process-react')
 
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()
@@ -38,10 +35,9 @@ react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
             notranslate      = {!!notranslate}
             google_analytics = {google_analytics}
             viewer           = {viewer}
-            is_public        = {is_public}>
-
+            is_public        = {is_public}
+        >
             {component}
-
         </Page>
         extra = {path:path, project_id:project_id}  # just used for log
         react_support.react(res, the_page, extra, viewer)

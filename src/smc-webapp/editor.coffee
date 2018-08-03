@@ -36,7 +36,7 @@ async = require('async')
 
 message = require('smc-util/message')
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 _ = underscore = require('underscore')
 
@@ -65,6 +65,8 @@ require('./console')
 syncdoc  = require('./syncdoc')
 sagews   = require('./sagews/sagews')
 printing = require('./printing')
+
+{render_examples_dialog} = require('./assistant/legacy')
 
 copypaste = require('./copy-paste-buffer')
 {extra_alt_keys} = require('mobile/codemirror')
@@ -233,7 +235,10 @@ templates = $("#webapp-editor-templates")
 
 class FileEditor extends EventEmitter
     # ATTN it is crucial to call this constructor in subclasses via super(@project_id, @filename)
-    constructor: (@project_id, @filename) ->
+    constructor: (project_id, filename) ->
+        super()
+        @project_id = project_id
+        @filename = filename
         @ext = misc.filename_extension_notilde(@filename)?.toLowerCase()
         @_show = underscore.debounce(@_show, 50)
 
@@ -351,8 +356,8 @@ exports.FileEditor = FileEditor
 #     - 'toggle-split-view' :
 ###############################################
 class CodeMirrorEditor extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
@@ -489,7 +494,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys["Shift-Enter"] = =>
                 alert_message
                     type    : "error"
-                    message : "You can only evaluate code in a file that ends with the extension 'sagews'.   Create a Sage Worksheet instead."
+                    message : "You can only evaluate code in a file that ends with the extension 'sagews' or 'ipynb'.   Create a Sage Worksheet or Jupyter notebook instead."
 
         # Layouts:
         #   0 - one single editor
@@ -1469,30 +1474,43 @@ class CodeMirrorEditor extends FileEditor
                 return true
 
     examples_dialog_handler: () =>
-        # @examples_dialog is this ExampleActions object
+        # @examples_dialog is an ExampleActions object, unique for each editor instance
+        lang = @_current_mode
+        # special case sh → bash
+        if lang == 'sh' then lang = 'bash'
+
         if not @examples_dialog?
             $target = @mode_display.parent().find('.react-target')
-            {render_examples_dialog} = require('./examples')
-            @examples_dialog = render_examples_dialog($target[0], @project_id, @filename, lang = @_current_mode, cb = @example_insert_handler)
+            @examples_dialog = render_examples_dialog(
+                target     : $target[0]
+                project_id : @project_id
+                path       : @filename
+                lang       : lang
+            )
         else
-            @examples_dialog.show(lang = @_current_mode)
+            @examples_dialog.show(lang)
+        @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
-        code = insert.code
-        lang = insert.lang
+        {code, lang} = insert
         cm = @focused_codemirror()
         line = cm.getCursor().line
-        # console.log "example insert:", lang, code, insert.descr
+        # ATTN: to make this work properly, code and descr need to have a newline at the end (stripped by default)
         if insert.descr?
             @syncdoc?.insert_new_cell(line)
-            cm.replaceRange("%md\n#{insert.descr}", {line : line+1, ch:0})
+            # insert a "hidden" markdown cell and evaluate it
+            cm.replaceRange("%md(hide=True)\n#{insert.descr}\n", {line : line+1, ch:0})
             @action_key(execute: true, advance:false, split:false)
         line = cm.getCursor().line
+        # next, we insert the code cell and prefix it with a mode change, iff the mode is different from the current one
         @syncdoc?.insert_new_cell(line)
-        cell = code
+        cell = "#{code}\n"
         if lang != @_current_mode
+            # special case: %sh for bash language
+            if lang == 'bash' then lang = 'sh'
             cell = "%#{lang}\n#{cell}"
         cm.replaceRange(cell, {line : line+1, ch:0})
+        # and we evaluate and sync all this, too…
         @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 
@@ -1617,7 +1635,10 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
-        mode_display.click(@examples_dialog_handler)
+        # show the assistant button to reveal the dialog for example selection
+        @element.find('.webapp-editor-codeedit-buttonbar-assistant').show()
+        assistant_button = @element.find('a[href="#assistant"]')
+        assistant_button.click(@examples_dialog_handler)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for
@@ -1687,8 +1708,8 @@ codemirror_session_editor = exports.codemirror_session_editor = (project_id, fil
     return E
 
 class Terminal extends FileEditor
-    constructor: (@project_id, @filename, content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
         @element = $("<div>").hide()
         elt = @element.webapp_console
             title      : "Terminal"
@@ -1703,7 +1724,7 @@ class Terminal extends FileEditor
             path       : @filename
             cb         : (err, result) =>
                 if err
-                    alert_message(type:"error", message: "Error connecting to console server -- #{err}")
+                    alert_message(type:"error", message: "Error connecting to console server -- #{misc.to_safe_str(err)}")
                 else
                     # New session or connect to session
                     if result.content? and result.content.length < 36
@@ -1772,66 +1793,10 @@ class Terminal extends FileEditor
     _show: () =>
         @console?.resize()
 
-class Media extends FileEditor
-    constructor: (@project_id, @filename, url, @opts) ->
-        super(@project_id, @filename)
-        @mode = if @ext in VIDEO_EXTS then 'video' else 'image'
-        @element = templates.find(".webapp-editor-image").clone()
-        @element.find(".webapp-editor-image-title").text(@filename)
-
-        refresh = @element.find('a[href="#refresh"]')
-        refresh.click () =>
-            refresh.icon_spin(true)
-            @update (err) =>
-                refresh.icon_spin(false)
-            return false
-
-        @element.find('a[href="#close"]').click () =>
-            return false
-
-        if url?
-            @element.find(".webapp-editor-image-container").find("span").hide()
-            @set_src(url)
-        else
-            @update()
-
-    set_src: (src) =>
-        switch @mode
-            when 'image'
-                @element.find("img").attr('src', src)
-                @element.find('video').hide()
-            when 'video'
-                @element.find('img').hide()
-                @element.find('video').attr('src', src).show()
-
-    update: (cb) =>
-        @element.find('a[href="#refresh"]').icon_spin(start:true)
-        webapp_client.read_file_from_project
-            project_id : @project_id
-            timeout    : 30
-            path       : @filename
-            cb         : (err, mesg) =>
-                @element.find('a[href="#refresh"]').icon_spin(false)
-                @element.find(".webapp-editor-image-container").find("span").hide()
-                if err
-                    alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
-                    cb?(err)
-                else if mesg.event == 'error'
-                    alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
-                    cb?(mesg.event)
-                else
-                    @set_src(mesg.url + "?random=#{Math.random()}")
-                    cb?()
-
-    show: () =>
-        if not @is_active()
-            return
-        @element.show()
-
-
 class PublicHTML extends FileEditor
-    constructor: (@project_id, @filename, @content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
         @element = templates.find(".webapp-editor-static-html").clone()
         # ATTN: we can't set src='raw-path' because the sever might not run.
         # therefore we retrieve the content and set it directly.
@@ -1879,10 +1844,10 @@ class PublicHTML extends FileEditor
         @iframe.maxheight()
 
 class PublicCodeMirrorEditor extends CodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts, cb) ->
+    constructor: (project_id, filename, content, opts, cb) ->
         opts.read_only = true
         opts.public_access = true
-        super(@project_id, @filename, "Loading...", opts)
+        super(project_id, filename, "Loading...", opts)
         @element.find('a[href="#save"]').hide()       # no need to even put in the button for published
         @element.find('a[href="#readonly"]').hide()   # ...
         webapp_client.public_get_text_file
@@ -1893,21 +1858,23 @@ class PublicCodeMirrorEditor extends CodeMirrorEditor
                 if err
                     content = "Error opening file -- #{err}"
                 @_set(content)
-                cb?(err)
+                cb?(err, @)
 
 class PublicSagews extends PublicCodeMirrorEditor
-    constructor: (@project_id, @filename, content, opts) ->
+    constructor: (project_id, filename, content, opts) ->
         opts.allow_javascript_eval = false
-        super @project_id, @filename, content, opts, (err) =>
-            @element.find('a[href="#split-view"]').hide()  # disable split view
+        super project_id, filename, content, opts, (err, eventual_this) =>
+            eventual_this.element.find('a[href="#split-view"]').hide()  # disable split view
             if not err
-                @syncdoc = new (sagews.SynchronizedWorksheet)(@, {static_viewer:true})
-                @syncdoc.process_sage_updates()
-                @syncdoc.init_hide_show_gutter()
+                eventual_this.syncdoc = new (sagews.SynchronizedWorksheet)(eventual_this, {static_viewer:true})
+                eventual_this.syncdoc.process_sage_updates()
+                eventual_this.syncdoc.init_hide_show_gutter()
 
 class FileEditorWrapper extends FileEditor
-    constructor: (@project_id, @filename, @content, @opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
+        @opts = opts
         @init_wrapped(@project_id, @filename, @content, @opts)
 
     init_wrapped: () =>
@@ -1961,26 +1928,6 @@ class FileEditorWrapper extends FileEditor
         @element?.hide()
         @wrapped?.hide?()
 
-###
-# Task list
-###
-
-class TaskList extends FileEditorWrapper
-    init_wrapped: () =>
-        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
-        require.ensure [], () =>
-            tasks = require('./tasks')
-            elt = tasks.task_list(@project_id, @filename, {})
-            @element.replaceWith(elt)
-            @element = elt
-            @wrapped = elt.data('task_list')
-            @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
-
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
 
 ###
 # Jupyter notebook
@@ -2011,8 +1958,9 @@ class JupyterNBViewer extends FileEditorWrapper
 class JupyterNBViewerEmbedded extends FileEditor
     # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
     # it's only used for public files and when not part of the project or anonymous
-    constructor: (@project_id, @filename, @content, opts) ->
-        super(@project_id, @filename)
+    constructor: (project_id, filename, content, opts) ->
+        super(project_id, filename)
+        @content = content
         @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
         @init_buttons()
 
@@ -2051,48 +1999,38 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
 
-{HTML_MD_Editor} = require('./editor-html-md/editor-html-md')
-html_md_exts = (ext for ext, opts of file_associations when opts.editor == 'html-md')
-
-{LatexEditor} = require('./latex/editor')
-
-exports.register_nonreact_editors = () ->
+exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
     reg = require('./editor_react_wrapper').register_nonreact_editor
 
-    reg
-        ext       : ''  # fallback for any type not otherwise explicitly specified
-        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
-        is_public : false
-
     # wrapper for registering private and public editors
     register = (is_public, cls, extensions) ->
-        require.ensure [], ->
-            icon = file_icon_class(extensions[0])
-            reg
-                ext       : extensions
-                is_public : is_public
-                icon      : icon
-                f         : (project_id, path, opts) ->
-                    e = new cls(project_id, path, undefined, opts)
-                    if not e.ext?
-                        console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
-                    return e
+        icon = file_icon_class(extensions[0])
+        reg
+            ext       : extensions
+            is_public : is_public
+            icon      : icon
+            f         : (project_id, path, opts) ->
+                e = new cls(project_id, path, undefined, opts)
+                if not e.ext?
+                    console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
+                return e
 
-    # Editors for private normal editable files.
-    register(false, HTML_MD_Editor,   html_md_exts)
-    register(false, LatexEditor,      ['tex', 'rnw'])
     register(false, Terminal,         ['term', 'sage-term'])
-    register(false, Media,            ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp'].concat(VIDEO_EXTS))
 
     {HistoryEditor} = require('./editor_history')
     register(false, HistoryEditor,    ['sage-history'])
-    #register(false, TaskList,         ['tasks'])
     exports.switch_to_ipynb_classic = ->
         register(false, JupyterNotebook,  ['ipynb'])
 
     # "Editors" for read-only public files
-    register(true, PublicCodeMirrorEditor,  [''])
     register(true, PublicHTML,              ['html'])
     register(true, PublicSagews,            ['sagews'])
+
+    # Editing Sage worksheets
+    reg
+        ext       : 'sagews'
+        f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
+        is_public : false
+

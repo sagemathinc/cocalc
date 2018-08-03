@@ -84,7 +84,7 @@ exports.merge = (dest, objs...) ->
     for obj in objs
         for k, v of obj
             dest[k] = v
-    dest
+    return dest
 
 # Makes new object that is shallow copy merge of all objects.
 exports.merge_copy = (objs...) ->
@@ -273,8 +273,11 @@ exports.from_json_socket = (x) ->
 
 
 # convert object x to a JSON string, removing any keys that have "pass" in them and
-# any values that are potentially big -- this is meant to only be used for loging.
+# any values that are potentially big -- this is meant to only be used for logging.
 exports.to_safe_str = (x) ->
+    if typeof(x) == 'string'
+        # nothing we can do at this point -- already a string.
+        return x
     obj = {}
     for key, value of x
         sanitize = false
@@ -364,6 +367,9 @@ exports.len = (obj) ->
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
+
+# does the given object (first arg) have the given key (second arg)?
+exports.has_key = underscore.has
 
 # returns the values of a map
 exports.values = underscore.values
@@ -684,8 +690,10 @@ exports.lower_email_address = (email_address) ->
 #    email_queries: ["email@something.com", "justanemail@mail.com"]
 # }
 exports.parse_user_search = (query) ->
-    queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
+    if typeof(query) != 'string'
+        return r
+    queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     email_re = /<(.*)>/
     for x in queries
         if x
@@ -728,7 +736,7 @@ exports.retry_until_success = (opts) ->
         log         : undefined
         warn        : undefined
         name        : ''
-        cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
+        cb          : undefined       # called with cb() on *success*; cb(error, last_error) if max_tries is exceeded
 
     delta = opts.start_delay
     tries = 0
@@ -753,11 +761,11 @@ exports.retry_until_success = (opts) ->
                 if opts.log?
                     opts.log("retry_until_success(#{opts.name}) -- err=#{JSON.stringify(err)}")
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}")
+                    opts.cb?("maximum tries (=#{opts.max_tries}) exceeded - last error #{JSON.stringify(err)}", err)
                     return
                 delta = Math.min(opts.max_delay, opts.factor * delta)
                 if opts.max_time? and (new Date() - start_time) + delta > opts.max_time
-                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}")
+                    opts.cb?("maximum time (=#{opts.max_time}ms) exceeded - last error #{JSON.stringify(err)}", err)
                     return
                 setTimeout(g, delta)
             else
@@ -1035,6 +1043,8 @@ exports.matches = (s, words) ->
     return true
 
 exports.hash_string = (s) ->
+    if not s?
+        return
     # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
     hash = 0
     i = undefined
@@ -1049,9 +1059,6 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
-
-
-
 
 exports.parse_hashtags = (t) ->
     # return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
@@ -1227,6 +1234,9 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+# "Performs an optimized deep comparison between the two objects, to determine if they should be considered equal."
+exports.is_equal = underscore.isEqual
+
 exports.cmp = (a,b) ->
     if a < b
         return -1
@@ -1260,6 +1270,38 @@ timestamp_cmp0 = (a,b,field='timestamp') ->
 
 exports.field_cmp = (field) ->
     return (a, b) -> exports.cmp(a[field], b[field])
+
+# Return true if and only if a[field] != b[field] for some field.
+# Here we literally just use !=, so do not use this for non-atomic values!
+exports.is_different = (a, b, fields, why) ->
+    if not a?
+        if not b?
+            return false  # they are the same
+        # a not defined but b is
+        for field in fields
+            if b[field]?
+                if why
+                    console.log 'is_different', field, a?[field], b[field]
+                return true
+        return false
+    if not b?
+        # a is defined or would be handled above
+        for field in fields
+            if a[field]?
+                if why
+                    console.log 'is_different', field, a[field], b?[field]
+                return true  # different
+        return false  # same
+
+    for field in fields
+        if a[field] != b[field]
+            if why
+                console.log 'is_different', field, a[field], b[field]
+            return true
+    return false
+
+exports.is_different_array = (a, b) ->
+    return not underscore.isEqual(a,b)
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1486,7 +1528,12 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
-exports.seconds2hms = seconds2hms = (secs, longform) ->
+# like seconds2hms, but only up to minute-resultion
+exports.seconds2hm = seconds2hm = (secs, longform) ->
+    return seconds2hms(secs, longform, false)
+
+# dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
+exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
     longform ?= false
     if secs < 10
         s = round2(secs % 60)
@@ -1496,21 +1543,36 @@ exports.seconds2hms = seconds2hms = (secs, longform) ->
         s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
-    if h == 0 and m == 0
+    if (h == 0 and m == 0) and show_seconds
         if longform
             return "#{s} #{exports.plural(s, 'second')}"
         else
             return "#{s}s"
     if h > 0
         if longform
-            return "#{h} #{exports.plural(h, 'hour')} #{m} #{exports.plural(m, 'minute')}"
+            ret = "#{h} #{exports.plural(h, 'hour')}"
+            if m > 0
+                ret += " #{m} #{exports.plural(m, 'minute')}"
+            return ret
         else
-            return "#{h}h#{m}m#{s}s"
-    if m > 0
-        if longform
-            return "#{m} #{exports.plural(m, 'minute')} #{s} #{exports.plural(s, 'second')}"
+            if show_seconds
+                return "#{h}h#{m}m#{s}s"
+            else
+                return "#{h}h#{m}m"
+    if (m > 0) or (not show_seconds)
+        if show_seconds
+            if longform
+                ret = "#{m} #{exports.plural(m, 'minute')}"
+                if s > 0
+                    ret += " #{s} #{exports.plural(s, 'second')}"
+                return ret
+            else
+                return "#{m}m#{s}s"
         else
-            return "#{m}m#{s}s"
+            if longform
+                return "#{m} #{exports.plural(m, 'minute')}"
+            else
+                return "#{m}m"
 
 # returns the number parsed from the input text, or undefined if invalid
 # rounds to the nearest 0.01 if round_number is true (default : true)
@@ -1609,10 +1671,10 @@ exports.is_zero_map = (map) ->
 # Doesn't modify map.  If map is an array, just returns it
 # with no change even if it has undefined values.
 exports.map_without_undefined = map_without_undefined = (map) ->
-    if is_array(map)
-        return map
     if not map?
         return
+    if is_array(map)
+        return map
     new_map = {}
     for k, v of map
         if not v?
@@ -2088,6 +2150,8 @@ exports.obj_key_subs = (obj, subs) ->
 # * smc-webapp/misc_page    → sanitize_html
 exports.sanitize_html_attributes = ($, node) ->
     $.each node.attributes, ->
+        # sometimes, "this" is undefined -- #2823
+        return if not this?
         attrName  = this.name
         attrValue = this.value
         # remove attribute name start with "on", possible unsafe, e.g.: onload, onerror...
@@ -2116,4 +2180,62 @@ exports.human_readable_size = (bytes) ->
     b = Math.floor(bytes/100000000)
     return "#{b/10} GB"
 
+# convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
+# to a canonical name.
+exports.jupyter_language_to_name = (lang) ->
+    if lang == 'python'
+        return 'Python'
+    else if lang == 'gap'
+        return 'GAP'
+    else if lang == 'sage' or exports.startswith(lang, 'sage-')
+        return 'SageMath'
+    else
+        return lang.charAt(0).toUpperCase() + lang[1..]
 
+# Find the kernel whose name is closest to the given name.
+exports.closest_kernel_match = (name,kernel_list) ->
+    name = name.toLowerCase().replace("matlab","octave")
+    bestValue = -1
+    bestMatch = null
+    for i in [0..kernel_list.size-1]
+        k = kernel_list.get(i)
+        kernel_name = k.get("name").toLowerCase()
+        v = 0
+        for j in [0..name.length-1]
+            if name[j] == kernel_name[j]
+                v++
+            else
+                break
+        # TODO: don't use regular name comparison, use compareVersionStrings
+        if v > bestValue or (v == bestValue and bestMatch and compareVersionStrings(k.get("name"),bestMatch.get("name")) == 1)
+            bestValue = v
+            bestMatch = k
+    return bestMatch
+
+# compareVersionStrings takes two strings "a","b"
+# and returns 1 is "a" is bigger, 0 if they are the same, and -1 if "a" is smaller.
+# By "bigger" we compare the integer and non-integer parts of the strings separately.
+# Examples:
+#     - "sage.10" is bigger than "sage.9" (because 10 > 9)
+#     - "python.1" is bigger than "sage.9" (because "python" > "sage")
+#     - "sage.1.23" is bigger than "sage.0.456" (because 1 > 0)
+#     - "sage.1.2.3" is bigger than "sage.1.2" (because "." > "")
+compareVersionStrings = (a, b) ->
+  a = a.split(/(\d+)/)
+  b = b.split(/(\d+)/)
+  for i in [0..Math.max(a.length, b.length)-1]
+    l = a[i] or ""
+    r = b[i] or ""
+    if /\d/.test(l) and /\d/.test(r)
+      vA = parseInt(l)
+      vB = parseInt(r)
+      if vA > vB
+        return 1
+      if vA < vB
+        return -1
+    else
+      if l > r
+        return 1
+      if l < r
+        return -1
+  return 0

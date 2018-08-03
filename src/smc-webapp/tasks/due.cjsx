@@ -6,7 +6,7 @@ Task due date
 
 {Button} = require('react-bootstrap')
 
-{React, rclass, rtypes}  = require('../smc-react')
+{React, rclass, rtypes}  = require('../app-framework')
 
 {DateTimePicker, Icon, Space, TimeAgo} = require('../r_misc')
 
@@ -26,12 +26,14 @@ exports.DueDate = rclass
         due_date  : rtypes.number
         editing   : rtypes.bool
         read_only : rtypes.bool
+        is_done   : rtypes.bool   # do not show due date in red if task already done.
 
     shouldComponentUpdate: (next) ->
         return @props.due_date  != next.due_date or \
                @props.task_id   != next.task_id  or \
                @props.editing   != next.editing  or \
-               @props.read_only != next.read_only
+               @props.read_only != next.read_only or \
+               @props.is_done   != next.is_done
 
     stop_editing: ->
         @props.actions.stop_editing_due_date(@props.task_id)
@@ -75,7 +77,7 @@ exports.DueDate = rclass
         style = undefined
         if @props.due_date
             date = new Date(@props.due_date)
-            if date <= new Date()
+            if date <= new Date() and not @props.is_done
                 style = {color:'white', backgroundColor:'red', padding:'3px'}
             elt = <TimeAgo date = {new Date(@props.due_date)}/>
         else

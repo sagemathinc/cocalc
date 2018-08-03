@@ -4,6 +4,10 @@
 //- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
 //- the corresponding anchor link is then a.anchor#a-name
 
+//- development:
+//- webpack-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors
+//- webpack-watch-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors --watch
+
 extends _base.pug
 
 block vars
@@ -36,6 +40,10 @@ block content
           img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
       div.col-sm-12.center.descr.
         #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center.ff-only
+        div.alert.alert-danger.
+          WARNING: There is #[a.alert-link(href="https://github.com/sagemathinc/cocalc/issues/2875") a serious bug in recent versions of Firefox].
+          Working on #{NAME} using Firefox may be severely impaired, because Firefox disconnects you due to this bug.  Use any other web browser.
       div.col-sm-12.center
         +start_button
 
@@ -59,7 +67,7 @@ block content
             #[a(href="http://maxima.sourceforge.net/") Maxima],
             …;
           li.
-            #[strong Statistical analysis]:
+            #[strong Statistics and Data Science]:
             #[a(href="https://www.r-project.org/") R Project],
             #[a(href="http://pandas.pydata.org/") Pandas],
             #[a(href="http://www.statsmodels.org/") Statsmodels],
@@ -85,7 +93,8 @@ block content
             li Then, create a #[strong project] to instantiate your own private workspace.
             li.
               Finally, create a #[strong worksheet] or upload your own files:
-              #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets, Latex files, etc.
+              #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets,
+              #[a(href="./doc/latex-editor.html") LaTeX files], etc.
         p #[strong Collaborative Environment]
         p
           ul
@@ -130,7 +139,7 @@ block content
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-file-text-o] Authoring
           div.
-            Write scientific documents online in a #[strong LaTeX editor].
+            Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]].
             It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
             also supports advanced features like
             #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
@@ -257,13 +266,13 @@ block content
         div.col-md-6
           h2 #[i.fa.cc-icon-tex-file] LaTeX Editor
           div.
-            #{NAME} includes a full #[strong LaTeX editor] with
+            #{NAME} includes a full #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]] with
             #[strong side-by-side] preview and forward/inverse search.
             This allows you to not only do computations online,
             but also create scientific documents for their dissemination.
           br/
           div
-            img(src="https://storage.googleapis.com/cocalc-extra/smc-latex-20170516.png").fit
+            img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
         div.col-md-6
           h2 #[i.fa.cc-icon-markdown] Markdown/HTML
           div.
@@ -365,3 +374,8 @@ block content
           white-space    : nowrap
       #included > div
         padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block

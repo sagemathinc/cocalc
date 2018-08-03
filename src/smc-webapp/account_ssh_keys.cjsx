@@ -5,7 +5,7 @@ immutable = require('immutable')
 # Internal & React Libraries
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
-{React, ReactDOM, rclass, rtypes} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes} = require('./app-framework')
 {SSHKeyList, SSHKeyAdder} = require('./widget-ssh-keys/main')
 
 exports.SSHKeysPage = rclass
@@ -33,7 +33,7 @@ exports.SSHKeysPage = rclass
     render: ->
         <div style={marginTop:'1em'}>
             <Row>
-                <Col md=8>
+                <Col md={8}>
                     {@render_pre_list_message()}
                     <SSHKeyList
                         ssh_keys   = {@props.ssh_keys}
@@ -41,7 +41,7 @@ exports.SSHKeysPage = rclass
                         delete_key = {@actions('account').delete_ssh_key}
                         help       = {@help()} />
                 </Col>
-                <Col md=4>
+                <Col md={4}>
                     <SSHKeyAdder
                         account_id  = {@props.account_id}
                         add_ssh_key = {@actions('account').add_ssh_key}

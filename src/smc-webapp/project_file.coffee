@@ -14,6 +14,7 @@ Supplies the interface for creating file editors in the webapp
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
+
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
@@ -34,23 +35,4 @@ for n in ['icon', 'register_file_editor', 'initialize', 'generate', 'remove', 's
 exports.special_filenames_with_no_extension = ->
     return (name.slice(6) for name in Object.keys(file_associations) when name.slice(0,6) == 'noext-')
 
-# Require each module, which loads a file editor.  These call register_file_editor.
-# This should be a comprehensive list of all React editors
-
-# require('./editor_terminal')
-require('./chat/register')
-require('./editor_archive')
-require('./course/main')
-require('./editor_pdf')
-require('./editor_time')
-require('./jupyter/register')
-require('./tasks/register')
-
-# Public editors
-require('./public/editor_image')
-
-# Raw data editors
-require('./editor-data/generic')
-
-# All the non-react editors.
-require('./editor').register_nonreact_editors()
+require('./register-editors')

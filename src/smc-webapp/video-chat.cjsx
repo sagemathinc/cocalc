@@ -25,7 +25,7 @@ misc          = require('smc-util/misc')
 {sha1}        = require('smc-util/schema').client_db
 {server_time} = require('./webapp_client').webapp_client
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
 
 VIDEO_UPDATE_INTERVAL_MS = 30*1000
@@ -137,6 +137,9 @@ exports.VideoChatButton = rclass
         label      : rtypes.string
         short      : rtypes.bool     # if true, styles button to be short
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['file_use', 'account_id', 'project_id', 'path', 'label', 'short'])
+
     mixins: [SetIntervalMixin]
 
     componentWillMount: ->
@@ -191,7 +194,7 @@ exports.VideoChatButton = rclass
                 title     = {<span>Toggle Video Chat</span>}
                 tip       = {@render_tip(num_users_chatting)}
                 placement = 'left'
-                delayShow = 1000
+                delayShow = {1000}
                 >
                 <Icon name='video-camera'/>
                 {<span style={marginLeft:'5px'}>{num_users_chatting}</span> if num_users_chatting}

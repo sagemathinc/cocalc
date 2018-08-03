@@ -5,6 +5,9 @@ external keyboard devices more usable, e.g., iPad.
 Basically, certain browsers intercept or don't properly send the control or cmd
 keys to the browser javascript.  However, the option=alt key isn't used for
 much, so we add it for many keyboard shortcuts here.
+
+TODO/DEPRECATED: once the new react rewrite is done, delete this.  There is a modified copy
+of it in code-editor/mobile.coffee.
 ###
 
 misc = require('smc-util/misc')

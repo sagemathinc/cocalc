@@ -3,11 +3,11 @@
 AGPLv3
 ###
 
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./app-framework')
 {Button, Panel, Row, Col} = require('react-bootstrap')
-{ErrorDisplay, Icon} = require('./r_misc')
+{ErrorDisplay, Icon, Loading} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
-{filename_extension} = require('smc-util/misc')
+{filename_extension, filename_extension_notilde} = require('smc-util/misc')
 async = require('async')
 misc = require('smc-util/misc')
 
@@ -71,8 +71,9 @@ init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, path)
     if redux.getActions(name)?
         return  # already initialized
-    actions = redux.createActions(name, ArchiveActions)
     store   = redux.createStore(name)
+    actions = redux.createActions(name, ArchiveActions)
+    actions.set_archive_contents(project_id, path)
     return name
 
 remove_redux = (path, redux, project_id) ->
@@ -97,9 +98,6 @@ class ArchiveActions extends Actions
             return 'xz'
         return undefined
 
-    clear_error: =>
-        @setState(error: undefined)
-
     set_unsupported: (ext) =>
         msg = <span>
                 <b>WARNING:</b> Support for decompressing {ext} archives is not yet implemented{' '}
@@ -113,7 +111,12 @@ class ArchiveActions extends Actions
             type     : ext
 
     set_archive_contents: (project_id, path) =>
+        ext0 = filename_extension_notilde(path)?.toLowerCase()
         ext = filename_extension(path)?.toLowerCase()
+        if ext0 != ext
+            @setState(error: "Please rename the archive file to not end in a tilde.")
+            return
+
         if not COMMANDS[ext]?.list?
             @set_unsupported(ext)
             return
@@ -195,13 +198,10 @@ ArchiveContents = rclass
     propTypes:
         path       : rtypes.string.isRequired
         project_id : rtypes.string.isRequired
-        actions    : rtypes.object.isRequired
         contents   : rtypes.string
 
     render: ->
-        if not @props.contents?
-            @props.actions.set_archive_contents(@props.project_id, @props.path)
-        <pre>{@props.contents}</pre>
+
 
 
 Archive = rclass ({name}) ->
@@ -248,7 +248,6 @@ Archive = rclass ({name}) ->
                 <ErrorDisplay
                     error_component = {@props.error}
                     style           = {maxWidth: '100%'}
-                    onClose         = {@props.actions.clear_error}
                 />
             </div>
 
@@ -259,7 +258,7 @@ Archive = rclass ({name}) ->
             <h2>Contents</h2>
 
             {@props.info}
-            <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
+            <ArchiveContents path={@props.path} contents={@props.contents} project_id={@props.project_id} />
         </div>
 
     render_command: ->
@@ -271,12 +270,15 @@ Archive = rclass ({name}) ->
             <pre style={marginTop:'15px'}>{@props.extract_output}</pre>
 
     render: ->
+        if not @props.contents? and not @props.error?
+            return <Loading />
         <Panel header={@title()}>
             {@render_button()}
+            <br /><br/>
             {@render_command()}
             {@render_extract_output()}
             {@render_error()}
-            {@render_contents()}
+            <pre>{@props.contents}</pre>
         </Panel>
 
 # TODO: change ext below to use misc.keys(COMMANDS).  We don't now, since there are a

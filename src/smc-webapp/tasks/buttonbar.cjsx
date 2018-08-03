@@ -11,7 +11,7 @@ Button bar:
  - Help       : Show help about the task editor (link to github wiki)
 ###
 
-{React, rclass, rtypes} = require('../smc-react')
+{React, rclass, rtypes} = require('../app-framework')
 {ButtonGroup, Button}   = require('react-bootstrap')
 {Icon, Space}           = require('../r_misc')
 {UncommittedChanges}    = require('../jupyter/uncommitted-changes')
@@ -151,7 +151,10 @@ exports.ButtonBar = rclass
         </ButtonGroup>
 
     render: ->
-        <div style={padding: '0px 5px 5px'}>
+        # the zIndex 1 and background white is so that when the description
+        # of what is visible in the previous line flows around (for skinny display),
+        # it is hidden.
+        <div style={padding: '0px 5px 5px', zIndex:1, background:'white'}>
             {@render_task_group()}
             <Space/>
             {@render_help()}

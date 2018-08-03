@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
@@ -31,9 +31,14 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
+{AdminPage} = require('admin/page')
+{show_announce_end} = require('./redux_account')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
+
+# same as nav bar height?
+exports.announce_bar_offset = announce_bar_offset = 40
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -47,8 +52,10 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
             return <div>To be implemented</div>
         when 'file-use'
             return <FileUsePage redux={redux} />
+        when 'admin'
+            return <AdminPage redux={redux} />
         when undefined
-            return
+            return <div>Broken... active_top_tab is undefined</div>
         else
             project_name = redux.getProjectStore(active_top_tab).name
             if render_small
@@ -60,8 +67,9 @@ exports.NavTab = rclass
     displayName : "NavTab"
 
     propTypes :
-        label           : rtypes.oneOfType([rtypes.string, rtypes.object])
-        icon            : rtypes.oneOfType([rtypes.string, rtypes.object])
+        label           : rtypes.string
+        label_class     : rtypes.string
+        icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
         close           : rtypes.bool
         on_click        : rtypes.func
         active_top_tab  : rtypes.string
@@ -70,19 +78,26 @@ exports.NavTab = rclass
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
 
+    shouldComponentUpdate: (next) ->
+        if @props.children?
+            return true
+        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab'])
+
     render_label: ->
-        if @props.label
-            <span style={marginLeft: 5}>
+        if @props.label?
+            <span style={marginLeft: 5} className={@props.label_class}>
                 {@props.label}
             </span>
 
     make_icon: ->
-        if typeof(@props.icon) == 'string'
-            <Icon
-                name  = {@props.icon}
-                style = {fontSize: 20, paddingRight: 2} />
-        else if @props.icon?
-            @props.icon
+        if @props.icon?
+            if typeof @props.icon == "string"
+                <Icon
+                    name  = {@props.icon}
+                    style = {fontSize: 20, paddingRight: 2}
+                />
+            else
+                @props.icon
 
     on_click: (e) ->
         if @props.name?
@@ -137,6 +152,9 @@ exports.NotificationBell = rclass
     getDefaultProps: ->
         active : false
 
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['count', 'active'])
+
     on_click: (e) ->
         @actions('page').toggle_show_file_use()
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
@@ -147,7 +165,8 @@ exports.NotificationBell = rclass
             fontSize   : '10pt'
             color      : COLOR.FG_RED
             position   : 'absolute'
-            left       : '17.5px'
+            left       : '16px'
+            top        : '11px'
             fontWeight : 700
             background : 'transparent'
         if @props.count > 9
@@ -178,10 +197,10 @@ exports.NotificationBell = rclass
             bell_style = {color: COLOR.FG_RED}
 
         <NavItem
-            ref='bell'
-            style={outer_style}
-            onClick={@on_click}
-            className={'active' if @props.active}
+            ref       = {'bell'}
+            style     = {outer_style}
+            onClick   = {@on_click}
+            className = {'active' if @props.active}
         >
             <div style={inner_style}>
                 <Icon name='bell-o' className={clz} style={bell_style} />
@@ -192,36 +211,46 @@ exports.NotificationBell = rclass
 exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
 
+    propTypes :
+        actions  : rtypes.object
+        ping     : rtypes.number
+        status   : rtypes.string
+        on_click : rtypes.func
+
     reduxProps :
         page :
             avgping           : rtypes.number
             connection_status : rtypes.string
         account :
-            mesg_info : rtypes.object
+            mesg_info         : rtypes.immutable.Map
 
-    propTypes :
-        ping     : rtypes.number
-        status   : rtypes.string
-        actions  : rtypes.object
-        on_click : rtypes.func
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info'])
 
-    connection_status: ->
+    render_ping: ->
+        if @props.avgping?
+            <Tip
+                title     = {'Most recently recorded roundtrip time to the server.'}
+                placement = {'left'}
+                stable    = {true}
+                >
+                {Math.floor(@props.avgping)}ms
+            </Tip>
+
+    render_connection_status: ->
         if @props.connection_status == 'connected'
             icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
-            if (@props.mesg_info?.enqueued ? 0) > 5  # serious backlog of data!
+            if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
-            else if (@props.mesg_info?.count ? 0) > 1 # worrisome amount
+            else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
                 icon_style.color = '#08e'
-            else if (@props.mesg_info?.count ? 0) > 0 # working well but doing something minimal
+            else if (@props.mesg_info?.get('count') ? 0) > 0 # working well but doing something minimal
                 icon_style.color = '#00c'
+            else
+                icon_style.color = 'grey'
             <div>
                 <Icon name='wifi' style={icon_style}/>
-                {<Tip
-                    title     = {'Most recently recorded roundtrip time to the server.'}
-                    placement = {'left'}
-                    >
-                    {Math.floor(@props.avgping)}ms
-                </Tip> if @props.avgping?}
+                {@render_ping()}
             </div>
         else if @props.connection_status == 'connecting'
             <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
@@ -250,7 +279,7 @@ exports.ConnectionIndicator = rclass
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
-                {@connection_status()}
+                {@render_connection_status()}
             </div>
         </NavItem>
 
@@ -263,24 +292,25 @@ bytes_to_str = (bytes) ->
 
 MessageInfo = rclass
     propTypes :
-        info : rtypes.object
+        info : rtypes.immutable.Map
+
     render: ->
         if not @props.info?
             return <span></span>
-        if @props.info.count > 0
+        if @props.info.get('count') > 0
             flight_style = {color:'#08e', fontWeight:'bold'}
         <div>
             <pre>
-                {@props.info.sent} messages sent ({bytes_to_str(@props.info.sent_length)})
+                {@props.info.get('sent')} messages sent ({bytes_to_str(@props.info.get('sent_length'))})
                 <br/>
-                {@props.info.recv} messages received ({bytes_to_str(@props.info.recv_length)})
+                {@props.info.get('recv')} messages received ({bytes_to_str(@props.info.get('recv_length'))})
                 <br/>
-                <span style={flight_style}>{@props.info.count} messages in flight</span>
+                <span style={flight_style}>{@props.info.get('count')} messages in flight</span>
                 <br/>
-                {@props.info.enqueued} messages queued to send
+                {@props.info.get('enqueued')} messages queued to send
             </pre>
             <div style={color:"#666"}>
-                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.max_concurrent}.
+                Connection icon color changes as the number of messages increases. Usually, no action is needed, but the counts are helpful for diagnostic purposes or to help you understand what is going on.  The maximum number of messages that can be sent at the same time is {@props.info.get('max_concurrent')}.
             </div>
         </div>
 
@@ -296,7 +326,10 @@ exports.ConnectionInfo = rclass
     reduxProps :
         account :
             hub       : rtypes.string
-            mesg_info : rtypes.object
+            mesg_info : rtypes.immutable.Map
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['avgping', 'ping', 'status', 'hub', 'mesg_info'])
 
     close: ->
         @actions('page').show_connection(false)
@@ -304,31 +337,31 @@ exports.ConnectionInfo = rclass
     connection_body: ->
         <div>
             {<Row>
-                <Col sm=3>
+                <Col sm={3}>
                     <h4>Ping time</h4>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <pre>{@props.avgping}ms (latest: {@props.ping}ms)</pre>
                 </Col>
             </Row> if @props.ping}
             <Row>
-                <Col sm=3>
+                <Col sm={3}>
                     <h4>Hub server</h4>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <pre>{if @props.hub? then @props.hub else "Not signed in"}</pre>
                 </Col>
-                <Col sm=2 smOffset=1>
-                    <Button bsStyle='warning' onClick={=>webapp_client._fix_connection(true)}>
+                <Col sm={2}>
+                    <Button onClick={=>webapp_client._fix_connection(true)}>
                         <Icon name='repeat' spin={@props.status == 'connecting'} /> Reconnect
                     </Button>
                 </Col>
             </Row>
             <Row>
-                <Col sm=3>
+                <Col sm={3}>
                     <h4>Messages</h4>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <MessageInfo info={@props.mesg_info} />
                 </Col>
             </Row>
@@ -355,6 +388,11 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
+        account :
+            show_global_info       : rtypes.bool
+
+    shouldComponentUpdate: (next) ->
+        return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
         if ev.shiftKey
@@ -363,14 +401,16 @@ exports.FullscreenButton = rclass
             @actions('page').toggle_fullscreen()
 
     render: ->
-        icon = if @props.fullscreen then 'expand' else 'compress'
+        icon = if @props.fullscreen then 'compress' else 'expand'
+        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
 
-        outer_style =
-            position   : 'fixed'
-            zIndex     : 10000
-            right      : 0
-            top        : '1px'
-            borderRadius: '3px'
+        tip_style =
+            position     : 'fixed'
+            zIndex       : 10000
+            right        : 0
+            top          : top_px
+            borderRadius : '3px'
+
 
         icon_style =
             fontSize   : '13pt'
@@ -379,20 +419,27 @@ exports.FullscreenButton = rclass
             cursor     : 'pointer'
 
         if @props.fullscreen
-            outer_style.background = '#fff'
-            outer_style.opacity    = .7
-            outer_style.border     = '1px solid grey'
+            icon_style.background = '#fff'
+            icon_style.opacity    = .7
+            icon_style.border     = '1px solid grey'
 
         <Tip
-            style     = {outer_style}
+            style     = {tip_style}
             title     = {'Removes navigational chrome from the UI. Shift-click to enter "kiosk-mode".'}
             placement = {'left'}
         >
-            <Icon style={icon_style} name={icon} onClick = {(e) => @on_fullscreen(e)} />
+            <Icon
+                style   = {icon_style}
+                name    = {icon}
+                onClick = {@on_fullscreen}
+            />
         </Tip>
 
 exports.AppLogo = rclass
     displayName : 'AppLogo'
+
+    shouldComponentUpdate: ->
+        return false
 
     render: ->
         {APP_ICON} = require('./art')
@@ -411,10 +458,13 @@ exports.VersionWarning = rclass
     displayName : 'VersionWarning'
 
     propTypes :
-        new_version : rtypes.object
+        new_version : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return @props.new_version != props.new_version
 
     render_critical: ->
-        if @props.new_version.min_version > webapp_client.version()
+        if @props.new_version.get('min_version') > webapp_client.version()
             <div>
                 <br />
                 THIS IS A CRITICAL UPDATE. YOU MUST <Space/>
@@ -425,7 +475,7 @@ exports.VersionWarning = rclass
             </div>
 
     render_close: ->
-        if not (@props.new_version.min_version > webapp_client.version())
+        if not (@props.new_version.get('min_version') > webapp_client.version())
             <Icon
                 name = 'times'
                 className = 'pull-right'
@@ -446,7 +496,7 @@ exports.VersionWarning = rclass
             boxShadow       : '8px 8px 4px #888'
             width           : '70%'
             marginTop       : '1em'
-        if @props.new_version.min_version > webapp_client.version()
+        if @props.new_version.get('min_version') > webapp_client.version()
             styles.backgroundColor = 'red'
             styles.color           = '#fff'
 
@@ -493,11 +543,12 @@ exports.LocalStorageWarning = rclass
             <Icon name='warning' /> You <em>must</em> enable local storage to use this website{' (on Safari you must disable private browsing mode)' if feature.get_browser() == 'safari'}.
         </div>
 
-# This is used in the "desktop_app" to show a global announcement on top of CC
+# This is used in the "desktop_app" to show a global announcement on top of CoCalc.
 # It was first used for a general CoCalc announcement, but it's general enough to be used later on
 # for other global announcements.
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.
 # 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
+# 20180713: enabled again, we need it to announce the K2 switch
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
@@ -505,7 +556,8 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/KubernetesMigration'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Maintenance-2018'
+        local_time = show_announce_end.toLocaleString()
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
@@ -519,12 +571,11 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p><b>CoCalc <a target='_blank' href={more_url}>migrated to Kubernetes</a></b>.
-                {' '}Please report any issues.
+                <p><b>On {local_time} there will be a <a target='_blank' href={more_url}>scheduled downtime</a> for system maintenance.</b>
                 {' '}<a target='_blank' href={more_url}>More information...</a></p>
             </Col>
             <Col sm={3}>
-                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
+                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'10px'}
                     onClick={@dismiss}>Close</Button>
             </Col>
         </Row>

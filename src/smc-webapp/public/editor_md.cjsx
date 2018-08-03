@@ -22,7 +22,7 @@
 misc = require('smc-util/misc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('../app-framework')
 
 {ErrorDisplay, Loading, Markdown} = require('../r_misc')
 
@@ -87,8 +87,8 @@ require('../project_file').register_file_editor
         name = redux_name(project_id, path)
         if redux.getActions(name)?
             return name
-        actions = redux.createActions(name, MDActions)
         store   = redux.createStore(name)
+        actions = redux.createActions(name, MDActions)
         actions.load_content(project_id, path)  # start loading
         return name
 
