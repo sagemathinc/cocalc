@@ -31,7 +31,7 @@ export async function knitr(
     timeout: 360,
     command: R_CMD,
     args: [...R_ARGS, expr],
-    bash: false,
+    bash: true,   // so timeout is enforced by ulimit
     project_id: project_id,
     path: directory,
     err_on_exit: false,
