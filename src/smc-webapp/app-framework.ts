@@ -193,6 +193,8 @@ export class AppRedux {
     return !!this._actions[name];
   }
 
+  getActions(name: "account"): any;
+  getActions(name: "projects"): any;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -247,6 +249,11 @@ export class AppRedux {
     return !!this._stores[name];
   }
 
+  getStore(name: "account"): any;
+  getStore(name: "customize"): any;
+  getStore(name: "projects"): any;
+  getStore(name: "users"): any;
+  getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
       return undefined;

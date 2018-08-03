@@ -11,6 +11,7 @@ One you add a new built in editor, it should go here.
 require('./chat/register')
 require('./editor_archive')
 require('./course/main')
+#require('./course-coffee/main')
 require('./editor_pdf')
 require('./stopwatch/register')
 require('./jupyter/register')
