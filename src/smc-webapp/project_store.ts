@@ -62,7 +62,8 @@ const MASKED_FILE_EXTENSIONS = {
   tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME".split(
     " "
   ),
-  rnw: ["tex", "NODOT-concordance.tex"]
+  rnw: ["tex", "NODOT-concordance.tex"],
+  rtex: ["tex", "NODOT-concordance.tex"]
 };
 
 export interface ProjectStoreState {
@@ -487,7 +488,7 @@ function _compute_file_masks(listing) {
   return (() => {
     const result: any[] = [];
     for (let file of listing) {
-      // note: never skip already masked files, because of rnw->tex
+      // note: never skip already masked files, because of rnw/rtex->tex
       var filename = file.name;
 
       // mask items beginning with '.'

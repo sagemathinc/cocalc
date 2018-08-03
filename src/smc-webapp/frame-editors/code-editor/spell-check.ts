@@ -5,6 +5,7 @@ Backend spell checking support
 import { filename_extension } from "../generic/misc";
 import { exec, ExecOutput } from "../generic/client";
 import { language } from "../generic/misc-page";
+import { KNITR_EXTS } from "../latex-editor/util.ts";
 
 interface Options {
   project_id: string;
@@ -22,29 +23,27 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
   }
 
   let mode: string;
-  switch (filename_extension(opts.path)) {
-    case "html":
-      mode = "--mode=html";
-      break;
-    case "tex":
-      mode = "--mode=tex";
-      break;
-    default:
-      mode = "--mode=none";
+  const ext = filename_extension(opts.path).toLowerCase();
+  if (ext == "html") {
+    mode = "--mode=html";
+  } else if (ext == "tex" || KNITR_EXTS.includes(ext)) {
+    mode = "--mode=tex";
+  } else {
+    mode = "--mode=none";
   }
+
   let lang;
-  switch(opts.lang) {
-    case 'default':
+  switch (opts.lang) {
+    case "default":
       lang = `--lang=${language()}`;
       break;
-    case 'disabled':
-      lang = '';
+    case "disabled":
+      lang = "";
       break;
     default:
       lang = `--lang=${opts.lang}`;
-
   }
-  const command = `cat '${opts.path}'|aspell ${mode} ${lang} list|sort|uniq`;
+  const command = `cat '${opts.path}' | aspell ${mode} ${lang} list | sort -u`;
   //console.log(command);
 
   const output: ExecOutput = await exec({

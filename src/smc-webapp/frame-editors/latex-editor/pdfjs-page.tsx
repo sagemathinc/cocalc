@@ -120,7 +120,7 @@ export class Page extends Component<PageProps, {}> {
       );
       return;
     }
-    console.warn("Uknown annotation link", annotation);
+    console.warn("Unknown annotation link", annotation);
   }
 
   render() {

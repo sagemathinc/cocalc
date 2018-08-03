@@ -1,5 +1,5 @@
 /*
-Run Rweave on rnw files
+Run Knitr on rnw/rtex files
 */
 
 import { exec, ExecOutput } from "../generic/client";
@@ -19,7 +19,7 @@ const R_ARGS: ReadonlyArray<string> = [
 
 export async function knitr(
   project_id: string,
-  path: string, // pass in this.filename_rnw
+  path: string, // pass in this.filename_knitr
   time: number | undefined,
   status: Function
 ): Promise<ExecOutput> {
