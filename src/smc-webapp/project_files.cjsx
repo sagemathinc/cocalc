@@ -527,7 +527,7 @@ NoFiles = rclass
     # Text for the large create button
     button_text: ->
         if @props.file_search.length == 0
-            "Create Or Upload Files..."
+            "Create or Upload Files..."
         else
             "Create #{@full_path_text()}"
 

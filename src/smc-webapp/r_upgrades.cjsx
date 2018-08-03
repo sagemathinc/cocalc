@@ -272,7 +272,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
                         onClick  = {=>@setState(expand_remove_all_upgrades:true)}
                         disabled = {@state.expand_remove_all_upgrades}
                     >
-                        Remove All Upgrades You Applied To Projects...
+                        Remove All Upgrades You Applied to Projects...
                     </Button>
                 </Col>
             </Row>

@@ -532,7 +532,7 @@ PaymentMethod = rclass
                     <ButtonToolbar>
                         <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                         <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
-                            <Icon name='trash'/> Set To Default
+                            <Icon name='trash'/> Set to Default
                         </Button>
                     </ButtonToolbar>
                 </Col>
@@ -956,7 +956,7 @@ AddSubscription = rclass
                         bsSize   = 'large'
                         onClick  = {=>(@submit_create_subscription();@props.on_close())}
                         disabled = {@props.selected_plan is ''} >
-                        <Icon name='check' /> Add Subscription Or Course Package
+                        <Icon name='check' /> Add Subscription or Course Package
                     </Button>
                     <Button
                         onClick  = {@props.on_close}
@@ -1602,7 +1602,7 @@ Subscription = rclass
         if not @state.confirm_cancel
             return
         ###
-        TODO: this doesnt seem consistent but makes sense because of the use of "Cancel" a subscription
+        TODO: these buttons do not seem consistent with other button language, but makes sense because of the use of "Cancel" a subscription
         ###
         <Alert bsStyle='warning'>
             <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
@@ -1612,7 +1612,7 @@ Subscription = rclass
                 <Col md={6}>
                     <Button onClick={=>@setState(confirm_cancel:false)}>Make No Change</Button>
                     <div style={float:'right'}>
-                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, please cancel and do not auto-renew my subscription</Button>
                     </div>
                 </Col>
             </Row>
@@ -1650,7 +1650,7 @@ Subscriptions = rclass
             disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
-            <Icon name='plus-circle' /> Add Subscription Or Course Package...
+            <Icon name='plus-circle' /> Add Subscription or Course Package...
         </Button>
 
     render_add_subscription: ->

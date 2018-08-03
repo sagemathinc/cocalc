@@ -106,7 +106,7 @@ export class UserSearch extends Component<{}, UserSearchState> {
               disabled={this.state.query == ""}
               onClick={() => this.search()}
             >
-              Search For User
+              Search for User
             </Button>
           </Col>
         </Row>
