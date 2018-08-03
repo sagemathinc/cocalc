@@ -20,20 +20,21 @@ interface NBGraderProps {
 
 interface NBGraderState {
   cell_type: any;
-  cell_id: number;
+  cell_id: string;
 }
 
 export class NBGrader extends Component<NBGraderProps, NBGraderState> {
-  private get_cell_type() {
-    const id = this.props.cell.get("id");
-    return this.props.actions.store.get_nbgrader_cell_type(id) || "";
-  }
-
-  getInitialState() {
-    return {
+  constructor(props: NBGraderProps, context: any) {
+    super(props, context);
+    this.state = {
       cell_id: this.props.cell.get("id"),
       cell_type: this.get_cell_type()
     };
+  }
+
+  private get_cell_type() {
+    const id = this.props.cell.get("id");
+    return this.props.actions.store.get_nbgrader_cell_type(id) || "";
   }
 
   componentWillReceiveProps(next) {
@@ -51,7 +52,7 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
   }
 
   cell_type_options() {
-    return CELL_TYPES.map((v, k) => (
+    return CELL_TYPES.entrySeq().map(([k, v]) => (
       <option key={k} value={k}>
         {v}
       </option>

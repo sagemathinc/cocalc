@@ -30,14 +30,15 @@ const { DEBUG } = require("../feature");
 // const misc = require("smc-util/misc");
 const md5 = require("md5");
 const immutable = require("immutable");
+import { Map as ImmutableMap } from "immutable";
 
-export const CELL_TYPES = {
+export const CELL_TYPES = ImmutableMap({
   "": "-",
   manual: "Manually graded answer",
   solution: "Autograded answer",
   tests: "Autograder test",
   readonly: "Read-only"
-};
+});
 
 // compute the checksum of a cell just like nbgrader does
 // utils.compute_checksum is here https://github.com/jupyter/nbgrader/blob/master/nbgrader/utils.py#L92
@@ -208,20 +209,23 @@ JupyterActions.prototype.nbgrader_set_data = function(id, data) {
   if (DEBUG) {
     console.log("JupyterActions::nbgrader_set_data", id, data.toJS());
   }
-  return this.set_cell_metadata(id, { nbgrader: data });
+  return this.set_cell_metadata({
+    id: id,
+    metadata: { nbgrader: data.toJS() }
+  });
 };
 
 JupyterActions.prototype.nbgrader_delete_data = function(id) {
   // get rid of the nbgrader metadata
   let metadata = this.store.getIn(["cells", id, "metadata"]);
   metadata = metadata.delete("nbgrader");
-  return this.set_cell_metadata(id, metadata);
+  return this.set_cell_metadata({ id: id, metadata: metadata.toJS() });
 };
 
 JupyterActions.prototype.nbgrader_set_points = function(id, num) {
   let data = this.store.get_nbgrader(id);
   data = data.set("grade", num);
-  return this.nbgrader_set_data(data);
+  return this.nbgrader_set_data(data.toJS());
 };
 
 /* STORE */
