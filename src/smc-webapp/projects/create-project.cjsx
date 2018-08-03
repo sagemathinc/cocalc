@@ -94,7 +94,7 @@ exports.NewProjectCreator = rclass
                     block
                     type     = 'submit'
                     onClick  = {@toggle_editing}>
-                    <Icon name='plus-circle' /> Create new project...
+                    <Icon name='plus-circle' /> Create New Project...
                 </Button>
             </Col>
         </Row>
@@ -119,7 +119,7 @@ exports.NewProjectCreator = rclass
                             disabled  = {@state.title_text == '' or @state.state == 'saving'}
                             onClick   = {=>@create_project(false)}
                             bsStyle  = 'success' >
-                            Create project
+                            Create Project
                         </Button>
                         <Button
                             disabled = {@state.state is 'saving'}

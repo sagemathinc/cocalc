@@ -59,7 +59,7 @@ export class AccountCreationToken extends Component<{}, State> {
         onClick={() => this.save()}
         bsStyle="success"
       >
-        Save token
+        Save Token
       </Button>
     );
   }
@@ -69,7 +69,7 @@ export class AccountCreationToken extends Component<{}, State> {
       case "view":
         return (
           <Button onClick={() => this.edit()} bsStyle="warning">
-            Change token...
+            Change Token...
           </Button>
         );
       case "edit":

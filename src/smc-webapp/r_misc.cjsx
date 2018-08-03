@@ -1927,7 +1927,7 @@ exports.UpgradeAdjustor = rclass
                             onClick = {@max_upgrades}
                             style   = {padding:'0px 5px'}
                         >
-                            Max all upgrades
+                            Max All Upgrades
                         </Button>
                         {' '}
                         <Button
@@ -1935,7 +1935,7 @@ exports.UpgradeAdjustor = rclass
                             onClick = {@clear_upgrades}
                             style   = {padding:'0px 5px'}
                         >
-                            Remove all upgrades
+                            Remove All Upgrades
                         </Button>
                     </Col>
                     <Col md={6}>
@@ -1953,7 +1953,7 @@ exports.UpgradeAdjustor = rclass
                         onClick  = {=>@save_upgrade_quotas(remaining)}
                         disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save changes"}
+                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save Changes"}
                     </Button>
                     <Button onClick={@props.cancel_upgrading}>
                         Cancel

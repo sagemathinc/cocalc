@@ -84,7 +84,7 @@ export class StripeUser extends Component<{}, StripeUserState> {
               disabled={!is_valid_email_address(this.state.email.trim())}
               onClick={() => this.add_stripe_user()}
             >
-              Add/Update Stripe Info
+              Synchronize Stripe Info
             </Button>
           </Col>
         </Row>

@@ -294,12 +294,12 @@ ProjectNewForm = rclass ({name}) ->
 
     render_no_extension_alert: ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
-            <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
+            <p>Warning: Are you sure you want to create a file with no extension? This will use a plain text editor. If you do not want this, click a button below to create the corresponding type of file.</p>
             <ButtonToolbar style={marginTop:'10px'}>
-                <Button onClick={=>@create_file()} bsStyle='default'>
-                    Create file with no extension
+                <Button onClick={=>@create_file()} bsStyle='success'>
+                    Yes, please create this file with no extension
                 </Button>
-                <Button onClick={=>@setState(extension_warning : false)} bsStyle='success'>
+                <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
                     Cancel
                 </Button>
             </ButtonToolbar>

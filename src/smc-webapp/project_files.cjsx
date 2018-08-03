@@ -527,7 +527,7 @@ NoFiles = rclass
     # Text for the large create button
     button_text: ->
         if @props.file_search.length == 0
-            "Create or upload files..."
+            "Create or Upload Files..."
         else
             "Create #{@full_path_text()}"
 
@@ -923,9 +923,9 @@ ProjectFilesActions = rclass
     render_check_all_button: ->
         if @props.checked_files.size is 0
             button_icon = 'square-o'
-            button_text = 'Check all'
+            button_text = 'Check All'
         else
-            button_text = 'Uncheck all'
+            button_text = 'Uncheck All'
 
             if @props.checked_files.size >= @props.listing.length
                 button_icon = 'check-square-o'
@@ -943,11 +943,11 @@ ProjectFilesActions = rclass
         switch @state.select_entire_directory
             when 'check'
                 <Button bsSize='xsmall' onClick={@select_entire_directory}>
-                    Select all {@props.listing.length} items
+                    Select All {@props.listing.length} Items
                 </Button>
             when 'clear'
                 <Button bsSize='xsmall' onClick={@clear_selection}>
-                    Clear entire selection.
+                    Clear Entire Selection
                 </Button>
 
     render_currently_selected: ->
@@ -1144,7 +1144,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={@compress_click}>
-                            <Icon name='compress' /> Compress {size} {misc.plural(size, 'item')}
+                            <Icon name='compress' /> Compress {size} {misc.plural(size, 'Item')}
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1194,7 +1194,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='danger' onClick={@delete_click} disabled={@props.current_path is '.trash'}>
-                            <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'item')}
+                            <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'Item')}
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1280,7 +1280,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='info' onClick={=>@rename_or_duplicate_click()} disabled={not @valid_rename_input(single_item)}>
-                            <Icon name='pencil' /> {action_title} item
+                            <Icon name='pencil' /> {action_title} Item
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1352,7 +1352,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={@move_click} disabled={not @valid_move_input()}>
-                            <Icon name='arrows' /> Move {size} {misc.plural(size, 'item')}
+                            <Icon name='arrows' /> Move {size} {misc.plural(size, 'Item')}
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1406,7 +1406,7 @@ ProjectFilesActionBox = rclass
             onClick = {=>@setState(show_different_project : true)}
             style   = {padding:'0px 5px'}
         >
-            a different project
+            A Different Project
         </Button>
 
     copy_click: ->
@@ -1489,7 +1489,7 @@ ProjectFilesActionBox = rclass
                     <Col sm={12}>
                         <ButtonToolbar>
                             <Button bsStyle='primary' onClick={@copy_click} disabled={not @valid_copy_input()}>
-                                <Icon name='files-o' /> Copy {size} {misc.plural(size, 'item')}
+                                <Icon name='files-o' /> Copy {size} {misc.plural(size, 'Item')}
                             </Button>
                             <Button onClick={@cancel_action}>
                                 Cancel
@@ -1636,7 +1636,7 @@ ProjectFilesActionBox = rclass
                 <Row>
                     <Col sm={12}>
                         <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public} style={marginBottom:"5px"}>
-                            <Icon name='share-square-o' /> Update description
+                            <Icon name='share-square-o' /> Update Description
                         </Button>
                     </Col>
                 </Row>
@@ -2324,6 +2324,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
+            # TODO: the refresh button text is inconsistant
             return <div>
                 {e}
                 <br />
