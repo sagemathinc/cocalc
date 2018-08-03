@@ -3,6 +3,7 @@ Conversion from Markdown *to* HTML, trying not to horribly mangle math.
 */
 
 import * as MarkdownIt from "markdown-it";
+import * as MarkdownEmoji from "markdown-it-emoji";
 
 const misc = require("smc-util/misc");
 
@@ -21,7 +22,23 @@ const OPTIONS: MarkdownIt.Options = {
   linkify: true
 };
 
+const emojis = {
+  shortcuts: {
+    smile: [":-)"],
+    disappointed: [":-("],
+    sweat_smile: ["^^"],
+    scream: [":omg:"],
+    stuck_out_tongue: [":-p"],
+    neutral_face: ["-_-"],
+    persevere: [">_<"],
+    wink: [";-)"],
+    astonished: ["o_o"],
+    confused: [":-\\"]
+  }
+};
+
 const markdown_it = new MarkdownIt(OPTIONS);
+markdown_it.use(MarkdownEmoji, emojis);
 
 /*
 Turn the given markdown *string* into an HTML *string*.

@@ -153,9 +153,9 @@ exports.render_history = render_history = (history, user_map) ->
     historyList = history.toJS().slice(1)  # convert to javascript from immutable, and remove current version.
     for index, objects of historyList
         value = objects.content
-        value = misc.smiley
-            s: value
-            wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+        #value = misc.smiley
+        #    s: value
+        #    wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
         value = misc_page.sanitize_html_safe(value)
         author = misc.trunc_middle(user_map.get(objects.author_id)?.get('first_name') + ' ' + user_map.get(objects.author_id)?.get('last_name'), 20)
         if value.trim() == ''

@@ -426,10 +426,10 @@ export class Message extends Component<MessageProps, MessageState> {
     } = editor_chat.message_colors(this.props.account_id, this.props.message);
 
     // smileys, just for fun.
-    value = misc.smiley({
-      s: value,
-      wrap: ['<span class="smc-editor-chat-smiley">', "</span>"]
-    });
+    //value = misc.smiley({
+    //  s: value,
+    //  wrap: ['<span class="smc-editor-chat-smiley">', "</span>"]
+    //});
 
     const font_size = `${this.props.font_size}px`;
 
