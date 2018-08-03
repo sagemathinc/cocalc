@@ -625,7 +625,7 @@ ProjectControlPanel = rclass
                 <Row>
                     <Col sm={12}>
                         <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
-                            <Icon name='terminal' /> SSH into your project...
+                            <Icon name='terminal' /> SSH Into Your Project...
                         </Button>
                     </Col>
                 </Row>

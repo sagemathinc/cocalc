@@ -103,11 +103,11 @@ exports.APIKeySetting = rclass
         if not name?
             switch action
                 when 'get'
-                    name = 'Reveal key'
+                    name = 'Reveal Key'
                 when 'delete'
-                    name = 'Delete key'
+                    name = 'Delete Key'
                 when 'regenerate'
-                    name = 'Regenerate key'
+                    name = 'Regenerate Key'
         if misc.startswith(@state.state, 'confirm-')
             disabled = true
         <Button

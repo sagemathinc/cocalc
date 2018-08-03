@@ -178,6 +178,19 @@ exports.AddCollaborators = rclass
         </div>
 
     render_search: ->
+        # TODO: we should not say 'search for "h"' when someone
+        # has already searched for "h".
+        # Instead it should be:
+        # 
+        # - Search [...]
+        # - if results.length > 0:
+        #   - Select names from below to add
+        #   - list of users
+        #   - add button 
+        # - else
+        #   - no results found
+        #   - send invitation
+        #
         if @state.search and (@state.searching or @state.select)
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
@@ -197,9 +210,13 @@ exports.AddCollaborators = rclass
                 select.push(r)
         if select.length == 0
             if existing.length == 0
-                <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                    <Icon name='envelope' /> No matches. Send email invitation...
-                </Button>
+                <>
+                    Sorry, no accounts found.
+                    <br/>
+                    <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
+                        <Icon name='envelope' />  Send Email Invitation...
+                    </Button>
+                </>
             else
                 # no hit, but at least one existing collaborator
                 collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
@@ -234,13 +251,15 @@ exports.AddCollaborators = rclass
     render_select_list_button: (select) ->
         nb_selected = @state.selected_entries?.length ? 0
         btn_text = switch select.length
-            when 0 then "No user found"
-            when 1 then "Add user"
+            when 0 then "No User Found"
+            when 1 then "Add User"
             else switch nb_selected
-                when 0 then "Select a name above"
-                when 1 then "Add selected user"
-                else "Add #{nb_selected} users"
+                when 0 then undefined
+                when 1 then "Add Selected User"
+                else "Add #{nb_selected} Users"
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
+        if btn_text == undefined
+            return
         <Button
             onClick  = {=>@add_selected(select)}
             disabled = {disabled}

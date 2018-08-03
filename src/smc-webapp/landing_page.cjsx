@@ -230,7 +230,7 @@ SignUp = rclass
                     bsSize   = {'large'}
                     type     = {'submit'}
                     block >
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign Up!
                 </Button>
             </form>
         </div>
@@ -334,7 +334,7 @@ SignIn = rclass
                             type      = "submit"
                             disabled  = {@props.signing_in}
                             bsStyle   = "default" style={height:34}
-                            className = 'pull-right'>Sign&nbsp;in
+                            className = 'pull-right'>Sign&nbsp;In
                         </Button>
                     </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
@@ -503,7 +503,7 @@ ResetPassword = rclass
                                 bsStyle = "primary"
                                 style   = {marginRight : 10}
                             >
-                                Reset password
+                                Reset Password
                             </Button>
                             <Button onClick={@hide_reset_password}>
                                 Cancel

@@ -118,9 +118,9 @@ EmailVerification = rclass
                     >
                         {
                             if @state.disabled_button
-                                'Email sent'
+                                'Email Sent'
                             else
-                                'Send verification email'
+                                'Send Verification Email'
                         }
                     </Button>
                 ]
@@ -447,7 +447,7 @@ AccountSettings = rclass
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
                     onClick={=>@setState(add_strategy_link:undefined)}>
-                    <Icon name="external-link" /> Link my {name} account
+                    <Icon name="external-link" /> Link My {name} Account
                 </Button>
                 <Button onClick={=>@setState(add_strategy_link:undefined)} >
                     Cancel
@@ -493,7 +493,7 @@ AccountSettings = rclass
                 <br /> <br />
                 <ButtonToolbar style={textAlign: 'center'}>
                     <Button bsStyle='danger' onClick={@remove_strategy_click} >
-                        <Icon name="unlink" /> Delink my {name} account
+                        <Icon name="unlink" /> Delink My {name} Account
                     </Button>
                     <Button onClick={=>@setState(remove_strategy_button:undefined)} >
                         Cancel
@@ -693,7 +693,7 @@ DeleteAccountConfirmation = rclass
                     bsStyle  = 'danger'
                     onClick  = {=>@props.confirm_click()}
                 >
-                    <Icon name='trash' /> Confirm Account Deletion
+                    <Icon name='trash' /> Yes, please DELETE MY ACCOUNT
                 </Button>
                 <Button
                     style   = {paddingRight:'8px'}

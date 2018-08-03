@@ -1601,15 +1601,18 @@ Subscription = rclass
     render_confirm: ->
         if not @state.confirm_cancel
             return
+        ###
+        TODO: these buttons do not seem consistent with other button language, but makes sense because of the use of "Cancel" a subscription
+        ###
         <Alert bsStyle='warning'>
             <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
                 <Col md={6}>
                     Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
                 </Col>
                 <Col md={6}>
-                    <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
+                    <Button onClick={=>@setState(confirm_cancel:false)}>Make No Change</Button>
                     <div style={float:'right'}>
-                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, please cancel and do not auto-renew my subscription</Button>
                     </div>
                 </Col>
             </Row>
@@ -1861,7 +1864,7 @@ exports.PayCourseFee = PayCourseFee = rclass
                 <br/><br/>
                 <ButtonToolbar>
                     <Button onClick={@buy_subscription} bsStyle='primary'>
-                        Pay ${STUDENT_COURSE_PRICE} fee
+                        Pay ${STUDENT_COURSE_PRICE} Fee
                     </Button>
                     <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
                 </ButtonToolbar>

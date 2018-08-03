@@ -1722,29 +1722,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb("no store");
         return;
       }
-      return $
-        .ajax({
-          url: index_json_url,
-          timeout: 5000,
-          success: data => {
-            //if DEBUG then console.log("init_library/datadata
-            data = immutable.fromJS(data);
+      return $.ajax({
+        url: index_json_url,
+        timeout: 5000,
+        success: data => {
+          //if DEBUG then console.log("init_library/datadata
+          data = immutable.fromJS(data);
 
-            let store = this.get_store();
-            if (store == undefined) {
-              cb("no store");
-              return;
-            }
-            library = store.get("library").set("examples", data);
-            this.setState({ library });
-            _init_library_index_cache[this.project_id] = data;
-            return cb();
+          let store = this.get_store();
+          if (store == undefined) {
+            cb("no store");
+            return;
           }
-        })
-        .fail(err =>
-          //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
-          cb(err.statusText != null ? err.statusText : "error")
-        );
+          library = store.get("library").set("examples", data);
+          this.setState({ library });
+          _init_library_index_cache[this.project_id] = data;
+          return cb();
+        }
+      }).fail(err =>
+        //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+        cb(err.statusText != null ? err.statusText : "error")
+      );
     };
 
     return misc.retry_until_success({
@@ -2433,12 +2431,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           context = context.slice(i + 2, context.length - 1);
         }
 
+        const m = /^(\d+):/.exec(context);
+        let line_number: number | undefined;
+        if (m != null) {
+          try {
+            line_number = parseInt(m[1]);
+          } catch (e) {}
+        }
+
         search_results.push({
           filename,
-          description: context
+          description: context,
+          line_number
         });
       }
-
       if (num_results >= max_results) {
         break;
       }
@@ -2483,21 +2489,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } else {
         max_depth = "--max-depth=0";
       }
-      cmd = `git rev-parse --is-inside-work-tree && git grep -I -H ${ins} ${max_depth} ${search_query} || `;
+      cmd = `git rev-parse --is-inside-work-tree && git grep -n -I -H ${ins} ${max_depth} ${search_query} || `;
     } else {
       cmd = "";
     }
     if (store.get("subdirectories")) {
       if (store.get("hidden_files")) {
-        cmd += `rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
+        cmd += `rgrep -n -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
       } else {
-        cmd += `rgrep -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
+        cmd += `rgrep -n -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
       }
     } else {
       if (store.get("hidden_files")) {
-        cmd += `grep -I -H ${ins} ${search_query} -- .* *`;
+        cmd += `grep -n -I -H ${ins} ${search_query} -- .* *`;
       } else {
-        cmd += `grep -I -H ${ins} ${search_query} -- *`;
+        cmd += `grep -n -I -H ${ins} ${search_query} -- *`;
       }
     }
 

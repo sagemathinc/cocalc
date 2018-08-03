@@ -142,14 +142,14 @@ exports.TaskList = SortableContainer rclass
     render_show_more: (num_hidden) ->
         <div key={'more'} style={marginTop:'10px'}>
             <Button style={minWidth:'150px'} onClick={@show_more}>
-                <Icon name={'plus'}/> Show {Math.min(num_hidden, SHOW_INC)} more
+                <Icon name={'plus'}/> Show {Math.min(num_hidden, SHOW_INC)} More
             </Button>
         </div>
 
     render_show_less: ->
         <div key={'less'} style={marginTop:'10px'}>
             <Button style={minWidth:'150px'} onClick={@show_less}>
-                <Icon name={'minus'}/> Show {SHOW_INC} less
+                <Icon name={'minus'}/> Show {SHOW_INC} Less
             </Button>
         </div>
 
