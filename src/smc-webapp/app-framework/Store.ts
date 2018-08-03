@@ -3,6 +3,7 @@ import * as async from "async";
 import * as underscore from "underscore";
 import { createSelector, Selector } from "reselect";
 import { AppRedux } from "../app-framework";
+import { TypedMap } from "./TypedMap";
 
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
@@ -87,7 +88,7 @@ export class Store<State> extends EventEmitter {
     this.redux.removeStore(this.name);
   }
 
-  getState(): State {
+  getState(): TypedMap<State> {
     return this.redux._redux_store.getState().get(this.name);
   }
 
