@@ -41,7 +41,7 @@ declare const $: any;
 declare const window: any;
 declare const localStorage: any;
 
-let jupyter_kernels: any = undefined;
+let jupyter_kernels = immutable.Map() // map project_id (string) -> kernels (immutable)
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
@@ -372,8 +372,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             return;
           }
           try {
-            const jupyter_kernels = immutable.fromJS(data);
-            this.setState({ kernels: jupyter_kernels });
+          const project_id = this.store.get('project_id')
+          const kernels = immutable.fromJS(data)
+          jupyter_kernels.set(project_id,kernels) // global
+          this.setState({kernels: kernels})
             // We must also update the kernel info (e.g., display name), now that we
             // know the kernels (e.g., maybe it changed or is now known but wasn't before).
             this.setState({
@@ -396,8 +398,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = () => {
-    if (jupyter_kernels != null) {
-      return this.setState({ kernels: jupyter_kernels });
+    const kernels = jupyter_kernels.get(this.store.get("project_id"))
+    if (kernels != null) {
+      return this.setState({ kernels });
     } else {
       return this.fetch_jupyter_kernels();
     }
