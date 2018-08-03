@@ -499,13 +499,13 @@ class ProjectsActions extends Actions
             deleted    : not is_deleted
 
     init_project_images: =>
-        if DEBUG then console.log('init_project_images called')
         webapp_client.get_compute_images (err, resp) =>
                 #if DEBUG then console.log('init_project_images:', resp)
                 if (not err and resp?.images?)
                     @setState(compute_images:resp.images)
                 else
-                    if DEBUG then console.log("init_project_images problem:", err, resp)
+                    err_msg = resp.error
+                    @setState(compute_images:{error:err_msg})
 
 # Define projects store
 class ProjectsStore extends Store

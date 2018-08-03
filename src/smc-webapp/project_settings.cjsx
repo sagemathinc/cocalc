@@ -28,12 +28,14 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
-{webapp_client}      = require('./webapp_client')
-misc                 = require('smc-util/misc')
-{required, defaults} = misc
-{html_to_text}       = require('./misc_page')
-{alert_message}      = require('./alerts')
-{project_tasks}      = require('./project_tasks')
+{webapp_client}         = require('./webapp_client')
+misc                    = require('smc-util/misc')
+{required, defaults}    = misc
+{html_to_text}          = require('./misc_page')
+{alert_message}         = require('./alerts')
+{project_tasks}         = require('./project_tasks')
+{COLORS}                = require('smc-util/theme')
+{DEFAULT_COMPUTE_IMAGE} = require('smc-util/db-schema')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
@@ -597,6 +599,10 @@ ProjectControlPanel = rclass
         allow_ssh         : rtypes.bool
         compute_images    : rtypes.immutable.Map
 
+    reduxProps :
+        customize :
+            kucalc : rtypes.string
+
     componentWillReceiveProps: (props) ->
         return if @state.compute_image_focused
         new_image = props.project.get('compute_image')
@@ -780,39 +786,59 @@ ProjectControlPanel = rclass
                 {data.get('title')}
             </MenuItem>
 
+    render_select_compute_image_error: ->
+        err = @props.compute_images.get('error')
+        <Alert bsStyle='warning' style={margin:'10px'}>
+            <h4>Problem loading compute images</h4>
+            <code>{err}</code>
+        </Alert>
+
     render_select_compute_image: ->
         no_value = (not @props.compute_images?) or (not @state.compute_image?)
         return <Loading/> if no_value or @state.compute_image_changing
+        return @render_select_compute_image_error() if @props.compute_images.has('error')
         # this will at least return a suitable default value
         selected_name = @state.compute_image
         current_name = @props.project.get('compute_image')
+        default_title = @compute_image_info(DEFAULT_COMPUTE_IMAGE, 'title')
 
         <div style={color:'#666'}>
-            <Icon name='compact-disc' />
-            <Space/>
-            Select image:
-            <Space/>
-            <DropdownButton
-                title={@compute_image_info(selected_name, 'title')}
-                id={selected_name}
-                onClick={(e)=>console.log(e); @setState(compute_image_focused:true)}
-                onBlur={=>@setState(compute_image_focused:false)}
-            >
-                {this.render_compute_image_items()}
-            </DropdownButton>
-            <br/>
-            <span>
-                <i>{@compute_image_info(selected_name, 'descr')}</i>
-            </span>
-            <br/>
+            <div style={fontSize : '12pt'}>
+                <Icon name='compact-disc' />
+                <Space/>
+                Selected image:
+                <Space/>
+                <DropdownButton
+                    title={@compute_image_info(selected_name, 'title')}
+                    id={selected_name}
+                    onToggle={(open)=>@setState(compute_image_focused:open)}
+                    onBlur={=>@setState(compute_image_focused:false)}
+                >
+                    {this.render_compute_image_items()}
+                </DropdownButton>
+                <Space/>
+                {
+                    if selected_name != DEFAULT_COMPUTE_IMAGE
+                        <span style={color:COLORS.GRAY, fontSize : '11pt'}>
+                            (in doubt, select "{default_title}")
+                        </span>
+                }
+            </div>
+            <div style={marginTop:'10px'}>
+                <span>
+                    <i>{@compute_image_info(selected_name, 'descr')}</i>
+                </span>
+            </div>
             {
                 if selected_name != current_name
-                    <Button
-                        onClick={=>@save_compute_image(current_name)}
-                        bsStyle='warning'
-                    >
-                        Save and Restart
-                    </Button>
+                    <div style={marginTop:'10px'}>
+                        <Button
+                            onClick={=>@save_compute_image(current_name)}
+                            bsStyle='warning'
+                        >
+                            Save and Restart
+                        </Button>
+                    </div>
             }
         </div>
 
@@ -829,9 +855,9 @@ ProjectControlPanel = rclass
             <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
-            <LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
+            {<LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
                 {@render_select_compute_image()}
-            </LabeledRow>
+            </LabeledRow> if @props.kucalc == 'yes'}
             {@render_idle_timeout_row()}
             {@render_uptime()}
             {@render_cpu_usage()}

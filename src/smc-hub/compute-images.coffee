@@ -1,7 +1,6 @@
 {defaults, required} = require('smc-util/misc')
 
-# better make sure the storage server has something available under "default"
-exports.DEFAULT_COMPUTE_IMAGE = 'default'
+{DEFAULT_COMPUTE_IMAGE} = require('smc-util/db-schema')
 
 COMPUTE_IMAGES =
     default: {title: "Default", descr: "Ubuntu 18.04 based image, updated regularly"}
