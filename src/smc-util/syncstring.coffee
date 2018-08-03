@@ -59,6 +59,8 @@ misc      = require('./misc')
 
 schema    = require('./schema')
 
+{failing_to_save} = require('./failing-to-save')
+
 {Evaluator} = require('./syncstring_evaluator')
 
 {diff_match_patch} = require('./dmp')
@@ -642,7 +644,18 @@ class SyncDoc extends EventEmitter
                 action = 'chat'
             else
                 action = 'edit'
+            @_last_user_change = misc.minutes_ago(60)  # initialize
             file_use = () =>
+                # We ONLY count this and record that the file was edited if there was an actual
+                # change record in the patches log, by this user, since last time.
+                user_is_active = false
+                for tm, _ of @_my_patches
+                    if new Date(parseInt(tm)) > @_last_user_change
+                        user_is_active = true
+                        break
+                if not user_is_active
+                    return
+                @_last_user_change = new Date()
                 @_client.mark_file(project_id:@_project_id, path:@_path, action:action, ttl:opts.file_use_interval)
 
             @on('user_change', underscore.throttle(file_use, opts.file_use_interval, true))
@@ -650,6 +663,13 @@ class SyncDoc extends EventEmitter
         if opts.cursors
             # Initialize throttled cursors functions
             set_cursor_locs = (locs, side_effect) =>
+                if not @_last_user_change? or new Date() - @_last_user_change >= 1000*5*60
+                    # We ignore setting cursor location in case the user hasn't actually
+                    # modified this file recently (5 minutes).  It's annoying to just see a cursor
+                    # moving around for a user who isn't doing anything, and this also
+                    # prevents bugs in side_effect detection (which is super hard to
+                    # get right).
+                    return
                 x =
                     string_id : @_string_id
                     user_id   : @_user_id
@@ -665,6 +685,12 @@ class SyncDoc extends EventEmitter
             throw Error("value must be a document object with apply_patch, etc., methods")
         @_doc = value
         return
+
+    # Reconnect all the syncstring and patches tables, which
+    # define this syncstring.
+    reconnect: =>
+        @_syncstring_table?.reconnect()
+        @_patches_table?.reconnect()
 
     # Return underlying document, or undefined if document hasn't been set yet.
     get_doc: =>
@@ -947,6 +973,7 @@ class SyncDoc extends EventEmitter
                 last_file_change  : null
                 doctype           : null
                 archived          : null
+                settings          : null
 
         async.series([
             (cb) =>
@@ -1028,6 +1055,16 @@ class SyncDoc extends EventEmitter
                         @emit('init')
                 else
                     @emit('init')
+
+    wait: (opts) =>
+        if not @_patches_table?
+            @_patches_table_queue ?= []
+            @_patches_table_queue.push(opts)
+            return
+        @_patches_table.wait
+            timeout : opts.timeout
+            until : => return opts.until(@)
+            cb    : opts.cb
 
     # Delete the synchronized string and **all** patches from the database -- basically
     # delete the complete history of editing this file.
@@ -1150,6 +1187,10 @@ class SyncDoc extends EventEmitter
         @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, \
                                               undefined, @_patch_interval, @_patch_interval)
 
+        if @_patches_table_queue?
+            for opts in @_patches_table_queue
+                @wait(opts)
+
         @_patches_table.once 'connected', =>
             patch_list.add(@_get_patches())
             doc = patch_list.value()
@@ -1250,6 +1291,14 @@ class SyncDoc extends EventEmitter
     get_cursors: =>
         return @_cursor_map
 
+    # set settings map.  (no-op if not yet initialized -- thus DO NOT call until initialized...)
+    set_settings: (obj) =>
+        @_syncstring_table?.set({string_id:@_string_id, settings:obj})
+
+    # get immutable.js settings object
+    get_settings: =>
+        return @_syncstring_table?.get_one().get('settings') ? immutable.Map()
+
     save_asap: (cb) =>
         @_save(cb)
 
@@ -1272,7 +1321,9 @@ class SyncDoc extends EventEmitter
             return
 
         if @_handle_patch_update_queue_running
-            cb?("handle_patch_update_queue_running")
+            # wait until the update is done, then try again.
+            @once '_handle_patch_update_queue_done', =>
+                @_save(cb)
             return
 
         if @_saving
@@ -1516,8 +1567,10 @@ class SyncDoc extends EventEmitter
         # 'save-to-disk' event, whenever the state changes
         # to indicate a save completed.
 
-        # Default to dones
-        @_syncstring_save_state ?= 'done'
+        # NOTE: it is intentional that @_syncstring_save_state is not defined
+        # the first tie this function is called, so that save-to-disk
+        # with last save time gets emitted on initial load (which, e.g., triggers
+        # latex compilation properly in case of a .tex file).
         if state == 'done' and @_syncstring_save_state != 'done'
             @emit('save-to-disk', time)
         @_syncstring_save_state = state
@@ -1528,7 +1581,9 @@ class SyncDoc extends EventEmitter
         if not @_syncstring_table? # not initialized; nothing to do
             #dbg("nothing to do")
             return
-        x = @_syncstring_table.get_one()?.toJS()
+
+        data = @_syncstring_table.get_one()
+        x = data?.toJS()
 
         @_handle_syncstring_save_state(x?.save?.state, x?.save?.time)
 
@@ -1554,7 +1609,9 @@ class SyncDoc extends EventEmitter
                 deleted       : @_deleted
                 doctype       : misc.to_json(@_doctype)
             @_syncstring_table.set(obj)
+            @_settings = immutable.Map()
             @emit('metadata-change')
+            @emit("settings-change", @_settings)
         else
             # Existing document.
             if x.archived
@@ -1568,6 +1625,12 @@ class SyncDoc extends EventEmitter
             @_users             = x.users
             @_project_id        = x.project_id
             @_path              = x.path
+
+            settings = data.get('settings', immutable.Map())
+            if settings != @_settings
+                @emit("settings-change", settings)
+                @_settings = settings
+
             if @_deleted? and x.deleted and not @_deleted # change to deleted
                 @emit("deleted")
             @_deleted           = x.deleted
@@ -1841,7 +1904,7 @@ class SyncDoc extends EventEmitter
             if err
                 cb?(err)
             else
-                # Now do actual save.
+                # Now do actual save to the *disk*.
                 @__save_to_disk_after_sync(cb)
 
     __save_to_disk_after_sync: (cb) =>
@@ -1927,12 +1990,20 @@ class SyncDoc extends EventEmitter
         # to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
         # errors.
         @touch()
-        @_set_save(state:'requested', error:false)
+        data = @to_str()  # string version of this doc
+        expected_hash = misc.hash_string(data)
+        @_set_save(state:'requested', error:false, expected_hash:expected_hash)
 
     __do_save_to_disk_project: (cb) =>
         # check if on-disk version is same as in memory, in which case no save is needed.
         data = @to_str()  # string version of this doc
         hash = misc.hash_string(data)
+        expected_hash = @_syncstring_table.get_one().getIn(['save', 'expected_hash'])
+        if failing_to_save(@_path, hash, expected_hash)
+            @dbg("__save_to_disk_project")("FAILING TO SAVE-- hash=#{hash}, expected_hash=#{expected_hash} -- reconnecting")
+            cb('failing to save -- reconnecting')
+            @reconnect()
+            return
         if hash == @hash_of_saved_version()
             # No actual save to disk needed; still we better record this fact in table in case it
             # isn't already recorded
@@ -2026,6 +2097,8 @@ class SyncDoc extends EventEmitter
         else
             # OK, done and nothing in the queue
             @_handle_patch_update_queue_running = false
+            # Notify _save to try again.
+            @emit('_handle_patch_update_queue_done')
 
     ###
     Merge remote patches and live version to create new live version,

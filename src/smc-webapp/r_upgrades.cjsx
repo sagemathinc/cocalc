@@ -5,7 +5,7 @@ The Upgrades Page
 async = require('async')
 
 immutable = require('immutable')
-{React, rclass, rtypes}  = require('./smc-react')
+{React, rclass, rtypes}  = require('./app-framework')
 {ErrorDisplay, Loading, r_join, Space, UpgradeAdjustor, Footer} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, ButtonToolbar, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
@@ -290,7 +290,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
                     <strong>Project</strong>
                 </Col>
                 <Col sm={8}>
-                    <strong>Upgrades you have applied to this project</strong>
+                    <strong>Upgrades you have applied to this project (click to edit)</strong>
                 </Col>
             </Row>
             {@render_upgraded_projects_rows(upgraded_projects)}

@@ -20,7 +20,7 @@
 ###############################################################################
 
 {Col, Row, Panel, Table, Tab, Tabs, Modal, Button} = require('react-bootstrap')
-{redux, Redux, rclass, rtypes, React, Actions, Store} = require('./smc-react')
+{redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')
 {Loading, Markdown} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
 
@@ -42,23 +42,21 @@ full_lang_name = (lang) ->
 by_lowercase = (a, b) ->
     return a.toLowerCase().localeCompare(b.toLowerCase())
 
-
-ComputeEnvironmentStore =
-    name: NAME
-
+###
+stateTypes:
+    inventory     : rtypes.object
+    components    : rtypes.object
+    langs         : rtypes.arrayOf(rtypes.string)
+    loading       : rtypes.bool
+    selected_lang : rtypes.string
+###
+class ComputeEnvironmentStore extends Store
     getInitialState: ->
         inventory      : undefined
         components     : undefined
         langs          : undefined
         selected_lang  : 'python'      # we assume there will always be a python language environment
         loading        : false
-
-    stateTypes:
-        inventory     : rtypes.object
-        components    : rtypes.object
-        langs         : rtypes.arrayOf(rtypes.string)
-        loading       : rtypes.bool
-        selected_lang : rtypes.string
 
 
 class ComputeEnvironmentActions extends Actions
@@ -416,8 +414,8 @@ ComputeEnvironment = rclass
 
 # react magic
 
+store    = redux.createStore(NAME, ComputeEnvironmentStore)
 actions  = redux.createActions(NAME, ComputeEnvironmentActions)
-store    = redux.createStore(ComputeEnvironmentStore)
 
 exports.ComputeEnvironment = ->
     displayName : 'ComputeEnvironment-redux'

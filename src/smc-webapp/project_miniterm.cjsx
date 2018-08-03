@@ -31,7 +31,7 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes, ReactDOM}  = require('./smc-react')
+{rclass, React, rtypes, ReactDOM}  = require('./app-framework')
 {Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 
@@ -39,7 +39,7 @@ IDEAS FOR LATER:
 
 output_style =
     position  : 'absolute'
-    zIndex    : 1
+    zIndex    : 2
     width     : '93%'
     boxShadow : '0px 0px 7px #aaa'
     maxHeight : '450px'

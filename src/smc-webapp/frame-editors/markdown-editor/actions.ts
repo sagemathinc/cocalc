@@ -1,26 +1,22 @@
 /*
 Markdown Editor Actions
 */
+const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
 
 import * as $ from "jquery";
-
-const CodeEditorActions = require("../code-editor/actions").Actions;
-
-const { toggle_checkbox } = require("smc-webapp/tasks/desc-rendering");
-const { print_html } = require("../frame-tree/print");
-
+import { Actions as CodeEditorActions } from "../code-editor/actions";
+import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
-  _init(...args): void {
-    super._init(...args); // call the _init for the parent class
+  _init2(): void {
     if (!this.is_public) {
       this._init_syncstring_value();
       this._init_spellcheck();
     }
   }
 
-  _raw_default_frame_tree() : FrameTree {
+  _raw_default_frame_tree(): FrameTree {
     if (this.is_public) {
       return { type: "markdown" };
     } else {
@@ -37,7 +33,7 @@ export class Actions extends CodeEditorActions {
     }
   }
 
-  toggle_markdown_checkbox(id : string, index : number, checked : boolean): void {
+  toggle_markdown_checkbox(id: string, index: number, checked: boolean): void {
     // Ensure that an editor state is saved into the
     // (TODO: make more generic, since other editors will exist that are not just codemirror...)
     this.set_syncstring_to_codemirror(id);
@@ -57,17 +53,13 @@ export class Actions extends CodeEditorActions {
       return;
     }
 
-    // This is kind of hackish, but it works really well.
-    // The one issue would be if the same random 8-letter id happened
-    // to be used twice in the same session. This is impossible right now,
-    // since only one markdown viewer is in the DOM at once.
-    const err = print_html({
-      html : $(`#frame-${id}`).html(),
-      project_id: this.project_id,
-      path: this.path,
-      font_size: node.get("font_size")
-    });
-    if (err) {
+    try {
+      print_html({
+        html: $(`#frame-${id}`).html(),
+        project_id: this.project_id,
+        path: this.path
+      });
+    } catch (err) {
       this.set_error(err);
     }
   }

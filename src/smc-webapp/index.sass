@@ -38,6 +38,7 @@
 @import 3d
 @import d3
 @import jsoninspector
+@import profile
 @import jupyter/jupyter
 @import tasks/tasks
 
@@ -359,3 +360,20 @@ footer
 .introjs-hint-dot,
 .introjs-hint-pulse
   z-index: 9999999 !important
+
+// issue #2892 -- katex formulas mangled in RTL contexts
+// this here is just a workaround
+span.katex
+  direction: ltr
+
+// the marker looks absurdly tiny otherwise...
+//.CodeMirror-guttermarker-open
+//  cursor: pointer
+
+//.CodeMirror-guttermarker-closed
+//  cursor: pointer
+
+//.CodeMirror-guttermarker-subtle
+//  position: absolute
+//  font-size: 28px
+//  margin-top: -14px

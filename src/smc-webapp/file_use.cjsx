@@ -58,7 +58,7 @@ editor = require('./editor')
 sha1 = require('smc-util/schema').client_db.sha1
 
 # react in smc-specific modules
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
@@ -364,8 +364,6 @@ open_file_use_entry = (info, redux) ->
     redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
-        # ensure that we can get the actions for a specific project.
-        require('./project_store')
         redux.getProjectActions(info.project_id).open_file
             path               : info.path
             foreground         : true
@@ -614,8 +612,8 @@ notification_list_click_handler = (e) ->
 
 init_redux = (redux) ->
     if not redux.getActions('file_use')?
-        actions = redux.createActions('file_use', FileUseActions)
         store   = redux.createStore('file_use', FileUseStore, {})
+        actions = redux.createActions('file_use', FileUseActions)
         redux.createTable('file_use', FileUseTable)
         actions._init()  # must be after making store
 

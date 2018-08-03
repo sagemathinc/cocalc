@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "async": "^1.5.0",
+    "awaiting": "^3.0.0",
     "better-sqlite3": "^4.1.0",
     "body-parser": "^1.17.1",
     "coffee-cache": "^1.0.2",
@@ -28,11 +29,15 @@
     "serve-index": "^1.7.2",
     "start-stop-daemon": "^0.1.1",
     "temp": "^0.8.3",
+    "tmp": "0.0.33",
+    "ts-node": "^6.0.3",
+    "typescript": "^2.8.4",
     "underscore": "^1.8.3",
     "uuid": "^3.0.1",
     "winston": "^1.1.1"
   },
   "devDependencies": {
+    "@types/node": "^10.0.8",
     "coffeelint": "^2.0.7"
   },
   "scripts": {

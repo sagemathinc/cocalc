@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Actions, Store, COLOR} = require('./app-framework')
 {Button, Col, Row, Modal, NavItem} = require('react-bootstrap')
 {Icon, Space, Tip} = require('./r_misc')
 {COLORS} = require('smc-util/theme')
@@ -32,9 +32,14 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
+{AdminPage} = require('admin/page')
+{show_announce_end} = require('./redux_account')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
+
+# same as nav bar height?
+exports.announce_bar_offset = announce_bar_offset = 40
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -48,8 +53,10 @@ exports.ActiveAppContent = ({active_top_tab, render_small}) ->
             return <div>To be implemented</div>
         when 'file-use'
             return <FileUsePage redux={redux} />
+        when 'admin'
+            return <AdminPage redux={redux} />
         when undefined
-            return
+            return <div>Broken... active_top_tab is undefined</div>
         else
             project_name = redux.getProjectStore(active_top_tab).name
             if render_small
@@ -63,7 +70,7 @@ exports.NavTab = rclass
     propTypes :
         label           : rtypes.string
         label_class     : rtypes.string
-        icon            : rtypes.string
+        icon            : rtypes.oneOfType([rtypes.string,rtypes.element])
         close           : rtypes.bool
         on_click        : rtypes.func
         active_top_tab  : rtypes.string
@@ -85,10 +92,13 @@ exports.NavTab = rclass
 
     make_icon: ->
         if @props.icon?
-            <Icon
-                name  = {@props.icon}
-                style = {fontSize: 20, paddingRight: 2}
-            />
+            if typeof @props.icon == "string"
+                <Icon
+                    name  = {@props.icon}
+                    style = {fontSize: 20, paddingRight: 2}
+                />
+            else
+                @props.icon
 
     on_click: (e) ->
         if @props.name?
@@ -383,9 +393,11 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
+        account :
+            show_global_info       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.fullscreen != next.fullscreen
+        return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
         if ev.shiftKey
@@ -395,13 +407,14 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
+        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
 
         tip_style =
-            position   : 'fixed'
-            zIndex     : 10000
-            right      : 0
-            top        : '1px'
-            borderRadius: '3px'
+            position     : 'fixed'
+            zIndex       : 10000
+            right        : 0
+            top          : top_px
+            borderRadius : '3px'
 
 
         icon_style =
@@ -540,6 +553,7 @@ exports.LocalStorageWarning = rclass
 # for other global announcements.
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.
 # 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
+# 20180713: enabled again, we need it to announce the K2 switch
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
@@ -547,7 +561,8 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/KubernetesMigration'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Maintenance-2018'
+        local_time = show_announce_end.toLocaleString()
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
@@ -561,12 +576,11 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p><b>CoCalc <a target='_blank' href={more_url}>migrated to Kubernetes</a></b>.
-                {' '}Please report any issues.
+                <p><b>On {local_time} there will be a <a target='_blank' href={more_url}>scheduled downtime</a> for system maintenance.</b>
                 {' '}<a target='_blank' href={more_url}>More information...</a></p>
             </Col>
             <Col sm={3}>
-                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
+                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'10px'}
                     onClick={@dismiss}>Close</Button>
             </Col>
         </Row>

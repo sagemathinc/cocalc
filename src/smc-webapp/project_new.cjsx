@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
@@ -191,9 +191,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
                         <NewFileButton icon='tasks' name='Task list' on_click={@props.create_file} ext='tasks' />
                     </Tip>
-                    <Tip title='Stopwatch'   icon='clock-o'
+                    <Tip title='Stopwatch'   icon='stopwatch'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
-                        <NewFileButton icon='clock-o' name='Stopwatch' on_click={@props.create_file} ext='time' />
+                        <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
                     </Tip>
                 </Col>
                 <Col sm={6}>

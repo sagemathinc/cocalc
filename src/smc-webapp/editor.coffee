@@ -36,7 +36,7 @@ async = require('async')
 
 message = require('smc-util/message')
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 _ = underscore = require('underscore')
 
@@ -1999,8 +1999,6 @@ class JupyterNBViewerEmbedded extends FileEditor
             @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
         @element.show()
 
-{LatexEditor} = require('./latex/editor')
-
 exports.register_nonreact_editors = ->
 
     # Make non-react editors available in react rewrite
@@ -2018,9 +2016,6 @@ exports.register_nonreact_editors = ->
                 if not e.ext?
                     console.error('You have to call super(@project_id, @filename) in the constructor to properly initialize this FileEditor instance.')
                 return e
-
-    # Editors for private normal editable files.
-    register(false, LatexEditor,      ['tex', 'rnw'])
 
     register(false, Terminal,         ['term', 'sage-term'])
 

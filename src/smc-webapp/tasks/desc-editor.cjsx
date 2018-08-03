@@ -2,7 +2,7 @@
 Edit description of a single task
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {three_way_merge} = require('smc-util/syncstring')
 

@@ -19,12 +19,12 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./smc-react')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup
+{React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{ActivityDisplay, DirectoryInput, Icon, Loading, ProjectState, COLORS,
-SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard} = require('./r_misc')
+{ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
+SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
@@ -453,31 +453,44 @@ FirstSteps = rclass
         @props.redux.getTable('account').set(other_settings:{first_steps:false})
 
     render: ->
-        <Row>
-            <Navbar>
-                <Navbar.Header style={marginTop:'10px'}>
-                    <Navbar.Brand>
-                        New to <SiteName/>?
-                    </Navbar.Brand>
-                    <Navbar.Toggle />
-                </Navbar.Header>
-                <Navbar.Collapse>
-                    <Navbar.Text>
-                        <Button
-                            onClick = {@get_first_steps}
-                            bsStyle = {'info'} >
-                                Start the <strong>First Steps</strong> guide!
-                        </Button>
-                    </Navbar.Text>
-                    <Navbar.Text>
-                        <Button
-                            onClick={@dismiss_first_steps}>
-                                Dismiss
-                        </Button>
-                    </Navbar.Text>
-                </Navbar.Collapse>
-            </Navbar>
-        </Row>
+        style =
+            textAlign  : 'center'
+            padding    : '10px'
+            color      : COLORS.GRAY_L
+            position   : 'absolute'
+            bottom     : 0
+            fontSize   : '110%'
+
+        a =
+            cursor     : 'pointer'
+            color      : COLORS.GRAY
+
+        line2 =
+            fontSize   : '80%'
+
+        <Col sm={12} style={style}>
+            <Row>
+                <span>
+                    Are you new to <SiteName/>?
+                </span>
+                <Space/>
+                <span>
+                    <a onClick = {@get_first_steps} style={a}>
+                        Click to start the <strong>First Steps</strong> guide!
+                    </a>
+                </span>
+                <Space/>
+                <span>or</span>
+                <Space/>
+                <span>
+                    <a onClick={@dismiss_first_steps} style={a}>dismiss this message</a>.
+                </span>
+                <br/>
+                <span style={line2}>
+                    You can also load it via "+ Add" → "Library" → "First Steps in <SiteName />"
+                </span>
+            </Row>
+        </Col>
 
 NoFiles = rclass
     propTypes :
@@ -701,9 +714,9 @@ FileListing = rclass
 
     render_first_steps: ->
         name = 'first_steps'
+        return if @props.public_view
         return if not @props.library[name]
         return if not (@props.other_settings?.get(name) ? false)
-        return if @props.public_view
         return if @props.current_path isnt '' # only show in $HOME
         return if @props.file_map[name]?.isdir  # don't show if we have it ...
         return if @props.file_search[0] is TERM_MODE_CHAR
@@ -717,17 +730,21 @@ FileListing = rclass
             <TerminalModeDisplay/>
 
     render : ->
-        <Col sm={12}>
-            {@render_terminal_mode() if not @props.public_view}
-            {@render_first_steps()}
-            {<ListingHeader
-                active_file_sort = {@props.active_file_sort}
-                sort_by          = {@props.sort_by}
-                check_all        = {false}
-                /> if @props.listing.length > 0}
-            {@render_rows()}
-            {@render_no_files()}
-        </Col>
+        <Fragment>
+            <Col sm={12} style={zIndex:1}>
+                {@render_terminal_mode() if not @props.public_view}
+                {<ListingHeader
+                    active_file_sort = {@props.active_file_sort}
+                    sort_by          = {@props.sort_by}
+                    check_all        = {false}
+                    /> if @props.listing.length > 0}
+                {@render_rows()}
+                {@render_no_files()}
+            </Col>
+            <VisibleMDLG>
+                {@render_first_steps()}
+            </VisibleMDLG>
+        </Fragment>
 
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
@@ -954,11 +971,13 @@ ProjectFilesActions = rclass
             </div>
 
     render_action_button: (name) ->
+        disabled = (name in ["move","compress","rename","delete","share","duplicate"] and @props.current_path?.startsWith(".snapshots"))
         obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
         <Button
             onClick={=>@props.actions.set_file_action(name, get_basename)}
+            disabled={disabled}
             key={name} >
             <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>
@@ -1514,7 +1533,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            Use sharing to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a> Learn more about sharing files <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank"><b><i>here.</i></b></a> If you would like to collaborate and chat with other people on documents in this project, go the project Settings tab and "Add people to project".
+            <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank">Use sharing</a> to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>   (If you would instead like to privately collaborate and chat with people in this project, go the project Settings tab and "Add people to project".)
         </div>
 
     set_public_file_unlisting_to: (new_value) ->
@@ -1543,11 +1562,17 @@ ProjectFilesActionBox = rclass
             </div>
         </Alert>
 
-    render_share: ->
-        quotas = @props.get_total_project_quotas(@props.project_id)
-        if not quotas?.network
-            return @render_share_error()
+    render_how_shared: (parent_is_public, single_file_data) ->
+        if parent_is_public
+            return
+        <div>
+            <br/>
+            <div style={color:'#444', fontSize:'15pt'}>How this file or directory is shared</div>
+            <br/>
+            {@render_sharing_options(single_file_data)}
+        </div>
 
+    render_share: ->
         # currently only works for a single selected file
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
@@ -1573,64 +1598,103 @@ ProjectFilesActionBox = rclass
                 </Col>
             </Row>
             <Row>
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Description</h4>
-                    <FormGroup>
-                        <FormControl
-                            autoFocus     = {true}
-                            ref          = 'share_description'
-                            key          = 'share_description'
-                            type         = 'text'
-                            defaultValue = {single_file_data.public?.description ? ''}
-                            disabled     = {parent_is_public}
-                            placeholder  = 'Description...'
-                            onKeyUp      = {@action_key}
+                <Col sm={12} style={fontSize:'12pt'}>
+                    {@render_how_shared(parent_is_public, single_file_data)}
+                </Col>
+            </Row>
+            {if not single_file_data.is_public then undefined else <>
+                <Row>
+                    <Col sm={4} style={color:'#666'}>
+                        <h4>Description</h4>
+                        <FormGroup>
+                            <FormControl
+                                autoFocus     = {true}
+                                ref          = 'share_description'
+                                key          = 'share_description'
+                                type         = 'text'
+                                defaultValue = {single_file_data.public?.description ? ''}
+                                disabled     = {parent_is_public}
+                                placeholder  = 'Description...'
+                                onKeyUp      = {@action_key}
+                            />
+                        </FormGroup>
+                        {@render_share_warning() if parent_is_public}
+                    </Col>
+                    <Col sm={4} style={color:'#666'}>
+                        <h4>Items</h4>
+                        {@render_selected_files_list()}
+                    </Col>
+                    {<Col sm={4} style={color:'#666'}>
+                        <h4>Shared publicly</h4>
+                        <CopyToClipBoard
+                            value         = {url}
+                            button_before = {button_before}
+                            hide_after    = {true}
                         />
-                    </FormGroup>
-                    {@render_share_warning() if parent_is_public}
-                </Col>
-                <Col sm={4} style={color:'#666'}>
-                    <h4>Items</h4>
-                    {@render_selected_files_list()}
-                </Col>
-                {<Col sm={4} style={color:'#666'}>
-                    <h4>Shared publicly</h4>
-                    <CopyToClipBoard
-                        value         = {url}
-                        button_before = {button_before}
-                        hide_after    = {true}
-                    />
-                </Col> if single_file_data.is_public}
-            </Row>
-            <Row>
-                <Col sm={4}>
-                    <ButtonToolbar>
-                        <ButtonGroup style={paddingBottom: '5px'}>
-                            <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
-                                <Icon name='share-square-o' /><Space/>
-                                {if single_file_data.is_public then 'Update description' else 'Make item public'}
-                            </Button>
-                            <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>
-                                <Icon name='shield' /> Make item private
-                            </Button>
-                        </ButtonGroup>
-                        <Button onClick={@cancel_action}>
-                            Close
+                    </Col> if single_file_data.is_public}
+                </Row>
+                <Row>
+                    <Col sm={12}>
+                        <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public} style={marginBottom:"5px"}>
+                            <Icon name='share-square-o' /> Update description
                         </Button>
-                    </ButtonToolbar>
-                </Col>
-                <Col sm={4}>
-                    {<ButtonToolbar>
-                        {@render_social_buttons(single_file)}
-                    </ButtonToolbar> if show_social_media}
-                </Col>
-            </Row>
+                    </Col>
+                </Row>
+            </>}
             <Row>
                 <Col sm={12}>
-                    {@render_unlisting_checkbox(single_file_data)}
+                    <Button onClick={@cancel_action}>
+                        Close
+                    </Button>
                 </Col>
             </Row>
         </div>
+
+    handle_sharing_options_change: (single_file_data) -> (e) =>
+        # The reason we need single_fie_data is because I think "set_public_path" does not
+        # merge the "options", so you have to pass in the current description.
+        state = e.target.value
+        if state == "private"
+            @props.actions.disable_public_path(@props.checked_files.first())
+        else if state == "public_listed"
+            # single_file_data.public is suppose to work in this state
+            description = single_file_data.public?.description ? ''
+            @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: false})
+        else if state == "public_unlisted"
+            description = single_file_data.public?.description ? ''
+            @props.actions.set_public_path(@props.checked_files.first(), {description: description, unlisted: true})
+
+    get_sharing_options_state: (single_file_data) ->
+        if single_file_data.is_public and single_file_data.public?.unlisted
+            return "public_unlisted"
+        if single_file_data.is_public and not single_file_data.public?.unlisted
+            return "public_listed"
+        return "private"
+
+    render_sharing_options: (single_file_data) ->
+        state = @get_sharing_options_state(single_file_data)
+        handler = @handle_sharing_options_change(single_file_data)
+        <>
+            <FormGroup>
+            {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
+                    <Icon name='eye'/><Space/>
+                    <i>Public (listed)</i> - This will appear on the <a href="https://cocalc.com/share" target="_blank">public share server</a>.
+              </Radio> else <Radio disabled={true} name="sharing_options" value="public_listed" checked={state == "public_listed"} inline>
+                    <Icon name='eye'/><Space/>
+                    <del><i>Public (listed)</i> - This will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
+                </Radio>}
+              <br/>
+              <Radio name="sharing_options" value="public_unlisted" checked={state == "public_unlisted"} onChange={handler} inline>
+                <Icon name='eye-slash'/><Space/>
+                <i>Public (unlisted)</i> - Only people with the link can view this.
+              </Radio>
+              <br/>
+              <Radio name="sharing_options" value="private" checked={state == "private"} onChange={handler} inline>
+                <Icon name='lock'/><Space/>
+                <i>Private</i> - Only collaborators on this project can view this.
+              </Radio>
+            </FormGroup>
+        </>
 
     render_social_buttons: (single_file) ->
         # sort like in account settings
@@ -1976,7 +2040,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'rtex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
@@ -2239,7 +2303,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </div>
 
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
-        if project_state? and project_state not in ['running', 'saving']
+        if project_state?.get('state') and project_state.get('state') not in ['running', 'saving']
             return @render_project_state(project_state)
 
         if error
@@ -2312,7 +2376,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_start_project_button: (project_state) ->
         <Button
-            disabled = {project_state not in ['opened', 'closed']}
+            disabled = {project_state?.get('state') not in ['opened', 'closed', 'archived']}
             bsStyle  = "primary"
             bsSize   = "large"
             onClick  = {@start_project} >
@@ -2340,7 +2404,7 @@ exports.ProjectFiles = rclass ({name}) ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
 
         if not public_view
-            project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+            project_state = @props.project_map?.getIn([@props.project_id, 'state'])
 
         {listing, error, file_map} = @props.displayed_listing
 

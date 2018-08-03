@@ -2,7 +2,7 @@
 Searching for tasks by full text search and done/deleted status.
 ###
 
-{React, ReactDOM, rclass, rtypes}  = require('../smc-react')
+{React, ReactDOM, rclass, rtypes}  = require('../app-framework')
 
 {Icon} = require('../r_misc')
 

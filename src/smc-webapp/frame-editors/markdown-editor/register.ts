@@ -2,10 +2,9 @@
 Register the markdown editor
 */
 
-const { Editor } = require("./editor");
-const { Actions } = require("./actions");
-
-const { register_file_editor } = require("../code-editor/register-generic");
+import { Editor } from "./editor";
+import { Actions } from "./actions";
+import { register_file_editor } from "../frame-tree/register";
 
 register_file_editor({
   ext: "md",

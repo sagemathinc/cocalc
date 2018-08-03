@@ -4,7 +4,7 @@ Render a single project entry, which goes in the list of projects
 
 immutable  = require('immutable')
 
-{React, rtypes, rclass}  = require('../smc-react')
+{React, rtypes, rclass}  = require('../app-framework')
 {Button, Row, Col, Well} = require('react-bootstrap')
 {Icon, Markdown, ProjectState, r_join, Space, TimeAgo} = require('../r_misc')
 {AddCollaborators} = require('../collaborators/add-to-project')
@@ -23,11 +23,10 @@ exports.ProjectRow = rclass
             add_collab : rtypes.immutable.Set
 
     render_status: ->
-        state = @props.project.state?.state ? 'closed'
-        if state?
-            <a>
-                <ProjectState state={state} />
-            </a>
+        x = @props.project.state ? {state:'closed'}
+        <a>
+            <ProjectState state={immutable.fromJS(x)} />
+        </a>
 
     render_last_edited: ->
         try

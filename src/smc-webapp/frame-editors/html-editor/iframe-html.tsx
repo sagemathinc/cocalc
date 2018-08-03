@@ -4,11 +4,13 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 
 import * as $ from "jquery";
 
+import {is_safari} from "../generic/browser";
+
 import { is_different } from "../generic/misc";
 
 import { throttle } from "underscore";
 
-import { Component, React, ReactDOM, Rendered } from "../generic/react";
+import { Component, React, ReactDOM, Rendered } from "../../app-framework";
 
 import * as CSS from "csstype";
 
@@ -71,7 +73,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   click_iframe(): void {
-    this.props.actions.set_active_id(this.props.id, 50);
+    this.props.actions.set_active_id(this.props.id);
   }
 
   init_click_handler(): void {
@@ -130,9 +132,9 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     if (elt == null) {
       return;
     }
-    const body = $(elt)
-      .contents()
-      .find("body");
+    const j = $(elt);
+    j.css("opacity", 1);
+    const body = j.contents().find("body");
     body.css("zoom", (font_size != null ? font_size : 16) / 16);
     if (this.props.is_fullscreen && this.props.fullscreen_style != null) {
       body.css(this.props.fullscreen_style);
@@ -144,9 +146,8 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   safari_hack(): void {
-    const jQuery: any = $ as any;
-    if (jQuery.browser && jQuery.browser.safari) {
-      jQuery(ReactDOM.findDOMNode(this)).make_height_defined();
+    if (is_safari) {
+      $(ReactDOM.findDOMNode(this)).make_height_defined();
     }
   }
 

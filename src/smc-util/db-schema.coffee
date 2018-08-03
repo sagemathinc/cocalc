@@ -116,6 +116,8 @@ schema.account_creation_actions =
             desc : 'When this action should be expired.'
     pg_indexes : ['email_address']
 
+exports.DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE = 14
+
 schema.accounts =
     desc : 'All user accounts.'
     primary_key : 'account_id'
@@ -222,7 +224,8 @@ schema.accounts =
         '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
-        'api_key'
+        'api_key',
+        'last_active DESC NULLS LAST'
         ]
     user_query :
         get :
@@ -250,6 +253,7 @@ schema.accounts =
                     multiple_cursors          : true
                     track_revisions           : true
                     extra_button_bar          : true
+                    build_on_save             : true
                     first_line_number         : 1
                     indent_unit               : 4
                     tab_size                  : 4
@@ -267,18 +271,18 @@ schema.accounts =
                     default_file_sort : 'time'
                     show_global_info2 : null
                     first_steps       : true
-                    newsletter        : true
+                    newsletter        : false
                     time_ago_absolute : false
                     no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''
                 last_name       : ''
                 terminal        :
-                    font_size    : 14
+                    font_size    : DEFAULT_FONT_SIZE
                     color_scheme : 'default'
                     font         : 'monospace'
                 autosave        : 45
                 evaluate_key    : 'Shift-Enter'
-                font_size       : 14
+                font_size       : DEFAULT_FONT_SIZE
                 passports       : {}
                 groups          : []
                 last_active     : null
@@ -733,10 +737,10 @@ schema.projects =
             desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
         status      :
             type : 'map'
-            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version number of local_hub code]}'
+            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES in the compute-states file], version: [version number of local_hub code]}'
         state       :
             type : 'map'
-            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
+            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file.'
             date : ['time']
         last_edited :
             type : 'timestamp'
@@ -794,6 +798,9 @@ schema.projects =
         compute_image :
             type : 'string'
             desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+        addons :
+            type : 'map'
+            desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
 
     pg_indexes : [
         'last_edited',
@@ -823,6 +830,7 @@ schema.projects =
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
                 compute_image  : 'latest'
+                addons         : null
         set :
             fields :
                 project_id     : 'project_write'

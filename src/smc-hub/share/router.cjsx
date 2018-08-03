@@ -7,7 +7,7 @@ PAGE_SIZE            = 100
 
 os_path              = require('path')
 
-{React}              = require('smc-webapp/smc-react')
+{React}              = require('smc-webapp/app-framework')
 
 express              = require('express')
 misc                 = require('smc-util/misc')

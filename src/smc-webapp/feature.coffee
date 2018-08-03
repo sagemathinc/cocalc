@@ -99,7 +99,7 @@ if window?
     cookies_and_local_storage = ->
         if not navigator?
             return
-        page = require('./smc-react')?.redux?.getActions('page')
+        page = require('./app-framework')?.redux?.getActions('page')
         if not page?
             # It's fine to wait until page has loaded and then some before showing a warning
             # to the user.  This is also necessary to ensure the page actions/store have been defined.

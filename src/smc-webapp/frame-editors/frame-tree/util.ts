@@ -23,3 +23,25 @@ declare global {
 export function raw_url(project_id: string, path: string): string {
   return `${window.app_base_url}/${project_id}/raw/${path}`;
 }
+
+export function aux_file(path: string, ext: string): string {
+  let s = path_split(path);
+  s.tail += "." + ext;
+  if (s.head) {
+    return s.head + "/." + s.tail;
+  } else {
+    return "." + s.tail;
+  }
+}
+
+export const PRETTIER_SUPPORT = {
+  js: true,
+  jsx: true,
+  md: true,
+  css: true,
+  ts: true,
+  tsx: true,
+  json: true,
+  py: true, // use external tool
+  tex: true  // actually use latexformat
+};

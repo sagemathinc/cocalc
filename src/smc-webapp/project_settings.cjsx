@@ -38,7 +38,7 @@ misc                 = require('smc-util/misc')
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {User} = require('./users')
 
 {HelpEmailLink}   = require('./customize')
@@ -241,7 +241,7 @@ QuotaConsole = rclass
                 <Row>
                     <Col sm={6} smOffset={6}>
                         <Button onClick={@start_admin_editing} bsStyle='warning' style={float:'right'}>
-                            <Icon name='pencil' /> Admin edit...
+                            <Icon name='pencil' /> Admin Edit...
                         </Button>
                     </Col>
                 </Row>
@@ -373,7 +373,7 @@ UsagePanel = rclass
         <Row>
             <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust your quotas...
+                    <Icon name='arrow-circle-up' /> Adjust Quotas...
                 </Button>
             </Col>
         </Row>
@@ -487,7 +487,7 @@ HideDeletePanel = rclass
             </div> if not has_upgrades}
             <ButtonToolbar >
                 <Button bsStyle='danger' onClick={@toggle_delete_project}>
-                    Delete Project
+                    Yes, please delete this project
                 </Button>
                 <Button onClick={@hide_delete_conf}>
                     Cancel
@@ -632,7 +632,7 @@ ProjectControlPanel = rclass
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
-            <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
+            <ProjectState show_desc={true} state={@props.project.get('state')} />
         </span>
 
     render_idle_timeout: ->
@@ -660,9 +660,28 @@ ProjectControlPanel = rclass
                     <hr />
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(restart:false); @restart_project()}>
-                            <Icon name='refresh' /> Restart project server
+                            <Icon name='refresh' /> Restart Project Server
                         </Button>
                         <Button onClick={(e)=>e.preventDefault(); @setState(restart:false)}>
+                             Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Well>
+            </LabeledRow>
+
+    render_confirm_stop: ->
+        if @state.show_stop_confirmation
+            <LabeledRow key='stop' label=''>
+                <Well>
+                    Stopping the project server will kill all processes.
+                    After stopping a project, it will not start until a
+                    collaborator restarts the project.
+                    <hr />
+                    <ButtonToolbar>
+                        <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false); @stop_project()}>
+                            <Icon name='refresh' /> Stop Project Server
+                        </Button>
+                        <Button onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false)}>
                              Cancel
                         </Button>
                     </ButtonToolbar>
@@ -674,11 +693,11 @@ ProjectControlPanel = rclass
         state = @props.project.get('state')?.get('state')
         commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
         <ButtonToolbar style={marginTop:'10px', marginBottom:'10px'}>
-            <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(restart:true)}>
-                <Icon name={COMPUTE_STATES.starting.icon} /> Restart project...
+            <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false,restart:true)}>
+                <Icon name={COMPUTE_STATES.starting.icon} /> Restart Project...
             </Button>
-            <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @stop_project()}>
-                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop
+            <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:true,restart:false)}>
+                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop Project...
             </Button>
         </ButtonToolbar>
 
@@ -740,6 +759,7 @@ ProjectControlPanel = rclass
                 {@render_action_buttons()}
             </LabeledRow>
             {@render_confirm_restart()}
+            {@render_confirm_stop()}
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>

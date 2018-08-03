@@ -1129,6 +1129,12 @@ API message2
         query:
             init  : required
             desc  : "comma separated list of email addresses or strings such as 'foo bar'"
+        admin:
+            init  : false
+            desc  : "if true and user is an admin, includes email addresses in result, and does more permissive search"
+        active:
+            init  : '6 months'
+            desc  : "only include users active for this interval of time"
         limit:
             init  : 20
             desc  : 'maximum number of results returned'
@@ -1206,7 +1212,7 @@ Email and string search types may be mixed in a single query:
 message
     event   : 'user_search_results'
     id      : undefined
-    results : required  # list of {first_name:, last_name:, account_id:} objects.
+    results : required  # list of {first_name:, last_name:, account_id:, last_active:?, created:?, email_address:?} objects.; email_address only for admin
 
 # hub --> client
 message
@@ -2500,3 +2506,46 @@ message
     event      : 'remove_all_upgrades'
     id         : undefined
 
+
+###
+Sage Worksheet Support, v2
+###
+# client --> project
+message
+    event        : 'sagews_execute_code'
+    id           : undefined
+    path         : required
+    code         : required
+    data         : undefined
+    cell_id      : undefined  # if is a cell, which is being executed (so if client does not ack, output is still recorded)
+    preparse     : true
+
+# project --> client
+message
+    event        : 'sagews_output'
+    id           : required
+    path         : required
+    output       : required     # the actual output message
+
+# client --> project
+message
+    event        : 'sagews_output_ack'
+    id           : required
+
+# client --> project
+message
+    event        : 'sagews_interrupt'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_quit'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_start'
+    id           : undefined
+    path         : required

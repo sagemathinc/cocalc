@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{Actions, Store, redux, rtypes, computed} = require('./smc-react')
+{Actions, Store, redux, rtypes, computed} = require('./app-framework')
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 
@@ -141,6 +141,9 @@ class PageActions extends Actions
             when 'file-use'
                 history.set_url('/file-use')
                 set_window_title('File Usage')
+            when 'admin'
+                history.set_url('/admin')
+                set_window_title('Admin')
             when undefined
                 return
             else
@@ -250,15 +253,13 @@ class PageActions extends Actions
     sign_in: =>
         false
 
+redux.createStore('page', {active_top_tab: 'account'})
 redux.createActions('page', PageActions)
-
-# redux.createStore('page', active_top_tab:'account')
-
-# FUTURE: Save entire state to database for #450, saved workspaces
-redux.createStore
+###
     name: 'page'
 
     getInitialState: ->
+        console.log "Setting initial state in page"
         active_top_tab        : 'account'
 
     stateTypes:
@@ -269,14 +270,15 @@ redux.createStore
         connection_status     : rtypes.string
         new_version           : rtypes.immutable.Map
         fullscreen            : rtypes.oneOf(['default', 'kiosk'])
+        test                  : rtypes.string  # test query in the URL
         cookie_warning        : rtypes.bool
         local_storage_warning : rtypes.bool
         show_file_use         : rtypes.bool
         num_ghost_tabs        : rtypes.number
-        session               : rtypes.string # session query in the url bar
+        session               : rtypes.string # session query in the URL
         last_status_time      : rtypes.string
         get_api_key           : rtypes.string
-
+###
 recent_disconnects = []
 record_disconnect = () ->
     recent_disconnects.push(+new Date())
@@ -405,13 +407,28 @@ if fullscreen_query_value
     else
         redux.getActions('page').set_fullscreen('default')
 
+# setup for frontend mocha testing.
+test_query_value = misc_page.get_query_param('test')
+if test_query_value
+    # include entryway for running mocha tests.
+    redux.getActions('page').setState(test: test_query_value)
+    console.log("TESTING mode -- waiting for sign in...")
+    webapp_client.once 'signed_in', ->
+        console.log("TESTING mode -- waiting for projects to load...")
+        redux.getStore('projects').wait
+            until : (store) -> store.get('project_map')
+            cb    : ->
+                console.log("TESTING mode -- projects loaded; now loading and running tests...")
+                require('test-mocha/setup').mocha_run(test_query_value)
+
 # configure the session
 # This makes it so the default session is 'default' and there is no
-# way to NOT have a session.
+# way to NOT have a session, except via session=, which is treated
+# as "no session" (also no session for kiosk mode).
 session = misc_page.get_query_param('session') ? 'default'
-if fullscreen_query_value == 'kiosk'
+if fullscreen_query_value == 'kiosk' or test_query_value
     # never have a session in kiosk mode, since you can't access the other files.
-    session = undefined
+    session = ''
 
 redux.getActions('page').set_session(session)
 
@@ -419,5 +436,3 @@ get_api_key_query_value = misc_page.get_query_param('get_api_key')
 if get_api_key_query_value
     redux.getActions('page').set_get_api_key(get_api_key_query_value)
     redux.getActions('page').set_fullscreen('kiosk')
-
-

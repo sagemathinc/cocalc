@@ -32,7 +32,7 @@ underscore = require('underscore')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Redux, redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, redux, Actions, Store}  = require('./app-framework')
 {Loading, SearchInput, Icon} = require('r_misc')
 {Alert, Button, Col, Row, Panel, ButtonToolbar, Input} = require('react-bootstrap')
 
@@ -56,8 +56,8 @@ init_redux = (path, redux, project_id) ->
     name = redux_name(project_id, filename)
     if redux.getActions(name)?
         return  # already initialized
-    actions = redux.createActions(name, DevTerminalActions)
     store   = redux.createStore(name, default_store_state(project_id, filename))
+    actions = redux.createActions(name, DevTerminalActions)
 
     # What kind of sync should this be? Does it need a sync?
     console.log("getting syncstring for '#{filename}'")

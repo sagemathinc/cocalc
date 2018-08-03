@@ -1,7 +1,7 @@
 misc  = require('smc-util/misc')
 {defaults, required} = misc
 
-{Actions, Store, Table, redux} = require('./smc-react')
+{Actions, Store, Table, redux} = require('./app-framework')
 {alert_message} = require('./alerts')
 
 name = 'system_notifications'
@@ -21,8 +21,8 @@ class NotificationsActions extends Actions
             if not mesg.get('done')
                 table.set(id:id, done:true)
 
-actions = redux.createActions(name, NotificationsActions)
 store   = redux.createStore(name, {loading:true})
+actions = redux.createActions(name, NotificationsActions)
 
 class NotificationsTable extends Table
     query: ->

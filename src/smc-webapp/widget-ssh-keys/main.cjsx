@@ -5,7 +5,7 @@ immutable = require('immutable')
 # Internal & React Libraries
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, rclass, rtypes} = require('../app-framework')
 {Icon, HelpIcon, Space, TimeAgo} = require('../r_misc')
 {User} = require('../users')
 
@@ -168,9 +168,9 @@ DeleteConfirmation = rclass
             <hr />
             <ButtonToolbar>
                 <Button bsStyle='danger' onClick={@props.confirm}>
-                    Yes, delete this key.
+                    Yes, please delete this SSH key
                 </Button>
-                <Button bsStyle='primary' onClick={@props.cancel}>
+                <Button onClick={@props.cancel}>
                     Cancel
                 </Button>
             </ButtonToolbar>

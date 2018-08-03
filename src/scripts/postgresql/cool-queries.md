@@ -1,6 +1,6 @@
 UTM:
 
-    sselect time, event, value -> 'utm', value ->> 'referrer' from central_log where value ->> 'utm' is not null order by time desc limit 100;
+    select time, event, value -> 'utm', value ->> 'referrer' from central_log where value ->> 'utm' is not null order by time desc limit 100;
 
 Files being edited right now:
 
@@ -213,6 +213,9 @@ Usage of Assistant Examples
     WHERE cnt > 1
     ORDER BY cnt DESC;
 
+Jupyter kernel defaults
+
+    SELECT COUNT(*), editor_settings ->> 'jupyter' AS kernel from accounts GROUP BY kernel ORDER BY count DESC;
 
 ## Stripe
 

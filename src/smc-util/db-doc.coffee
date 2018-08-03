@@ -586,6 +586,12 @@ class exports.SyncDB extends EventEmitter
         @_doc.on('save_to_disk_project', (err) => @emit('save_to_disk_project', err))  # only emitted on the backend/project!
         @setMaxListeners(100)
 
+    wait: (opts) =>
+        @_doc.wait
+            timeout : opts.timeout
+            until : => return opts.until(@)
+            cb    : opts.cb
+
     _check: =>
         if not @_doc?
             throw Error("SyncDB('#{@_path}') is closed")
@@ -647,6 +653,15 @@ class exports.SyncDB extends EventEmitter
         @_check()
         @_doc.save_to_disk(cb)
         return
+
+    # for compat with syncstring api.
+    _save: (cb) => @save(cb)
+    save_to_disk: (cb) => @save(cb)
+
+    # also for compat api.
+    set_settings: (obj) => @_doc.set_settings(obj)
+    get_settings: => return @_doc.get_settings()
+
 
     save_asap: (cb) =>
         @_check()

@@ -880,17 +880,55 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         f(account_id, username)
                     opts.cb(undefined, usernames)
 
+    # This searches for users. In case someone has to debug this, the "clear text" for the user search by name (tokens) is
+    # SELECT account_id, first_name, last_name, last_active, created
+    # FROM accounts
+    # WHERE deleted IS NOT TRUE
+    #   AND (
+    #     (
+    #       (
+    #         lower(first_name) LIKE $1::TEXT
+    #         OR
+    #         lower(last_name) LIKE $1::TEXT
+    #       )
+    #       AND
+    #       (
+    #         lower(first_name) LIKE $2::TEXT
+    #         OR
+    #         lower(last_name) LIKE $2::TEXT
+    #       )
+    #       AND
+    #          ...
+    #     )
+    #   )
+    #   AND (
+    #     (last_active >= NOW() - $3::INTERVAL)
+    #     OR
+    #     (created >= NOW() - $3::INTERVAL)
+    #   )
+    #   ORDER BY last_active DESC NULLS LAST
+    #   LIMIT $4::INTEGER
     user_search: (opts) =>
         opts = defaults opts,
             query  : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
             limit  : 50           # limit on string queries; email query always returns 0 or 1 result per email address
-            active : '6 months'   # for name search (not email), only return users active this recently.
+            active : undefined    # for name search (not email), only return users active this recently. -- disabled b/c of #2991
+            admin  : false
             cb     : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                   # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                   # email addresses of users queried by name.
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
+
+        if opts.admin
+            # For admin we just do substring queries.
+            for x in email_queries
+                string_queries.push([x])
+            email_queries = []
+
         dbg = @_dbg("user_search")
         dbg("query = #{misc.to_json(opts.query)}")
+        #dbg("string_queries=#{misc.to_json(string_queries)}")
+        #dbg("email_queries=#{misc.to_json(email_queries)}")
 
         locals =
              results : []
@@ -930,15 +968,27 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     v = []
                     for s in terms
                         s = s.toLowerCase()
-                        v.push("(lower(first_name) LIKE $#{i}::TEXT OR lower(last_name) LIKE $#{i}::TEXT)")
-                        params.push("#{s}%")  # require string to name to start with string -- makes searching way faster and is more useful too
+                        if opts.admin
+                            v.push("(lower(first_name) LIKE $#{i}::TEXT OR lower(last_name) LIKE $#{i}::TEXT OR lower(email_address) LIKE $#{i}::TEXT)")
+                            params.push("%#{s}%")
+                        else
+                            v.push("(lower(first_name) LIKE $#{i}::TEXT OR lower(last_name) LIKE $#{i}::TEXT)")
+                            params.push("#{s}%")  # require string to name to start with string --
+                                                  # makes searching way faster and is more useful too
                         i += 1
                     where.push("(#{v.join(' AND ')})")
-                query = 'SELECT account_id, first_name, last_name, last_active, created FROM accounts'
+                query = 'SELECT account_id, first_name, last_name, last_active, created'
+                if opts.admin
+                    query += ', email_address'
+                query += ' FROM accounts'
                 query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
                 if opts.active
+                    params.push(opts.active)
                     # name search only includes active users
-                    query += " AND ((last_active >= NOW() - INTERVAL '#{opts.active}') OR (created >= NOW() - INTERVAL '#{opts.active}')) "
+                    query += " AND ((last_active >= NOW() - $#{i}::INTERVAL) OR (created >= NOW() - $#{i}::INTERVAL)) "
+                    i += 1
+                # recently active users are much more relevant than old ones -- #2991
+                query += " ORDER BY last_active DESC NULLS LAST"
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
                 @_query

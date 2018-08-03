@@ -37,7 +37,7 @@ misc_page = require('./misc_page')
 # these idle notifications were in misc_page, but importing it here failed
 
 idle_notification_html = ->
-    {redux}   = require('./smc-react')
+    {redux}   = require('./app-framework')
     customize = redux.getStore('customize')
     """
     <div>
@@ -89,7 +89,7 @@ class Connection extends client.Connection
         @_setup_window_smc()
 
         # This is used by the base class for marking file use notifications.
-        @_redux = require('./smc-react').redux
+        @_redux = require('./app-framework').redux
 
         # 60 min default. Correct val will get set when user account settings are loaded.
         # Set here rather than in @_init_idle to avoid any potential race.
@@ -103,11 +103,12 @@ class Connection extends client.Connection
 
         # Wait until load totally done.
         setTimeout(@_firefox60_bug, 5000)
+        setInterval(@_firefox60_bug, 60000)
 
     _firefox60_bug: =>
         {name, version} = require('misc/browser').get_browser()
-        if name == 'Firefox' and (version == '59' or version == '60')
-            @alert_message(type:'error', block:'true', timeout:10000, message:"Firefox versions 59 and 60 have a MAJOR bug. You *must* use a different web browser. See https://tinyurl.com/y9hphj39 and https://tinyurl.com/yboeepsf")
+        if name == 'Firefox' and (version == '59' or version == '60' or version == '61')
+            @alert_message(type:'error', block:'true', timeout:10000, message:"Firefox versions 59 and 60 and 61 have a MAJOR bug. You *must* use a different web browser. See https://tinyurl.com/y9hphj39 and https://tinyurl.com/yboeepsf")
 
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
@@ -133,7 +134,7 @@ class Connection extends client.Connection
         window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
         window.smc.prom_client         = prom_client
-        window.smc.redux               = require('./smc-react').redux
+        window.smc.redux               = require('./app-framework').redux
 
         if require('./feature').IS_TOUCH
             # Debug mode and on a touch device -- e.g., iPad -- so make it possible to get a

@@ -38,6 +38,17 @@ Then:
    - g(x:0, aggregate:0, cb:e) results in just getting added to the cb's for f(x:0,cb:?),
      if that call is still running; if not, f may or may not get called again, depending
      on how much later (recent results are cached).
+
+OPTIONS:
+
+You can also do
+
+     aggregate(options, (opts) -> ...)
+
+Where options is an object.
+
+    options = {omit: ['keys', 'of', 'opts', 'to', 'omit', 'in', 'comparing', 'inputs']}
+
 ###
 
 {copy_without, field_cmp} = require('./misc')
@@ -53,6 +64,16 @@ clear_old = (done) ->
     for key, s of done
         if now - s.time >= DONE_CACHE_TIMEOUT_MS
             delete done[key]
+
+# Return true if a<=b.
+# Except... a special case.  If a is an object with a value attribute,
+# return true only if a.value is equal to b.value.
+# We use this so that aggregate can get recomputed for any change in aggregate,
+# instead of requiring an increasing sequence of aggregate values.
+leq = (a, b) ->
+    if typeof(a) == 'object' and a.value?
+        return a.value == b.value
+    return a <= b
 
 exports.aggregate = (options, f) ->
     if not f?
@@ -80,13 +101,13 @@ exports.aggregate = (options, f) ->
         # Check state
         current = state[key]
         recent  = done[key]
-        if recent? and opts.aggregate <= recent.aggregate
+        if recent? and leq(opts.aggregate, recent.aggregate)
             # result is known from a previous call.
             opts.cb(recent.args...)
             return
         if current?
             # Call already in progress with given exactly the same inputs.
-            if opts.aggregate <= current.aggregate
+            if leq(opts.aggregate, current.aggregate)
                 # already running with old enough aggregate value -- just wait and return as part of that
                 current.callbacks.push(opts.cb)
             else

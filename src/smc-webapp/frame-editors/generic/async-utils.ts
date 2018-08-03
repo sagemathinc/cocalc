@@ -1,6 +1,4 @@
 /*
-THIS SHOULD BE MOVED OUT OF frame-editors/
-
 Some async utils.
 
 (Obviously should be moved somewhere else when the dust settles!)
@@ -14,46 +12,81 @@ The two helpful async/await libraries I found are:
 
 import * as awaiting from "awaiting";
 
-// use require for now...
-const webapp_client = require("smc-webapp/webapp_client").webapp_client;
-
-export function server_time(): Date {
-  return webapp_client.server_time();
-}
-
-interface ExecOpts {
-  project_id: string;
-  path?: string;
-  command: string;
-  args?: string[];
-  timeout?: number;
-  network_timeout?: number;
-  max_output?: number;
-  bash?: boolean;
-  aggregate?: any;
-  err_on_exit?: boolean;
-  allow_post?: boolean; // set to false if genuinely could take a long time
-  cb?: Function;
-}
-
 // turns a function of opts, which has a cb input into
-// an async function that takes an opts with no cb as input.
-export async function async_opts(f: Function, opts: ExecOpts) {
-  function g(cb: Function) {
-    opts.cb = cb;
-    f(opts);
+// an async function that takes an opts with no cb as input; this is just like
+// awaiting.callback, but for our functions that take opts.
+export function callback_opts(f: Function) {
+  return async function(opts: any) : Promise<any> {
+    function g(cb: Function) {
+      opts.cb = cb;
+      f(opts);
+    }
+    return await awaiting.callback(g);
   }
-  return awaiting.callback(g);
 }
 
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-  time: number; // time in ms, from user point of view.
+/* retry_until_success keeps calling an async function f with
+  exponential backoff until f does NOT raise an exception.
+  Then retry_until_success returns whatever f returned.
+*/
+
+interface RetryUntilSuccess {
+  f: () => Promise<any>; // an async function that takes no input.
+  start_delay?: number; // delay (in ms) before calling second time.
+  max_delay?: number; // delay at most this amount between calls
+  max_tries?: number; // maximum number of times to call f
+  max_time?: number; // milliseconds -- don't call f again if the call would start after this much time from first call
+  factor?: number; // multiply delay by this each time
 }
 
-// async version of the webapp_client exec -- let's you run any code in a project!
-export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  return async_opts(webapp_client.exec, opts);
+export async function retry_until_success(
+  opts: RetryUntilSuccess
+): Promise<any> {
+  if (!opts.start_delay) opts.start_delay = 100;
+  if (!opts.max_delay) opts.max_delay = 20000;
+  if (!opts.factor) opts.factor = 1.4;
+
+  let next_delay: number = opts.start_delay;
+  let tries: number = 0;
+  let start_time: number = new Date().valueOf();
+  let last_exc: Error | undefined;
+
+  // Return nonempty string if time or tries exceeded.
+  function check_done(): string {
+    if (
+      opts.max_time &&
+      next_delay + new Date().valueOf() - start_time > opts.max_time
+    ) {
+      return "maximum time exceeded";
+    }
+    if (opts.max_tries && tries >= opts.max_tries) {
+      return "maximum tries exceeded";
+    }
+    return "";
+  }
+
+  while (true) {
+    try {
+      return await opts.f();
+    } catch (exc) {
+      // might try again -- update state...
+      tries += 1;
+      next_delay = Math.min(opts.max_delay, opts.factor * next_delay);
+      // check if too long or too many tries
+      let err = check_done();
+      if (err) {
+        // yep -- game over, throw an error
+        if (last_exc) {
+          throw Error(`${err} -- last error was ${last_exc}`);
+        } else {
+          throw Error(err);
+        }
+      }
+      // record exception so can use it later.
+      last_exc = exc;
+
+      // wait before trying again
+      await awaiting.delay(next_delay);
+    }
+  }
 }

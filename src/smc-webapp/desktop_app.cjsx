@@ -22,10 +22,10 @@
 
 {isMobile} = require('./feature')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{Loading, Icon, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
 # CoCalc Pages
@@ -44,7 +44,7 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
 
 nav_class = 'hidden-xs'
 
@@ -93,6 +93,7 @@ PAGE_REDUX_PROPS =
         account_id             : rtypes.string
         is_logged_in           : rtypes.bool
         show_global_info       : rtypes.bool
+        groups                 : rtypes.immutable.List
     support :
         show                   : rtypes.bool
 
@@ -113,7 +114,7 @@ Page = rclass
         @actions('page').clear_all_handlers()
 
     render_account_tab: ->
-        if false and @props.account_id
+        if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -134,6 +135,17 @@ Page = rclass
             active_top_tab = {@props.active_top_tab}
         />
 
+    render_admin_tab: ->
+        <NavTab
+            name           = 'admin'
+            label          = {'Admin'}
+            label_class    = {nav_class}
+            icon           = {'users'}
+            inner_style    = {padding: '10px', display: 'flex'}
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+        />
+
     sign_in_tab_clicked: ->
         if @props.active_top_tab == 'account'
             @actions('page').sign_in()
@@ -144,6 +156,7 @@ Page = rclass
             label           = 'Sign in'
             label_class     = {nav_class}
             icon            = 'sign-in'
+            inner_style     = {padding: '10px', display: 'flex'}
             on_click        = {@sign_in_tab_clicked}
             actions         = {@actions('page')}
             active_top_tab  = {@props.active_top_tab}
@@ -158,6 +171,7 @@ Page = rclass
             label          = {'Help'}
             label_class    = {nav_class}
             icon           = {'medkit'}
+            inner_style    = {padding: '10px', display: 'flex'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
@@ -174,12 +188,14 @@ Page = rclass
         logged_in = @props.is_logged_in
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
+            {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
                 name           = {'about'}
                 label          = {'CoCalc'}
                 label_class    = {nav_class}
                 icon           = {'info-circle'}
+                inner_style    = {padding: '10px', display: 'flex'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab} />
             <NavItem className='divider-vertical hidden-xs' />
@@ -235,6 +251,8 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
+        top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
+
         style_top_bar =
             display       : 'flex'
             marginBottom  : 0
@@ -243,9 +261,10 @@ Page = rclass
             position      : 'fixed'
             right         : 0
             borderRadius  : 0
-            top           : if @props.show_global_info then '40px' else 0
+            top           : top
 
-        positionHackHeight = (40 + if @props.show_global_info then 40 else 0) + 'px'
+        positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
+        positionHackHeight = (40 + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             <Intro />
@@ -265,11 +284,16 @@ Page = rclass
             {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
-            <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            <ErrorBoundary>
+                <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            </ErrorBoundary>
         </div>
 
-page = <Redux redux={redux}>
-    <Page redux={redux}/>
-</Redux>
+page =
+    <Redux redux={redux}>
+        <ErrorBoundary>
+            <Page redux={redux}/>
+        </ErrorBoundary>
+    </Redux>
 
 exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))

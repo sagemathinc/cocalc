@@ -28,9 +28,10 @@
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
+misc_page = require('./misc_page')
 
 misc     = require("misc")
-{redux}   = require('./smc-react')
+{redux}   = require('./app-framework')
 
 {reset_password_key} = require('./password-reset')
 
@@ -65,7 +66,7 @@ signed_in = (mesg) ->
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
     console.log("Signed into #{mesg.hub} at #{new Date()}")
-    load_file = window.smc_target and window.smc_target != 'login'
+    load_file = window.smc_target and window.smc_target != 'login' and not misc_page.get_query_param('test')
     if first_login
         first_login = false
         if not load_file

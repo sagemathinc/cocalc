@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node_modules/.bin/mocha --reporter progress test"
+    "test": "node_modules/.bin/mocha --reporter progress test/*.coffee"
   },
   "author": "",
   "license": "AGPLv3+",
@@ -17,5 +17,6 @@
     "json-stable-stringify": "^1.0.1",
     "mocha": "^3.2.0",
     "prop-types": "^15.5.10"
-  }
+  },
+  "devDependencies": {}
 }

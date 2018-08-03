@@ -6,22 +6,23 @@ import * as $ from "jquery";
 
 import { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
-import { Component, React, ReactDOM } from "../generic/react";
+import { Component, React, ReactDOM } from "../../app-framework";
 
 import { is_different } from "../generic/misc";
 
-import { AnnotationLayer } from "./pdfjs-annotation.tsx";
+import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
 
 interface Props {
   page: PDFPageProxy;
   scale: number;
   click_annotation: Function;
+  sync_highlight?: SyncHighlight;
 }
 
 export class CanvasPage extends Component<Props, {}> {
   shouldComponentUpdate(next_props: Props): boolean {
     return (
-      is_different(this.props, next_props, ["scale"]) ||
+      is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
       this.props.page.version != next_props.page.version
     );
   }
@@ -37,14 +38,16 @@ export class CanvasPage extends Component<Props, {}> {
     canvas.height = viewport.height;
     canvas.style.width = `${viewport.width / window.devicePixelRatio}px`;
     canvas.style.height = `${viewport.height / window.devicePixelRatio}px`;
+    $(div).empty();
+    div.appendChild(canvas);
     try {
       await page.render({
         canvasContext: ctx,
         viewport: viewport,
         enableWebGL: true
       });
-      $(div).empty();
-      div.appendChild(canvas);
+      //$(div).empty();
+      //div.appendChild(canvas);
     } catch (err) {
       console.error(`pdf.js -- Error rendering canvas page: ${err}`);
       return;
@@ -72,6 +75,7 @@ export class CanvasPage extends Component<Props, {}> {
           page={this.props.page}
           scale={this.props.scale}
           click_annotation={this.props.click_annotation}
+          sync_highlight={this.props.sync_highlight}
         />
         <div ref="page" />
       </div>

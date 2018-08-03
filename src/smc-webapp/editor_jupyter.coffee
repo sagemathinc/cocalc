@@ -66,7 +66,7 @@ misc                 = require('smc-util/misc')
 {defaults, required} = misc
 {dmp}                = require('smc-util/syncstring')
 {webapp_client}      = require('./webapp_client')
-{redux}              = require('./smc-react')
+{redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
 misc_page            = require('./misc_page')
 
@@ -1284,8 +1284,8 @@ class JupyterNotebook extends EventEmitter
         webapp_client.exec
             path        : @path
             project_id  : @project_id
-            command     : 'sage'
-            args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
+            command     : 'jupyter'
+            args        : ['nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30

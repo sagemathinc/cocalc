@@ -2,7 +2,7 @@ misc = require('smc-util/misc')
 
 {defaults, required} = misc
 
-{React} = require('./smc-react')
+{React} = require('./app-framework')
 
 # Map of extensions to the appropriate structures below
 file_editors =
@@ -44,7 +44,10 @@ exports.register_file_editor = (opts) ->
 
     # Assign to the extension(s)
     for ext in opts.ext
-        file_editors[!!opts.is_public][ext] =
+        pub = !!opts.is_public
+        if DEBUG and file_editors[pub][ext]?
+            console.warn("duplicate registered extension '#{pub}/#{ext}' in register_file_editor")
+        file_editors[pub][ext] =
             icon      : opts.icon
             component : opts.component
             generator : opts.generator

@@ -2,18 +2,19 @@
 
 import * as $ from "jquery";
 
-import { Component, React, ReactDOM } from "../generic/react";
+import { Component, React, ReactDOM } from "../../app-framework";
 
 import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
 import { is_different } from "../generic/misc";
 
-import { AnnotationLayer } from "./pdfjs-annotation.tsx";
+import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
 
 interface Props {
   page: PDFPageProxy;
   scale: number;
   click_annotation: Function;
+  sync_highlight?: SyncHighlight;
 }
 
 export class SVGPage extends Component<Props, {}> {
@@ -21,7 +22,7 @@ export class SVGPage extends Component<Props, {}> {
 
   shouldComponentUpdate(next_props: Props) {
     return (
-      is_different(this.props, next_props, ["scale"]) ||
+      is_different(this.props, next_props, ["scale", "sync_highlight"]) ||
       this.props.page.version != next_props.page.version
     );
   }
@@ -71,6 +72,7 @@ export class SVGPage extends Component<Props, {}> {
           page={this.props.page}
           scale={this.props.scale}
           click_annotation={this.props.click_annotation}
+          sync_highlight={this.props.sync_highlight}
         />
         <div ref="page" />
       </div>

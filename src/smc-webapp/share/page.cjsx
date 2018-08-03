@@ -2,7 +2,7 @@
 Share server top-level landing page.
 ###
 
-{rclass, React, ReactDOM, rtypes} = require('../smc-react')
+{rclass, React, ReactDOM, rtypes} = require('../app-framework')
 
 {SITE_NAME, BASE_URL} = require('smc-util/theme')
 

@@ -20,11 +20,12 @@
 
 async = require('async')
 
-{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./smc-react')
+{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
+{reportException} = require('../webapp-lib/webapp-error-reporter')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -98,6 +99,21 @@ exports.SetIntervalMixin =
         @intervals.push setInterval fn, ms
     componentWillUnmount: ->
         @intervals.forEach clearInterval
+
+exports.SetIntervalHOC = (Comp) ->
+    class SetIntervalWrapper extends Component
+        componentWillMount: ->
+            @intervals = []
+
+        setInterval: (fn, ms) ->
+            @intervals.push setInterval fn, ms
+
+        componentWillUnmount: ->
+            @intervals.forEach clearInterval
+
+        render: ->
+            Comp.setInterval = @setInterval
+            return React.createElement(Comp, @props, @props.children)
 
 exports.Space = Space = ->
     <span>&nbsp;</span>
@@ -533,12 +549,13 @@ exports.LabeledRow = LabeledRow = rclass
         label      : rtypes.any.isRequired
         style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
         label_cols : rtypes.number    # number between 1 and 11 (default: 4)
+        className  : rtypes.string
 
     getDefaultProps: ->
         label_cols : 4
 
     render: ->
-        <Row style={@props.style}>
+        <Row style={@props.style} className={@props.className} >
             <Col xs={@props.label_cols} style={marginTop:'8px'}>
                 {@props.label}
             </Col>
@@ -1493,7 +1510,7 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state     : rtypes.string
+        state     : rtypes.immutable.Map     # {state: 'running', time:'timestamp when switched to that state'}
         show_desc : rtypes.bool
 
     getDefaultProps: ->
@@ -1510,11 +1527,17 @@ exports.ProjectState = rclass
             <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
+                {@render_time()}
             </span>
         </span>
 
+    render_time: ->
+        time = @props.state?.get('time')
+        if time
+            return <span><Space/> (<exports.TimeAgo date={time} />)</span>
+
     render: ->
-        s = COMPUTE_STATES[@props.state]
+        s = COMPUTE_STATES[@props.state?.get('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
@@ -2014,3 +2037,53 @@ exports.VisibleLG = rclass
         <span className={'visible-lg-inline'}>
             {@props.children}
         </span>
+
+# Error boundry. Pass components in as children to create one.
+# https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html
+exports.ErrorBoundary = rclass
+    displayName: 'Error-Boundary'
+
+    getInitialState: ->
+        error : undefined
+        info  : undefined
+
+    componentDidCatch: (error, info) ->
+        reportException(error,"render error",null,info)
+        @setState
+            error : error
+            info  : info
+
+    render: ->
+        # This is way worse than nothing, because it surpresses reporting the actual error to the
+        # backend!!!  I'm disabling it completely.
+        return @props.children
+        if @state.info?
+            <Alert
+                bsStyle = 'warning'
+                style   = {margin:'15px'}
+            >
+                <h2 style={color:'rgb(217, 83, 79)'}>
+                    <Icon name='bug'/> You have just encountered a bug in CoCalc.  This is not your fault.
+                </h2>
+                <h4>
+                    {"You will probably have to refresh your browser to continue."}
+                </h4>
+                {"We have been notified of this error; however, if this bug is causing you significant trouble, file a support ticket:"}
+                <br/>
+                <br/>
+                <Button onClick={=>redux.getActions('support').show(true)}>
+                    Create Ticket
+                </Button>
+                <br/>
+                <br/>
+                <details style={whiteSpace:'pre-wrap', cursor:'pointer'} >
+                    <summary>Stack trace (in case you are curious)</summary>
+                    <div style={cursor:'pointer'} >
+                        {@state.error?.toString()}
+                        <br/>
+                        {@state.info.componentStack}
+                    </div>
+                </details>
+            </Alert>
+        else
+            @props.children

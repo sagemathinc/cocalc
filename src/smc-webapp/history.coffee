@@ -76,7 +76,7 @@ The URI schema is as follows:
 
 ###
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 # Determine query params based on state of the project store
 params = ->
@@ -84,7 +84,7 @@ params = ->
     if not page?  # unknown for now
         return ''
     v = []
-    for param in ['fullscreen', 'session', 'get_api_key']
+    for param in ['fullscreen', 'session', 'get_api_key', 'test']
         val = page.get(param)
         if val?
             v.push("#{param}=#{encodeURIComponent(val)}")
@@ -142,10 +142,10 @@ exports.load_target = load_target = (target, ignore_kiosk=false) ->
                 redux.getActions('account').set_active_tab('support')
             if segments[1] == 'ssh-keys'
                 redux.getActions('account').set_active_tab('ssh-keys')
-        when 'file-use'
+        when 'file-use', 'admin'
             if not logged_in
                 return
-            redux.getActions('page').set_active_tab('file-use')
+            redux.getActions('page').set_active_tab(segments[0])
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))

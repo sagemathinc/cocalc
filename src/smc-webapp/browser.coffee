@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 # Calling set_window_title will set the title, but also put a notification
 # count to the left of the title; if called with no arguments just updates
