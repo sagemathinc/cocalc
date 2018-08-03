@@ -24,11 +24,15 @@ const rendered_options = TYPES.map(x => (
 
 interface SlideshowProps {
   actions: any;
-  cell: ImmutableMap<string,any>; // TODO: what is this
+  cell: ImmutableMap<string, any>; // TODO: what is this
 }
 
 export class Slideshow extends Component<SlideshowProps> {
-  select = (e: any) => this.props.actions.set_cell_slide(this.props.cell.get("id"), e.target.value);
+  select = (e: any) =>
+    this.props.actions.set_cell_slide(
+      this.props.cell.get("id"),
+      e.target.value
+    );
   render() {
     return (
       <FormControl

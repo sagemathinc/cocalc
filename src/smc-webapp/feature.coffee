@@ -95,6 +95,7 @@ if window?
     # You can use DEBUG anywhere in the webapp code!
     if DEBUG
         console.log "DEBUG MODE:", DEBUG
+    exports.DEBUG = DEBUG
 
     cookies_and_local_storage = ->
         if not navigator?

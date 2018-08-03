@@ -40,7 +40,7 @@ const TOOLBARS = {
 
 export class CellToolbar extends Component<CellToolbarProps> {
   render() {
-    const style = BAR_STYLE();
+    const style = (BAR_STYLE() as any);
     const T = TOOLBARS[this.props.cell_toolbar];
     if (this.props.cell_toolbar === "nbgrader") {
       const cell_type = this.props.actions.store.get_nbgrader_cell_type(
