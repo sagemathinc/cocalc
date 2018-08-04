@@ -260,7 +260,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this._jupyter_kernel.on("spawn_error", err => {
       // TODO: need to save so gets reported to frontend...
-      return dbg(`error: ${err}`);
+      dbg(`error: ${err}`);
     });
 
     this._jupyter_kernel.on("usage", this.set_kernel_usage);
@@ -523,13 +523,12 @@ export class JupyterActions extends JupyterActions0 {
       code: input,
       id,
       stdin: handler.stdin,
-      cb: (err, mesg) => {
+    })
+    .then(mesg => {
         dbg(`got mesg='${JSON.stringify(mesg)}'`);
-        if (mesg == null && !err) {
+        if (mesg == null) {
           // can't possibly happen, of course.
           err = "empty mesg";
-        }
-        if (err) {
           dbg(`got error='${err}'`);
           handler.error(err);
           return;
@@ -568,6 +567,10 @@ export class JupyterActions extends JupyterActions0 {
           return handler.message(mesg.content);
         }
       }
+    })
+    .catch(err => {
+        dbg(`got error='${err}'`);
+        handler.error(err);
     });
   };
 
@@ -979,10 +982,9 @@ Read the ipynb file from disk.
           },
           cb => {
             dbg("now actually running nbconvert");
-            return this._jupyter_kernel.nbconvert({
-              args,
-              cb
-            });
+            this._jupyter_kernel.nbconvert({args})
+              .then(data => cb(undefined,data))
+              .catch(err => cb(err));
           }
         ],
         err => {
@@ -1041,21 +1043,18 @@ Read the ipynb file from disk.
             value: null
           });
           if (this._jupyter_kernel != null) {
-            this._jupyter_kernel.load_attachment({
-              path: x.get("value"),
-              cb: (err, sha1) => {
-                if (err) {
-                  return this.set_cell_attachment(cell.get("id"), name, {
-                    type: "error",
-                    value: err
-                  });
-                } else {
-                  return this.set_cell_attachment(cell.get("id"), name, {
+            this._jupyter_kernel.load_attachment({path: x.get("value")})
+            .then(sha1 => {
+              this.set_cell_attachment(cell.get("id"), name, {
                     type: "sha1",
                     value: sha1
                   });
-                }
-              }
+            })
+            .catch(err => {
+              this.set_cell_attachment(cell.get("id"), name, {
+                    type: "error",
+                    value: err
+                  });
             });
           }
         }

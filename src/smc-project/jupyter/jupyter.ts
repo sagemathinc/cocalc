@@ -1,13 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Jupyter Backend
 
 For interactive testing:
@@ -838,8 +829,7 @@ class Kernel extends EventEmitter {
     return await this.call("complete_request", opts);
   }
 
-  // TODO: type any's
-  introspect(opts: {
+  async introspect(opts: {
     code: any;
     cursor_pos: any;
     detail_level: any;

@@ -5,126 +5,103 @@ useful, e.g., for big images, general info about all available
 kernels, sending signals, doing tab completions, and so on.
 */
 
-/* TODO: rewrite to be async */
+const BASE = "/.smc/jupyter/";
 
-export function http_server(opts) {
-  let cursor_pos, key, level, value;
-  opts = defaults(opts, {
-    jupyter: required,
-    segments: required,
-    query: required,
-    cb: required
-  });
+function get_code_and_cursor_pos(
+  query: object
+): { code: string; cursor_pos: number } {
+  const code: string = query.code;
+  if (!code) {
+    throw Error("must specify code");
+  }
+  let cursor_pos: number;
+  if (query.cursor_pos != null) {
+    try {
+      cursor_pos = parseInt(query.cursor_pos);
+    } catch (error) {
+      cursor_pos = code.length;
+    }
+  } else {
+    cursor_pos = code.length;
+  }
 
-  const dbg = jupyter.dbg("http_server");
+  return { code, cursor_pos };
+}
+
+async function handle_http_request(
+  kernel: any,
+  segments: string[],
+  query: any
+): Promise<object> {
+  const dbg = kernel.dbg("http_server");
   dbg(opts.segments.join("/"));
   switch (opts.segments[0]) {
     case "signal":
-      jupyter.signal(opts.segments[1]);
-      return opts.cb(undefined, {});
+      kernel.signal(opts.segments[1]);
+      return {};
 
     case "kernel_info":
-      return jupyter.kernel_info({ cb: opts.cb });
+      return await kernel.kernel_info();
 
     case "more_output":
-      return jupyter.more_output({
-        id: opts.query.id,
-        cb: opts.cb
-      });
+      return kernel.more_output(opts.query.id);
 
     case "complete":
-      var { code } = opts.query;
-      if (!code) {
-        opts.cb("must specify code to complete");
-        return;
-      }
-      if (opts.query.cursor_pos != null) {
-        try {
-          cursor_pos = parseInt(opts.query.cursor_pos);
-        } catch (error) {
-          cursor_pos = code.length;
-        }
-      } else {
-        cursor_pos = code.length;
-      }
-      return jupyter.complete({
-        code: opts.query.code,
-        cursor_pos,
-        cb: opts.cb
-      });
+      return await kernel.complete(get_code_and_cursor_pos(opts.query));
 
     case "introspect":
-      ({ code } = opts.query);
-      if (code == null) {
-        opts.cb("must specify code to introspect");
-        return;
-      }
-      if (opts.query.cursor_pos != null) {
-        try {
-          cursor_pos = parseInt(opts.query.cursor_pos);
-        } catch (error1) {
-          cursor_pos = code.length;
-        }
-      } else {
-        cursor_pos = code.length;
-      }
+      const { code, cursor_pos } = get_code_and_cursor_pos(opts.query);
+      let detail_level = 0;
       if (opts.query.level != null) {
         try {
-          level = parseInt(opts.query.level);
-          if (level < 0 || level > 1) {
-            level = 0;
+          detail_level = parseInt(opts.query.level);
+          if (detail_level < 0) {
+            detail_level = 0;
+          } else if (detail_level > 1) {
+            detail_level = 1;
           }
-        } catch (error2) {
-          level = 0;
-        }
-      } else {
-        level = 0;
+        } catch (err) {}
       }
-      return jupyter.introspect({
-        code: opts.query.code,
+      return await kernel.introspect({
+        code,
         cursor_pos,
-        detail_level: level,
-        cb: opts.cb
+        detail_level
       });
 
     case "store":
-      try {
-        if (opts.query.key != null) {
-          key = JSON.parse(opts.query.key);
-        } else {
-          key = undefined;
-        }
-        if (opts.query.value != null) {
-          value = JSON.parse(opts.query.value);
-        } else {
-          value = undefined;
-        }
-      } catch (err) {
-        opts.cb(err);
-        return;
+      let key, value;
+      if (opts.query.key != null) {
+        key = JSON.parse(opts.query.key);
+      } else {
+        key = undefined;
+      }
+      if (opts.query.value != null) {
+        value = JSON.parse(opts.query.value);
+      } else {
+        value = undefined;
       }
       if (value == null) {
-        return opts.cb(undefined, jupyter.store.get(key));
+        return kernel.store.get(key);
       } else if (value === null) {
-        jupyter.store.delete(key);
-        return opts.cb();
+        kernel.store.delete(key);
+        return {};
       } else {
-        jupyter.store.set(key, value);
-        return opts.cb();
+        kernel.store.set(key, value);
+        return {};
       }
 
     default:
-      return opts.cb(`no route '${opts.segments.join("/")}'`);
+      throw Error(`no route '${opts.segments.join("/")}'`);
   }
 }
 
-const jupyter_kernel_info_handler = function(base, router) {
+function jupyter_kernel_info_handler(base, router): void {
   router.get(base + "kernels.json", (req, res) =>
     get_kernel_data(function(err, kernel_data) {
       if (err) {
-        return res.send(err); // TODO: set some code
+        res.send(err); // TODO: set some code
       } else {
-        return res.send(kernel_data.jupyter_kernels_json);
+        res.send(kernel_data.jupyter_kernels_json);
       }
     })
   );
@@ -132,7 +109,7 @@ const jupyter_kernel_info_handler = function(base, router) {
   router.get(base + "kernelspecs/*", (req, res) =>
     get_kernel_data(function(err, kernel_data) {
       if (err) {
-        return res.send(err); // TODO: set some code
+        res.send(err); // TODO: set some code
       } else {
         let path = req.path.slice((base + "kernelspecs/").length).trim();
         if (path.length === 0) {
@@ -157,23 +134,22 @@ const jupyter_kernel_info_handler = function(base, router) {
         if (!misc.startswith(path, resource_dir)) {
           // don't let user use .. or something to get any file on the server...!
           // (this really can't happen due to url rules already; just being super paranoid.)
-          return res.send(`suspicious path '${path}'`);
+          res.send(`suspicious path '${path}'`);
         } else {
-          return fs.exists(path, function(exists) {
+          fs.exists(path, function(exists) {
             if (!exists) {
-              return res.send(`no such path '${path}'`);
+              res.send(`no such path '${path}'`);
             } else {
-              return res.sendFile(path);
+              res.sendFile(path);
             }
           });
         }
       }
     })
   );
-  return router;
-};
+}
 
-function jupyter_kernel_http_server(base, router) {
+function jupyter_kernel_http_server(base, router): void {
   router.get(base + "kernels/*", function(req, res) {
     let path = req.path.slice((base + "kernels/").length).trim();
     if (path.length === 0) {
@@ -187,33 +163,24 @@ function jupyter_kernel_http_server(base, router) {
       res.send(JSON.stringify({ error: `no kernel with path '${path}'` }));
       return;
     }
-    return kernel.http_server({
-      segments,
-      query: req.query,
-      cb(err, resp) {
-        if (err) {
-          return res.send(JSON.stringify({ error: err }));
-        } else {
-          return res.send(JSON.stringify(resp != null ? resp : {}));
-        }
-      }
-    });
+    try {
+      const resp = await handle_http_request(kernel, segments, req.query);
+      res.send(JSON.stringify(resp));
+    } catch (err) {
+      res.send(JSON.stringify({ error: err }));
+    }
   });
-
-  return router;
 }
 
-export function jupyter_router(express) {
-  const base = "/.smc/jupyter/";
-
+export function jupyter_router(express): any {
   // Install handling for the blob store
-  let router = blob_store.express_router(base, express);
+  let router = blob_store.express_router(BASE, express);
 
   // Handler for Jupyter kernel info
-  router = jupyter_kernel_info_handler(base, router);
+  jupyter_kernel_info_handler(base, router);
 
   // Handler for http messages for **specific kernels**
-  router = jupyter_kernel_http_server(base, router);
+  jupyter_kernel_http_server(base, router);
 
   return router;
 }

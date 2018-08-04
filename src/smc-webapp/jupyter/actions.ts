@@ -41,7 +41,7 @@ declare const $: any;
 declare const window: any;
 declare const localStorage: any;
 
-let jupyter_kernels = immutable.Map() // map project_id (string) -> kernels (immutable)
+let jupyter_kernels = immutable.Map(); // map project_id (string) -> kernels (immutable)
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
@@ -52,6 +52,8 @@ const DEFAULT_KERNEL = "sagemath";
 const syncstring = require("smc-util/syncstring");
 
 const { instantiate_assistant } = require("../assistant/main");
+
+import { Kernel as JupyterKernel } from "smc-project/jupyter/jupyter";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -84,7 +86,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   protected _client: any;
   protected _file_watcher: any;
-  protected _jupyter_kernel?: any;
+  protected _jupyter_kernel?: JupyterKernel;
   protected _state: any;
   public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
@@ -196,7 +198,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
-    if (!client.is_project()) {  // only run this when used on the frontend.
+    if (!client.is_project()) {
+      // only run this when used on the frontend.
       // Put an entry in the project log once the jupyter notebook gets opened.
       // NOTE: Obviously, the project does NOT need to put entries in the log.
       this.syncdb.once("change", () =>
@@ -372,10 +375,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             return;
           }
           try {
-          const project_id = this.store.get('project_id')
-          const kernels = immutable.fromJS(data)
-          jupyter_kernels = jupyter_kernels.set(project_id,kernels) // global
-          this.setState({kernels: kernels})
+            const project_id = this.store.get("project_id");
+            const kernels = immutable.fromJS(data);
+            jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
+            this.setState({ kernels: kernels });
             // We must also update the kernel info (e.g., display name), now that we
             // know the kernels (e.g., maybe it changed or is now known but wasn't before).
             this.setState({
@@ -398,7 +401,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = () => {
-    const kernels = jupyter_kernels.get(this.store.get("project_id"))
+    const kernels = jupyter_kernels.get(this.store.get("project_id"));
     if (kernels != null) {
       return this.setState({ kernels });
     } else {
@@ -2153,16 +2156,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return;
       }
       dbg("calling kernel_info...");
-      this._jupyter_kernel.kernel_info({
-        cb: (err, data) => {
-          if (!err) {
-            dbg(`got data='${misc.to_json(data)}'`);
-            return this.setState({ backend_kernel_info: data });
-          } else {
-            return dbg(`error = ${err}`);
-          }
-        }
-      });
+      this._jupyter_kernel
+        .kernel_info()
+        .then(data => {
+          dbg(`got data='${misc.to_json(data)}'`);
+          this.setState({ backend_kernel_info: data });
+        })
+        .catch(err => {
+          dbg(`error = ${err}`);
+        });
       return;
     }
 
