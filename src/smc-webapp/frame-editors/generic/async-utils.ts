@@ -30,8 +30,8 @@ export function callback_opts(f: Function) {
   Then retry_until_success returns whatever f returned.
 */
 
-interface RetryUntilSuccess {
-  f: () => Promise<any>; // an async function that takes no input.
+interface RetryUntilSuccess<T> {
+  f: () => Promise<T>; // an async function that takes no input.
   start_delay?: number; // delay (in ms) before calling second time.
   max_delay?: number; // delay at most this amount between calls
   max_tries?: number; // maximum number of times to call f
@@ -39,9 +39,9 @@ interface RetryUntilSuccess {
   factor?: number; // multiply delay by this each time
 }
 
-export async function retry_until_success(
-  opts: RetryUntilSuccess
-): Promise<any> {
+export async function retry_until_success<T>(
+  opts: RetryUntilSuccess<T>
+): Promise<T> {
   if (!opts.start_delay) opts.start_delay = 100;
   if (!opts.max_delay) opts.max_delay = 20000;
   if (!opts.factor) opts.factor = 1.4;
