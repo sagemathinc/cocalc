@@ -13,6 +13,7 @@
     "coffeescript": "^2.1.0",
     "commander": "^2.9.0",
     "compression": "^1.7.1",
+    "decaffeinate": "^4.8.8",
     "expect": "^1.20.2",
     "express": "^4.13.3",
     "formidable": "^1.1.1",

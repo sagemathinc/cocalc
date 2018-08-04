@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
     "types": ["node"],
-    "lib": ["es2015"]
+    "lib": ["es7"]
   }
 }
