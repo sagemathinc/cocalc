@@ -20,6 +20,8 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
+const VERSION = "5.2";
+
 import { EventEmitter } from "events";
 import kernelspecs from "kernelspecs";
 import fs from "fs";
@@ -33,14 +35,14 @@ const {
   copy,
   original_path
 } = require("smc-util/misc");
+
 const { key_value_store } = require("smc-util/key-value-store");
-import { blob_store } from "./jupyter-blobs-sqlite";
-import node_cleanup from "node-cleanup";
-const util = require("smc-webapp/jupyter/util");
-const iframe = require("smc-webapp/jupyter/iframe");
-const {
-  remove_redundant_reps
-} = require("smc-webapp/jupyter/import-from-ipynb");
+
+import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
+import util from "smc-webapp/jupyter/util";
+import iframe from "smc-webapp/jupyter/iframe";
+
+import { remove_redundant_reps } from "smc-webapp/jupyter/import-from-ipynb";
 
 import { retry_until_success } from "smc-webapp/frame-editors/generic/async-utils";
 import { callback } from "awaiting";
@@ -49,7 +51,7 @@ import { delay } from "awaiting";
 
 import { nbconvert } from "./nbconvert";
 
-import { http_server } from "./http_server";
+import { get_kernel_data } from "./kernel-data";
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -137,46 +139,7 @@ function node_cleanup(): void {
   }
 }
 
-class CodeExecutionEmitter extends EventEmitter {
-  readonly code: string;
-  readonly id?: string;
-  readonly all: boolean;
-  readonly stdin?: (options, cb) => void;
-  readonly halt_on_error: boolean;
-
-  constructor(opts) {
-    this.code = opts.code;
-    this.id = opts.id || undefined;
-    this.all = opts.all || false;
-    this.stdin = opts.stdin || undefined;
-    this.halt_on_error = opts.halt_on_error || undefined;
-  }
-
-  // Probably also a bad name. Returns a valid result
-  // result is https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
-  // Or an array of those when this.all is true
-  execute(result: any) {
-    this.emit("result", result);
-  }
-
-  request_stdin(mesg, cb: (err, response: string) => void) {
-    this.emit("stdin_request", mesg, cb);
-  }
-
-  cancel() {
-    this.emit("canceled");
-  }
-
-  close() {
-    this.emit("closed");
-  }
-
-  throw(err) {
-    this.emit("error", err);
-  }
-}
-
-class Kernel extends EventEmitter {
+export class Kernel extends EventEmitter {
   private name: string;
   private _dbg: Function;
   private _path: string;
@@ -424,8 +387,8 @@ class Kernel extends EventEmitter {
       delete this._channels;
     }
     if (this._execute_code_queue != null) {
-      for (let snippet of this._execute_code_queue) {
-        snippet.close();
+      for (let code_snippet of this._execute_code_queue) {
+        code_snippet.close();
       }
       delete this._execute_code_queue;
     }
@@ -471,27 +434,39 @@ class Kernel extends EventEmitter {
     }
   }
 
-  execute_code(opts) {
-    opts = defaults(opts, {
-      code: required,
-      id: undefined, // optional tag to be used by cancel_execute
-      all: false, // if all=true, cb(undefined, [all output messages]); used for testing mainly.
-      stdin: undefined, // if given, support stdin prompting; this function will be called
-      // as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
-      // Here, e.g., options = { password: false, prompt: '' }.
-      halt_on_error: true // Clear execution queue if shell returns status:'error', e.g., on traceback
-    }); // if all=false, this happens **repeatedly**:  cb(undefined, output message)
+  execute_code(opts: {
+    code: string;
+    id?: string; // optional tag to be used by cancel_execute
+
+    // if all=true, returned objects emits a single list (used for testing mainly);
+    // if all=false, returned objects emits output as many messages.
+    all?: boolean;
+
+    // if given, support stdin prompting; this function will be called
+    // as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
+    // Here, e.g., options = { password: false, prompt: '' }.
+    stdin?: Function;
+
+    // Clear execution queue if shell returns status:'error', e.g., on traceback
+    halt_on_error?: boolean;
+  }) : CodeExecutionEmitter {
+    if (opts.halt_on_error === undefined) {
+      // if not specified, default to true.
+      opts.halt_on_error = true;
+    }
     if (this._state === "closed") {
       throw Error("closed");
     }
     if (this._execute_code_queue == null) {
       this._execute_code_queue = [];
     }
-    let code = new CodeExecutionEmitter(opts);
+    const code = new CodeExecutionEmitter(opts);
     this._execute_code_queue.push(code);
     if (this._execute_code_queue.length === 1) {
-      return this._process_execute_code_queue();
+      // start it going!
+      this._process_execute_code_queue();
     }
+    return code;
   }
 
   cancel_execute(opts: { id: string }): void {
@@ -527,7 +502,7 @@ class Kernel extends EventEmitter {
     }
   }
 
-  _process_execute_code_queue() {
+  _process_execute_code_queue(): void {
     const dbg = this.dbg("_process_execute_code_queue");
     dbg(`state='${this._state}'`);
     if (this._state === "closed") {
@@ -544,21 +519,20 @@ class Kernel extends EventEmitter {
       return;
     }
     dbg(`queue has ${n} items; ensure kernel running`);
-    this._ensure_running(err => {
-      if (err) {
-        dbg(`error running kernel -- ${err}`);
-        for (let code of this._execute_code_queue) {
-          code.throw(err);
-        }
-        return (this._execute_code_queue = []);
-      } else {
-        dbg("now executing oldest item in queue");
-        return this._execute_code(this._execute_code_queue[0]);
+    try {
+      await this._ensure_running();
+      dbg("now launching oldest item in queue");
+      this._execute_code_queue[0].go();
+    } catch (err) {
+      dbg(`error running kernel -- ${err}`);
+      for (let code of this._execute_code_queue) {
+        code.throw_error(err);
       }
-    });
+      this._execute_code_queue = [];
+    }
   }
 
-  _clear_execute_code_queue() {
+  _clear_execute_code_queue(): void {
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
     if (this._state === "closed") {
@@ -570,171 +544,15 @@ class Kernel extends EventEmitter {
     const mesg = { done: true };
     for (let code_execution_emitter of this._execute_code_queue.slice(1)) {
       if (code_execution_emitter.all) {
-        code_execution_emitter.execute([mesg]);
+        code_execution_emitter.return_result([mesg]);
       } else {
-        code_execution_emitter.execute(mesg);
+        code_execution_emitter.return_result(mesg);
       }
     }
-    return (this._execute_code_queue = []);
+    this._execute_code_queue = [];
   }
 
-  _execute_code(code_execution_emitter: CodeExecutionEmitter) {
-    let all_mesgs, g, h, iopub_done, shell_done;
-    const dbg = this.dbg(
-      `_execute_code('${misc.trunc(code_execution_emitter.code, 15)}')`
-    );
-    dbg(
-      `code='${code_execution_emitter.code}', all=${code_execution_emitter.all}`
-    );
-    if (this._state === "closed") {
-      code_execution_emitter.close();
-      return;
-    }
-
-    const message = {
-      header: {
-        msg_id: `execute_${misc.uuid()}`,
-        username: "",
-        session: "",
-        msg_type: "execute_request",
-        version: "5.0"
-      },
-      content: {
-        code: code_execution_emitter.code,
-        silent: false,
-        store_history: true, // so execution_count is updated.
-        user_expressions: {},
-        allow_stdin: code_execution_emitter.stdin != null
-      }
-    };
-
-    // setup handling of the results
-    if (code_execution_emitter.all) {
-      all_mesgs = [];
-    }
-
-    let f = (g = h = shell_done = iopub_done = undefined);
-
-    const push_mesg = mesg => {
-      // TODO: mesg isn't a normal javascript object; it's **silently** immutable, which
-      // is pretty annoying for our use. For now, we just copy it, which is a waste.
-      const msg_type = mesg.header != null ? mesg.header.msg_type : undefined;
-      mesg = misc.copy_with(mesg, ["metadata", "content", "buffers", "done"]);
-      mesg = misc.deep_copy(mesg);
-      mesg.msg_type = msg_type;
-      if (code_execution_emitter.all) {
-        all_mesgs.push(mesg);
-      } else {
-        code_execution_emitter.execute(mesg);
-      }
-    };
-
-    if (code_execution_emitter.stdin != null) {
-      g = mesg => {
-        dbg(`STDIN kernel --> server: ${JSON.stringify(mesg)}`);
-        if (mesg.parent_header.msg_id !== message.header.msg_id) {
-          dbg(
-            `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${
-              message.header.msg_id
-            }`
-          );
-          return;
-        }
-
-        code_execution_emitter.request_stdin(mesg.content, (err, response) => {
-          dbg(`STDIN client --> server ${err}, ${JSON.stringify(response)}`);
-          if (err) {
-            response = `ERROR -- ${err}`;
-          }
-          const m = {
-            parent_header: message.header,
-            header: {
-              msg_id: misc.uuid(), // message.header.msg_id
-              username: "",
-              session: "",
-              msg_type: "input_reply",
-              version: "5.2"
-            },
-            content: {
-              value: response
-            }
-          };
-          dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
-          this._channels.stdin.next(m);
-        });
-      };
-
-      this.on("stdin", g);
-    }
-
-    h = mesg => {
-      if (mesg.parent_header.msg_id !== message.header.msg_id) {
-        return;
-      }
-      dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
-      if (
-        (mesg.content != null ? mesg.content.status : undefined) === "error"
-      ) {
-        if (code_execution_emitter.halt_on_error) {
-          this._clear_execute_code_queue();
-        }
-        // just bail; actual error would have been reported on iopub channel, hopefully.
-        return typeof finish === "function" ? finish() : undefined;
-      } else {
-        push_mesg(mesg);
-        shell_done = true;
-        if (iopub_done && shell_done) {
-          return typeof finish === "function" ? finish() : undefined;
-        }
-      }
-    };
-
-    this.on("shell", h);
-
-    f = mesg => {
-      if (mesg.parent_header.msg_id !== message.header.msg_id) {
-        return;
-      }
-      dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
-
-      // check this before giving code_execution_emitter.cb the chance to mutate.
-      iopub_done =
-        (mesg.content != null ? mesg.content.execution_state : undefined) ===
-        "idle";
-
-      push_mesg(mesg);
-
-      if (iopub_done && shell_done) {
-        return typeof finish === "function" ? finish() : undefined;
-      }
-    };
-
-    this.on("iopub", f);
-
-    var finish = () => {
-      if (f != null) {
-        this.removeListener("iopub", f);
-      }
-      if (g != null) {
-        this.removeListener("stdin", g);
-      }
-      if (h != null) {
-        this.removeListener("shell", h);
-      }
-      this._execute_code_queue.shift(); // finished
-      this._process_execute_code_queue(); // start next exec
-      push_mesg({ done: true });
-      if (code_execution_emitter.all) {
-        code_execution_emitter.execute(all_mesgs);
-      }
-      finish = undefined;
-    };
-
-    dbg("send the message");
-    this._channels.shell.next(message);
-  }
-
-  process_output(content) {
+  process_output(content: object): void {
     if (this._state === "closed") {
       return;
     }
@@ -748,7 +566,7 @@ class Kernel extends EventEmitter {
 
     remove_redundant_reps(content.data);
 
-    for (let type of util.JUPYTER_MIMETYPES) {
+    for (let type: string of util.JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
           content.data[type] = blob_store.save(content.data[type], type);
@@ -771,13 +589,12 @@ class Kernel extends EventEmitter {
   }
 
   // Returns a reference to the blob store.
-  get_blob_store() {
-    return blob_store;
+  get_blob_store(): BlobStore {
+    return blob_store; // the unique global one.
   }
 
   // Returns information about all available kernels
   async get_kernel_data(): Promise<any> {
-    // cb(err, kernel_data)  # see below.
     return await get_kernel_data();
   }
 
@@ -785,8 +602,8 @@ class Kernel extends EventEmitter {
     await this._ensure_running();
 
     // Do a paranoid double check anyways...
-    if (this._channels == null) {
-      throw Error("not running (no channels defined)");
+    if (this._channels == null || this._state == "closed") {
+      throw Error("not running, so can't call");
     }
 
     const message = {
@@ -796,7 +613,7 @@ class Kernel extends EventEmitter {
         username: "",
         session: "",
         msg_type: opts.msg_type,
-        version: "5.0" // TODO: increase this?
+        version: VERSION
       }
     };
 
@@ -886,14 +703,12 @@ class Kernel extends EventEmitter {
         timeout,
         directory: this._directory
       });
-    } catch (err) {
+    } finally {
       delete this._nbconvert_lock;
-      throw err;
     }
   }
 
-  // TODO: double check this
-  // returns sha1
+  // TODO: double check that this actually returns sha1
   async load_attachment(path: string): Promise<string> {
     const dbg = this.dbg("load_attachment");
     dbg(`path='${path}'`);
@@ -903,7 +718,7 @@ class Kernel extends EventEmitter {
     try {
       return await retry_until_success({
         // TODO: fix when blobstore is async-d
-        f: callback(blob_store.readFile)(path, "base64"),
+        f: blob_store.readFile(path, "base64"),
         max_time: 30000
       });
     } catch (err) {
@@ -912,12 +727,7 @@ class Kernel extends EventEmitter {
     }
   }
 
-  process_attachment(base64, mime) {
+  process_attachment(base64, mime) : string {
     return blob_store.save(base64, mime);
-  }
-
-  http_server(opts) {
-    opts.jupyter = this;
-    http_server(opts);
   }
 }

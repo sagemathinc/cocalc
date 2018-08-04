@@ -1,10 +1,12 @@
 /*
-Jupyter in-memory blob store, which hooks into the raw http server.
+Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http server.
 */
 
-require('coffee-register')  // because of misc and misc_node below.  Delete this when those are typescript'd
+require("coffee-register"); // because of misc and misc_node below.  Delete this when those are typescript'd
 
 const fs = require("fs");
+
+import { readFile } from "./async-utils-node";
 
 const winston = require("winston");
 
@@ -21,8 +23,8 @@ const DB_FILE = `${
 // TODO: are these the only base64 encoded types that jupyter kernels return?
 const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
 
-class BlobStore {
-  private _db: any;
+export class BlobStore {
+  private _db: Database;
 
   constructor() {
     winston.debug("jupyter BlobStore: constructor");
@@ -64,7 +66,7 @@ class BlobStore {
     // that they do not loose any work.  So a few weeks should be way more than enough.
     // Note that TimeTravel may rely on these old blobs, so images in TimeTravel may
     // stop working after this long.  That's a tradeoff.
-    return this._db
+    this._db
       .prepare("DELETE FROM blobs WHERE time <= ?")
       .run(misc.months_ago(1) - 0);
   }
@@ -80,7 +82,7 @@ class BlobStore {
     } else {
       data = Buffer.from(data);
     }
-    const sha1 = misc_node.sha1(data);
+    const sha1 : string = misc_node.sha1(data);
     const row = this._db.prepare("SELECT * FROM blobs where sha1=?").get(sha1);
     if (row == null) {
       this._db
@@ -94,28 +96,25 @@ class BlobStore {
     return sha1;
   }
 
-  readFile(path, type, cb): void {
-    fs.readFile(path, (err, data) => {
-      if (err) {
-        cb(err);
-      } else {
-        cb(undefined, this.save(data, type));
-      }
-    });
+  // Read a file from disk and save it in the database.
+  // Returns the sha1 hash of the file.
+  async readFile(path: string, type: string): Promise<string> {
+    return await this.save(readFile(path), type);
   }
 
-  free(sha1) {}
-  // no op -- stuff gets freed 2 weeks after last save.
+  free(sha1 : string) : void {
+    // Currently a no-op -- stuff gets freed 2 weeks after last save.
+  }
 
-  get(sha1) {
+  // Return data with given sha1, or undefined if no such data.
+  get(sha1 : string): undefined | Buffer {
     const x = this._db.prepare("SELECT data FROM blobs where sha1=?").get(sha1);
     if (x != null) {
       return x.data;
     }
-    return undefined;
   }
 
-  get_ipynb(sha1: string) {
+  get_ipynb(sha1: string) : any {
     const row = this._db
       .prepare("SELECT ipynb, type, data FROM blobs where sha1=?")
       .get(sha1);
@@ -143,16 +142,15 @@ class BlobStore {
     const router = express.Router();
     base += "blobs/";
 
-    router.get(base, (req, res) => {
-      const sha1s = misc.to_json(this.keys());
-      return res.send(sha1s);
+    router.get(base, function(req, res) {
+      res.send(misc.to_json(this.keys()));
     });
 
-    router.get(base + "*", (req, res) => {
-      const filename = req.path.slice(base.length);
-      const { sha1 } = req.query;
+    router.get(base + "*", function(req, res) {
+      const filename : string = req.path.slice(base.length);
+      const { sha1 : string } = req.query;
       res.type(filename);
-      return res.send(this.get(sha1));
+      res.send(this.get(sha1));
     });
     return router;
   }

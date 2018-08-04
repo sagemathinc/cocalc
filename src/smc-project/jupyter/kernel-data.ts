@@ -1,3 +1,9 @@
+/*
+Use nteracts kernelspecs module to get data about all installed Jupyter kernels.
+
+The result is cached for 5s to avoid wasted effort in case of a flurry of calls.
+*/
+
 import { findAll } from "kernelspecs";
 const { field_cmp } = require("smc-util/misc");
 import LRU from "lru-cache";
