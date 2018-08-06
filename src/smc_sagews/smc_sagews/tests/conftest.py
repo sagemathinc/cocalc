@@ -283,7 +283,7 @@ def get_sage_server_info(log_file = default_log_file):
                 break
         except IOError:
             print("starting new sage_server")
-            os.system("smc-sage-server start")
+            os.system(start_cmd())
             time.sleep(5.0)
     else:
         pytest.fail("Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"%log_file)
@@ -324,6 +324,25 @@ def recv_til_done(conn, test_id):
             break
     else:
         pytest.fail("too many responses for message id %s"%test_id)
+
+def my_sage_startup():
+    """
+    name of pytest SAGE_STARTUP_FILE
+    used in other test files so we export it
+    """
+    return "a-init.sage"
+
+def start_cmd(action='start'):
+    """
+    launch sage-server with env setting for startup file
+
+    - `` action `` -- string "start" | "restart"
+
+    """
+    pssf = os.path.join(os.path.dirname(__file__), my_sage_startup())
+    cmd = "export SAGE_STARTUP_FILE={};smc-sage-server {}".format(pssf, action)
+    return cmd
+
 ###
 # Start of fixtures
 ###
@@ -333,15 +352,7 @@ def sage_server_setup(pid_file = default_pid_file, log_file = default_log_file):
     r"""
     make sure sage_server pid file exists and process running at given pid
     """
-    print("initial fixture")
-    try:
-        pid = int(open(pid_file).read())
-        os.kill(pid, 0)
-    except:
-        assert os.geteuid() != 0, "Do not run as root."
-        os.system("pkill -f sage_server_command_line")
-        os.system("rm -f %s"%pid_file)
-        os.system("smc-sage-server start")
+    os.system(start_cmd('restart'))
     for loop_count in range(20):
         time.sleep(0.5)
         if not os.path.exists(log_file):
@@ -683,8 +694,8 @@ import time
 @pytest.fixture(scope = "class")
 def own_sage_server(request):
     assert os.geteuid() != 0, "Do not run as root, will kill all sage_servers."
-    print("starting new sage_server")
-    os.system("smc-sage-server start")
+    print("starting sage_server class fixture")
+    os.system(start_cmd())
     time.sleep(0.5)
     def fin():
         print("killing all sage_server processes")
