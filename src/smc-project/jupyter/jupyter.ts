@@ -113,11 +113,7 @@ export function kernel(opts: KernelParams) {
   }
   return new Kernel(
     opts.name,
-    opts.verbose
-      ? opts.client != null
-        ? opts.client.dbg
-        : undefined
-      : undefined,
+    opts.verbose ? opts.client.dbg : undefined,
     opts.path,
     opts.actions,
     opts.usage
@@ -132,12 +128,6 @@ code execution is explicitly requested.  This makes it possible to
 call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels = {};
-
-function node_cleanup(): void {
-  for (let id in _jupyter_kernels) {
-    _jupyter_kernels[id].close();
-  }
-}
 
 export class Kernel extends EventEmitter {
   private name: string;
@@ -449,7 +439,7 @@ export class Kernel extends EventEmitter {
 
     // Clear execution queue if shell returns status:'error', e.g., on traceback
     halt_on_error?: boolean;
-  }) : CodeExecutionEmitter {
+  }): CodeExecutionEmitter {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
@@ -727,7 +717,7 @@ export class Kernel extends EventEmitter {
     }
   }
 
-  process_attachment(base64, mime) : string {
+  process_attachment(base64, mime): string {
     return blob_store.save(base64, mime);
   }
 }

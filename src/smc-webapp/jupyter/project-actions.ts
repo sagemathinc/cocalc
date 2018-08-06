@@ -1,7 +1,7 @@
 /*
 manager-actions: additional actions that are only available in the
 backend/project, which "manages" everything.
- 
+
 This code should not *explicitly* require anything that is only
 available in the project or requires node to run, so that we can
 fully unit test it via mocking of components.
@@ -519,12 +519,13 @@ export class JupyterActions extends JupyterActions0 {
     };
     this.store.on("cell_change", cell_change);
 
-    return this._jupyter_kernel.execute_code({
-      code: input,
-      id,
-      stdin: handler.stdin,
-    })
-    .then(mesg => {
+    this._jupyter_kernel
+      .execute_code({
+        code: input,
+        id,
+        stdin: handler.stdin
+      })
+      .then(mesg => {
         dbg(`got mesg='${JSON.stringify(mesg)}'`);
         if (mesg == null) {
           // can't possibly happen, of course.
@@ -566,12 +567,11 @@ export class JupyterActions extends JupyterActions0 {
           // Normal iopub output message
           return handler.message(mesg.content);
         }
-      }
-    })
-    .catch(err => {
+      })
+      .catch(err => {
         dbg(`got error='${err}'`);
         handler.error(err);
-    });
+      });
   };
 
   reset_more_output = (id: any) => {
@@ -982,8 +982,9 @@ Read the ipynb file from disk.
           },
           cb => {
             dbg("now actually running nbconvert");
-            this._jupyter_kernel.nbconvert({args})
-              .then(data => cb(undefined,data))
+            this._jupyter_kernel
+              .nbconvert({ args })
+              .then(data => cb(undefined, data))
               .catch(err => cb(err));
           }
         ],
@@ -1043,19 +1044,20 @@ Read the ipynb file from disk.
             value: null
           });
           if (this._jupyter_kernel != null) {
-            this._jupyter_kernel.load_attachment({path: x.get("value")})
-            .then(sha1 => {
-              this.set_cell_attachment(cell.get("id"), name, {
-                    type: "sha1",
-                    value: sha1
-                  });
-            })
-            .catch(err => {
-              this.set_cell_attachment(cell.get("id"), name, {
-                    type: "error",
-                    value: err
-                  });
-            });
+            this._jupyter_kernel
+              .load_attachment({ path: x.get("value") })
+              .then(sha1 => {
+                this.set_cell_attachment(cell.get("id"), name, {
+                  type: "sha1",
+                  value: sha1
+                });
+              })
+              .catch(err => {
+                this.set_cell_attachment(cell.get("id"), name, {
+                  type: "error",
+                  value: err
+                });
+              });
           }
         }
       });
