@@ -41,7 +41,7 @@ declare const $: any;
 declare const window: any;
 declare const localStorage: any;
 
-let jupyter_kernels = immutable.Map() // map project_id (string) -> kernels (immutable)
+let jupyter_kernels = immutable.Map(); // map project_id (string) -> kernels (immutable)
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
@@ -196,7 +196,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
-    if (!client.is_project()) {  // only run this when used on the frontend.
+    if (!client.is_project()) {
+      // only run this when used on the frontend.
       // Put an entry in the project log once the jupyter notebook gets opened.
       // NOTE: Obviously, the project does NOT need to put entries in the log.
       this.syncdb.once("change", () =>
@@ -372,10 +373,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             return;
           }
           try {
-          const project_id = this.store.get('project_id')
-          const kernels = immutable.fromJS(data)
-          jupyter_kernels = jupyter_kernels.set(project_id,kernels) // global
-          this.setState({kernels: kernels})
+            const project_id = this.store.get("project_id");
+            const kernels = immutable.fromJS(data);
+            jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
+            this.setState({ kernels: kernels });
             // We must also update the kernel info (e.g., display name), now that we
             // know the kernels (e.g., maybe it changed or is now known but wasn't before).
             this.setState({
@@ -398,7 +399,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = () => {
-    const kernels = jupyter_kernels.get(this.store.get("project_id"))
+    const kernels = jupyter_kernels.get(this.store.get("project_id"));
     if (kernels != null) {
       return this.setState({ kernels });
     } else {
@@ -1974,9 +1975,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           return;
         }
         if (err || (data != null ? data.status : undefined) !== "ok") {
-          this.setState({
-            complete: { error: err != null ? err : "completion failed" }
-          });
+          const err_state = { error: err != null ? err : "completion failed" };
+          this.setState({ complete: err_state });
           return;
         }
         const complete = data;
@@ -2012,24 +2012,27 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   select_complete = (id: any, item: any) => {
     const complete = this.store.get("complete");
     this.clear_complete();
-    this.set_mode("edit");
     if (complete == null) {
+      this.clear_complete();
+      this.set_mode("edit");
       return;
     }
     const input = complete.get("code");
     if (input != null && complete.get("error") == null) {
-      const new_input =
-        input.slice(0, complete.get("cursor_start")) +
-        item +
-        input.slice(complete.get("cursor_end"));
-      // We don't actually make the completion until the next render loop,
-      // so that the editor is already in edit mode.  This way the cursor is
-      // in the right position after making the change.
-      return setTimeout(
-        () => this.merge_cell_input(id, complete.get("base"), new_input),
-        0
-      );
+      const starting = input.slice(0, complete.get("cursor_start"));
+      const ending = input.slice(complete.get("cursor_end"));
+      const new_input = starting + item + ending;
+      const base = complete.get("base");
+      this.complete_cell(id, base, new_input);
     }
+  };
+
+  complete_cell = (id: any, base: any, new_input: any) => {
+    this.set_mode("edit");
+    // We don't actually make the completion until the next render loop,
+    // so that the editor is already in edit mode.  This way the cursor is
+    // in the right position after making the change.
+    return setTimeout(() => this.merge_cell_input(id, base, new_input), 0);
   };
 
   merge_cell_input = (id: any, base: any, input: any, save = true) => {
@@ -2047,9 +2050,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   complete_handle_key = (keyCode: any) => {
-    /*
-        User presses a key while the completions dialog is open.
-        */
+    // User presses a key while the completions dialog is open.
     let complete = this.store.get("complete");
     if (complete == null) {
       return;
@@ -2078,9 +2079,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.clear_complete();
       this.set_mode("edit");
     } else {
-      this.merge_cell_input(complete.id, complete.base, complete.code);
+      const orig_base = complete.base;
       complete.base = complete.code;
       this.setState({ complete: immutable.fromJS(complete) });
+      this.complete_cell(complete.id, orig_base, complete.code);
     }
   };
 
