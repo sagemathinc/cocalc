@@ -1038,6 +1038,8 @@ class Salvus(object):
                             # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
+                            b2a = "try: load(os.environ['SAGE_STARTUP_FILE'])\nexcept: pass\n"
+                            exec compile(b2a, '', 'single') in namespace, locals
                     features = sage_parsing.get_future_features(block, 'single')
                     if features:
                         compile_flags = reduce(operator.or_, (feature.compiler_flag for feature in features.itervalues()), compile_flags)
