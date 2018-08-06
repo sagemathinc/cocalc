@@ -2012,8 +2012,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   select_complete = (id: any, item: any) => {
     const complete = this.store.get("complete");
     this.clear_complete();
-    this.set_mode("edit");
     if (complete == null) {
+      this.clear_complete();
+      this.set_mode("edit");
       return;
     }
     const input = complete.get("code");
@@ -2021,14 +2022,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       const starting = input.slice(0, complete.get("cursor_start"));
       const ending = input.slice(complete.get("cursor_end"));
       const new_input = starting + item + ending;
-      // We don't actually make the completion until the next render loop,
-      // so that the editor is already in edit mode.  This way the cursor is
-      // in the right position after making the change.
-      return setTimeout(
-        () => this.merge_cell_input(id, complete.get("base"), new_input),
-        0
-      );
+      const base = complete.get("base");
+      this.complete_cell(id, base, new_input);
     }
+  };
+
+  complete_cell = (id: any, base: any, new_input: any) => {
+    this.set_mode("edit");
+    // We don't actually make the completion until the next render loop,
+    // so that the editor is already in edit mode.  This way the cursor is
+    // in the right position after making the change.
+    return setTimeout(() => this.merge_cell_input(id, base, new_input), 0);
   };
 
   merge_cell_input = (id: any, base: any, input: any, save = true) => {
@@ -2075,14 +2079,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.clear_complete();
       this.set_mode("edit");
     } else {
-      this.set_mode("edit");
       const orig_base = complete.base;
       complete.base = complete.code;
       this.setState({ complete: immutable.fromJS(complete) });
-      return setTimeout(
-        () => this.merge_cell_input(complete.id, orig_base, complete.code),
-        0
-      );
+      this.complete_cell(complete.id, orig_base, complete.code);
     }
   };
 
