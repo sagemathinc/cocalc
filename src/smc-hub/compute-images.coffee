@@ -3,10 +3,10 @@
 {DEFAULT_COMPUTE_IMAGE} = require('smc-util/db-schema')
 
 COMPUTE_IMAGES =
-    default: {title: "Default", descr: "Ubuntu 18.04 based image, updated regularly"}
+    default: {title: "Default", descr: "Regularly updated, well tested."}
     stable: {title: "Stable", descr: "Slightly behind 'default', updated less frequently"}
     exp: {title: "Experimental", descr: "Cutting-edge software updates (could be broken)"}
-    old: {title: "Old image", descr: "Ubuntu 16.04 based, in use until Summer 2018. No longer maintained!"}
+    old: {title: "Old image", descr: "In use until Summer 2018. No longer maintained!"}
 
 exports.get_compute_images = (opts) =>
     opts = defaults opts,
