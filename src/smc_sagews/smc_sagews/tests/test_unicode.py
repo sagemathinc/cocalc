@@ -96,11 +96,12 @@ class TestErr:
         assert mesg['id'] == test_id
         assert 'stderr' in mesg
         assert 'non-ascii' in mesg['stderr']
-        typ, mesg = sagews.recv()
-        assert typ == 'json'
-        assert mesg['id'] == test_id
-        assert 'stderr' in mesg
-        assert 'should be replaced by < " >' in mesg['stderr']
+        if 'should be replaced by < " >' not in mesg['stderr']:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stderr' in mesg
+            assert 'should be replaced by < " >' in mesg['stderr']
         conftest.recv_til_done(sagews, test_id)
     def test_bad_mult(self, test_id, sagews):
         # warn about possible missing '*' with patterns like 3x^2 and 5(1+x)
