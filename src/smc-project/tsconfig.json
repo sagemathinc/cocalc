@@ -2,6 +2,6 @@
   "compilerOptions": {
     "types": ["node"],
     "lib": ["es7"],
-    "strictNullChecks": true
+    "strictNullChecks": true,
   }
 }

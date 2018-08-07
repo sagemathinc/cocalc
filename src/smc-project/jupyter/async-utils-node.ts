@@ -1,4 +1,4 @@
-import fs from "fs";
+import * as fs from "fs";
 
 import { callback } from "awaiting";
 
@@ -8,7 +8,7 @@ function _exists(path: string, cb: Function): void {
   });
 }
 
-export async function exists(path: string): Promise<bool> {
+export async function exists(path: string): Promise<boolean> {
   return await callback(_exists)(path);
 }
 

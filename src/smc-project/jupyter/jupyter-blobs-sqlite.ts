@@ -10,9 +10,11 @@ import { readFile } from "./async-utils-node";
 
 const winston = require("winston");
 
-const misc = require("smc-util/misc");
+import {months_ago, to_json} from "../smc-webapp/frame-editors/generic/misc";
+
 const misc_node = require("smc-util-node/misc_node");
-const Database = require("better-sqlite3");
+
+import * as Database from "better-sqlite3";
 
 const DB_FILE = `${
   process.env.SMC_LOCAL_HUB_HOME != null
@@ -68,7 +70,7 @@ export class BlobStore {
     // stop working after this long.  That's a tradeoff.
     this._db
       .prepare("DELETE FROM blobs WHERE time <= ?")
-      .run(misc.months_ago(1) - 0);
+      .run(months_ago(1) - 0);
   }
 
   // data could, e.g., be a uuencoded image
@@ -82,7 +84,7 @@ export class BlobStore {
     } else {
       data = Buffer.from(data);
     }
-    const sha1 : string = misc_node.sha1(data);
+    const sha1: string = misc_node.sha1(data);
     const row = this._db.prepare("SELECT * FROM blobs where sha1=?").get(sha1);
     if (row == null) {
       this._db
@@ -102,19 +104,19 @@ export class BlobStore {
     return await this.save(readFile(path), type);
   }
 
-  free(sha1 : string) : void {
+  free(sha1: string): void {
     // Currently a no-op -- stuff gets freed 2 weeks after last save.
   }
 
   // Return data with given sha1, or undefined if no such data.
-  get(sha1 : string): undefined | Buffer {
+  get(sha1: string): undefined | Buffer {
     const x = this._db.prepare("SELECT data FROM blobs where sha1=?").get(sha1);
     if (x != null) {
       return x.data;
     }
   }
 
-  get_ipynb(sha1: string) : any {
+  get_ipynb(sha1: string): any {
     const row = this._db
       .prepare("SELECT ipynb, type, data FROM blobs where sha1=?")
       .get(sha1);
@@ -143,12 +145,12 @@ export class BlobStore {
     base += "blobs/";
 
     router.get(base, function(req, res) {
-      res.send(misc.to_json(this.keys()));
+      res.send(to_json(this.keys()));
     });
 
     router.get(base + "*", function(req, res) {
-      const filename : string = req.path.slice(base.length);
-      const { sha1 : string } = req.query;
+      const filename: string = req.path.slice(base.length);
+      const sha1: string = req.query.sha1;
       res.type(filename);
       res.send(this.get(sha1));
     });
