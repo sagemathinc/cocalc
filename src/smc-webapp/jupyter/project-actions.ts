@@ -364,7 +364,7 @@ export class JupyterActions extends JupyterActions0 {
   _cancel_run = (id: any) => {
     if (this._running_cells != null ? this._running_cells[id] : undefined) {
       return this._jupyter_kernel != null
-        ? this._jupyter_kernel.cancel_execute({ id })
+        ? this._jupyter_kernel.cancel_execute(id)
         : undefined;
     }
   };
@@ -529,7 +529,7 @@ export class JupyterActions extends JupyterActions0 {
         dbg(`got mesg='${JSON.stringify(mesg)}'`);
         if (mesg == null) {
           // can't possibly happen, of course.
-          err = "empty mesg";
+          let err = "empty mesg";
           dbg(`got error='${err}'`);
           handler.error(err);
           return;

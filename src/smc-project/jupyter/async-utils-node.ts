@@ -15,3 +15,8 @@ export async function exists(path: string): Promise<boolean> {
 export async function readFile(path: string): Promise<Buffer> {
   return await callback(fs.readFile)(path);
 }
+
+export async function unlink(path: string): Promise<void> {
+  return await callback(fs.unlink)(path);
+}
+

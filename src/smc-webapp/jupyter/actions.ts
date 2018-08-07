@@ -54,7 +54,7 @@ const syncstring = require("smc-util/syncstring");
 
 const { instantiate_assistant } = require("../assistant/main");
 
-import { Kernel as JupyterKernel } from "smc-project/jupyter/jupyter";
+type JupyterKernel = any;
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the

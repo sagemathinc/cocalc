@@ -5,21 +5,39 @@ the results and gather them together.
 TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 */
 
-import { EventEmirror } from "events";
-import { Kernel } from "./jupyter";
+import { EventEmitter } from "events";
+import { Kernel, VERSION } from "./jupyter";
+import { Message } from "./types";
 
 import {
   uuid,
   trunc,
   deep_copy,
   copy_with
-} from "smc-webapp/frame-tree/generic/misc";
+} from "../smc-webapp/frame-editors/generic/misc";
 
 type StdinFunction = (options: object, cb: Function) => void;
 
-type MesgHandler = (mesg: object) => void;
+type MesgHandler = (mesg: Message) => void;
 
-class CodeExecutionEmitter extends EventEmitter {
+export interface ExecOpts {
+  code: string;
+  id?: string; // optional tag to be used by cancel_execute
+
+  // if all=true, returned objects emits a single list (used for testing mainly);
+  // if all=false, returned objects emits output as many messages.
+  all?: boolean;
+
+  // if given, support stdin prompting; this function will be called
+  // as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
+  // Here, e.g., options = { password: false, prompt: '' }.
+  stdin?: StdinFunction;
+
+  // Clear execution queue if shell returns status:'error', e.g., on traceback
+  halt_on_error?: boolean;
+}
+
+export class CodeExecutionEmitter extends EventEmitter {
   readonly kernel: Kernel;
   readonly code: string;
   readonly id?: string;
@@ -27,16 +45,9 @@ class CodeExecutionEmitter extends EventEmitter {
   readonly stdin?: StdinFunction;
   readonly halt_on_error: boolean;
 
-  constructor(opts: {
-    kernel: Kernel;
-    code: string;
-    id?: string;
-    all?: boolean;
-    stdin?: StdinFunction;
-    halt_on_error: boolean;
-  }) {
+  constructor(kernel: Kernel, opts: ExecOpts) {
     super();
-    this.kernel = opts.kernel;
+    this.kernel = kernel;
     this.code = opts.code;
     this.id = opts.id;
     this.all = !!opts.all;
@@ -44,10 +55,10 @@ class CodeExecutionEmitter extends EventEmitter {
     this.halt_on_error = !!opts.halt_on_error;
   }
 
-  // Returns a valid result
+  // Emits a valid result
   // result is https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
   // Or an array of those when this.all is true
-  private emit_result(result: object): void {
+  emit_result(result: object): void {
     this.emit("result", result);
   }
 
@@ -58,7 +69,7 @@ class CodeExecutionEmitter extends EventEmitter {
   // Call this to inform anybody listening that we've cancelled
   // this execution, and will NOT be doing it ever, and it
   // was explicitly cancelled.
-  cancel() : void {
+  cancel(): void {
     this.emit("canceled");
   }
 
@@ -74,7 +85,7 @@ class CodeExecutionEmitter extends EventEmitter {
     let kernel = this.kernel;
     const dbg = kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
     dbg(`code='${this.code}', all=${this.all}`);
-    if (kernel._state === "closed") {
+    if (kernel.get_state() === "closed") {
       this.close();
       return;
     }

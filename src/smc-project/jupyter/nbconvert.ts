@@ -17,8 +17,8 @@ export async function nbconvert(opts: nbconvertParams) : Promise<void> {
   if (!opts.timeout) {
     opts.timeout = 30;
   }
-  let j: number;
-  let to: string;
+  let j: number = 0;
+  let to: string = '';
   for (let i = 0; i < opts.args.length; i++) {
     if (opts.args[i] === "--to") {
       j = i;

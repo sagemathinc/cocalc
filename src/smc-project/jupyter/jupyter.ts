@@ -20,11 +20,11 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
-const VERSION = "5.2";
+export const VERSION = "5.2";
 
 import { EventEmitter } from "events";
 import kernelspecs from "kernelspecs";
-import fs from "fs";
+import { unlink } from "./async-utils-node";
 import pidusage from "pidusage";
 
 require("coffee-register");
@@ -33,18 +33,26 @@ const {
   required,
   merge,
   copy,
-  original_path
+  deep_copy,
+  original_path,
+  path_split,
+  uuid,
+  len,
+  is_array
 } = require("smc-util/misc");
 
 const { key_value_store } = require("smc-util/key-value-store");
 
 import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
-import util from "smc-webapp/jupyter/util";
-import iframe from "smc-webapp/jupyter/iframe";
+import { JUPYTER_MIMETYPES } from "../smc-webapp/jupyter/util";
+import {
+  is_likely_iframe,
+  process as iframe_process
+} from "../smc-webapp/jupyter/iframe";
 
-import { remove_redundant_reps } from "smc-webapp/jupyter/import-from-ipynb";
+import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
 
-import { retry_until_success } from "smc-webapp/frame-editors/generic/async-utils";
+import { retry_until_success } from "../smc-webapp/frame-editors/generic/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";
@@ -52,6 +60,11 @@ import { delay } from "awaiting";
 import { nbconvert } from "./nbconvert";
 
 import { get_kernel_data } from "./kernel-data";
+
+import { CodeExecutionEmitter, ExecOpts } from "./execute-code";
+
+import { JupyterActions } from "../smc-webapp/jupyter/project-actions";
+import { JupyterStore } from "../smc-webapp/jupyter/store";
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -66,8 +79,6 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 export function jupyter_backend(syncdb: any, client: any) {
   const dbg = client.dbg("jupyter_backend");
   dbg();
-  const { JupyterActions } = require("smc-webapp/jupyter/project-actions");
-  const { JupyterStore } = require("smc-webapp/jupyter/store");
   const app_data = require("smc-webapp/app-framework");
 
   const project_id = client.client_id();
@@ -129,35 +140,43 @@ call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels = {};
 
+type KernelInfo = object;
+
 export class Kernel extends EventEmitter {
   private name: string;
   private _dbg: Function;
   private _path: string;
   private _actions: any;
   private _state: string;
-  private usage: boolean;
-  private _execute_code_queue: CodeExecutionEmitter[];
-
-  private _spawn_cbs: Function[];
+  private _store: any;
+  private _directory: string;
+  private _filename: string;
+  private _identity: string;
+  private _start_time: number;
+  private _kernel: any;
+  private _kernel_info: KernelInfo;
+  _execute_code_queue: CodeExecutionEmitter[] = [];
+  _channels: any;
 
   constructor(name, _dbg, _path, _actions, usage) {
     super();
 
     this.spawn = reuseInFlight(this.spawn); // TODO -- test carefully!
     this.kernel_info = reuseInFlight(this.kernel_info); // TODO -- test carefully!
+    this.nbconvert = reuseInFlight(this.nbconvert);
 
     this.name = name;
     this._dbg = _dbg;
     this._path = _path;
     this._actions = _actions;
 
-    this.store = key_value_store();
-    const { head, tail } = misc.path_split(this._path);
+    this._store = key_value_store();
+    const { head, tail } = path_split(this._path);
     this._directory = head;
     this._filename = tail;
     this._set_state("off");
-    this._identity = misc.uuid();
-    this._start_time = new Date() - 0;
+    this._identity = uuid();
+    this._start_time = new Date().valueOf();
     this._execute_code_queue = [];
     _jupyter_kernels[this._path] = this;
     const dbg = this.dbg("constructor");
@@ -169,10 +188,14 @@ export class Kernel extends EventEmitter {
     this.setMaxListeners(100);
   }
 
-  _set_state(state) {
+  private _set_state(state: string): void {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     this._state = state;
-    return this.emit("state", this._state);
+    this.emit("state", this._state);
+  }
+
+  get_state(): string {
+    return this._state;
   }
 
   async spawn(): Promise<void> {
@@ -322,28 +345,28 @@ export class Kernel extends EventEmitter {
   // Start a monitor that calls usage periodically.
   // When the usage changes by a certain threshhold from the
   // previous usage, emits a 'usage' event with new values.
-  _init_usage_monitor(): void {
-    const last_usage = { cpu: 0, memory: 0 };
+  async _init_usage_monitor(): Promise<void> {
+    let last_usage = { cpu: 0, memory: 0 };
     const thresh = 0.2; // report any change of at least thresh percent (we always report cpu dropping to 0)
     const interval = 5000; // frequently should be OK, since it just reads /proc filesystem
     this.emit("usage", last_usage);
     const dbg = this.dbg("usage_monitor");
     while (this._state != "closed") {
-      await delay(intervals);
+      await delay(interval);
       try {
         const usage = await this.usage();
         for (let x of ["cpu", "memory"]) {
           if (
-            usage[x] > locals.last_usage[x] * (1 + locals.thresh) ||
-            usage[x] < locals.last_usage[x] * (1 - locals.thresh) ||
-            (usage[x] === 0 && locals.last_usage[x] > 0)
+            usage[x] > last_usage[x] * (1 + thresh) ||
+            usage[x] < last_usage[x] * (1 - thresh) ||
+            (usage[x] === 0 && last_usage[x] > 0)
           ) {
-            locals.last_usage = usage;
+            last_usage = usage;
             this.emit("usage", usage);
             break;
           }
         }
-      } catch (e) {
+      } catch (err) {
         dbg("err", err, " -- skip");
       }
     }
@@ -354,8 +377,8 @@ export class Kernel extends EventEmitter {
     if (this._state === "closed") {
       return;
     }
-    this.store.close();
-    delete this.store;
+    this._store.close();
+    delete this._store;
     this._set_state("closed");
     const kernel = _jupyter_kernels[this._path];
     if (kernel != null && kernel._identity === this._identity) {
@@ -369,7 +392,7 @@ export class Kernel extends EventEmitter {
       }
       this.signal("SIGKILL"); // kill the process group
       try {
-        fs.unlink(this._kernel.connectionFile);
+        unlink(this._kernel.connectionFile);
       } catch {
         // ignore
       }
@@ -382,16 +405,9 @@ export class Kernel extends EventEmitter {
       }
       delete this._execute_code_queue;
     }
-    delete this._kernel_info;
-    if (this._kernel_info_cbs != null) {
-      for (let cb of this._kernel_info_cbs) {
-        cb("closed");
-      }
-      delete this._kernel_info_cbs;
-    }
   }
 
-  dbg(f: any): ((f: any) => void) {
+  dbg(f: any): Function {
     if (!this._dbg) {
       return function() {};
     } else {
@@ -413,33 +429,18 @@ export class Kernel extends EventEmitter {
     }
   }
 
-  async _ensure_running(): Promise<string | undefined> {
+  async _ensure_running(): Promise<void> {
     if (this._state === "closed") {
-      return "closed";
+      return;
     }
     if (this._state !== "running") {
-      return await this.spawn();
+      await this.spawn();
     } else {
       return;
     }
   }
 
-  execute_code(opts: {
-    code: string;
-    id?: string; // optional tag to be used by cancel_execute
-
-    // if all=true, returned objects emits a single list (used for testing mainly);
-    // if all=false, returned objects emits output as many messages.
-    all?: boolean;
-
-    // if given, support stdin prompting; this function will be called
-    // as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
-    // Here, e.g., options = { password: false, prompt: '' }.
-    stdin?: Function;
-
-    // Clear execution queue if shell returns status:'error', e.g., on traceback
-    halt_on_error?: boolean;
-  }): CodeExecutionEmitter {
+  execute_code(opts: ExecOpts): CodeExecutionEmitter {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
@@ -447,10 +448,7 @@ export class Kernel extends EventEmitter {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    if (this._execute_code_queue == null) {
-      this._execute_code_queue = [];
-    }
-    const code = new CodeExecutionEmitter(opts);
+    const code = new CodeExecutionEmitter(this, opts);
     this._execute_code_queue.push(code);
     if (this._execute_code_queue.length === 1) {
       // start it going!
@@ -459,11 +457,11 @@ export class Kernel extends EventEmitter {
     return code;
   }
 
-  cancel_execute(opts: { id: string }): void {
+  cancel_execute(id: string): void {
     if (this._state === "closed") {
       return;
     }
-    const dbg = this.dbg(`cancel_execute(id='${opts.id}')`);
+    const dbg = this.dbg(`cancel_execute(id='${id}')`);
     if (
       this._execute_code_queue == null ||
       this._execute_code_queue.length === 0
@@ -477,7 +475,7 @@ export class Kernel extends EventEmitter {
       );
       for (let i = this._execute_code_queue.length - 1; i--; i >= 1) {
         const code = this._execute_code_queue[i];
-        if (code.id === opts.id) {
+        if (code.id === id) {
           dbg(`removing entry ${i} from queue`);
           this._execute_code_queue.splice(i, 1);
           code.cancel();
@@ -486,13 +484,13 @@ export class Kernel extends EventEmitter {
     }
     // if the currently running computation involves this id, send an
     // interrupt signal (that's the best we can do)
-    if (this._execute_code_queue[0].id === opts.id) {
+    if (this._execute_code_queue[0].id === id) {
       dbg("interrupting running computation");
       this.signal("SIGINT");
     }
   }
 
-  _process_execute_code_queue(): void {
+  async _process_execute_code_queue(): Promise<void> {
     const dbg = this.dbg("_process_execute_code_queue");
     dbg(`state='${this._state}'`);
     if (this._state === "closed") {
@@ -534,15 +532,15 @@ export class Kernel extends EventEmitter {
     const mesg = { done: true };
     for (let code_execution_emitter of this._execute_code_queue.slice(1)) {
       if (code_execution_emitter.all) {
-        code_execution_emitter.return_result([mesg]);
+        code_execution_emitter.emit_result([mesg]);
       } else {
-        code_execution_emitter.return_result(mesg);
+        code_execution_emitter.emit_result(mesg);
       }
     }
     this._execute_code_queue = [];
   }
 
-  process_output(content: object): void {
+  process_output(content: any): void {
     if (this._state === "closed") {
       return;
     }
@@ -556,19 +554,20 @@ export class Kernel extends EventEmitter {
 
     remove_redundant_reps(content.data);
 
-    for (let type: string of util.JUPYTER_MIMETYPES) {
+    let type: string;
+    for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
           content.data[type] = blob_store.save(content.data[type], type);
         } else if (
           type === "text/html" &&
-          iframe.is_likely_iframe(content.data[type])
+          is_likely_iframe(content.data[type])
         ) {
           // Likely iframe, so we treat it as such.  This is very important, e.g.,
           // because of Sage's JMOL-based 3d graphics.  These are huge, so we have to parse
           // and remove these and serve them from the backend.
           //  {iframe: sha1 of srcdoc}
-          content.data["iframe"] = iframe.process(
+          content.data["iframe"] = iframe_process(
             content.data[type],
             blob_store
           );
@@ -599,10 +598,10 @@ export class Kernel extends EventEmitter {
     const message = {
       content,
       header: {
-        msg_id: misc.uuid(),
+        msg_id: uuid(),
         username: "",
         session: "",
-        msg_type: opts.msg_type,
+        msg_type: msg_type,
         version: VERSION
       }
     };
@@ -616,8 +615,8 @@ export class Kernel extends EventEmitter {
       var f = mesg => {
         if (mesg.parent_header.msg_id === message.header.msg_id) {
           this.removeListener("shell", f);
-          mesg = misc.deep_copy(mesg.content);
-          if (misc.len(mesg.metadata) === 0) {
+          mesg = deep_copy(mesg.content);
+          if (len(mesg.metadata) === 0) {
             delete mesg.metadata;
           }
           the_mesg = mesg;
@@ -650,8 +649,8 @@ export class Kernel extends EventEmitter {
     return await this.call("inspect_request", opts);
   }
 
-  async kernel_info(): Promise<any> {
-    if (this._kernel_info != null) {
+  async kernel_info(): Promise<KernelInfo> {
+    if (this._kernel_info !== undefined) {
       return this._kernel_info;
     }
     const info = await this.call("kernel_info_request");
@@ -673,29 +672,21 @@ export class Kernel extends EventEmitter {
     return this._actions.store.get_more_output(id) || [];
   }
 
-  async nbconvert(args: string[], timeout?: number): Promise<string> {
+  async nbconvert(args: string[], timeout?: number): Promise<void> {
     if (timeout === undefined) {
       timeout = 30; // seconds
     }
-    if (this._nbconvert_lock) {
-      throw new Error("lock");
-    }
-    if (!misc.is_array(args)) {
+    if (!is_array(args)) {
       throw new Error("args must be an array");
     }
-    this._nbconvert_lock = true;
-    const args = misc.copy(args);
+    args = copy(args);
     args.push("--");
     args.push(this._filename);
-    try {
-      return await nbconvert({
-        args,
-        timeout,
-        directory: this._directory
-      });
-    } finally {
-      delete this._nbconvert_lock;
-    }
+    await nbconvert({
+      args,
+      timeout,
+      directory: this._directory
+    });
   }
 
   // TODO: double check that this actually returns sha1
@@ -705,14 +696,16 @@ export class Kernel extends EventEmitter {
     if (path[0] !== "/") {
       path = process.env.HOME + "/" + path;
     }
+    async function f(): Promise<string> {
+      return blob_store.readFile(path, "base64");
+    }
     try {
       return await retry_until_success({
-        // TODO: fix when blobstore is async-d
-        f: blob_store.readFile(path, "base64"),
+        f: f,
         max_time: 30000
       });
     } catch (err) {
-      fs.unlink(path); // TODO: think through again if this is the right thing to do.
+      unlink(path); // TODO: think through again if this is the right thing to do.
       throw err;
     }
   }
