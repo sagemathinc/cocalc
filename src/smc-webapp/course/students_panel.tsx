@@ -65,10 +65,7 @@ const {
   TimeAgo,
   Tip
 } = require("../r_misc");
-const {
-  StudentAssignmentInfo,
-  StudentAssignmentInfoHeader
-} = require("./common");
+import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "./common";
 import * as util from "./util";
 import * as styles from "./styles";
 import { ProjectMap, UserMap } from "../todo-types";
@@ -77,11 +74,13 @@ import {
   AssignmentsMap,
   SortDescription,
   StudentRecord,
-  CourseStore
+  CourseStore,
+  IsGradingMap
 } from "./store";
 import { literal } from "../app-framework/literal";
 import { redux } from "../frame-editors/generic/test/util";
 import { CourseActions } from "./actions";
+import { Set } from "immutable";
 
 interface StudentNameDescription {
   full: string;
@@ -103,6 +102,7 @@ interface StudentsPanelReduxProps {
   expanded_students: Set<string>;
   active_student_sort: SortDescription;
   get_student_name: (id: string) => string;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface StudentsPanelState {
@@ -162,7 +162,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           "students",
           "user_map",
           "project_map",
-          "assignments"
+          "assignments",
+          "active_feedback_edits"
         ])
       );
     }
@@ -755,6 +756,9 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
               is_expanded={this.props.expanded_students.has(x.student_id)}
               student_name={name}
               display_account_name={true}
+              active_feedback_edits={
+                this.props.active_feedback_edits
+              }
             />
           );
         }
@@ -853,6 +857,7 @@ interface StudentProps {
   is_expanded?: boolean;
   student_name: StudentNameDescription;
   display_account_name?: boolean;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface StudentState {
@@ -911,7 +916,8 @@ class Student extends Component<StudentProps, StudentState> {
         "project_map",
         "assignments",
         "background",
-        "is_expanded"
+        "is_expanded",
+        "active_feedback_edits"
       ]) ||
       (this.props.student_name != null
         ? this.props.student_name.full
@@ -1259,6 +1265,16 @@ class Student extends Component<StudentProps, StudentState> {
         this.props.student,
         assignment
       );
+      const key = util.assignment_identifier(assignment, this.props.student);
+      const edited_feedback = this.props.active_feedback_edits.get(
+        key
+      );
+      let edited_comments: string | undefined;
+      let edited_grade: string | undefined;
+      if (edited_feedback != undefined) {
+        edited_comments = edited_feedback.get("edited_comments");
+        edited_grade = edited_feedback.get("edited_grade");
+      }
       result.push(
         <StudentAssignmentInfo
           key={assignment.get("assignment_id")}
@@ -1269,6 +1285,9 @@ class Student extends Component<StudentProps, StudentState> {
           grade={grade}
           comments={comments}
           info={info}
+          is_editing={!!edited_feedback}
+          edited_comments={edited_comments}
+          edited_grade={edited_grade}
         />
       );
     }
