@@ -193,7 +193,7 @@ exports.ExamplesBody = rclass
     render_bottom: ->
         # TODO syntax highlighting
         code = @props.code
-        if @props.setup_code?.length > 0 and @props.prepend_setup_code
+        if @props.prepend_setup_code and  @props.setup_code?.length > 0
             code = "#{@props.setup_code}\n#{code}"
         <Row key={'bottom'}>
             <Col sm={6}>
