@@ -6,7 +6,7 @@ TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 */
 
 import { EventEmitter } from "events";
-import { Kernel, VERSION } from "./jupyter";
+import { JupyterKernel, VERSION } from "./jupyter";
 import { Message } from "./types";
 
 import {
@@ -38,14 +38,15 @@ export interface ExecOpts {
 }
 
 export class CodeExecutionEmitter extends EventEmitter {
-  readonly kernel: Kernel;
+  readonly kernel: JupyterKernel;
   readonly code: string;
   readonly id?: string;
   readonly all: boolean;
   readonly stdin?: StdinFunction;
   readonly halt_on_error: boolean;
+  results: object[] = [];
 
-  constructor(kernel: Kernel, opts: ExecOpts) {
+  constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
     this.kernel = kernel;
     this.code = opts.code;
@@ -59,6 +60,7 @@ export class CodeExecutionEmitter extends EventEmitter {
   // result is https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
   // Or an array of those when this.all is true
   emit_result(result: object): void {
+    this.results.push(result);
     this.emit("result", result);
   }
 

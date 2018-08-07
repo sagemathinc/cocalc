@@ -25,7 +25,7 @@ export const VERSION = "5.2";
 import { EventEmitter } from "events";
 import kernelspecs from "kernelspecs";
 import { unlink } from "./async-utils-node";
-import pidusage from "pidusage";
+import * as pidusage from "pidusage";
 
 require("coffee-register");
 const {
@@ -122,7 +122,7 @@ export function kernel(opts: KernelParams) {
   if (opts.client === undefined) {
     opts.client = new Client();
   }
-  return new Kernel(
+  return new JupyterKernel(
     opts.name,
     opts.verbose ? opts.client.dbg : undefined,
     opts.path,
@@ -142,7 +142,7 @@ const _jupyter_kernels = {};
 
 type KernelInfo = object;
 
-export class Kernel extends EventEmitter {
+export class JupyterKernel extends EventEmitter {
   private name: string;
   private _dbg: Function;
   private _path: string;
@@ -332,14 +332,21 @@ export class Kernel extends EventEmitter {
   // Get memory/cpu usage e.g. { cpu: 1.154401154402318, memory: 482050048 }
   // If no kernel/pid returns {cpu:0,memory:0}
   async usage(): Promise<{ cpu: number; memory: number }> {
-    // Do *NOT* put any logging in here, since it gets called a lot by the usage monitor.
-    const spawn = this._kernel != null ? this._kernel.spawn : undefined;
-    const pid = spawn != null ? spawn.pid : undefined;
-    if (pid !== undefined) {
-      return await callback(pidusage.stat)(pid);
-    } else {
+    if (!this._kernel) {
       return { cpu: 0, memory: 0 };
     }
+    // Do *NOT* put any logging in here, since it gets called a lot by the usage monitor.
+    const spawn = this._kernel.spawn;
+    if (spawn === undefined) {
+      return { cpu: 0, memory: 0 };
+    }
+    const pid = spawn.pid;
+    if (pid === undefined) {
+      return { cpu: 0, memory: 0 };
+    }
+    //return await callback(pidusage.stat)(pid);
+    // TODO!
+    return {cpu:0, memory:0};
   }
 
   // Start a monitor that calls usage periodically.
