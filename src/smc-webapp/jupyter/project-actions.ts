@@ -96,7 +96,7 @@ export class JupyterActions extends JupyterActions0 {
     //dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
 
     this.setState({
-      // used by jupyter.coffee
+      // used by jupyter.ts
       start_time: this._client.server_time() - 0
     });
     this.syncdb.delete({ type: "nbconvert" }); // clear on init, since can't be running yet
@@ -286,7 +286,7 @@ export class JupyterActions extends JupyterActions0 {
     dbg(`kernels.size=${size}`);
     if (kernels == null) {
       dbg("getting");
-      return this._client.jupyter_kernel_info({
+      this._client.jupyter_kernel_info({
         cb: (err, kernels) => {
           dbg(`got ${err}, ${misc.to_json(kernels)}`);
           if (!err) {

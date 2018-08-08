@@ -177,10 +177,12 @@ export class JupyterKernel extends EventEmitter
     super();
 
     this.spawn = reuseInFlight(this.spawn); // TODO -- test carefully!
-    this.kernel_info = reuseInFlight(this.kernel_info); // TODO -- test carefully!
+
+    this.kernel_info = reuseInFlight(this.kernel_info);
     this.nbconvert = reuseInFlight(this.nbconvert);
 
     this.close = this.close.bind(this);
+    this.process_output = this.process_output.bind(this);
 
     this.name = name;
     this._dbg = _dbg;
@@ -309,7 +311,7 @@ export class JupyterKernel extends EventEmitter
     */
     const that = this;
     async function f(): Promise<void> {
-      await that.kernel_info();
+      await that.call("kernel_info_request")
       if (that._state === "starting") {
         throw Error("still starting");
       }
