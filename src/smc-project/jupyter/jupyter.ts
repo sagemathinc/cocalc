@@ -99,7 +99,7 @@ export function jupyter_backend(syncdb: any, client: any) {
 // for interactive testing
 class Client {
   dbg(f) {
-    return (...m) => console.log(`Client.${f}: `, ...m);
+    return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
   }
 }
 
@@ -165,6 +165,8 @@ export class JupyterKernel extends EventEmitter {
     this.kernel_info = reuseInFlight(this.kernel_info); // TODO -- test carefully!
     this.nbconvert = reuseInFlight(this.nbconvert);
 
+    this.close = this.close.bind(this);
+
     this.name = name;
     this._dbg = _dbg;
     this._path = _path;
@@ -208,7 +210,7 @@ export class JupyterKernel extends EventEmitter {
       return;
     }
     this._set_state("spawning");
-    const dbg = this.dbg("spawn");
+    const dbg = this.dbg("spawn1");
     dbg("spawning kernel...");
 
     const opts: any = { detached: true, stdio: "ignore" };
@@ -220,16 +222,18 @@ export class JupyterKernel extends EventEmitter {
       opts.cwd = this._directory;
     }
     try {
+      dbg("launching kernel interface...");
       this._kernel = await require("spawnteract").launch(this.name, opts);
-      await this._create_comm_channels();
+      await this._finish_spawn();
     } catch (err) {
       this._set_state("off");
       throw err;
     }
   }
 
-  async _create_comm_channels(): Promise<void> {
-    const dbg = this.dbg("channels");
+  async _finish_spawn(): Promise<void> {
+    const dbg = this.dbg("spawn2");
+
     dbg("now creating channels...");
 
     this._kernel.spawn.on("error", err => {
@@ -258,8 +262,68 @@ export class JupyterKernel extends EventEmitter {
     // so we can start sending code execution to the kernel, etc.
     this._set_state("starting");
 
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
+
+    // We have now received an iopub or shell message from the kernel,
+    // so kernel has started running.
+    dbg("start_running");
+    // We still wait a few ms, since otherwise -- especially in testing --
+    // the kernel will bizarrely just ignore first input.
+    // TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
+    await this._wait_for_iopub_or_shell();
+    await delay(100);
+
+    this._set_state("running");
+
+    await this._get_kernel_info();
+  }
+
+  async _get_kernel_info() : Promise<void> {
+    const dbg = this.dbg("_get_kernel_info");
+    /*
+    The following is very ugly!  In practice, with testing,
+    I've found that some kernels simply
+    don't start immediately, and drop early messages.  The only reliable way to
+    get things going properly is to just keep trying something (we do the kernel_info
+    command) until it works. Only then do we declare the kernel ready for code
+    execution, etc.   Probably the jupyter devs never notice this race condition
+    bug in ZMQ/Jupyter kernels... or maybe the Python server has a sort of
+    accidental work around.
+    */
+    const that = this;
+    async function f(): Promise<void> {
+      await that.kernel_info();
+      if (that._state === "starting") {
+        throw Error("still starting");
+      }
+    }
+
+    dbg("getting kernel info to be certain kernel is fully usable...");
+    await retry_until_success({
+      start_delay: 500,
+      max_delay: 5000,
+      factor: 1.4,
+      max_time: 2 * 60000, // long in case of starting many at once --
+      // we don't want them to all fail and start
+      // again and fail ad infinitum!
+      f: f,
+      log: function(...args) {
+        dbg("retry_until_success", ...args);
+      }
+    });
+
+    dbg("successfully got kernel info");
+  }
+
+
+  async _wait_for_iopub_or_shell() : Promise<void> {
+    const dbg = this.dbg("_wait_for_iopub_or_shell");
     const wait_for_iopub_or_shell = cb => {
+      dbg("waiting for an iopub or shell message from the kernel");
       function done() {
+        dbg("got an iopub or shell message; kernel is alive!");
         this.removeListener("iopub", done);
         this.removeListener("shell", done);
         cb();
@@ -271,47 +335,8 @@ export class JupyterKernel extends EventEmitter {
     if (this._state === "closed") {
       throw Error("closed");
     }
+
     await callback(wait_for_iopub_or_shell);
-
-    if (this._state === "closed") {
-      throw Error("closed");
-    }
-
-    // We have now received an iopub or shell message from the kernel,
-    // so kernel has started running.
-    dbg("start_running");
-    // We still wait a few ms, since otherwise -- especially in testing --
-    // the kernel will bizarrely just ignore first input.
-    // TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
-    await delay(100);
-    this._set_state("running");
-
-    /*
-    The following is very ugly!  In practice, with testing,
-    I've found that some kernels simply
-    don't start immediately, and drop early messages.  The only reliable way to
-    get things going properly is to just keep trying something (we do the kernel_info
-    command) until it works. Only then do we declare the kernel ready for code
-    execution, etc.   Probably the jupyter devs never notice this race condition
-    bug in ZMQ/Jupyter kernels... or maybe the Python server has a sort of
-    accidental work around.
-    */
-    async function f(): Promise<void> {
-      await this.kernel_info();
-      if (this._state === "starting") {
-        throw Error("still starting");
-      }
-    }
-
-    await retry_until_success({
-      start_delay: 500,
-      max_delay: 5000,
-      factor: 1.4,
-      max_time: 2 * 60000, // long in case of starting many at once --
-      // we don't want them to all fail and start
-      // again and fail ad infinitum!
-      f: f
-    });
   }
 
   signal(signal: string | number): void {
@@ -346,7 +371,7 @@ export class JupyterKernel extends EventEmitter {
     }
     //return await callback(pidusage.stat)(pid);
     // TODO!
-    return {cpu:0, memory:0};
+    return { cpu: 0, memory: 0 };
   }
 
   // Start a monitor that calls usage periodically.

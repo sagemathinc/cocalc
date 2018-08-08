@@ -16,13 +16,13 @@ import * as awaiting from "awaiting";
 // an async function that takes an opts with no cb as input; this is just like
 // awaiting.callback, but for our functions that take opts.
 export function callback_opts(f: Function) {
-  return async function(opts: any) : Promise<any> {
+  return async function(opts: any): Promise<any> {
     function g(cb: Function) {
       opts.cb = cb;
       f(opts);
     }
     return await awaiting.callback(g);
-  }
+  };
 }
 
 /* retry_until_success keeps calling an async function f with
@@ -37,6 +37,7 @@ interface RetryUntilSuccess<T> {
   max_tries?: number; // maximum number of times to call f
   max_time?: number; // milliseconds -- don't call f again if the call would start after this much time from first call
   factor?: number; // multiply delay by this each time
+  log?: Function; // optional verbose logging function
 }
 
 export async function retry_until_success<T>(
@@ -69,6 +70,9 @@ export async function retry_until_success<T>(
     try {
       return await opts.f();
     } catch (exc) {
+      if (opts.log !== undefined) {
+        opts.log("failed ", exc);
+      }
       // might try again -- update state...
       tries += 1;
       next_delay = Math.min(opts.max_delay, opts.factor * next_delay);
