@@ -470,7 +470,8 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-    def execfn(code, output = None, pattern = None, html_pattern = None, timeout = default_timeout):
+    def execfn(code, output = None, pattern = None, html_pattern = None, timeout = default_timeout,
+              errout = None):
         m = message.execute_code(code = code, id = test_id)
         m['preparse'] = True
 
@@ -505,7 +506,16 @@ def exec2(request, sagews, test_id):
             assert mesg['id'] == test_id
             assert 'html' in mesg
             assert re.search(html_pattern, mesg['html']) is not None
-
+        elif errout:
+            mout = ""
+            while True:
+                typ, mesg = sagews.recv()
+                assert typ == 'json'
+                assert mesg['id'] == test_id
+                assert 'stderr' in mesg
+                mout += mesg['stderr']
+                if errout.strip() in mout:
+                    break
     def fin():
         recv_til_done(sagews, test_id)
 
