@@ -1540,10 +1540,8 @@ export class CourseActions extends Actions<CourseState> {
       grade = new_edited_grade;
     } else if (current_edited_grade != undefined) {
       grade = current_edited_grade;
-    } else if (store.get_grade(assignment, student) != undefined) {
-      grade = store.get_grade(assignment, student);
     } else {
-      grade = "";
+      grade = store.get_grade(assignment, student) || "";
     }
 
     const comments: string;
@@ -1551,11 +1549,8 @@ export class CourseActions extends Actions<CourseState> {
       comments = new_edited_comments;
     } else if (current_edited_comments != undefined) {
       comments = current_edited_comments;
-    } else if (store.get_comments(assignment, student) != undefined) {
-      comments = store.get_comments(assignment, student);
     } else {
-      comments = "";
-    }
+      comments = store.get_comments(assignment, student) || ""
 
     const old_edited_feedback = store.get("active_feedback_edits");
     const new_edited_feedback = old_edited_feedback.set(

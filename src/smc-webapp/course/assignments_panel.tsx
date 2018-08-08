@@ -1638,8 +1638,6 @@ class StudentListForAssignment extends Component<
       edited_comments = edited_feedback.get("edited_comments");
       edited_grade = edited_feedback.get("edited_grade");
     }
-    console.log("Edited Grade is:", edited_grade);
-    console.log("Edited Comments is:", edited_comments);
     return (
       <StudentAssignmentInfo
         key={student_id}
