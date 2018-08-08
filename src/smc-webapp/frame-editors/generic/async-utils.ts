@@ -15,6 +15,10 @@ import * as awaiting from "awaiting";
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
 // awaiting.callback, but for our functions that take opts.
+// WARNING: this is different than callback from awaiting, which
+// on which you do:   callback(f, args...)
+// With callback_opts, you do:   callback_opts(f)(opts)
+// TODO: maybe change this everwhere to callback_opts(f, opts) for consistency!
 export function callback_opts(f: Function) {
   return async function(opts: any): Promise<any> {
     function g(cb: Function) {

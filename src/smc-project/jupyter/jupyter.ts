@@ -339,7 +339,9 @@ export class JupyterKernel extends EventEmitter {
     await callback(wait_for_iopub_or_shell);
   }
 
-  signal(signal: string | number): void {
+  // Signal should be a string like "SIGINT", "SIGKILL".
+  // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
+  signal(signal: string): void {
     const dbg = this.dbg("signal");
     const spawn = this._kernel != null ? this._kernel.spawn : undefined;
     const pid = spawn != null ? spawn.pid : undefined;
@@ -369,9 +371,7 @@ export class JupyterKernel extends EventEmitter {
     if (pid === undefined) {
       return { cpu: 0, memory: 0 };
     }
-    //return await callback(pidusage.stat)(pid);
-    // TODO!
-    return { cpu: 0, memory: 0 };
+    return await callback(pidusage.stat, pid);
   }
 
   // Start a monitor that calls usage periodically.
