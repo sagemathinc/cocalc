@@ -272,6 +272,7 @@ export class StudentAssignmentInfo extends Component<
   };
 
   set_edited_feedback = (grade?: string, comments?: string) => {
+    console.log("Updating edited feedback to", grade, comments);
     this.get_actions().update_edited_feedback(
       this.props.assignment,
       this.props.student,
@@ -281,6 +282,7 @@ export class StudentAssignmentInfo extends Component<
   };
 
   handle_grade_change = e => {
+    e.preventDefault();
     this.set_edited_feedback(e.target.value);
   };
 
@@ -319,7 +321,7 @@ export class StudentAssignmentInfo extends Component<
     } else {
       if (this.props.grade) {
         return (
-          <div key="grade" onClick={() => this.set_edited_feedback}>
+          <div key="grade" onClick={() => this.set_edited_feedback()}>
             <strong>Grade</strong>: {this.props.grade}
             <br />
             {this.props.comments ? (
@@ -386,7 +388,11 @@ export class StudentAssignmentInfo extends Component<
           title="Enter student's grade"
           tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
         >
-          <Button key="edit" onClick={this.set_edited_feedback} bsStyle={bsStyle}>
+          <Button
+            key="edit"
+            onClick={() => this.set_edited_feedback()}
+            bsStyle={bsStyle}
+          >
             {text}
           </Button>
         </Tip>

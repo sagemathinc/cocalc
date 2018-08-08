@@ -1535,16 +1535,29 @@ export class CourseActions extends Actions<CourseState> {
       current_edited_comments = current_edited_feedback.get("edited_comments");
     }
 
-    const grade: string =
-      new_edited_grade ||
-      current_edited_grade ||
-      store.get_grade(assignment, student) ||
-      "";
-    const comments: string =
-      new_edited_comments ||
-      current_edited_comments ||
-      store.get_comments(assignment, student) ||
-      "";
+    const grade: string;
+      if (new_edited_grade != undefined) {
+        grade = new_edited_grade;
+      } else if (current_edited_grade != undefined) {
+        grade = current_edited_grade;
+      } else if (store.get_grade(assignment, student) != undefined) {
+        grade = store.get_grade(assignment, student);
+      } else {
+        grade = "";
+      }
+
+    const comments: string;
+      if (new_edited_comments != undefined) {
+        comments = new_edited_comments;
+      } else if (current_edited_comments != undefined) {
+        comments = current_edited_comments;
+      } else if (store.get_comments(assignment, student) != undefined) {
+        comments = store.get_comments(assignment, student);
+      } else {
+        comments = "";
+      }
+
+    console.log("Setting edited feedback to", grade, "and", comments)
 
     const old_edited_feedback = store.get("active_feedback_edits");
     const new_edited_feedback = old_edited_feedback.set(

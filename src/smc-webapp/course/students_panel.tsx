@@ -1276,6 +1276,8 @@ class Student extends Component<StudentProps, StudentState> {
         edited_comments = edited_feedback.get("edited_comments");
         edited_grade = edited_feedback.get("edited_grade");
       }
+    console.log("Edited Grade is:", edited_grade)
+    console.log("Edited Comments is:", edited_comments)
       result.push(
         <StudentAssignmentInfo
           key={assignment.get("assignment_id")}
