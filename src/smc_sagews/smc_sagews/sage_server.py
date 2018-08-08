@@ -1039,18 +1039,15 @@ class Salvus(object):
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
                             exec compile(block2, '', 'single') in namespace, locals
                             b2a = """
-if 'SAGE_STARTUP_FILE' in os.environ:
-    _sfn = os.environ['SAGE_STARTUP_FILE']
-    if os.path.isfile(_sfn):
-        try:
-            load(_sfn)
-        except:
-            sys.stdout.flush()
-            sys.stderr.write('Exception loading startup file: {}\\n'.format(_sfn))
-            sys.stderr.flush()
-            raise
-        finally:
-            del _sfn\n"""
+if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP_FILE']):
+    try:
+        load(os.environ['SAGE_STARTUP_FILE'])
+    except:
+        sys.stdout.flush()
+        sys.stderr.write('\\nException loading startup file: {}\\n'.format(os.environ['SAGE_STARTUP_FILE']))
+        sys.stderr.flush()
+        raise
+"""
                             exec compile(b2a, '', 'exec') in namespace, locals
                     features = sage_parsing.get_future_features(block, 'single')
                     if features:
