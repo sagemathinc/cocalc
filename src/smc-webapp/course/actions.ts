@@ -1508,7 +1508,7 @@ export class CourseActions extends Actions<CourseState> {
 
     const open_grades = store.get("active_feedback_edits");
     const new_open_grades = open_grades.delete(
-      assignment.get("assignment_id") + student.get("student_id")
+      assignment_identifier(assignment, student)
     );
     this.setState({ active_feedback_edits: new_open_grades });
   };
@@ -1535,7 +1535,7 @@ export class CourseActions extends Actions<CourseState> {
       current_edited_comments = current_edited_feedback.get("edited_comments");
     }
 
-    const grade: string;
+    let grade: string;
     if (new_edited_grade != undefined) {
       grade = new_edited_grade;
     } else if (current_edited_grade != undefined) {
@@ -1544,14 +1544,14 @@ export class CourseActions extends Actions<CourseState> {
       grade = store.get_grade(assignment, student) || "";
     }
 
-    const comments: string;
+    let comments: string;
     if (new_edited_comments != undefined) {
       comments = new_edited_comments;
     } else if (current_edited_comments != undefined) {
       comments = current_edited_comments;
     } else {
-      comments = store.get_comments(assignment, student) || ""
-
+      comments = store.get_comments(assignment, student) || "";
+    }
     const old_edited_feedback = store.get("active_feedback_edits");
     const new_edited_feedback = old_edited_feedback.set(
       key,
