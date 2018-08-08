@@ -1013,7 +1013,7 @@ ConfirmPaymentMethod = rclass
 
     render: ->
         if not @props.customer
-            return <AddPaymentMethod redux={redux} on_close={() => redux.getActions('billing').setState({continue_first_purchase: true})} />
+            return <AddPaymentMethod redux={redux} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
@@ -2046,6 +2046,11 @@ BillingPage = rclass
             selected_plan   = {@props.selected_plan}
             redux           = {@props.redux} />
 
+    finish_first_subscription: ->
+        set_selected_plan('')
+        @actions('billing').remove_all_coupons();
+        @actions('billing').setState({continue_first_purchase: false})
+
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
@@ -2055,7 +2060,7 @@ BillingPage = rclass
         else if not @props.customer? or @props.continue_first_purchase
             <div>
                 <AddSubscription
-                    on_close        = {() => set_selected_plan(''); @actions('billing').remove_all_coupons(); redux.getActions('billing').setState({continue_first_purchase: false})}
+                    on_close        = {@finish_first_subscription}
                     selected_plan   = {@props.selected_plan}
                     actions         = {@props.redux.getActions('billing')}
                     applied_coupons = {@props.applied_coupons}
