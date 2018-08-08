@@ -321,7 +321,7 @@ export class StudentAssignmentInfo extends Component<
     } else {
       if (this.props.grade) {
         return (
-          <div key="grade" onClick={() => this.set_edited_feedback()}>
+          <div key="grade">
             <strong>Grade</strong>: {this.props.grade}
             <br />
             {this.props.comments ? (
