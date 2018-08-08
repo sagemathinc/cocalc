@@ -7,7 +7,7 @@ so that Typescript can meaningfully type check everything.
 */
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
-export class EventEmitterInterface {
+export interface EventEmitterInterface {
   addListener(event: string|symbol, listener: (...args: any[]) => void): this;
   on(event: string, listener: (...args: any[]) => void): this;
   once(event: string, listener: (...args: any[]) => void): this;
