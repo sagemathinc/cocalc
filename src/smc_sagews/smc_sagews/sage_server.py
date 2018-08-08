@@ -1045,6 +1045,7 @@ if 'SAGE_STARTUP_FILE' in os.environ:
         try:
             load(_sfn)
         except:
+            sys.stdout.flush()
             sys.stderr.write('Exception loading startup file: {}\\n'.format(_sfn))
             sys.stderr.flush()
             raise
