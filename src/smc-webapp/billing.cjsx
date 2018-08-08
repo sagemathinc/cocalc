@@ -86,7 +86,6 @@ class BillingActions extends Actions
             cb?(err)
         )
 
-
     _action: (action, desc, opts) =>
         @setState(action: desc)
         cb = opts.cb
@@ -239,6 +238,7 @@ AddPaymentMethod = rclass
 
     submit_payment_method: ->
         @setState(error: false, submitting:true)
+        @props.redux.getActions('billing').setState({continue_first_purchase: true})
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
@@ -1012,6 +1012,8 @@ ConfirmPaymentMethod = rclass
         </span>
 
     render: ->
+        if not @props.customer
+            return <AddPaymentMethod redux={redux} on_close={() => redux.getActions('billing').setState({continue_first_purchase: true})} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
@@ -1939,6 +1941,7 @@ BillingPage = rclass
             selected_plan   : rtypes.string
             applied_coupons : rtypes.immutable.Map
             coupon_error    : rtypes.string
+            continue_first_purchase: rtypes.bool
         projects :
             project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
         account :
@@ -2049,10 +2052,14 @@ BillingPage = rclass
         if not @props.loaded
             # nothing loaded yet from backend
             <Loading />
-        else if not @props.customer?
-            # user not initialized yet -- only thing to do is add a card.
+        else if not @props.customer? or @props.continue_first_purchase
             <div>
-                <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+                <AddSubscription
+                    on_close        = {() => set_selected_plan(''); @actions('billing').remove_all_coupons(); redux.getActions('billing').setState({continue_first_purchase: false})}
+                    selected_plan   = {@props.selected_plan}
+                    actions         = {@props.redux.getActions('billing')}
+                    applied_coupons = {@props.applied_coupons}
+                    coupon_error    = {@props.coupon_error} />
             </div>
         else
             # data loaded and customer exists
