@@ -9,5 +9,12 @@
     "noUnusedParameters": true,
     "baseUrl": "."
   },
-  "exclude": ["./data", "node_modules", "smc-project", "smc-hub", "smc-util-node"]
+  "exclude": [
+    "./data",
+    "node_modules",
+    "smc-project",
+    "smc-hub",
+    "smc-util-node",
+    "smc-webapp/jupyter/project-actions.ts"
+  ]
 }

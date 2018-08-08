@@ -61,7 +61,7 @@ import { nbconvert } from "./nbconvert";
 
 import { get_kernel_data } from "./kernel-data";
 
-import { ExecOpts, KernelInfo } from "../smc-webapp/jupyter/project-interface";
+import { ExecOpts, KernelInfo, CodeExecutionEmitterInterface } from "../smc-webapp/jupyter/project-interface";
 
 import { CodeExecutionEmitter } from "./execute-code";
 
@@ -101,11 +101,23 @@ export function jupyter_backend(syncdb: any, client: any) {
 }
 
 // for interactive testing
+// TODO: needs to somehow proxy through the real client...
 class Client {
+  client_id() : string {
+    return '123e4567-e89b-12d3-a456-426655440000';
+  }
+  is_project() : boolean {
+    return true;
+  }
   dbg(f) {
     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
   }
 }
+
+/*export function jupyter_backend_test() {
+  return jupyter_backend({_path:'x.ipynb'}, new Client());
+}
+*/
 
 interface KernelParams {
   name: string;
@@ -146,12 +158,12 @@ const _jupyter_kernels = {};
 
 export class JupyterKernel extends EventEmitter
   implements JupyterKernelInterface {
-  private name: string;
+  public name: string;
+  public store: any;    // used mainly for stdin support right now...
   private _dbg: Function;
   private _path: string;
   private _actions: any;
   private _state: string;
-  private _store: any;
   private _directory: string;
   private _filename: string;
   private _identity: string;
@@ -175,7 +187,7 @@ export class JupyterKernel extends EventEmitter
     this._path = _path;
     this._actions = _actions;
 
-    this._store = key_value_store();
+    this.store = key_value_store();
     const { head, tail } = path_split(this._path);
     this._directory = head;
     this._filename = tail;
@@ -237,7 +249,7 @@ export class JupyterKernel extends EventEmitter
   async _finish_spawn(): Promise<void> {
     const dbg = this.dbg("spawn2");
 
-    dbg("now creating channels...");
+    dbg("now creating os...");
 
     this._kernel.spawn.on("error", err => {
       dbg("kernel spawn error", err);
@@ -411,8 +423,8 @@ export class JupyterKernel extends EventEmitter
     if (this._state === "closed") {
       return;
     }
-    this._store.close();
-    delete this._store;
+    this.store.close();
+    delete this.store;
     this._set_state("closed");
     const kernel = _jupyter_kernels[this._path];
     if (kernel != null && kernel._identity === this._identity) {
@@ -474,7 +486,7 @@ export class JupyterKernel extends EventEmitter
     }
   }
 
-  execute_code(opts: ExecOpts): CodeExecutionEmitter {
+  execute_code(opts: ExecOpts): CodeExecutionEmitterInterface {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
@@ -760,3 +772,8 @@ export class JupyterKernel extends EventEmitter
     return blob_store.save(base64, mime);
   }
 }
+
+export function get_existing_kernel(path:string) : JupyterKernel | undefined {
+  return _jupyter_kernels[path];
+}
+

@@ -11,8 +11,7 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
 
-#{jupyter_router} = require('./jupyter/jupyter')
-{jupyter_router} = require('./jupyter-coffee/jupyter')
+{jupyter_router} = require('./jupyter/http-server')
 
 {directory_listing_router} = require('./directory-listing')
 

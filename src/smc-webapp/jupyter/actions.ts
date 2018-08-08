@@ -54,7 +54,7 @@ const syncstring = require("smc-util/syncstring");
 
 const { instantiate_assistant } = require("../assistant/main");
 
-type JupyterKernel = any;
+import { JupyterKernelInterface } from "./project-interface";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -87,7 +87,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   protected _client: any;
   protected _file_watcher: any;
-  protected _jupyter_kernel?: JupyterKernel;
+  protected _jupyter_kernel?: JupyterKernelInterface;
   protected _state: any;
   public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
@@ -2230,7 +2230,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (action_name === "reopen_file") {
       a.close_file(path);
       // ensure the side effects from changing registered
-      // editors in project_file.coffee finish happening
+      // editors in project_file.* finish happening
       window.setTimeout(() => {
         return a.open_file({ path });
       }, 0);
@@ -2581,7 +2581,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.set_error("move_edit_cursor not implemented");
   };
 
-  // supported scroll positions are in commands.coffee
+  // supported scroll positions are in commands.ts
   scroll(pos): any {
     return this.setState({ scroll: pos });
   }
@@ -2651,7 +2651,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         but is also run on the frontend too, e.g.,
         for client-side nbviewer (in which case it won't remove images, etc.).
 
-        See the documentation for load_ipynb_file in project-actions.coffee for
+        See the documentation for load_ipynb_file in project-actions.ts for
         documentation about the data_only input variable.
         */
     //dbg = @dbg("set_to_ipynb")

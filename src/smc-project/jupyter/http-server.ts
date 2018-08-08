@@ -5,16 +5,16 @@ useful, e.g., for big images, general info about all available
 kernels, sending signals, doing tab completions, and so on.
 */
 
-import { express_router } from "./blob_store";
-
-import { get_kernel_data } from "./kernel-data";
-
 import { exists } from "./async-utils-node";
+import { get_existing_kernel } from "./jupyter";
+import { blob_store } from "./jupyter-blobs-sqlite";
+import { get_kernel_data } from "./kernel-data";
+import { startswith } from "../smc-webapp/frame-editors/generic/misc";
 
 const BASE = "/.smc/jupyter/";
 
 function get_code_and_cursor_pos(
-  query: object
+  query: any
 ): { code: string; cursor_pos: number } {
   const code: string = query.code;
   if (!code) {
@@ -134,7 +134,7 @@ function jupyter_kernel_info_handler(router): void {
           : kernel.resources_dir;
       path = require("path").join(resource_dir, segments.slice(1).join("/"));
       path = require("path").resolve(path);
-      if (!misc.startswith(path, resource_dir)) {
+      if (!startswith(path, resource_dir)) {
         // don't let user use .. or something to get any file on the server...!
         // (this really can't happen due to url rules already; just being super paranoid.)
         throw Error(`suspicious path '${path}'`);
@@ -152,14 +152,14 @@ function jupyter_kernel_info_handler(router): void {
 }
 
 function jupyter_kernel_http_server(router): void {
-  router.get(BASE + "kernels/*", async function(req, res) : Promise<void> {
+  router.get(BASE + "kernels/*", async function(req, res): Promise<void> {
     let path: string = req.path.slice((BASE + "kernels/").length).trim();
     if (path.length === 0) {
-      res.send(kernel_data.jupyter_kernels_json);
+      res.send((await get_kernel_data()).jupyter_kernels_json);
       return;
     }
     const segments = path.split("/");
-    const kernel = _jupyter_kernels[req.query.path];
+    const kernel = get_existing_kernel(req.query.path);
     if (kernel == null) {
       res.send(
         JSON.stringify({ error: `no kernel with path '${req.query.path}'` })
@@ -177,7 +177,7 @@ function jupyter_kernel_http_server(router): void {
 
 export function jupyter_router(express): any {
   // Install handling for the blob store
-  const router = express_router(BASE, express);
+  const router = blob_store.express_router(BASE, express);
 
   // Handler for Jupyter kernel info
   jupyter_kernel_info_handler(router);

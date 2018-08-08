@@ -8,7 +8,6 @@ TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
-import { Message } from "./types";
 
 import {
   uuid,
@@ -21,7 +20,8 @@ import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   StdinFunction,
-  MesgHandler
+  MesgHandler,
+  Message
 } from "../smc-webapp/jupyter/project-interface";
 
 export class CodeExecutionEmitter extends EventEmitter
@@ -50,7 +50,7 @@ export class CodeExecutionEmitter extends EventEmitter
   // Or an array of those when this.all is true
   emit_output(output: object): void {
     this.all_output.push(output);
-    this.emit("result", output);
+    this.emit("output", output);
   }
 
   request_stdin(mesg, cb: (err, response: string) => void): void {
@@ -67,10 +67,12 @@ export class CodeExecutionEmitter extends EventEmitter
   close(): void {
     this.state = 'closed';
     this.emit("closed");
+    this.removeAllListeners();
   }
 
   throw_error(err): void {
     this.emit("error", err);
+    this.close();
   }
 
   async go(): Promise<object[]> {

@@ -4,6 +4,8 @@ Jupyter's in-memory blob store (based on sqlite), which hooks into the raw http 
 
 require("coffee-register"); // because of misc and misc_node below.  Delete this when those are typescript'd
 
+import { BlobStoreInterface } from "../smc-webapp/jupyter/project-interface";
+
 const fs = require("fs");
 
 import { readFile } from "./async-utils-node";
@@ -25,7 +27,7 @@ const DB_FILE = `${
 // TODO: are these the only base64 encoded types that jupyter kernels return?
 const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
 
-export class BlobStore {
+export class BlobStore implements BlobStoreInterface {
   private _db: Database;
 
   constructor() {
