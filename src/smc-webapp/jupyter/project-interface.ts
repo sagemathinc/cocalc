@@ -63,7 +63,6 @@ export interface ExecOpts {
 
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
   emit_output(result: object): void;
-  request_stdin(mesg, cb: (err, response: string) => void): void;
   cancel(): void;
   close(): void;
   throw_error(err): void;

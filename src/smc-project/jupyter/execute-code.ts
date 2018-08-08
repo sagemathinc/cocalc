@@ -53,10 +53,6 @@ export class CodeExecutionEmitter extends EventEmitter
     this.emit("output", output);
   }
 
-  request_stdin(mesg, cb: (err, response: string) => void): void {
-    this.emit("stdin_request", mesg, cb);
-  }
-
   // Call this to inform anybody listening that we've cancelled
   // this execution, and will NOT be doing it ever, and it
   // was explicitly cancelled.
@@ -144,7 +140,12 @@ export class CodeExecutionEmitter extends EventEmitter
           return;
         }
 
-        this.request_stdin(mesg.content, (err, response) => {
+        if (this.stdin == null) {
+          // can't happen -- this is to satisfy the compiler.
+          return;
+        }
+
+        this.stdin(mesg.content, (err, response) => {
           dbg(`STDIN client --> server ${err}, ${JSON.stringify(response)}`);
           if (err) {
             response = `ERROR -- ${err}`;
