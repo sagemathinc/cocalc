@@ -757,9 +757,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
               is_expanded={this.props.expanded_students.has(x.student_id)}
               student_name={name}
               display_account_name={true}
-              active_feedback_edits={
-                this.props.active_feedback_edits
-              }
+              active_feedback_edits={this.props.active_feedback_edits}
             />
           );
         }
@@ -1267,17 +1265,13 @@ class Student extends Component<StudentProps, StudentState> {
         assignment
       );
       const key = util.assignment_identifier(assignment, this.props.student);
-      const edited_feedback = this.props.active_feedback_edits.get(
-        key
-      );
+      const edited_feedback = this.props.active_feedback_edits.get(key);
       let edited_comments: string | undefined;
       let edited_grade: string | undefined;
       if (edited_feedback != undefined) {
         edited_comments = edited_feedback.get("edited_comments");
         edited_grade = edited_feedback.get("edited_grade");
       }
-    console.log("Edited Grade is:", edited_grade)
-    console.log("Edited Comments is:", edited_comments)
       result.push(
         <StudentAssignmentInfo
           key={assignment.get("assignment_id")}

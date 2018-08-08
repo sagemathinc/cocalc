@@ -250,9 +250,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           expand_peer_config={this.props.expanded_peer_configs.has(
             x.assignment_id
           )}
-          active_feedback_edits={
-            this.props.active_feedback_edits
-          }
+          active_feedback_edits={this.props.active_feedback_edits}
         />
       ));
     }
@@ -632,9 +630,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               students={this.props.students}
               user_map={this.props.user_map}
               active_student_sort={this.props.active_student_sort}
-              active_feedback_edits={
-                this.props.active_feedback_edits
-              }
+              active_feedback_edits={this.props.active_feedback_edits}
             />
             {this.render_note()}
           </Panel>
@@ -1642,8 +1638,8 @@ class StudentListForAssignment extends Component<
       edited_comments = edited_feedback.get("edited_comments");
       edited_grade = edited_feedback.get("edited_grade");
     }
-    console.log("Edited Grade is:", edited_grade)
-    console.log("Edited Comments is:", edited_comments)
+    console.log("Edited Grade is:", edited_grade);
+    console.log("Edited Comments is:", edited_comments);
     return (
       <StudentAssignmentInfo
         key={student_id}

@@ -1536,28 +1536,26 @@ export class CourseActions extends Actions<CourseState> {
     }
 
     const grade: string;
-      if (new_edited_grade != undefined) {
-        grade = new_edited_grade;
-      } else if (current_edited_grade != undefined) {
-        grade = current_edited_grade;
-      } else if (store.get_grade(assignment, student) != undefined) {
-        grade = store.get_grade(assignment, student);
-      } else {
-        grade = "";
-      }
+    if (new_edited_grade != undefined) {
+      grade = new_edited_grade;
+    } else if (current_edited_grade != undefined) {
+      grade = current_edited_grade;
+    } else if (store.get_grade(assignment, student) != undefined) {
+      grade = store.get_grade(assignment, student);
+    } else {
+      grade = "";
+    }
 
     const comments: string;
-      if (new_edited_comments != undefined) {
-        comments = new_edited_comments;
-      } else if (current_edited_comments != undefined) {
-        comments = current_edited_comments;
-      } else if (store.get_comments(assignment, student) != undefined) {
-        comments = store.get_comments(assignment, student);
-      } else {
-        comments = "";
-      }
-
-    console.log("Setting edited feedback to", grade, "and", comments)
+    if (new_edited_comments != undefined) {
+      comments = new_edited_comments;
+    } else if (current_edited_comments != undefined) {
+      comments = current_edited_comments;
+    } else if (store.get_comments(assignment, student) != undefined) {
+      comments = store.get_comments(assignment, student);
+    } else {
+      comments = "";
+    }
 
     const old_edited_feedback = store.get("active_feedback_edits");
     const new_edited_feedback = old_edited_feedback.set(
@@ -1587,18 +1585,18 @@ export class CourseActions extends Actions<CourseState> {
       table: "assignments",
       assignment_id: assignment.get("assignment_id")
     };
-    const assignment_data = this._get_one(query)
+    const assignment_data = this._get_one(query);
 
     let grades = assignment_data.grades || {};
     grades[student.get("student_id")] = edited_feedback.get("edited_grade");
-    const grade_changes = Object.assign({grades: grades}, query)
+    const grade_changes = Object.assign({ grades: grades }, query);
     this._set(grade_changes);
 
     let comments = assignment_data.comments || {};
     comments[student.get("student_id")] = edited_feedback.get(
       "edited_comments"
     );
-    const comment_changes = Object.assign({comments: comments}, query)
+    const comment_changes = Object.assign({ comments: comments }, query);
     this._set(comment_changes);
     this.clear_edited_feedback(assignment, student);
   };

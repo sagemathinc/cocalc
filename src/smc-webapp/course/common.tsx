@@ -272,7 +272,6 @@ export class StudentAssignmentInfo extends Component<
   };
 
   set_edited_feedback = (grade?: string, comments?: string) => {
-    console.log("Updating edited feedback to", grade, comments);
     this.get_actions().update_edited_feedback(
       this.props.assignment,
       this.props.student,
