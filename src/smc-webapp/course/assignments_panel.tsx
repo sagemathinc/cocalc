@@ -134,7 +134,8 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           expanded_assignments: rtypes.immutable.Set,
           active_assignment_sort: rtypes.immutable.Map,
           active_student_sort: rtypes.immutable.Map,
-          expanded_peer_configs: rtypes.immutable.Set
+          expanded_peer_configs: rtypes.immutable.Set,
+          active_feedback_edits: rtypes.immutable.Map
         }
       };
     };
@@ -415,7 +416,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         "background",
         "is_expanded",
         "active_student_sort",
-        "expand_peer_config"
+        "expand_peer_config",
+        "active_feedback_edits"
       ])
     );
   }

@@ -142,7 +142,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
         [name]: {
           expanded_students: rtypes.immutable.Set,
           active_student_sort: rtypes.immutable.Map,
-          get_student_name: rtypes.func
+          get_student_name: rtypes.func,
+          active_feedback_edits: rtypes.immutable.Map
         }
       };
     };
