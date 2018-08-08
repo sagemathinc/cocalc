@@ -1524,7 +1524,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
 
-    const key = assignment.get("assignment_id") + student.get("student_id");
+    const key = assignment_identifier(assignment, student);
     const current_edited_feedback = store.get("active_feedback_edits").get(key);
 
     let current_edited_grade: string | undefined;
