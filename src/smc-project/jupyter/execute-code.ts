@@ -119,9 +119,12 @@ export class CodeExecutionEmitter extends EventEmitter {
       // it's **silently** immutable, which
       // is pretty annoying for our use. For now, we
       // just copy it, which is a waste.
+      // dbg("push_mesg", mesg);
       mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
+      // dbg("push_mesg after copy_with", mesg);
       mesg = deep_copy(mesg);
-      if (mesg.header != null) {
+      // dbg("push_mesg after deep copy", mesg);
+      if (mesg.header !== undefined) {
         mesg.msg_type = mesg.header.msg_type;
       }
       if (this.all) {

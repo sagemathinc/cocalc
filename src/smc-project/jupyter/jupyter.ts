@@ -20,7 +20,7 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
-export const VERSION = "5.2";
+export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
 import kernelspecs from "kernelspecs";
@@ -404,7 +404,7 @@ export class JupyterKernel extends EventEmitter {
     }
   }
 
-  close(): void {
+  async close(): Promise<void> {
     this.dbg("close")();
     if (this._state === "closed") {
       return;
@@ -424,7 +424,7 @@ export class JupyterKernel extends EventEmitter {
       }
       this.signal("SIGKILL"); // kill the process group
       try {
-        unlink(this._kernel.connectionFile);
+        await unlink(this._kernel.connectionFile);
       } catch {
         // ignore
       }

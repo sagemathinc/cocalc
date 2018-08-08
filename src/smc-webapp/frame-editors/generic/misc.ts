@@ -114,23 +114,18 @@ export function merge(dest, ...objs) {
 // copy of map but only with some keys
 // I.e., restrict a function to a subset of the domain.
 export function copy_with(obj: object, w: string | string[]): object {
-  const set = {};
   if (typeof w === "string") {
-    set[w] = true;
-  } else {
-    for (let x in w) {
-      set[x] = true;
+    w = [w];
+  }
+  let obj2 : any = {};
+  let key : string;
+  for (key of w) {
+    const y = obj[key];
+    if (y !== undefined) {
+      obj2[key] = y;
     }
   }
-
-  const r = {};
-  for (let x in obj) {
-    const y = obj[x];
-    if (set[y]) {
-      r[x] = y;
-    }
-  }
-  return r;
+  return obj2;
 }
 
 import { cloneDeep } from "lodash";
