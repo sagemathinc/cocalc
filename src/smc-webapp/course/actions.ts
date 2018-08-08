@@ -1569,8 +1569,6 @@ export class CourseActions extends Actions<CourseState> {
     if (active_feedback_edits == undefined) {
       return;
     }
-    assignment = store.get_assignment(assignment);
-    student = store.get_student(student);
     const key = assignment_identifier(assignment, student);
     const edited_feedback = active_feedback_edits.get(key);
     if (edited_feedback == undefined) {
