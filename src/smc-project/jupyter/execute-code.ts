@@ -5,6 +5,7 @@ the results and gather them together.
 TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 */
 
+import { callback } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
 import { Message } from "./types";
@@ -16,55 +17,43 @@ import {
   copy_with
 } from "../smc-webapp/frame-editors/generic/misc";
 
-type StdinFunction = (options: object, cb: Function) => void;
+import {
+  CodeExecutionEmitterInterface,
+  ExecOpts,
+  StdinFunction,
+  MesgHandler
+} from "../smc-webapp/jupyter/project-interface";
 
-type MesgHandler = (mesg: Message) => void;
-
-export interface ExecOpts {
-  code: string;
-  id?: string; // optional tag to be used by cancel_execute
-
-  // if all=true, returned objects emits a single list (used for testing mainly);
-  // if all=false, returned objects emits output as many messages.
-  all?: boolean;
-
-  // if given, support stdin prompting; this function will be called
-  // as `stdin(options, cb)`, and must then do cb(undefined, 'user input')
-  // Here, e.g., options = { password: false, prompt: '' }.
-  stdin?: StdinFunction;
-
-  // Clear execution queue if shell returns status:'error', e.g., on traceback
-  halt_on_error?: boolean;
-}
-
-export class CodeExecutionEmitter extends EventEmitter {
+export class CodeExecutionEmitter extends EventEmitter
+  implements CodeExecutionEmitterInterface {
   readonly kernel: JupyterKernel;
   readonly code: string;
   readonly id?: string;
-  readonly all: boolean;
   readonly stdin?: StdinFunction;
   readonly halt_on_error: boolean;
-  results: object[] = [];
+  private state : string = 'init';
+  private all_output: object[] = [];
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
     this.kernel = kernel;
     this.code = opts.code;
     this.id = opts.id;
-    this.all = !!opts.all;
     this.stdin = opts.stdin;
     this.halt_on_error = !!opts.halt_on_error;
+
+    this._go = this._go.bind(this);
   }
 
   // Emits a valid result
   // result is https://jupyter-client.readthedocs.io/en/stable/messaging.html#python-api
   // Or an array of those when this.all is true
-  emit_result(result: object): void {
-    this.results.push(result);
-    this.emit("result", result);
+  emit_output(output: object): void {
+    this.all_output.push(output);
+    this.emit("result", output);
   }
 
-  request_stdin(mesg, cb: (err, response: string) => void) {
+  request_stdin(mesg, cb: (err, response: string) => void): void {
     this.emit("stdin_request", mesg, cb);
   }
 
@@ -75,20 +64,32 @@ export class CodeExecutionEmitter extends EventEmitter {
     this.emit("canceled");
   }
 
-  close() {
+  close(): void {
+    this.state = 'closed';
     this.emit("closed");
   }
 
-  throw_error(err) {
+  throw_error(err): void {
     this.emit("error", err);
   }
 
-  go(): void {
+  async go(): Promise<object[]> {
+    await callback(this._go);
+    return this.all_output;
+  }
+
+  _go(cb: Function): void {
+    if (this.state != 'init') {
+      cb("may only run once");
+      return;
+    }
+    this.state = 'running';
     let kernel = this.kernel;
     const dbg = kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
-    dbg(`code='${this.code}', all=${this.all}`);
+    dbg(`code='${this.code}'`);
     if (kernel.get_state() === "closed") {
       this.close();
+      cb("closed");
       return;
     }
 
@@ -109,8 +110,6 @@ export class CodeExecutionEmitter extends EventEmitter {
       }
     };
 
-    const all_mesgs: any[] = [];
-
     let shell_done: boolean = false;
     let iopub_done: boolean = false;
 
@@ -127,11 +126,7 @@ export class CodeExecutionEmitter extends EventEmitter {
       if (mesg.header !== undefined) {
         mesg.msg_type = mesg.header.msg_type;
       }
-      if (this.all) {
-        all_mesgs.push(mesg);
-      } else {
-        this.emit_result(mesg);
-      }
+      this.emit_output(mesg);
     };
 
     let f: MesgHandler, g: MesgHandler, h: MesgHandler;
@@ -232,9 +227,8 @@ export class CodeExecutionEmitter extends EventEmitter {
       kernel._execute_code_queue.shift(); // finished
       kernel._process_execute_code_queue(); // start next exec
       push_mesg({ done: true });
-      if (this.all) {
-        this.emit_result(all_mesgs);
-      }
+      this.close();
+      cb();
     };
 
     dbg("send the message");

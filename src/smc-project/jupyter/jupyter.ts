@@ -61,10 +61,14 @@ import { nbconvert } from "./nbconvert";
 
 import { get_kernel_data } from "./kernel-data";
 
-import { CodeExecutionEmitter, ExecOpts } from "./execute-code";
+import { ExecOpts, KernelInfo } from "../smc-webapp/jupyter/project-interface";
+
+import { CodeExecutionEmitter } from "./execute-code";
 
 import { JupyterActions } from "../smc-webapp/jupyter/project-actions";
 import { JupyterStore } from "../smc-webapp/jupyter/store";
+
+import { JupyterKernelInterface } from "../smc-webapp/jupyter/project-interface";
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -140,9 +144,8 @@ call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels = {};
 
-type KernelInfo = object;
-
-export class JupyterKernel extends EventEmitter {
+export class JupyterKernel extends EventEmitter
+  implements JupyterKernelInterface {
   private name: string;
   private _dbg: Function;
   private _path: string;
@@ -280,7 +283,7 @@ export class JupyterKernel extends EventEmitter {
     await this._get_kernel_info();
   }
 
-  async _get_kernel_info() : Promise<void> {
+  async _get_kernel_info(): Promise<void> {
     const dbg = this.dbg("_get_kernel_info");
     /*
     The following is very ugly!  In practice, with testing,
@@ -317,8 +320,7 @@ export class JupyterKernel extends EventEmitter {
     dbg("successfully got kernel info");
   }
 
-
-  async _wait_for_iopub_or_shell() : Promise<void> {
+  async _wait_for_iopub_or_shell(): Promise<void> {
     const dbg = this.dbg("_wait_for_iopub_or_shell");
     const wait_for_iopub_or_shell = cb => {
       dbg("waiting for an iopub or shell message from the kernel");
@@ -563,13 +565,25 @@ export class JupyterKernel extends EventEmitter {
     }
     const mesg = { done: true };
     for (let code_execution_emitter of this._execute_code_queue.slice(1)) {
-      if (code_execution_emitter.all) {
-        code_execution_emitter.emit_result([mesg]);
-      } else {
-        code_execution_emitter.emit_result(mesg);
-      }
+      code_execution_emitter.emit_output(mesg);
+      code_execution_emitter.close();
     }
     this._execute_code_queue = [];
+  }
+
+  // This is like execute_code, but async and returns all the results,
+  // and does not use the internal execution queue.
+  // This is used for unit testing and interactive work at the terminal.
+  async execute_code_now(opts: ExecOpts): Promise<object[]> {
+    if (opts.halt_on_error === undefined) {
+      // if not specified, default to true.
+      opts.halt_on_error = true;
+    }
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
+    await this._ensure_running();
+    return await (new CodeExecutionEmitter(this, opts)).go();
   }
 
   process_output(content: any): void {
