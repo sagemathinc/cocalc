@@ -39,7 +39,7 @@ const { defaults } = misc;
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set } from "immutable";
-import { TypedMap } from "../app-framework/TypedMap";
+import { TypedMap, createTypedMap } from "../app-framework/TypedMap";
 
 // Upgrades
 const project_upgrades = require("./project-upgrades");
@@ -58,7 +58,7 @@ export type StudentRecord = TypedMap<{
   note: string;
 }>;
 
-export type StudentsMap = Map<string, StudentRecord>
+export type StudentsMap = Map<string, StudentRecord>;
 
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
@@ -73,7 +73,7 @@ export type AssignmentRecord = TypedMap<{
   skip_grading: boolean;
 }>;
 
-export type AssignmentsMap = Map<string, AssignmentRecord>
+export type AssignmentsMap = Map<string, AssignmentRecord>;
 
 export type HandoutRecord = TypedMap<{
   deleted: boolean;
@@ -83,14 +83,16 @@ export type HandoutRecord = TypedMap<{
   note: string;
 }>;
 
-export type HandoutsMap = Map<string, HandoutRecord>
+export type HandoutsMap = Map<string, HandoutRecord>;
 
 export type SortDescription = TypedMap<{
   column_name: string;
   is_descending: boolean;
 }>;
 
-export type CourseSettingsRecord = TypedMap<{
+export type CourseSettingsRecord = TypedMap<CourseSettings>;
+
+interface CourseSettings {
   allow_collabs: boolean;
   description: string;
   email_invite: string;
@@ -100,10 +102,20 @@ export type CourseSettingsRecord = TypedMap<{
   student_pay: boolean;
   title: string;
   upgrade_goal: Map<any, any>;
-}>;
+}
+
+export const CourseSetting = createTypedMap<CourseSettings>();
+
+export type IsGradingMap = Map<string, FeedbackRecord>;
+export type FeedbackRecord = TypedMap<Feedback>;
+interface Feedback {
+  edited_grade: string;
+  edited_comments: string;
+}
+export const Feedback = createTypedMap<Feedback>();
 
 export interface CourseState {
-  activity: { [key: string]: string };
+  activity?: { [key: string]: string };
   action_all_projects_state: string;
   active_student_sort: { column_name: string; is_descending: boolean };
   active_assignment_sort: { column_name: string; is_descending: boolean };
@@ -111,20 +123,20 @@ export interface CourseState {
   course_filename: string;
   course_project_id: string;
   configure_projects: string;
-  error: string;
+  error?: string;
   expanded_students: Set<string>;
   expanded_assignments: Set<string>;
   expanded_peer_configs: Set<string>;
   expanded_handouts: Set<string>;
   expanded_skip_gradings: Set<string>;
+  active_feedback_edits: IsGradingMap;
   handouts: HandoutsMap;
   saving: boolean;
   settings: CourseSettingsRecord;
   show_save_button: boolean;
-  student_id: string;
   students: StudentsMap;
   tab: string;
-  unsaved: boolean;
+  unsaved?: boolean;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -195,7 +207,6 @@ export class CourseStore extends Store<CourseState> {
     }); // stop looping
     return has_peer;
   }
-
 
   get_peers_that_graded_student(assignment, student) {
     // Return Javascript array of the student_id's of the students
