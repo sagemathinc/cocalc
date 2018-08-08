@@ -238,9 +238,8 @@ AddPaymentMethod = rclass
 
     submit_payment_method: ->
         @setState(error: false, submitting:true)
-        if (redux.getStore('billing').get('customer') == undefined) {
+        if not redux.getStore('billing').get('customer')?
             @props.redux.getActions('billing').setState({continue_first_purchase: true})
-        }
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
