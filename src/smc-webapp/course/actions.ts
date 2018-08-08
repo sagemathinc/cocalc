@@ -1587,16 +1587,19 @@ export class CourseActions extends Actions<CourseState> {
       table: "assignments",
       assignment_id: assignment.get("assignment_id")
     };
-    const grades = this._get_one(query).grades || {};
-    grades[student.get("student_id")] = edited_feedback.get("edited_grade");
-    (query as any).grades = grades;
+    const assignment_data = this._get_one(query)
 
-    const comments = this._get_one(query).comments || {};
+    let grades = assignment_data.grades || {};
+    grades[student.get("student_id")] = edited_feedback.get("edited_grade");
+    const grade_changes = Object.assign({grades: grades}, query)
+    this._set(grade_changes);
+
+    let comments = assignment_data.comments || {};
     comments[student.get("student_id")] = edited_feedback.get(
       "edited_comments"
     );
-    (query as any).comments = comments;
-    this._set(query);
+    const comment_changes = Object.assign({comments: comments}, query)
+    this._set(comment_changes);
     this.clear_edited_feedback(assignment, student);
   };
 
