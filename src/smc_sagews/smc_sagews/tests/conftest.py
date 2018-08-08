@@ -445,6 +445,8 @@ def exec2(request, sagews, test_id):
 
     - `` timeout `` -- socket timeout in seconds
 
+    - `` errout `` -- stderr substring to be matched. stderr may come as several messages
+
     EXAMPLES:
 
     ::
