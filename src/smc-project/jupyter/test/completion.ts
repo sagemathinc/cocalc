@@ -3,9 +3,7 @@ Test completion API
 */
 
 import {} from "mocha";
-
 import * as expect from "expect";
-
 import * as common from "./common";
 
 // global kernel being tested at any point.

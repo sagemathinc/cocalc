@@ -1,9 +1,7 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
+// Use clean in-memory blob store for tests.
+process.env.JUPYTER_BLOBS_DB_FILE = "memory";
+
+
 import { kernel as jupyter_kernel } from "../jupyter";
 
 import { JupyterKernelInterface } from "../../smc-webapp/jupyter/project-interface";

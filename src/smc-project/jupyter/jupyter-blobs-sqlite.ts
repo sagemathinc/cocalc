@@ -18,11 +18,16 @@ const misc_node = require("smc-util-node/misc_node");
 
 import * as Database from "better-sqlite3";
 
-const DB_FILE = `${
-  process.env.SMC_LOCAL_HUB_HOME != null
-    ? process.env.SMC_LOCAL_HUB_HOME
-    : process.env.HOME
-}/.jupyter-blobs-v0.db`;
+let JUPYTER_BLOBS_DB_FILE: string;
+if (process.env.JUPYTER_BLOBS_DB_FILE) {
+  JUPYTER_BLOBS_DB_FILE = process.env.JUPYTER_BLOBS_DB_FILE;
+} else {
+  JUPYTER_BLOBS_DB_FILE = `${
+    process.env.SMC_LOCAL_HUB_HOME != null
+      ? process.env.SMC_LOCAL_HUB_HOME
+      : process.env.HOME
+  }/.jupyter-blobs-v0.db`;
+}
 
 // TODO: are these the only base64 encoded types that jupyter kernels return?
 const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
@@ -34,9 +39,11 @@ export class BlobStore implements BlobStoreInterface {
     winston.debug("jupyter BlobStore: constructor");
     try {
       this._init();
-      winston.debug(`jupyter BlobStore: ${DB_FILE} opened fine`);
+      winston.debug(`jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} opened fine`);
     } catch (err) {
-      winston.debug(`jupyter BlobStore: ${DB_FILE} open error - ${err}`);
+      winston.debug(
+        `jupyter BlobStore: ${JUPYTER_BLOBS_DB_FILE} open error - ${err}`
+      );
       // File may be corrupt/broken/etc. -- in this case, remove and try again.
       // This database is only an image *cache*, so this is fine.
       // See https://github.com/sagemathinc/cocalc/issues/2766
@@ -44,17 +51,24 @@ export class BlobStore implements BlobStoreInterface {
       // during initialization.
       winston.debug("jupyter BlobStore: resetting database cache");
       try {
-        fs.unlinkSync(DB_FILE);
+        fs.unlinkSync(JUPYTER_BLOBS_DB_FILE);
       } catch (error) {
         err = error;
-        winston.debug(`Error trying to delete ${DB_FILE}... ignoring: `, err);
+        winston.debug(
+          `Error trying to delete ${JUPYTER_BLOBS_DB_FILE}... ignoring: `,
+          err
+        );
       }
       this._init();
     }
   }
 
   _init(): void {
-    this._db = new Database(DB_FILE);
+    if (JUPYTER_BLOBS_DB_FILE == "memory") {
+      this._db = new Database(".db", { memory: true });
+    } else {
+      this._db = new Database(JUPYTER_BLOBS_DB_FILE);
+    }
     this._db
       .prepare(
         "CREATE TABLE IF NOT EXISTS blobs (sha1 TEXT, data BLOB, type TEXT, ipynb TEXT, time INTEGER)"
@@ -73,6 +87,11 @@ export class BlobStore implements BlobStoreInterface {
     this._db
       .prepare("DELETE FROM blobs WHERE time <= ?")
       .run(months_ago(1) - 0);
+  }
+
+  // used in testing
+  delete_all_blobs(): void {
+    this._db.prepare("DELETE FROM blobs").run();
   }
 
   // data could, e.g., be a uuencoded image
@@ -106,9 +125,11 @@ export class BlobStore implements BlobStoreInterface {
     return await this.save(readFile(path), type);
   }
 
+  /*
   free(sha1: string): void {
-    // Currently a no-op -- stuff gets freed 2 weeks after last save.
+    // instead, stuff gets freed 1 month after last save.
   }
+  */
 
   // Return data with given sha1, or undefined if no such data.
   get(sha1: string): undefined | Buffer {
