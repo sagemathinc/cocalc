@@ -216,10 +216,11 @@ exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
 
     propTypes :
-        actions  : rtypes.object
-        ping     : rtypes.number
-        status   : rtypes.string
-        on_click : rtypes.func
+        actions       : rtypes.object
+        ping          : rtypes.number
+        status        : rtypes.string
+        on_click      : rtypes.func
+        show_pingtime : rtypes.bool
 
     reduxProps :
         page :
@@ -229,7 +230,10 @@ exports.ConnectionIndicator = rclass
             mesg_info         : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info'])
+        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info', 'show_pingtime'])
+
+    getDefaultProps: ->
+        show_pingtime : true
 
     render_ping: ->
         if @props.avgping?
@@ -254,7 +258,7 @@ exports.ConnectionIndicator = rclass
                 icon_style.color = 'grey'
             <div>
                 <Icon name='wifi' style={icon_style}/>
-                {@render_ping()}
+                {@render_ping() if @props.show_pingtime}
             </div>
         else if @props.connection_status == 'connecting'
             <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
@@ -271,8 +275,9 @@ exports.ConnectionIndicator = rclass
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
+        width = if @props.show_pingtime then '8.5em' else '5em'
         outer_styles =
-            width      : '8.5em'
+            width      : width
             color      : '#666'
             fontSize   : '10pt'
             lineHeight : '10pt'
