@@ -18,6 +18,8 @@ For more information see "app-framework/examples/"
 import { Map } from "immutable";
 
 export interface TypedMap<TProps> {
+  size: number;
+
   // Reading values
   has(key: string): boolean;
 
@@ -120,14 +122,21 @@ interface TypedMapFactory<TProps extends Object> {
   new (values: TProps): TypedMap<TProps>;
 }
 
-export function createTypedMap<TProps>(
-  defaults?: Partial<TProps>
-): TypedMapFactory<TProps> {
+export function createTypedMap<OuterProps>(
+  defaults?: Partial<
+    OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps
+  >
+): TypedMapFactory<
+  OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps
+> {
   let default_map: Map<any, any>;
   if (defaults !== undefined) {
     default_map = Map(defaults as any);
   }
-  class TypedMap {
+
+  type TProps = OuterProps extends TypedMap<infer InnerProps> ? InnerProps : OuterProps;
+
+  class _TypedMap {
     private data: any;
 
     constructor(TProps: TProps) {
@@ -288,7 +297,11 @@ export function createTypedMap<TProps>(
     asImmutable(): this {
       return this.data.asImmutable();
     }
+
+    get size(): number {
+      return this.data.size;
+    }
   }
 
-  return TypedMap;
+  return _TypedMap as any;
 }
