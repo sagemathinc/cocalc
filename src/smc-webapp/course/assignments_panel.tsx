@@ -563,9 +563,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       );
     }
 
-    const peer = __guard__(this.props.assignment.get("peer_grade"), x =>
-      x.get("enabled")
-    );
+    const peer_info = this.props.assignment.get("peer_grade");
+    const peer = peer_info ? peer_info.get("enabled") : false;
+
     if (peer) {
       width = 2;
     } else {
@@ -664,15 +664,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_assignment_button(status) {
-    let bsStyle, left;
-    if (
-      ((left = __guard__(
-        this.props.assignment.get("last_assignment"),
-        x => x.size
-      )) != null
-        ? left
-        : 0) === 0
-    ) {
+    let bsStyle;
+    const last_assignment = this.props.assignment.get("last_assignment");
+    // Primary if it hasn't been assigned before.
+    if (!last_assignment || last_assignment.get("time") == undefined) {
       bsStyle = "primary";
     } else {
       bsStyle = "warning";
