@@ -32,9 +32,12 @@ export class CodeExecutionEmitter extends EventEmitter
   readonly id?: string;
   readonly stdin?: StdinFunction;
   readonly halt_on_error: boolean;
+  private iopub_done: boolean = false;
+  private shell_done: boolean = false;
   private state: string = "init";
   private all_output: object[] = [];
   private _message: any;
+  private _go_cb: Function;
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
@@ -62,6 +65,10 @@ export class CodeExecutionEmitter extends EventEmitter
 
     this._go = this._go.bind(this);
     this._handle_stdin = this._handle_stdin.bind(this);
+    this._handle_shell = this._handle_shell.bind(this);
+    this._handle_iopub = this._handle_iopub.bind(this);
+    this._push_mesg = this._push_mesg.bind(this);
+    this._finish = this._finish.bind(this);
   }
 
   // Emits a valid result
@@ -91,7 +98,7 @@ export class CodeExecutionEmitter extends EventEmitter
   }
 
   async _handle_stdin(mesg: any): Promise<void> {
-    const dbg = this.kernel.dbg(`_handle_stdin`);
+    const dbg = this.kernel.dbg("_handle_stdin");
     if (!this.stdin) {
       throw Error("BUG -- stdin handling not supported");
     }
@@ -132,11 +139,79 @@ export class CodeExecutionEmitter extends EventEmitter
     this.kernel._channels.stdin.next(m);
   }
 
-  /*
-  _handle_shell(mesg:any, message:any) : void {
-
+  _handle_shell(mesg: any): void {
+    if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
+      return;
+    }
+    const dbg = this.kernel.dbg("_handle_shell");
+    dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
+    if ((mesg.content != null ? mesg.content.status : undefined) === "error") {
+      if (this.halt_on_error) {
+        this.kernel._clear_execute_code_queue();
+      }
+      // just bail; actual error would have been reported on iopub channel, hopefully.
+      this._finish();
+    } else {
+      this._push_mesg(mesg);
+      this.shell_done = true;
+      if (this.iopub_done && this.shell_done) {
+        this._finish();
+      }
+    }
   }
-*/
+
+  _handle_iopub(mesg: any): void {
+    if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
+      return;
+    }
+    const dbg = this.kernel.dbg("_handle_iopub");
+    dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
+
+    this.iopub_done =
+      (mesg.content != null ? mesg.content.execution_state : undefined) ===
+      "idle";
+
+    this._push_mesg(mesg);
+
+    if (this.iopub_done && this.shell_done) {
+      this._finish();
+    }
+  }
+
+  _finish(): void {
+    if (this.state === "closed") {
+      return;
+    }
+    this.kernel.removeListener("iopub", this._handle_iopub);
+    if (this.stdin != null) {
+      this.kernel.removeListener("stdin", this._handle_stdin);
+    }
+    this.kernel.removeListener("shell", this._handle_shell);
+    this.kernel._execute_code_queue.shift(); // finished
+    this.kernel._process_execute_code_queue(); // start next exec
+    this._push_mesg({ done: true });
+    this.close();
+    if (this._go_cb !== undefined) {
+      this._go_cb();
+    }
+  }
+
+  _push_mesg(mesg): void {
+    // TODO: mesg isn't a normal javascript object;
+    // it's **silently** immutable, which
+    // is pretty annoying for our use. For now, we
+    // just copy it, which is a waste.
+    // dbg("push_mesg", mesg);
+    mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
+    // dbg("push_mesg after copy_with", mesg);
+    mesg = deep_copy(mesg);
+    // dbg("push_mesg after deep copy", mesg);
+    if (mesg.header !== undefined) {
+      mesg.msg_type = mesg.header.msg_type;
+    }
+    this.emit_output(mesg);
+  }
+
   async go(): Promise<object[]> {
     await callback(this._go);
     return this.all_output;
@@ -148,104 +223,23 @@ export class CodeExecutionEmitter extends EventEmitter
       return;
     }
     this.state = "running";
-    let kernel = this.kernel;
-    const dbg = kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
+    const dbg = this.kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
     dbg(`code='${this.code}'`);
-    if (kernel.get_state() === "closed") {
+    if (this.kernel.get_state() === "closed") {
       this.close();
       cb("closed");
       return;
     }
 
-    let shell_done: boolean = false;
-    let iopub_done: boolean = false;
-
-    const push_mesg = mesg => {
-      // TODO: mesg isn't a normal javascript object;
-      // it's **silently** immutable, which
-      // is pretty annoying for our use. For now, we
-      // just copy it, which is a waste.
-      // dbg("push_mesg", mesg);
-      mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
-      // dbg("push_mesg after copy_with", mesg);
-      mesg = deep_copy(mesg);
-      // dbg("push_mesg after deep copy", mesg);
-      if (mesg.header !== undefined) {
-        mesg.msg_type = mesg.header.msg_type;
-      }
-      this.emit_output(mesg);
-    };
-
-    let f: MesgHandler, h: MesgHandler;
+    this._go_cb = cb; // this._finish will call this.
 
     if (this.stdin != null) {
-      kernel.on("stdin", this._handle_stdin);
+      this.kernel.on("stdin", this._handle_stdin);
     }
+    this.kernel.on("shell", this._handle_shell);
+    this.kernel.on("iopub", this._handle_iopub);
 
-    h = mesg => {
-      if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
-        return;
-      }
-      dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
-      if (
-        (mesg.content != null ? mesg.content.status : undefined) === "error"
-      ) {
-        if (this.halt_on_error) {
-          kernel._clear_execute_code_queue();
-        }
-        // just bail; actual error would have been reported on iopub channel, hopefully.
-        finish();
-      } else {
-        push_mesg(mesg);
-        shell_done = true;
-        if (iopub_done && shell_done) {
-          finish();
-        }
-      }
-    };
-
-    kernel.on("shell", h);
-
-    f = mesg => {
-      if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
-        return;
-      }
-      dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
-
-      iopub_done =
-        (mesg.content != null ? mesg.content.execution_state : undefined) ===
-        "idle";
-
-      push_mesg(mesg);
-
-      if (iopub_done && shell_done) {
-        return typeof finish === "function" ? finish() : undefined;
-      }
-    };
-
-    kernel.on("iopub", f);
-
-    let done: boolean = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      if (f != null) {
-        kernel.removeListener("iopub", f);
-      }
-      if (this.stdin != null) {
-        kernel.removeListener("stdin", this._handle_stdin);
-      }
-      if (h != null) {
-        kernel.removeListener("shell", h);
-      }
-      kernel._execute_code_queue.shift(); // finished
-      kernel._process_execute_code_queue(); // start next exec
-      push_mesg({ done: true });
-      this.close();
-      cb();
-    };
-
-    dbg("send the message");
-    kernel._channels.shell.next(this._message);
+    dbg("send the message to get things rolling");
+    this.kernel._channels.shell.next(this._message);
   }
 }
