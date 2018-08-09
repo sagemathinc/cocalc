@@ -1,13 +1,8 @@
-import {} from "mocha";
+import { } from "mocha";
 
 const expect = require("expect");
 
 import { kernel, exec } from "./common";
-
-// We use custom kernels for testing, since faster to start.
-// For example, we don't use matplotlib inline for testing (much) and
-// using it greatly slows down startup.
-process.env.JUPYTER_PATH=`${__dirname}/jupyter`
 
 describe("compute 2+3 using python2", function() {
   this.timeout(10000);
@@ -20,7 +15,7 @@ describe("compute 2+3 using python2", function() {
   it("spawn", async function() {
     await k.spawn();
     expect(k.get_state()).toBe("running");
-  })
+  });
 
   it("evaluate 2+3", async function() {
     expect(await exec(k, "2+3")).toEqual('{"text/plain":"5"}');
@@ -43,7 +38,7 @@ describe("compute 2/3 using python3", function() {
   it("spawn", async function() {
     await k.spawn();
     expect(k.get_state()).toBe("running");
-  })
+  });
 
   it("evaluate 2/3", async function() {
     expect(await exec(k, "2/3")).toEqual('{"text/plain":"0.6666666666666666"}');
@@ -54,4 +49,3 @@ describe("compute 2/3 using python3", function() {
     expect(k.get_state()).toBe("closed");
   });
 });
-

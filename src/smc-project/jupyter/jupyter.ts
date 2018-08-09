@@ -29,8 +29,6 @@ import * as pidusage from "pidusage";
 
 require("coffee-register");
 const {
-  defaults,
-  required,
   merge,
   copy,
   deep_copy,

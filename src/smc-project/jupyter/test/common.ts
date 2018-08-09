@@ -4,7 +4,10 @@
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-import { kernel as jupyter_kernel, JupyterKernel } from "../jupyter";
+import { kernel as jupyter_kernel } from "../jupyter";
+
+import { JupyterKernelInterface } from "../../smc-webapp/jupyter/project-interface";
+export type JupyterKernel = JupyterKernelInterface;
 
 const json = require("json-stable-stringify");
 
@@ -13,7 +16,13 @@ if (DEBUG) {
   console.log("DEBUG =", DEBUG);
 }
 
-export function kernel(name: string, path?: string): JupyterKernel {
+
+// We use custom kernels for testing, since faster to start.
+// For example, we don't use matplotlib inline for testing (much) and
+// using it greatly slows down startup.
+process.env.JUPYTER_PATH = `${__dirname}/jupyter`;
+
+export function kernel(name: string, path?: string): JupyterKernelInterface {
   if (path == null) {
     path = "";
   }
