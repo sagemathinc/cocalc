@@ -77,14 +77,18 @@ exports.NavTab = rclass
         style           : rtypes.object
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
+        show_label      : rtypes.bool
+
+    getDefaultProps: ->
+        show_label : true
 
     shouldComponentUpdate: (next) ->
         if @props.children?
             return true
-        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab'])
+        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab', 'show_label'])
 
     render_label: ->
-        if @props.label?
+        if @props.show_label and @props.label?
             <span style={marginLeft: 5} className={@props.label_class}>
                 {@props.label}
             </span>
