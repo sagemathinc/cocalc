@@ -8,7 +8,7 @@ so that Typescript can meaningfully type check everything.
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
-  addListener(event: string|symbol, listener: (...args: any[]) => void): this;
+  addListener(event: string | symbol, listener: (...args: any[]) => void): this;
   on(event: string, listener: (...args: any[]) => void): this;
   once(event: string, listener: (...args: any[]) => void): this;
   removeListener(event: string, listener: (...args: any[]) => void): this;
@@ -50,9 +50,9 @@ export interface Message {
   content: MessageContent;
 }
 
-export type StdinFunction = (options: object, cb: Function) => void;
-
-export type MesgHandler = (mesg: Message) => void;
+// an async function that takes prompt and optional password (in
+// which case value not in doc and sent via different channel).
+export type StdinFunction = (prompt: string, password: bool) => Promise<string>;
 
 export interface ExecOpts {
   code: string;

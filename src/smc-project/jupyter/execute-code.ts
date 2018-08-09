@@ -20,9 +20,10 @@ import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   StdinFunction,
-  MesgHandler,
   Message
 } from "../smc-webapp/jupyter/project-interface";
+
+type MesgHandler = (mesg: Message) => void;
 
 export class CodeExecutionEmitter extends EventEmitter
   implements CodeExecutionEmitterInterface {
@@ -31,8 +32,9 @@ export class CodeExecutionEmitter extends EventEmitter
   readonly id?: string;
   readonly stdin?: StdinFunction;
   readonly halt_on_error: boolean;
-  private state : string = 'init';
+  private state: string = "init";
   private all_output: object[] = [];
+  private _message: any;
 
   constructor(kernel: JupyterKernel, opts: ExecOpts) {
     super();
@@ -41,8 +43,25 @@ export class CodeExecutionEmitter extends EventEmitter
     this.id = opts.id;
     this.stdin = opts.stdin;
     this.halt_on_error = !!opts.halt_on_error;
+    this._message = {
+      header: {
+        msg_id: `execute_${uuid()}`,
+        username: "",
+        session: "",
+        msg_type: "execute_request",
+        version: VERSION
+      },
+      content: {
+        code: this.code,
+        silent: false,
+        store_history: true, // so execution_count is updated.
+        user_expressions: {},
+        allow_stdin: this.stdin != null
+      }
+    };
 
     this._go = this._go.bind(this);
+    this._handle_stdin = this._handle_stdin.bind(this);
   }
 
   // Emits a valid result
@@ -61,7 +80,7 @@ export class CodeExecutionEmitter extends EventEmitter
   }
 
   close(): void {
-    this.state = 'closed';
+    this.state = "closed";
     this.emit("closed");
     this.removeAllListeners();
   }
@@ -71,17 +90,64 @@ export class CodeExecutionEmitter extends EventEmitter
     this.close();
   }
 
+  async _handle_stdin(mesg: any): Promise<void> {
+    const dbg = this.kernel.dbg(`_handle_stdin`);
+    if (!this.stdin) {
+      throw Error("BUG -- stdin handling not supported");
+    }
+    dbg(`STDIN kernel --> server: ${JSON.stringify(mesg)}`);
+    if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
+      dbg(
+        `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${
+          this._message.header.msg_id
+        }`
+      );
+      return;
+    }
+
+    let response;
+    try {
+      response = await this.stdin(
+        mesg.content.prompt ? mesg.content.prompt : "",
+        !!mesg.content.password
+      );
+    } catch (err) {
+      response = `ERROR -- ${err}`;
+    }
+    dbg(`STDIN client --> server ${JSON.stringify(response)}`);
+    const m = {
+      parent_header: this._message.header,
+      header: {
+        msg_id: uuid(), // this._message.header.msg_id
+        username: "",
+        session: "",
+        msg_type: "input_reply",
+        version: VERSION
+      },
+      content: {
+        value: response
+      }
+    };
+    dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
+    this.kernel._channels.stdin.next(m);
+  }
+
+  /*
+  _handle_shell(mesg:any, message:any) : void {
+
+  }
+*/
   async go(): Promise<object[]> {
     await callback(this._go);
     return this.all_output;
   }
 
   _go(cb: Function): void {
-    if (this.state != 'init') {
+    if (this.state != "init") {
       cb("may only run once");
       return;
     }
-    this.state = 'running';
+    this.state = "running";
     let kernel = this.kernel;
     const dbg = kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
     dbg(`code='${this.code}'`);
@@ -90,23 +156,6 @@ export class CodeExecutionEmitter extends EventEmitter
       cb("closed");
       return;
     }
-
-    const message = {
-      header: {
-        msg_id: `execute_${uuid()}`,
-        username: "",
-        session: "",
-        msg_type: "execute_request",
-        version: VERSION
-      },
-      content: {
-        code: this.code,
-        silent: false,
-        store_history: true, // so execution_count is updated.
-        user_expressions: {},
-        allow_stdin: this.stdin != null
-      }
-    };
 
     let shell_done: boolean = false;
     let iopub_done: boolean = false;
@@ -127,52 +176,14 @@ export class CodeExecutionEmitter extends EventEmitter
       this.emit_output(mesg);
     };
 
-    let f: MesgHandler, g: MesgHandler, h: MesgHandler;
+    let f: MesgHandler, h: MesgHandler;
+
     if (this.stdin != null) {
-      g = mesg => {
-        dbg(`STDIN kernel --> server: ${JSON.stringify(mesg)}`);
-        if (mesg.parent_header.msg_id !== message.header.msg_id) {
-          dbg(
-            `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${
-              message.header.msg_id
-            }`
-          );
-          return;
-        }
-
-        if (this.stdin == null) {
-          // can't happen -- this is to satisfy the compiler.
-          return;
-        }
-
-        this.stdin(mesg.content, (err, response) => {
-          dbg(`STDIN client --> server ${err}, ${JSON.stringify(response)}`);
-          if (err) {
-            response = `ERROR -- ${err}`;
-          }
-          const m = {
-            parent_header: message.header,
-            header: {
-              msg_id: uuid(), // message.header.msg_id
-              username: "",
-              session: "",
-              msg_type: "input_reply",
-              version: VERSION
-            },
-            content: {
-              value: response
-            }
-          };
-          dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
-          kernel._channels.stdin.next(m);
-        });
-      };
-
-      kernel.on("stdin", g);
+      kernel.on("stdin", this._handle_stdin);
     }
 
     h = mesg => {
-      if (mesg.parent_header.msg_id !== message.header.msg_id) {
+      if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
         return;
       }
       dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
@@ -196,7 +207,7 @@ export class CodeExecutionEmitter extends EventEmitter
     kernel.on("shell", h);
 
     f = mesg => {
-      if (mesg.parent_header.msg_id !== message.header.msg_id) {
+      if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
         return;
       }
       dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
@@ -221,8 +232,8 @@ export class CodeExecutionEmitter extends EventEmitter
       if (f != null) {
         kernel.removeListener("iopub", f);
       }
-      if (g != null) {
-        kernel.removeListener("stdin", g);
+      if (this.stdin != null) {
+        kernel.removeListener("stdin", this._handle_stdin);
       }
       if (h != null) {
         kernel.removeListener("shell", h);
@@ -235,6 +246,6 @@ export class CodeExecutionEmitter extends EventEmitter
     };
 
     dbg("send the message");
-    kernel._channels.shell.next(message);
+    kernel._channels.shell.next(this._message);
   }
 }
