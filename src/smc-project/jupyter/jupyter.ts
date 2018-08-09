@@ -436,7 +436,7 @@ export class JupyterKernel extends EventEmitter
       if (this._kernel.spawn != null) {
         this._kernel.spawn.removeAllListeners();
       }
-      this.signal("SIGKILL"); // kill the process group
+      this.signal("SIGTERM"); // terminate the process group
       try {
         await unlink(this._kernel.connectionFile);
       } catch {

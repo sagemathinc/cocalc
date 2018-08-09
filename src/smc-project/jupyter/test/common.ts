@@ -21,6 +21,9 @@ if (DEBUG) {
 // For example, we don't use matplotlib inline for testing (much) and
 // using it greatly slows down startup.
 process.env.JUPYTER_PATH = `${__dirname}/jupyter`;
+if (DEBUG) {
+  console.log(`JUPYTER_PATH='${process.env.JUPYTER_PATH}'`);
+}
 
 export function kernel(name: string, path?: string): JupyterKernelInterface {
   if (path == null) {

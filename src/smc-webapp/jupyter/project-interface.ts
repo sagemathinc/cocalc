@@ -78,6 +78,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   signal(signal: string): void;
   usage(): Promise<{ cpu: number; memory: number }>;
   close(): Promise<void>;
+  spawn(): Promise<void>;
   execute_code(opts: ExecOpts): CodeExecutionEmitterInterface;
   cancel_execute(id: string): void;
   execute_code_now(opts: ExecOpts): Promise<object[]>;

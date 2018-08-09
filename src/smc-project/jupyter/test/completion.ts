@@ -9,7 +9,7 @@ import * as expect from "expect";
 import * as common from "./common";
 
 // global kernel being tested at any point.
-let kernel : common.JupyterKernel;
+let kernel: common.JupyterKernel;
 
 // This checks that on input the given obj={code:?, cursor_pos:?}
 // the resulting matches *contains* matches
@@ -67,26 +67,30 @@ describe("complete some things using python2 kernel -- ", function() {
     "iter"
   ]);
 
-  check({ code: "alsdfl", cursor_pos:5 });
+  check({ code: "alsdfl", cursor_pos: 5 });
 
   it("creates a new identifier", async function() {
     await common.exec(kernel, 'alsdfl = {"foo":"bar"}');
   });
 
-  check({ code: "alsdfl", cursor_pos:6 }, ["alsdfl"]);
+  check({ code: "alsdfl", cursor_pos: 6 }, ["alsdfl"]);
 
-  check({ code: "alsdfl._", cursor_pos:8 }, ["alsdfl.__class__", "alsdfl.__cmp__"]);
+  check({ code: "alsdfl._", cursor_pos: 8 }, [
+    "alsdfl.__class__",
+    "alsdfl.__cmp__"
+  ]);
 
   it("closes the kernel", () => kernel.close());
 });
 
-/*
 describe("complete some things using sage kernel -- ", function() {
-  this.timeout(30000);
+  this.timeout(20000);
 
-  it("creates a sage kernel", () => (kernel = common.kernel("sagemath")));
+  it("creates a sage kernel", function() {
+    kernel = common.kernel("sagemath-nogui");
+  });
 
-  check({ code: "Ell" }, [
+  check({ code: "Ell", cursor_pos: 3 }, [
     "Ellipsis",
     "EllipticCurve",
     "EllipticCurve_from_c4c6",
@@ -97,16 +101,14 @@ describe("complete some things using sage kernel -- ", function() {
     "EllipticCurves_with_good_reduction_outside_S"
   ]);
 
-  check({ code: "e." }, [
+  check({ code: "e.", cursor_pos: 2 }, [
     "e.abs",
     "e.add",
     "e.add_to_both_sides",
     "e.additive_order",
     "e.arccos"
   ]);
-  check({ code: "e.fac" }, ["e.factor"]);
+  check({ code: "e.fac", cursor_pos: 5 }, ["e.factor"]);
 
-  return it("closes the kernel", () => kernel.close());
+  it("closes the kernel", () => kernel.close());
 });
-
-*/
