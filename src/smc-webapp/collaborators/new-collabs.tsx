@@ -20,7 +20,6 @@ import * as immutable from "immutable";
 
 import { EmailInvite } from "./email-invite";
 import { User } from "../frame-editors/generic/client";
-import "react-select/dist/react-select.css";
 
 /**
  * Returns a list of account_id's for users.
@@ -70,19 +69,20 @@ class AddCollaboratorsPanel0 extends Component<
   }
   constructor(props: AddCollaboratorsPanelProps, context: any) {
     super(props, context);
-    this.state = {
+    this.state = this.initialState();
+  }
+  initialState = () => {
+    return {
       search: "",
       selection: [],
       loading: false,
       error: undefined,
       results: []
     };
-  }
+  };
   render_list() {
     return (
       <>
-        <br />
-        <br />
         <PickerList
           inputValue={this.state.search}
           onInputChange={search => {
@@ -128,9 +128,6 @@ class AddCollaboratorsPanel0 extends Component<
             });
           }}
         />
-        <br />
-        <br />
-
         {this.state.error != null && (
           <ErrorDisplay
             error={this.state.error}
@@ -141,8 +138,22 @@ class AddCollaboratorsPanel0 extends Component<
     );
   }
 
+  render_selection() {
+    if (this.state.selection.length === 0) {
+      return;
+    }
+    return (
+      <div>
+        Click the Send button below to send an invitiation to
+        {this.state.selection
+          .map(u => ` ${u.first_name} ${u.last_name}`)
+          .join(", ")}.
+      </div>
+    );
+  }
+
   render_email_invite() {
-    if (this.state.loading || this.state.results == null) {
+    if (this.state.selection.length === 0) {
       return;
     }
     return (
@@ -150,6 +161,7 @@ class AddCollaboratorsPanel0 extends Component<
         invitees={this.state.selection}
         project={this.props.project}
         onSend={() => "TODO"}
+        onCancel={() => this.setState(this.initialState())}
       />
     );
   }
@@ -157,7 +169,11 @@ class AddCollaboratorsPanel0 extends Component<
   render() {
     return (
       <ProjectSettingsPanel title="Add New Collaborator" icon="plus">
+        Who would you like to work with on this project? Anybody listed here can
+        simultaneously work with you on any notebooks and terminals in this
+        project, and add other people to this project.
         {this.render_list()}
+        {this.render_selection()}
         {this.render_email_invite()}
       </ProjectSettingsPanel>
     );

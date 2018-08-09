@@ -1,2 +1,2 @@
-export {AddCollaboratorsPanel} from './user-search';
+export {AddCollaboratorsPanel} from './new-collabs';
 export {CurrentCollaboratorsPanel} from './current-collabs';

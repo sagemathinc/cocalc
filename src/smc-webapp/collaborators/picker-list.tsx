@@ -6,7 +6,6 @@ import {
   FormGroup,
   FormControl,
   HelpBlock,
-  Well,
   Button,
   Glyphicon
 } from "react-bootstrap";
@@ -40,7 +39,9 @@ export class PickerList extends React.Component<PickerListProps> {
             placeholder="Search by name or email"
             onChange={this.handleInputChange}
           />
-          {!isLoading && inputValue && Array.isArray(results) &&
+          {!isLoading &&
+            inputValue &&
+            Array.isArray(results) &&
             results.length === 0 && <HelpBlock>No results found.</HelpBlock>}
         </FormGroup>
       </LabeledRow>
@@ -55,33 +56,33 @@ export class PickerList extends React.Component<PickerListProps> {
       return;
     }
     return (
-      <Well>
-        <ListGroup>
-          {results.map(r => (
-            <ListGroupItem
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-              }}
-              key={r.key}
-            >
-              {r.label}
-              <Button onClick={() => this.props.onSelect(r.value)}>
-                <Glyphicon glyph="plus" />
-              </Button>
-            </ListGroupItem>
-          ))}
-        </ListGroup>
-      </Well>
+      <ListGroup
+        style={{ maxHeight: "250px", overflow: "auto", margin: "15px" }}
+      >
+        {results.map(r => (
+          <ListGroupItem
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}
+            key={r.key}
+          >
+            {r.label}
+            <Button onClick={() => this.props.onSelect(r.value)}>
+              <Glyphicon glyph="plus" /> Add to Invitation...
+            </Button>
+          </ListGroupItem>
+        ))}
+      </ListGroup>
     );
   }
   render() {
     return (
-      <div>
+      <>
         {this.render_input()}
         {this.render_results()}
-      </div>
+      </>
     );
   }
 }

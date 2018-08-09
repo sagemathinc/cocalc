@@ -19,6 +19,7 @@ import { ComponentType } from "react";
 interface EmailInviteOwnProps {
   invitees: User[];
   onSend(): void;
+  onCancel(): void;
   project: any;
 }
 
@@ -52,7 +53,36 @@ class EmailInvite0 extends Component<EmailInviteProps, EmailInviteState> {
   }
 
   send_email = () => {
-    // TODO
+    const replyto = redux.getStore("account").get_email_address();
+    const replyto_name = redux.getStore("account").get_fullname();
+    const SiteName = redux.getStore("customize").get("site_name") || SITE_NAME;
+    let subject: string;
+    if (replyto_name != null) {
+      subject = `${replyto_name} added you to project ${this.props.project.get(
+        "title"
+      )}`;
+    } else {
+      subject = `${SiteName} Invitation to project ${this.props.project.get(
+        "title"
+      )}`;
+    }
+    this.props
+      .actions("projects")
+      .invite_collaborators_by_email(
+        this.props.project.get("project_id"),
+        this.state.email_to,
+        this.state.email_body,
+        subject,
+        false,
+        replyto,
+        replyto_name
+      );
+    this.setState({
+      is_editing_email: false,
+      email_body: undefined,
+      email_to: undefined,
+      show_email_form: undefined
+    });
     this.props.onSend();
   };
 
@@ -77,6 +107,8 @@ ${name}
   };
 
   render_email_editor() {
+    // TODO: show this always and put a "to" field in the email `preview`
+    // so that you can both click on peopel and also enter custom email addresses
     return (
       <>
         {this.props.invitees.length === 0 ? (
@@ -96,73 +128,46 @@ ${name}
         ) : (
           undefined
         )}
-        <MarkdownInput
-          default_value={
-            this.state.email_body != null
-              ? this.state.email_body
-              : this.default_email_body()
-          }
-          rows={8}
-          on_save={value =>
-            this.setState({ email_body: value, is_editing_email: false })
-          }
-          on_cancel={value =>
-            this.setState({ email_body: value, is_editing_email: false })
-          }
-        />
+        <div
+          style={{
+            border: "1px solid lightgrey",
+            padding: "10px",
+            borderRadius: "5px",
+            backgroundColor: "white",
+            marginBottom: "15px"
+          }}
+        >
+          <MarkdownInput
+            default_value={
+              this.state.email_body != null
+                ? this.state.email_body
+                : this.default_email_body()
+            }
+            rows={8}
+            on_save={value =>
+              this.setState({ email_body: value, is_editing_email: false })
+            }
+            on_cancel={value =>
+              this.setState({ email_body: value, is_editing_email: false })
+            }
+          />
+        </div>
       </>
     );
   }
 
-  render_send_button() {
-    if (this.props.invitees.length === 0) {
-      return; // TODO
-    }
-    return (
-      <Button onClick={this.send_email} bsStyle="primary">
-        <Icon name="user-plus" />{" "}
-        {this.props.invitees.length === 1
-          ? `Invite ${this.props.invitees[0].first_name} ${
-              this.props.invitees[0].first_name
-            }`
-          : `Invite ${this.props.invitees.length} Users`}
-      </Button>
-    );
-  }
-
   render() {
-    if (this.props.invitees.length === 0) {
-      return (
-        <>
-          <Button
-            onClick={() => this.setState({ show_email_form: true })}
-            disabled={this.state.show_email_form}
-          >
-            <Icon name="envelope" /> Send email invitation...
-          </Button>
-          {this.state.show_email_form ? (
-            <Well>
-              {this.render_email_editor()}
-              <br />
-              <ButtonToolbar>
-                {this.render_send_button()}
-                <Button
-                  onClick={() => this.setState({ show_email_form: false })}
-                >
-                  Cancel
-                </Button>
-              </ButtonToolbar>
-            </Well>
-          ) : (
-            undefined
-          )}
-        </>
-      );
-    }
     return (
       <>
         {this.render_email_editor()}
-        <ButtonToolbar>{this.render_send_button()}</ButtonToolbar>
+        {this.props.initees.length > 0 && (
+          <ButtonToolbar>
+            <Button onClick={this.send_email} bsStyle="primary">
+              <Icon name="user-plus" /> Send Invitation
+            </Button>
+            <Button onClick={this.props.onCancel}>Cancel</Button>
+          </ButtonToolbar>
+        )}
       </>
     );
   }
