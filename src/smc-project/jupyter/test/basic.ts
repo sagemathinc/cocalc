@@ -9,7 +9,7 @@ describe("compute 2+3 using python2", function() {
   let k: JupyterKernel ;
 
   it("creates a python2 kernel", function() {
-    k = kernel("python2-nogui");
+    k = kernel("test-python2");
   });
 
   it("spawn", async function() {
@@ -32,7 +32,7 @@ describe("compute 2/3 using python3", function() {
   let k: JupyterKernel ;
 
   it("creates a python3 kernel", function() {
-    k = kernel("python3-nogui");
+    k = kernel("test-python3");
   });
 
   it("spawn", async function() {

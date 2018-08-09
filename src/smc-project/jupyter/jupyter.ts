@@ -284,10 +284,14 @@ export class JupyterKernel extends EventEmitter
     // We have now received an iopub or shell message from the kernel,
     // so kernel has started running.
     dbg("start_running");
+
     // We still wait a few ms, since otherwise -- especially in testing --
     // the kernel will bizarrely just ignore first input.
     // TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
-    await this._wait_for_iopub_or_shell();
+
+    // This hangs for the R kernel... and doesn't seem necessary anymore (and slows things down).
+    //await this._wait_for_iopub_or_shell();
+
     await delay(100);
 
     this._set_state("running");

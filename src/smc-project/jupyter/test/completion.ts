@@ -33,7 +33,7 @@ describe("complete some things using python2 kernel -- ", function() {
   this.timeout(10000);
 
   it("creates a python2 kernel", function() {
-    kernel = common.kernel("python2-nogui");
+    kernel = common.kernel("test-python2");
   });
 
   it("completes 'imp'", async function() {
@@ -85,7 +85,7 @@ describe("complete some things using sage kernel -- ", function() {
   this.timeout(20000);
 
   it("creates a sage kernel", function() {
-    kernel = common.kernel("sagemath-nogui");
+    kernel = common.kernel("test-sagemath");
   });
 
   check({ code: "Ell", cursor_pos: 3 }, [
