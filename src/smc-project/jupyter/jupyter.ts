@@ -285,15 +285,6 @@ export class JupyterKernel extends EventEmitter
     // so kernel has started running.
     dbg("start_running");
 
-    // We still wait a few ms, since otherwise -- especially in testing --
-    // the kernel will bizarrely just ignore first input.
-    // TODO: I think this a **massive bug** in Jupyter (or spawnteract or ZMQ)...
-
-    // This hangs for the R kernel... and doesn't seem necessary anymore (and slows things down).
-    //await this._wait_for_iopub_or_shell();
-
-    await delay(100);
-
     this._set_state("running");
 
     await this._get_kernel_info();
@@ -334,27 +325,6 @@ export class JupyterKernel extends EventEmitter
     });
 
     dbg("successfully got kernel info");
-  }
-
-  async _wait_for_iopub_or_shell(): Promise<void> {
-    const dbg = this.dbg("_wait_for_iopub_or_shell");
-    const wait_for_iopub_or_shell = cb => {
-      dbg("waiting for an iopub or shell message from the kernel");
-      function done() {
-        dbg("got an iopub or shell message; kernel is alive!");
-        this.removeListener("iopub", done);
-        this.removeListener("shell", done);
-        cb();
-      }
-      this.once("iopub", done);
-      this.once("shell", done);
-    };
-
-    if (this._state === "closed") {
-      throw Error("closed");
-    }
-
-    await callback(wait_for_iopub_or_shell);
   }
 
   // Signal should be a string like "SIGINT", "SIGKILL".
