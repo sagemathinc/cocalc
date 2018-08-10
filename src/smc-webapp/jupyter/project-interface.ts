@@ -52,7 +52,7 @@ export interface Message {
 
 // an async function that takes prompt and optional password (in
 // which case value not in doc and sent via different channel).
-export type StdinFunction = (prompt: string, password: bool) => Promise<string>;
+export type StdinFunction = (prompt: string, password: boolean) => Promise<string>;
 
 export interface ExecOpts {
   code: string;
