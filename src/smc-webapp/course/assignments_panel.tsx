@@ -429,8 +429,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   is_peer_graded() {
-    const peer_info = this.props.assignment.get("peer_grade");
-    return peer_info ? peer_info.get("enabled") : false;
+    return !!this.props.assignment.getIn(["peer_grade", "enabled"]);
   }
 
   _due_date() {
