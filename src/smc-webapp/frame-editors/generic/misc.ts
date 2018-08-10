@@ -117,8 +117,8 @@ export function copy_with(obj: object, w: string | string[]): object {
   if (typeof w === "string") {
     w = [w];
   }
-  let obj2 : any = {};
-  let key : string;
+  let obj2: any = {};
+  let key: string;
   for (key of w) {
     const y = obj[key];
     if (y !== undefined) {
@@ -332,7 +332,7 @@ export function trunc_middle(s, max_length = 1024) {
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024) {
+export function trunc_left(s, max_length = 1024): string | undefined {
   if (s == null) {
     return s;
   }
@@ -347,4 +347,23 @@ export function trunc_left(s, max_length = 1024) {
   } else {
     return s;
   }
+}
+
+/*
+Like the immutable.js getIn, but on the thing x.
+*/
+
+export function getIn(x: any, path: string[], default_value?: any): any {
+  for (let key of path) {
+    if (x !== undefined) {
+      try {
+        x = x[key];
+      } catch (err) {
+        return default_value;
+      }
+    } else {
+      return default_value;
+    }
+  }
+  return x === undefined ? default_value : x;
 }
