@@ -668,8 +668,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   render_assignment_button(status) {
     let bsStyle;
     const last_assignment = this.props.assignment.get("last_assignment");
-    // Primary if it hasn't been assigned before.
-    if (!last_assignment || last_assignment.get("time") == undefined) {
+    // Primary if it hasn't been assigned before or if it hasn't started assigning.
+    if (!last_assignment || !(last_assignment.get("time") || last_assignment.get("start"))) {
       bsStyle = "primary";
     } else {
       bsStyle = "warning";
