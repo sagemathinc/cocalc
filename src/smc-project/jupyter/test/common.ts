@@ -1,7 +1,6 @@
 // Use clean in-memory blob store for tests.
 process.env.JUPYTER_BLOBS_DB_FILE = "memory";
 
-
 import { kernel as jupyter_kernel } from "../jupyter";
 
 import { JupyterKernelInterface } from "../../smc-webapp/jupyter/project-interface";
@@ -14,13 +13,16 @@ if (DEBUG) {
   console.log("DEBUG =", DEBUG);
 }
 
-
 // We use custom kernels for testing, since faster to start.
 // For example, we don't use matplotlib inline for testing (much) and
 // using it greatly slows down startup.
-process.env.JUPYTER_PATH = `${__dirname}/jupyter`;
-if (DEBUG) {
-  console.log(`JUPYTER_PATH='${process.env.JUPYTER_PATH}'`);
+export function custom_kernel_path() {
+  process.env.JUPYTER_PATH = `${__dirname}/jupyter`;
+}
+custom_kernel_path();
+
+export function default_kernel_path() {
+  process.env.JUPYTER_PATH = "/ext/jupyter";
 }
 
 export function kernel(name: string, path?: string): JupyterKernelInterface {
