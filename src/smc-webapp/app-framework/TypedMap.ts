@@ -145,6 +145,8 @@ export function createTypedMap<OuterProps>(
       } else {
         this.data = Map(TProps as any);
       }
+      // Allows this TypedMap to disguise itself to immutable.js
+      this["@@__IMMUTABLE_ITERABLE__@@"] = true;
     }
 
     // Reading values
