@@ -22,9 +22,9 @@ const { Cursors } = require("smc-webapp/jupyter/cursors");
 
 const { cm_options } = require("../codemirror/cm-options");
 const codemirror_state = require("../codemirror/codemirror-state");
-const doc = require("./doc.ts");
+const doc = require("./doc");
 
-const { GutterMarkers } = require("./codemirror-gutter-markers.tsx");
+const { GutterMarkers } = require("./codemirror-gutter-markers");
 
 const STYLE = {
   width: "100%",

@@ -2,6 +2,12 @@
   "compilerOptions": {
     "types": ["node"],
     "lib": ["es7"],
-    "strictNullChecks": true,
-  }
+    "strictNullChecks": true
+  },
+  "exclude": [
+    "../smc-webapp/node_modules/",
+    "./smc-webapp/node_modules/",
+    "smc-webapp/node_modules",
+    "../smc-webapp/node_modules/*",
+  ]
 }

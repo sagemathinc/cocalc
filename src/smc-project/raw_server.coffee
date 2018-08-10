@@ -15,7 +15,7 @@ misc_node = require('smc-util-node/misc_node')
 
 {directory_listing_router} = require('./directory-listing')
 
-{prettier_router} = require('./prettier.ts')
+{prettier_router} = require('./prettier')
 
 {upload_endpoint} = require('./upload')
 

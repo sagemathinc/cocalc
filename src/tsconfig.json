@@ -16,6 +16,6 @@
     "smc-hub",
     "smc-util-node",
     "smc-webapp/jupyter/project-actions.ts",
-    "smc-webapp/test-mocha",
+    "smc-webapp/test-mocha"
   ]
 }

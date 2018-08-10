@@ -2,8 +2,8 @@
 Register the HTML editor
 */
 
-import { Editor } from "./editor.ts";
-import { Actions } from "./actions.ts";
+import { Editor } from "./editor";
+import { Actions } from "./actions";
 import {register_file_editor} from '../frame-tree/register';
 
 register_file_editor({
