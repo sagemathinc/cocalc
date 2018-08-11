@@ -17,6 +17,8 @@ misc_node = require('smc-util-node/misc_node')
 
 {prettier_router} = require('./prettier')
 
+{init_websocket_server} = require('./browser-websocket/server')
+
 {upload_endpoint} = require('./upload')
 
 kucalc = require('./kucalc')
@@ -37,6 +39,7 @@ exports.start_raw_server = (opts) ->
 
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
+    http_server   = require('http').createServer(raw_server);
 
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
     compression = require('compression')
@@ -96,6 +99,10 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/prettier POST endpoint, which is used for prettifying code.
             raw_server.use(base, prettier_router(opts.client, opts.logger))
 
+            # Setup the /.smc/websocket websocket server, which is used by clients
+            # for direct websocket connections to the project.
+            init_websocket_server(http_server, base, opts.logger)
+
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))
 
@@ -117,7 +124,8 @@ exports.start_raw_server = (opts) ->
             # We also firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of
             # auth (?) just in case?
-            raw_server.listen(port, host, cb)
+            http_server.listen(port, host)
+            cb()
     ], (err) ->
         if err
             opts.logger?.debug("error starting raw_server: err = #{misc.to_json(err)}")
