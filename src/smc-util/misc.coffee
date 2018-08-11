@@ -528,10 +528,14 @@ exports.normalized_path_join = (parts...) ->
     return s
 
 # Takes a path string and file name and gives the full path to the file
-exports.path_to_file = (path, file) ->
+exports.path_to_file = (path, file, line_number) ->
     if path == ''
         return file
-    return path + '/' + file
+    path = path + '/' + file
+    if not line_number
+        return path
+    #path += "#L#{line_number}" # TODO: THIS IS BROKEN IN PRODUCTION FOR SOME REASON!!!!!
+    return path
 
 exports.meta_file = (path, ext) ->
     if not path?

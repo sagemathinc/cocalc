@@ -32,7 +32,7 @@ import { SyncHighlight } from "./pdfjs-annotation";
 import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack";
 
 // Ensure this jQuery plugin is defined:
-import "./mouse-draggable.ts";
+import "./mouse-draggable";
 
 interface PDFJSProps {
   id: string;

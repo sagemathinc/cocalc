@@ -531,7 +531,7 @@ FileUseViewer = rclass
     render_mark_all_read_button: ->
         <Button key='mark_all_read_button'
             onClick={@click_mark_all_read}>
-            <Icon name='check-square'/> Mark all Read
+            <Icon name='check-square'/> Mark All Read
         </Button>
 
     open_selected: ->
@@ -556,14 +556,14 @@ FileUseViewer = rclass
     render_show_all: ->
         if @_num_missing
             <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true)}>
-                Show {@_num_missing} more
+                Show {@_num_missing} More
             </Button>
 
     render_show_less: ->
         n = @_visible_list.length - SHORTLIST_LENGTH
         if n > 0
             <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false)}>
-                Show {n} less
+                Show {n} Less
             </Button>
 
     render_toggle_all: ->

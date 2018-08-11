@@ -1168,9 +1168,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    let history_path =
-      store.get("history_path") != null ? store.get("history_path") : "";
-    if (!history_path.startsWith(path) || path.length > history_path.length) {
+    let history_path = store.get("history_path") || "";
+    const is_adjacent = !`${history_path}/`.startsWith(`${path}/`);
+    // given is_adjacent is false, this tests if it is a subdirectory
+    const is_nested = path.length > history_path.length;
+    if (is_adjacent || is_nested) {
       history_path = path;
     }
 
@@ -2494,12 +2496,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           context = context.slice(i + 2, context.length - 1);
         }
 
+        const m = /^(\d+):/.exec(context);
+        let line_number: number | undefined;
+        if (m != null) {
+          try {
+            line_number = parseInt(m[1]);
+          } catch (e) {}
+        }
+
         search_results.push({
           filename,
-          description: context
+          description: context,
+          line_number
         });
       }
-
       if (num_results >= max_results) {
         break;
       }
@@ -2544,21 +2554,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } else {
         max_depth = "--max-depth=0";
       }
-      cmd = `git rev-parse --is-inside-work-tree && git grep -I -H ${ins} ${max_depth} ${search_query} || `;
+      cmd = `git rev-parse --is-inside-work-tree && git grep -n -I -H ${ins} ${max_depth} ${search_query} || `;
     } else {
       cmd = "";
     }
     if (store.get("subdirectories")) {
       if (store.get("hidden_files")) {
-        cmd += `rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
+        cmd += `rgrep -n -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
       } else {
-        cmd += `rgrep -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
+        cmd += `rgrep -n -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
       }
     } else {
       if (store.get("hidden_files")) {
-        cmd += `grep -I -H ${ins} ${search_query} -- .* *`;
+        cmd += `grep -n -I -H ${ins} ${search_query} -- .* *`;
       } else {
-        cmd += `grep -I -H ${ins} ${search_query} -- *`;
+        cmd += `grep -n -I -H ${ins} ${search_query} -- *`;
       }
     }
 
