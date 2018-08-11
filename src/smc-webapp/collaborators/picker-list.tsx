@@ -10,7 +10,7 @@ import {
   Glyphicon
 } from "react-bootstrap";
 
-const { Loading, LabeledRow } = require("../r_misc");
+const { Loading } = require("../r_misc");
 
 interface Item {
   key: any;
@@ -31,8 +31,8 @@ export class PickerList extends React.Component<PickerListProps> {
   render_input() {
     const { inputValue, results, isLoading } = this.props;
     return (
-      <LabeledRow label="Search">
-        <FormGroup>
+      <>
+        <FormGroup style={{ margin: "15px" }}>
           <FormControl
             type="text"
             value={inputValue}
@@ -44,7 +44,7 @@ export class PickerList extends React.Component<PickerListProps> {
             Array.isArray(results) &&
             results.length === 0 && <HelpBlock>No results found.</HelpBlock>}
         </FormGroup>
-      </LabeledRow>
+      </>
     );
   }
   render_results() {

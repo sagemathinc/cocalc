@@ -114,9 +114,12 @@ class CurrentCollaboratorsPanel0 extends Component<
       </Button>
     );
   }
-  render_user(user: any) {
+  render_user(user: any, is_last?: boolean) {
     return (
-      <div key={user.account_id}>
+      <div
+        key={user.account_id}
+        style={!is_last ? { marginBottom: "20px" } : undefined}
+      >
         <Row style={{ display: "flex", alignItems: "center" }}>
           <Col sm={8}>
             <User
@@ -149,7 +152,7 @@ class CurrentCollaboratorsPanel0 extends Component<
       .toJS();
     return this.props
       .sort_by_activity(users, this.props.project.get("project_id"))
-      .map(u => this.render_user(u));
+      .map((u, i) => this.render_user(u, i < users.length - 1));
   }
   render_collaborators_list() {
     return (
