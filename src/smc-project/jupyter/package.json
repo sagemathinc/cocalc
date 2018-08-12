@@ -18,6 +18,6 @@
     "expect": "^1.20",
     "kernelspecs": "^2",
     "node-cleanup": "^2.1",
-    "spawnteract": "^4"
+    "spawnteract": "^5.1.0"
   }
 }
