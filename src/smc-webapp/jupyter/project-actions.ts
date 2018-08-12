@@ -279,24 +279,24 @@ export class JupyterActions extends JupyterActions0 {
     return this.set_backend_kernel_info();
   };
 
-  init_kernel_info = () => {
-    const kernels = this.store.get("kernels");
-    const size = kernels != null ? kernels.size : undefined;
-    const dbg = this.dbg("init_kernel_info");
-    dbg(`kernels.size=${size}`);
-    if (kernels == null) {
-      dbg("getting");
-      this._client.jupyter_kernel_info({
-        cb: (err, kernels) => {
-          dbg(`got ${err}, ${misc.to_json(kernels)}`);
-          if (!err) {
-            return this.setState({
-              kernels: immutable.fromJS(kernels.jupyter_kernels)
-            });
-          }
-        }
-      });
+  init_kernel_info = async () => {
+    let kernels = this.store.get("kernels");
+    if (kernels != null) {
+      return;
     }
+    const dbg = this.dbg("init_kernel_info");
+    dbg("getting");
+    try {
+      kernels = await this._client.jupyter_kernel_info();
+      dbg("success");
+    } catch (err) {
+      dbg(`FAILED to get kernel info: ${err}`);
+      // TODO: what to do??  Saving will be broken...
+      return;
+    }
+    this.setState({
+      kernels: immutable.fromJS(kernels.jupyter_kernels)
+    });
   };
 
   // _manage_cell_change is called after a cell change has been
