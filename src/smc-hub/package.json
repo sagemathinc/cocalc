@@ -5,6 +5,7 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "@types/http-proxy": "^1.16.2",
     "async": "^1.4.2",
     "basic-auth": "^2.0.0",
     "bindings": "^1.3.0",

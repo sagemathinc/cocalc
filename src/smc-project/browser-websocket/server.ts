@@ -19,10 +19,11 @@ interface Logger {
 }
 
 export function init_websocket_server(
+  express: any,
   http_server: any,
   base_url: string,
   logger: Logger,
-): void {
+): any {
   const opts = { pathname: join(base_url, "/.smc/ws") };
   const primus = new Primus(http_server, opts);
   logger.debug("primus", `listening on ${opts.pathname}`);
@@ -36,4 +37,12 @@ export function init_websocket_server(
     clients[conn.id] = new BrowserClient(conn, logger);
     logger.debug("primus", `num_clients=${len(clients)}`);
   });
+
+  const router = express.Router();
+  const library : string = primus.library();
+
+  router.get('/.smc/primus.js', (req, res) => {
+    res.send(library);
+  });
+  return router;
 }

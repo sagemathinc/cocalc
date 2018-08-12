@@ -99,9 +99,10 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/prettier POST endpoint, which is used for prettifying code.
             raw_server.use(base, prettier_router(opts.client, opts.logger))
 
-            # Setup the /.smc/websocket websocket server, which is used by clients
-            # for direct websocket connections to the project.
-            init_websocket_server(http_server, base, opts.logger)
+            # Setup the /.smc/ws websocket server, which is used by clients
+            # for direct websocket connections to the project, and also
+            # servers /.smc/primus.js, which is the relevant client library.
+            raw_server.use(base, init_websocket_server(express, http_server, base, opts.logger))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))
