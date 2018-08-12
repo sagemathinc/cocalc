@@ -24,7 +24,7 @@ export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
 import kernelspecs from "kernelspecs";
-import { unlink } from "./async-utils-node";
+import { exists, unlink } from "./async-utils-node";
 import * as pidusage from "pidusage";
 
 require("coffee-register");
@@ -59,7 +59,11 @@ import { nbconvert } from "./nbconvert";
 
 import { get_kernel_data } from "./kernel-data";
 
-import { ExecOpts, KernelInfo, CodeExecutionEmitterInterface } from "../smc-webapp/jupyter/project-interface";
+import {
+  ExecOpts,
+  KernelInfo,
+  CodeExecutionEmitterInterface
+} from "../smc-webapp/jupyter/project-interface";
 
 import { CodeExecutionEmitter } from "./execute-code";
 
@@ -101,10 +105,10 @@ export function jupyter_backend(syncdb: any, client: any) {
 // for interactive testing
 // TODO: needs to somehow proxy through the real client...
 class Client {
-  client_id() : string {
-    return '123e4567-e89b-12d3-a456-426655440000';
+  client_id(): string {
+    return "123e4567-e89b-12d3-a456-426655440000";
   }
-  is_project() : boolean {
+  is_project(): boolean {
     return true;
   }
   dbg(f) {
@@ -157,7 +161,7 @@ const _jupyter_kernels = {};
 export class JupyterKernel extends EventEmitter
   implements JupyterKernelInterface {
   public name: string;
-  public store: any;    // used mainly for stdin support right now...
+  public store: any; // used mainly for stdin support right now...
   private _dbg: Function;
   private _path: string;
   private _actions: any;
@@ -195,6 +199,11 @@ export class JupyterKernel extends EventEmitter
     this._identity = uuid();
     this._start_time = new Date().valueOf();
     this._execute_code_queue = [];
+    if (_jupyter_kernels[this._path] !== undefined) {
+      // This happens when we change the kernel for a given file, e.g., from python2 to python3.
+      // Obviously, it is important to clean up after the old kernel.
+      _jupyter_kernels[this._path].close();
+    }
     _jupyter_kernels[this._path] = this;
     const dbg = this.dbg("constructor");
     dbg();
@@ -304,7 +313,7 @@ export class JupyterKernel extends EventEmitter
     */
     const that = this;
     async function f(): Promise<void> {
-      await that.call("kernel_info_request")
+      await that.call("kernel_info_request");
       if (that._state === "starting") {
         throw Error("still starting");
       }
@@ -397,8 +406,10 @@ export class JupyterKernel extends EventEmitter
     if (this._state === "closed") {
       return;
     }
-    this.store.close();
-    delete this.store;
+    if (this.store != null) {
+      this.store.close();
+      delete this.store;
+    }
     this._set_state("closed");
     const kernel = _jupyter_kernels[this._path];
     if (kernel != null && kernel._identity === this._identity) {
@@ -408,13 +419,23 @@ export class JupyterKernel extends EventEmitter
     process.removeListener("exit", this.close);
     if (this._kernel != null) {
       if (this._kernel.spawn != null) {
+        if (this._kernel.spawn.pid) {
+          try {
+            process.kill(-this._kernel.spawn.pid, "SIGTERM");
+          } catch (err) {}
+        }
         this._kernel.spawn.removeAllListeners();
+        this._kernel.spawn.close();
       }
-      this.signal("SIGTERM"); // terminate the process group
-      try {
-        await unlink(this._kernel.connectionFile);
-      } catch {
-        // ignore
+      if (await exists(this._kernel.connectionFile)) {
+        try {
+          // The https://github.com/nteract/spawnteract claim repeatedly that this
+          // is not necessary, but unfortunately it IS (based on testing). Sometimes
+          // it is not necessary, but sometimes it is.
+          await unlink(this._kernel.connectionFile);
+        } catch {
+          // ignore
+        }
       }
       delete this._kernel;
       delete this._channels;
@@ -569,7 +590,7 @@ export class JupyterKernel extends EventEmitter
       throw Error("closed");
     }
     await this._ensure_running();
-    return await (new CodeExecutionEmitter(this, opts)).go();
+    return await new CodeExecutionEmitter(this, opts).go();
   }
 
   process_output(content: any): void {
@@ -747,7 +768,6 @@ export class JupyterKernel extends EventEmitter
   }
 }
 
-export function get_existing_kernel(path:string) : JupyterKernel | undefined {
+export function get_existing_kernel(path: string): JupyterKernel | undefined {
   return _jupyter_kernels[path];
 }
-
