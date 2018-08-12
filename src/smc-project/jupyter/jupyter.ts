@@ -419,10 +419,14 @@ export class JupyterKernel extends EventEmitter
     process.removeListener("exit", this.close);
     if (this._kernel != null) {
       if (this._kernel.spawn != null) {
+        if (this._kernel.spawn.pid) {
+          try {
+            process.kill(-this._kernel.spawn.pid, "SIGTERM");
+          } catch (err) {}
+        }
         this._kernel.spawn.removeAllListeners();
         this._kernel.spawn.close();
       }
-      this.signal("SIGTERM"); // terminate the process group
       if (await exists(this._kernel.connectionFile)) {
         try {
           // The https://github.com/nteract/spawnteract claim repeatedly that this
