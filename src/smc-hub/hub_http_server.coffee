@@ -385,7 +385,6 @@ exports.init_express_http_server = (opts) ->
     if opts.dev
         dev = require('./dev/hub-http-server')
         dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston)
-        dev.init_raw_proxy(app, opts.base_url, opts.compute_server, winston)
         dev.init_websocket_proxy(opts.compute_server, opts.base_url, http_server, winston)
         dev.init_share_server(app, opts.database, opts.base_url, winston);
 
