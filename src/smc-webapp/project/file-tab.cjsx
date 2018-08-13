@@ -18,6 +18,15 @@ exports.DEFAULT_FILE_TAB_STYLES =
     flexShrink   : '1'
     overflow     : 'hidden'
 
+setBorder = (style, is_active) ->
+    col = if is_active then COLORS.BLUE_BG else COLORS.GRAY_LL
+    borderStyle = "1px solid #{col}"
+    return misc.merge(style,
+        borderLeft   : borderStyle
+        borderRight  : borderStyle
+        borderTop    : borderStyle
+    )
+
 
 exports.FileTab = rclass
     displayName : 'FileTab'
@@ -74,6 +83,7 @@ exports.FileTab = rclass
             styles = misc.copy(exports.DEFAULT_FILE_TAB_STYLES)
             if @props.is_active
                 styles.backgroundColor = COLORS.BLUE_BG
+            styles = setBorder(styles, @props.is_active)
         else
             styles.flex = 'none'
 
