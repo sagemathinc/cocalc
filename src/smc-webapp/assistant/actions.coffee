@@ -183,6 +183,8 @@ class exports.ExamplesActions extends Actions
         vars  = lang.getIn([lvl1, lvl2, 'variables'])
         code  = doc.getIn([1, 0])
 
+        # extra setup on top
+        extra = undefined
         # given we have a "variables" dictionary, we check
         if vars?
             # ... each line for variables inside of function calls
@@ -198,11 +200,18 @@ class exports.ExamplesActions extends Actions
             # TODO syntax needs to be language specific!
             extra = vars
                 .filter(((v,k) -> varincode.includes(k)))
-                .entrySeq().map((([k,v]) -> "#{k} = #{v}"))
-            extra = extra.join('\n')
-        else
-            extra = ''
-        return "#{setup}\n#{extra}"
+                .entrySeq()
+                .map((([k,v]) -> "#{k} = #{v}"))
+                .toJS()
+            if extra.length > 0
+                extra = extra.join('\n')
+
+        ret = ''
+        if setup?
+            ret += "#{setup}\n"
+        if extra?
+            ret += "#{extra}\n"
+        return ret
 
     # for a specific document, set the code and description box values.
     show_doc: (lang, lvl1, lvl2, doc) ->
