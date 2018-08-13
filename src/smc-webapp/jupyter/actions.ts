@@ -100,6 +100,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public store: any;
   public syncdb: any;
   public util: any; // TODO: check if this is used publicly
+  public nbgrader_detect: any;
 
   _init = (
     project_id: any,
@@ -916,6 +917,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     if (cell_list_needs_recompute) {
       this.set_cell_list();
+      this.nbgrader_detect();
     }
     const cur_id = this.store.get("cur_id");
     if (cur_id == null || this.store.getIn(["cells", cur_id]) == null) {

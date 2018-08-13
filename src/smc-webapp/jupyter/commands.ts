@@ -111,6 +111,12 @@ export function commands(actions: any) {
       f: () => actions.close_and_halt()
     },
 
+    "NBGrader tests": {
+      i: "check-circle",
+      m: "NBGrader tests",
+      f: () => actions.nbgrader_run_tests()
+    },
+
     "close pager": {
       m: "Close pager",
       k: [{ which: 27, mode: "escape" }],

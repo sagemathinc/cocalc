@@ -32,6 +32,10 @@ const md5 = require("md5");
 const immutable = require("immutable");
 import { Map as ImmutableMap } from "immutable";
 
+// some issue with the empty string …
+// type CELL_NAMES = "" | "manual" | "solution" | "tests" | "readonly";
+
+// export const CELL_TYPES = ImmutableMap<CELL_NAMES, string>({
 export const CELL_TYPES = ImmutableMap({
   "": "-",
   manual: "Manually graded answer",
@@ -79,34 +83,27 @@ const to_bytes = s =>
   `${s}`;
 
 const compute_checksum = function(cell) {
-  /*
-      
-    m = hashlib.md5()
-    
-    * add the cell source and type
-    
-    m.update(to_bytes(cell.source))
-    m.update(to_bytes(cell.cell_type))
-
-    * add whether it's a grade cell and/or solution cell
-    
-    m.update(to_bytes(str(is_grade(cell))))
-    m.update(to_bytes(str(is_solution(cell))))
-    m.update(to_bytes(str(is_locked(cell))))
-
-    * include the cell id
-    
-    m.update(to_bytes(cell.metadata.nbgrader['grade_id']))
-
-    * include the number of points that the cell is worth, if it is a grade cell
-    
-    if is_grade(cell):
-        m.update(to_bytes(str(float(cell.metadata.nbgrader['points']))))
-
-    return m.hexdigest()
-    */
+  // m = hashlib.md5()
+  //
+  // * add the cell source and type
+  //
+  // m.update(to_bytes(cell.source))
+  // m.update(to_bytes(cell.cell_type))
+  // * add whether it's a grade cell and/or solution cell
+  //
+  // m.update(to_bytes(str(is_grade(cell))))
+  // m.update(to_bytes(str(is_solution(cell))))
+  // m.update(to_bytes(str(is_locked(cell))))
+  // * include the cell id
+  //
+  // m.update(to_bytes(cell.metadata.nbgrader['grade_id']))
+  // * include the number of points that the cell is worth, if it is a grade cell
+  //
+  // if is_grade(cell):
+  //     m.update(to_bytes(str(float(cell.metadata.nbgrader['points']))))
+  // return m.hexdigest()
   const l = is_locked(cell);
-  return md5("0xNOTIMPLEMENTED");
+  return md5(`0xNOTIMPLEMENTED ${l}`);
 };
 
 /*
@@ -160,7 +157,7 @@ read only
 /* ACTIONS */
 
 interface IData {
-  schema_version: number;
+  schema_version: 1;
   grade_id: string;
   solution?: boolean;
   grade?: boolean;
@@ -228,6 +225,30 @@ JupyterActions.prototype.nbgrader_set_points = function(id, num) {
   return this.nbgrader_set_data(data.toJS());
 };
 
+JupyterActions.prototype.nbgrader_run_tests = function() {
+  this.store
+    .get("cell_list")
+    .filter(id => {
+      let type = this.store.get_nbgrader_cell_type(id);
+      return type == "tests";
+    })
+    .forEach(id => {
+      this.run_cell(id);
+    });
+  return this.save_asap();
+};
+
+JupyterActions.prototype.nbgrader_detect = function() {
+  const cells = this.store.get("cells");
+  if (cells == null) {
+    return;
+  }
+  let any_nbgrader_cells = cells.some(cell => {
+    return cell.getIn(["metadata", "nbgrader"]) != null;
+  });
+  this.setState({ any_nbgrader_cells });
+};
+
 /* STORE */
 
 JupyterStore.prototype.get_nbgrader = function(id) {
@@ -235,16 +256,18 @@ JupyterStore.prototype.get_nbgrader = function(id) {
 };
 
 JupyterStore.prototype.get_nbgrader_cell_type = function(id) {
-  let left;
   let data = this.getIn(["cells", id]);
-  if (
-    !((left =
-      data != null ? data.getIn(["metadata", "nbgrader"]) : undefined) != null
-      ? left
-      : false)
-  ) {
+  // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
+  if (data == null) {
     return "";
   }
+  if (data != null) {
+    let nbg = data.getIn(["metadata", "nbgrader"]);
+    if (nbg == null) {
+      return "";
+    }
+  }
+
   data = data.toJS();
   const solution = is_solution(data);
   const grade = is_grade(data);

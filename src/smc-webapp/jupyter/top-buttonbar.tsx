@@ -24,6 +24,7 @@ interface TopButtonbarProps {
   kernel_usage: immutable.Map<any, any>;
   //page
   fullscreen: string;
+  any_nbgrader_cells: boolean;
 }
 
 export class TopButtonbar0 extends Component<TopButtonbarProps> {
@@ -37,7 +38,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         has_uncommitted_changes: rtypes.bool,
         read_only: rtypes.bool,
         kernel_state: rtypes.string,
-        kernel_usage: rtypes.immutable.Map
+        kernel_usage: rtypes.immutable.Map,
+        any_nbgrader_cells: rtypes.bool
       },
       page: {
         fullscreen: rtypes.string
@@ -63,7 +65,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       nextProps.has_uncommitted_changes !==
         this.props.has_uncommitted_changes ||
       nextProps.kernel_state !== this.props.kernel_state ||
-      nextProps.kernel_usage !== this.props.kernel_usage
+      nextProps.kernel_usage !== this.props.kernel_usage ||
+      nextProps.any_nbgrader_cells !== this.props.any_nbgrader_cells
     );
   }
 
@@ -289,7 +292,28 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       disabled: false,
       label: "Halt"
     };
-    return this.render_button("close and halt", obj);
+    return this.render_button(obj.name, obj);
+  }
+
+  render_nbgrader_run() {
+    const obj = {
+      name: "NBGrader tests",
+      disabled: false,
+      label: "Run tests"
+    };
+    return this.render_button(obj.name, obj);
+  }
+
+  render_group_nbgrader() {
+    if (!this.props.any_nbgrader_cells) {
+      return null;
+    }
+    return (
+      <>
+        <span style={{ marginLeft: "5px" }} />
+        {this.render_nbgrader_run()}
+      </>
+    );
   }
 
   render_group_save_timetravel() {
@@ -344,6 +368,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           {this.render_keyboard()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_save_timetravel()}
+          {this.render_group_nbgrader()}
           {this.render_assistant()}
         </Form>
       </div>

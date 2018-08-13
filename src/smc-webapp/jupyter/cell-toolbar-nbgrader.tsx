@@ -7,6 +7,7 @@ import {
 } from "react-bootstrap";
 import { React, Component } from "../app-framework"; // TODO: this will move
 // const { Icon } = require("../r_misc");
+const { Space } = require("../r_misc");
 // const { COLORS } = require("smc-util/theme");
 // const misc = require("smc-util/misc");
 import { Map as ImmutableMap } from "immutable";
@@ -78,7 +79,12 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
   cell_info() {
     const grade_id =
       this.props.cell.getIn(["metadata", "nbgrader", "grade_id"]) || "N/A";
-    return <div>ID: {grade_id}</div>;
+    return (
+      <>
+        <div>ID: {grade_id}</div>
+        <Space />
+      </>
+    );
   }
 
   points() {
@@ -87,7 +93,12 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
     if (num === null) {
       return null;
     }
-    return <div>Points: {num}</div>;
+    return (
+      <>
+        <div>Points: {num}</div>
+        <Space />
+      </>
+    );
   }
 
   render() {
