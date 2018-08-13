@@ -51,7 +51,7 @@ export function get_store_url(project_id: string, path: any, key: any, value: an
     JSON.stringify(key)
   )}&path=${encodeURIComponent(path)}`;
   if (value != null) {
-    s += `value=${encodeURIComponent(JSON.stringify(value))}`;
+    s += `&value=${encodeURIComponent(JSON.stringify(value))}`;
   }
   return s;
 }

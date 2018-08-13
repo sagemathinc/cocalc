@@ -31,6 +31,7 @@ OutputHandler emits two events:
 
 */
 
+import { callback } from "awaiting";
 import { EventEmitter } from "events";
 
 const misc = require("smc-util/misc");
@@ -72,6 +73,8 @@ export class OutputHandler extends EventEmitter {
     if (this._opts.report_started_ms != null) {
       setTimeout(this._report_started, this._opts.report_started_ms);
     }
+
+    this.stdin = this.stdin.bind(this);
   }
 
   close = () => {
@@ -270,13 +273,16 @@ export class OutputHandler extends EventEmitter {
     return this.emit("more_output", mesg, mesg_length);
   };
 
-  stdin = (opts: any, cb: any) => {
+  async stdin(prompt: string, password: boolean): Promise<string> {
     // See docs for stdin option to execute_code in backend jupyter.coffee
-    this._push_mesg({ name: "input", opts });
+    this._push_mesg({ name: "input", opts: { prompt, password } });
     // Now we wait until the output message we just included has its
     // value set.  Then we call cb with that value.
-    return (this._stdin_cb = cb);
-  };
+    // This weird thing below sets this._stdin_cb, then
+    // waits for this._stdin_cb to be called, which happens
+    // when cell_changed gets called.
+    return await callback(cb => (this._stdin_cb = cb));
+  }
 
   // Call this when the cell changes; only used for stdin right now.
   cell_changed = (cell: any, get_password: any) => {
@@ -311,7 +317,7 @@ export class OutputHandler extends EventEmitter {
         } // sync output-handler view of output with syncdb
       }
       this._stdin_cb(undefined, x);
-      return delete this._stdin_cb;
+      delete this._stdin_cb;
     }
   };
 

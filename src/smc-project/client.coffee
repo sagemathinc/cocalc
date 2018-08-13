@@ -21,7 +21,7 @@ as a result.
 # not active for this long (should be at least 5 minutes).  Longer is better since
 # it reduces how long a user might have to wait for save, etc.,
 # but it slightly increases database work (managing a changefeed).
-SYNCSTRING_MAX_AGE_M = 20
+SYNCSTRING_MAX_AGE_M = 7
 #SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
@@ -57,6 +57,7 @@ schema     = require('smc-util/schema')
 sage_session = require('./sage_session')
 
 jupyter = require('./jupyter/jupyter')
+{get_kernel_data} = require('./jupyter/kernel-data')
 
 {json} = require('./common')
 
@@ -690,10 +691,8 @@ class exports.Client extends EventEmitter
         opts.client = @
         return jupyter.kernel(opts)
 
-    jupyter_kernel_info: (opts) =>
-        opts = defaults opts,
-            cb : required
-        jupyter.get_kernel_data(opts.cb)
+    jupyter_kernel_info: =>
+        return await get_kernel_data()
 
     # See the file watcher.coffee for docs
     watch_file: (opts) =>

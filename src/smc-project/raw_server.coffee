@@ -11,11 +11,11 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
 
-{jupyter_router} = require('./jupyter/jupyter')
+{jupyter_router} = require('./jupyter/http-server')
 
 {directory_listing_router} = require('./directory-listing')
 
-{prettier_router} = require('./prettier.ts')
+{prettier_router} = require('./prettier')
 
 {upload_endpoint} = require('./upload')
 
