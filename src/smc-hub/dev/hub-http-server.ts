@@ -44,6 +44,26 @@ async function raw_server_port(
   }
 }
 
+async function get_port(
+  port_number:string,
+  type: string,
+  project_id: string,
+  compute_server: any,
+  database?: any,
+): Promise<string> {
+  if (type === "raw") {
+    return await raw_server_port(project_id, compute_server);
+  } else if (port_number === "jupyter") {
+    return await callback_opts(hub_proxy.jupyter_server_port)({
+      project_id,
+      compute_server: compute_server,
+      database: database
+    });
+  } else {
+    return port_number;
+  }
+}
+
 export function init_http_proxy(
   express_app: any,
   database: any,
@@ -71,17 +91,7 @@ export function init_http_proxy(
     logger.debug(`http_proxy: req_url='${req_url}', port='${port_number}'`);
     let port;
     try {
-      if (type === "raw") {
-        port = await raw_server_port(project_id, compute_server);
-      } else if (port_number === "jupyter") {
-        port = await callback_opts(hub_proxy.jupyter_server_port)({
-          project_id,
-          compute_server: compute_server,
-          database: database
-        });
-      } else {
-        port = port_number;
-      }
+      port = await get_port(port_number, type, project_id, compute_server, database);
     } catch (err) {
       res.status(500).send(`internal error: ${err}`);
       return;
@@ -121,36 +131,46 @@ export function init_http_proxy(
 }
 
 export function init_websocket_proxy(
-  compute_server: any,
-  base_url: string,
   http_server: any,
+  database: any,
+  base_url: string,
+  compute_server: any,
   logger: any
 ): void {
-  function handle_upgrade(req, socket, head) {
+  async function handle_upgrade(req, socket, head): Promise<void> {
     let proxy;
-    logger.debug(`\n\n*** http_server websocket(${req.url}) ***\n\n`);
     const req_url = req.url.slice(base_url.length);
-    const key = `ws://${location.host}:${location.port}`;
-    logger.debug(`websocket upgrade -- '${key}', '${req_url}'`);
-    logger.debug("computer_server", compute_server);
+    logger.debug(`websocket_proxy.handle_upgrade: "${req_url}"`);
+    const { type, key, port_number, project_id } = target_parse_req(req_url);
     proxy = websocket_proxy_cache[key];
-    if (proxy === undefined) {
-      logger.debug("websocket", "upgrade -- creating proxy");
-      proxy = createProxyServer({
-        ws: true,
-        target: "ws://localhost:" /* todo --- figure out the port */
-      });
-      proxy.on("error", function(e) {
-        logger.debug(
-          "websocket",
-          `websocket proxy error, so clearing cache -- ${e}`
-        );
-        delete websocket_proxy_cache[key];
-      });
-      websocket_proxy_cache[key] = proxy;
-    } else {
-      logger.debug("websocket", "upgrade -- using cache");
+    if (proxy !== undefined) {
+      // easy case -- already have a proxy in the cache.
+      proxy.ws(req, socket, head);
+      return;
     }
+
+    logger.debug("websocket", "upgrade -- creating proxy");
+    let port;
+    try {
+      port = await get_port(port_number, type, project_id, compute_server, database);
+    } catch (err) {
+      // TODO: I don't know how to fail this...
+      //res.status(500).send(`internal error: ${err}`);
+      return;
+    }
+
+    proxy = createProxyServer({
+      ws: true,
+      target: `ws://localhost:${port}`
+    });
+    proxy.on("error", function(e) {
+      logger.debug(
+        "websocket",
+        `websocket proxy error, so clearing cache -- ${e}`
+      );
+      delete websocket_proxy_cache[key];
+    });
+    websocket_proxy_cache[key] = proxy;
     proxy.ws(req, socket, head);
   }
   http_server.on("upgrade", handle_upgrade);
