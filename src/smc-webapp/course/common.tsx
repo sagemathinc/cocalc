@@ -34,6 +34,7 @@ import { React, Fragment, Component } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import { AssignmentRecord, StudentRecord } from "./store";
+import { FormEvent } from "react";
 
 const {
   Button,
@@ -191,27 +192,27 @@ export class StudentAssignmentInfoHeader extends Component<
 interface StudentAssignmentInfoProps {
   name: string;
   title: string | object;
-  student: string | StudentRecord; // required string (student_id) or student immutable js object
-  assignment: AssignmentRecord; // required string (assignment_id) or assignment immutable js object
+  student: StudentRecord;
+  assignment: AssignmentRecord;
   grade?: string;
   comments?: string;
   info: {
     assignment_id: string;
     student_id: string;
-    peer_assignment: { error: string };
-    peer_collect: { error: string };
+    peer_assignment: boolean;
+    peer_collect: boolean;
     last_assignment: { error: string };
     last_collect: { error: string };
     last_peer_assignment: number;
     last_peer_collect: { error: string };
     last_return_graded: { error: string };
   };
+  edited_grade?: string;
+  edited_comments?: string;
+  is_editing: boolean;
 }
 
 interface StudentAssignmentInfoState {
-  editing_grade: boolean;
-  edited_grade: string;
-  edited_comments: string;
   recopy_name: boolean;
   recopy_open: boolean;
   recopy_copy: boolean;
@@ -229,9 +230,6 @@ export class StudentAssignmentInfo extends Component<
   constructor(props: StudentAssignmentInfoProps) {
     super(props);
     this.state = {
-      editing_grade: false,
-      edited_grade: props.grade != null ? props.grade : "",
-      edited_comments: props.comments != null ? props.comments : "",
       recopy_name: false,
       recopy_open: false,
       recopy_copy: false,
@@ -250,13 +248,6 @@ export class StudentAssignmentInfo extends Component<
     return redux.getActions(this.props.name);
   }
 
-  componentWillReceiveProps(nextProps) {
-    return this.setState({
-      edited_grade: nextProps.grade != null ? nextProps.grade : "",
-      edited_comments: nextProps.comments != null ? nextProps.comments : ""
-    });
-  }
-
   open = (type, assignment_id, student_id) => {
     return this.get_actions().open_assignment(type, assignment_id, student_id);
   };
@@ -273,47 +264,54 @@ export class StudentAssignmentInfo extends Component<
     );
   };
 
-  save_grade = (e?) => {
-    __guardMethod__(e, "preventDefault", o => o.preventDefault());
-    this.get_actions().set_grade(
-      this.props.assignment,
-      this.props.student,
-      this.state.edited_grade
-    );
-    this.get_actions().set_comments(
-      this.props.assignment,
-      this.props.student,
-      this.state.edited_comments
-    );
-    return this.setState({ editing_grade: false });
+  save_feedback = (e?: FormEvent<HTMLFormElement>) => {
+    if (e) {
+      e.preventDefault;
+    }
+    this.get_actions().save_feedback(this.props.assignment, this.props.student);
   };
 
-  edit_grade = () => {
-    return this.setState({ editing_grade: true });
+  set_edited_feedback = (grade?: string, comments?: string) => {
+    this.get_actions().update_edited_feedback(
+      this.props.assignment,
+      this.props.student,
+      grade,
+      comments
+    );
   };
 
-  handle_change = e => {
-    return this.setState({
-      edited_grade: e.target.value != null ? e.target.value : ""
-    });
+  handle_grade_change = e => {
+    e.preventDefault();
+    this.set_edited_feedback(e.target.value);
+  };
+
+  handle_comments_change = value => {
+    this.set_edited_feedback(undefined, value);
+  };
+
+  cancel_editing = () => {
+    this.get_actions().clear_edited_feedback(
+      this.props.assignment,
+      this.props.student
+    );
   };
 
   render_grade() {
-    if (this.state.editing_grade) {
+    if (this.props.is_editing) {
       return (
         <form
           key="grade"
-          onSubmit={this.save_grade}
+          onSubmit={this.save_feedback}
           style={{ marginTop: "15px" }}
         >
           <FormGroup>
             <FormControl
               autoFocus={true}
-              value={this.state.edited_grade}
+              value={this.props.edited_grade}
               ref="grade_input"
               type="text"
               placeholder="Grade (any text)..."
-              onChange={this.handle_change}
+              onChange={this.handle_grade_change}
               onKeyDown={this.on_key_down_grade_editor}
             />
           </FormGroup>
@@ -322,7 +320,7 @@ export class StudentAssignmentInfo extends Component<
     } else {
       if (this.props.grade) {
         return (
-          <div key="grade" onClick={this.edit_grade}>
+          <div key="grade">
             <strong>Grade</strong>: {this.props.grade}
             <br />
             {this.props.comments ? (
@@ -342,19 +340,19 @@ export class StudentAssignmentInfo extends Component<
     return (
       <MarkdownInput
         autoFocus={false}
-        editing={this.state.editing_grade}
+        editing={this.props.is_editing}
         hide_edit_button={true}
         save_disabled={
-          this.state.edited_grade === this.props.grade &&
-          this.state.edited_comments === this.props.comments
+          this.props.edited_grade === this.props.grade &&
+          this.props.edited_comments === this.props.comments
         }
         rows={5}
         placeholder="Comments (optional)"
-        default_value={this.state.edited_comments}
-        on_edit={() => this.setState({ editing_grade: true })}
-        on_change={value => this.setState({ edited_comments: value })}
-        on_save={this.save_grade}
-        on_cancel={() => this.setState({ editing_grade: false })}
+        default_value={this.props.edited_comments || this.props.comments}
+        on_edit={() => this.set_edited_feedback()}
+        on_change={this.handle_comments_change}
+        on_save={() => this.save_feedback()}
+        on_cancel={this.cancel_editing}
         rendered_style={{
           maxHeight: "4em",
           overflowY: "auto",
@@ -368,14 +366,11 @@ export class StudentAssignmentInfo extends Component<
   on_key_down_grade_editor = e => {
     switch (e.keyCode) {
       case 27:
-        return this.setState({
-          edited_grade: this.props.grade || "",
-          edited_comments: this.props.comments || "",
-          editing_grade: false
-        });
+        this.cancel_editing();
+        break;
       case 13:
         if (e.shiftKey) {
-          return this.save_grade();
+          return this.save_feedback();
         }
         break;
     }
@@ -392,7 +387,11 @@ export class StudentAssignmentInfo extends Component<
           title="Enter student's grade"
           tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
         >
-          <Button key="edit" onClick={this.edit_grade} bsStyle={bsStyle}>
+          <Button
+            key="edit"
+            onClick={() => this.set_edited_feedback()}
+            bsStyle={bsStyle}
+          >
             {text}
           </Button>
         </Tip>
@@ -715,11 +714,7 @@ export class StudentAssignmentInfo extends Component<
               : undefined)
               ? this.render_peer_assign()
               : undefined}
-            {peer_grade &&
-            this.props.info.peer_collect &&
-            !(this.props.info.peer_assignment != null
-              ? this.props.info.peer_assignment.error
-              : undefined)
+            {peer_grade && this.props.info.peer_collect
               ? this.render_peer_collect()
               : undefined}
             <Col md={width} key="grade">
@@ -745,18 +740,6 @@ export class StudentAssignmentInfo extends Component<
         </Col>
       </Row>
     );
-  }
-}
-
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
   }
 }
 

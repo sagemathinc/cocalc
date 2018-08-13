@@ -10,6 +10,7 @@
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
+
 /*
 Jupyter client
 
@@ -53,6 +54,8 @@ const syncstring = require("smc-util/syncstring");
 
 const { instantiate_assistant } = require("../assistant/main");
 
+import { JupyterKernelInterface } from "./project-interface";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -84,7 +87,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   protected _client: any;
   protected _file_watcher: any;
-  protected _jupyter_kernel?: any;
+  protected _jupyter_kernel?: JupyterKernelInterface;
   protected _state: any;
   public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
@@ -2155,16 +2158,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return;
       }
       dbg("calling kernel_info...");
-      this._jupyter_kernel.kernel_info({
-        cb: (err, data) => {
-          if (!err) {
-            dbg(`got data='${misc.to_json(data)}'`);
-            return this.setState({ backend_kernel_info: data });
-          } else {
-            return dbg(`error = ${err}`);
-          }
-        }
-      });
+      this._jupyter_kernel
+        .kernel_info()
+        .then(data => {
+          dbg(`got data='${misc.to_json(data)}'`);
+          this.setState({ backend_kernel_info: data });
+        })
+        .catch(err => {
+          dbg(`error = ${err}`);
+        });
       return;
     }
 
@@ -2228,7 +2230,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (action_name === "reopen_file") {
       a.close_file(path);
       // ensure the side effects from changing registered
-      // editors in project_file.coffee finish happening
+      // editors in project_file.* finish happening
       window.setTimeout(() => {
         return a.open_file({ path });
       }, 0);
@@ -2579,7 +2581,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.set_error("move_edit_cursor not implemented");
   };
 
-  // supported scroll positions are in commands.coffee
+  // supported scroll positions are in commands.ts
   scroll(pos): any {
     return this.setState({ scroll: pos });
   }
@@ -2649,7 +2651,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         but is also run on the frontend too, e.g.,
         for client-side nbviewer (in which case it won't remove images, etc.).
 
-        See the documentation for load_ipynb_file in project-actions.coffee for
+        See the documentation for load_ipynb_file in project-actions.ts for
         documentation about the data_only input variable.
         */
     //dbg = @dbg("set_to_ipynb")

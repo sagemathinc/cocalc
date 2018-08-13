@@ -242,7 +242,6 @@ class MarkdownInput0 extends Component<ReactProps & ReduxProps, MarkdownInputSta
       return (
         <div>
           <div
-            onClick={this.edit}
             dangerouslySetInnerHTML={html}
             style={style}
           />

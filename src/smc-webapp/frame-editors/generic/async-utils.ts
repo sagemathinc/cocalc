@@ -15,14 +15,18 @@ import * as awaiting from "awaiting";
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
 // awaiting.callback, but for our functions that take opts.
+// WARNING: this is different than callback from awaiting, which
+// on which you do:   callback(f, args...)
+// With callback_opts, you do:   callback_opts(f)(opts)
+// TODO: maybe change this everwhere to callback_opts(f, opts) for consistency!
 export function callback_opts(f: Function) {
-  return async function(opts: any) : Promise<any> {
+  return async function(opts: any): Promise<any> {
     function g(cb: Function) {
       opts.cb = cb;
       f(opts);
     }
     return await awaiting.callback(g);
-  }
+  };
 }
 
 /* retry_until_success keeps calling an async function f with
@@ -30,18 +34,19 @@ export function callback_opts(f: Function) {
   Then retry_until_success returns whatever f returned.
 */
 
-interface RetryUntilSuccess {
-  f: () => Promise<any>; // an async function that takes no input.
+interface RetryUntilSuccess<T> {
+  f: () => Promise<T>; // an async function that takes no input.
   start_delay?: number; // delay (in ms) before calling second time.
   max_delay?: number; // delay at most this amount between calls
   max_tries?: number; // maximum number of times to call f
   max_time?: number; // milliseconds -- don't call f again if the call would start after this much time from first call
   factor?: number; // multiply delay by this each time
+  log?: Function; // optional verbose logging function
 }
 
-export async function retry_until_success(
-  opts: RetryUntilSuccess
-): Promise<any> {
+export async function retry_until_success<T>(
+  opts: RetryUntilSuccess<T>
+): Promise<T> {
   if (!opts.start_delay) opts.start_delay = 100;
   if (!opts.max_delay) opts.max_delay = 20000;
   if (!opts.factor) opts.factor = 1.4;
@@ -69,6 +74,9 @@ export async function retry_until_success(
     try {
       return await opts.f();
     } catch (exc) {
+      if (opts.log !== undefined) {
+        opts.log("failed ", exc);
+      }
       // might try again -- update state...
       tries += 1;
       next_delay = Math.min(opts.max_delay, opts.factor * next_delay);

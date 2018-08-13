@@ -61,7 +61,8 @@ import {
   StudentRecord,
   AssignmentRecord,
   SortDescription,
-  CourseStore
+  CourseStore,
+  IsGradingMap
 } from "./store";
 import { CourseActions } from "./actions";
 import { ReactElement } from "react";
@@ -76,12 +77,12 @@ const {
   NumberInput
 } = require("../r_misc");
 const { STEPS, step_direction, step_verb, step_ready } = util;
-const {
+import {
   BigTime,
   FoldersToolbar,
   StudentAssignmentInfo,
   StudentAssignmentInfoHeader
-} = require("./common");
+} from "./common";
 
 const { Progress } = require("./progress");
 //import { Progress } from "./progress";
@@ -103,6 +104,7 @@ interface AssignmentsPanelReduxProps {
   active_assignment_sort: SortDescription;
   active_student_sort: SortDescription;
   expanded_peer_configs: Set<string>;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface AssignmentsPanelState {
@@ -132,7 +134,8 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           expanded_assignments: rtypes.immutable.Set,
           active_assignment_sort: rtypes.immutable.Map,
           active_student_sort: rtypes.immutable.Map,
-          expanded_peer_configs: rtypes.immutable.Set
+          expanded_peer_configs: rtypes.immutable.Set,
+          active_feedback_edits: rtypes.immutable.Map
         }
       };
     };
@@ -247,6 +250,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           expand_peer_config={this.props.expanded_peer_configs.has(
             x.assignment_id
           )}
+          active_feedback_edits={this.props.active_feedback_edits}
         />
       ));
     }
@@ -366,6 +370,7 @@ interface AssignmentProps {
   is_expanded?: boolean;
   active_student_sort: SortDescription;
   expand_peer_config?: boolean;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface AssignmentState {
@@ -409,7 +414,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         "background",
         "is_expanded",
         "active_student_sort",
-        "expand_peer_config"
+        "expand_peer_config",
+        "active_feedback_edits"
       ])
     );
   }
@@ -624,6 +630,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               students={this.props.students}
               user_map={this.props.user_map}
               active_student_sort={this.props.active_student_sort}
+              active_feedback_edits={this.props.active_feedback_edits}
             />
             {this.render_note()}
           </Panel>
@@ -1594,6 +1601,7 @@ interface StudentListForAssignmentProps {
   user_map: any;
   background?: string;
   active_student_sort: SortDescription;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface StudentListForAssignmentState {}
@@ -1610,7 +1618,8 @@ class StudentListForAssignment extends Component<
       "students",
       "user_map",
       "background",
-      "active_student_sort"
+      "active_student_sort",
+      "active_feedback_edits"
     ]);
   }
 
@@ -1620,16 +1629,28 @@ class StudentListForAssignment extends Component<
 
   render_student_info(student_id) {
     const store = this.get_store();
+    const student = store.get_student(student_id);
+    const key = util.assignment_identifier(this.props.assignment, student);
+    const edited_feedback = this.props.active_feedback_edits.get(key);
+    let edited_comments: string | undefined;
+    let edited_grade: string | undefined;
+    if (edited_feedback != undefined) {
+      edited_comments = edited_feedback.get("edited_comments");
+      edited_grade = edited_feedback.get("edited_grade");
+    }
     return (
       <StudentAssignmentInfo
         key={student_id}
         title={misc.trunc_middle(store.get_student_name(student_id), 40)}
         name={this.props.name}
-        student={student_id}
+        student={student}
         assignment={this.props.assignment}
         grade={store.get_grade(this.props.assignment, student_id)}
         comments={store.get_comments(this.props.assignment, student_id)}
         info={store.student_assignment_info(student_id, this.props.assignment)}
+        is_editing={!!edited_feedback}
+        edited_comments={edited_comments}
+        edited_grade={edited_grade}
       />
     );
   }
