@@ -102,7 +102,8 @@ export class CellInput extends Component<CellInputProps> {
         "font_size",
         "is_current",
         "is_focused",
-        "complete"
+        "complete",
+        "is_readonly"
       ])
     );
   }
@@ -120,7 +121,7 @@ export class CellInput extends Component<CellInputProps> {
     if (this.props.actions == null) {
       return;
     }
-    if (this.props.cell.getIn(["metadata", "editable"]) === false) {
+    if (this.props.is_readonly) {
       return;
     }
     const id = this.props.cell.get("id");
@@ -168,7 +169,7 @@ export class CellInput extends Component<CellInputProps> {
     if (
       !this.props.is_current ||
       this.props.actions == null ||
-      this.props.cell.getIn(["metadata", "editable"]) === false
+      this.props.is_readonly
     ) {
       return;
     }

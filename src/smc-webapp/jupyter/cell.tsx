@@ -120,7 +120,7 @@ export class Cell extends Component<CellProps> {
     if (this.props.actions == null) {
       return;
     }
-    if (this.props.cell.getIn(["metadata", "editable"]) === false) {
+    if (!this.props.editable) {
       return;
     }
     if (this.props.cell.get("cell_type") !== "markdown") {
