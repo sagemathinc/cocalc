@@ -31,6 +31,7 @@
     "prettier": "^1.12.0",
     "primus": "^7.2.2",
     "primus-multiplex": "^3.2.1",
+    "primus-responder": "^1.0.4",
     "pty.js": "^0.3.0",
     "request": "^2",
     "serve-index": "^1.7.2",

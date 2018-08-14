@@ -362,4 +362,4 @@ exports.connect = (url) ->
 
 exports.connect()
 
-window.connect_to_project = require('./project/websocket').connect_to_project
+window.connection_to_project = require('./project/websocket/connect').connection_to_project

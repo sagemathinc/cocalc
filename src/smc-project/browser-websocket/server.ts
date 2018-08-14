@@ -11,8 +11,8 @@ let primus_server = undefined;
 
 // Primus devs don't care about typescript: https://github.com/primus/primus/pull/623
 const Primus = require("primus");
-// https://github.com/cayasso/primus-multiplex
-const multiplex = require("primus-multiplex");
+
+import { init_websocket_api } from "./api";
 
 const clients = {};
 
@@ -35,9 +35,11 @@ export function init_websocket_server(
   const primus = new Primus(http_server, opts);
 
   // add multiplex to Primus so we have channels.
-  primus.plugin("multiplex", multiplex);
+  primus.plugin("multiplex", require('primus-multiplex'));
 
   logger.debug("primus", `listening on ${opts.pathname}`);
+
+  init_websocket_api(primus, logger);
 
   const eval_channel = primus.channel("eval");
   eval_channel.on("connection", function(spark) {

@@ -3,10 +3,11 @@ Create a singleton websocket connection directly to a particular project.
 */
 
 import { reuseInFlight } from "async-await-utils/hof";
+import { API } from "./api";
 
 const connections = {};
 
-async function connect_to_project0(project_id: string): Promise<any> {
+async function connection_to_project0(project_id: string): Promise<any> {
   if (connections[project_id] !== undefined) {
     return connections[project_id];
   }
@@ -28,7 +29,9 @@ async function connect_to_project0(project_id: string): Promise<any> {
         retries: 1000
       }
     }));
+    conn.api = new API(conn);
     conn.on("close", function() {
+      delete conn.api;
       delete connections[project_id];
     });
     return conn;
@@ -38,4 +41,4 @@ async function connect_to_project0(project_id: string): Promise<any> {
   }
 }
 
-export const connect_to_project = reuseInFlight(connect_to_project0);
+export const connection_to_project = reuseInFlight(connection_to_project0);
