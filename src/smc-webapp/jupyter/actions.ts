@@ -149,6 +149,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       directory = split_path.head;
     }
 
+    let projects_store = this.redux.getStore("projects");
+    let student_mode = !!projects_store.get_course_info(this.project_id);
+
     this.setState({
       view_mode: "normal",
       error: undefined,
@@ -163,7 +166,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       directory,
       path,
       is_focused: false, // whether or not the editor is focused.
-      max_output_length: 10000
+      max_output_length: 10000,
+      student_mode: student_mode
     });
 
     if (this._client) {
@@ -782,15 +786,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _syncdb_cell_change = (id: any, new_cell: any) => {
+  _syncdb_cell_change = (id: any, new_cell: any): boolean => {
+    let cell_list_needs_recompute = false;
     let left, obj;
     if (typeof id !== "string") {
       console.warn(`ignoring cell with invalid id='${JSON.stringify(id)}'`);
-      return;
+      return cell_list_needs_recompute;
     }
     const cells =
       (left = this.store.get("cells")) != null ? left : immutable.Map();
-    let cell_list_needs_recompute = false;
+
     //@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
     let old_cell = cells.get(id);
     if (new_cell == null) {
@@ -808,7 +813,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // change or add cell
       old_cell = cells.get(id);
       if (new_cell.equals(old_cell)) {
-        return; // nothing to do
+        return cell_list_needs_recompute; // nothing to do
       }
       if (old_cell != null && new_cell.get("start") !== old_cell.get("start")) {
         // cell re-evaluated so any more output is no longer valid.

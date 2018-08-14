@@ -7,6 +7,8 @@ import { Store } from "../app-framework";
 import { Set } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 
+import * as nbgrader from "./nbgrader";
+
 // TODO: seperate front specific code that uses this stuff
 declare const localStorage: any;
 
@@ -58,12 +60,14 @@ export interface JupyterStoreState {
   insert_image: any;
   scroll: any;
   any_nbgrader_cells?: boolean;
+  student_mode: boolean;
 }
 
 export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
   private _more_output: any;
   private store: any;
+
   // Return map from selected cell ids to true, in no particular order
   get_selected_cell_ids = () => {
     const selected = {};
@@ -294,12 +298,16 @@ export class JupyterStore extends Store<JupyterStoreState> {
       .get_raw_link(path);
   };
 
-  is_cell_editable = (id: any) => {
-    return this.get_cell_metadata_flag(id, "editable");
+  is_cell_editable = (id: string): boolean => {
+    const editable = this.get_cell_metadata_flag(id, "editable");
+    const protect = this.nbgrader_student_cell_protection(id);
+    return editable && !protect;
   };
 
-  is_cell_deletable = (id: any) => {
-    return this.get_cell_metadata_flag(id, "deletable");
+  is_cell_deletable = (id: string): boolean => {
+    const deleteable = this.get_cell_metadata_flag(id, "deletable");
+    const protect = this.nbgrader_student_cell_protection(id);
+    return deleteable && !protect;
   };
 
   check_edit_protection = (id: any, actions: any) => {
@@ -323,5 +331,48 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_cell_metadata_flag = (id: any, key: any) => {
     // default is true
     return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
+  };
+
+  /*
+  only for students, protect test and readonly nbgrader cells
+  */
+  nbgrader_student_cell_protection = (id: string): boolean => {
+    if (!this.get("student_mode")) {
+      return false;
+    }
+    const mode = this.get_nbgrader_cell_type(id);
+    return ["tests", "readonly"].includes(mode);
+  };
+
+  get_nbgrader_cell_type = (id: string): string => {
+    let data = this.getIn(["cells", id]);
+    // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
+    if (data == null) {
+      return "";
+    }
+    if (data != null) {
+      let nbg = data.getIn(["metadata", "nbgrader"]);
+      if (nbg == null) {
+        return "";
+      }
+    }
+
+    data = data.toJS();
+    const solution = nbgrader.is_solution(data);
+    const grade = nbgrader.is_grade(data);
+    let mode: string = "";
+    if (solution && grade) {
+      mode = "manual";
+    }
+    if (solution && !grade) {
+      mode = "solution";
+    }
+    if (!solution && grade) {
+      mode = "tests";
+    }
+    if (!solution && !grade) {
+      mode = "readonly";
+    }
+    return mode;
   };
 }

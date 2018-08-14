@@ -5,11 +5,11 @@ NBGrader toolbar for configuring the cells.
 import {
   /* Button, */ FormControl /* FormGroup, InputGroup */
 } from "react-bootstrap";
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component, rtypes } from "../app-framework"; // TODO: this will move
 // const { Icon } = require("../r_misc");
 const { Space } = require("../r_misc");
 // const { COLORS } = require("smc-util/theme");
-// const misc = require("smc-util/misc");
+const misc = require("smc-util/misc");
 import { Map as ImmutableMap } from "immutable";
 
 const { CELL_TYPES } = require("./nbgrader");
@@ -17,6 +17,9 @@ const { CELL_TYPES } = require("./nbgrader");
 interface NBGraderProps {
   actions: any;
   cell: ImmutableMap<string, any>; // TODO: what is this
+  project_map: ImmutableMap<string, any>;
+  project_id: string;
+  student_mode: boolean;
 }
 
 interface NBGraderState {
@@ -33,6 +36,17 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
     };
   }
 
+  public static reduxProps({ name }) {
+    return {
+      [name]: {
+        project_id: rtypes.string
+      },
+      projects: {
+        project_map: rtypes.immutable.Map
+      }
+    };
+  }
+
   private get_cell_type() {
     const id = this.props.cell.get("id");
     return this.props.actions.store.get_nbgrader_cell_type(id) || "";
@@ -46,6 +60,17 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
     if (this.props.cell.get("metadata") !== next.cell.get("metadata")) {
       this.setState({ cell_type: this.get_cell_type() });
     }
+  }
+
+  shouldComponentUpdate(props, state) {
+    let p = misc.is_different(this.props, props, [
+      "project_id",
+      "project_map",
+      "cell",
+      "student_mode"
+    ]);
+    let s = misc.is_different(this.state, state, ["cell_id", "cell_type"]);
+    return s || p;
   }
 
   select_type(val) {
@@ -87,6 +112,15 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
     );
   }
 
+  is_student() {
+    return (
+      <>
+        <div>{`Student: ${this.props.student_mode}`}</div>
+        <Space />
+      </>
+    );
+  }
+
   points() {
     const num =
       this.props.cell.getIn(["metadata", "nbgrader", "points"]) || null;
@@ -106,7 +140,9 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
 
     return (
       <div style={style}>
-        <div>NBGrader</div>
+        <div><b>NBGrader</b></div>
+        <Space />
+        {this.is_student()}
         {this.points()}
         {this.cell_info()}
         {this.cell_type()}

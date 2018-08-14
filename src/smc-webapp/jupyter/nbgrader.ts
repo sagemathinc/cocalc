@@ -47,14 +47,14 @@ export const CELL_TYPES = ImmutableMap({
 // compute the checksum of a cell just like nbgrader does
 // utils.compute_checksum is here https://github.com/jupyter/nbgrader/blob/master/nbgrader/utils.py#L92
 
-const is_grade = cell =>
+export const is_grade = cell =>
   // Returns True if the cell is a grade cell.
   !!__guard__(
     cell.metadata != null ? cell.metadata.nbgrader : undefined,
     x => x.grade
   );
 
-const is_solution = cell =>
+export const is_solution = cell =>
   // Returns True if the cell is a solution cell.
   !!__guard__(
     cell.metadata != null ? cell.metadata.nbgrader : undefined,
@@ -251,38 +251,8 @@ JupyterActions.prototype.nbgrader_detect = function() {
 
 /* STORE */
 
-JupyterStore.prototype.get_nbgrader = function(id) {
+JupyterStore.prototype.get_nbgrader = (id: string) => {
   return this.getIn(["cells", id, "metadata", "nbgrader"]);
-};
-
-JupyterStore.prototype.get_nbgrader_cell_type = function(id) {
-  let data = this.getIn(["cells", id]);
-  // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
-  if (data == null) {
-    return "";
-  }
-  if (data != null) {
-    let nbg = data.getIn(["metadata", "nbgrader"]);
-    if (nbg == null) {
-      return "";
-    }
-  }
-
-  data = data.toJS();
-  const solution = is_solution(data);
-  const grade = is_grade(data);
-  if (solution && grade) {
-    return "manual";
-  }
-  if (solution && !grade) {
-    return "solution";
-  }
-  if (!solution && grade) {
-    return "tests";
-  }
-  if (!solution && !grade) {
-    return "readonly";
-  }
 };
 
 function __guard__(value, transform) {

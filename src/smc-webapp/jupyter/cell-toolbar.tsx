@@ -28,6 +28,7 @@ export interface CellToolbarProps {
   actions: any;
   cell_toolbar: string;
   cell: ImmutableMap<string, any>; // TODO: what is this
+  student_mode: boolean;
 }
 
 const TOOLBARS = {
@@ -40,16 +41,21 @@ const TOOLBARS = {
 
 export class CellToolbar extends Component<CellToolbarProps> {
   render() {
-    const style = (BAR_STYLE() as any);
+    const style = BAR_STYLE() as any;
     const T = TOOLBARS[this.props.cell_toolbar];
+    const props: { actions: any; cell: any; student_mode?: boolean } = {
+      actions: this.props.actions,
+      cell: this.props.cell
+    };
+
     if (this.props.cell_toolbar === "nbgrader") {
-      const cell_type = this.props.actions.store.get_nbgrader_cell_type(
-        this.props.cell.get("id")
-      );
+      const id = this.props.cell.get("id");
+      const cell_type = this.props.actions.store.get_nbgrader_cell_type(id);
       if ((cell_type || "") !== "") {
         style.background = COLORS.BS_BLUE_BGRND;
         style.color = "white";
       }
+      props.student_mode = this.props.student_mode;
     }
     if (T === undefined) {
       return <span> Toolbar not implemented: {this.props.cell_toolbar} </span>;
@@ -58,7 +64,7 @@ export class CellToolbar extends Component<CellToolbarProps> {
       <div style={style}>
         <div style={{ flex: 1 }} />
         <div>
-          <T actions={this.props.actions} cell={this.props.cell} />
+          <T {...props} />
         </div>
       </div>
     );

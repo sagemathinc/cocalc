@@ -30,29 +30,34 @@ interface CellProps {
   trust?: boolean;
   editable?: boolean;
   deleteable?: boolean;
+  student_mode?: boolean;
 }
 
 export class Cell extends Component<CellProps> {
   shouldComponentUpdate(nextProps) {
     // note: we assume project_id and directory don't change
-    return (
-      nextProps.id !== this.props.id ||
-      nextProps.cm_options !== this.props.cm_options ||
-      nextProps.cell !== this.props.cell ||
-      nextProps.is_current !== this.props.is_current ||
-      nextProps.is_selected !== this.props.is_selected ||
-      nextProps.is_markdown_edit !== this.props.is_markdown_edit ||
-      nextProps.mode !== this.props.mode ||
-      nextProps.font_size !== this.props.font_size ||
-      nextProps.is_focused !== this.props.is_focused ||
-      nextProps.more_output !== this.props.more_output ||
-      nextProps.cell_toolbar !== this.props.cell_toolbar ||
-      nextProps.trust !== this.props.trust ||
-      nextProps.editable !== this.props.editable ||
-      nextProps.deleteable !== this.props.deleteable ||
-      (nextProps.complete !== this.props.complete &&
-        (nextProps.is_current || this.props.is_current))
-    );
+    let p = misc.is_different(this.props, nextProps, [
+      "id",
+      "cm_options",
+      "cell",
+      "is_current",
+      "is_selected",
+      "is_markdown_edit",
+      "mode",
+      "font_size",
+      "is_focused",
+      "more_output",
+      "cell_toolbar",
+      "trust",
+      "editable",
+      "deleteable",
+      "student_mode"
+    ]);
+
+    let c =
+      nextProps.complete !== this.props.complete &&
+      (nextProps.is_current || this.props.is_current);
+    return c || p;
   } // only worry about complete when editing this cell
 
   render_cell_input(cell: any) {
@@ -72,6 +77,7 @@ export class Cell extends Component<CellProps> {
         complete={this.props.is_current ? this.props.complete : undefined}
         cell_toolbar={this.props.cell_toolbar}
         trust={this.props.trust}
+        student_mode={this.props.student_mode}
         is_readonly={!this.props.editable}
       />
     );
@@ -267,7 +273,7 @@ class Hook0 extends Component<HookReactProps & HookReduxProps> {
         <Icon name="circle" />
       </div>
     );
-  } 
+  }
 }
 
 const Hook = rclass<HookReactProps>(Hook0);
