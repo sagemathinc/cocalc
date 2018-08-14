@@ -1673,7 +1673,7 @@ export class CourseActions extends Actions<CourseState> {
     assignment = store.get_assignment(assignment);
     let peers = assignment.getIn(["peer_grade", "map"]);
     if (peers != null) {
-      return peers;
+      return peers.toJS();
     }
     const N =
       (left = assignment.getIn(["peer_grade", "number"])) != null ? left : 1;
@@ -2400,6 +2400,7 @@ You can find the comments they made in the folders below.\
       // empty peer assignment for this student (maybe added late)
       return finish();
     }
+
     const peers = peer_map[student.get("student_id")];
     if (peers == null) {
       // empty peer assignment for this student (maybe added late)
@@ -2459,7 +2460,7 @@ You can find the comments they made in the folders below.\
     };
 
     // write instructions file to the student
-    return webapp_client.write_text_file_to_project({
+    webapp_client.write_text_file_to_project({
       project_id: student_project_id,
       path: target_base_path + "/GRADING_GUIDE.md",
       content: guidelines,

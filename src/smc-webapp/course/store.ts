@@ -65,9 +65,13 @@ export type AssignmentRecord = TypedMap<{
   deleted: boolean;
   due_date: Date;
   path: string;
-  peer_grade: boolean;
+  peer_grade?: TypedMap<{ enabled: boolean }>;
   note: string;
-  last_assignment: string;
+  last_assignment: TypedMap<{
+    time?: number;
+    error?: string;
+    start?: number;
+  }>;
   skip_assignment: boolean;
   skip_collect: boolean;
   skip_grading: boolean;
@@ -90,9 +94,7 @@ export type SortDescription = TypedMap<{
   is_descending: boolean;
 }>;
 
-export type CourseSettingsRecord = TypedMap<CourseSettings>;
-
-interface CourseSettings {
+export type CourseSettingsRecord = TypedMap<{
   allow_collabs: boolean;
   description: string;
   email_invite: string;
@@ -102,17 +104,16 @@ interface CourseSettings {
   student_pay: boolean;
   title: string;
   upgrade_goal: Map<any, any>;
-}
+}>;
 
-export const CourseSetting = createTypedMap<CourseSettings>();
+export const CourseSetting = createTypedMap<CourseSettingsRecord>();
 
 export type IsGradingMap = Map<string, FeedbackRecord>;
-export type FeedbackRecord = TypedMap<Feedback>;
-interface Feedback {
+export type FeedbackRecord = TypedMap<{
   edited_grade: string;
   edited_comments: string;
-}
-export const Feedback = createTypedMap<Feedback>();
+}>;
+export const Feedback = createTypedMap<FeedbackRecord>();
 
 export interface CourseState {
   activity?: { [key: string]: string };
