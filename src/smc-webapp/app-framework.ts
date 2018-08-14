@@ -36,6 +36,8 @@ import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
 import { Provider, connect } from "react-redux";
+import { murmur3 } from "murmurhash-js";
+import * as json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
@@ -455,6 +457,27 @@ x.actions must not be defined.
 
 */
 
+type cache_key_methods = "slow" | "fast";
+
+const compute_cache_key = function(
+  data: immutable.Map<string, any>,
+  hash_method?: cache_key_methods
+): number | string {
+  const method: cache_key_methods = hash_method || "slow";
+  const keys = misc.keys(data).sort();
+
+  if (method == "fast") {
+    let hash = 0;
+    for (let key of keys) {
+      hash = murmur3(key, hash);
+    }
+    return hash;
+  }
+
+  let hash = json_stable(keys);
+  return hash;
+};
+
 rclass = function(x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
@@ -465,10 +488,7 @@ rclass = function(x: any) {
           this.cache0 = {};
         }
         const reduxProps = x.reduxProps(this.props);
-        const key = misc
-          .keys(reduxProps)
-          .sort()
-          .join("");
+        const key = compute_cache_key(reduxProps);
         if (this.cache0[key] == null) {
           this.cache0[key] = connect_component(reduxProps)(x);
         }
@@ -493,10 +513,7 @@ rclass = function(x: any) {
         // OPTIMIZATION: Cache props before generating a new key.
         // currently assumes making a new object is fast enough
         const definition = x(this.props);
-        const key = misc
-          .keys(definition.reduxProps)
-          .sort()
-          .join("");
+        const key = compute_cache_key(definition);
 
         if (definition.actions != null) {
           throw Error(
