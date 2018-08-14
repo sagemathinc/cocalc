@@ -417,4 +417,4 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 }
 
-export const JupyterEditor = rclass(JupyterEditor0);
+export const JupyterEditor = rclass<JupyterEditorProps>(JupyterEditor0);

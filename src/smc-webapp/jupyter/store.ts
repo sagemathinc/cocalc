@@ -3,7 +3,7 @@ The Store
 */
 
 const misc = require("smc-util/misc");
-import { Store } from "../app-framework";
+import { Store, AppRedux } from "../app-framework";
 import { Set } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 
@@ -67,6 +67,18 @@ export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
   private _more_output: any;
   private store: any;
+  get_nbgrader_cell_type: typeof nbgrader.get_nbgrader_cell_type;
+  nbgrader_student_cell_protection: typeof nbgrader.nbgrader_student_cell_protection;
+  get_nbgrader: typeof nbgrader.get_nbgrader;
+
+  constructor(name: string, redux: AppRedux) {
+    super(name, redux);
+    this.get_nbgrader_cell_type = nbgrader.get_nbgrader_cell_type.bind(this);
+    this.nbgrader_student_cell_protection = nbgrader.nbgrader_student_cell_protection.bind(
+      this
+    );
+    this.get_nbgrader = nbgrader.get_nbgrader.bind(this);
+  }
 
   // Return map from selected cell ids to true, in no particular order
   get_selected_cell_ids = () => {
@@ -331,58 +343,5 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_cell_metadata_flag = (id: any, key: any) => {
     // default is true
     return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
-  };
-
-  /*
-   * only for students, protect test and readonly nbgrader cells
-   */
-  nbgrader_student_cell_protection = (
-    id: string,
-    action: "edit" | "delete"
-  ): boolean => {
-    if (!this.get("student_mode")) {
-      return false;
-    }
-    const mode : nbgrader.MODES = this.get_nbgrader_cell_type(id);
-    let protect = false;
-    // tests and read-only cells are protected from editing and deleting
-    protect = ["tests", "readonly"].includes(mode);
-    // in the other modes, cell can be edited but not deleted
-    if (action == "delete") {
-      protect = protect || ["solution", "manual"].includes(mode);
-    }
-    return protect;
-  };
-
-  get_nbgrader_cell_type = (id: string): nbgrader.MODES => {
-    let data = this.getIn(["cells", id]);
-    // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
-    if (data == null) {
-      return "";
-    }
-    if (data != null) {
-      let nbg = data.getIn(["metadata", "nbgrader"]);
-      if (nbg == null) {
-        return "";
-      }
-    }
-
-    data = data.toJS();
-    const solution = nbgrader.is_solution(data);
-    const grade = nbgrader.is_grade(data);
-    let mode: nbgrader.MODES = "";
-    if (solution && grade) {
-      mode = "manual";
-    }
-    if (solution && !grade) {
-      mode = "solution";
-    }
-    if (!solution && grade) {
-      mode = "tests";
-    }
-    if (!solution && !grade) {
-      mode = "readonly";
-    }
-    return mode;
   };
 }

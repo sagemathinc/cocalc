@@ -23,8 +23,7 @@
 Functionality that mimics aspects of nbgrader
 */
 
-const { JupyterActions } = require("./actions");
-const { JupyterStore } = require("./store");
+// const { JupyterActions } = require("./actions");
 const { DEBUG } = require("../feature");
 
 // const misc = require("smc-util/misc");
@@ -61,7 +60,7 @@ export const is_solution = cell =>
     x => x.solution
   );
 
-const is_locked = function(cell) {
+const is_locked = cell => {
   // Returns True if the cell source is locked (will be overwritten).
   if ((cell.metadata != null ? cell.metadata.nbgrader : undefined) == null) {
     return false;
@@ -82,7 +81,7 @@ const to_bytes = s =>
   // string to utf-8 encoded byte vector or whatever ...
   `${s}`;
 
-const compute_checksum = function(cell) {
+const compute_checksum = cell => {
   // m = hashlib.md5()
   //
   // * add the cell source and type
@@ -103,8 +102,10 @@ const compute_checksum = function(cell) {
   //     m.update(to_bytes(str(float(cell.metadata.nbgrader['points']))))
   // return m.hexdigest()
   const l = is_locked(cell);
-  return md5(`0xNOTIMPLEMENTED ${l}`);
+  return md5(to_bytes(`0xNOTIMPLEMENTED ${l}`));
 };
+
+console.log(compute_checksum({ test: 123 }));
 
 /*
 
@@ -165,7 +166,7 @@ interface IData {
   points?: number;
 }
 
-JupyterActions.prototype.nbgrader_set_cell_type = function(id, val) {
+export const nbgrader_set_cell_type = (id, val) => {
   const data: IData = {
     schema_version: 1,
     grade_id: `cell-${id}`
@@ -201,7 +202,7 @@ JupyterActions.prototype.nbgrader_set_cell_type = function(id, val) {
   return this.nbgrader_set_data(id, immutable.fromJS(data));
 };
 
-JupyterActions.prototype.nbgrader_set_data = function(id, data) {
+export const nbgrader_set_data = (id, data) => {
   // TODO: this should be merge = true, or just set the nbgrader field, and not touch the other ones
   if (DEBUG) {
     console.log("JupyterActions::nbgrader_set_data", id, data.toJS());
@@ -212,20 +213,20 @@ JupyterActions.prototype.nbgrader_set_data = function(id, data) {
   });
 };
 
-JupyterActions.prototype.nbgrader_delete_data = function(id) {
+export const nbgrader_delete_data = id => {
   // get rid of the nbgrader metadata
   let metadata = this.store.getIn(["cells", id, "metadata"]);
   metadata = metadata.delete("nbgrader");
   return this.set_cell_metadata({ id: id, metadata: metadata.toJS() });
 };
 
-JupyterActions.prototype.nbgrader_set_points = function(id, num) {
+export const nbgrader_set_points = function(id, num) {
   let data = this.store.get_nbgrader(id);
   data = data.set("grade", num);
   return this.nbgrader_set_data(data.toJS());
 };
 
-JupyterActions.prototype.nbgrader_run_tests = function() {
+export const nbgrader_run_tests = () => {
   this.store
     .get("cell_list")
     .filter(id => {
@@ -238,7 +239,7 @@ JupyterActions.prototype.nbgrader_run_tests = function() {
   return this.save_asap();
 };
 
-JupyterActions.prototype.nbgrader_detect = function() {
+export const nbgrader_detect = () => {
   const cells = this.store.get("cells");
   if (cells == null) {
     return;
@@ -251,8 +252,61 @@ JupyterActions.prototype.nbgrader_detect = function() {
 
 /* STORE */
 
-JupyterStore.prototype.get_nbgrader = (id: string) => {
+export const get_nbgrader = (id: string) => {
   return this.getIn(["cells", id, "metadata", "nbgrader"]);
+};
+
+/*
+ * only for students, protect test and readonly nbgrader cells
+ */
+export const nbgrader_student_cell_protection = (
+  id: string,
+  action: "edit" | "delete"
+): boolean => {
+  if (!this.get("student_mode")) {
+    return false;
+  }
+  const mode: MODES = this.get_nbgrader_cell_type(id);
+  let protect = false;
+  // tests and read-only cells are protected from editing and deleting
+  protect = ["tests", "readonly"].includes(mode);
+  // in the other modes, cell can be edited but not deleted
+  if (action == "delete") {
+    protect = protect || ["solution", "manual"].includes(mode);
+  }
+  return protect;
+};
+
+export const get_nbgrader_cell_type = (id: string): MODES => {
+  let data = this.getIn(["cells", id]);
+  // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
+  if (data == null) {
+    return "";
+  }
+  if (data != null) {
+    let nbg = data.getIn(["metadata", "nbgrader"]);
+    if (nbg == null) {
+      return "";
+    }
+  }
+
+  data = data.toJS();
+  const solution = is_solution(data);
+  const grade = is_grade(data);
+  let mode: MODES = "";
+  if (solution && grade) {
+    mode = "manual";
+  }
+  if (solution && !grade) {
+    mode = "solution";
+  }
+  if (!solution && grade) {
+    mode = "tests";
+  }
+  if (!solution && !grade) {
+    mode = "readonly";
+  }
+  return mode;
 };
 
 function __guard__(value, transform) {

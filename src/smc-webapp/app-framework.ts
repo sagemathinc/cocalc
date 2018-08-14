@@ -649,3 +649,4 @@ export function redux_fields(spec) {
   }
   return v;
 }
+
