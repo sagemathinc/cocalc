@@ -11,6 +11,8 @@ let primus_server = undefined;
 
 // Primus devs don't care about typescript: https://github.com/primus/primus/pull/623
 const Primus = require("primus");
+// https://github.com/cayasso/primus-multiplex
+const multiplex = require("primus-multiplex");
 
 const clients = {};
 
@@ -25,42 +27,40 @@ export function init_websocket_server(
   base_url: string,
   logger: Logger
 ): any {
-  const opts = { pathname: join(base_url, "/.smc/ws") };
+  // Create primus server object:
+  const opts = {
+    pathname: join(base_url, "/.smc/ws"),
+    transformer: "websockets"
+  };
   const primus = new Primus(http_server, opts);
+
+  // add multiplex to Primus so we have channels.
+  primus.plugin("multiplex", multiplex);
+
   logger.debug("primus", `listening on ${opts.pathname}`);
 
-  primus.on("connection", function(conn) {
+  const eval_channel = primus.channel("eval");
+  eval_channel.on("connection", function(spark) {
     // Now handle the connection
     logger.debug(
-      "primus",
-      `new connection from ${conn.address.ip} -- ${conn.id}`
+      "primus eval",
+      `new connection from ${spark.address.ip} -- ${spark.id}`
     );
-    clients[conn.id] = new BrowserClient(conn, logger);
-    logger.debug("primus", `num_clients=${len(clients)}`);
-
-    conn.on("end", function() {
-      delete clients[conn.id];
-      logger.debug("primus", "connection ended", `num_clients=${len(clients)}`);
-    });
-
-    conn.on("data", async function(data) {
+    spark.on("data", async function(data) {
       logger.debug("primus", "data", typeof data, JSON.stringify(data));
-      //conn.write(data);
-      if (data.path != null) {
-        conn.write(
-          await callback(
-            require("../directory-listing").get_listing0,
-            data.path,
-            data.hidden
-          )
-        );
-      } else if (data.eval != null) {
-        conn.write(eval(data.eval));
-      } else {
-        conn.write(data);
+      try {
+        eval_channel.write(eval(data));
+      } catch (err) {
+        spark.write(err.toString());
       }
     });
   });
+
+  const random_channel = primus.channel("random");
+  setInterval(function() {
+    random_channel.write(Math.random());
+  }, 3000);
+
 
   const router = express.Router();
   const library: string = primus.library();
