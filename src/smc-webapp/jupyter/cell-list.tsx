@@ -237,7 +237,7 @@ export class CellList extends Component<CellListProps> {
     this.props.cell_list.forEach((id: string) => {
       const cell_data = this.props.cells.get(id);
       const editable = this.props.actions.store.is_cell_editable(id);
-      const deletable = this.props.actions.store.is_cell_deletable(id);
+      const deleteable = this.props.actions.store.is_cell_deleteable(id);
       const cell = (
         <Cell
           key={id}
@@ -271,7 +271,7 @@ export class CellList extends Component<CellListProps> {
           trust={this.props.trust}
           student_mode={this.props.student_mode}
           editable={editable}
-          deletable={deletable}
+          deleteable={deleteable}
         />
       );
       if (this.props.actions != null) {

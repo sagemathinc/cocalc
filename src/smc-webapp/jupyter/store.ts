@@ -300,13 +300,13 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   is_cell_editable = (id: string): boolean => {
     const editable = this.get_cell_metadata_flag(id, "editable");
-    const protect = this.nbgrader_student_cell_protection(id);
+    const protect = this.nbgrader_student_cell_protection(id, "edit");
     return editable && !protect;
   };
 
-  is_cell_deletable = (id: string): boolean => {
+  is_cell_deleteable = (id: string): boolean => {
     const deleteable = this.get_cell_metadata_flag(id, "deletable");
-    const protect = this.nbgrader_student_cell_protection(id);
+    const protect = this.nbgrader_student_cell_protection(id, "delete");
     return deleteable && !protect;
   };
 
@@ -334,17 +334,27 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   /*
-  only for students, protect test and readonly nbgrader cells
-  */
-  nbgrader_student_cell_protection = (id: string): boolean => {
+   * only for students, protect test and readonly nbgrader cells
+   */
+  nbgrader_student_cell_protection = (
+    id: string,
+    action: "edit" | "delete"
+  ): boolean => {
     if (!this.get("student_mode")) {
       return false;
     }
-    const mode = this.get_nbgrader_cell_type(id);
-    return ["tests", "readonly"].includes(mode);
+    const mode : nbgrader.MODES = this.get_nbgrader_cell_type(id);
+    let protect = false;
+    // tests and read-only cells are protected from editing and deleting
+    protect = ["tests", "readonly"].includes(mode);
+    // in the other modes, cell can be edited but not deleted
+    if (action == "delete") {
+      protect = protect || ["solution", "manual"].includes(mode);
+    }
+    return protect;
   };
 
-  get_nbgrader_cell_type = (id: string): string => {
+  get_nbgrader_cell_type = (id: string): nbgrader.MODES => {
     let data = this.getIn(["cells", id]);
     // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
     if (data == null) {
@@ -360,7 +370,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     data = data.toJS();
     const solution = nbgrader.is_solution(data);
     const grade = nbgrader.is_grade(data);
-    let mode: string = "";
+    let mode: nbgrader.MODES = "";
     if (solution && grade) {
       mode = "manual";
     }

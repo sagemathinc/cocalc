@@ -134,6 +134,38 @@ export class Cell extends Component<CellProps> {
     return event.stopPropagation();
   };
 
+  render_metadata_state_delete_protected() {
+    if (this.props.deleteable) {
+      return;
+    }
+    const lock_style = { marginRight: "5px" };
+    return (
+      <Tip
+        title={"Protected from deletion"}
+        placement={"right"}
+        size={"small"}
+        style={lock_style}
+      >
+        <Icon name="ban" />
+      </Tip>
+    );
+  }
+
+  render_metadata_state_edit_protected() {
+    if (this.props.editable) {
+      return;
+    }
+    return (
+      <Tip
+        title={"Protected from modifications"}
+        placement={"right"}
+        size={"small"}
+      >
+        <Icon name="lock" />
+      </Tip>
+    );
+  }
+
   render_metadata_state() {
     const style: React.CSSProperties = {
       position: "absolute",
@@ -147,34 +179,10 @@ export class Cell extends Component<CellProps> {
       style.color = COLORS.BS_RED;
     }
 
-    const lock_style = { marginRight: "5px" };
-
     return (
       <div style={style}>
-        {// TODO: WARNING: IMPORTANT: what is this? (I disabled it for now - Travis)
-        false && !this.props.deleteable ? (
-          <Tip
-            title={"Protected from deletion"}
-            placement={"right"}
-            size={"small"}
-            style={lock_style}
-          >
-            <Icon name="ban" />
-          </Tip>
-        ) : (
-          undefined
-        )}
-        {!this.props.editable ? (
-          <Tip
-            title={"Protected from modifications"}
-            placement={"right"}
-            size={"small"}
-          >
-            <Icon name="lock" />
-          </Tip>
-        ) : (
-          undefined
-        )}
+        {this.render_metadata_state_delete_protected()}
+        {this.render_metadata_state_edit_protected()}
       </div>
     );
   }

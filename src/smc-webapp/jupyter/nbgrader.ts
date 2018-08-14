@@ -32,8 +32,8 @@ const md5 = require("md5");
 const immutable = require("immutable");
 import { Map as ImmutableMap } from "immutable";
 
-// some issue with the empty string …
-// type CELL_NAMES = "" | "manual" | "solution" | "tests" | "readonly";
+// some issue with the empty string … ?
+export type MODES = "" | "manual" | "solution" | "tests" | "readonly";
 
 // export const CELL_TYPES = ImmutableMap<CELL_NAMES, string>({
 export const CELL_TYPES = ImmutableMap({
