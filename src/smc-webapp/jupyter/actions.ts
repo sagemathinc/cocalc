@@ -1047,7 +1047,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       !this.store.is_cell_editable(obj.id)
     ) {
       for (let protected_key of ["input", "cell_type", "attachments"]) {
-        if (misc.has_key(protected_key)) {
+        if (misc.has_key(obj, protected_key)) {
           throw CellWriteProtectedException;
         }
       }
