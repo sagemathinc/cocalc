@@ -24,12 +24,14 @@ function BAR_STYLE() {
   };
 }
 
-export interface CellToolbarProps {
+export interface IToolbar {
   actions: any;
-  cell_toolbar: string;
   cell: ImmutableMap<string, any>; // TODO: what is this
-  student_mode: boolean;
+  student_mode?: boolean;
+  name?: string;
 }
+
+export type CellToolbarProps = IToolbar & { cell_toolbar: string };
 
 const TOOLBARS = {
   slideshow: Slideshow,
@@ -43,7 +45,7 @@ export class CellToolbar extends Component<CellToolbarProps> {
   render() {
     const style = BAR_STYLE() as any;
     const T = TOOLBARS[this.props.cell_toolbar];
-    const props: { actions: any; cell: any; student_mode?: boolean } = {
+    const props: IToolbar = {
       actions: this.props.actions,
       cell: this.props.cell
     };
@@ -56,6 +58,7 @@ export class CellToolbar extends Component<CellToolbarProps> {
         style.color = "white";
       }
       props.student_mode = this.props.student_mode;
+      props.name = this.props.actions.name;
     }
     if (T === undefined) {
       return <span> Toolbar not implemented: {this.props.cell_toolbar} </span>;

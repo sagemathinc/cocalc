@@ -5,29 +5,35 @@ NBGrader toolbar for configuring the cells.
 import {
   /* Button, */ FormControl /* FormGroup, InputGroup */
 } from "react-bootstrap";
-import { React, Component, rtypes } from "../app-framework"; // TODO: this will move
-// const { Icon } = require("../r_misc");
-const { Space } = require("../r_misc");
+import { React, Component, rtypes, rclass } from "../app-framework"; // TODO: this will move
+const { Space, NumberInput } = require("../r_misc");
 // const { COLORS } = require("smc-util/theme");
 const misc = require("smc-util/misc");
+const { DEBUG } = require("../feature");
 import { Map as ImmutableMap } from "immutable";
 
-const { CELL_TYPES } = require("./nbgrader");
+import * as nbgrader from "./nbgrader";
 
-interface NBGraderProps {
-  actions: any;
-  cell: ImmutableMap<string, any>; // TODO: what is this
+interface NBGraderReduxProps {
   project_map: ImmutableMap<string, any>;
   project_id: string;
+}
+
+interface NBGraderReactProps {
+  actions: any;
+  name: string;
+  cell: ImmutableMap<string, any>; // TODO: what is this
   student_mode: boolean;
 }
 
 interface NBGraderState {
-  cell_type: any;
+  cell_type: nbgrader.MODES;
   cell_id: string;
 }
 
-export class NBGrader extends Component<NBGraderProps, NBGraderState> {
+type NBGraderProps = NBGraderReduxProps & NBGraderReactProps;
+
+class NBGraderComponent extends Component<NBGraderProps, NBGraderState> {
   constructor(props: NBGraderProps, context: any) {
     super(props, context);
     this.state = {
@@ -78,7 +84,7 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
   }
 
   cell_type_options() {
-    return CELL_TYPES.entrySeq().map(([k, v]) => (
+    return nbgrader.CELL_TYPES.entrySeq().map(([k, v]) => (
       <option key={k} value={k}>
         {v}
       </option>
@@ -113,11 +119,34 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
   }
 
   is_student() {
+    const who = this.props.student_mode ? "Student" : "Teacher";
     return (
       <>
-        <div>{`Student: ${this.props.student_mode}`}</div>
+        <div>{`Mode: ${who}`}</div>
         <Space />
       </>
+    );
+  }
+
+  on_points_changed(val): void {
+    if (DEBUG) {
+      console.log("on_points_changed", val);
+    }
+  }
+
+  points_input(num): JSX.Element {
+    // students can't edit the number of points, for obvious reasons …
+    if (this.props.student_mode) {
+      return <div>Points: {num}</div>;
+    }
+    return (
+      <NumberInput
+        number={num}
+        min={0}
+        max={100}
+        on_change={this.on_points_changed}
+        unit={undefined}
+      />
     );
   }
 
@@ -129,7 +158,7 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
     }
     return (
       <>
-        <div>Points: {num}</div>
+        {this.points_input(num)}
         <Space />
       </>
     );
@@ -140,7 +169,9 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
 
     return (
       <div style={style}>
-        <div><b>NBGrader</b></div>
+        <div>
+          <b>NBGrader</b>
+        </div>
         <Space />
         {this.is_student()}
         {this.points()}
@@ -150,3 +181,5 @@ export class NBGrader extends Component<NBGraderProps, NBGraderState> {
     );
   }
 }
+
+export const NBGrader = rclass<NBGraderReactProps>(NBGraderComponent);
