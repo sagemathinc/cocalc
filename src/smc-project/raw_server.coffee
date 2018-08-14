@@ -102,7 +102,7 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/ws websocket server, which is used by clients
             # for direct websocket connections to the project, and also
             # servers /.smc/primus.js, which is the relevant client library.
-            #raw_server.use(base, init_websocket_server(express, http_server, base, opts.logger))
+            raw_server.use(base, init_websocket_server(express, http_server, base, opts.logger))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))

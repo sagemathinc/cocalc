@@ -361,3 +361,5 @@ exports.connect = (url) ->
         return connection = new Connection(url)
 
 exports.connect()
+
+window.connect_to_project = require('./project/websocket').connect_to_project
