@@ -13,7 +13,7 @@ import { startswith } from "../smc-webapp/frame-editors/generic/misc";
 
 const BASE = "/.smc/jupyter/";
 
-function get_code_and_cursor_pos(
+export function get_code_and_cursor_pos(
   query: any
 ): { code: string; cursor_pos: number } {
   const code: string = query.code;

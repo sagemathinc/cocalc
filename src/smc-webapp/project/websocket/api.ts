@@ -21,6 +21,10 @@ export class API {
   async prettier(path: string, options: any): Promise<any> {
     return await this.call({ cmd: "prettier", path: path, options: options });
   }
+
+  async jupyter(path: string, action: string, query: any) : Promise<any> {
+    return await this.call({ cmd: "jupyter", path:path, action:action, query:query });
+  }
 }
 
 function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {

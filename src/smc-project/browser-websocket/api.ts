@@ -26,7 +26,9 @@ export function init_websocket_api(
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
       // Echo the received request data
       try {
-        done(await handle_api_call(client, data));
+        const resp = await handle_api_call(client, data);
+        //logger.debug("primus-api", "response", resp);
+        done(resp);
       } catch (err) {
         done({ error: err.toString(), status: "error" });
       }
@@ -37,12 +39,14 @@ export function init_websocket_api(
   });
 }
 
-async function handle_api_call(client:any, data: any): Promise<any> {
+async function handle_api_call(client: any, data: any): Promise<any> {
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
     case "prettier":
       return await prettier(client, data.path, data.options);
+    case "jupyter":
+      return await jupyter(data.path, data.action, data.query);
     default:
       throw Error(`command "${data.cmd}" not implemented`);
   }
@@ -56,6 +60,22 @@ async function listing(path: string, hidden?: boolean): Promise<object[]> {
 }
 
 import { run_prettier } from "../prettier";
-async function prettier(client:any, path: string, options: any): Promise<any> {
+async function prettier(client: any, path: string, options: any): Promise<any> {
   return await run_prettier(client, path, options);
+}
+
+import { get_existing_kernel as get_jupyter_kernel } from "../jupyter/jupyter";
+import { get_code_and_cursor_pos } from "../jupyter/http-server";
+
+async function jupyter(path: string, action: string, query: any): Promise<any> {
+  const kernel = get_jupyter_kernel(path);
+  if (kernel == null) {
+    throw Error(`no kernel with path '${path}'`);
+  }
+  switch (action) {
+    case "complete":
+      return await kernel.complete(get_code_and_cursor_pos(query));
+    default:
+      throw Error(`unknown action "${action}"`);
+  }
 }
