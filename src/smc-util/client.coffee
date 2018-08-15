@@ -1781,18 +1781,6 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : cb
 
-    # Get/Set information about available compute images
-    get_compute_images: (cb) =>
-        @call
-            message     : message.get_compute_images()
-            cb          : cb
-
-    set_compute_image: (project_id, name, cb) =>
-        mesg = message.set_compute_image(name:name, project_id:project_id)
-        @call
-            message     : mesg
-            cb          : cb
-
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
     projects: (opts) =>

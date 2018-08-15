@@ -35,7 +35,8 @@ misc                    = require('smc-util/misc')
 {alert_message}         = require('./alerts')
 {project_tasks}         = require('./project_tasks')
 {COLORS}                = require('smc-util/theme')
-{DEFAULT_COMPUTE_IMAGE} = require('smc-util/db-schema')
+{COMPUTE_IMAGES, DEFAULT_COMPUTE_IMAGE} = require('smc-util/compute-images')
+COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all the ui code was written.
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
@@ -597,7 +598,6 @@ ProjectControlPanel = rclass
     propTypes :
         project           : rtypes.object.isRequired
         allow_ssh         : rtypes.bool
-        compute_images    : rtypes.immutable.Map
 
     reduxProps :
         customize :
@@ -772,23 +772,23 @@ ProjectControlPanel = rclass
             compute_image_changing : true
             compute_image_focused : false
         )
-        pid = @props.project.get('project_id')
-        new_name = @state.compute_image
-        webapp_client.set_compute_image pid, new_name, (err) =>
-            if err
-                alert_message(type:'error', message:err)
-                @setState(compute_image_changing:false)
-            else
-                @restart_project()
+        new_image = @state.compute_image
+        actions = redux.getProjectActions(@props.project.get('project_id'))
+        try
+            await actions.set_compute_image(new_image)
+            @restart_project()
+        catch err
+            alert_message(type:'error', message:err)
+            @setState(compute_image_changing: false)
 
     set_compute_image: (name) ->
-        @setState(compute_image:name)
+        @setState(compute_image: name)
 
     compute_image_info: (name, type) ->
-         @props.compute_images.getIn([name, type])
+         COMPUTE_IMAGES.getIn([name, type])
 
     render_compute_image_items: ->
-        @props.compute_images.entrySeq().map (entry) =>
+        COMPUTE_IMAGES.entrySeq().map (entry) =>
             [name, data] = entry
             <MenuItem key={name} eventKey={name} onSelect={@set_compute_image}>
                 {data.get('title')}
@@ -804,16 +804,16 @@ ProjectControlPanel = rclass
         </div>
 
     render_select_compute_image_error: ->
-        err = @props.compute_images.get('error')
+        err = COMPUTE_IMAGES.get('error')
         <Alert bsStyle='warning' style={margin:'10px'}>
             <h4>Problem loading compute images</h4>
             <code>{err}</code>
         </Alert>
 
     render_select_compute_image: ->
-        no_value = (not @props.compute_images?) or (not @state.compute_image?)
+        no_value = not @state.compute_image?
         return <Loading/> if no_value or @state.compute_image_changing
-        return @render_select_compute_image_error() if @props.compute_images.has('error')
+        return @render_select_compute_image_error() if COMPUTE_IMAGES.has('error')
         # this will at least return a suitable default value
         selected_image = @state.compute_image
         current_image = @props.project.get('compute_image')
@@ -1117,7 +1117,6 @@ ProjectSettingsBody = rclass ({name}) ->
                     <ProjectControlPanel key='control'
                         project={@props.project}
                         allow_ssh={@props.kucalc != 'yes'}
-                        compute_images={@props.compute_images}
                     />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />

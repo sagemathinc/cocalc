@@ -2,7 +2,9 @@
 
 {DEFAULT_COMPUTE_IMAGE} = require('smc-util/db-schema')
 
-COMPUTE_IMAGES =
+exports.DEFAULT_COMPUTE_IMAGE = DEFAULT_COMPUTE_IMAGE
+
+exports.COMPUTE_IMAGES = COMPUTE_IMAGES =
     default: {title: "Default", descr: "Regularly updated, well tested."}
     stable: {title: "Stable", descr: "Slightly behind 'default', updated less frequently"}
     exp: {title: "Experimental", descr: "Cutting-edge software updates (could be broken)"}

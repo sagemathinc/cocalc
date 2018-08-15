@@ -2506,18 +2506,6 @@ message
     event      : 'remove_all_upgrades'
     id         : undefined
 
-# query hub about available compute images (kucalc only)
-
-message
-    event      : 'get_compute_images'
-    id         : undefined
-    images     : undefined # set in response, a dictionary
-
-message
-    event      : 'set_compute_image'
-    id         : undefined
-    name       : required # string, validated in the hub
-    project_id : required
 
 ###
 Sage Worksheet Support, v2
