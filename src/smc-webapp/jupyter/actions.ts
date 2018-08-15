@@ -56,6 +56,8 @@ const { instantiate_assistant } = require("../assistant/main");
 
 import { JupyterKernelInterface } from "./project-interface";
 
+import { connection_to_project } from "../project/websocket/connect";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -85,10 +87,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private project_id: any;
   private set_save_status: any;
   private update_keyboard_shortcuts: any;
+  private project_conn: any;
+
   protected _client: any;
   protected _file_watcher: any;
   protected _jupyter_kernel?: JupyterKernelInterface;
   protected _state: any;
+
   public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
   public _output_handler?: any;
@@ -166,6 +171,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
 
     if (this._client) {
+      this.init_project_conn(project_id);
+
       const do_set = () => {
         return this.setState({
           has_unsaved_changes:
@@ -238,6 +245,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.setState({ read_only: b });
       this.set_cm_options();
     }
+  };
+
+  init_project_conn = async (project_id: string): Promise<void> => {
+    this.project_conn = await connection_to_project(project_id);
+  };
+
+  // private api call function
+  _api_call = async (action: string, query: any): Promise<any> => {
+    return await this.project_conn.api.jupyter(
+      this.store.get("path"),
+      action,
+      query
+    );
   };
 
   init_scroll_pos_hook = () => {
@@ -1946,7 +1966,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Only the most recent fetch has any impact, and calling
   // clear_complete() ensures any fetch made before that
   // is ignored.
-  complete = async (code: any, pos?: any, id?: any, offset?: any): Promise<void> => {
+  complete = async (
+    code: any,
+    pos?: any,
+    id?: any,
+    offset?: any
+  ): Promise<void> => {
+    if (this.project_conn === undefined) {
+      this.setState({ complete: { error: "no project connection" } });
+      return;
+    }
+
     let cursor_pos;
     const req = (this._complete_request =
       (this._complete_request != null ? this._complete_request : 0) + 1);
@@ -1966,14 +1996,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     let complete;
     try {
-      const conn = await require("smc-webapp/project/websocket/connect").connection_to_project(
-        this.store.get("project_id")
-      );
-      complete = await conn.api.jupyter(this.store.get("path"), "complete", {
+      complete = await this._api_call("complete", {
         code,
         cursor_pos
       });
     } catch (err) {
+      if (this._complete_request > req) return;
       this.setState({ complete: { error: err } });
       // no op for now...
       return;
@@ -2092,7 +2120,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  introspect = (code: any, level: any, cursor_pos?: any): void => {
+  introspect = async (
+    code: any,
+    level: any,
+    cursor_pos?: any
+  ): Promise<void> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
 
@@ -2102,34 +2134,22 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       cursor_pos = code.length;
     }
 
-    this._ajax({
-      url: server_urls.get_introspect_url(
-        this.store.get("project_id"),
-        this.store.get("path"),
+    let introspect;
+    try {
+      introspect = await this._api_call("introspect", {
         code,
         cursor_pos,
         level
-      ),
-      timeout: 30000,
-      cb: (err, data) => {
-        let introspect;
-        if (this._introspect_request > req) {
-          // future completion or clear happened; so ignore this result.
-          return;
-        }
-        if (err) {
-          introspect = { error: err };
-        } else {
-          introspect = data;
-          if (introspect.status !== "ok") {
-            introspect = { error: "completion failed" };
-          }
-          delete introspect.status;
-        }
-
-        return this.setState({ introspect: immutable.fromJS(introspect) });
+      });
+      if (introspect.status !== "ok") {
+        introspect = { error: "completion failed" };
       }
-    });
+      delete introspect.status;
+    } catch (err) {
+      introspect = { error: err };
+    }
+    if (this._introspect_request > req) return;
+    this.setState({ introspect: immutable.fromJS(introspect) });
   };
 
   clear_introspect = (): void => {
