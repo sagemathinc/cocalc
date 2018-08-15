@@ -2301,28 +2301,22 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = (id: any): void => {
+  fetch_more_output = async (id: any): Promise<void> => {
     const time = this._client.server_time() - 0;
-    return this._ajax({
-      url: server_urls.get_more_output_url(
-        this.store.get("project_id"),
-        this.store.get("path"),
-        id
-      ),
-      timeout: 60000,
-      cb: (err, more_output) => {
-        if (err) {
-          this.set_error(err);
-          return;
-        } else {
-          if (!this.store.getIn(["cells", id, "scrolled"])) {
-            // make output area scrolled, since there is going to be a lot of output
-            this.toggle_output(id, "scrolled");
-          }
-          this.set_more_output(id, { time, mesg_list: more_output });
-        }
+    try {
+      const more_output = await this._api_call(
+        "more_output",
+        { id: id },
+        60000
+      );
+      if (!this.store.getIn(["cells", id, "scrolled"])) {
+        // make output area scrolled, since there is going to be a lot of output
+        this.toggle_output(id, "scrolled");
       }
-    });
+      this.set_more_output(id, { time, mesg_list: more_output });
+    } catch (err) {
+      this.set_error(err);
+    }
   };
 
   // TODO: set_more_output on project-actions is different
