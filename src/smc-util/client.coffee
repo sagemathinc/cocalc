@@ -1452,30 +1452,21 @@ class exports.Connection extends EventEmitter
     #################################################
     # File Management
     #################################################
+    project_websocket: (project_id) =>
+        return await require('smc-webapp/project/websocket/connect').connection_to_project(project_id)
+
     project_directory_listing: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : '.'
-            timeout    : 5  # in seconds
+            timeout    : 10  # in seconds
             hidden     : false
             cb         : required
-        base = window?.app_base_url ? '' # will be defined in web browser
-        if opts.path[0] == '/'
-            opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
-        url = misc.encode_path("#{base}/#{opts.project_id}/raw/.smc/directory_listing/#{opts.path}")
-        url += "?random=#{Math.random()}"
-        if opts.hidden
-            url += '&hidden=true'
-        #console.log(url)
-        req = $.ajax
-            dataType : "json"
-            url      : url
-            timeout  : opts.timeout * 1000
-            success  : (data) ->
-                #console.log('success')
-                opts.cb(undefined, data)
-        req.fail (err) ->
-            #console.log('fail')
+        try
+            ws = await @project_websocket(opts.project_id)
+            listing = await ws.api.listing(opts.path, opts.hidden, opts.timeout*1000)
+            opts.cb(undefined, {files:listing})
+        catch err
             opts.cb(err)
 
     #################################################
