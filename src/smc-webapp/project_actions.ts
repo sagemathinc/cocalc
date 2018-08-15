@@ -350,7 +350,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  set_active_tab(key: string): void {
+  set_active_tab(key: string, opts: {update_file_listing: boolean} = {update_file_listing: true}): void {
     let store = this.get_store();
     if (store == undefined || store.get("active_project_tab") === key) {
       // nothing to do
@@ -362,7 +362,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_url_to_path(
           store.get("current_path") != null ? store.get("current_path") : ""
         );
-        this.fetch_directory_listing();
+        if (opts.update_file_listing) {
+          this.fetch_directory_listing();
+        }
         break;
       case "new":
         this.setState({ file_creation_error: undefined });
@@ -1128,7 +1130,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store.get("active_project_tab") === "files") {
           this.set_url_to_path(path);
         } else {
-          this.set_active_tab("files");
+          this.set_active_tab("files", {update_file_listing: false});
         }
         this.set_all_files_unchecked();
       }
@@ -2300,7 +2302,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       d = "root directory of project";
     }
     const id = misc.uuid();
-    this.set_active_tab("files");
+    this.set_active_tab("files", {update_file_listing: false});
     this.set_activity({
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
