@@ -54,11 +54,12 @@ export class Cell extends Component<CellProps> {
       "student_mode"
     ]);
 
+    // only worry about complete when editing this cell
     let c =
       nextProps.complete !== this.props.complete &&
       (nextProps.is_current || this.props.is_current);
     return c || p;
-  } // only worry about complete when editing this cell
+  }
 
   render_cell_input(cell: any) {
     return (

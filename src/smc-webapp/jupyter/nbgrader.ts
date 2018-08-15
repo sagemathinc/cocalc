@@ -166,7 +166,7 @@ interface IData {
   points?: number;
 }
 
-export const nbgrader_set_cell_type = (id, val) => {
+export const nbgrader_set_cell_type = function(id: string, val: MODES) {
   const data: IData = {
     schema_version: 1,
     grade_id: `cell-${id}`
@@ -202,7 +202,7 @@ export const nbgrader_set_cell_type = (id, val) => {
   return this.nbgrader_set_data(id, immutable.fromJS(data));
 };
 
-export const nbgrader_set_data = (id, data) => {
+export const nbgrader_set_data = function(id: string, data: ImmutableMap<string, any>) {
   // TODO: this should be merge = true, or just set the nbgrader field, and not touch the other ones
   if (DEBUG) {
     console.log("JupyterActions::nbgrader_set_data", id, data.toJS());
@@ -213,7 +213,7 @@ export const nbgrader_set_data = (id, data) => {
   });
 };
 
-export const nbgrader_delete_data = id => {
+export const nbgrader_delete_data = function(id: string) {
   // get rid of the nbgrader metadata
   let metadata = this.store.getIn(["cells", id, "metadata"]);
   metadata = metadata.delete("nbgrader");
@@ -226,7 +226,7 @@ export const nbgrader_set_points = function(id, num) {
   return this.nbgrader_set_data(data.toJS());
 };
 
-export const nbgrader_run_tests = () => {
+export const nbgrader_run_tests = function() {
   this.store
     .get("cell_list")
     .filter(id => {
@@ -239,7 +239,7 @@ export const nbgrader_run_tests = () => {
   return this.save_asap();
 };
 
-export const nbgrader_detect = () => {
+export const nbgrader_detect_cells = function() {
   const cells = this.store.get("cells");
   if (cells == null) {
     return;
@@ -252,17 +252,17 @@ export const nbgrader_detect = () => {
 
 /* STORE */
 
-export const get_nbgrader = (id: string) => {
+export const get_nbgrader = function(id: string): ImmutableMap<string, any> {
   return this.getIn(["cells", id, "metadata", "nbgrader"]);
 };
 
 /*
  * only for students, protect test and readonly nbgrader cells
  */
-export const nbgrader_student_cell_protection = (
+export const nbgrader_student_cell_protection = function(
   id: string,
   action: "edit" | "delete"
-): boolean => {
+): boolean {
   if (!this.get("student_mode")) {
     return false;
   }
@@ -277,7 +277,7 @@ export const nbgrader_student_cell_protection = (
   return protect;
 };
 
-export const get_nbgrader_cell_type = (id: string): MODES => {
+export const get_nbgrader_cell_type = function(id: string): MODES {
   let data = this.getIn(["cells", id]);
   // return '' if not (data?.getIn(['metadata', 'nbgrader']) ? false)
   if (data == null) {

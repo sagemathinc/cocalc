@@ -15,8 +15,6 @@ const { JupyterEditor } = require("./main");
 const { JupyterActions } = require("./actions");
 const { JupyterStore } = require("./store");
 
-require("./nbgrader");
-
 export function register() {
   return register_file_editor({
     ext: ["ipynb"],
