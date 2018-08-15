@@ -47,7 +47,7 @@ import { ProjectActions } from "./project_actions";
 
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
-import { keys, is_valid_uuid_string } from "frame-editors/generic/misc";
+import { keys, is_valid_uuid_string } from "./frame-editors/generic/misc";
 
 export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
