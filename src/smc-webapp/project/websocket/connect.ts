@@ -30,6 +30,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
       }
     }));
     conn.api = new API(conn);
+    conn.verbose = false
     conn.on("close", function() {
       delete conn.api;
       delete connections[project_id];

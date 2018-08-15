@@ -17,6 +17,10 @@ export class API {
   async listing(path: string, hidden?: boolean): Promise<object[]> {
     return await this.call({ cmd: "listing", path: path, hidden: hidden });
   }
+
+  async prettier(path: string, options: any): Promise<any> {
+    return await this.call({ cmd: "prettier", path: path, options: options });
+  }
 }
 
 function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
@@ -29,7 +33,9 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
 
   const t = new Date().valueOf();
   conn.writeAndWait(mesg, function(resp) {
-    console.log(`call finished ${new Date().valueOf() - t}ms`, mesg);
+    if (conn.verbose) {
+      console.log(`call finished ${new Date().valueOf() - t}ms`, mesg);
+    }
     if (done) {
       return;
     }

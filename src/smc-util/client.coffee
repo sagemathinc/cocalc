@@ -1934,21 +1934,12 @@ class exports.Connection extends EventEmitter
             project_id : required
             options    : undefined
             cb         : undefined
-        base = window?.app_base_url ? ''
-        path = opts.path
-        if path[0] == '/'
-            path = '.smc/root' + path
-        url = "#{base}/#{opts.project_id}/raw/.smc/prettier"
-        data =
-            path    : path
-            options : if opts.options then JSON.stringify(opts.options)
-        jqXHR = $.post(url, data)
-
-        jqXHR.fail ->
-            opts.cb?("failed")
-
-        jqXHR.done (resp) ->
-            opts.cb?(undefined, resp)
+        try
+            ws = await @project_websocket(opts.project_id)
+            resp = await ws.api.prettier(opts.path, opts.options ? {})
+            opts.cb(undefined, resp)
+        catch err
+            opts.cb(err)
 
 
 #################################################
