@@ -18,7 +18,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //##############################################################################
-// SMC specific wrapper around the redux library
+// CoCalc specific wrapper around the redux library
 //##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
@@ -36,6 +36,7 @@ import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
 import { Provider, connect } from "react-redux";
+import * as json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
@@ -455,6 +456,12 @@ x.actions must not be defined.
 
 */
 
+const compute_cache_key = function(data: immutable.Map<string, any>): string {
+  const keys = misc.keys(data).sort();
+  const hash = json_stable(keys);
+  return hash;
+};
+
 rclass = function(x: any) {
   let C;
   if (typeof x === "function" && typeof x.reduxProps === "function") {
@@ -465,10 +472,7 @@ rclass = function(x: any) {
           this.cache0 = {};
         }
         const reduxProps = x.reduxProps(this.props);
-        const key = misc
-          .keys(reduxProps)
-          .sort()
-          .join("");
+        const key = compute_cache_key(reduxProps);
         if (this.cache0[key] == null) {
           this.cache0[key] = connect_component(reduxProps)(x);
         }
@@ -493,10 +497,7 @@ rclass = function(x: any) {
         // OPTIMIZATION: Cache props before generating a new key.
         // currently assumes making a new object is fast enough
         const definition = x(this.props);
-        const key = misc
-          .keys(definition.reduxProps)
-          .sort()
-          .join("");
+        const key = compute_cache_key(definition);
 
         if (definition.actions != null) {
           throw Error(
