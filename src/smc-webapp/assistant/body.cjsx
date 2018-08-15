@@ -201,6 +201,7 @@ exports.ExamplesBody = rclass
                 <CodeMirrorStatic
                     value={code}
                     style={height:undefined,overflowX:undefined,whiteSpace:undefined}
+                    options={immutable.fromJS({mode:{name:get_codemirror_mode(@props.lang)}})}
                 />
             </Col>
             <Col sm={6}>
@@ -237,3 +238,15 @@ exports.ExamplesBody = rclass
                     @render_body()
             }
         </Modal.Body>
+
+get_codemirror_mode = (language) ->
+    mode = {
+    python: "python",
+    sage: "sage",
+    r: "r",
+    gap: "",
+    julia: "text/x-julia",
+    octave: "text/x-octave",
+    bash: "shell",
+    }[language]
+    return mode
