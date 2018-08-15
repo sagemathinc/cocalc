@@ -44,17 +44,7 @@ export async function handle_request(
         detail_level
       });
     case "store":
-      let key, value;
-      if (query.key != null) {
-        key = JSON.parse(query.key);
-      } else {
-        key = undefined;
-      }
-      if (query.value != null) {
-        value = JSON.parse(query.value);
-      } else {
-        value = undefined;
-      }
+      const {key, value} = query;
       if (value === undefined) {
         // undefined when getting the value
         return kernel.store.get(key);

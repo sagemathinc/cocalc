@@ -2580,7 +2580,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // submit input for a particular cell -- this is used by the
   // Input component output message type for interactive input.
-  submit_input = (id: any, value: any): void => {
+  submit_input = async (id: any, value: any): Promise<void> => {
     const output = this.store.getIn(["cells", id, "output"]);
     if (output == null) {
       return;
@@ -2593,17 +2593,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (mesg.getIn(["opts", "password"])) {
       // handle password input separately by first submitting to the backend.
-      this.submit_password(id, value, () => {
-        value = __range__(0, value.length, false)
-          .map((_: any) => "●")
-          .join("");
-        this.set_cell_output(
-          id,
-          output.set(n, mesg.set("value", value)),
-          false
-        );
-        return this.save_asap();
-      });
+      try {
+        await this.submit_password(id, value);
+      } catch (err) {
+        this.set_error(`Error setting backend key/value store (${err})`);
+        return;
+      }
+      value = __range__(0, value.length, false)
+        .map((_: any) => "●")
+        .join("");
+      this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
+      this.save_asap();
       return;
     }
 
@@ -2611,29 +2611,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   };
 
-  submit_password = (id: any, value: any, cb: any): void => {
-    this.set_in_backend_key_value_store(id, value, cb);
+  submit_password = async (id: any, value: any): Promise<void> => {
+    await this.set_in_backend_key_value_store(id, value);
   };
 
-  set_in_backend_key_value_store = (key: any, value: any, cb: any): void => {
-    this._ajax({
-      url: server_urls.get_store_url(
-        this.store.get("project_id"),
-        this.store.get("path"),
-        key,
-        value
-      ),
-      timeout: 15000,
-      cb: err => {
-        if (this._state === "closed") {
-          return;
-        }
-        if (err) {
-          this.set_error(`Error setting backend key/value store (${err})`);
-        }
-        return typeof cb === "function" ? cb(err) : undefined;
-      }
-    });
+  set_in_backend_key_value_store = async (
+    key: any,
+    value: any
+  ): Promise<void> => {
+    await this._api_call("store", { key, value });
   };
 
   set_to_ipynb = (ipynb: any, data_only = false) => {
