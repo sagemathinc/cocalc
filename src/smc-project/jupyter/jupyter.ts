@@ -425,7 +425,10 @@ export class JupyterKernel extends EventEmitter
           } catch (err) {}
         }
         this._kernel.spawn.removeAllListeners();
-        this._kernel.spawn.close();
+        if (this._kernel.spawn.close != null) {
+          // new enough nteract may make this fail.
+          this._kernel.spawn.close();
+        }
       }
       if (await exists(this._kernel.connectionFile)) {
         try {

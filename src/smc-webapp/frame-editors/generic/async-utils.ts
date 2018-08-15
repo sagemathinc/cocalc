@@ -20,7 +20,10 @@ import * as awaiting from "awaiting";
 // With callback_opts, you do:   callback_opts(f)(opts)
 // TODO: maybe change this everwhere to callback_opts(f, opts) for consistency!
 export function callback_opts(f: Function) {
-  return async function(opts: any): Promise<any> {
+  return async function(opts?: any): Promise<any> {
+    if (opts === undefined) {
+      opts = {};
+    }
     function g(cb: Function) {
       opts.cb = cb;
       f(opts);

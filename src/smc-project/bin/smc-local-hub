@@ -21,6 +21,6 @@ target = os.path.abspath(os.path.join(path, 'local_hub.coffee'))
 # concatenate all additional arguments and pass them to the node.js server
 local_hub_args = ' '.join(sys.argv[2:])
 
-cmd  = "forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/ %s %s"%(sys.argv[1], target, local_hub_args)
+cmd  = "forever %s --spinSleepTime=3000 -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/ %s %s"%(sys.argv[1], target, local_hub_args)
 
 os.system(cmd)

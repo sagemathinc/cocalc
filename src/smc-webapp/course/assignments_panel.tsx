@@ -428,6 +428,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     return redux.getStore(this.props.name) as any;
   }
 
+  is_peer_graded() {
+    return !!this.props.assignment.getIn(["peer_grade", "enabled"]);
+  }
+
   _due_date() {
     const due_date = this.props.assignment.get("due_date"); // a string
     if (due_date == null) {
@@ -563,9 +567,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       );
     }
 
-    const peer = __guard__(this.props.assignment.get("peer_grade"), x =>
-      x.get("enabled")
-    );
+    const peer = this.is_peer_graded();
     if (peer) {
       width = 2;
     } else {
@@ -664,15 +666,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_assignment_button(status) {
-    let bsStyle, left;
-    if (
-      ((left = __guard__(
-        this.props.assignment.get("last_assignment"),
-        x => x.size
-      )) != null
-        ? left
-        : 0) === 0
-    ) {
+    let bsStyle;
+    const last_assignment = this.props.assignment.get("last_assignment");
+    // Primary if it hasn't been assigned before or if it hasn't started assigning.
+    if (!last_assignment || !(last_assignment.get("time") || last_assignment.get("start"))) {
       bsStyle = "primary";
     } else {
       bsStyle = "warning";
@@ -713,9 +710,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_copy_confirms(status) {
-    const steps = STEPS(
-      __guard__(this.props.assignment.get("peer_grade"), x => x.get("enabled"))
-    );
+    const steps = STEPS(this.is_peer_graded());
     const result: (ReactElement<any> | undefined)[] = [];
     for (let step of steps) {
       if (this.state[`copy_confirm_${step}`]) {
@@ -1367,7 +1362,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  _peer_due(date) {
+  _peer_due(date): Date | undefined {
     if (date == null) {
       date = this.props.assignment.getIn(["peer_grade", "due_date"]);
     }
@@ -1379,8 +1374,13 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   peer_due_change = date => {
+    let due_date = this._peer_due(date);
+    let due_date_string: string | undefined;
+    if (due_date != undefined) {
+      due_date_string = due_date.toISOString();
+    }
     return this.set_peer_grade({
-      due_date: __guard__(this._peer_due(date), x => x.toISOString())
+      due_date: due_date_string
     });
   };
 
@@ -1462,13 +1462,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_configure_peer() {
-    let left;
-    const config =
-      (left = __guard__(this.props.assignment.get("peer_grade"), x =>
-        x.toJS()
-      )) != null
-        ? left
-        : {};
+    const peer_info = this.props.assignment.get("peer_grade");
+    let config: { enabled?: boolean } = {};
+    if (peer_info) {
+      config = peer_info.toJS();
+    }
     return (
       <Alert bsStyle="warning">
         <h3>
@@ -1503,9 +1501,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_peer_button() {
     let icon;
-    if (
-      __guard__(this.props.assignment.get("peer_grade"), x => x.get("enabled"))
-    ) {
+    if (this.is_peer_graded()) {
       icon = "check-square-o";
     } else {
       icon = "square-o";
@@ -1627,6 +1623,11 @@ class StudentListForAssignment extends Component<
     return redux.getStore(this.props.name) as any;
   }
 
+  is_peer_graded() {
+    const peer_info = this.props.assignment.get("peer_grade");
+    return peer_info ? peer_info.get("enabled") : false;
+  }
+
   render_student_info(student_id) {
     const store = this.get_store();
     const student = store.get_student(student_id);
@@ -1692,20 +1693,10 @@ class StudentListForAssignment extends Component<
         <StudentAssignmentInfoHeader
           key="header"
           title="Student"
-          peer_grade={
-            !!__guard__(this.props.assignment.get("peer_grade"), x =>
-              x.get("enabled")
-            )
-          }
+          peer_grade={this.is_peer_graded()}
         />
         {this.render_students()}
       </div>
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
