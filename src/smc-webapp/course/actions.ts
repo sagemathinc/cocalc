@@ -1848,7 +1848,7 @@ You can find the comments they made in the folders below.\
             }
             return webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
-              path: src_path + "/GRADE.txt",
+              path: src_path + "/GRADE.md",
               content,
               cb
             });
