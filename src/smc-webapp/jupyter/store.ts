@@ -47,7 +47,7 @@ export interface JupyterStoreState {
   view_mode: string;
   mode: string;
   nbconvert: any;
-  about: boolean;  
+  about: boolean;
   start_time: any;
   complete: any;
   introspect: any;
@@ -321,6 +321,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   get_cell_metadata_flag = (id: any, key: any) => {
     // default is true
-    return this.unsafe_getIn(["cells", id, "metadata", key],true); // TODO: type
+    return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
   };
 }

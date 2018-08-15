@@ -87,8 +87,12 @@ class exports.ExamplesActions extends Actions
         code               = @get('code')
         setup_code         = @get('setup_code')
         prepend_setup_code = @get('prepend_setup_code')
+
+        # "code" is an immutable list
+        code = code.toArray()
         if (prepend_setup_code) and (setup_code?.length > 0)
-            code = "#{setup_code}\n#{code}"
+            code.unshift(setup_code)
+
         @store.log()
         ret =
             code  : code
@@ -183,6 +187,9 @@ class exports.ExamplesActions extends Actions
         vars  = lang.getIn([lvl1, lvl2, 'variables'])
         code  = doc.getIn([1, 0])
 
+        if typeof code != 'string'
+            code = code.toArray().join('\n')
+
         # extra setup on top
         extra = undefined
         # given we have a "variables" dictionary, we check
@@ -208,15 +215,18 @@ class exports.ExamplesActions extends Actions
 
         ret = ''
         if setup?
-            ret += "#{setup}\n"
+            ret += "#{setup}"
         if extra?
-            ret += "#{extra}\n"
+            ret += "\n#{extra}"
         return ret
 
     # for a specific document, set the code and description box values.
     show_doc: (lang, lvl1, lvl2, doc) ->
+        code = doc.getIn([1, 0])
+        if typeof code == "string"
+            code = immutable.List([code])
         @set(
-            code        : doc.getIn([1, 0])
+            code        : code
             descr       : doc.getIn([1, 1])
             submittable : true
             setup_code  : @generate_setup_code(lang, lvl1, lvl2, doc)
@@ -287,8 +297,8 @@ class exports.ExamplesActions extends Actions
         switch level
             when 0, 1
                 @set(
-                    code        : ''
-                    descr       : ''
+                    code        : null
+                    descr       : null
                     category2   : null
                     submittable : false
                     setup_code  : ''

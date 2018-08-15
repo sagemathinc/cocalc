@@ -2419,22 +2419,23 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  code_assistant_handler = (data: any) => {
+  code_assistant_handler = (data: { code: string[]; descr?: string }): void => {
     this.focus_unlock();
     const { code, descr } = data;
     //if DEBUG then console.log("assistant data:", data, code, descr)
 
     if (descr != null) {
-      let cell_type;
       const descr_cell = this.insert_cell(1);
       this.set_cell_input(descr_cell, descr);
-      this.set_cell_type(descr_cell, (cell_type = "markdown"));
+      this.set_cell_type(descr_cell, "markdown");
     }
 
-    const code_cell = this.insert_cell(1);
-    this.set_cell_input(code_cell, code);
-    this.run_code_cell(code_cell);
-    return this.scroll("cell visible");
+    for (let c of code) {
+      const code_cell = this.insert_cell(1);
+      this.set_cell_input(code_cell, c);
+      this.run_code_cell(code_cell);
+    }
+    this.scroll("cell visible");
   };
 
   _keyboard_settings = () => {

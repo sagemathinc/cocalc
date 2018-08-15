@@ -39,7 +39,7 @@ exports.ExamplesBody = rclass
         actions             : rtypes.object
         data                : rtypes.immutable
         lang                : rtypes.string
-        code                : rtypes.string
+        code                : rtypes.immutable.List
         descr               : rtypes.string
         setup_code          : rtypes.string
         prepend_setup_code  : rtypes.bool
@@ -190,18 +190,28 @@ exports.ExamplesBody = rclass
         }
         </Row>
 
-    render_bottom: ->
+    render_code: () ->
         # TODO syntax highlighting
         code = @props.code
-        if @props.prepend_setup_code and  @props.setup_code?.length > 0
-            code = "#{@props.setup_code}\n#{code}"
+        if code?
+            code = code.toArray()
+
+            if @props.prepend_setup_code and @props.setup_code?.length > 0
+                code.unshift(@props.setup_code)
+
+            code_text = code.join('\n')
+        else
+            code_text = ''
+        <pre ref={'code'} className={'code'}>{code_text}</pre>
+
+    render_bottom: ->
         <Row key={'bottom'}>
             <Col sm={6}>
-                <pre ref={'code'} className={'code'}>{code}</pre>
+                {@render_code()}
             </Col>
             <Col sm={6}>
                 <Panel ref={'descr'} className={'webapp-examples-descr'}>
-                    <Markdown value={@props.descr} />
+                    <Markdown value={@props.descr ? ''} />
                 </Panel>
             </Col>
         </Row>
