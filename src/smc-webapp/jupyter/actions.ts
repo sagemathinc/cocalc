@@ -172,7 +172,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
 
     if (this._client) {
-      this.init_project_conn(project_id);
+      this.init_project_conn();
 
       const do_set = () => {
         return this.setState({
@@ -248,19 +248,24 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  init_project_conn = async (project_id: string): Promise<void> => {
-    this.project_conn = await connection_to_project(project_id);
-  };
+  init_project_conn = reuseInFlight(async (): Promise<any> => {
+    return (this.project_conn = await connection_to_project(
+      this.store.get("project_id")
+    ));
+  });
 
   // private api call function
   _api_call = async (
-    action: string,
-    query: any,
+    endpoint: string,
+    query?: any,
     timeout_ms?: number
   ): Promise<any> => {
-    return await this.project_conn.api.jupyter(
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
+    return await (await this.init_project_conn()).api.jupyter(
       this.store.get("path"),
-      action,
+      endpoint,
       query,
       timeout_ms
     );
@@ -385,54 +390,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  fetch_jupyter_kernels = () => {
-    const f = cb => {
-      if (this._state === "closed") {
-        cb();
-        return;
-      }
-      return this._ajax({
-        url:
-          server_urls.get_server_url(this.store.get("project_id")) +
-          "/kernels.json",
-        timeout: 3000,
-        cb: (err, data) => {
-          if (err) {
-            cb(err);
-            return;
-          }
-          try {
-            const project_id = this.store.get("project_id");
-            const kernels = immutable.fromJS(data);
-            jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
-            this.setState({ kernels: kernels });
-            // We must also update the kernel info (e.g., display name), now that we
-            // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-            this.setState({
-              kernel_info: this.store.get_kernel_info(this.store.get("kernel"))
-            });
-            cb();
-          } catch (e) {
-            this.set_error(`Error setting Jupyter kernels -- ${data} ${e}`);
-          }
-        }
-      });
-    };
-
-    return misc.retry_until_success({
-      f,
-      start_delay: 1500,
-      max_delay: 15000,
-      max_time: 60000
+  fetch_jupyter_kernels = async (): Promise<void> => {
+    const data = await this._api_call("kernels");
+    if (data.status == 'error') {
+      this.set_error(data.error);
+      return;
+    }
+    const project_id = this.store.get("project_id");
+    const kernels = immutable.fromJS(data);
+    jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
+    this.setState({ kernels: kernels });
+    // We must also update the kernel info (e.g., display name), now that we
+    // know the kernels (e.g., maybe it changed or is now known but wasn't before).
+    this.setState({
+      kernel_info: this.store.get_kernel_info(this.store.get("kernel"))
     });
   };
 
   set_jupyter_kernels = () => {
     const kernels = jupyter_kernels.get(this.store.get("project_id"));
     if (kernels != null) {
-      return this.setState({ kernels });
+      this.setState({ kernels });
     } else {
-      return this.fetch_jupyter_kernels();
+      this.fetch_jupyter_kernels();
     }
   };
 

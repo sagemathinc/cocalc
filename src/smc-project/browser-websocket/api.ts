@@ -46,7 +46,7 @@ async function handle_api_call(client: any, data: any): Promise<any> {
     case "prettier":
       return await prettier(client, data.path, data.options);
     case "jupyter":
-      return await jupyter(data.path, data.action, data.query);
+      return await jupyter(data.path, data.endpoint, data.query);
     default:
       throw Error(`command "${data.cmd}" not implemented`);
   }

@@ -5,17 +5,25 @@ various messages related to working with Jupyter.
 
 import { get_existing_kernel } from "./jupyter";
 import { get_code_and_cursor_pos } from "./http-server";
+import { get_kernel_data } from "./kernel-data";
 
 export async function handle_request(
   path: string,
-  action: string,
-  query: any
+  endpoint: string,
+  query?: any
 ): Promise<any> {
+  // First handle endpoints that do not depend on a specific kernel.
+  switch(endpoint) {
+    case "kernels":
+      return await get_kernel_data();
+  }
+
+  // Now endpoints that do depend on a specific kernel.
   const kernel = get_existing_kernel(path);
   if (kernel == null) {
     throw Error(`no kernel with path '${path}'`);
   }
-  switch (action) {
+  switch (endpoint) {
     case "signal":
       kernel.signal(query.signal);
       return {};
@@ -44,7 +52,7 @@ export async function handle_request(
         detail_level
       });
     case "store":
-      const {key, value} = query;
+      const { key, value } = query;
       if (value === undefined) {
         // undefined when getting the value
         return kernel.store.get(key);
@@ -57,6 +65,6 @@ export async function handle_request(
         return {};
       }
     default:
-      throw Error(`unknown action "${action}"`);
+      throw Error(`unknown endpoint "${endpoint}"`);
   }
 }
