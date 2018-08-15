@@ -64,18 +64,4 @@ async function prettier(client: any, path: string, options: any): Promise<any> {
   return await run_prettier(client, path, options);
 }
 
-import { get_existing_kernel as get_jupyter_kernel } from "../jupyter/jupyter";
-import { get_code_and_cursor_pos } from "../jupyter/http-server";
-
-async function jupyter(path: string, action: string, query: any): Promise<any> {
-  const kernel = get_jupyter_kernel(path);
-  if (kernel == null) {
-    throw Error(`no kernel with path '${path}'`);
-  }
-  switch (action) {
-    case "complete":
-      return await kernel.complete(get_code_and_cursor_pos(query));
-    default:
-      throw Error(`unknown action "${action}"`);
-  }
-}
+import { handle_request as jupyter } from "../jupyter/websocket-api";
