@@ -198,6 +198,15 @@ export function uuid(): string {
   });
 }
 
+const uuid_regexp = new RegExp(
+  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
+);
+export function is_valid_uuid_string(uuid:string) : boolean {
+  return (
+    typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
+  );
+}
+
 export function history_path(path: string): string {
   const p = path_split(path);
   if (p.head) {
