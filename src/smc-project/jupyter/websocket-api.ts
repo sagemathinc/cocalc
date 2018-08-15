@@ -21,7 +21,7 @@ export async function handle_request(
   // Now endpoints that do depend on a specific kernel.
   const kernel = get_existing_kernel(path);
   if (kernel == null) {
-    throw Error(`no kernel with path '${path}'`);
+    throw Error(`api endpoint ${endpoint}: no kernel with path '${path}'`);
   }
   switch (endpoint) {
     case "signal":

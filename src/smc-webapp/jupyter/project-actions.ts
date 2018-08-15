@@ -295,7 +295,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     this.setState({
-      kernels: immutable.fromJS(kernels.jupyter_kernels)
+      kernels: immutable.fromJS(kernels)
     });
   };
 
@@ -1013,7 +1013,7 @@ Read the ipynb file from disk.
           if (err) {
             dbg("error running");
             if (!misc.is_string(err)) {
-              err = JSON.stringify(err);
+              err = `${err}`;
             }
             if (err.length >= 50) {
               // save in key:value store.

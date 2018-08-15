@@ -359,47 +359,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  _ajax = (opts: any): void => {
-    opts = defaults(opts, {
-      url: required,
-      timeout: 15000,
-      cb: undefined
-    }); // (err, data as Javascript object -- i.e., JSON is parsed)
-    if (typeof $ === "undefined" || $ === null) {
-      if (typeof opts.cb === "function") {
-        opts.cb("_ajax only makes sense in browser");
-      }
-      return;
-    }
-    $.ajax({
-      url: opts.url,
-      timeout: opts.timeout,
-      success: data => {
-        //try
-        return typeof opts.cb === "function"
-          ? opts.cb(undefined, JSON.parse(data))
-          : undefined;
-      }
-      //catch err
-      //    opts.cb?("#{err}")
-    }).fail(
-      err =>
-        typeof opts.cb === "function"
-          ? opts.cb(err.statusText != null ? err.statusText : "error")
-          : undefined
-    );
-  };
-
   fetch_jupyter_kernels = async (): Promise<void> => {
     const data = await this._api_call("kernels");
-    if (data.status == 'error') {
+    if (data.status == "error") {
       this.set_error(data.error);
       return;
     }
     const project_id = this.store.get("project_id");
     const kernels = immutable.fromJS(data);
     jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
-    this.setState({ kernels: kernels });
+    this.setState({ kernels });
     // We must also update the kernel info (e.g., display name), now that we
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
     this.setState({
@@ -907,9 +876,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               obj.kernel = kernel;
               obj.kernel_info = this.store.get_kernel_info(kernel);
               obj.backend_kernel_info = undefined;
-            } else {
-              // TODO: this was unused
-              // const kernel_changed = false;
             }
             this.setState(obj);
             if (!this._is_project && orig_kernel !== kernel) {
@@ -2151,8 +2117,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_backend_kernel_info = reuseInFlight(async (): Promise<void> => {
     if (
-      this._state === "closed" ||
-      this.store.get("backend_kernel_info") != null
+      this._state === "closed"
     ) {
       return;
     }
@@ -2163,7 +2128,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         dbg("not defined");
         return;
       }
-      dbg("calling kernel_info...");
+      dbg("getting kernel_info...");
       try {
         this.setState({
           backend_kernel_info: await this._jupyter_kernel.kernel_info()
@@ -2183,6 +2148,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
     const data = await this._api_call("kernel_info", {});
+    if (data.status === 'error') {
+      throw Error(data.error);
+    }
     this.setState({
       backend_kernel_info: data,
       // this is when the server for this doc started, not when kernel last started!
@@ -2747,29 +2715,24 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  nbconvert_get_error = (): void => {
+  nbconvert_get_error = async (): Promise<void> => {
     const key = this.store.getIn(["nbconvert", "error", "key"]);
     if (key == null) {
       return;
     }
-    return this._ajax({
-      url: server_urls.get_store_url(
-        this.store.get("project_id"),
-        this.store.get("path"),
-        key
-      ),
-      timeout: 10000,
-      cb: (err: any, value: any) => {
-        err = err; // TODO: handle err
-        if (this._state === "closed") {
-          return;
-        }
-        const nbconvert = this.store.get("nbconvert");
-        if (nbconvert.getIn(["error", "key"]) === key) {
-          this.setState({ nbconvert: nbconvert.set("error", value) });
-        }
-      }
-    });
+    let value;
+    try {
+      value = await this._api_call("store", { key });
+    } catch (err) {
+      return; // TODO?
+    }
+    if (this._state === "closed") {
+      return;
+    }
+    const nbconvert = this.store.get("nbconvert");
+    if (nbconvert.getIn(["error", "key"]) === key) {
+      this.setState({ nbconvert: nbconvert.set("error", value) });
+    }
   };
 
   cell_toolbar = (name: string): void => {

@@ -38,7 +38,7 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
   const t = new Date().valueOf();
   conn.writeAndWait(mesg, function(resp) {
     if (conn.verbose) {
-      console.log(`call finished ${new Date().valueOf() - t}ms`, mesg);
+      console.log(`call finished ${new Date().valueOf() - t}ms`, mesg, resp);
     }
     if (done) {
       return;
