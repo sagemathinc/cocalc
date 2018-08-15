@@ -8,7 +8,7 @@ Mainly just for fun...
 {React, ReactDOM, rclass, rtypes}  = require('smc-webapp/app-framework')
 {Button} = require('react-bootstrap')
 
-options = require('./options.ts')
+options = require('./options')
 
 exports.ProseMirror = rclass
     displayName: 'MarkdownEditor-ProseMirror'

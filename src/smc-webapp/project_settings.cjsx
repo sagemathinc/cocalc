@@ -643,7 +643,7 @@ ProjectControlPanel = rclass
                 <Row>
                     <Col sm={12}>
                         <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
-                            <Icon name='terminal' /> SSH into your project...
+                            <Icon name='terminal' /> SSH Into Your Project...
                         </Button>
                     </Col>
                 </Row>
@@ -697,7 +697,7 @@ ProjectControlPanel = rclass
                     <hr />
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false); @stop_project()}>
-                            <Icon name='refresh' /> Stop Project Server
+                            <Icon name='stop' /> Stop Project Server
                         </Button>
                         <Button onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false)}>
                              Cancel
@@ -712,10 +712,10 @@ ProjectControlPanel = rclass
         commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
         <ButtonToolbar style={marginTop:'10px', marginBottom:'10px'}>
             <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false,restart:true)}>
-                <Icon name={COMPUTE_STATES.starting.icon} /> Restart Project...
+                <Icon name='refresh' /> Restart Project...
             </Button>
             <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:true,restart:false)}>
-                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop Project...
+                <Icon name='stop' /> Stop Project...
             </Button>
         </ButtonToolbar>
 

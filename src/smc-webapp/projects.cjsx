@@ -1044,7 +1044,7 @@ ProjectsListingDescription = rclass
 
                 <ButtonToolbar style={marginTop:'15px'}>
                     <Button bsStyle='danger' onClick={@do_remove_from_all}  >
-                        <Icon name='user-times'/> Remove myself from {v.length} {misc.plural(v.length, 'project')}
+                        <Icon name='user-times'/> Remove Myself From {v.length} {misc.plural(v.length, 'Project')}
                     </Button>
                     <Button onClick={=>@setState(show_alert:'none')} >
                         Cancel
@@ -1085,7 +1085,7 @@ ProjectsListingDescription = rclass
 
             <ButtonToolbar style={marginTop:'15px'}>
                 <Button bsStyle='danger' onClick={@do_delete_all}  >
-                    <Icon name='trash'/> Delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
+                    <Icon name='trash'/> Yes, please delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
                 </Button>
                 <Button onClick={=>@setState(show_alert:'none')} >
                     Cancel
@@ -1128,7 +1128,7 @@ ProjectList = rclass
                 onClick={@show_all_projects}
                 bsStyle='info'
                 bsSize='large'>
-                Show {if @props.show_all then "#{more} less" else "#{more} more"} matching projects...
+                Show {if @props.show_all then "#{more} Less" else "#{more} More"} Matching Projects...
             </Button>
 
     render_list: ->

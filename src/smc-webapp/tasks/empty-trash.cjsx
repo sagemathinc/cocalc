@@ -26,5 +26,5 @@ exports.EmptyTrash = rclass
 
         tasks = plural(@props.count, 'task')
         <Button bsStyle='danger' onClick={@empty_trash} disabled={@props.count==0}>
-            Empty trash ({@props.count})
+            Empty Trash ({@props.count})
         </Button>

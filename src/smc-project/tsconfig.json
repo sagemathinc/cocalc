@@ -1,6 +1,13 @@
 {
   "compilerOptions": {
     "types": ["node"],
-    "lib": ["es2015"]
-  }
+    "lib": ["es7"],
+    "strictNullChecks": true
+  },
+  "exclude": [
+    "../smc-webapp/node_modules/",
+    "./smc-webapp/node_modules/",
+    "smc-webapp/node_modules",
+    "../smc-webapp/node_modules/*",
+  ]
 }

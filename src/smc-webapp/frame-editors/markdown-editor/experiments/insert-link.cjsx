@@ -76,7 +76,7 @@ exports.InsertLink = rclass
                 <Button
                     onClick = {=> @save(true); @_done=true; @props.on_submit()}
                 >
-                    Create link
+                    Create Link
                 </Button>
                 <Space />
                 <Button

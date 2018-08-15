@@ -138,7 +138,7 @@ exports.SSHKeyAdder = rclass
 
     render_open_button: ->
         <Button bsStyle='success' onClick={=>@setState(show_panel : true)} style={@props.style}>
-            <Icon name='terminal' /> Add an SSH Key...
+            <Icon name='terminal' /> Add SSH Key...
         </Button>
 
     render: ->
