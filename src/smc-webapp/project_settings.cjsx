@@ -757,10 +757,18 @@ ProjectControlPanel = rclass
             </span>
         </LabeledRow>
 
-    save_compute_image: (current_name) ->
+    cancel_compute_image: (current_image) ->
+        @setState(
+            compute_image: current_image
+            compute_image_changing : false
+            compute_image_focused : false
+        )
+
+
+    save_compute_image: (current_image) ->
         # image is reset to the previous name and componentWillReceiveProps will set it when new
         @setState(
-            compute_image: current_name
+            compute_image: current_image
             compute_image_changing : true
             compute_image_focused : false
         )
@@ -786,6 +794,15 @@ ProjectControlPanel = rclass
                 {data.get('title')}
             </MenuItem>
 
+    render_select_compute_image_row: ->
+        if @props.kucalc != 'yes'
+            return
+        <div>
+            <LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
+                {@render_select_compute_image()}
+            </LabeledRow>
+        </div>
+
     render_select_compute_image_error: ->
         err = @props.compute_images.get('error')
         <Alert bsStyle='warning' style={margin:'10px'}>
@@ -798,19 +815,19 @@ ProjectControlPanel = rclass
         return <Loading/> if no_value or @state.compute_image_changing
         return @render_select_compute_image_error() if @props.compute_images.has('error')
         # this will at least return a suitable default value
-        selected_name = @state.compute_image
-        current_name = @props.project.get('compute_image')
+        selected_image = @state.compute_image
+        current_image = @props.project.get('compute_image')
         default_title = @compute_image_info(DEFAULT_COMPUTE_IMAGE, 'title')
 
         <div style={color:'#666'}>
             <div style={fontSize : '12pt'}>
-                <Icon name='compact-disc' />
+                <Icon name={'hdd'} />
                 <Space/>
-                Selected image:
+                Selected image
                 <Space/>
                 <DropdownButton
-                    title={@compute_image_info(selected_name, 'title')}
-                    id={selected_name}
+                    title={@compute_image_info(selected_image, 'title')}
+                    id={selected_image}
                     onToggle={(open)=>@setState(compute_image_focused:open)}
                     onBlur={=>@setState(compute_image_focused:false)}
                 >
@@ -818,25 +835,29 @@ ProjectControlPanel = rclass
                 </DropdownButton>
                 <Space/>
                 {
-                    if selected_name != DEFAULT_COMPUTE_IMAGE
+                    if selected_image != DEFAULT_COMPUTE_IMAGE
                         <span style={color:COLORS.GRAY, fontSize : '11pt'}>
-                            (in doubt, select "{default_title}")
+                            <br/> (If in doubt, select "{default_title}".)
                         </span>
                 }
             </div>
             <div style={marginTop:'10px'}>
                 <span>
-                    <i>{@compute_image_info(selected_name, 'descr')}</i>
+                    <i>{@compute_image_info(selected_image, 'descr')}</i>
                 </span>
             </div>
             {
-                if selected_name != current_name
+                if selected_image != current_image
                     <div style={marginTop:'10px'}>
                         <Button
-                            onClick={=>@save_compute_image(current_name)}
+                            onClick={=>@save_compute_image(current_image)}
                             bsStyle='warning'
                         >
                             Save and Restart
+                        </Button>
+                        <Space />
+                        <Button onClick={=>@cancel_compute_image(current_image)}>
+                            Cancel
                         </Button>
                     </div>
             }
@@ -848,6 +869,7 @@ ProjectControlPanel = rclass
             paddingBottom: '10px'
         if delim
             style.borderBottom = '1px solid #ccc'
+            style.borderTop = '1px solid #ccc'
         return style
 
     render: ->
@@ -855,9 +877,6 @@ ProjectControlPanel = rclass
             <LabeledRow key='state' label='State' style={@rowstyle(true)}>
                 {@render_state()}
             </LabeledRow>
-            {<LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
-                {@render_select_compute_image()}
-            </LabeledRow> if @props.kucalc == 'yes'}
             {@render_idle_timeout_row()}
             {@render_uptime()}
             {@render_cpu_usage()}
@@ -870,7 +889,7 @@ ProjectControlPanel = rclass
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
             {@show_host() if @props.allow_ssh}
-            If your project is not working, please create a <ShowSupportLink />.
+            {@render_select_compute_image_row()}
             {<hr /> if @props.allow_ssh}
             {@ssh_notice() if @props.allow_ssh}
         </ProjectSettingsPanel>
