@@ -24,6 +24,8 @@ Jupyter notebooks.  The goals are:
 
 import * as immutable from "immutable";
 import * as underscore from "underscore";
+import { reuseInFlight } from "async-await-utils/hof";
+import { retry_until_success } from "../frame-editors/generic/async-utils";
 
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
@@ -73,7 +75,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _blur_lock: any;
   private _commands: any;
   private _cursor_locs?: any;
-  private _fetching_backend_kernel_info?: boolean;
   private _hook_after_change: any;
   private _hook_before_change: any;
   private _input_editors?: any;
@@ -2168,8 +2169,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._api_call("signal", { signal: signal }, 5000);
   };
 
-  set_backend_kernel_info = () => {
-    if (this.store.get("backend_kernel_info") != null) {
+  set_backend_kernel_info = reuseInFlight(async (): Promise<void> => {
+    if (
+      this._state === "closed" ||
+      this.store.get("backend_kernel_info") != null
+    ) {
       return;
     }
 
@@ -2180,62 +2184,33 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return;
       }
       dbg("calling kernel_info...");
-      this._jupyter_kernel
-        .kernel_info()
-        .then(data => {
-          dbg(`got data='${misc.to_json(data)}'`);
-          this.setState({ backend_kernel_info: data });
-        })
-        .catch(err => {
-          dbg(`error = ${err}`);
+      try {
+        this.setState({
+          backend_kernel_info: await this._jupyter_kernel.kernel_info()
         });
-      return;
-    }
-
-    if (this._fetching_backend_kernel_info) {
-      return;
-    }
-    this._fetching_backend_kernel_info = true;
-    const f = cb => {
-      if (this._state === "closed") {
-        cb();
+      } catch (err) {
+        dbg(`error = ${err}`);
       }
-      return this._ajax({
-        url: server_urls.get_kernel_info_url(
-          this.store.get("project_id"),
-          this.store.get("path")
-        ),
-        timeout: 15000,
-        cb: (err, data) => {
-          if (err) {
-            //console.log("Error setting backend kernel info -- #{err}")
-            return cb(true);
-          } else if (data.error != null) {
-            //console.log("Error setting backend kernel info -- #{data.error}")
-            return cb(true);
-          } else {
-            // success
-            this.setState({ backend_kernel_info: immutable.fromJS(data) });
-            // this is when the server for this doc started, not when kernel last started!
-            this.setState({ start_time: data.start_time });
-            // Update the codemirror editor options.
-            this.set_cm_options();
-            return cb();
-          }
-        }
+    } else {
+      await retry_until_success({
+        max_time: 120000,
+        start_delay: 1000,
+        max_delay: 10000,
+        f: this._fetch_backend_kernel_info_from_server
       });
-    };
+    }
+  });
 
-    return misc.retry_until_success({
-      f,
-      max_time: 60000,
-      start_delay: 1000,
-      max_delay: 10000,
-      cb: err => {
-        err = err; // TODO: handle this
-        return (this._fetching_backend_kernel_info = false);
-      }
+  _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
+    const data = await this._api_call("kernel_info", {});
+    this.setState({
+      backend_kernel_info: data,
+      // this is when the server for this doc started, not when kernel last started!
+      start_time: data.start_time
     });
+
+    // Update the codemirror editor options.
+    this.set_cm_options();
   };
 
   // Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
