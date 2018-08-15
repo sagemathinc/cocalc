@@ -87,7 +87,11 @@ const redux_name = (project_id, course_filename) =>
   `editor-${project_id}-${course_filename}`;
 
 const syncdbs = {};
-const init_redux = function(course_filename, redux: AppRedux, course_project_id) {
+const init_redux = function(
+  course_filename,
+  redux: AppRedux,
+  course_project_id
+) {
   const the_redux_name = redux_name(course_project_id, course_filename);
   const get_actions = () => redux.getActions(the_redux_name);
   if (get_actions() != null) {
@@ -113,6 +117,7 @@ const init_redux = function(course_filename, redux: AppRedux, course_project_id)
     expanded_handouts: Set(), // Set of handout id's (string) which should be expanded on render
     expanded_peer_configs: Set(), // Set of assignment configs (key = assignment_id) which should be expanded on render
     expanded_skip_gradings: Set(),
+    expanded_grading_configs: Set(), // Set of grading configs (key = assignment_id) which should be expanded on render
     active_student_sort: { column_name: "last_name", is_descending: false },
     active_assignment_sort: { column_name: "due_date", is_descending: false },
     settings: { allow_collabs: true },
@@ -144,6 +149,7 @@ const remove_redux = function(course_filename, redux, course_project_id) {
     // already cleaned up and removed.
     return;
   }
+  actions.grading_cleanup_all_discussions();
   redux
     .getStore("projects")
     .removeListener("change", actions.handle_projects_store_update);
@@ -386,6 +392,7 @@ export const CourseEditor = rclass<CourseReactProps>(
             project_id={this.props.project_id}
             user_map={this.props.user_map}
             students={this.props.students}
+            path={this.props.path}
           />
         );
       } else {

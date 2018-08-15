@@ -28,13 +28,14 @@
 // CoCalc libraries
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
+const { COLORS } = require("smc-util/theme");
 
 // React libraries
 import { React, Fragment, Component } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import { AssignmentRecord, StudentRecord } from "./store";
-import { FormEvent } from "react";
+import { FormEvent, CSSProperties } from "react";
 
 const {
   Button,
@@ -56,6 +57,22 @@ const {
 } = require("../r_misc");
 
 export let { FoldersToolbar } = require("./common/FoldersToolBar");
+
+export function RedCross() {
+  return (
+    <span style={{ color: COLORS.BS_RED }}>
+      <Icon name={"times-circle"} />
+    </span>
+  );
+}
+
+export function GreenCheckmark() {
+  return (
+    <span style={{ color: COLORS.BS_GREEN_DD }}>
+      <Icon name={"check-circle"} />
+    </span>
+  );
+}
 
 interface BigTimeProps {
   date: string | number | object;
@@ -210,6 +227,12 @@ interface StudentAssignmentInfoProps {
   edited_grade?: string;
   edited_comments?: string;
   is_editing: boolean;
+  peer_grade_layout: boolean;
+  points?: number;
+  edit_points?: boolean;
+  grading_mode: string;
+  total_points: number;
+  max_points: number;
 }
 
 interface StudentAssignmentInfoState {
@@ -241,7 +264,8 @@ export class StudentAssignmentInfo extends Component<
 
   static defaultProps = {
     grade: "",
-    comments: ""
+    comments: "",
+    eer_grade_layout: false
   };
 
   get_actions(): CourseActions {
@@ -280,6 +304,18 @@ export class StudentAssignmentInfo extends Component<
     );
   };
 
+  edit_points = () => {
+    const student_id =
+      typeof this.props.student !== "string"
+        ? this.props.student.get("student_id")
+        : this.props.student;
+    this.get_actions().grading({
+      assignment: this.props.assignment,
+      student_id,
+      direction: 0
+    });
+  };
+
   handle_grade_change = e => {
     e.preventDefault();
     this.set_edited_feedback(e.target.value);
@@ -296,7 +332,7 @@ export class StudentAssignmentInfo extends Component<
     );
   };
 
-  render_grade() {
+  render_grade_manual() {
     if (this.props.is_editing) {
       return (
         <form
@@ -336,12 +372,26 @@ export class StudentAssignmentInfo extends Component<
     }
   }
 
-  render_comments() {
+  render_comments(edit_button_text) {
+    const rendered_style = {
+      maxHeight: "4em",
+      overflowY: "auto",
+      padding: "5px",
+      border: "1px solid #888"
+    };
+
     return (
       <MarkdownInput
         autoFocus={false}
         editing={this.props.is_editing}
-        hide_edit_button={true}
+        hide_edit_button={
+          !(
+            (typeof edit_button_text !== "undefined" &&
+            edit_button_text !== null
+              ? edit_button_text.length
+              : undefined) > 0
+          )
+        }
         save_disabled={
           this.props.edited_grade === this.props.grade &&
           this.props.edited_comments === this.props.comments
@@ -353,12 +403,8 @@ export class StudentAssignmentInfo extends Component<
         on_change={this.handle_comments_change}
         on_save={() => this.save_feedback()}
         on_cancel={this.cancel_editing}
-        rendered_style={{
-          maxHeight: "4em",
-          overflowY: "auto",
-          padding: "5px",
-          border: "1px solid #888"
-        }}
+        rendered_style={rendered_style}
+        edit_button_bsSize={"small"}
       />
     );
   }
@@ -375,8 +421,29 @@ export class StudentAssignmentInfo extends Component<
         break;
     }
   };
-
-  render_grade_col() {
+  render_edit_points() {
+    const style: CSSProperties = { float: "right", color: COLORS.GRAY };
+    const points = `${misc.round2(
+      this.props.points != null ? this.props.points : 0
+    )} ${misc.plural(this.props.points, "pt")}.`;
+    if (this.props.edit_points) {
+      return (
+        <Tip
+          title={"Points for this collected assignment"}
+          tip={
+            "Click to show the grading points edtior for the collected assignment of this student."
+          }
+        >
+          <Button style={style} onClick={this.edit_points} bsStyle={"default"}>
+            {points}
+          </Button>
+        </Tip>
+      );
+    } else {
+      return <span style={style}>{points}</span>;
+    }
+  }
+  render_grade_col_manual() {
     let grade = this.props.grade || "";
     const bsStyle = !grade.trim() ? "primary" : undefined;
     const text = grade.trim() ? "Edit grade" : "Enter grade";
@@ -395,10 +462,61 @@ export class StudentAssignmentInfo extends Component<
             {text}
           </Button>
         </Tip>
-        {this.render_grade()}
-        {this.render_comments()}
+        {this.render_edit_points()}
+        {this.render_grade_manual()}
       </Fragment>
     );
+  }
+
+  render_grade_col_points() {
+    let edit_button_text, grade_text;
+    const { grade2str } = require("./grading/common");
+    const grade_points = grade2str(
+      this.props.total_points,
+      this.props.max_points
+    );
+    const grade_confirmed = grade_points === this.props.grade;
+    if (grade_confirmed) {
+      grade_text = this.props.grade;
+    } else {
+      grade_text = "(unconfirmed)";
+    }
+    if (!this.props.comments) {
+      edit_button_text = "Add comment…";
+    }
+    return (
+      <Fragment>
+        {this.render_edit_points()}
+        <div key="grade">
+          {!grade_confirmed ? (
+            <Fragment>
+              <RedCross />{" "}
+            </Fragment>
+          ) : (
+            undefined
+          )}
+          <strong>Grade</strong>: {grade_text}
+          <br />
+          {this.props.comments ? (
+            <span>
+              <strong>Comments</strong>:
+            </span>
+          ) : (
+            undefined
+          )}
+        </div>
+        {this.render_comments(edit_button_text)}
+      </Fragment>
+    );
+  }
+
+  render_grade_col() {
+    switch (this.props.grading_mode) {
+      case "manual":
+        return this.render_grade_col_manual();
+      case "points":
+        return this.render_grade_col_points();
+    }
   }
 
   render_last_time(time) {
@@ -626,6 +744,14 @@ export class StudentAssignmentInfo extends Component<
     );
   }
 
+  render_empty_peer_col(which) {
+    return (
+      <Col md={2} key={`peer-${which}}`}>
+        <Row />
+      </Col>
+    );
+  }
+
   render() {
     let left, show_grade_col, show_return_graded;
     const peer_grade = __guard__(this.props.assignment.get("peer_grade"), x =>
@@ -659,7 +785,7 @@ export class StudentAssignmentInfo extends Component<
         (skip_grading && skip_collect);
     }
 
-    const width = peer_grade ? 2 : 3;
+    const width = peer_grade || this.props.peer_grade_layout ? 2 : 3;
     return (
       <Row
         style={{
@@ -716,6 +842,12 @@ export class StudentAssignmentInfo extends Component<
               : undefined}
             {peer_grade && this.props.info.peer_collect
               ? this.render_peer_collect()
+              : undefined}
+            {!peer_grade && this.props.peer_grade_layout
+              ? this.render_empty_peer_col("assign")
+              : undefined}
+            {!peer_grade && this.props.peer_grade_layout
+              ? this.render_empty_peer_col("collect")
               : undefined}
             <Col md={width} key="grade">
               {show_grade_col ? this.render_grade_col() : undefined}

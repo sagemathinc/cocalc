@@ -320,6 +320,9 @@ export function assignment_identifier(assignment: AssignmentRecord, student: Stu
   return assignment.get("assignment_id") + student.get("student_id")
 }
 
+// string indicating that there is no account
+export const NO_ACCOUNT = '<NO_ACCOUNT>' 
+
 function __guardMethod__(obj, methodName, transform) {
   if (
     typeof obj !== "undefined" &&

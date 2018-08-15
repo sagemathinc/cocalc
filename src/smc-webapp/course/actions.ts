@@ -29,6 +29,8 @@
 //
 //##############################################################################
 
+import { join } from "path";
+
 // 3rd party libs
 import * as async from "async";
 const markdownlib = require("../markdown");
@@ -37,9 +39,11 @@ const markdownlib = require("../markdown");
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 const { webapp_client } = require("../webapp_client");
+const chat_register = require("../chat/register");
+const { NO_DIR } = require("../project_store");
 
 // Course Library
-import { previous_step, Step, assignment_identifier } from "./util";
+import { previous_step, Step, assignment_identifier, NO_ACCOUNT } from "./util";
 import {
   CourseState,
   CourseStore,
@@ -335,12 +339,78 @@ export class CourseActions extends Actions<CourseState> {
     if (!cur.equals(t)) {
       // something definitely changed
       this.setState(t);
-      return this.setState({
+      this.setState({
         unsaved:
           this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
       });
+      this.grading_update(store, store.get("grading"));
     }
   }
+
+  _syncdb_cursor_activity = () => {
+    const next_cursors = this.syncdb.get_cursors();
+    // assignment_id → student_id → account_id
+    let grading_cursors = {};
+    next_cursors.forEach(function(info, account_id) {
+      info.get("locs").forEach(function(loc) {
+        switch (loc.get("type")) {
+          case "grading":
+            var student_id = loc.get("student_id");
+            var assignment_id = loc.get("assignment_id");
+            var time = new Date(info.get("time"));
+            if (grading_cursors[assignment_id] == null) {
+              grading_cursors[assignment_id] = {};
+            }
+            if (grading_cursors[assignment_id][student_id] == null) {
+              grading_cursors[assignment_id][student_id] = {};
+            }
+            return (grading_cursors[assignment_id][student_id][
+              account_id
+            ] = time);
+        }
+      });
+    });
+    grading_cursors = immutable.fromJS(grading_cursors);
+    this.grading_set_entry("cursors", grading_cursors);
+  };
+
+  dispatch_payload = payload => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    if ((payload != null ? payload.course_discussion : undefined) != null) {
+      const [apath, account_id] = payload.course_discussion;
+      async.series([
+        cb => {
+          return store.wait({
+            until: store => store.get_assignments(),
+            timeout: 60,
+            cb
+          });
+        },
+        cb => {
+          return store.wait({
+            until: store => store.get_students(),
+            timeout: 60,
+            cb
+          });
+        },
+        cb => {
+          const assignment = store.get_assignment_by_path(apath);
+          const student_id = store.get_student_by_account_id(account_id);
+          this.grading({
+            assignment,
+            student_id,
+            direction: 0,
+            discussion_show: true
+          });
+          this.set_tab("assignments");
+        }
+      ]);
+      return;
+    }
+  };
 
   handle_projects_store_update(state) {
     const store = this.get_store();
@@ -1587,9 +1657,39 @@ export class CourseActions extends Actions<CourseState> {
     comments[student.get("student_id")] = edited_feedback.get(
       "edited_comments"
     );
-    const feedback_changes = Object.assign({ grades: grades, comments:comments }, query);
+    const feedback_changes = Object.assign(
+      { grades: grades, comments: comments },
+      query
+    );
     this._set(feedback_changes);
     this.clear_edited_feedback(assignment, student);
+  };
+
+  set_points = (assignment, student, filepath, points) => {
+    let left;
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    assignment = store.get_assignment(assignment);
+    student = store.get_student(student);
+    const student_id = student.get("student_id");
+    const obj = {
+      table: "assignments",
+      assignment_id: assignment.get("assignment_id")
+    };
+    const points_map = (left = this._get_one(obj).points) != null ? left : {};
+    const student_points_map =
+      points_map[student_id] != null ? points_map[student_id] : {};
+    // only delete if points is undefined/null, otherwise record the value, even "0"
+    if (points == null) {
+      delete student_points_map[filepath];
+    } else {
+      student_points_map[filepath] = points;
+    }
+    points_map[student_id] = student_points_map;
+    obj.points = points_map;
+    return this._set(obj);
   };
 
   set_active_assignment_sort(column_name) {
@@ -1649,6 +1749,14 @@ export class CourseActions extends Actions<CourseState> {
     return this._set_assignment_field(assignment, "peer_grade", cur);
   }
 
+  set_assignment_config = (assignment, config) => {
+    let left;
+    let cur =
+      (left = assignment.get("config")) != null ? left : immutable.Map();
+    cur = cur.merge(config);
+    return this._set_assignment_field(assignment, "config", cur);
+  };
+
   set_skip(assignment, step, value) {
     const store = this.get_store();
     if (store == null) {
@@ -1673,7 +1781,7 @@ export class CourseActions extends Actions<CourseState> {
     assignment = store.get_assignment(assignment);
     let peers = assignment.getIn(["peer_grade", "map"]);
     if (peers != null) {
-      return peers;
+      return peers.toJS();
     }
     const N =
       (left = assignment.getIn(["peer_grade", "number"])) != null ? left : 1;
@@ -1783,14 +1891,15 @@ export class CourseActions extends Actions<CourseState> {
     if (store == null || !this._store_is_initialized()) {
       return finish("store not yet initialized");
     }
-    const grade = store.get_grade(assignment, student);
-    const comments = store.get_comments(assignment, student);
     if (!(student = store.get_student(student))) {
       return finish("no student");
     }
     if (!(assignment = store.get_assignment(assignment))) {
       return finish("no assignment");
     }
+    const points = store.get_points(assignment, student);
+    const comments = store.get_comments(assignment, student);
+    const grade = store.get_grade(assignment, student);
     const student_name = store.get_student_name(student);
     const student_project_id = student.get("project_id");
 
@@ -1835,9 +1944,30 @@ export class CourseActions extends Actions<CourseState> {
             if (grade != null) {
               // likely undefined when skip_grading true & peer_graded true
               content += `\n\n    ${grade}`;
-              if (comments != null) {
+              if (comments != null && comments.length > 0) {
                 content += `\n\nInstructor comments:\n\n    ${comments}`;
               }
+            }
+            if (
+              (typeof points !== "undefined" && points !== null
+                ? points.size
+                : undefined) > 0
+            ) {
+              const listofpoints = (() => {
+                const result: any[] = [];
+                const object = points.toJS();
+                for (let name in object) {
+                  const p = object[name];
+                  result.push(`  ${name}: ${misc.round2(p)}`);
+                }
+                return result;
+              })().join("\n");
+              content +=
+                `\
+            \n\nPOINTS:\n
+            Your files got these points:
+             ${listofpoints}\
+            ` + "\n";
             }
             if (peer_graded) {
               content += `\
@@ -1848,7 +1978,7 @@ You can find the comments they made in the folders below.\
             }
             return webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
-              path: src_path + "/GRADE.txt",
+              path: src_path + "/GRADE.md",
               content,
               cb
             });
@@ -2400,6 +2530,7 @@ You can find the comments they made in the folders below.\
       // empty peer assignment for this student (maybe added late)
       return finish();
     }
+
     const peers = peer_map[student.get("student_id")];
     if (peers == null) {
       // empty peer assignment for this student (maybe added late)
@@ -2459,7 +2590,7 @@ You can find the comments they made in the folders below.\
     };
 
     // write instructions file to the student
-    return webapp_client.write_text_file_to_project({
+    webapp_client.write_text_file_to_project({
       project_id: student_project_id,
       path: target_base_path + "/GRADING_GUIDE.md",
       content: guidelines,
@@ -2595,7 +2726,7 @@ You can find the comments they made in the folders below.\
     return this._stop_copy(assignment_id, student_id, type);
   }
 
-  open_assignment(type, assignment_id, student_id) {
+  open_assignment(type, assignment_id, student_id, filepath) {
     // type = assigned, collected, graded
     let path, proj;
     const store = this.get_store();
@@ -2641,8 +2772,12 @@ You can find the comments they made in the folders below.\
       this.set_error("no such project");
       return;
     }
-    // Now open it
-    return this.redux.getProjectActions(proj).open_directory(path);
+    if (filepath) {
+      path = join(path, filepath);
+      this.redux.getProjectActions(proj).open_file({ path });
+    } else {
+      this.redux.getProjectActions(proj).open_directory(path);
+    }
   }
 
   // Handouts
@@ -2950,6 +3085,331 @@ You can find the comments they made in the folders below.\
     // Now open it
     return this.redux.getProjectActions(proj).open_directory(path);
   }
+  grading = opts => {
+    // this method starts grading and also steps forward to the next student
+    // hence, initially the "direction" to jump is +1
+    // there is also a second phase, where the directory listing is loaded.
+    let left, next_student_id;
+    opts = defaults(opts, {
+      assignment: required,
+      student_id: undefined,
+      direction: 1,
+      without_grade: undefined, // not yet graded?
+      collected_files: undefined, // already collected files?
+      subdir: "",
+      discussion_show: undefined
+    });
+    // direction: 0, +1 or -1, which student in the list to pick next
+    //            first call after deleting grading should be +1, otherwise student_id stays undefined
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    // initialization: start with a new grading object or the current one
+    const { Grading } = require("./grading/models");
+    let grading = (left = store.get("grading")) != null ? left : new Grading();
+    // merge passed in opts data with already existing information
+    const old_student_id = grading.student_id;
+    let only_not_graded =
+      opts.without_grade != null ? opts.without_grade : grading.only_not_graded;
+    const only_collected =
+      opts.collected_files != null
+        ? opts.collected_files
+        : grading.only_collected;
+    const discussion_show =
+      opts.discussion_show != null
+        ? opts.discussion_show
+        : grading.discussion_show;
+    const { student_filter } = grading;
+    const assignment_id = opts.assignment.get("assignment_id");
+    // pick first/next student to grade
+    if ([-1, 1].includes(opts.direction)) {
+      next_student_id = store.grading_next_student({
+        assignment: opts.assignment,
+        current_student_id: opts.student_id,
+        direction: opts.direction,
+        without_grade: only_not_graded,
+        collected_files: only_collected,
+        cursors: grading.cursors
+      });
+      // But: what if we search for students without a grade yet, but all are graded?
+      // Relax this criteria and try again …
+      if (next_student_id == null && only_not_graded) {
+        only_not_graded = false; // relax search filter
+        next_student_id = store.grading_next_student({
+          assignment: opts.assignment,
+          current_student_id: opts.student_id,
+          direction: opts.direction,
+          without_grade: only_not_graded,
+          collected_files: only_collected,
+          cursors: grading.cursors
+        });
+      }
+    } else {
+      // i.e. stick with same student ... e.g. only the (sub-) directory changes
+      next_student_id = opts.student_id;
+    }
+    // merge all previous information and switch to grading mode, but no listing yet
+    grading = grading.merge({
+      student_id: next_student_id,
+      assignment_id,
+      listing: null,
+      end_of_list: next_student_id == null,
+      subdir: opts.subdir,
+      student_filter,
+      only_not_graded,
+      only_collected,
+      page_number: 0,
+      listing: null,
+      listing_files: null,
+      discussion_show,
+      discussion_path: null
+    });
+    this.grading_update(store, grading);
+    // sets a "cursor" pointing to this assignment and student, signal for other teachers
+    this.grading_update_activity();
+    // close discussion when student changes
+    if (old_student_id !== next_student_id) {
+      const old_account_id = store.get_student_account_id(old_student_id);
+      this.grading_cleanup_discussion(
+        opts.assignment.get("path"),
+        old_account_id
+      );
+    }
+    // activate associated discussion
+    const next_account_id = store.get_student_account_id(next_student_id);
+    this.grading_activate_discussion(
+      opts.assignment.get("path"),
+      next_account_id
+    );
+    // Phase 2: get the collected files listing
+    return store.grading_get_listing(
+      opts.assignment,
+      next_student_id,
+      opts.subdir,
+      (err, listing) => {
+        if (err) {
+          if (err === NO_DIR) {
+            listing = { error: err };
+          } else {
+            this.set_error(`Grading file listing error: ${err}`);
+            return;
+          }
+        }
+        listing = immutable.fromJS(listing);
+        return this.grading_set_entry("listing", listing);
+      }
+    );
+  };
+  // update routine to set derived data field in the grading object in a consistent way
+  grading_update = (store, grading) => {
+    let student_info;
+    if (grading == null) {
+      return;
+    }
+    const x = store.grading_get_student_list(grading);
+    if (x == null) {
+      return;
+    }
+    grading = grading.merge(x);
+    const total_points = store.get_points_total(
+      grading.assignment_id,
+      grading.student_id
+    );
+    if ((total_points != null ? total_points : 0) === 0) {
+      grading = grading.remove("total_points");
+    } else {
+      grading = grading.set("total_points", total_points);
+    }
+    if (grading.student_id != null) {
+      student_info = store.student_assignment_info(
+        grading.student_id,
+        grading.assignment_id
+      );
+    } else {
+      student_info = undefined;
+    }
+    const grading_mode = store.get_grading_mode(grading.assignment_id);
+    grading = grading.merge({
+      current_idx: grading.get_current_idx(),
+      list_of_grades: store.get_list_of_grades(grading.assignment_id),
+      student_info,
+      mode: grading_mode
+    });
+    grading = grading.merge(grading.get_listing_files());
+    return this.setState({ grading });
+  };
+  // teacher departs from the dialog
+  grading_stop = () => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const grading = store.get("grading");
+    const apath = store.get_assignment(grading.assignment_id).get("path");
+    this.grading_cleanup_all_discussions();
+    this.setState({ grading: null });
+    return this.grading_remove_activity();
+  };
+  // additonally filter student list by a substring
+  grading_set_student_filter = string => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    let grading = store.get("grading");
+    if (grading == null) {
+      return;
+    }
+    grading = grading.set("student_filter", string);
+    return this.grading_update(store, grading);
+  };
+  // utility method to set just a key in the grading state
+  grading_set_entry = (key, value) => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    let grading = store.get("grading");
+    if (grading == null) {
+      return;
+    }
+    grading = grading.set(key, value);
+    if (["only_not_graded", "only_collected", "listing"].includes(key)) {
+      return this.grading_update(store, grading);
+    } else {
+      return this.setState({ grading });
+    }
+  };
+  grading_toggle_show_all_files = () => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    let grading = store.get("grading");
+    if (grading == null) {
+      return;
+    }
+    grading = grading.toggle_show_all_files();
+    return this.grading_update(store, grading);
+  };
+  grading_toggle_anonymous = () => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    let grading = store.get("grading");
+    if (grading == null) {
+      return;
+    }
+    grading = grading.toggle_anonymous().set("student_filter", "");
+    return this.grading_update(store, grading);
+  };
+  grading_toggle_show_discussion = show => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const grading = store.get("grading");
+    if (grading == null) {
+      return;
+    }
+    // ignore if there are no changes
+    if (grading.discussion_show === show) {
+      return;
+    }
+    return this.grading_update(store, grading.toggle_show_discussion(show));
+  };
+  grading_cleanup_discussion = (assignment_path, account_id) => {
+    if (account_id == null) {
+      return;
+    }
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const chat_path = store.grading_get_discussion_path(
+      assignment_path,
+      account_id
+    );
+    chat_register.remove(chat_path, this.redux, store.get("course_project_id"));
+    return store.grading_remove_discussion(chat_path);
+  };
+  grading_cleanup_all_discussions = () => {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    if (store._open_discussions != null) {
+      store._open_discussions.forEach(chat_path => {
+        return chat_register.remove(
+          chat_path,
+          this.redux,
+          store.get("course_project_id")
+        );
+      });
+    }
+    return delete store._open_discussions;
+  };
+  grading_activate_discussion = (assignment_path, account_id) => {
+    let chat_path;
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    if (account_id == null) {
+      chat_path = NO_ACCOUNT;
+    } else {
+      chat_path = store.grading_get_discussion_path(
+        assignment_path,
+        account_id
+      );
+      chat_register.init(chat_path, this.redux, store.get("course_project_id"));
+      store.grading_register_discussion(chat_path);
+    }
+    const grading = store.get("grading");
+    if (grading == null) {
+      return;
+    }
+    return this.setState({ grading: grading.set_discussion(chat_path) });
+  };
+  // set the "cursor" to the assignment+student currently being graded
+  grading_update_activity = opts => {
+    let location;
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const grading = store.get("grading");
+    if (grading == null) {
+      location = defaults(opts, {
+        type: "grading",
+        assignment_id: grading.get("assignment_id"),
+        student_id: grading.get("student_id")
+      });
+      if (
+        (this.syncdb != null ? this.syncdb.is_closed() : undefined) ||
+        !this._loaded()
+      ) {
+        return;
+      }
+    }
+    // argument must be an array, and we only have one cursor (at least, at the time of writing)
+    return this.syncdb != null
+      ? this.syncdb.set_cursor_locs([location])
+      : undefined;
+  };
+  // teacher moved to another student or closed the grading dialog
+  grading_remove_activity = () => {
+    if (
+      (this.syncdb != null ? this.syncdb.is_closed() : undefined) ||
+      !this._loaded()
+    ) {
+      return;
+    }
+    // argument must be an array, not null!
+    return this.syncdb != null ? this.syncdb.set_cursor_locs([]) : undefined;
+  };
 }
 
 function __guard__(value, transform) {

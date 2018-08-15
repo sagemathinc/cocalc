@@ -29,6 +29,10 @@
 //
 //##############################################################################
 
+// Global libraries
+import * as async from "async";
+import * as immutable from "immutable";
+
 // React libraries
 import { Store } from "../app-framework";
 
@@ -37,7 +41,7 @@ const misc = require("smc-util/misc");
 const { defaults } = misc;
 
 // Course Library
-import { STEPS } from "./util";
+import { NO_ACCOUNT, STEPS } from "./util";
 import { Map, Set } from "immutable";
 import { TypedMap, createTypedMap } from "../app-framework/TypedMap";
 
@@ -65,9 +69,13 @@ export type AssignmentRecord = TypedMap<{
   deleted: boolean;
   due_date: Date;
   path: string;
-  peer_grade: boolean;
+  peer_grade?: TypedMap<{ enabled: boolean }>;
   note: string;
-  last_assignment: string;
+  last_assignment: TypedMap<{
+    time?: number;
+    error?: string;
+    start?: number;
+  }>;
   skip_assignment: boolean;
   skip_collect: boolean;
   skip_grading: boolean;
@@ -90,9 +98,7 @@ export type SortDescription = TypedMap<{
   is_descending: boolean;
 }>;
 
-export type CourseSettingsRecord = TypedMap<CourseSettings>;
-
-interface CourseSettings {
+export type CourseSettingsRecord = TypedMap<{
   allow_collabs: boolean;
   description: string;
   email_invite: string;
@@ -102,17 +108,16 @@ interface CourseSettings {
   student_pay: boolean;
   title: string;
   upgrade_goal: Map<any, any>;
-}
+}>;
 
-export const CourseSetting = createTypedMap<CourseSettings>();
+export const CourseSetting = createTypedMap<CourseSettingsRecord>();
 
 export type IsGradingMap = Map<string, FeedbackRecord>;
-export type FeedbackRecord = TypedMap<Feedback>;
-interface Feedback {
+export type FeedbackRecord = TypedMap<{
   edited_grade: string;
   edited_comments: string;
-}
-export const Feedback = createTypedMap<Feedback>();
+}>;
+export const Feedback = createTypedMap<FeedbackRecord>();
 
 export interface CourseState {
   activity?: { [key: string]: string };
@@ -319,6 +324,14 @@ export class CourseStore extends Store<CourseState> {
     return student.get("email_address");
   }
 
+  get_student_account_id = student => {
+    student = this.get_student(student);
+    if (student == null) {
+      return;
+    }
+    return student.get("account_id");
+  };
+
   get_student_ids(opts?) {
     opts = defaults(opts, { deleted: false });
     if (this.get("students") == null) {
@@ -332,6 +345,10 @@ export class CourseStore extends Store<CourseState> {
     });
     return v;
   }
+
+  get_student_id = student_or_id => {
+    return __guard__(this.get_student(student_or_id), x => x.get("student_id"));
+  };
 
   // return list of all student projects (or undefined if not loaded)
   get_student_project_ids(opts?) {
@@ -384,6 +401,17 @@ export class CourseStore extends Store<CourseState> {
     return __guard__(this.get_student(student), x => x.get("project_id"));
   }
 
+  get_student_by_account_id = account_id => {
+    let ret: string | undefined = undefined;
+    this.get_students().forEach(function(student) {
+      if (student.get("account_id") === account_id) {
+        ret = student.get("student_id");
+        return false;
+      }
+    });
+    return ret;
+  };
+
   get_sorted_students() {
     const v: StudentRecord[] = [];
     this.get("students").map(student => {
@@ -413,6 +441,49 @@ export class CourseStore extends Store<CourseState> {
     );
   }
 
+  get_points = (assignment, student) => {
+    const student_id = this.get_student_id(student);
+    const points = __guard__(this.get_assignment(assignment), x =>
+      x.getIn(["points", student_id])
+    );
+    return points;
+  };
+  // could return undefined, intentionally, to signal there are no points
+  get_points_filepath = (assignment, student, filepath) => {
+    const points = this.get_points(assignment, student);
+    return points != null ? points.get(filepath) : undefined;
+  };
+
+  get_points_total = (assignment, student) => {
+    let left;
+    const points = this.get_points(assignment, student);
+    return (left =
+      points != null ? points.reduce((a, b) => a + b, 0) : undefined) != null
+      ? left
+      : 0;
+  };
+
+  get_points_subdir = (assignment, student, subdir) => {
+    let left;
+    const reducer = function(cur, val, path) {
+      if (path.indexOf(subdir + "/") === 0) {
+        return cur + val;
+      } else {
+        return cur;
+      }
+    };
+    const student_id = __guard__(this.get_student(student), x =>
+      x.get("student_id")
+    );
+    const points = __guard__(this.get_assignment(assignment), x1 =>
+      x1.getIn(["points", student_id])
+    );
+    return (left = points != null ? points.reduce(reducer, 0) : undefined) !=
+      null
+      ? left
+      : 0;
+  };
+
   get_due_date(assignment) {
     const due_date = __guard__(this.get_assignment(assignment), x =>
       x.get("due_date")
@@ -429,6 +500,17 @@ export class CourseStore extends Store<CourseState> {
   get_assignments() {
     return this.get("assignments");
   }
+
+  get_assignment_by_path = path => {
+    let ret;
+    this.get_assignments().forEach(function(assignment) {
+      if (assignment.get("path") === path) {
+        ret = assignment;
+        return false;
+      }
+    });
+    return ret;
+  };
 
   get_sorted_assignments() {
     const v: AssignmentRecord[] = [];
@@ -586,6 +668,23 @@ export class CourseStore extends Store<CourseState> {
     );
   }
 
+  get_grading_mode = assignment => {
+    let left;
+    const a = this.get_assignment(assignment);
+    return (left = a != null ? a.getIn(["config", "mode"]) : undefined) != null
+      ? left
+      : "manual";
+  };
+
+  get_grading_maxpoints = assignment => {
+    let left;
+    const a = this.get_assignment(assignment);
+    return (left = a != null ? a.getIn(["config", "maxpoints"]) : undefined) !=
+      null
+      ? left
+      : 100;
+  };
+
   get_assignment_status(assignment) {
     //
     // Compute and return an object that has fields (deleted students are ignored)
@@ -601,6 +700,8 @@ export class CourseStore extends Store<CourseState> {
     //  peer_assignment     - number of students who have received peer assignment
     //                        (only present if peer grading enabled; similar for peer below)
     //  not_peer_assignment - number of students who have NOT received peer assignment
+    //  graded              - have a grade entered
+    //  not_graded          - no grade entered
     //  peer_collect        - number of students from whom we have collected peer grading
     //  not_peer_collect    - number of students from whome we have NOT collected peer grading
     //  return_graded       - number of students to whom we've returned assignment
@@ -647,6 +748,7 @@ export class CourseStore extends Store<CourseState> {
       info[t] = 0;
       info[`not_${t}`] = 0;
     }
+    info["graded"] = info["not_graded"] = 0;
     for (var student_id of students) {
       let previous = true;
       for (t of STEPS(peer)) {
@@ -664,6 +766,11 @@ export class CourseStore extends Store<CourseState> {
             info[`not_${t}`] += 1;
           }
           previous = false;
+        }
+        if (this.has_grade(assignment, student_id)) {
+          info["graded"] += 1;
+        } else {
+          info["not_graded"] += 1;
         }
       }
     }
@@ -803,6 +910,291 @@ export class CourseStore extends Store<CourseState> {
       upgrade_goal
     });
     return plan;
+  }
+
+  has_last_collected(assignment, student_id) {
+    const last_collect = __guard__(
+      this.get_assignment(assignment).get("last_collect"),
+      x => x.get(student_id)
+    );
+    if (last_collect == null || last_collect.get("error")) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  // this builds a "data" object containing information about all students and
+  // graded assignments. it's used in particular for the json export in the course settings
+  get_export_course_data() {
+    let id;
+    const assignments = this.get_sorted_assignments();
+    const students = this.get_sorted_students();
+    const data = { students: {}, assignments: {} };
+    for (var student of students) {
+      var left;
+      id = student.get("student_id");
+      const student_info = (data.students[id] = {});
+      student_info.name = this.get_student_name(student);
+      student_info.email =
+        (left = this.get_student_email(student)) != null ? left : "";
+    }
+    for (let assignment of assignments) {
+      const apth = assignment.get("path");
+      const a_data: any[] = (data.assignments[apth] = []);
+      for (student of students) {
+        var left1, left2;
+        id = student.get("student_id");
+        const grade =
+          (left1 = this.get_grade(assignment, student)) != null ? left1 : "";
+        var student_data = {
+          student: id,
+          grade,
+          comment:
+            (left2 = this.get_comments(assignment, student)) != null
+              ? left2
+              : ""
+        };
+        const points_data = assignment.getIn(["points", id]);
+        if (points_data != null) {
+          points_data.forEach(function(points, filepath) {
+            if (student_data.points == null) {
+              student_data.points = {};
+            }
+            return (student_data.points[filepath] = points);
+          });
+        }
+        a_data.push(student_data);
+      }
+    }
+    return data;
+  }
+
+  // select the first/next student among all collected assignments
+  // first: current_student_id is undefined and it should return the first one
+  // next: current_student_id is a student_id and it returns the next or previous student
+  grading_next_student = opts => {
+    opts = defaults(opts, {
+      assignment: required,
+      current_student_id: undefined,
+      direction: 1,
+      without_grade: true, // not yet graded?
+      collected_files: true, // has collected files?
+      cursors: null
+    }); // for skipping students others are currently grading
+    // direction: 1 or -1
+    // student_to_grade: if true, only return a student who does not have a grade yet
+    const assignment = this.get_assignment(opts.assignment);
+    let students = this.get_sorted_students();
+    const assignment_cursors =
+      opts.cursors != null
+        ? opts.cursors.get(assignment.get("assignment_id"))
+        : undefined;
+    const minutes_10_ago = misc.server_minutes_ago(10);
+    if (opts.direction === -1) {
+      students = students.reverse();
+    }
+    let skip = opts.current_student_id != null;
+    //cnt  = if opts.direction == -1 then students.length + 1 else 0
+    for (let idx = 0; idx < students.length; idx++) {
+      const student = students[idx];
+      const student_id = student.get("student_id");
+      //cnt += opts.direction
+      if (skip && student_id !== opts.current_student_id) {
+        continue;
+      } else {
+        if (skip) {
+          skip = false;
+          continue;
+        }
+      }
+      // collected_files and without_grade is true by default
+      // in that case, only return a student without a grade but with collected files
+      const x = this.has_last_collected(assignment, student_id);
+      const is_collected = !opts.collected_files || x;
+      const has_no_grade =
+        !opts.without_grade || !this.has_grade(assignment, student_id);
+      const cursor_time =
+        assignment_cursors != null
+          ? assignment_cursors.get(student_id)
+          : undefined;
+      const concurrent_grading =
+        cursor_time != null
+          ? cursor_time.some(time => time > minutes_10_ago)
+          : undefined;
+      if (has_no_grade && is_collected && !concurrent_grading) {
+        return student_id;
+      }
+      // when stepping backwards, it's more natural to always end up at the start
+      if (idx === students.length - 1 && opts.direction < 0) {
+        return this.grading_next_student({
+          assignment: opts.assignment,
+          current_student_id: student_id,
+          direction: 1,
+          without_grade: opts.without_grade,
+          collected_files: opts.collected_files
+        });
+      }
+    }
+    return null;
+  };
+
+  // this retrieves the listing information for a specific collected assignment
+  grading_get_listing = (assignment, student_id, subdir, cb) => {
+    const project_id = this.get("course_project_id");
+    const collect_path = `${assignment.get("collect_path")}/${student_id}`;
+    const locals = {
+      listing: null,
+      group: null
+    };
+    return async.series(
+      [
+        cb => {
+          // make sure that our relationship to this project is known.
+          return this.redux.getStore("projects").wait({
+            until: s => s.get_my_group(project_id),
+            timeout: 30,
+            cb: (err, group) => {
+              locals.group = group;
+              return cb(err);
+            }
+          });
+        },
+        cb => {
+          const { get_directory_listing } = require("../project_actions");
+          const { join } = require("path");
+          return get_directory_listing({
+            project_id,
+            path: join(collect_path, subdir != null ? subdir : ""),
+            hidden: false,
+            max_time_s: 30, // keep trying for up to 30 secs
+            group: locals.group,
+            cb: (err, listing) => {
+              locals.listing = listing;
+              return cb(err);
+            }
+          });
+        }
+      ],
+      err => {
+        return cb(err, locals.listing);
+      }
+    );
+  };
+
+  // returns a list of all students according to the configuration of the grading object
+  // "all_points" is intentionally for all students, regardless of filtering
+  grading_get_student_list = grading => {
+    if (grading == null) {
+      return;
+    }
+    const assignment = this.get_assignment(grading.assignment_id);
+    if (assignment == null) {
+      return;
+    }
+    const { student_filter } = grading;
+    const search_string = student_filter.toLowerCase();
+    const { only_not_graded } = grading;
+    const { only_collected } = grading;
+    const matching = (id, name) => {
+      let pick_student = true;
+      if ((student_filter != null ? student_filter.length : undefined) > 0) {
+        if (pick_student) {
+          pick_student = name.toLowerCase().indexOf(search_string) >= 0;
+        }
+      }
+      if (only_not_graded) {
+        if (pick_student) {
+          pick_student = !this.has_grade(assignment, id);
+        }
+      }
+      if (only_collected) {
+        if (pick_student) {
+          pick_student = this.has_last_collected(assignment, id);
+        }
+      }
+      return pick_student;
+    };
+    const all_points = [];
+    let list = this.get_sorted_students().map(student => {
+      const id = student.get("student_id");
+      const name = this.get_student_name(student);
+      const points = this.get_points_total(assignment, id);
+      const is_collected =
+        __guard__(
+          __guard__(
+            this.student_assignment_info(id, assignment),
+            x1 => x1.last_collect
+          ),
+          x => x.time
+        ) != null;
+      // all_points is used to compute quantile distributions
+      // collected but no points means zero points...
+      if (points != null || is_collected) {
+        all_points.push(points != null ? points : 0);
+      }
+      // filter by name or button states
+      if (!matching(id, name)) {
+        return null;
+      }
+      return student;
+    });
+    list = (() => {
+      const result: any[] = [];
+      for (let entry of list) {
+        if (entry != null) {
+          result.push(entry);
+        }
+      }
+      return result;
+    })();
+    // we assume throughout the code that all_points is sorted!
+    all_points.sort((a, b) => a - b);
+    return { student_list: list, all_points };
+  };
+
+  // derive the path to the discussion chat file from the assignment and student's account_id
+  grading_get_discussion_path(assignment_path, account_id) {
+    if (assignment_path == null) {
+      return;
+    }
+    if (account_id == null) {
+      return NO_ACCOUNT;
+    }
+    const course_filename = this.get("course_filename");
+    const path = `${course_filename}-${assignment_path}-${account_id}`;
+    return misc.meta_file(path, "chat");
+  }
+
+  // this is used to keep track of openen discussions, used for cleaning up later
+  grading_register_discussion(chat_path) {
+    if (this._open_discussions == null) {
+      this._open_discussions = immutable.Set();
+    }
+    return (this._open_discussions = this._open_discussions.add(chat_path));
+  }
+
+  grading_remove_discussion(chat_path) {
+    if (this._open_discussions == null) {
+      return;
+    }
+    return (this._open_discussions = this._open_discussions.remove(chat_path));
+  }
+
+  // builds the set of all distinct grades entered for manual grading.
+  // used for populating the drop-down menu
+  get_list_of_grades(assignment_id) {
+    let left;
+    const assignment = this.get_assignment(assignment_id);
+    if (assignment == null) {
+      return;
+    }
+    const grades = assignment.get("grades");
+    // initially, there are no grades
+    const values = immutable.Set(
+      (left = grades != null ? grades.values() : undefined) != null ? left : []
+    );
+    return values.sortBy(a => a.toLowerCase());
   }
 }
 

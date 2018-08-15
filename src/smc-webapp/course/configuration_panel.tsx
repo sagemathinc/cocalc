@@ -30,6 +30,7 @@
 // CoCalc libraries
 const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
+const { COLORS } = require("smc-util/theme");
 
 // React libraries and Components
 import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";
@@ -421,17 +422,17 @@ export class ConfigurationPanel extends Component<
   render_grades_header() {
     return (
       <h4>
-        <Icon name="table" /> Export grades
+        <Icon name="table" /> Export data
       </h4>
     );
   }
 
-  path(ext) {
+  path(ext, prefix = "export_") {
     // make path more likely to be python-readable...
     let p = misc.replace_all(this.props.path, "-", "_");
     p = misc.split(p).join("_");
     const i = p.lastIndexOf(".");
-    return `export_${p.slice(0, i)}.${ext}`;
+    return `${prefix}${p.slice(0, i)}.${ext}`;
   }
 
   open_file = path => {
@@ -459,7 +460,8 @@ export class ConfigurationPanel extends Component<
     });
   };
 
-  save_grades_to_csv = () => {
+  // deprecated version 1
+  save_to_csv_v1 = () => {
     let assignment;
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
@@ -526,7 +528,63 @@ export class ConfigurationPanel extends Component<
     return this.write_file(this.path("csv"), content);
   };
 
-  save_grades_to_py = () => {
+  save_to_csv_v2() {
+    let x;
+    const store = this.get_store();
+    const assignments = store.get_sorted_assignments();
+    const students = store.get_sorted_students();
+    // CSV definition: http://edoceo.com/utilitas/csv-file-format
+    // i.e. double quotes everywhere (not single!) and double quote in double quotes usually blows up
+    const timestamp = webapp_client.server_time().toISOString();
+    let content = `# Course '${this.props.settings.get("title")}'\n`;
+    content += `# exported ${timestamp}\n`;
+    content += "Name,ID,Email,Assignment,Grade,File,Points\n";
+    for (let assignment of assignments) {
+      var apth = assignment.get("path");
+      for (let student of students) {
+        var left, left1;
+        var name = store.get_student_name(student);
+        var email =
+          (left = store.get_student_email(student)) != null ? left : "";
+        var id = student.get("student_id");
+        var grade =
+          (left1 = store.get_grade(assignment, student)) != null ? left1 : "";
+        if (grade.length === 0) {
+          continue;
+        }
+        const points = assignment.getIn(["points", id]);
+        if (points != null && misc.keys(points).length > 0) {
+          points.forEach(function(points, filepath) {
+            const line = [name, id, email, apth, grade, filepath];
+            // points is a number, hence without quotes!
+            return (content +=
+              line.map(x => `\"${x}\"`).join(",") + `,${points}\n`);
+          });
+        } else {
+          var line = [name, id, email, apth, grade];
+          content +=
+            (() => {
+              const result = [];
+              for (x of line) {
+                result.push(`\"${x}\"`);
+              }
+              return result;
+            })().join(",") + ",,\n";
+        }
+      }
+    }
+    return this.write_file(this.path("csv", "export_points_"), content);
+  }
+
+  save_py_header() {
+    const timestamp = webapp_client.server_time().toISOString();
+    let content = `course = '${this.props.settings.get("title")}'\n`;
+    content += "from datetime import datetime\n";
+    content += `exported = datetime.strptime('${timestamp}', '%Y-%m-%dT%H:%M:%S.%fZ')\n`;
+    return content;
+  }
+
+  save_to_py_v1 = () => {
     /*
         example:
         course = 'title'
@@ -538,11 +596,9 @@ export class ConfigurationPanel extends Component<
         ]
         */
     let assignment;
-    const timestamp = webapp_client.server_time().toISOString();
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
-    let content = `course = '${this.props.settings.get("title")}'\n`;
-    content += `exported = '${timestamp}'\n`;
+    let content = this.save_py_header();
     content += "assignments = [";
     content +=
       (() => {
@@ -595,22 +651,54 @@ export class ConfigurationPanel extends Component<
     return this.write_file(this.path("py"), content);
   };
 
+  save_to_json_v2() {
+    const store = this.get_store();
+    const data = store.get_export_course_data();
+    data.title = this.props.settings.get("title");
+    data.timestamp = webapp_client.server_time().toISOString();
+    const content = `${JSON.stringify(data, null, 2)}\n`;
+    return this.write_file(this.path("json", "export_points_"), content);
+  }
+
   render_save_grades() {
     return (
       <Panel header={this.render_grades_header()}>
-        <div style={{ marginBottom: "10px" }}>Save grades to... </div>
-        <ButtonToolbar>
-          <Button onClick={this.save_grades_to_csv}>
-            <Icon name="file-text-o" /> CSV file...
-          </Button>
-          <Button onClick={this.save_grades_to_py}>
-            <Icon name="file-code-o" /> Python file...
-          </Button>
-        </ButtonToolbar>
+        <Row>
+          <Col md={12}>
+            <div style={{ marginBottom: "10px" }}>
+              Save grades and points to...{" "}
+            </div>
+            <ButtonToolbar>
+              <Button onClick={this.save_to_csv_v2}>
+                <Icon name="file-text-o" /> CSV file
+              </Button>
+              <Button onClick={this.save_to_json_v2}>
+                <Icon name="file-code-o" /> JSON file
+              </Button>
+            </ButtonToolbar>
+          </Col>
+        </Row>;
         <hr />
-        <div style={{ color: "#666" }}>
-          Export all the grades you have recorded for students in your course to
-          a csv or Python file.
+        <span style={{ color: COLORS.GRAY }}>
+          Export all the grades and points you have recorded for students in
+          your course to a CSV or JSON file. More information:{" "}
+          <a
+            href={
+              "https://github.com/sagemathinc/cocalc/wiki/CourseExportFiles"
+            }
+            target={"_blank"}
+          >
+            file format documentation
+          </a>.
+          <br />
+          Get the previous version 1 formats:{" "}
+          <a style={{ cursor: "pointer" }} onClick={this.save_to_csv_v1}>
+            CSV file
+          </a>{" "}
+          and{" "}
+          <a style={{ cursor: "pointer" }} onClick={this.save_to_py_v1}>
+            Python file
+          </a>.
           <br />
           In Microsoft Excel, you can{" "}
           <a
@@ -619,7 +707,7 @@ export class ConfigurationPanel extends Component<
           >
             import the CSV file
           </a>.
-        </div>
+        </span>
       </Panel>
     );
   }

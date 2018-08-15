@@ -8,15 +8,14 @@ export const entry_style: CSSProperties = {
   paddingBottom: "5px"
 };
 
-export const selected_entry: CSSProperties = misc.merge(
-  {
-    border: "1px solid #aaa",
-    boxShadow: "5px 5px 5px #999",
-    borderRadius: "3px",
-    marginBottom: "10px"
-  },
-  exports.entry_style
-);
+export const selected_entry: CSSProperties = {
+  border: "1px solid #aaa",
+  boxShadow: "5px 5px 5px #999",
+  borderRadius: "5px",
+  marginBottom: "10px",
+  paddingTop: "0px",
+  paddingBottom: "5px"
+};
 
 export const note: CSSProperties = {
   borderTop: "3px solid #aaa",

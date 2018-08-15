@@ -47,11 +47,8 @@ misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
 auth         = require('./auth')
 access       = require('./access')
-hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
-
-conf         = require('./conf')
 
 
 {http_message_api_v1} = require('./api/handler')
@@ -77,6 +74,7 @@ exports.init_express_http_server = (opts) ->
     # Create an express application
     router = express.Router()
     app    = express()
+    http_server = http.createServer(app)
     app.use(cookieParser())
 
     # Enable compression, as
@@ -385,139 +383,10 @@ exports.init_express_http_server = (opts) ->
         app.use(router)
 
     if opts.dev
-        # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
-        # serving (from this process) on another port.  However, for development, we handle everything
-        # directly in the hub server (there is no separate proxy server), so have to handle these routes
-        # directly here.
+        dev = require('./dev/hub-http-server')
+        dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston)
+        dev.init_websocket_proxy(http_server, opts.database, opts.base_url, opts.compute_server, winston)
+        dev.init_share_server(app, opts.database, opts.base_url, winston);
 
-        # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
-        # This is fine in dev mode, since all as the same user anyways.
-        proxy_cache = {}
-
-        # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter Classical won't work: (1) the client connects to the wrong URL (no base_url),
-        # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
-        # Jupyter2 works fine though.
-        dev_proxy_port = (req, res) ->
-            if req.headers['cookie']?
-                req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
-            req_url = req.url.slice(opts.base_url.length)
-            {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
-            proxy = proxy_cache[key]
-            if proxy?
-                proxy.web(req, res)
-                return
-            winston.debug("proxy port: req_url='#{req_url}', port='#{port_number}'")
-            get_port = (cb) ->
-                if port_number == 'jupyter'
-                    hub_proxy.jupyter_server_port
-                        project_id     : project_id
-                        compute_server : opts.compute_server
-                        database       : opts.database
-                        cb             : cb
-                else
-                    cb(undefined, port_number)
-            get_port (err, port) ->
-                winston.debug("get_port: port='#{port}'")
-                if err
-                    res.status(500).send("internal error: #{err}")
-                else
-                    target = "http://localhost:#{port}"
-                    proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:7000)
-
-                    # Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142; otherwise
-                    # POST's with body just hang.
-                    proxy.on 'proxyReq', (proxyReq, req) =>
-                        if req.body and req.complete
-                            bodyData = JSON.stringify(req.body)
-                            proxyReq.setHeader('Content-Type', 'application/json')
-                            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
-                            proxyReq.write(bodyData)
-
-                    proxy_cache[key] = proxy
-                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
-                    # also delete after a few seconds  - caching is only to optimize many requests near each other
-                    setTimeout((-> delete proxy_cache[key]), 60*1000*60)
-                    proxy.web(req, res)
-
-        port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
-
-        app.get( port_regexp, dev_proxy_port)
-        app.post(port_regexp, dev_proxy_port)
-
-        # Also, ensure the raw server works
-        dev_proxy_raw = (req, res) ->
-            # avoid XSS...
-            if req.headers['cookie']?
-                req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
-
-            #winston.debug("cookie=#{req.headers['cookie']}")
-            req_url = req.url.slice(opts.base_url.length)
-            {key, project_id} = hub_proxy.target_parse_req('', req_url)
-            winston.debug("dev_proxy_raw '#{project_id}', '#{key}','#{req_url}'")
-            proxy = proxy_cache[key]
-            if proxy?
-                winston.debug("dev_proxy_raw: use cache")
-                proxy.web(req, res)
-                return
-            opts.compute_server.project
-                project_id : project_id
-                cb         : (err, project) ->
-                    if err
-                        res.status(500).send("internal error: #{err}")
-                    else
-                        project.status
-                            cb : (err, status) ->
-                                if err
-                                    res.status(500).send("internal error: #{err}")
-                                else if not status['raw.port']
-                                    res.status(500).send("no raw server listening")
-                                else
-                                    port   = status['raw.port']
-                                    target = "http://localhost:#{port}"
-                                    winston.debug("dev_proxy_raw: connnect to #{target}")
-                                    proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:7000)
-
-                                    # Workaround for bug https://github.com/nodejitsu/node-http-proxy/issues/1142
-                                    proxy.on 'proxyReq', (proxyReq, req) =>
-                                        if req.body and req.complete
-                                            bodyData = JSON.stringify(req.body)
-                                            proxyReq.setHeader('Content-Type', 'application/json')
-                                            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData))
-                                            proxyReq.write(bodyData)
-
-                                    proxy_cache[key] = proxy
-
-                                    # when connection dies, clear from cache
-                                    proxy.on("error", -> delete proxy_cache[key])
-                                    proxy.web(req, res)
-                                    # also delete eventually (1 hour)
-                                    setTimeout((-> delete proxy_cache[key]), 1000*60*60)
-
-        raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
-        app.get( raw_regexp, dev_proxy_raw)
-        app.post(raw_regexp, dev_proxy_raw)
-
-        # Also create and expose the share server
-        if false
-            PROJECT_PATH = conf.project_path()
-            share_server = require('./share/server')
-            share_router = share_server.share_router
-                database : opts.database
-                path     : "#{PROJECT_PATH}/[project_id]"
-                base_url : opts.base_url
-                logger   : winston
-            app.use(opts.base_url + '/share', share_router)
-
-    app.on 'upgrade', (req, socket, head) ->
-        winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
-        req_url = req.url.slice(opts.base_url.length)
-        # TODO: THIS IS NOT DONE and does not work.  I still don't know how to
-        # proxy wss:// from the *main* site to here in the first place; i.e.,
-        # this upgrade is never hit, since the main site (that is
-        # proxying to this server) is already trying to do something.
-        # I don't know if this sort of multi-level proxying is even possible.
-
-    http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}
 

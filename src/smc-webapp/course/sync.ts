@@ -47,7 +47,8 @@ export let create_sync_db = (redux, actions, store, filename) => {
     primary_keys: ["table", "handout_id", "student_id", "assignment_id"],
     string_cols: ["note", "description", "title", "email_invite"],
     change_throttle: 500, // helps when doing a lot of assign/collect, etc.
-    save_interval: 3000
+    save_interval: 3000,
+    cursors: true // cursors is used to share presence info about who is looking at / grading which student, etc.
   }); // wait at least 3s between saving changes to backend
 
   syncdb.once("init", err => {
@@ -93,6 +94,12 @@ export let create_sync_db = (redux, actions, store, filename) => {
     syncdb.on("sync", () =>
       redux.getProjectActions(store.project_id).flag_file_activity(filename)
     );
+    syncdb.on(
+      "cursor_activity",
+      typeof actions !== "undefined" && actions !== null
+        ? actions._syncdb_cursor_activity
+        : undefined
+    );
 
     // Wait until the projects store has data about users of our project before configuring anything.
     const projects_store = redux.getStore("projects");
@@ -112,7 +119,7 @@ export let create_sync_db = (redux, actions, store, filename) => {
 
         // Also
         projects_store.on("change", actions.handle_projects_store_update);
-        return actions.handle_projects_store_update(projects_store);
+        actions.handle_projects_store_update(projects_store);
       }
     }); // initialize
 

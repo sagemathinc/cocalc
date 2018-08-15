@@ -1254,7 +1254,8 @@ class Student extends Component<StudentProps, StudentState> {
     );
   }
 
-  render_assignments_info_rows() {
+  // peer_grade_layout: if true, the header has two more rows for peer grading
+  render_assignments_info_rows(peer_grade_layout) {
     const store = this.get_store();
     const result: any[] = [];
     for (let assignment of store.get_sorted_assignments()) {
@@ -1264,6 +1265,13 @@ class Student extends Component<StudentProps, StudentState> {
         this.props.student,
         assignment
       );
+      const points = store.get_points_total(assignment, this.props.student);
+      const grading_mode = store.get_grading_mode(assignment);
+      const total_points = store.get_points_total(
+        assignment,
+        this.props.student
+      );
+      const max_points = store.get_grading_maxpoints(assignment);
       const key = util.assignment_identifier(assignment, this.props.student);
       const edited_feedback = this.props.active_feedback_edits.get(key);
       let edited_comments: string | undefined;
@@ -1285,6 +1293,12 @@ class Student extends Component<StudentProps, StudentState> {
           is_editing={!!edited_feedback}
           edited_comments={edited_comments}
           edited_grade={edited_grade}
+          peer_grade_layout={peer_grade_layout}
+          points={points}
+          edit_points={false}
+          grading_mode={grading_mode}
+          total_points={total_points}
+          max_points={max_points}
         />
       );
     }
@@ -1300,7 +1314,7 @@ class Student extends Component<StudentProps, StudentState> {
         peer_grade={peer_grade}
       />
     );
-    return [header, this.render_assignments_info_rows()];
+    return [header, this.render_assignments_info_rows(peer_grade)];
   }
 
   render_note() {

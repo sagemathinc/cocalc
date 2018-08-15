@@ -1,4 +1,4 @@
-import { createTypedMap } from "../TypedMap";
+import { createTypedMap, TypedMap } from "../TypedMap";
 
 // Example use
 
@@ -11,6 +11,16 @@ interface SaleRecord {
 let Sale = createTypedMap<SaleRecord>();
 let sale1 = new Sale({ name: "Latte", price: 10 });
 let sale2 = sale1.set("name", "Mocha");
+
+// createTypedMap may also take a TypedMap type as its type argument:
+type EmployeeRecord = TypedMap<{
+  employee_id: number;
+  name: string;
+}>
+
+let Employee = createTypedMap<EmployeeRecord>();
+let Joe = new Employee({employee_id: 1, name: "Joe"})
+console.log(Joe.get("name"))
 
 // let sale3 = sale1.set("NAME", "Espresso")
 // Error: "NAME" is not assignable to parameter of type '"name" | "price" | "time"
