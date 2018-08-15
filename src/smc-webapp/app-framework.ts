@@ -18,7 +18,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //##############################################################################
-// SMC specific wrapper around the redux library
+// CoCalc specific wrapper around the redux library
 //##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
@@ -36,7 +36,6 @@ import * as React from "react";
 import { createStore as createReduxStore } from "redux";
 import * as createReactClass from "create-react-class";
 import { Provider, connect } from "react-redux";
-import { murmur3 } from "murmurhash-js";
 import * as json_stable from "json-stable-stringify";
 
 import { Store, StoreConstructorType } from "./app-framework/Store";
@@ -457,24 +456,9 @@ x.actions must not be defined.
 
 */
 
-type cache_key_methods = "slow" | "fast";
-
-const compute_cache_key = function(
-  data: immutable.Map<string, any>,
-  hash_method?: cache_key_methods
-): number | string {
-  const method: cache_key_methods = hash_method || "slow";
+const compute_cache_key = function(data: immutable.Map<string, any>): string {
   const keys = misc.keys(data).sort();
-
-  if (method == "fast") {
-    let hash = 0;
-    for (let key of keys) {
-      hash = murmur3(key, hash);
-    }
-    return hash;
-  }
-
-  let hash = json_stable(keys);
+  const hash = json_stable(keys);
   return hash;
 };
 
