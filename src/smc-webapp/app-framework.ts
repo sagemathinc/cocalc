@@ -470,7 +470,6 @@ rclass = function(x: any) {
         }
         const reduxProps = x.reduxProps(this.props);
         const key = compute_cache_key(reduxProps);
-        console.log(key, reduxProps);
         if (this.cache0[key] == null) {
           this.cache0[key] = connect_component(reduxProps)(x);
         }
