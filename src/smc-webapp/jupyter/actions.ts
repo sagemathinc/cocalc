@@ -252,11 +252,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // private api call function
-  _api_call = async (action: string, query: any): Promise<any> => {
+  _api_call = async (
+    action: string,
+    query: any,
+    timeout_ms?: number
+  ): Promise<any> => {
     return await this.project_conn.api.jupyter(
       this.store.get("path"),
       action,
-      query
+      query,
+      timeout_ms
     );
   };
 
@@ -2159,14 +2164,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   signal = (signal = "SIGINT"): void => {
-    this._ajax({
-      url: server_urls.get_signal_url(
-        this.store.get("project_id"),
-        this.store.get("path"),
-        signal
-      ),
-      timeout: 5000
-    });
+    // TODO: some setStates, awaits, and UI to reflect this happening...
+    this._api_call("signal", { signal: signal }, 5000);
   };
 
   set_backend_kernel_info = () => {

@@ -22,8 +22,8 @@ export class API {
     return await this.call({ cmd: "prettier", path: path, options: options });
   }
 
-  async jupyter(path: string, action: string, query: any) : Promise<any> {
-    return await this.call({ cmd: "jupyter", path:path, action:action, query:query });
+  async jupyter(path: string, action: string, query: any, timeout_ms?: number) : Promise<any> {
+    return await this.call({ cmd: "jupyter", path:path, action:action, query:query }, timeout_ms);
   }
 }
 

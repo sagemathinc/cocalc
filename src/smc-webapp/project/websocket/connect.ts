@@ -30,11 +30,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
       }
     }));
     conn.api = new API(conn);
-    conn.verbose = false
-    conn.on("close", function() {
-      delete conn.api;
-      delete connections[project_id];
-    });
+    conn.verbose = false;
     return conn;
   } finally {
     // Restore the global Primus, no matter what.
@@ -43,3 +39,15 @@ async function connection_to_project0(project_id: string): Promise<any> {
 }
 
 export const connection_to_project = reuseInFlight(connection_to_project0);
+
+export function disconnect_from_project(project_id: string) : void {
+  console.log(`conn ${project_id} -- disconnect`);
+  const conn = connections[project_id];
+  if (conn === undefined) {
+    return;
+  }
+  // TODO: maybe go through and fail any outstanding api calls?
+  conn.destroy();
+  delete conn.api;
+  delete connections[project_id];
+}
