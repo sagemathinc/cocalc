@@ -155,8 +155,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       directory = split_path.head;
     }
 
-    let projects_store = this.redux.getStore("projects");
-    let student_mode = !!projects_store.get_course_info(this.project_id);
+    let student_mode = false;
+    if (!this._is_project) {
+      let projects_store = this.redux.getStore("projects");
+      student_mode = !!projects_store.get_course_info(this.project_id);
+    }
 
     this.setState({
       view_mode: "normal",

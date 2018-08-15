@@ -6,6 +6,7 @@ import { Map as ImmutableMap, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
 
 // TODO: import jquery
+declare const $: any;
 
 // TODO: use imports
 const misc = require("smc-util/misc");

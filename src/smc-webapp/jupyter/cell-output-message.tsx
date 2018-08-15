@@ -15,7 +15,7 @@ TODO: most components should instead be in separate files.
 */
 
 // TODO: seperate front specific code that uses this stuff
-// declare const $: any;
+declare const $: any;
 
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Button } from "react-bootstrap";
