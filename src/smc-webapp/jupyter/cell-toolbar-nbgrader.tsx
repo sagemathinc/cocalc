@@ -9,7 +9,7 @@ import { React, Component, rtypes, rclass } from "../app-framework"; // TODO: th
 const { Space, NumberInput } = require("../r_misc");
 // const { COLORS } = require("smc-util/theme");
 const misc = require("smc-util/misc");
-const { DEBUG } = require("../feature");
+// const { DEBUG } = require("../feature");
 import { Map as ImmutableMap } from "immutable";
 
 import * as nbgrader from "./nbgrader";
@@ -129,7 +129,7 @@ class NBGraderComponent extends Component<NBGraderProps, NBGraderState> {
   }
 
   on_points_changed(val): void {
-    if (DEBUG) {
+    if (true /* DEBUG */) {
       console.log("on_points_changed", val);
     }
   }

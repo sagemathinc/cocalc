@@ -24,7 +24,7 @@ Functionality that mimics aspects of nbgrader
 */
 
 // const { JupyterActions } = require("./actions");
-const { DEBUG } = require("../feature");
+// const { DEBUG } = require("../feature");
 
 // const misc = require("smc-util/misc");
 const md5 = require("md5");
@@ -204,7 +204,7 @@ export const nbgrader_set_cell_type = function(id: string, val: MODES) {
 
 export const nbgrader_set_data = function(id: string, data: ImmutableMap<string, any>) {
   // TODO: this should be merge = true, or just set the nbgrader field, and not touch the other ones
-  if (DEBUG) {
+  if (true /* DEBUG */) {
     console.log("JupyterActions::nbgrader_set_data", id, data.toJS());
   }
   return this.set_cell_metadata({

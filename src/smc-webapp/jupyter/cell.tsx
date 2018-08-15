@@ -35,30 +35,27 @@ interface CellProps {
 
 export class Cell extends Component<CellProps> {
   shouldComponentUpdate(nextProps) {
-    // note: we assume project_id and directory don't change
-    let p = misc.is_different(this.props, nextProps, [
-      "id",
-      "cm_options",
-      "cell",
-      "is_current",
-      "is_selected",
-      "is_markdown_edit",
-      "mode",
-      "font_size",
-      "is_focused",
-      "more_output",
-      "cell_toolbar",
-      "trust",
-      "editable",
-      "deleteable",
-      "student_mode"
-    ]);
-
-    // only worry about complete when editing this cell
-    let c =
-      nextProps.complete !== this.props.complete &&
-      (nextProps.is_current || this.props.is_current);
-    return c || p;
+    return (
+      // note: we assume project_id and directory don't change
+      nextProps.id !== this.props.id ||
+      nextProps.cm_options !== this.props.cm_options ||
+      nextProps.cell !== this.props.cell ||
+      nextProps.is_current !== this.props.is_current ||
+      nextProps.is_selected !== this.props.is_selected ||
+      nextProps.is_markdown_edit !== this.props.is_markdown_edit ||
+      nextProps.mode !== this.props.mode ||
+      nextProps.font_size !== this.props.font_size ||
+      nextProps.is_focused !== this.props.is_focused ||
+      nextProps.more_output !== this.props.more_output ||
+      nextProps.cell_toolbar !== this.props.cell_toolbar ||
+      nextProps.student_mode !== this.props.student_mode ||
+      nextProps.trust !== this.props.trust ||
+      nextProps.editable !== this.props.editable ||
+      nextProps.deleteable !== this.props.deleteable ||
+      // only worry about complete when editing this cell
+      (nextProps.complete !== this.props.complete &&
+        (nextProps.is_current || this.props.is_current))
+    );
   }
 
   render_cell_input(cell: any) {

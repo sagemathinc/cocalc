@@ -104,7 +104,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   nbgrader_detect_cells: typeof nbgrader.nbgrader_detect_cells;
 
   constructor(public name: string, protected redux: AppRedux) {
-    super(name, redux);;
+    super(name, redux);
     this.nbgrader_detect_cells = nbgrader.nbgrader_detect_cells.bind(this);
   }
 
@@ -1054,6 +1054,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     ) {
       for (let protected_key of ["input", "cell_type", "attachments"]) {
         if (misc.has_key(obj, protected_key)) {
+          console.log("jupyter::_set CellWriteProtectedException");
           throw CellWriteProtectedException;
         }
       }
