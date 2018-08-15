@@ -47,9 +47,8 @@ import { ProjectActions } from "./project_actions";
 
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
-const misc = require("smc-util/misc");
+import { keys, is_valid_uuid_string } from "frame-editors/generic/misc";
 
-// TODO: WTF is this doing here??
 export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
   FG_RED: "#c9302c", // red used for text
@@ -316,7 +315,7 @@ export class AppRedux {
   // TODO -- Typing: Type project Store
   // <T, C extends Store<T>>
   getProjectStore = (project_id: string): ProjectStore => {
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
@@ -329,7 +328,7 @@ export class AppRedux {
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
   getProjectActions(project_id: string): ProjectActions {
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
     }
@@ -341,7 +340,7 @@ export class AppRedux {
 
   // TODO -- Typing: Type project Table
   getProjectTable(project_id: string, name: string): any {
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectTable: INVALID project_id -- "${project_id}"`);
     }
@@ -352,7 +351,7 @@ export class AppRedux {
   }
 
   removeProjectReferences(project_id: string): void {
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(
         `getProjectReferences: INVALID project_id -- "${project_id}"`
@@ -368,7 +367,7 @@ export class AppRedux {
   }
 
   getEditorStore(project_id: string, path: string, is_public?: boolean) {
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
     }
@@ -376,7 +375,7 @@ export class AppRedux {
   }
 
   getEditorActions(project_id: string, path: string, is_public?: boolean) {
-    if (!misc.is_valid_uuid_string(project_id)) {
+    if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
     }
@@ -456,11 +455,9 @@ x.actions must not be defined.
 
 */
 
-const compute_cache_key = function(data: immutable.Map<string, any>): string {
-  const keys = misc.keys(data).sort();
-  const hash = json_stable(keys);
-  return hash;
-};
+function compute_cache_key(data: { [key: string]: any }): string {
+  return json_stable(keys(data).sort());
+}
 
 rclass = function(x: any) {
   let C;
@@ -473,6 +470,7 @@ rclass = function(x: any) {
         }
         const reduxProps = x.reduxProps(this.props);
         const key = compute_cache_key(reduxProps);
+        console.log(key, reduxProps);
         if (this.cache0[key] == null) {
           this.cache0[key] = connect_component(reduxProps)(x);
         }
