@@ -6,6 +6,8 @@ import { Map as ImmutableMap, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
 
 // TODO: import jquery
+// to make compiling TS in the hub work
+declare const $: any;
 
 // TODO: use imports
 const misc = require("smc-util/misc");
