@@ -195,11 +195,19 @@ exports.ExamplesBody = rclass
         code = @props.code
         if @props.setup_code?.length > 0 and @props.prepend_setup_code
             code = "#{@props.setup_code}\n#{code}"
+
+        cm_style =
+            height     : undefined
+            overflowX  : undefined
+            whiteSpace : undefined
+            padding    : '15px'
+            fontSize   : '12px'
+
         <Row key={'bottom'}>
             <Col className={'webapp-examples-code'} sm={6}>
                 <CodeMirrorStatic
                     value={code}
-                    style={height:undefined,overflowX:undefined,whiteSpace:undefined}
+                    style={cm_style}
                     options={immutable.fromJS({mode:{name:get_codemirror_mode(@props.lang)}})}
                 />
             </Col>
@@ -241,7 +249,7 @@ exports.ExamplesBody = rclass
 get_codemirror_mode = (language) ->
     mode = {
     python: "python",
-    sage: "sage",
+    sage: "python",
     r: "r",
     gap: "",
     julia: "text/x-julia",
