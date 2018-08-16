@@ -8,6 +8,7 @@ All functionality here is of the form:
 */
 
 import { callback } from "awaiting";
+const { callback_opts } = require("../smc-webapp/frame-editors/generic/async-utils");
 
 export function init_websocket_api(
   primus: any,
@@ -47,6 +48,8 @@ async function handle_api_call(client: any, data: any): Promise<any> {
       return await prettier(client, data.path, data.options);
     case "jupyter":
       return await jupyter(data.path, data.endpoint, data.query);
+    case "exec":
+      return await exec(data.opts);
     default:
       throw Error(`command "${data.cmd}" not implemented`);
   }
@@ -65,3 +68,14 @@ async function prettier(client: any, path: string, options: any): Promise<any> {
 }
 
 import { handle_request as jupyter } from "../jupyter/websocket-api";
+
+// Execute code
+const { execute_code } = require("smc-util-node/misc_node");
+interface ExecuteOutput {
+  stdout: string;
+  stderr: string;
+  exit_code: number;
+}
+async function exec(opts: any): Promise<ExecuteOutput> {
+  return await callback_opts(execute_code)(opts);
+}

@@ -25,6 +25,14 @@ export class API {
   async jupyter(path: string, endpoint: string, query?: any, timeout_ms?: number) : Promise<any> {
     return await this.call({ cmd: "jupyter", path, endpoint, query }, timeout_ms);
   }
+
+  async exec(opts:any) : Promise<any> {
+    let timeout_ms = 10000;
+    if (opts.timeout) {
+      timeout_ms = opts.timeout*1000 + 2000
+    }
+    return await this.call({ cmd: "exec", opts }, timeout_ms);
+  }
 }
 
 function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {

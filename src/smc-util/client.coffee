@@ -1284,14 +1284,9 @@ class exports.Connection extends EventEmitter
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
         start_time = new Date()
-        if not opts.network_timeout?
-            opts.network_timeout = opts.timeout * 1.5
-
-        #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
-        @call
-            allow_post : opts.allow_post
-            message    : message.project_exec
-                project_id  : opts.project_id
+        try
+            ws = await @project_websocket(opts.project_id)
+            exec_opts =
                 path        : opts.path
                 command     : opts.command
                 args        : opts.args
@@ -1300,15 +1295,9 @@ class exports.Connection extends EventEmitter
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
                 aggregate   : opts.aggregate
-            timeout    : opts.network_timeout
-            cb         : (err, mesg) ->
-                #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
-                if err
-                    opts.cb(err, mesg)
-                else if mesg.event == 'error'
-                    opts.cb(mesg.error)
-                else
-                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code, time:new Date() - start_time})
+            opts.cb(undefined, await ws.api.exec(exec_opts))
+        catch err
+            opts.cb(err)
 
     makedirs: (opts) =>
         opts = defaults opts,
