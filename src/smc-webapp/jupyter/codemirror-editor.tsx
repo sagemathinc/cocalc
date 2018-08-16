@@ -47,7 +47,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     return this.init_codemirror(this.props.options, this.props.value);
   }
 
-  _cm_destroy = () => {
+  _cm_destroy = (): void => {
     if (this.cm != null) {
       if (this.props.actions != null) {
         this.props.actions.unregister_input_editor(this.props.id);
@@ -64,11 +64,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       if (this.cm.getOption("extraKeys") != null) {
         this.cm.getOption("extraKeys").Tab = undefined; // no need to reference method of this react class
       }
-      return delete this.cm;
+      delete this.cm;
     }
   };
 
-  _cm_focus = () => {
+  _cm_focus = (): void => {
     this._cm_is_focused = true;
     if (this.cm == null || this.props.actions == null) {
       return;
@@ -79,10 +79,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this._vim_mode) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: "1.5em" });
     }
-    return this._cm_cursor();
+    this._cm_cursor();
   };
 
-  _cm_blur = () => {
+  _cm_blur = (): void => {
     this._cm_is_focused = false;
     if (this.cm == null || this.props.actions == null) {
       return;
@@ -95,10 +95,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       delete this._cm_blur_skip;
       return;
     }
-    return this.props.actions.set_mode("escape");
+    this.props.actions.set_mode("escape");
   };
 
-  _cm_cursor = () => {
+  _cm_cursor = (): void => {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
@@ -112,35 +112,38 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this.props.actions._cell_list_div != null
         ? this.props.actions._cell_list_div.offset().top
         : undefined;
-    if (cell_list_top != null && this.cm.cursorCoords(true, "window").top < cell_list_top) {
+    if (
+      cell_list_top != null &&
+      this.cm.cursorCoords(true, "window").top < cell_list_top
+    ) {
       const scroll = this.props.actions._cell_list_div.scrollTop();
       this.props.actions._cell_list_div.scrollTop(
         scroll - (cell_list_top - this.cm.cursorCoords(true, "window").top) - 20
       );
     }
 
-    return this.set_hook_pos();
+    this.set_hook_pos();
   };
 
-  set_hook_pos = () => {
+  set_hook_pos = (): void => {
     if (this.cm == null) {
       return;
     }
     // Used for maintaining vertical scroll position with multiple simultaneous editors.
     const offset = this.cm.cursorCoords(true, "local").top;
-    return this.props.actions.setState({ hook_offset: offset });
+    this.props.actions.setState({ hook_offset: offset });
   };
 
-  _cm_set_cursor = (pos: { x?: number; y?: number }) => {
+  _cm_set_cursor = (pos: { x?: number; y?: number }): void => {
     let { x = 0, y = 0 } = pos; // codemirror tracebacks on undefined pos!
     if (y < 0) {
       // for getting last line...
       y = this.cm.lastLine() + 1 + y;
     }
-    return this.cm.setCursor({ line: y, ch: x });
+    this.cm.setCursor({ line: y, ch: x });
   };
 
-  _cm_save = () => {
+  _cm_save = (): string | undefined => {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
@@ -158,7 +161,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     return value;
   };
 
-  _cm_merge_remote = (remote: any) => {
+  _cm_merge_remote = (remote: any): void => {
     if (this.cm == null) {
       return;
     }
@@ -176,42 +179,45 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     });
     this._cm_last_remote = remote;
     this.cm.setValueNoJump(new_val);
-    return this.set_hook_pos();
+    this.set_hook_pos();
   };
 
-  _cm_undo = () => {
+  _cm_undo = (): void => {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    if (!this.props.actions.syncdb.in_undo_mode() || this.cm.getValue() !== this._cm_last_remote) {
+    if (
+      !this.props.actions.syncdb.in_undo_mode() ||
+      this.cm.getValue() !== this._cm_last_remote
+    ) {
       this._cm_save();
     }
-    return this.props.actions.undo();
+    this.props.actions.undo();
   };
 
-  _cm_redo = () => {
+  _cm_redo = (): void => {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    return this.props.actions.redo();
+    this.props.actions.redo();
   };
 
-  shift_tab_key = () => {
-    return this.cm != null ? this.cm.unindent_selection() : undefined;
+  shift_tab_key = (): void => {
+    this.cm != null ? this.cm.unindent_selection() : undefined;
   };
 
-  tab_key = () => {
+  tab_key = (): void => {
     if (this.cm == null) {
       return;
     }
     if (this.cm.somethingSelected()) {
-      return CodeMirror.commands.defaultTab(this.cm);
+      CodeMirror.commands.defaultTab(this.cm);
     } else {
-      return this.tab_nothing_selected();
+      this.tab_nothing_selected();
     }
   };
 
-  up_key = () => {
+  up_key = (): void => {
     if (this.cm == null) {
       return;
     }
@@ -220,29 +226,30 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       (cur != null ? cur.line : undefined) === this.cm.firstLine() &&
       (cur != null ? cur.ch : undefined) === 0
     ) {
-      return this.adjacent_cell(-1, -1);
+      this.adjacent_cell(-1, -1);
     } else {
-      return CodeMirror.commands.goLineUp(this.cm);
+      CodeMirror.commands.goLineUp(this.cm);
     }
   };
 
-  down_key = () => {
+  down_key = (): void => {
     if (this.cm == null) {
       return;
     }
     const cur = this.cm.getCursor();
     const n = this.cm.lastLine();
-    if (
-      (cur != null ? cur.line : undefined) === n &&
-      (cur != null ? cur.ch : undefined) === __guard__(this.cm.getLine(n), x => x.length)
-    ) {
-      return this.adjacent_cell(0, 1);
+    const cur_line = cur != null ? cur.line : undefined;
+    const cur_ch = cur != null ? cur.ch : undefined;
+    const line = this.cm.getLine(n);
+    const line_length = line != null ? line.length : undefined;
+    if (cur_line === n && cur_ch === line_length) {
+      this.adjacent_cell(0, 1);
     } else {
-      return CodeMirror.commands.goLineDown(this.cm);
+      CodeMirror.commands.goLineDown(this.cm);
     }
   };
 
-  page_up_key = () => {
+  page_up_key = (): void => {
     if (this.cm == null) {
       return;
     }
@@ -251,34 +258,38 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       (cur != null ? cur.line : undefined) === this.cm.firstLine() &&
       (cur != null ? cur.ch : undefined) === 0
     ) {
-      return this.adjacent_cell(-1, -1);
+      this.adjacent_cell(-1, -1);
     } else {
-      return CodeMirror.commands.goPageUp(this.cm);
+      CodeMirror.commands.goPageUp(this.cm);
     }
   };
 
-  page_down_key = () => {
+  page_down_key = (): void => {
     if (this.cm == null) {
       return;
     }
     const cur = this.cm.getCursor();
     const n = this.cm.lastLine();
-    if (
-      (cur != null ? cur.line : undefined) === n &&
-      (cur != null ? cur.ch : undefined) === __guard__(this.cm.getLine(n), x => x.length)
-    ) {
-      return this.adjacent_cell(0, 1);
+    const cur_line = cur != null ? cur.line : undefined;
+    const cur_ch = cur != null ? cur.ch : undefined;
+    const line = this.cm.getLine(n);
+    const line_length = line != null ? line.length : undefined;
+    if (cur_line === n && cur_ch === line_length) {
+      this.adjacent_cell(0, 1);
     } else {
-      return CodeMirror.commands.goPageDown(this.cm);
+      CodeMirror.commands.goPageDown(this.cm);
     }
   };
 
-  adjacent_cell = (y: number, delta: any) => {
+  adjacent_cell = (y: number, delta: any): void => {
     this.props.actions.move_cursor(delta);
-    return this.props.actions.set_cursor(this.props.actions.store.get("cur_id"), { x: 0, y });
+    this.props.actions.set_cursor(this.props.actions.store.get("cur_id"), {
+      x: 0,
+      y
+    });
   };
 
-  tab_nothing_selected = () => {
+  tab_nothing_selected = (): void => {
     if (this.cm == null) {
       return;
     }
@@ -296,24 +307,25 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const top = pos.bottom;
     const { left } = pos;
     const gutter = $(this.cm.getGutterElement()).width();
-    return this.props.actions.complete(this.cm.getValue(), cur, this.props.id, {
+    this.props.actions.complete(this.cm.getValue(), cur, this.props.id, {
       top,
       left,
       gutter
     });
   };
 
-  update_codemirror_options = (next: any, current: any) => {
-    return next.forEach((value: any, option: any) => {
+  update_codemirror_options = (next: any, current: any): void => {
+    next.forEach((value: any, option: any) => {
       if (value !== current.get(option)) {
-        let left;
-        value = (left = __guardMethod__(value, "toJS", o => o.toJS())) != null ? left : value;
+        if (typeof value.toJS === "function") {
+          value = value.toJS();
+        }
         this.cm.setOption(option, value);
       }
     });
   };
 
-  init_codemirror = (options: any, value: any) => {
+  init_codemirror = (options: any, value: any): void => {
     const node = $(ReactDOM.findDOMNode(this)).find("textarea")[0]; // TODO: avoid findDOMNode
     if (node == null) {
       return;
@@ -354,9 +366,12 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
           // keyboard handler for the whole editor gets called with escape.
           // This is ugly, but I'm not going to spend forever on this before
           // the #v1 release, as vim support is a bonus feature.
-          return setTimeout(() => this.props.actions.setState({ cur_cell_vim_mode: "escape" }), 0);
+          setTimeout(
+            () => this.props.actions.setState({ cur_cell_vim_mode: "escape" }),
+            0
+          );
         } else {
-          return this.props.actions.setState({ cur_cell_vim_mode: "edit" });
+          this.props.actions.setState({ cur_cell_vim_mode: "edit" });
         }
       });
     } else {
@@ -408,17 +423,17 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     // CRITICAL: Also do the focus only after the refresh, or when
     // switching from static to non-static, whole page gets badly
     // repositioned (see https://github.com/sagemathinc/cocalc/issues/2548).
-    return setTimeout(() => {
+    setTimeout(() => {
       if (this.cm != null) {
         this.cm.refresh();
       }
       if (this.props.is_focused) {
-        return this.cm != null ? this.cm.focus() : undefined;
+        this.cm != null ? this.cm.focus() : undefined;
       }
     }, 1);
   };
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: CodeMirrorEditorProps) {
     if (this.cm == null) {
       this.init_codemirror(nextProps.options, nextProps.value);
       return;
@@ -442,17 +457,20 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       // controlled loss of focus from store; we have to force
       // this somehow.  Note that codemirror has no .blur().
       // See http://codemirror.977696.n3.nabble.com/Blur-CodeMirror-editor-td4026158.html
-      setTimeout(() => (this.cm != null ? this.cm.getInputField().blur() : undefined), 1);
+      setTimeout(
+        () => (this.cm != null ? this.cm.getInputField().blur() : undefined),
+        1
+      );
     }
     if (this._vim_mode && !nextProps.is_focused && this.props.is_focused) {
-      return $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });
+      $(this.cm.getWrapperElement()).css({ paddingBottom: 0 });
     }
   }
 
   componentWillUnmount() {
     if (this.cm != null) {
       this._cm_save();
-      return this._cm_destroy();
+      this._cm_destroy();
     }
   }
 
@@ -463,7 +481,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       this.props.complete.get("matches").size > 0
     ) {
       return (
-        <Complete complete={this.props.complete} actions={this.props.actions} id={this.props.id} />
+        <Complete
+          complete={this.props.complete}
+          actions={this.props.actions}
+          id={this.props.id}
+        />
       );
     }
   }
@@ -484,17 +506,5 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         {this.render_complete()}
       </div>
     );
-  }
-}
-
-// TODO: get rid of these
-function __guard__(value: any, transform: any) {
-  return typeof value !== "undefined" && value !== null ? transform(value) : undefined;
-}
-function __guardMethod__(obj: any, methodName: any, transform: any) {
-  if (typeof obj !== "undefined" && obj !== null && typeof obj[methodName] === "function") {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
   }
 }

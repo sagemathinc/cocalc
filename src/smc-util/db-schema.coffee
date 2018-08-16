@@ -97,6 +97,9 @@ misc = require('./misc')
 
 {DEFAULT_QUOTAS} = require('./upgrade-spec')
 
+# better make sure the storage server has something available under "default"
+exports.DEFAULT_COMPUTE_IMAGE = 'default'
+
 schema = exports.SCHEMA = {}
 
 schema.account_creation_actions =
@@ -792,7 +795,7 @@ schema.projects =
             desc : 'If project is running, this is the quota that it is running with.'
         compute_image :
             type : 'string'
-            desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+            desc : "Specify the name of the underlying (kucalc) compute image (default: '#{exports.DEFAULT_COMPUTE_IMAGE}')"
         addons :
             type : 'map'
             desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
@@ -824,7 +827,7 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
-                compute_image  : 'latest'
+                compute_image  : exports.DEFAULT_COMPUTE_IMAGE
                 addons         : null
         set :
             fields :

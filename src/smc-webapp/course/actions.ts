@@ -1836,7 +1836,7 @@ export class CourseActions extends Actions<CourseState> {
               // likely undefined when skip_grading true & peer_graded true
               content += `\n\n    ${grade}`;
               if (comments != null) {
-                content += `\n\nInstructor comments:\n\n    ${comments}`;
+                content += `\n\nInstructor comments:\n\n${comments}`;
               }
             }
             if (peer_graded) {
