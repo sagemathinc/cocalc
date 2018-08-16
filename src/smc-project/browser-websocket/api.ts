@@ -8,7 +8,9 @@ All functionality here is of the form:
 */
 
 import { callback } from "awaiting";
-const { callback_opts } = require("../smc-webapp/frame-editors/generic/async-utils");
+const {
+  callback_opts
+} = require("../smc-webapp/frame-editors/generic/async-utils");
 
 export function init_websocket_api(
   primus: any,
@@ -27,7 +29,7 @@ export function init_websocket_api(
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
       // Echo the received request data
       try {
-        const resp = await handle_api_call(client, data);
+        const resp = await handle_api_call(client, data, primus, logger);
         //logger.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
@@ -40,7 +42,7 @@ export function init_websocket_api(
   });
 }
 
-async function handle_api_call(client: any, data: any): Promise<any> {
+async function handle_api_call(client: any, data: any, primus:any, logger:any): Promise<any> {
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
@@ -50,6 +52,8 @@ async function handle_api_call(client: any, data: any): Promise<any> {
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
+    case "terminal":
+      return await terminal(primus, logger, data.path, data.options);
     default:
       throw Error(`command "${data.cmd}" not implemented`);
   }
@@ -79,3 +83,5 @@ interface ExecuteOutput {
 async function exec(opts: any): Promise<ExecuteOutput> {
   return await callback_opts(execute_code)(opts);
 }
+
+import { terminal } from "../terminal/server";

@@ -22,16 +22,34 @@ export class API {
     return await this.call({ cmd: "prettier", path: path, options: options });
   }
 
-  async jupyter(path: string, endpoint: string, query?: any, timeout_ms?: number) : Promise<any> {
-    return await this.call({ cmd: "jupyter", path, endpoint, query }, timeout_ms);
+  async jupyter(
+    path: string,
+    endpoint: string,
+    query?: any,
+    timeout_ms?: number
+  ): Promise<any> {
+    return await this.call(
+      { cmd: "jupyter", path, endpoint, query },
+      timeout_ms
+    );
   }
 
-  async exec(opts:any) : Promise<any> {
+  async exec(opts: any): Promise<any> {
     let timeout_ms = 10000;
     if (opts.timeout) {
-      timeout_ms = opts.timeout*1000 + 2000
+      timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "exec", opts }, timeout_ms);
+  }
+
+  async terminal(path: string, options: object = {}): Promise<any> {
+    const channel_name = await this.call({
+      cmd: "terminal",
+      path: path,
+      options
+    });
+    console.log(path, "got terminal channel", channel_name);
+    return this.conn.channel(channel_name);
   }
 }
 
