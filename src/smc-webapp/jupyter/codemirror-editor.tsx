@@ -2,6 +2,8 @@
 Focused codemirror editor, which you can interactively type into.
 */
 
+declare const $: any;
+
 import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
