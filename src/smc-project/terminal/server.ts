@@ -1,5 +1,7 @@
 // Returns the name of the channel.
 
+const { spawn } = require("pty.js");
+
 const terminals = {};
 
 export async function terminal(
@@ -13,7 +15,13 @@ export async function terminal(
     return name;
   }
   const channel = primus.channel(name);
-  terminals[name] = channel;
+  const term = spawn("/bin/bash", [], {});
+  term.on("data", function(data) {
+    logger.debug("terminal: term --> browsers", name, data);
+    channel.write(data)
+  });
+  terminals[name] = { channel, term };
+
   channel.on("connection", function(spark: any): void {
     // Now handle the connection
     logger.debug(
@@ -22,11 +30,16 @@ export async function terminal(
     );
     // simple echo server for now.
     spark.on("data", function(data) {
-      logger.debug("terminal channel", name, JSON.stringify(data));
-      try {
-        channel.write(data);
-      } catch (err) {
-        spark.write(err.toString());
+      logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+      if (typeof data === "string") {
+        try {
+          term.write(data);
+        } catch (err) {
+          spark.write(err.toString());
+        }
+      } else {
+        // control message
+        logger.debug("terminal channel control message");
       }
     });
   });
