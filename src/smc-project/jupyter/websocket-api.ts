@@ -4,7 +4,6 @@ various messages related to working with Jupyter.
 */
 
 import { get_existing_kernel } from "./jupyter";
-import { get_code_and_cursor_pos } from "./http-server";
 import { get_kernel_data } from "./kernel-data";
 
 export async function handle_request(
@@ -68,3 +67,26 @@ export async function handle_request(
       throw Error(`unknown endpoint "${endpoint}"`);
   }
 }
+
+function get_code_and_cursor_pos(
+  query: any
+): { code: string; cursor_pos: number } {
+  const code: string = query.code;
+  if (!code) {
+    throw Error("must specify code");
+  }
+  let cursor_pos: number;
+  if (query.cursor_pos != null) {
+    try {
+      cursor_pos = parseInt(query.cursor_pos);
+    } catch (error) {
+      cursor_pos = code.length;
+    }
+  } else {
+    cursor_pos = code.length;
+  }
+
+  return { code, cursor_pos };
+}
+
+

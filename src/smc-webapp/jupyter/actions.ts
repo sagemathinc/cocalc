@@ -32,7 +32,6 @@ const { required, defaults } = misc;
 import { Actions } from "../app-framework";
 import { JupyterStoreState, JupyterStore } from "./store";
 const util = require("./util");
-const server_urls = require("./server-urls");
 const parsing = require("./parsing");
 const keyboard = require("./keyboard");
 const commands = require("./commands");
