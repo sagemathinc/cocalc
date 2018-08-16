@@ -494,7 +494,7 @@ rclass = function(x: any) {
         // OPTIMIZATION: Cache props before generating a new key.
         // currently assumes making a new object is fast enough
         const definition = x(this.props);
-        const key = compute_cache_key(definition);
+        const key = compute_cache_key(definition.reduxProps);
 
         if (definition.actions != null) {
           throw Error(
