@@ -15,6 +15,8 @@ async function connection_to_project0(project_id: string): Promise<any> {
   if (connections[project_id] !== undefined) {
     return connections[project_id];
   }
+  const t0 = new Date().valueOf();
+  console.log(`conn ${project_id} -- connecting...`);
   const window0 = (global as any).window as any; // global part is so this also compiles on node.js.
   const url: string = `${
     window0.app_base_url
@@ -22,9 +24,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
 
   await retry_until_success({
     f: async function() {
-      console.log(`reading primus.js from ${project_id}...`);
+      //console.log(`reading primus.js from ${project_id}...`);
       await $.getScript(url);
-      console.log("success!");
+      //console.log("success!");
     },
     max_time: 120000
   });
@@ -43,6 +45,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
     }));
     conn.api = new API(conn);
     conn.verbose = false;
+    console.log(
+      `conn ${project_id} -- connected! (${new Date().valueOf() - t0}ms)`
+    );
     return conn;
   } finally {
     // Restore the global Primus, no matter what.
