@@ -36,9 +36,9 @@ export function init_websocket_api(
         done({ error: err.toString(), status: "error" });
       }
     });
-    spark.on("data", function(data) {
+    /*spark.on("data", function(data) {
       logger.debug("primus-api", "data", typeof data, JSON.stringify(data));
-    });
+    });*/
   });
 }
 

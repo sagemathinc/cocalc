@@ -81,15 +81,15 @@ client_keydown = (ev) ->
 class Console extends EventEmitter
     constructor: (opts={}) ->
         super()
+        window.c = @
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             project_id  : required
             path        : required
-            session     : undefined  # a console_session; use .set_session to set it later instead.
             title       : ""
             filename    : ""
-            rows        : 16
-            cols        : 80
+            rows        : 40
+            cols        : 100
             editor      : undefined  # FileEditor instance -- needed for some actions, e.g., opening a file
             close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
@@ -193,8 +193,16 @@ class Console extends EventEmitter
             @element.find(".webapp-console-up").hide()
             @element.find(".webapp-console-down").hide()
 
-        if opts.session?
-            @set_session(opts.session)
+        @connect()
+
+    connect: =>
+        {webapp_client} = require('./webapp_client')
+        ws = await webapp_client.project_websocket(@project_id)
+        @conn = await ws.api.terminal(@path)
+        @conn.on 'data', (data) =>
+            @terminal.write(data)
+        @terminal.on 'data', (data) =>
+            @conn.write(data)
 
     # call this whenever the *user* actively does something --
     # this gives them control of the terminal size...
@@ -236,6 +244,7 @@ class Console extends EventEmitter
             #console.log 'reconnecting since no recent data'
             @session?.reconnect()
 
+    ###
     set_session: (session) =>
         if @session?
             # Don't allow set_session to be called multiple times, since both sessions could
@@ -284,6 +293,7 @@ class Console extends EventEmitter
         # and also the terminal has initialized so it can show the history.
         @resize_terminal()
         @config_session()
+    ###
 
     set_state_connected: =>
         @element.find(".webapp-console-terminal").css('opacity':'1')
@@ -293,6 +303,7 @@ class Console extends EventEmitter
         @element.find(".webapp-console-terminal").css('opacity':'.5')
         @element.find("a[href=\"#refresh\"]").addClass('btn-success').find(".fa").addClass('fa-spin')
 
+    ###
     config_session: () =>
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
@@ -357,6 +368,7 @@ class Console extends EventEmitter
 
         @terminal.showCursor()
         @resize()
+    ###
 
     render: (data) =>
         #console.log "render '#{data}'"

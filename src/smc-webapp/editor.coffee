@@ -1719,6 +1719,10 @@ class Terminal extends FileEditor
             editor     : @
         @console = elt.data("console")
         @element = @console.element
+        @element.show()
+        ###
+        @console = elt.data("console")
+        @element = @console.element
         webapp_client.read_text_file_from_project
             project_id : @project_id
             path       : @filename
@@ -1763,7 +1767,7 @@ class Terminal extends FileEditor
             webapp_client.connect_to_session(mesg)
         else
             webapp_client.new_session(mesg)
-
+    ###
 
     _get: =>  # FUTURE ??
         return @opts.session_uuid ? ''

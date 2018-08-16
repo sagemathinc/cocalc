@@ -15,12 +15,22 @@ export async function terminal(
     return name;
   }
   const channel = primus.channel(name);
-  const term = spawn("/bin/bash", [], {});
-  term.on("data", function(data) {
-    logger.debug("terminal: term --> browsers", name, data);
-    channel.write(data)
-  });
-  terminals[name] = { channel, term };
+  terminals[name] = { channel };
+  function init_term() {
+    const term = spawn("/bin/bash", [], {});
+    logger.debug("terminal", "init_term", name, "pid=", term.pid);
+    terminals[name].term = term;
+    term.on("data", function(data) {
+      //logger.debug("terminal: term --> browsers", name, data);
+      channel.write(data);
+    });
+    // Whenever term ends, we just respawn it.
+    term.on("exit", function() {
+      logger.debug("terminal", name, "EXIT");
+      init_term();
+    });
+  }
+  init_term();
 
   channel.on("connection", function(spark: any): void {
     // Now handle the connection
@@ -30,10 +40,10 @@ export async function terminal(
     );
     // simple echo server for now.
     spark.on("data", function(data) {
-      logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+      //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
       if (typeof data === "string") {
         try {
-          term.write(data);
+          terminals[name].term.write(data);
         } catch (err) {
           spark.write(err.toString());
         }
