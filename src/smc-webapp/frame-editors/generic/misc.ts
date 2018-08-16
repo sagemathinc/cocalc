@@ -5,6 +5,8 @@ THIS SHOULD BE MOVED OUT OF frame-editors/
 This is a rewrite of what we're using from smc-util/misc...
 */
 
+const underscore = require('underscore');
+
 interface SplittedPath {
   head: string;
   tail: string;
@@ -224,7 +226,7 @@ export function len(obj: object | undefined | null): number {
   return Object.keys(obj).length;
 }
 
-export const keys = Object.keys;
+export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
