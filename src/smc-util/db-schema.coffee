@@ -313,6 +313,22 @@ schema.accounts =
                         obj[field] = obj[field].slice(0,254)
                 cb()
 
+
+schema.account_profiles =
+    desc : '(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.'
+    virtual : 'accounts'
+    anonymous : false
+    user_query :
+        get :
+            pg_where : []
+            options : [{limit : 1}] # in case user queries for [{account_id:null, profile:null}] they should not get the whole database.
+            fields :
+                account_id      : null
+                profile :
+                    image       : undefined
+                    color       : undefined
+
+
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
     primary_key : 'id'
@@ -1184,7 +1200,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : false     # allow user read access, even if not signed in
+    anonymous   : false     # if true, this would allow user read access, even if not signed in -- we used to do this but decided to use polling instead, since update interval is predictable.
     fields:
         id                  :
             type : 'uuid'
