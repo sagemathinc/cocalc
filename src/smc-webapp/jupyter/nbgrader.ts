@@ -202,7 +202,10 @@ export const nbgrader_set_cell_type = function(id: string, val: MODES) {
   return this.nbgrader_set_data(id, immutable.fromJS(data));
 };
 
-export const nbgrader_set_data = function(id: string, data: ImmutableMap<string, any>) {
+export const nbgrader_set_data = function(
+  id: string,
+  data: ImmutableMap<string, any>
+) {
   // TODO: this should be merge = true, or just set the nbgrader field, and not touch the other ones
   if (true /* DEBUG */) {
     console.log("JupyterActions::nbgrader_set_data", id, data.toJS());
@@ -239,12 +242,12 @@ export const nbgrader_run_tests = function() {
   return this.save_asap();
 };
 
-export const nbgrader_detect_cells = function() {
+export const nbgrader_detect_cells = function(): void {
   const cells = this.store.get("cells");
   if (cells == null) {
     return;
   }
-  let any_nbgrader_cells = cells.some(cell => {
+  const any_nbgrader_cells = cells.some(cell => {
     return cell.getIn(["metadata", "nbgrader"]) != null;
   });
   this.setState({ any_nbgrader_cells });

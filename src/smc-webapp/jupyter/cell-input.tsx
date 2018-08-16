@@ -90,17 +90,19 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.cell.get("line_numbers") !==
         this.props.cell.get("line_numbers") ||
       nextProps.cm_options !== this.props.cm_options ||
-      nextProps.trust !== this.props.trust ||
       (nextProps.is_markdown_edit !== this.props.is_markdown_edit &&
         nextProps.cell.get("cell_type") === "markdown") ||
-      nextProps.is_focused !== this.props.is_focused ||
-      nextProps.is_current !== this.props.is_current ||
-      nextProps.font_size !== this.props.font_size ||
-      nextProps.complete !== this.props.complete ||
-      nextProps.cell_toolbar !== this.props.cell_toolbar ||
-      nextProps.student_mode !== this.props.student_mode ||
       (nextProps.cell_toolbar === "slideshow" &&
-        nextProps.cell.get("slide") !== this.props.cell.get("slide"))
+        nextProps.cell.get("slide") !== this.props.cell.get("slide")) ||
+      misc.is_different(this.props, nextProps, [
+        "trust",
+        "is_focused",
+        "is_current",
+        "font_size",
+        "complete",
+        "cell_toolbar",
+        "student_mode"
+      ])
     );
   }
   render_input_prompt = (type: any) => (
