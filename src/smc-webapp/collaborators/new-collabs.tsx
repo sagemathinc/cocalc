@@ -16,6 +16,8 @@ const {
   callback_opts
 } = require("smc-webapp/frame-editors/generic/async-utils");
 
+import { callback } from "awaiting";
+
 import * as immutable from "immutable";
 
 import { User } from "../frame-editors/generic/client";
@@ -27,7 +29,9 @@ const { SITE_NAME } = require("smc-util/theme");
 /**
  * Returns a list of account_id's for users.
  */
-async function search_for_accounts(search = ""): Promise<User[]> {
+async function search_for_accounts(
+  search = ""
+): Promise<User & { profile: { color: string; image: string } }[]> {
   search = search.trim();
   if (search === "") {
     return [];
@@ -36,7 +40,26 @@ async function search_for_accounts(search = ""): Promise<User[]> {
     query: search,
     limit: 50
   });
-  return select;
+  const profiles = await callback_opts(
+    webapp_client.query({
+      query: select.map(u => ({
+        account_id: u.account_id,
+        profile: null
+      }))
+    })
+  );
+  const users = {};
+  for (let u of select) {
+    users[u.account_id] = u;
+  }
+  for (let u of profiles) {
+    u = u.account_profiles;
+    if (users[u.account_id]) {
+      users[u.account_id].profile = u.profile;
+    }
+  }
+  console.log("USERS = ", users);
+  return users;
 }
 
 interface AddCollaboratorsPanelProps {
@@ -287,7 +310,9 @@ ${name}
             {this.render_invitation_editor()}
             {this.render_buttons()}
           </>
-        ) : undefined}
+        ) : (
+          undefined
+        )}
       </ProjectSettingsPanel>
     );
   }
