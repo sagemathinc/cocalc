@@ -2,6 +2,8 @@
 The Store
 */
 
+declare const localStorage: any;
+
 const misc = require("smc-util/misc");
 import { Store } from "../app-framework";
 import { Set } from "immutable";
