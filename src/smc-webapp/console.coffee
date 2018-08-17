@@ -237,6 +237,14 @@ class Console extends EventEmitter
                 break
             when 'no-ignore'
                 delete @_ignore
+                break
+            when 'close'
+                # remote request that we close this tab, e.g., one user
+                # booting all others out of his terminal session.
+                alert_message(type:'info', message:"You have been booted out of #{@opts.filename}.")
+                @_project_actions?.close_file(@opts.filename)
+                @_project_actions?.set_active_tab('files')
+                break
 
     handle_resize: (rows, cols) =>
         # Resize the renderer
@@ -682,6 +690,10 @@ class Console extends EventEmitter
             elt = $("##{id}")
             elt.val(@value).scrollTop(elt[0].scrollHeight)
             return false
+
+        @element.find("a[href=\"#boot\"]").click () =>
+            @conn?.write({cmd:'boot'})
+            alert_message(type:'info', message:"This terminal should now close for all other users, which allows you to resize it as large as you want.")
 
         @element.find("a[href=\"#initfile\"]").click () =>
             initfn = misc.console_init_filename(@opts.filename)
