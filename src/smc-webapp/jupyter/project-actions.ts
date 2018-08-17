@@ -444,9 +444,10 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
     dbg();
 
+    // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
     if (this._run_again != null) {
       delete this._run_again[id];
-    } // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
+    }
 
     this.ensure_backend_kernel_setup();
 

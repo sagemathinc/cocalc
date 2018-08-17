@@ -201,14 +201,16 @@ export class CodeExecutionEmitter extends EventEmitter
     // it's **silently** immutable, which
     // is pretty annoying for our use. For now, we
     // just copy it, which is a waste.
+    // const dbg = this.kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
     // dbg("push_mesg", mesg);
+    const header = mesg.header;
     mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
     // dbg("push_mesg after copy_with", mesg);
     mesg = deep_copy(mesg);
-    // dbg("push_mesg after deep copy", mesg);
-    if (mesg.header !== undefined) {
-      mesg.msg_type = mesg.header.msg_type;
+    if (header !== undefined) {
+      mesg.msg_type = header.msg_type;
     }
+    // dbg("push_mesg after copying msg_type", mesg);
     this.emit_output(mesg);
   }
 

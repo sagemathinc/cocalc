@@ -31,9 +31,9 @@ const now = () => misc.server_time() - 0;
 
 export class OutputHandler extends EventEmitter {
   private _opts: any;
-  private _n: any;
-  private _clear_before_next_output: any;
-  private _output_length: any;
+  private _n: number;
+  private _clear_before_next_output: boolean;
+  private _output_length: number;
   private _in_more_output_mode: any;
   private _state: any;
   private _stdin_cb: any;
