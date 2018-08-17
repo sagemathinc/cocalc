@@ -6,8 +6,6 @@ import { Map as ImmutableMap, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
 
 // TODO: import jquery
-// to make compiling TS in the hub work
-declare const $: any;
 
 // TODO: use imports
 const misc = require("smc-util/misc");
@@ -87,7 +85,8 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.cell.get("end") !== this.props.cell.get("end") ||
       nextProps.cell.get("tags") !== this.props.cell.get("tags") ||
       nextProps.cell.get("cursors") !== this.props.cell.get("cursors") ||
-      nextProps.cell.get("line_numbers") !== this.props.cell.get("line_numbers") ||
+      nextProps.cell.get("line_numbers") !==
+        this.props.cell.get("line_numbers") ||
       nextProps.cm_options !== this.props.cm_options ||
       nextProps.trust !== this.props.trust ||
       (nextProps.is_markdown_edit !== this.props.is_markdown_edit &&
@@ -189,7 +188,10 @@ export class CellInput extends Component<CellInputProps> {
           value={value}
           project_id={this.props.project_id}
           file_path={this.props.directory}
-          href_transform={href_transform(this.props.project_id, this.props.cell)}
+          href_transform={href_transform(
+            this.props.project_id,
+            this.props.cell
+          )}
           post_hook={markdown_post_hook}
           safeHTML={!this.props.trust}
         />
@@ -213,9 +215,16 @@ export class CellInput extends Component<CellInputProps> {
     }
   }
   render_complete() {
-    if (this.props.complete && this.props.complete.get("matches", fromJS([])).size > 0) {
+    if (
+      this.props.complete &&
+      this.props.complete.get("matches", fromJS([])).size > 0
+    ) {
       return (
-        <Complete complete={this.props.complete} actions={this.props.actions} id={this.props.id} />
+        <Complete
+          complete={this.props.complete}
+          actions={this.props.actions}
+          id={this.props.id}
+        />
       );
     }
   }
