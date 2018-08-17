@@ -7,9 +7,6 @@ import { Store } from "../app-framework";
 import { Set } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 
-// TODO: seperate front specific code that uses this stuff
-declare const localStorage: any;
-
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
 let global_clipboard: any = undefined;
@@ -47,7 +44,7 @@ export interface JupyterStoreState {
   view_mode: string;
   mode: string;
   nbconvert: any;
-  about: boolean;  
+  about: boolean;
   start_time: any;
   complete: any;
   introspect: any;
@@ -321,6 +318,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   get_cell_metadata_flag = (id: any, key: any) => {
     // default is true
-    return this.unsafe_getIn(["cells", id, "metadata", key],true); // TODO: type
+    return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
   };
 }

@@ -2,9 +2,6 @@
 React component that renders the ordered list of cells
 */
 
-// to make compiling TS in the hub work
-declare const $: any;
-
 import * as immutable from "immutable";
 import { React, Component } from "../app-framework"; // TODO: this will move
 const { Loading } = require("../r_misc");

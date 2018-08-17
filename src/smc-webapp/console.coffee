@@ -201,7 +201,10 @@ class Console extends EventEmitter
         @conn = await ws.api.terminal(@path)
         @conn.on 'data', (data) =>
             if typeof(data) == 'string'
-                @terminal.write(data)
+                if @_rendering_is_paused
+                    @_render_buffer += data
+                else
+                    @render(data)
             else if typeof(data) == 'object'
                 @handle_control_mesg(data)
         @terminal.on 'data', (data) =>

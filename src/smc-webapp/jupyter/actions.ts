@@ -38,11 +38,6 @@ const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 
-// TODO: seperate front specific code that uses this stuff
-declare const $: any;
-declare const window: any;
-declare const localStorage: any;
-
 let jupyter_kernels = immutable.Map(); // map project_id (string) -> kernels (immutable)
 
 const { IPynbImporter } = require("./import-from-ipynb");
