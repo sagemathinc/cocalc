@@ -44,6 +44,8 @@ misc_page        = require('./misc_page')
 templates        = $("#webapp-console-templates")
 console_template = templates.find(".webapp-console")
 
+{delay} = require('awaiting')
+
 feature = require('./feature')
 
 IS_TOUCH = feature.IS_TOUCH  # still have to use crappy mobile for now on
@@ -122,8 +124,6 @@ class Console extends EventEmitter
         # messages such as open_file or open_directory are handled (see @init_mesg).
         @is_focused = false
 
-        #@user_is_active()
-
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
         @textarea = @element.find(".webapp-console-textarea")
@@ -152,6 +152,8 @@ class Console extends EventEmitter
 
         @terminal.IS_TOUCH = IS_TOUCH
 
+        @terminal.on 'title', (title) => @set_title(title)
+
         @init_mesg()
 
         # The first time Terminal.bindKeys is called, it makes Terminal
@@ -168,6 +170,9 @@ class Console extends EventEmitter
 
         @terminal.on 'scroll', (top, rows) =>
             @set_scrollbar_to_term()
+
+        @terminal.on 'data', (data) =>
+            @conn?.write(data)
 
         @_init_ttyjs()
 
@@ -211,10 +216,11 @@ class Console extends EventEmitter
                     @render(data)
             else if typeof(data) == 'object'
                 @handle_control_mesg(data)
-        @terminal.on 'data', (data) =>
-            @conn.write(data)
         @resize_terminal()
 
+    reconnect: =>
+        @disconnect()
+        @connect()
 
     handle_control_mesg: (data) =>
         switch data.cmd
@@ -232,14 +238,8 @@ class Console extends EventEmitter
         # Resize the renderer
         @_terminal_size = {rows:rows, cols:cols}
         @terminal.resize(cols, rows)
+        @element.find(".webapp-console-terminal").css({width:null, height:null})
 
-    # call this whenever the *user* actively does something --
-    # this gives them control of the terminal size...
-    user_is_active: =>
-        @_last_active = new Date()
-
-    user_was_recently_active: =>
-        return new Date() - (@_last_active ? 0) <= ACTIVE_INTERVAL_MS
 
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
@@ -271,7 +271,7 @@ class Console extends EventEmitter
         #console.log 'check for recent data'
         if not @_got_remote_data? or new Date() - @_got_remote_data >= 15000
             #console.log 'reconnecting since no recent data'
-            @session?.reconnect()
+            @reconnect()
 
     ###
     set_session: (session) =>
@@ -476,7 +476,6 @@ class Console extends EventEmitter
     _init_rendering_pause: () =>
 
         btn = @element.find("a[href=\"#pause\"]").click (e) =>
-            @user_is_active()
             if @_rendering_is_paused
                 @unpause_rendering()
             else
@@ -485,11 +484,9 @@ class Console extends EventEmitter
 
         e = @element.find(".webapp-console-terminal")
         e.mousedown () =>
-            @user_is_active()
             @pause_rendering(false)
 
         e.mouseup () =>
-            @user_is_active()
             if not getSelection().toString()
                 @unpause_rendering()
                 return
@@ -499,7 +496,6 @@ class Console extends EventEmitter
                 @unpause_rendering()
 
         e.on 'copy', =>
-            @user_is_active()
             @unpause_rendering()
             setTimeout(@focus, 5)  # must happen in next cycle or copy will not work due to loss of focus.
 
@@ -532,7 +528,6 @@ class Console extends EventEmitter
             @_ignore = false
 
         @mark_file_use()
-        @user_is_active()
 
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
@@ -576,7 +571,6 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=\"#font-make-default\"]").click () =>
-            @user_is_active()
             redux.getTable('account').set(terminal:{font_size:@opts.font.size})
             return false
 
@@ -608,7 +602,6 @@ class Console extends EventEmitter
             @mobile_target.css('width', ter.css('width'))
             @mobile_target.css('height', ter.css('height'))
             @_click = (e) =>
-                @user_is_active()
                 t = $(e.target)
                 if t[0]==@mobile_target[0] or t.hasParent(@element).length > 0
                     @focus()
@@ -617,7 +610,6 @@ class Console extends EventEmitter
             $(document).on 'click', @_click
         else
             @_mousedown = (e) =>
-                @user_is_active()
                 if $(e.target).hasParent(@element).length > 0
                     @focus()
                 else
@@ -625,7 +617,6 @@ class Console extends EventEmitter
             $(document).on 'mousedown', @_mousedown
 
             @_mouseup = (e) =>
-                @user_is_active()
                 t = $(e.target)
                 sel = window.getSelection().toString()
                 if t.hasParent(@element).length > 0 and sel.length == 0
@@ -633,16 +624,12 @@ class Console extends EventEmitter
             $(document).on 'mouseup', @_mouseup
 
             $(@terminal.element).bind 'copy', (e) =>
-                @user_is_active()
                 # re-enable paste but only *after* the copy happens
                 setTimeout(@_focus_hidden_textarea, 10)
 
     # call this when deleting the terminal (removing it from DOM, etc.)
     remove: () =>
-        x = @conn
-        delete @conn
-        if x?
-            x.end()
+        @disconnect()
         if @_mousedown?
              $(document).off('mousedown', @_mousedown)
         if @_mouseup?
@@ -657,13 +644,11 @@ class Console extends EventEmitter
         fullscreen = @element.find("a[href=\"#fullscreen\"]")
         exit_fullscreen = @element.find("a[href=\"#exit_fullscreen\"]")
         fullscreen.on 'click', () =>
-            @user_is_active()
             @fullscreen()
             exit_fullscreen.show()
             fullscreen.hide()
             return false
         exit_fullscreen.hide().on 'click', () =>
-            @user_is_active()
             @exit_fullscreen()
             exit_fullscreen.hide()
             fullscreen.show()
@@ -675,22 +660,18 @@ class Console extends EventEmitter
         @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
         @element.find("a[href=\"#increase-font\"]").click () =>
-            @user_is_active()
             @_increase_font_size()
             return false
 
         @element.find("a[href=\"#decrease-font\"]").click () =>
-            @user_is_active()
             @_decrease_font_size()
             return false
 
         @element.find("a[href=\"#refresh\"]").click () =>
-            @user_is_active()
-            @session?.reconnect()
+            @reconnect()
             return false
 
         @element.find("a[href=\"#paste\"]").click () =>
-            @user_is_active()
             id = uuid()
             s = "<h2><i class='fa project-file-icon fa-terminal'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-family: monospace;cursor: auto;width: 97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
@@ -764,7 +745,7 @@ class Console extends EventEmitter
             x = misc.replace_all(x, '–', "--")
             x = misc.replace_all(x, '—', "---")
             @_ignore = false
-            @session?.write_data(x)
+            @conn?.write(x)
             input_line.val('')
 
         input_line.on 'keydown', (e) =>
@@ -772,7 +753,7 @@ class Console extends EventEmitter
                 e.preventDefault()
                 submit_line()
                 @_ignore = false
-                @session?.write_data("\n")
+                @conn?.write("\n")
                 return false
             else if e.which == 67 and e.ctrlKey
                 submit_line()
@@ -782,7 +763,7 @@ class Console extends EventEmitter
             #@focus()
             submit_line()
             @_ignore = false
-            @session?.write_data("\n")
+            @conn?.write("\n")
             return false
 
         @element.find(".webapp-console-submit-submit").click () =>
@@ -864,7 +845,7 @@ class Console extends EventEmitter
             @_ignore = false
             data = pb.val()
             pb.val('')
-            @session?.write_data(data)
+            @conn?.write(data)
 
         pb.on 'paste', =>
             pb.val('')
@@ -875,8 +856,11 @@ class Console extends EventEmitter
     # Unless otherwise stated, these methods can be chained.
     #######################################################################
 
-    terminate_session: () =>
-        @session?.terminate_session()
+    disconnect: () =>
+        x = @conn
+        delete @conn
+        if x?
+            x.end()
 
     # enter fullscreen mode
     fullscreen: () =>
@@ -920,6 +904,11 @@ class Console extends EventEmitter
         @_ignore = locals.ignore  # do not change value of @_ignore
 
     resize_terminal: () =>
+        @element.find(".webapp-console-terminal").css({width:'100%', height:'100%'})
+
+        # Wait for css change to take effect:
+        await delay(0)
+
         # Determine size of container DOM.
         # Determine the average width of a character by inserting 10 characters,
         # seeing how wide that is, and dividing by 10.  The result is typically not
@@ -962,6 +951,8 @@ class Console extends EventEmitter
 
         # Send message to project to impact actual size of tty
         @send_size_to_project()
+        # width still doesn't work right...
+        @element.find(".webapp-console-terminal").css({width:'100%', height:''})
 
     send_size_to_project: =>
         @conn?.write({cmd:'size', rows:@opts.rows, cols:@opts.cols})
