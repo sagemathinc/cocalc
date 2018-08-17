@@ -1795,7 +1795,7 @@ class Terminal extends FileEditor
         @console?.blur()
 
     _show: () =>
-        @console?.resize()
+        @console?.resize_terminal()
 
 class PublicHTML extends FileEditor
     constructor: (project_id, filename, content, opts) ->

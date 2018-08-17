@@ -81,7 +81,7 @@ client_keydown = (ev) ->
 class Console extends EventEmitter
     constructor: (opts={}) ->
         super()
-        window.c = @
+        window.c = @  # TODO: remove before release!
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             project_id  : required
@@ -200,9 +200,25 @@ class Console extends EventEmitter
         ws = await webapp_client.project_websocket(@project_id)
         @conn = await ws.api.terminal(@path)
         @conn.on 'data', (data) =>
-            @terminal.write(data)
+            if typeof(data) == 'string'
+                @terminal.write(data)
+            else if typeof(data) == 'object'
+                @handle_control_mesg(data)
         @terminal.on 'data', (data) =>
             @conn.write(data)
+        @resize_terminal()
+
+
+    handle_control_mesg: (data) =>
+        console.log 'control_mesg', data
+        switch data.cmd
+            when 'size'
+                @handle_resize(data.rows, data.cols)
+
+    handle_resize: (rows, cols) =>
+        # Resize the renderer
+        @_terminal_size = {rows:rows, cols:cols}
+        @terminal.resize(cols, rows)
 
     # call this whenever the *user* actively does something --
     # this gives them control of the terminal size...
@@ -543,7 +559,7 @@ class Console extends EventEmitter
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         @element.find(".webapp-console-font-indicator-size").text(@opts.font.size)
         @element.find(".webapp-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
-        @resize()
+        @resize_terminal()
 
     _init_font_make_default: () =>
         @element.find("a[href=\"#font-make-default\"]").click () =>
@@ -610,8 +626,7 @@ class Console extends EventEmitter
 
     # call this when deleting the terminal (removing it from DOM, etc.)
     remove: () =>
-        @session?.close()
-        delete @session
+        @conn?.end()
         @_connected = false
         if @_mousedown?
              $(document).off('mousedown', @_mousedown)
@@ -865,7 +880,7 @@ class Console extends EventEmitter
             top       : "3.5em"
             bottom    : 1
 
-        @resize()
+        @resize_terminal()
 
     # exit fullscreen mode
     exit_fullscreen: () =>
@@ -874,52 +889,11 @@ class Console extends EventEmitter
                 position : 'relative'
                 top      : 0
                 width    : "100%"
-        @resize()
+        @resize_terminal()
 
     refresh: () =>
         @terminal.refresh(0, @opts.rows-1)
         @terminal.showCursor()
-
-
-    # Determine the current size (rows and columns) of the DOM
-    # element for the editor, then resize the renderer and the
-    # remote PTY.
-    resize: =>
-        # The or @_rendering_is_paused fixes https://github.com/sagemathinc/cocalc/issues/2363
-        if not @user_was_recently_active() or @_rendering_is_paused
-            return
-
-        if not @session?
-            # don't bother if we don't even have a remote connection
-            # FUTURE: could queue this up to send
-            return
-
-        if not @_connected
-            return
-
-        if not @value
-            # Critical that we wait to receive something before doing any sort of resize; otherwise,
-            # the terminal will get "corrupted" with control codes.
-            return
-
-        @resize_terminal()
-
-        # Resize the remote PTY
-        resize_code = (cols, rows) ->
-            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-            # CSI Ps ; Ps ; Ps t
-            # CSI[4];[height];[width]t
-            return CSI + "4;#{rows};#{cols}t"
-
-        # console.log 'connected: sending resize code'
-        @session.write_data(resize_code(@opts.cols, @opts.rows))
-
-        @full_rerender()
-
-        # Refresh depends on correct @opts being set!
-        @refresh()
-
-        @_needs_resize = false
 
     full_rerender: =>
         locals =
@@ -967,12 +941,15 @@ class Console extends EventEmitter
             height -= 60
         new_rows = Math.max(1, Math.floor(height / row_height))
 
-        # Resize the renderer
-        @terminal.resize(new_cols, new_rows)
-
-        # Record new size
+        # Record our new size
         @opts.cols = new_cols
         @opts.rows = new_rows
+
+        # Send message to project to impact actual size of tty
+        @send_size_to_project()
+
+    send_size_to_project: =>
+        @conn?.write({cmd:'size', rows:@opts.rows, cols:@opts.cols})
 
     set_scrollbar_to_term: () =>
         if @terminal.ybase == 0  # less than 1 page of text in buffer
