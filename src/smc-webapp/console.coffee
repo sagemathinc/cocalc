@@ -207,8 +207,9 @@ class Console extends EventEmitter
         @conn.on 'end', =>
             if @conn?
                 @connect()
+        @_ignore = true
         @conn.on 'data', (data) =>
-            #console.log("@conn got data", data)
+            #console.log("@conn got data of length", data.length)
             if typeof(data) == 'string'
                 if @_rendering_is_paused
                     @_render_buffer += data
@@ -223,6 +224,7 @@ class Console extends EventEmitter
         @connect()
 
     handle_control_mesg: (data) =>
+        console.log('terminal command', data)
         switch data.cmd
             when 'size'
                 @handle_resize(data.rows, data.cols)
@@ -233,6 +235,8 @@ class Console extends EventEmitter
             when 'no-burst'
                 @element.find(".webapp-burst-indicator").fadeOut(2000)
                 break
+            when 'no-ignore'
+                delete @_ignore
 
     handle_resize: (rows, cols) =>
         # Resize the renderer

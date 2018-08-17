@@ -123,11 +123,12 @@ export async function terminal(
     }
     // send burst info
     if (terminals[name].truncating) {
-      channel.write({ cmd: "burst" });
+      spark.write({ cmd: "burst" });
     }
     // send history
     spark.write(terminals[name].history);
-    // simple echo server for now.
+    // have history, so do not ignore commands now.
+    spark.write({ cmd: "no-ignore" });
     spark.on("end", function() {
       delete terminals[name].client_sizes[spark.id];
       resize();
@@ -150,6 +151,14 @@ export async function terminal(
               cols: data.cols
             });
             resize();
+            break;
+          case "boot":
+            // broadcast message to all other clients telling them to close.
+            channel.forEach(function(spark0, id, connections) {
+              if (id !== spark.id) {
+                spark0.write({ cmd: "close" });
+              }
+            });
             break;
         }
       }
