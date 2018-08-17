@@ -10,6 +10,7 @@
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
+
 /*
 Jupyter client
 
@@ -53,6 +54,8 @@ const syncstring = require("smc-util/syncstring");
 
 const { instantiate_assistant } = require("../assistant/main");
 
+import { JupyterKernelInterface } from "./project-interface";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -84,7 +87,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   protected _client: any;
   protected _file_watcher: any;
-  protected _jupyter_kernel?: any;
+  protected _jupyter_kernel?: JupyterKernelInterface;
   protected _state: any;
   public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
@@ -228,12 +231,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  sync_read_only = () => {
+  sync_read_only = () : void => {
     const a = this.store.get("read_only");
     const b = this.syncdb != null ? this.syncdb.is_read_only() : undefined;
     if (a !== b) {
       this.setState({ read_only: b });
-      return this.set_cm_options();
+      this.set_cm_options();
     }
   };
 
@@ -255,7 +258,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  _account_change = (state: any) => {
+  _account_change = (state: any) : void => {
     // TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
     if (
       !state.get("editor_settings").equals(this._account_change_editor_settings)
@@ -270,7 +273,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
 
       this._account_change_editor_settings = new_settings;
-      return this.set_cm_options();
+      this.set_cm_options();
     }
   };
 
@@ -278,7 +281,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
   };
 
-  close = () => {
+  close = () : void => {
     if (this._state === "closed") {
       return;
     }
@@ -325,7 +328,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  _ajax = (opts: any) => {
+  _ajax = (opts: any) : void => {
     opts = defaults(opts, {
       url: required,
       timeout: 15000,
@@ -407,7 +410,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_error = (err: any) => {
+  set_error = (err: any) : void => {
     if (err == null) {
       this.setState({ error: undefined }); // delete from store
       return;
@@ -420,9 +423,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cur) {
       err = err + "\n\n" + cur;
     }
-    return this.setState({
-      error: err
-    });
+    this.setState({ error: err });
   };
 
   // Set the input of the given cell in the syncdb, which will also change the store.
@@ -472,7 +473,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._sync();
   };
 
-  clear_all_outputs = () => {
+  clear_all_outputs = () : void => {
     let not_editable = 0;
     this.store.get("cells").forEach((cell, id) => {
       if (cell.get("output") != null || cell.get("exec_count")) {
@@ -488,7 +489,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
     this._sync();
     if (not_editable > 0) {
-      return this.set_error("One or more cells are protected from editing.");
+      this.set_error("One or more cells are protected from editing.");
     }
   };
 
@@ -570,7 +571,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Might throw a CellWriteProtectedException
-  set_md_cell_editing = (id: any) => {
+  set_md_cell_editing = (id: any) : void => {
     const md_edit_ids = this.store.get("md_edit_ids");
     if (md_edit_ids.contains(id)) {
       return;
@@ -578,15 +579,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.check_edit_protection(id, this)) {
       return;
     }
-    return this.setState({ md_edit_ids: md_edit_ids.add(id) });
+    this.setState({ md_edit_ids: md_edit_ids.add(id) });
   };
 
-  set_md_cell_not_editing = (id: any) => {
+  set_md_cell_not_editing = (id: any) : void => {
     const md_edit_ids = this.store.get("md_edit_ids");
     if (!md_edit_ids.contains(id)) {
       return;
     }
-    return this.setState({ md_edit_ids: md_edit_ids.delete(id) });
+    this.setState({ md_edit_ids: md_edit_ids.delete(id) });
   };
 
   change_cell_to_heading = (id: any, n = 1) => {
@@ -610,7 +611,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Set which cell is currently the cursor.
-  set_cur_id = (id: any) => {
+  set_cur_id = (id: any) : void => {
     if (
       this.store.getIn(["cells", id, "cell_type"]) === "markdown" &&
       this.store.get("mode") === "edit"
@@ -619,10 +620,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_md_cell_editing(id);
       }
     }
-    return this.setState({ cur_id: id });
+    this.setState({ cur_id: id });
   };
 
-  set_cur_id_from_index = (i?: any) => {
+  set_cur_id_from_index = (i?: any) : void => {
     if (i == null) {
       return;
     }
@@ -635,36 +636,36 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else if (i >= cell_list.size) {
       i = cell_list.size - 1;
     }
-    return this.set_cur_id(cell_list.get(i));
+    this.set_cur_id(cell_list.get(i));
   };
 
-  select_cell = (id: any) => {
+  select_cell = (id: any) : void => {
     const sel_ids = this.store.get("sel_ids");
     if (sel_ids.contains(id)) {
       return;
     }
-    return this.setState({ sel_ids: sel_ids.add(id) });
+    this.setState({ sel_ids: sel_ids.add(id) });
   };
 
-  unselect_cell = (id: any) => {
+  unselect_cell = (id: any) : void => {
     const sel_ids = this.store.get("sel_ids");
     if (!sel_ids.contains(id)) {
       return;
     }
-    return this.setState({ sel_ids: sel_ids.remove(id) });
+    this.setState({ sel_ids: sel_ids.remove(id) });
   };
 
-  unselect_all_cells = () => {
-    return this.setState({ sel_ids: immutable.Set() });
+  unselect_all_cells = () : void => {
+    this.setState({ sel_ids: immutable.Set() });
   };
 
-  select_all_cells = () => {
-    return this.setState({ sel_ids: this.store.get("cell_list").toSet() });
+  select_all_cells = () : void => {
+    this.setState({ sel_ids: this.store.get("cell_list").toSet() });
   };
 
   // select all cells from the currently focused one (where the cursor is -- cur_id)
   // to the cell with the given id, then set the cursor to be at id.
-  select_cell_range = (id: any) => {
+  select_cell_range = (id: any) : void => {
     let endpoint0, endpoint1, x;
     let i;
     const cur_id = this.store.get("cur_id");
@@ -710,27 +711,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  extend_selection = (delta: any) => {
+  extend_selection = (delta: any) : void => {
     const cur_id = this.store.get("cur_id");
     this.move_cursor(delta);
     const target_id = this.store.get("cur_id");
     if (cur_id === target_id) {
       // no move
-      return;
+      return
     }
     const sel_ids = this.store.get("sel_ids");
     if (sel_ids != null ? sel_ids.get(target_id) : undefined) {
       // moved cursor onto a selected cell
       if (sel_ids.size <= 2) {
         // selection clears if shrinks to 1
-        return this.unselect_all_cells();
+        this.unselect_all_cells();
+        return
       } else {
-        return this.unselect_cell(cur_id);
+        this.unselect_cell(cur_id);
+        return
       }
     } else {
       // moved onto a not-selected cell
       this.select_cell(cur_id);
-      return this.select_cell(target_id);
+      this.select_cell(target_id);
     }
   };
 
@@ -767,7 +770,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_cell_list = () => {
+  set_cell_list = () : void => {
     const cells = this.store.get("cells");
     if (cells == null) {
       return;
@@ -841,7 +844,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       : undefined;
   };
 
-  __syncdb_change = (changes: any) => {
+  __syncdb_change = (changes: any) : void => {
     const do_init = this._is_project && this._state === "init";
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
@@ -933,12 +936,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
 
       if (this.store.get("view_mode") === "raw") {
-        return this.set_raw_ipynb();
+        this.set_raw_ipynb();
       }
     }
   };
 
-  _syncdb_init_kernel = () => {
+  _syncdb_init_kernel = () : void => {
     const account = this.redux.getStore("account");
     const default_kernel =
       account != null
@@ -964,7 +967,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _syncdb_cursor_activity = () => {
+  _syncdb_cursor_activity = () : void => {
     let cells_before;
     let cells = (cells_before = this.store.get("cells"));
     const next_cursors = this.syncdb.get_cursors();
@@ -1022,7 +1025,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._last_cursors = next_cursors;
 
     if (cells !== cells_before) {
-      return this.setState({ cells });
+      this.setState({ cells });
     }
   };
 
@@ -1094,11 +1097,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       : undefined;
   };
 
-  save_asap = () => {
+  save_asap = () : void => {
     if (this.syncdb != null) {
       this.syncdb.save_asap(err => {
         if (err) {
-          return setTimeout(
+          setTimeout(
             () => (this.syncdb != null ? this.syncdb.save_asap() : undefined),
             50
           );
@@ -1142,7 +1145,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return new_id; // violates CQRS... (this *is* used elsewhere)
   };
 
-  delete_selected_cells = (sync = true) => {
+  delete_selected_cells = (sync = true) : void => {
     const selected = this.store.get_selected_cell_ids_list();
     if (selected.length === 0) {
       return;
@@ -1214,20 +1217,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._sync();
   };
 
-  undo = () => {
+  undo = () : void => {
     if (this.syncdb != null) {
       this.syncdb.undo();
     }
   };
 
-  redo = () => {
+  redo = () : void => {
     if (this.syncdb != null) {
       this.syncdb.redo();
     }
   };
 
   // in the future, might throw a CellWriteProtectedException. for now, just running is ok.
-  run_cell = (id: any) => {
+  run_cell = (id: any) : void => {
     let left: any;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -1309,12 +1312,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  run_selected_cells = () => {
+  run_selected_cells = () : void => {
     const v = this.store.get_selected_cell_ids_list();
     for (let id of v) {
       this.run_cell(id);
     }
-    return this.save_asap();
+    this.save_asap();
   };
 
   // Run the selected cells, by either clicking the play button or
@@ -1372,15 +1375,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return setTimeout(f, 0);
   };
 
-  run_all_cells = () => {
+  run_all_cells = () : void => {
     this.store.get("cell_list").forEach(id => {
       this.run_cell(id);
     });
-    return this.save_asap();
+    this.save_asap();
   };
 
   // Run all cells strictly above the current cursor position.
-  run_all_above = () => {
+  run_all_above = () : void => {
     const i = this.store.get_cur_cell_index();
     if (i == null) {
       return;
@@ -1393,7 +1396,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Run all cells below (and *including*) the current cursor position.
-  run_all_below = () => {
+  run_all_below = () : void => {
     const i = this.store.get_cur_cell_index();
     if (i == null) {
       return;
@@ -1405,26 +1408,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  move_cursor_after_selected_cells = () => {
+  move_cursor_after_selected_cells = () : void => {
     const v = this.store.get_selected_cell_ids_list();
     if (v.length > 0) {
-      return this.move_cursor_after(v[v.length - 1]);
+      this.move_cursor_after(v[v.length - 1]);
     }
   };
 
-  move_cursor_to_last_selected_cell = () => {
+  move_cursor_to_last_selected_cell = () : void => {
     const v = this.store.get_selected_cell_ids_list();
     if (v.length > 0) {
-      return this.set_cur_id(v[v.length - 1]);
+      this.set_cur_id(v[v.length - 1]);
     }
   };
 
   // move cursor delta positions from current position
-  move_cursor = (delta: any) => {
+  move_cursor = (delta: any) : void => {
     this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
   };
 
-  move_cursor_after = (id: any) => {
+  move_cursor_after = (id: any) : void => {
     const i = this.store.get_cell_index(id);
     if (i == null) {
       return;
@@ -1432,7 +1435,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cur_id_from_index(i + 1);
   };
 
-  move_cursor_before = (id: any) => {
+  move_cursor_before = (id: any) : void => {
     const i = this.store.get_cell_index(id);
     if (i == null) {
       return;
@@ -1440,7 +1443,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cur_id_from_index(i - 1);
   };
 
-  move_cursor_to_cell = (id: any) => {
+  move_cursor_to_cell = (id: any) : void => {
     const i = this.store.get_cell_index(id);
     if (i == null) {
       return;
@@ -1460,7 +1463,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       : undefined;
   };
 
-  split_current_cell = () => {
+  split_current_cell = () : void => {
     const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
     if (cursor == null) {
       return;
@@ -1514,7 +1517,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Copy content from the cell below the current cell into the currently
   // selected cell, then delete the cell below the current cell.s
-  merge_cell_below = (save = true) => {
+  merge_cell_below = (save = true) : void => {
     let end, left, left1;
     const cur_id = this.store.get("cur_id");
     if (cur_id == null) {
@@ -1587,7 +1590,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  merge_cell_above = () => {
+  merge_cell_above = () : void => {
     this.move_cursor(-1);
     this.merge_cell_below();
   };
@@ -1608,7 +1611,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Copy all currently selected cells into our internal clipboard
-  copy_selected_cells = () => {
+  copy_selected_cells = () : void => {
     const cells = this.store.get("cells");
     let global_clipboard = immutable.List();
     for (let id of this.store.get_selected_cell_ids_list()) {
@@ -1618,14 +1621,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Cut currently selected cells, putting them in internal clipboard
-  cut_selected_cells = () => {
+  cut_selected_cells = () : void => {
     this.copy_selected_cells();
-    return this.delete_selected_cells();
+    this.delete_selected_cells();
   };
 
   // write protection disables any modifications, entering "edit" mode, and prohibits cell evaluations
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  toggle_write_protection = () => {
+  toggle_write_protection = () : void => {
     // also make sure to switch to escape mode and eval markdown cells
     this.set_mode("escape");
     const f = id => {
@@ -1634,27 +1637,27 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return this.set_md_cell_not_editing(id);
       }
     };
-    return this.toggle_metadata_boolean("editable", f);
+    this.toggle_metadata_boolean("editable", f);
   };
 
   // this prevents any cell from being deleted, either directly, or indirectly via a "merge"
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  toggle_delete_protection = () => {
-    return this.toggle_metadata_boolean("deletable");
+  toggle_delete_protection = () : void => {
+    this.toggle_metadata_boolean("deletable");
   };
 
-  show_edit_protection_error = () => {
-    return this.set_error("This cell is protected from editing.");
+  show_edit_protection_error = () : void => {
+    this.set_error("This cell is protected from editing.");
   };
 
-  show_delete_protection_error = () => {
-    return this.set_error("This cell is protected from deletion.");
+  show_delete_protection_error = () : void => {
+    this.set_error("This cell is protected from deletion.");
   };
 
   // This toggles the boolean value of given metadata field.
   // If not set, it is assumed to be true and toggled to false
   // For more than one cell, the first one is used to toggle all cells to the inverted state
-  toggle_metadata_boolean = (key: any, extra_processing?: any) => {
+  toggle_metadata_boolean = (key: any, extra_processing?: any) : void => {
     let new_value: any = undefined;
     for (let id of this.store.get_selected_cell_ids_list()) {
       if (new_value == null) {
@@ -1675,7 +1678,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         save: true
       });
     }
-    return this.save_asap();
+    this.save_asap();
   };
 
   // Paste cells from the internal clipboard; also
@@ -1760,7 +1763,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       : undefined;
   };
 
-  set_line_numbers = (show: any) => {
+  set_line_numbers = (show: any) : void => {
     this.set_local_storage("line_numbers", !!show);
     // unset the line_numbers property from all cells
     const cells = this.store
@@ -1774,11 +1777,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cm_options();
   };
 
-  toggle_line_numbers = () => {
-    return this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
+  toggle_line_numbers = () : void => {
+    this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
   };
 
-  toggle_cell_line_numbers = (id: any) => {
+  toggle_cell_line_numbers = (id: any) : void => {
     let left, left1;
     const cells = this.store.get("cells");
     const cell = cells.get(id);
@@ -1792,7 +1795,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           : this.store.get_local_storage("line_numbers")) != null
         ? left
         : false;
-    return this.setState({
+    this.setState({
       cells: cells.set(id, cell.set("line_numbers", !line_numbers))
     });
   };
@@ -1832,7 +1835,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // File --> Open: just show the file listing page.
-  file_open = () => {
+  file_open = () : void => {
     if (this.redux != null) {
       this.redux
         .getProjectActions(this.store.get("project_id"))
@@ -1840,7 +1843,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  file_new = () => {
+  file_new = () : void => {
     if (this.redux != null) {
       this.redux
         .getProjectActions(this.store.get("project_id"))
@@ -1848,7 +1851,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  register_input_editor = (id: any, editor: any) => {
+  register_input_editor = (id: any, editor: any) : void => {
     if (this._input_editors == null) {
       this._input_editors = {};
     }
@@ -1890,7 +1893,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  set_cursor = (id: any, pos: any) => {
+  set_cursor = (id: any, pos: any) : void => {
     /*
         id = cell id
         pos = {x:?, y:?} coordinates in a cell
@@ -1943,7 +1946,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Only the most recent fetch has any impact, and calling
   // clear_complete() ensures any fetch made before that
   // is ignored.
-  complete = (code: any, pos?: any, id?: any, offset?: any) => {
+  complete = (code: any, pos?: any, id?: any, offset?: any) : void => {
     let cursor_pos;
     const req = (this._complete_request =
       (this._complete_request != null ? this._complete_request : 0) + 1);
@@ -1997,19 +2000,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           id != null
         ) {
           // special case -- a unique completion and we know id of cell in which completing is given
-          return this.select_complete(id, complete.matches[0]);
+          this.select_complete(id, complete.matches[0]);
         }
       }
     });
   };
 
-  clear_complete = () => {
+  clear_complete = () : void => {
     this._complete_request =
       (this._complete_request != null ? this._complete_request : 0) + 1;
-    return this.setState({ complete: undefined });
+    this.setState({ complete: undefined });
   };
 
-  select_complete = (id: any, item: any) => {
+  select_complete = (id: any, item: any) : void => {
     const complete = this.store.get("complete");
     this.clear_complete();
     if (complete == null) {
@@ -2035,7 +2038,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return setTimeout(() => this.merge_cell_input(id, base, new_input), 0);
   };
 
-  merge_cell_input = (id: any, base: any, input: any, save = true) => {
+  merge_cell_input = (id: any, base: any, input: any, save = true) : void => {
     const remote = this.store.getIn(["cells", id, "input"]);
     // console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
     if (remote == null || base == null || input == null) {
@@ -2049,7 +2052,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, new_input, save);
   };
 
-  complete_handle_key = (keyCode: any) => {
+  complete_handle_key = (keyCode: any) : void => {
     // User presses a key while the completions dialog is open.
     let complete = this.store.get("complete");
     if (complete == null) {
@@ -2086,7 +2089,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  introspect = (code: any, level: any, cursor_pos?: any) => {
+  introspect = (code: any, level: any, cursor_pos?: any) : void => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
 
@@ -2126,13 +2129,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  clear_introspect = () => {
+  clear_introspect = () : void => {
     this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1;
-    return this.setState({ introspect: undefined });
+    this.setState({ introspect: undefined });
   };
 
-  signal = (signal = "SIGINT") => {
+  signal = (signal = "SIGINT") : void => {
     this._ajax({
       url: server_urls.get_signal_url(
         this.store.get("project_id"),
@@ -2155,16 +2158,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return;
       }
       dbg("calling kernel_info...");
-      this._jupyter_kernel.kernel_info({
-        cb: (err, data) => {
-          if (!err) {
-            dbg(`got data='${misc.to_json(data)}'`);
-            return this.setState({ backend_kernel_info: data });
-          } else {
-            return dbg(`error = ${err}`);
-          }
-        }
-      });
+      this._jupyter_kernel
+        .kernel_info()
+        .then(data => {
+          dbg(`got data='${misc.to_json(data)}'`);
+          this.setState({ backend_kernel_info: data });
+        })
+        .catch(err => {
+          dbg(`error = ${err}`);
+        });
       return;
     }
 
@@ -2220,7 +2222,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // the corresponding dialog in
   // the file manager, so gives a step to confirm, etc.
   // The path may optionally be *any* file in this project.
-  file_action = (action_name: any, path?: any) => {
+  file_action = (action_name: any, path?: any) : void => {
     const a = this.redux.getProjectActions(this.store.get("project_id"));
     if (path == null) {
       path = this.store.get("path");
@@ -2228,7 +2230,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (action_name === "reopen_file") {
       a.close_file(path);
       // ensure the side effects from changing registered
-      // editors in project_file.coffee finish happening
+      // editors in project_file.* finish happening
       window.setTimeout(() => {
         return a.open_file({ path });
       }, 0);
@@ -2302,7 +2304,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = (id: any) => {
+  fetch_more_output = (id: any) : void => {
     const time = this._client.server_time() - 0;
     return this._ajax({
       url: server_urls.get_more_output_url(
@@ -2313,41 +2315,42 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       timeout: 60000,
       cb: (err, more_output) => {
         if (err) {
-          return this.set_error(err);
+          this.set_error(err);
+          return
         } else {
           if (!this.store.getIn(["cells", id, "scrolled"])) {
             // make output area scrolled, since there is going to be a lot of output
             this.toggle_output(id, "scrolled");
           }
-          return this.set_more_output(id, { time, mesg_list: more_output });
+          this.set_more_output(id, { time, mesg_list: more_output });
         }
       }
     });
   };
 
   // TODO: set_more_output on project-actions is different
-  set_more_output = (id: any, more_output: any, _?: any) => {
+  set_more_output = (id: any, more_output: any, _?: any) : void => {
     let left: any;
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
     const x =
       (left = this.store.get("more_output")) != null ? left : immutable.Map();
-    return this.setState({
+    this.setState({
       more_output: x.set(id, immutable.fromJS(more_output))
     });
   };
 
-  reset_more_output = (id?: any) => {
+  reset_more_output = (id?: any) : void => {
     let left: any;
     const more_output =
       (left = this.store.get("more_output")) != null ? left : immutable.Map();
     if (more_output.has(id)) {
-      return this.setState({ more_output: more_output.delete(id) });
+      this.setState({ more_output: more_output.delete(id) });
     }
   };
 
-  set_cm_options = () => {
+  set_cm_options = () : void => {
     const mode = this.store.get_cm_mode();
     const editor_settings = __guardMethod__(
       __guard__(this.redux.getStore("account"), x1 =>
@@ -2370,13 +2373,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (!x.equals(this.store.get("cm_options"))) {
       // actually changed
-      return this.setState({ cm_options: x });
+      this.setState({ cm_options: x });
     }
   };
 
-  show_find_and_replace = () => {
+  show_find_and_replace = () : void => {
     this.blur_lock();
-    return this.setState({ find_and_replace: true });
+    this.setState({ find_and_replace: true });
   };
 
   close_find_and_replace = () => {
@@ -2384,9 +2387,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.focus_unlock();
   };
 
-  show_keyboard_shortcuts = () => {
+  show_keyboard_shortcuts = () : void => {
     this.blur_lock();
-    return this.setState({ keyboard_shortcuts: { show: true } });
+    this.setState({ keyboard_shortcuts: { show: true } });
   };
 
   close_keyboard_shortcuts = () => {
@@ -2519,13 +2522,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  close_confirm_dialog = (choice: any) => {
+  close_confirm_dialog = (choice: any) : void => {
     if (choice == null) {
       return this.setState({ confirm_dialog: undefined });
     } else {
       const confirm_dialog = this.store.get("confirm_dialog");
       if (confirm_dialog != null) {
-        return this.setState({
+        this.setState({
           confirm_dialog: confirm_dialog.set("choice", choice)
         });
       }
@@ -2557,11 +2560,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }); // case to bool
   };
 
-  insert_image = () => {
-    return this.setState({ insert_image: true });
+  insert_image = () : void => {
+    this.setState({ insert_image: true });
   };
 
-  command = (name: any) => {
+  command = (name: any) : void => {
     const f = __guard__(
       this._commands != null ? this._commands[name] : undefined,
       x => x.f
@@ -2574,19 +2577,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // if cell is being edited, use this to move the cursor *in that cell*
-  move_edit_cursor = (delta: any) => {
+  move_edit_cursor = (delta: any) : void => {
     delta = delta; // TODO: implement/use this
-    return this.set_error("move_edit_cursor not implemented");
+    this.set_error("move_edit_cursor not implemented");
   };
 
-  // supported scroll positions are in commands.coffee
+  // supported scroll positions are in commands.ts
   scroll(pos): any {
     return this.setState({ scroll: pos });
   }
 
   // submit input for a particular cell -- this is used by the
   // Input component output message type for interactive input.
-  submit_input = (id: any, value: any) => {
+  submit_input = (id: any, value: any) : void => {
     const output = this.store.getIn(["cells", id, "output"]);
     if (output == null) {
       return;
@@ -2614,15 +2617,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
-    return this.save_asap();
+    this.save_asap();
   };
 
-  submit_password = (id: any, value: any, cb: any) => {
-    return this.set_in_backend_key_value_store(id, value, cb);
+  submit_password = (id: any, value: any, cb: any) : void => {
+    this.set_in_backend_key_value_store(id, value, cb);
   };
 
-  set_in_backend_key_value_store = (key: any, value: any, cb: any) => {
-    return this._ajax({
+  set_in_backend_key_value_store = (key: any, value: any, cb: any) : void => {
+    this._ajax({
       url: server_urls.get_store_url(
         this.store.get("project_id"),
         this.store.get("path"),
@@ -2649,7 +2652,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         but is also run on the frontend too, e.g.,
         for client-side nbviewer (in which case it won't remove images, etc.).
 
-        See the documentation for load_ipynb_file in project-actions.coffee for
+        See the documentation for load_ipynb_file in project-actions.ts for
         documentation about the data_only input variable.
         */
     //dbg = @dbg("set_to_ipynb")
@@ -2787,7 +2790,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  nbconvert_get_error = () => {
+  nbconvert_get_error = () : void => {
     const key = this.store.getIn(["nbconvert", "error", "key"]);
     if (key == null) {
       return;
@@ -2806,16 +2809,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         }
         const nbconvert = this.store.get("nbconvert");
         if (nbconvert.getIn(["error", "key"]) === key) {
-          return this.setState({ nbconvert: nbconvert.set("error", value) });
+          this.setState({ nbconvert: nbconvert.set("error", value) });
         }
       }
     });
   };
 
-  cell_toolbar = (name: string) => {
+  cell_toolbar = (name: string) : void => {
     // Set which cell toolbar is visible.  At most one may be visible.
     // name=undefined to not show any.
-    return this.setState({ cell_toolbar: name });
+    this.setState({ cell_toolbar: name });
   };
 
   set_cell_slide = (id: any, value: any) => {
@@ -2845,7 +2848,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._sync();
   };
 
-  set_default_kernel = (kernel: any) => {
+  set_default_kernel = (kernel: any) : void => {
     let left: any;
     if (this._is_project) {
       // doesn't make sense for project (right now at least)
@@ -2867,8 +2870,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  edit_attachments = (id: any) => {
-    return this.setState({ edit_attachments: id });
+  edit_attachments = (id: any) : void => {
+    this.setState({ edit_attachments: id });
   };
 
   _attachment_markdown = (name: any) => {
@@ -2921,7 +2924,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  add_attachment_to_cell = (id: any, path: any) => {
+  add_attachment_to_cell = (id: any, path: any) : void => {
     if (this.store.check_edit_protection(id, this)) {
       return;
     }
@@ -2997,24 +3000,24 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  set_view_mode = (mode: any) => {
+  set_view_mode = (mode: any) : void => {
     this.setState({ view_mode: mode });
     if (mode === "raw") {
-      return this.set_raw_ipynb();
+      this.set_raw_ipynb();
     }
   };
 
-  edit_cell_metadata = (id: any) => {
+  edit_cell_metadata = (id: any) : void => {
     let left: any;
     const metadata =
       (left = this.store.getIn(["cells", id, "metadata"])) != null
         ? left
         : immutable.Map();
     this.blur_lock();
-    return this.setState({ edit_cell_metadata: { id, metadata } });
+    this.setState({ edit_cell_metadata: { id, metadata } });
   };
 
-  set_cell_metadata = (opts: any) => {
+  set_cell_metadata = (opts: any) : void => {
     /*
         Sets the metadata to exactly the metadata object.  It doesn't just merge it in.
         */
@@ -3085,11 +3088,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_raw_ipynb = () => {
+  set_raw_ipynb = () : void => {
     if (this._state === "load") {
       return;
     }
-    return this.setState({
+    this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });
   };
@@ -3116,13 +3119,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  close_and_halt = () => {
+  close_and_halt = () : void => {
     // Kill running session
     this.signal("SIGKILL");
     // Display the main file listing page
     this.file_open();
     // Close the file
-    return this.file_action("close_file");
+    this.file_action("close_file");
   };
 }
 

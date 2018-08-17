@@ -5,7 +5,7 @@ Backend spell checking support
 import { filename_extension } from "../generic/misc";
 import { exec, ExecOutput } from "../generic/client";
 import { language } from "../generic/misc-page";
-import { KNITR_EXTS } from "../latex-editor/util.ts";
+import { KNITR_EXTS } from "../latex-editor/util";
 
 interface Options {
   project_id: string;

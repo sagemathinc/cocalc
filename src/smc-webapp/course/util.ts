@@ -1,6 +1,6 @@
 import { Map } from "immutable";
 import { TypedMap } from "../app-framework/TypedMap";
-import { StudentsMap } from "./store";
+import { StudentsMap, AssignmentRecord, StudentRecord } from "./store";
 
 /*
  * decaffeinate suggestions:
@@ -314,6 +314,10 @@ export function pick_student_sorter<T extends { column_name: StudentField }>(
     case "hosting":
       return sort_on_numerical_field("hosting");
   }
+}
+
+export function assignment_identifier(assignment: AssignmentRecord, student: StudentRecord): string {
+  return assignment.get("assignment_id") + student.get("student_id")
 }
 
 function __guardMethod__(obj, methodName, transform) {

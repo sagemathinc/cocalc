@@ -61,7 +61,8 @@ import {
   StudentRecord,
   AssignmentRecord,
   SortDescription,
-  CourseStore
+  CourseStore,
+  IsGradingMap
 } from "./store";
 import { CourseActions } from "./actions";
 import { ReactElement } from "react";
@@ -76,12 +77,12 @@ const {
   NumberInput
 } = require("../r_misc");
 const { STEPS, step_direction, step_verb, step_ready } = util;
-const {
+import {
   BigTime,
   FoldersToolbar,
   StudentAssignmentInfo,
   StudentAssignmentInfoHeader
-} = require("./common");
+} from "./common";
 
 const { Progress } = require("./progress");
 //import { Progress } from "./progress";
@@ -103,6 +104,7 @@ interface AssignmentsPanelReduxProps {
   active_assignment_sort: SortDescription;
   active_student_sort: SortDescription;
   expanded_peer_configs: Set<string>;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface AssignmentsPanelState {
@@ -132,7 +134,8 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           expanded_assignments: rtypes.immutable.Set,
           active_assignment_sort: rtypes.immutable.Map,
           active_student_sort: rtypes.immutable.Map,
-          expanded_peer_configs: rtypes.immutable.Set
+          expanded_peer_configs: rtypes.immutable.Set,
+          active_feedback_edits: rtypes.immutable.Map
         }
       };
     };
@@ -247,6 +250,7 @@ export const AssignmentsPanel = rclass<AssignmentsPanelReactProps>(
           expand_peer_config={this.props.expanded_peer_configs.has(
             x.assignment_id
           )}
+          active_feedback_edits={this.props.active_feedback_edits}
         />
       ));
     }
@@ -366,6 +370,7 @@ interface AssignmentProps {
   is_expanded?: boolean;
   active_student_sort: SortDescription;
   expand_peer_config?: boolean;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface AssignmentState {
@@ -409,7 +414,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         "background",
         "is_expanded",
         "active_student_sort",
-        "expand_peer_config"
+        "expand_peer_config",
+        "active_feedback_edits"
       ])
     );
   }
@@ -420,6 +426,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   get_store(): CourseStore {
     return redux.getStore(this.props.name) as any;
+  }
+
+  is_peer_graded() {
+    return !!this.props.assignment.getIn(["peer_grade", "enabled"]);
   }
 
   _due_date() {
@@ -557,9 +567,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       );
     }
 
-    const peer = __guard__(this.props.assignment.get("peer_grade"), x =>
-      x.get("enabled")
-    );
+    const peer = this.is_peer_graded();
     if (peer) {
       width = 2;
     } else {
@@ -624,6 +632,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               students={this.props.students}
               user_map={this.props.user_map}
               active_student_sort={this.props.active_student_sort}
+              active_feedback_edits={this.props.active_feedback_edits}
             />
             {this.render_note()}
           </Panel>
@@ -657,15 +666,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_assignment_button(status) {
-    let bsStyle, left;
-    if (
-      ((left = __guard__(
-        this.props.assignment.get("last_assignment"),
-        x => x.size
-      )) != null
-        ? left
-        : 0) === 0
-    ) {
+    let bsStyle;
+    const last_assignment = this.props.assignment.get("last_assignment");
+    // Primary if it hasn't been assigned before or if it hasn't started assigning.
+    if (!last_assignment || !(last_assignment.get("time") || last_assignment.get("start"))) {
       bsStyle = "primary";
     } else {
       bsStyle = "warning";
@@ -706,9 +710,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_copy_confirms(status) {
-    const steps = STEPS(
-      __guard__(this.props.assignment.get("peer_grade"), x => x.get("enabled"))
-    );
+    const steps = STEPS(this.is_peer_graded());
     const result: (ReactElement<any> | undefined)[] = [];
     for (let step of steps) {
       if (this.state[`copy_confirm_${step}`]) {
@@ -1360,7 +1362,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  _peer_due(date) {
+  _peer_due(date): Date | undefined {
     if (date == null) {
       date = this.props.assignment.getIn(["peer_grade", "due_date"]);
     }
@@ -1372,8 +1374,13 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   peer_due_change = date => {
+    let due_date = this._peer_due(date);
+    let due_date_string: string | undefined;
+    if (due_date != undefined) {
+      due_date_string = due_date.toISOString();
+    }
     return this.set_peer_grade({
-      due_date: __guard__(this._peer_due(date), x => x.toISOString())
+      due_date: due_date_string
     });
   };
 
@@ -1455,13 +1462,11 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_configure_peer() {
-    let left;
-    const config =
-      (left = __guard__(this.props.assignment.get("peer_grade"), x =>
-        x.toJS()
-      )) != null
-        ? left
-        : {};
+    const peer_info = this.props.assignment.get("peer_grade");
+    let config: { enabled?: boolean } = {};
+    if (peer_info) {
+      config = peer_info.toJS();
+    }
     return (
       <Alert bsStyle="warning">
         <h3>
@@ -1496,9 +1501,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_peer_button() {
     let icon;
-    if (
-      __guard__(this.props.assignment.get("peer_grade"), x => x.get("enabled"))
-    ) {
+    if (this.is_peer_graded()) {
       icon = "check-square-o";
     } else {
       icon = "square-o";
@@ -1594,6 +1597,7 @@ interface StudentListForAssignmentProps {
   user_map: any;
   background?: string;
   active_student_sort: SortDescription;
+  active_feedback_edits: IsGradingMap;
 }
 
 interface StudentListForAssignmentState {}
@@ -1610,7 +1614,8 @@ class StudentListForAssignment extends Component<
       "students",
       "user_map",
       "background",
-      "active_student_sort"
+      "active_student_sort",
+      "active_feedback_edits"
     ]);
   }
 
@@ -1618,18 +1623,35 @@ class StudentListForAssignment extends Component<
     return redux.getStore(this.props.name) as any;
   }
 
+  is_peer_graded() {
+    const peer_info = this.props.assignment.get("peer_grade");
+    return peer_info ? peer_info.get("enabled") : false;
+  }
+
   render_student_info(student_id) {
     const store = this.get_store();
+    const student = store.get_student(student_id);
+    const key = util.assignment_identifier(this.props.assignment, student);
+    const edited_feedback = this.props.active_feedback_edits.get(key);
+    let edited_comments: string | undefined;
+    let edited_grade: string | undefined;
+    if (edited_feedback != undefined) {
+      edited_comments = edited_feedback.get("edited_comments");
+      edited_grade = edited_feedback.get("edited_grade");
+    }
     return (
       <StudentAssignmentInfo
         key={student_id}
         title={misc.trunc_middle(store.get_student_name(student_id), 40)}
         name={this.props.name}
-        student={student_id}
+        student={student}
         assignment={this.props.assignment}
         grade={store.get_grade(this.props.assignment, student_id)}
         comments={store.get_comments(this.props.assignment, student_id)}
         info={store.student_assignment_info(student_id, this.props.assignment)}
+        is_editing={!!edited_feedback}
+        edited_comments={edited_comments}
+        edited_grade={edited_grade}
       />
     );
   }
@@ -1671,20 +1693,10 @@ class StudentListForAssignment extends Component<
         <StudentAssignmentInfoHeader
           key="header"
           title="Student"
-          peer_grade={
-            !!__guard__(this.props.assignment.get("peer_grade"), x =>
-              x.get("enabled")
-            )
-          }
+          peer_grade={this.is_peer_graded()}
         />
         {this.render_students()}
       </div>
     );
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

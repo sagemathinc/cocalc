@@ -39,8 +39,14 @@ const { defaults, required } = misc;
 const { webapp_client } = require("../webapp_client");
 
 // Course Library
-import { previous_step, Step } from "./util";
-import { CourseState, CourseStore } from "./store";
+import { previous_step, Step, assignment_identifier } from "./util";
+import {
+  CourseState,
+  CourseStore,
+  AssignmentRecord,
+  StudentRecord,
+  Feedback
+} from "./store";
 
 // React libraries
 import { Actions } from "../app-framework";
@@ -147,8 +153,7 @@ export class CourseActions extends Actions<CourseState> {
     this.add_assignment = this.add_assignment.bind(this);
     this.delete_assignment = this.delete_assignment.bind(this);
     this.undelete_assignment = this.undelete_assignment.bind(this);
-    this.set_grade = this.set_grade.bind(this);
-    this.set_comments = this.set_comments.bind(this);
+    this.save_feedback = this.save_feedback.bind(this);
     this.set_active_assignment_sort = this.set_active_assignment_sort.bind(
       this
     );
@@ -1492,42 +1497,100 @@ export class CourseActions extends Actions<CourseState> {
     });
   }
 
-  set_grade(assignment, student, grade) {
-    let left;
+  clear_edited_feedback = (
+    assignment: AssignmentRecord,
+    student: StudentRecord
+  ) => {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
-    assignment = store.get_assignment(assignment);
-    student = store.get_student(student);
-    const obj = {
-      table: "assignments",
-      assignment_id: assignment.get("assignment_id")
-    };
-    const grades = (left = this._get_one(obj).grades) != null ? left : {};
-    grades[student.get("student_id")] = grade;
-    (obj as any).grades = grades;
-    this._set(obj);
-  }
 
-  set_comments(assignment, student, comments) {
-    let left;
+    const open_grades = store.get("active_feedback_edits");
+    const new_open_grades = open_grades.delete(
+      assignment_identifier(assignment, student)
+    );
+    this.setState({ active_feedback_edits: new_open_grades });
+  };
+
+  update_edited_feedback = (
+    assignment: AssignmentRecord,
+    student: StudentRecord,
+    new_edited_grade?: string,
+    new_edited_comments?: string
+  ) => {
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+
+    const key = assignment_identifier(assignment, student);
+    const current_edited_feedback = store.get("active_feedback_edits").get(key);
+
+    let current_edited_grade: string | undefined;
+    let current_edited_comments: string | undefined;
+
+    if (current_edited_feedback) {
+      current_edited_grade = current_edited_feedback.get("edited_grade");
+      current_edited_comments = current_edited_feedback.get("edited_comments");
+    }
+
+    let grade: string;
+    if (new_edited_grade != undefined) {
+      grade = new_edited_grade;
+    } else if (current_edited_grade != undefined) {
+      grade = current_edited_grade;
+    } else {
+      grade = store.get_grade(assignment, student) || "";
+    }
+
+    let comments: string;
+    if (new_edited_comments != undefined) {
+      comments = new_edited_comments;
+    } else if (current_edited_comments != undefined) {
+      comments = current_edited_comments;
+    } else {
+      comments = store.get_comments(assignment, student) || "";
+    }
+    const old_edited_feedback = store.get("active_feedback_edits");
+    const new_edited_feedback = old_edited_feedback.set(
+      key,
+      new Feedback({ edited_grade: grade, edited_comments: comments })
+    );
+    this.setState({ active_feedback_edits: new_edited_feedback });
+  };
+
+  save_feedback = (assignment: AssignmentRecord, student: StudentRecord) => {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    assignment = store.get_assignment(assignment);
-    student = store.get_student(student);
-    const obj = {
+    const active_feedback_edits = store.get("active_feedback_edits");
+    if (active_feedback_edits == undefined) {
+      return;
+    }
+    const key = assignment_identifier(assignment, student);
+    const edited_feedback = active_feedback_edits.get(key);
+    if (edited_feedback == undefined) {
+      return;
+    }
+    const query = {
       table: "assignments",
       assignment_id: assignment.get("assignment_id")
     };
-    const comments_map =
-      (left = this._get_one(obj).comments) != null ? left : {};
-    comments_map[student.get("student_id")] = comments;
-    (obj as any).comments = comments_map;
-    return this._set(obj);
-  }
+    const assignment_data = this._get_one(query);
+
+    let grades = assignment_data.grades || {};
+    grades[student.get("student_id")] = edited_feedback.get("edited_grade");
+
+    let comments = assignment_data.comments || {};
+    comments[student.get("student_id")] = edited_feedback.get(
+      "edited_comments"
+    );
+    const feedback_changes = Object.assign({ grades: grades, comments:comments }, query);
+    this._set(feedback_changes);
+    this.clear_edited_feedback(assignment, student);
+  };
 
   set_active_assignment_sort(column_name) {
     let is_descending;
@@ -1609,8 +1672,8 @@ export class CourseActions extends Actions<CourseState> {
     }
     assignment = store.get_assignment(assignment);
     let peers = assignment.getIn(["peer_grade", "map"]);
-    if(peers != null) {
-      return peers;
+    if (peers != null) {
+      return peers.toJS();
     }
     const N =
       (left = assignment.getIn(["peer_grade", "number"])) != null ? left : 1;
@@ -1773,7 +1836,7 @@ export class CourseActions extends Actions<CourseState> {
               // likely undefined when skip_grading true & peer_graded true
               content += `\n\n    ${grade}`;
               if (comments != null) {
-                content += `\n\nInstructor comments:\n\n    ${comments}`;
+                content += `\n\nInstructor comments:\n\n${comments}`;
               }
             }
             if (peer_graded) {
@@ -1785,7 +1848,7 @@ You can find the comments they made in the folders below.\
             }
             return webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
-              path: src_path + "/GRADE.txt",
+              path: src_path + "/GRADE.md",
               content,
               cb
             });
@@ -2337,7 +2400,8 @@ You can find the comments they made in the folders below.\
       // empty peer assignment for this student (maybe added late)
       return finish();
     }
-    const peers = peer_map[student.get('student_id')];
+
+    const peers = peer_map[student.get("student_id")];
     if (peers == null) {
       // empty peer assignment for this student (maybe added late)
       return finish();
@@ -2396,7 +2460,7 @@ You can find the comments they made in the folders below.\
     };
 
     // write instructions file to the student
-    return webapp_client.write_text_file_to_project({
+    webapp_client.write_text_file_to_project({
       project_id: student_project_id,
       path: target_base_path + "/GRADING_GUIDE.md",
       content: guidelines,

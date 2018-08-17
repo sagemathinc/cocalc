@@ -5,6 +5,8 @@ THIS SHOULD BE MOVED OUT OF frame-editors/
 This is a rewrite of what we're using from smc-util/misc...
 */
 
+const underscore = require('underscore');
+
 interface SplittedPath {
   head: string;
   tail: string;
@@ -114,23 +116,18 @@ export function merge(dest, ...objs) {
 // copy of map but only with some keys
 // I.e., restrict a function to a subset of the domain.
 export function copy_with(obj: object, w: string | string[]): object {
-  const set = {};
   if (typeof w === "string") {
-    set[w] = true;
-  } else {
-    for (let x in w) {
-      set[x] = true;
+    w = [w];
+  }
+  let obj2: any = {};
+  let key: string;
+  for (key of w) {
+    const y = obj[key];
+    if (y !== undefined) {
+      obj2[key] = y;
     }
   }
-
-  const r = {};
-  for (let x in obj) {
-    const y = obj[x];
-    if (set[y]) {
-      r[x] = y;
-    }
-  }
-  return r;
+  return obj2;
 }
 
 import { cloneDeep } from "lodash";
@@ -203,6 +200,15 @@ export function uuid(): string {
   });
 }
 
+const uuid_regexp = new RegExp(
+  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
+);
+export function is_valid_uuid_string(uuid:string) : boolean {
+  return (
+    typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
+  );
+}
+
 export function history_path(path: string): string {
   const p = path_split(path);
   if (p.head) {
@@ -220,7 +226,7 @@ export function len(obj: object | undefined | null): number {
   return Object.keys(obj).length;
 }
 
-export const keys = Object.keys;
+export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
@@ -293,4 +299,82 @@ export function plural(number, singular, plural = `${singular}s`) {
   } else {
     return plural;
   }
+}
+
+const ELLIPSES = "…";
+// "foobar" --> "foo…"
+export function trunc(s, max_length = 1024) {
+  if (s == null) {
+    return s;
+  }
+  if (typeof s !== "string") {
+    s = `${s}`;
+  }
+  if (s.length > max_length) {
+    if (max_length < 1) {
+      throw new Error("ValueError: max_length must be >= 1");
+    }
+    return s.slice(0, max_length - 1) + ELLIPSES;
+  } else {
+    return s;
+  }
+}
+
+// "foobar" --> "fo…ar"
+export function trunc_middle(s, max_length = 1024) {
+  if (s == null) {
+    return s;
+  }
+  if (typeof s !== "string") {
+    s = `${s}`;
+  }
+  if (s.length <= max_length) {
+    return s;
+  }
+  if (max_length < 1) {
+    throw new Error("ValueError: max_length must be >= 1");
+  }
+  const n = Math.floor(max_length / 2);
+  return (
+    s.slice(0, n - 1 + (max_length % 2 ? 1 : 0)) +
+    ELLIPSES +
+    s.slice(s.length - n)
+  );
+}
+
+// "foobar" --> "…bar"
+export function trunc_left(s, max_length = 1024): string | undefined {
+  if (s == null) {
+    return s;
+  }
+  if (typeof s !== "string") {
+    s = `${s}`;
+  }
+  if (s.length > max_length) {
+    if (max_length < 1) {
+      throw new Error("ValueError: max_length must be >= 1");
+    }
+    return ELLIPSES + s.slice(s.length - max_length + 1);
+  } else {
+    return s;
+  }
+}
+
+/*
+Like the immutable.js getIn, but on the thing x.
+*/
+
+export function getIn(x: any, path: string[], default_value?: any): any {
+  for (let key of path) {
+    if (x !== undefined) {
+      try {
+        x = x[key];
+      } catch (err) {
+        return default_value;
+      }
+    } else {
+      return default_value;
+    }
+  }
+  return x === undefined ? default_value : x;
 }

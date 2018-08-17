@@ -63,7 +63,8 @@ import {
   StudentsMap,
   AssignmentsMap,
   HandoutsMap,
-  CourseSettingsRecord
+  CourseSettingsRecord,
+  AssignmentRecord
 } from "./store";
 import { CourseActions } from "./actions";
 import * as CourseSync from "./sync";
@@ -82,12 +83,11 @@ import {
   SharedProjectPanelHeader
 } from "./shared_project_panel";
 import { UserMap, ProjectMap } from "../todo-types";
-
 const redux_name = (project_id, course_filename) =>
   `editor-${project_id}-${course_filename}`;
 
 const syncdbs = {};
-const init_redux = function(course_filename, redux, course_project_id) {
+const init_redux = function(course_filename, redux: AppRedux, course_project_id) {
   const the_redux_name = redux_name(course_project_id, course_filename);
   const get_actions = () => redux.getActions(the_redux_name);
   if (get_actions() != null) {
@@ -95,13 +95,24 @@ const init_redux = function(course_filename, redux, course_project_id) {
     return;
   }
 
-  const initial_store_state = {
+  const initial_store_state: any = {
+    assignments: Map<string, AssignmentRecord>(),
+    configure_projects: "",
+    error: undefined,
+    active_feedback_edits: Map(),
+    handouts: Map(),
+    saving: false,
+    show_save_button: false,
+    students: Map(),
+    tab: "students",
+    unsaved: false,
     course_filename,
     course_project_id,
     expanded_students: Set(), // Set of student id's (string) which should be expanded on render
     expanded_assignments: Set(), // Set of assignment id's (string) which should be expanded on render
     expanded_handouts: Set(), // Set of handout id's (string) which should be expanded on render
     expanded_peer_configs: Set(), // Set of assignment configs (key = assignment_id) which should be expanded on render
+    expanded_skip_gradings: Set(),
     active_student_sort: { column_name: "last_name", is_descending: false },
     active_assignment_sort: { column_name: "due_date", is_descending: false },
     settings: { allow_collabs: true },
@@ -110,7 +121,7 @@ const init_redux = function(course_filename, redux, course_project_id) {
 
   const store = redux.createStore(
     the_redux_name,
-    CourseStore,
+    CourseStore as any,
     initial_store_state
   );
   const actions = redux.createActions(the_redux_name, CourseActions);
