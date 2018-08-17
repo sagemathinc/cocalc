@@ -4,6 +4,8 @@ const { spawn } = require("pty.js");
 
 const terminals = {};
 
+const MAX_HISTORY_LENGTH : number = 100000;
+
 export async function terminal(
   primus: any,
   logger: any,
@@ -15,13 +17,21 @@ export async function terminal(
     return name;
   }
   const channel = primus.channel(name);
-  terminals[name] = { channel };
+  terminals[name] = { channel, history: "" };
   function init_term() {
     const term = spawn("/bin/bash", [], {});
     logger.debug("terminal", "init_term", name, "pid=", term.pid);
     terminals[name].term = term;
     term.on("data", function(data) {
       //logger.debug("terminal: term --> browsers", name, data);
+      terminals[name].history += data;
+      const n = terminals[name].history.length;
+      if (n >= MAX_HISTORY_LENGTH) {
+        terminals[name].history = terminals[name].history.slice(
+          n - MAX_HISTORY_LENGTH / 2
+        );
+      }
+
       channel.write(data);
     });
     // Whenever term ends, we just respawn it.
@@ -38,6 +48,8 @@ export async function terminal(
       "terminal channel",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
+    // send history
+    spark.write(terminals[name].history);
     // simple echo server for now.
     spark.on("data", function(data) {
       //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
