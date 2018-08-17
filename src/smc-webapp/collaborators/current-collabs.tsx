@@ -1,7 +1,7 @@
 import {
   React,
   Component,
-  // redux,
+  redux,
   rtypes,
   rclass
 } from "../app-framework";
@@ -49,10 +49,10 @@ class CurrentCollaboratorsPanel0 extends Component<
   }
   remove_collaborator = (account_id: string) => {
     const project_id = this.props.project.get("project_id");
-    this.props.actions("projects").remove_collaborator(project_id, account_id);
+    redux.getActions("projects").remove_collaborator(project_id, account_id);
     this.setState({ removing: undefined });
     if (account_id === this.props.get_account_id()) {
-      return this.props.actions("page").close_project_tab(project_id);
+      return (redux.getActions("page") as any).close_project_tab(project_id); // TODO: better types
     }
   };
 
@@ -152,7 +152,7 @@ class CurrentCollaboratorsPanel0 extends Component<
       .toJS();
     return this.props
       .sort_by_activity(users, this.props.project.get("project_id"))
-      .map((u, i) => this.render_user(u, i < users.length - 1));
+      .map((u, i) => this.render_user(u, i === users.length - 1));
   }
   render_collaborators_list() {
     return (

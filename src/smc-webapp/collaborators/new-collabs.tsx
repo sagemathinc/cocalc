@@ -16,50 +16,61 @@ const {
   callback_opts
 } = require("smc-webapp/frame-editors/generic/async-utils");
 
-import { callback } from "awaiting";
-
 import * as immutable from "immutable";
 
 import { User } from "../frame-editors/generic/client";
+
+type UserAndProfile = User & { profile: { color?: string; image?: string } };
 
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 
 const { SITE_NAME } = require("smc-util/theme");
 
+const onecolor = require("onecolor");
+
 /**
  * Returns a list of account_id's for users.
  */
-async function search_for_accounts(
-  search = ""
-): Promise<User & { profile: { color: string; image: string } }[]> {
+async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
   search = search.trim();
   if (search === "") {
     return [];
   }
-  const select = await callback_opts(webapp_client.user_search)({
+  const select: User[] = await callback_opts(webapp_client.user_search)({
     query: search,
-    limit: 50
+    limit: 25
   });
-  const profiles = await callback_opts(
-    webapp_client.query({
-      query: select.map(u => ({
+  const profiles: {
+    query: {
+      account_profiles: {
+        account_id: string;
+        profile: { color?: string; image?: string };
+      };
+    }[];
+  } = await callback_opts(webapp_client.query)({
+    query: select.map(u => ({
+      account_profiles: {
         account_id: u.account_id,
         profile: null
-      }))
-    })
-  );
-  const users = {};
+      }
+    }))
+  });
+  const users: any = {};
   for (let u of select) {
     users[u.account_id] = u;
   }
-  for (let u of profiles) {
-    u = u.account_profiles;
-    if (users[u.account_id]) {
-      users[u.account_id].profile = u.profile;
+  for (let u of profiles.query) {
+    if (users[u.account_profiles.account_id]) {
+      users[u.account_profiles.account_id].profile = u.account_profiles.profile;
     }
   }
-  console.log("USERS = ", users);
-  return users;
+  const arr = Object.keys(users)
+    .map(k => users[k])
+    .map(u => {
+      u.profile = u.profile || {};
+      return u;
+    });
+  return arr;
 }
 
 interface AddCollaboratorsPanelProps {
@@ -74,8 +85,8 @@ interface AddCollaboratorsPanelProps {
 interface AddCollaboratorsPanelState {
   search: string;
   loading: boolean;
-  results: User[];
-  selection: User[];
+  results: UserAndProfile[];
+  selection: UserAndProfile[];
   error: any;
   email_to: string;
   email_body: string;
@@ -128,6 +139,44 @@ class AddCollaboratorsPanel0 extends Component<
       </>
     );
   }
+  render_avatar(u: UserAndProfile) {
+    const size = 30;
+    if (u.profile.image) {
+      return (
+        <img
+          style={{
+            borderRadius: "50%",
+            verticalAlign: "top",
+            height: `${size}px`,
+            width: `${size}px`
+          }}
+          src={u.profile.image}
+        />
+      );
+    }
+    const bg = u.profile.color || "#eee";
+    return (
+      <span
+        style={{
+          textAlign: "center",
+          height: `${size}px`,
+          width: `${size}px`,
+          lineHeight: `${size}px`,
+          display: "block",
+          borderRadius: "50%",
+          fontFamily: "sans-serif",
+          fontSize: `${0.7 * size}px`,
+          backgroundColor: bg,
+          color:
+            ((onecolor(bg).magenta && onecolor(bg).magenta()) || 0) >= 0.4
+              ? "white"
+              : "black"
+        }}
+      >
+        {u.first_name ? u.first_name.toUpperCase()[0] : "?"}
+      </span>
+    );
+  }
   render_cocalc_user_search() {
     return (
       <>
@@ -158,12 +207,43 @@ class AddCollaboratorsPanel0 extends Component<
           }}
           isLoading={this.state.loading}
           results={this.state.results.map(u => {
+            const last_active =
+              u.last_active != null
+                ? new Date(u.last_active).toLocaleDateString()
+                : undefined;
+            const created =
+              u.created != null
+                ? new Date(u.created).toLocaleDateString()
+                : undefined;
             return {
               key: u.account_id,
               value: u,
               label: (
-                <div>
-                  {u.first_name} {u.last_name}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-around",
+                    alignItems: "center",
+                    width: "100%"
+                  }}
+                >
+                  {this.render_avatar(u)}
+                  <span style={{ fontSize: "15px" }}>
+                    {u.first_name} {u.last_name}
+                  </span>
+                  <div
+                    style={{
+                      color: "#757575",
+                      fontSize: "11px",
+                      display: "flex",
+                      flexDirection: "column"
+                    }}
+                  >
+                    <div>
+                      {last_active != null ? `Last active ${last_active}` : ""}
+                    </div>
+                    <div>{created != null ? `Created ${created}` : ""}</div>
+                  </div>
                 </div>
               )
             };
