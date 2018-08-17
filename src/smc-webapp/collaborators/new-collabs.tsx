@@ -3,29 +3,18 @@ Add collaborators to a project
 */
 
 import { React, Component, rtypes, rclass, redux } from "../app-framework";
-
 const { ErrorDisplay, Icon, MarkdownInput } = require("../r_misc");
-
 import { PickerList } from "./picker-list";
-
 const { webapp_client } = require("../webapp_client");
-
 const { ProjectSettingsPanel } = require("../project/project-settings-support");
-
 const {
   callback_opts
 } = require("smc-webapp/frame-editors/generic/async-utils");
-
 import * as immutable from "immutable";
-
 import { User } from "../frame-editors/generic/client";
-
 type UserAndProfile = User & { profile: { color?: string; image?: string } };
-
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
-
 const { SITE_NAME } = require("smc-util/theme");
-
 const onecolor = require("onecolor");
 
 /**

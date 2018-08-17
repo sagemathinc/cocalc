@@ -1,17 +1,6 @@
-import {
-  React,
-  Component,
-  redux,
-  rtypes,
-  rclass
-} from "../app-framework";
-
-// import { User } from "../frame-editors/generic/client";
-
+import { React, Component, redux, rtypes, rclass } from "../app-framework";
 const { ProjectSettingsPanel } = require("../project/project-settings-support");
-
 import { Well, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
-
 const { Space, Icon } = require("../r_misc");
 const { User } = require("../users");
 
