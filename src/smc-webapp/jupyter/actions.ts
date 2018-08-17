@@ -22,6 +22,11 @@ Jupyter notebooks.  The goals are:
 
 */
 
+declare const $: any;
+declare const window: any;
+declare const localStorage: any;
+
+
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 
