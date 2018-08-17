@@ -3,6 +3,9 @@
 const { spawn } = require("pty.js");
 
 import { len } from "../smc-webapp/frame-editors/generic/misc";
+const { console_init_filename } = require("smc-util/misc");
+
+import { exists } from "../jupyter/async-utils-node";
 
 const terminals = {};
 
@@ -28,9 +31,17 @@ export async function terminal(
     last_truncate_time: new Date().valueOf(),
     truncating: 0
   };
-  function init_term() {
-    const term = spawn("/bin/bash", [], {});
-    logger.debug("terminal", "init_term", name, "pid=", term.pid);
+  async function init_term() {
+    const args: string[] = [];
+
+    const init_filename: string = console_init_filename(path);
+    if (await exists(init_filename)) {
+      args.push("--init-file");
+      args.push(init_filename);
+    }
+
+    const term = spawn("/bin/bash", args, {});
+    logger.debug("terminal", "init_term", name, "pid=", term.pid, 'args', args);
     terminals[name].term = term;
     term.on("data", function(data) {
       //logger.debug("terminal: term --> browsers", name, data);
@@ -85,7 +96,7 @@ export async function terminal(
       init_term();
     });
   }
-  init_term();
+  await init_term();
 
   function resize() {
     logger.debug("resize");
