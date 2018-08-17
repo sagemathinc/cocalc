@@ -2,11 +2,9 @@
 Functions for getting or formatting url's for various backend endpoints
 */
 
-<<<<<<< HEAD
-=======
 // TODO: seperate front specific code that uses this stuff
-// interestingly, removing "window" here triggers a problem with the non-standard window.app_base_url attribute
->>>>>>> master
+// interestingly, removing "window" here triggers a problem
+// with the non-standard window.app_base_url attribute
 declare const window: any;
 
 export function get_server_url(project_id: string) {

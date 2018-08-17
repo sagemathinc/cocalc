@@ -199,7 +199,11 @@ class Console extends EventEmitter
         {webapp_client} = require('./webapp_client')
         ws = await webapp_client.project_websocket(@project_id)
         @conn = await ws.api.terminal(@path)
+        @conn.on 'end', =>
+            if @conn?
+                @connect()
         @conn.on 'data', (data) =>
+            #console.log("@conn got data", data)
             if typeof(data) == 'string'
                 if @_rendering_is_paused
                     @_render_buffer += data
@@ -213,10 +217,16 @@ class Console extends EventEmitter
 
 
     handle_control_mesg: (data) =>
-        console.log 'control_mesg', data
         switch data.cmd
             when 'size'
                 @handle_resize(data.rows, data.cols)
+                break
+            when 'burst'
+                @element.find(".webapp-burst-indicator").show()
+                break
+            when 'no-burst'
+                @element.find(".webapp-burst-indicator").fadeOut(2000)
+                break
 
     handle_resize: (rows, cols) =>
         # Resize the renderer
@@ -629,8 +639,10 @@ class Console extends EventEmitter
 
     # call this when deleting the terminal (removing it from DOM, etc.)
     remove: () =>
-        @conn?.end()
-        @_connected = false
+        x = @conn
+        delete @conn
+        if x?
+            x.end()
         if @_mousedown?
              $(document).off('mousedown', @_mousedown)
         if @_mouseup?

@@ -7,6 +7,8 @@ import { len } from "../smc-webapp/frame-editors/generic/misc";
 const terminals = {};
 
 const MAX_HISTORY_LENGTH: number = 100000;
+const truncate_thresh_ms: number = 500;
+const check_interval_ms: number = 3000;
 
 export async function terminal(
   primus: any,
@@ -19,7 +21,13 @@ export async function terminal(
     return name;
   }
   const channel = primus.channel(name);
-  terminals[name] = { channel, history: "", client_sizes: {} };
+  terminals[name] = {
+    channel,
+    history: "",
+    client_sizes: {},
+    last_truncate_time: new Date().valueOf(),
+    truncating: 0
+  };
   function init_term() {
     const term = spawn("/bin/bash", [], {});
     logger.debug("terminal", "init_term", name, "pid=", term.pid);
@@ -29,13 +37,48 @@ export async function terminal(
       terminals[name].history += data;
       const n = terminals[name].history.length;
       if (n >= MAX_HISTORY_LENGTH) {
+        logger.debug("terminal data -- truncating");
         terminals[name].history = terminals[name].history.slice(
           n - MAX_HISTORY_LENGTH / 2
         );
+        const last = terminals[name].last_truncate_time;
+        const now = new Date().valueOf();
+        terminals[name].last_truncate_time = now;
+        logger.debug("terminal", now, last, now - last, truncate_thresh_ms);
+        if (now - last <= truncate_thresh_ms) {
+          // getting a huge amount of data quickly.
+          if (!terminals[name].truncating) {
+            channel.write({ cmd: "burst" });
+          }
+          terminals[name].truncating += data.length;
+          setTimeout(check_if_still_truncating, check_interval_ms);
+          term.write("\u0003");
+          return;
+        } else {
+          terminals[name].truncating = 0;
+        }
       }
-
-      channel.write(data);
+      if (!terminals[name].truncating) {
+        channel.write(data);
+      }
     });
+
+    function check_if_still_truncating() {
+      if (!terminals[name].truncating) return;
+      if (
+        new Date().valueOf() - terminals[name].last_truncate_time >=
+        check_interval_ms
+      ) {
+        // turn off truncating, and send recent data.
+        const { truncating, history } = terminals[name];
+        channel.write(history.slice(Math.max(0, history.length - truncating)));
+        terminals[name].truncating = 0;
+        channel.write({ cmd: "no-burst" });
+      } else {
+        setTimeout(check_if_still_truncating, check_interval_ms);
+      }
+    }
+
     // Whenever term ends, we just respawn it.
     term.on("exit", function() {
       logger.debug("terminal", name, "EXIT");
@@ -61,9 +104,10 @@ export async function terminal(
       rows = Math.min(rows, sizes[id].rows);
       cols = Math.min(cols, sizes[id].cols);
     }
+    terminals[name].size = { rows, cols };
     logger.debug("resize", "new size", rows, cols);
     terminals[name].term.resize(cols, rows);
-    channel.write({ cmd: "size", rows: rows, cols: cols });
+    channel.write({ cmd: "size", rows, cols });
   }
 
   channel.on("connection", function(spark: any): void {
@@ -72,6 +116,15 @@ export async function terminal(
       "terminal channel",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
+    // send current size info
+    if (terminals[name].size !== undefined) {
+      const { rows, cols } = terminals[name].size;
+      spark.write({ cmd: "size", rows, cols });
+    }
+    // send burst info
+    if (terminals[name].truncating) {
+      channel.write({ cmd: "burst" });
+    }
     // send history
     spark.write(terminals[name].history);
     // simple echo server for now.
