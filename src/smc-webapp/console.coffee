@@ -208,9 +208,11 @@ class Console extends EventEmitter
                 @connect()
         @_ignore = true
         @conn.on 'data', (data) =>
+            #console.log("@conn got data '#{data}'")
             #console.log("@conn got data of length", data.length)
             if typeof(data) == 'string'
                 if @_rendering_is_paused
+                    @_render_buffer ?= ''
                     @_render_buffer += data
                 else
                     @render(data)
@@ -411,7 +413,6 @@ class Console extends EventEmitter
     ###
 
     render: (data) =>
-        #console.log "render '#{data}'"
         if not data?
             return
         try
@@ -915,7 +916,8 @@ class Console extends EventEmitter
             ignore : @_ignore
         @reset()
         @_ignore = true
-        @render(locals.value)
+        if locals.value?
+            @render(locals.value)
         @_ignore = locals.ignore  # do not change value of @_ignore
         @terminal.showCursor()
 

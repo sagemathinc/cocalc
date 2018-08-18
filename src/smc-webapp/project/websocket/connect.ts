@@ -8,6 +8,12 @@ import { retry_until_success } from "../../frame-editors/generic/async-utils";
 
 const connections = {};
 
+// This is a horrible temporary hack to ensure that we do not load two global Primus
+// client libraries at the same time, with one overwriting the other with the URL
+// of the target, hence causing multiple projects to have the same websocket.
+// I'm too tired to do this right at the moment.
+let READING_PRIMUS_JS = false;
+
 async function connection_to_project0(project_id: string): Promise<any> {
   if (project_id == null || project_id.length != 36) {
     throw Error(`project_id (="${project_id}") must be a valid uuid`);
@@ -22,37 +28,44 @@ async function connection_to_project0(project_id: string): Promise<any> {
     window0.app_base_url
   }/${project_id}/raw/.smc/primus.js`;
 
+  const Primus0 = window0.Primus; // the global primus
+  let Primus;
+
   await retry_until_success({
     f: async function() {
+      if(READING_PRIMUS_JS) {
+        throw Error("currently reading one already");
+      }
+      READING_PRIMUS_JS = true;
       //console.log(`reading primus.js from ${project_id}...`);
       await $.getScript(url);
+      Primus = window0.Primus;
+      window0.Primus = Primus0; // restore global primus
+      READING_PRIMUS_JS = false;
       //console.log("success!");
     },
-    max_time: 120000
+    max_time: 120000,
+    start_delay: 200,
+    max_delay: 1000,
+    factor:1.2
   });
 
   // This dance is because evaling primus_js sets window.Primus.
   // However, we don't want to overwrite the usual global window.Primus.
-  const Primus0 = window0.Primus; // so the global primus
-  try {
-    const conn = (connections[project_id] = window0.Primus.connect({
-      reconnect: {
-        max: 10000,
-        min: 1000,
-        factor: 1.3,
-        retries: 1000
-      }
-    }));
-    conn.api = new API(conn);
-    conn.verbose = false;
-    console.log(
-      `conn ${project_id} -- connected! (${new Date().valueOf() - t0}ms)`
-    );
-    return conn;
-  } finally {
-    // Restore the global Primus, no matter what.
-    window0.Primus = Primus0;
-  }
+  const conn = (connections[project_id] = Primus.connect({
+    reconnect: {
+      max: 10000,
+      min: 1000,
+      factor: 1.3,
+      retries: 1000
+    }
+  }));
+  conn.api = new API(conn);
+  conn.verbose = false;
+  console.log(
+    `conn ${project_id} -- connected! (${new Date().valueOf() - t0}ms)`
+  );
+  return conn;
 }
 
 export const connection_to_project = reuseInFlight(connection_to_project0);
