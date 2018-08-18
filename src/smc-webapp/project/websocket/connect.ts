@@ -36,17 +36,20 @@ async function connection_to_project0(project_id: string): Promise<any> {
       if(READING_PRIMUS_JS) {
         throw Error("currently reading one already");
       }
-      READING_PRIMUS_JS = true;
-      //console.log(`reading primus.js from ${project_id}...`);
-      await $.getScript(url);
-      Primus = window0.Primus;
-      window0.Primus = Primus0; // restore global primus
-      READING_PRIMUS_JS = false;
-      //console.log("success!");
+      try {
+        READING_PRIMUS_JS = true;
+        //console.log(`reading primus.js from ${project_id}...`);
+        await $.getScript(url);
+        Primus = window0.Primus;
+        window0.Primus = Primus0; // restore global primus
+      } finally {
+        READING_PRIMUS_JS = false;
+        //console.log("success!");
+      }
     },
-    max_time: 120000,
-    start_delay: 200,
-    max_delay: 1000,
+    max_time: 1000*60*30,
+    start_delay: 250,
+    max_delay: 1500,
     factor:1.2
   });
 
