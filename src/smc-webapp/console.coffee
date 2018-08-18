@@ -50,8 +50,6 @@ feature = require('./feature')
 
 IS_TOUCH = feature.IS_TOUCH  # still have to use crappy mobile for now on
 
-CSI = String.fromCharCode(0x9b)
-
 initfile_content = (filename) ->
     """# This initialization file is associated with your terminal in #{filename}.
 # It is automatically run whenever it starts up -- restart the terminal via Ctrl-d and Return-key.
@@ -256,6 +254,7 @@ class Console extends EventEmitter
 
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
+        @value_orig ?= ''
         @value_orig += data
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
