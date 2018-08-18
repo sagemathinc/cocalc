@@ -48,7 +48,7 @@ export class API {
       path: path,
       options
     });
-    console.log(path, "got terminal channel", channel_name);
+    //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
   }
 }

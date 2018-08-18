@@ -224,7 +224,7 @@ class Console extends EventEmitter
         @connect()
 
     handle_control_mesg: (data) =>
-        console.log('terminal command', data)
+        #console.log('terminal command', data)
         switch data.cmd
             when 'size'
                 @handle_resize(data.rows, data.cols)
