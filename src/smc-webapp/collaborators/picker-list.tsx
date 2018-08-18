@@ -5,10 +5,9 @@ import {
   ListGroupItem,
   FormGroup,
   FormControl,
-  HelpBlock,
-  Button,
-  Glyphicon
+  HelpBlock
 } from "react-bootstrap";
+import "./style.scss";
 
 const { Loading } = require("../r_misc");
 
@@ -50,7 +49,11 @@ export class PickerList extends React.Component<PickerListProps> {
   render_results() {
     const { results, isLoading } = this.props;
     if (isLoading) {
-      return <Loading />;
+      return (
+        <div style={{ textAlign: "center", margin: "5px" }}>
+          <Loading />
+        </div>
+      );
     }
     if (results === undefined || results.length === 0) {
       return;
@@ -59,19 +62,22 @@ export class PickerList extends React.Component<PickerListProps> {
       <ListGroup
         style={{ maxHeight: "250px", overflow: "auto", margin: "15px" }}
       >
+        {results.length > 0
+          ? "Click on a user below to invite them to this project."
+          : undefined}
         {results.map(r => (
           <ListGroupItem
+            className="webapp-collaborator-choice"
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center"
+              alignItems: "center",
+              cursor: "pointer"
             }}
+            onClick={() => this.props.onSelect(r.value)}
             key={r.key}
           >
             {r.label}
-            <Button onClick={() => this.props.onSelect(r.value)}>
-              <Glyphicon glyph="plus" /> Add to Invitation...
-            </Button>
           </ListGroupItem>
         ))}
       </ListGroup>

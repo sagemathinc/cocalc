@@ -1,0 +1,6 @@
+.webapp-collaborator-choice {
+    transition: background-color 200ms linear;
+    &hover {
+        background-color: #aaa;
+    }
+}
