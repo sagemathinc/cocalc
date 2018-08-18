@@ -59,28 +59,30 @@ export class PickerList extends React.Component<PickerListProps> {
       return;
     }
     return (
-      <ListGroup
-        style={{ maxHeight: "250px", overflow: "auto", margin: "15px" }}
-      >
+      <>
         {results.length > 0
           ? "Click on a user below to invite them to this project."
           : undefined}
-        {results.map(r => (
-          <ListGroupItem
-            className="webapp-collaborator-choice"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              cursor: "pointer"
-            }}
-            onClick={() => this.props.onSelect(r.value)}
-            key={r.key}
-          >
-            {r.label}
-          </ListGroupItem>
-        ))}
-      </ListGroup>
+        <ListGroup
+          style={{ maxHeight: "250px", overflow: "auto", margin: "15px" }}
+        >
+          {results.map(r => (
+            <ListGroupItem
+              className="webapp-collaborator-choice"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                cursor: "pointer"
+              }}
+              onClick={() => this.props.onSelect(r.value)}
+              key={r.key}
+            >
+              {r.label}
+            </ListGroupItem>
+          ))}
+        </ListGroup>
+      </>
     );
   }
   render() {

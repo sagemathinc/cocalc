@@ -12,10 +12,14 @@ const {
 } = require("smc-webapp/frame-editors/generic/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
-type UserAndProfile = User & { profile: { color?: string; image?: string } };
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
+
+type UserAndProfile = User & {
+  profile: { color?: string; image?: string };
+  is_collaborator?: boolean;
+};
 
 /**
  * Returns a list of account_id's for users.
@@ -177,17 +181,56 @@ class AddCollaboratorsPanel0 extends Component<
             // TODO: debounce/cache/cancel on unmount
             search_for_accounts(search)
               .then(results => {
-                // filter out users that are already collaborators
+                // filter out users that are already collaborators on this project
                 results = results.filter(
-                  u => !this.props.user_map.has(u.account_id)
+                  u => !this.props.project.get("users").has(u.account_id)
                 );
+                // filter out users who are already selected
+                results = results.filter(
+                  u =>
+                    this.state.selection.find(
+                      s => s.account_id === u.account_id
+                    ) === undefined
+                );
+                // put users who are collaborators on other projects at the top of the list
+                const are_collaborators: UserAndProfile[] = [];
+                const not_collaborators: UserAndProfile[] = [];
+                for (let u of results) {
+                  if (this.props.user_map.has(u.account_id)) {
+                    u.is_collaborator = true;
+                    are_collaborators.push(u);
+                  } else {
+                    not_collaborators.push(u);
+                  }
+                }
+                // sort by the last known activity
+                const cmp = (a: any, b: any) => {
+                  if (a.last_active < b.last_active) {
+                    return 1;
+                  }
+                  if (a.last_active > b.last_active) {
+                    return -1;
+                  }
+                  if (a.last_name < b.last_name) {
+                    return 1;
+                  }
+                  if (a.last_name > b.last_name) {
+                    return -1;
+                  }
+                  if (a.account_id < b.account_id) {
+                    return 1;
+                  }
+                  if (a.account_id > b.account_id) {
+                    return -1;
+                  }
+                  return 0;
+                };
+                are_collaborators.sort(cmp);
+                not_collaborators.sort(cmp);
+                results = are_collaborators.concat(not_collaborators);
+                // update state
                 this.setState({
-                  results: results.filter(
-                    u =>
-                      this.state.selection.find(
-                        s => s.account_id === u.account_id
-                      ) === undefined
-                  ),
+                  results,
                   loading: false
                 });
               })
@@ -219,7 +262,7 @@ class AddCollaboratorsPanel0 extends Component<
                     justifyContent: "space-between",
                     width: "100%",
                     overflow: "auto",
-                    height: "50px"
+                    height: "60px"
                   }}
                 >
                   {this.render_avatar(u)}
@@ -239,10 +282,17 @@ class AddCollaboratorsPanel0 extends Component<
                       flexDirection: "column"
                     }}
                   >
-                    <div>
-                      {last_active != null ? `Last active ${last_active}` : ""}
-                    </div>
-                    <div>{created != null ? `Created ${created}` : ""}</div>
+                    {u.is_collaborator ? <div>Collaborator</div> : undefined}
+                    {last_active != null ? (
+                      <div>{`Last active ${last_active}`}</div>
+                    ) : (
+                      undefined
+                    )}
+                    {created != null ? (
+                      <div>{`Created ${created}`}</div>
+                    ) : (
+                      undefined
+                    )}
                   </div>
                 </div>
               )
