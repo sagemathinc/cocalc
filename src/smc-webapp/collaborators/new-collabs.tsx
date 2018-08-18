@@ -177,6 +177,10 @@ class AddCollaboratorsPanel0 extends Component<
             // TODO: debounce/cache/cancel on unmount
             search_for_accounts(search)
               .then(results => {
+                // filter out users that are already collaborators
+                results = results.filter(
+                  u => !this.props.user_map.has(u.account_id)
+                );
                 this.setState({
                   results: results.filter(
                     u =>
@@ -211,19 +215,26 @@ class AddCollaboratorsPanel0 extends Component<
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-around",
                     alignItems: "center",
-                    width: "100%"
+                    justifyContent: "space-between",
+                    width: "100%",
+                    overflow: "auto",
+                    height: "50px"
                   }}
                 >
                   {this.render_avatar(u)}
-                  <span style={{ fontSize: "15px" }}>
+                  <span
+                    style={{
+                      fontSize: "16px"
+                    }}
+                  >
                     {u.first_name} {u.last_name}
                   </span>
                   <div
                     style={{
-                      color: "#757575",
-                      fontSize: "11px",
+                      width: "145px",
+                      fontSize: "14px",
+                      textAlign: "right",
                       display: "flex",
                       flexDirection: "column"
                     }}
