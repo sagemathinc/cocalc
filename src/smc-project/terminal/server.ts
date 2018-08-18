@@ -63,7 +63,11 @@ export async function terminal(
           }
           terminals[name].truncating += data.length;
           setTimeout(check_if_still_truncating, check_interval_ms);
-          term.write("\u0003");
+          if (terminals[name].truncating >= 5*MAX_HISTORY_LENGTH) {
+            // only start sending control+c if output has been completely stuck
+            // being truncated several times in a row -- it has to be a serious non-stop burst...
+            term.write("\u0003");
+          }
           return;
         } else {
           terminals[name].truncating = 0;
