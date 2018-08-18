@@ -917,6 +917,7 @@ class Console extends EventEmitter
         @_ignore = true
         @render(locals.value)
         @_ignore = locals.ignore  # do not change value of @_ignore
+        @terminal.showCursor()
 
     resize_terminal: () =>
         @element.find(".webapp-console-terminal").css({width:'100%', height:'100%'})
