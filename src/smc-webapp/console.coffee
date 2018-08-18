@@ -83,7 +83,6 @@ client_keydown = (ev) ->
 class Console extends EventEmitter
     constructor: (opts={}) ->
         super()
-        window.c = @  # TODO: remove before release!
         @opts = defaults opts,
             element     : required  # DOM (or jQuery) element that is replaced by this console.
             project_id  : required
@@ -251,7 +250,7 @@ class Console extends EventEmitter
         @_terminal_size = {rows:rows, cols:cols}
         @terminal.resize(cols, rows)
         @element.find(".webapp-console-terminal").css({width:null, height:null})
-
+        @full_rerender()
 
     append_to_value: (data) =>
         # this @value is used for copy/paste of the session history and @value_orig for resize/refresh
