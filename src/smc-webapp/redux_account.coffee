@@ -20,8 +20,8 @@ help = ->
 {webapp_client} = require('./webapp_client')
 remember_me = webapp_client.remember_me_key()
 
-exports.show_announce_start = new Date('2018-06-12T00:00:00.000Z')
-exports.show_announce_end = new Date('2018-07-21T14:00:00.000Z')
+exports.show_announce_start = new Date('2018-08-19T00:00:00.000Z')
+exports.show_announce_end = new Date('2018-08-28T00:00:00.000Z')
 
 # Define account actions
 class AccountActions extends Actions
