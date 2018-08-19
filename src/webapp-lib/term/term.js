@@ -3271,7 +3271,13 @@ Terminal.prototype.sendDeviceAttributes = function(params) {
     if (this.is('xterm')
         || this.is('rxvt-unicode')
         || this.is('screen')) {
-      this.send('\x1b[?1;2c');
+      // This causes enormous pain - I don't understand it.  For now, let's just
+      // comment it out.
+      // To trigger this pain in CoCalc,
+      // type this into a terminal:
+      //   printf "\E[c\n" ; sleep 1 ; echo
+      // See https://stackoverflow.com/questions/47691348/how-to-determine-graphics-capabilities-of-an-x11-terminal-window
+      // this.send('\x1b[?1;2c');
     } else if (this.is('linux')) {
       this.send('\x1b[?6c');
     }

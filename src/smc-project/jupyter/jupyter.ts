@@ -57,8 +57,6 @@ import { delay } from "awaiting";
 
 import { nbconvert } from "./nbconvert";
 
-import { get_kernel_data } from "./kernel-data";
-
 import {
   ExecOpts,
   KernelInfo,
@@ -636,11 +634,6 @@ export class JupyterKernel extends EventEmitter
   // Returns a reference to the blob store.
   get_blob_store(): BlobStore {
     return blob_store; // the unique global one.
-  }
-
-  // Returns information about all available kernels
-  async get_kernel_data(): Promise<any> {
-    return await get_kernel_data();
   }
 
   async call(msg_type: string, content?: any): Promise<any> {

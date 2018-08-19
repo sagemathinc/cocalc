@@ -2653,4 +2653,3 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cache : true   # cache result (for a few seconds), since this is very unlikely to change.
             cb    : one_result 'member_host', (err, member_host) =>
                 opts.cb(err, !!member_host)
-

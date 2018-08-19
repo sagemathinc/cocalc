@@ -37,8 +37,14 @@ const OUT_STYLE: React.CSSProperties = {
 
 // const ANSI_STYLE: React.CSSProperties = OUT_STYLE;
 const STDOUT_STYLE: React.CSSProperties = OUT_STYLE;
-const STDERR_STYLE: React.CSSProperties = misc.merge({ backgroundColor: "#fdd" }, STDOUT_STYLE);
-const TRACEBACK_STYLE: React.CSSProperties = misc.merge({ backgroundColor: "#f9f2f4" }, OUT_STYLE);
+const STDERR_STYLE: React.CSSProperties = misc.merge(
+  { backgroundColor: "#fdd" },
+  STDOUT_STYLE
+);
+const TRACEBACK_STYLE: React.CSSProperties = misc.merge(
+  { backgroundColor: "#f9f2f4" },
+  OUT_STYLE
+);
 
 interface StdoutProps {
   message: immutable.Map<any, any>;
@@ -162,8 +168,12 @@ class Image extends Component<ImageProps, ImageState> {
   };
 
   render_locally() {
-    const src = `data:${this.props.type};${this.encoding()},${this.props.value}`;
-    return <img src={src} width={this.props.width} height={this.props.height} />;
+    const src = `data:${this.props.type};${this.encoding()},${
+      this.props.value
+    }`;
+    return (
+      <img src={src} width={this.props.width} height={this.props.height} />
+    );
   }
 
   render() {
@@ -199,7 +209,9 @@ interface UntrustedJavascriptProps {
 
 class UntrustedJavascript extends Component<UntrustedJavascriptProps> {
   render() {
-    return <span style={{ color: "#888" }}>(not running untrusted Javascript)</span>;
+    return (
+      <span style={{ color: "#888" }}>(not running untrusted Javascript)</span>
+    );
   }
 }
 
@@ -325,24 +337,26 @@ class Data extends Component<DataProps> {
         case "image":
           let height: any;
           let width: any;
-          this.props.message.get("metadata", []).forEach((value: any, key: any) => {
-            if (key === "width") {
-              width = value;
-            } else if (key === "height") {
-              height = value;
-            } else {
-              // sometimes metadata is e.g., "image/png":{width:, height:}
-              if (value && value.forEach) {
-                value.forEach((value: any, key: any) => {
-                  if (key === "width") {
-                    return (width = value);
-                  } else if (key === "height") {
-                    return (height = value);
-                  }
-                });
+          this.props.message
+            .get("metadata", [])
+            .forEach((value: any, key: any) => {
+              if (key === "width") {
+                width = value;
+              } else if (key === "height") {
+                height = value;
+              } else {
+                // sometimes metadata is e.g., "image/png":{width:, height:}
+                if (value && value.forEach) {
+                  value.forEach((value: any, key: any) => {
+                    if (key === "width") {
+                      return (width = value);
+                    } else if (key === "height") {
+                      return (height = value);
+                    }
+                  });
+                }
               }
-            }
-          });
+            });
           return (
             <Image
               project_id={this.props.project_id}
@@ -368,7 +382,11 @@ class Data extends Component<DataProps> {
           break;
       }
     }
-    return <pre>Unsupported message: {JSON.stringify(this.props.message.toJS())}</pre>;
+    return (
+      <pre>
+        Unsupported message: {JSON.stringify(this.props.message.toJS())}
+      </pre>
+    );
   }
 }
 
@@ -442,10 +460,14 @@ class InputDone extends Component<InputDoneProps> {
     const value = (left = this.props.message.get("value")) != null ? left : "";
     return (
       <div style={STDOUT_STYLE}>
-        {(left1 = this.props.message.getIn(["opts", "prompt"])) != null ? left1 : ""}
+        {(left1 = this.props.message.getIn(["opts", "prompt"])) != null
+          ? left1
+          : ""}
         <input
           style={INPUT_STYLE}
-          type={this.props.message.getIn(["opts", "password"]) ? "password" : "text"}
+          type={
+            this.props.message.getIn(["opts", "password"]) ? "password" : "text"
+          }
           size={Math.max(47, value.length + 10)}
           readOnly={true}
           value={value}
@@ -492,25 +514,39 @@ class Input extends Component<InputProps, InputState> {
     if (this.props.actions != null) {
       this.props.actions.submit_input(this.props.id, this.state.value);
     }
-    return this.props.actions != null ? this.props.actions.focus_unlock() : undefined;
+    return this.props.actions != null
+      ? this.props.actions.focus_unlock()
+      : undefined;
   };
 
   render() {
     let left: any;
     return (
       <div style={STDOUT_STYLE}>
-        {(left = this.props.message.getIn(["opts", "prompt"])) != null ? left : ""}
+        {(left = this.props.message.getIn(["opts", "prompt"])) != null
+          ? left
+          : ""}
         <input
           style={INPUT_STYLE}
           autoFocus={true}
           readOnly={this.props.actions == null}
-          type={this.props.message.getIn(["opts", "password"]) ? "password" : "text"}
+          type={
+            this.props.message.getIn(["opts", "password"]) ? "password" : "text"
+          }
           ref="input"
           size={Math.max(47, this.state.value.length + 10)}
           value={this.state.value}
           onChange={(e: any) => this.setState({ value: e.target.value })}
-          onBlur={this.props.actions != null ? this.props.actions.focus_unlock : undefined}
-          onFocus={this.props.actions != null ? this.props.actions.blur_lock : undefined}
+          onBlur={
+            this.props.actions != null
+              ? this.props.actions.focus_unlock
+              : undefined
+          }
+          onFocus={
+            this.props.actions != null
+              ? this.props.actions.blur_lock
+              : undefined
+          }
           onKeyDown={this.key_down}
         />
       </div>
@@ -527,7 +563,11 @@ class NotImplemented extends Component<NotImplementedProps> {
     return !immutable_equals(this.props, nextProps);
   }
   render() {
-    return <pre style={STDERR_STYLE}>{JSON.stringify(this.props.message.toJS())}</pre>;
+    return (
+      <pre style={STDERR_STYLE}>
+        {JSON.stringify(this.props.message.toJS())}
+      </pre>
+    );
   }
 }
 
@@ -646,9 +686,16 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
         continue;
       }
       const name = mesg.get("name");
-      if (k > 0 && (name === "stdout" || name === "stderr") && v[k - 1].get("name") === name) {
+      if (
+        k > 0 &&
+        (name === "stdout" || name === "stderr") &&
+        v[k - 1].get("name") === name
+      ) {
         // combine adjacent stdout / stderr messages...
-        v[k - 1] = v[k - 1].set("text", v[k - 1].get("text") + mesg.get("text"));
+        v[k - 1] = v[k - 1].set(
+          "text",
+          v[k - 1].get("text") + mesg.get("text")
+        );
       } else {
         v[k] = mesg;
         k += 1;
@@ -693,7 +740,10 @@ function immutable_equals(objA: any, objB: any) {
   }
 
   for (let key of keysA) {
-    if (!objB.hasOwnProperty(key) || !immutable_equals_single(objA[key], objB[key])) {
+    if (
+      !objB.hasOwnProperty(key) ||
+      !immutable_equals_single(objA[key], objB[key])
+    ) {
       return false;
     }
   }
@@ -705,11 +755,17 @@ function immutable_equals(objA: any, objB: any) {
 // immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
 function immutable_equals_single(a: any, b: any) {
   if (typeof a === "object" || typeof b === "object") {
-    if ((is_redux(a) && is_redux(b)) || (is_redux_actions(a) && is_redux_actions(b))) {
+    if (
+      (is_redux(a) && is_redux(b)) ||
+      (is_redux_actions(a) && is_redux_actions(b))
+    ) {
       return a === b;
     }
     // TODO: use immutable.isImmutable
-    if ((immutable as any).Iterable.isIterable(a) && (immutable as any).Iterable.isIterable(b)) {
+    if (
+      (immutable as any).Iterable.isIterable(a) &&
+      (immutable as any).Iterable.isIterable(b)
+    ) {
       return immutable.is(a, b);
     }
     if ((a != null && b == null) || (a == null && b != null)) {
@@ -723,7 +779,11 @@ function immutable_equals_single(a: any, b: any) {
 }
 
 function __guardMethod__(obj: any, methodName: any, transform: any) {
-  if (typeof obj !== "undefined" && obj !== null && typeof obj[methodName] === "function") {
+  if (
+    typeof obj !== "undefined" &&
+    obj !== null &&
+    typeof obj[methodName] === "function"
+  ) {
     return transform(obj, methodName);
   } else {
     return undefined;

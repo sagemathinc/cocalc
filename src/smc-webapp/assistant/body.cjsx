@@ -26,6 +26,7 @@ immutable = require('immutable')
 {Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../app-framework')
 {Loading, Icon, Markdown, Space} = require('../r_misc')
+{CodeMirrorStatic} = require('../jupyter/codemirror-static');
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
 # Assistant
@@ -202,13 +203,28 @@ exports.ExamplesBody = rclass
             code_text = code.join('\n')
         else
             code_text = ''
-        <pre ref={'code'} className={'code'}>{code_text}</pre>
+
+        cm_style =
+            height     : undefined
+            overflowX  : undefined
+            whiteSpace : undefined
+            padding    : '15px'
+            fontSize   : '12px'
+
+        options = {mode:{name:get_codemirror_mode(@props.lang)}}
+
+        <Col className={'webapp-examples-code'} sm={6}>
+            <CodeMirrorStatic
+                value={code_text}
+                style={cm_style}
+                options={immutable.fromJS(options)}
+            />
+        </Col>
 
     render_bottom: ->
+
         <Row key={'bottom'}>
-            <Col sm={6}>
-                {@render_code()}
-            </Col>
+            {@render_code()}
             <Col sm={6}>
                 <Panel ref={'descr'} className={'webapp-examples-descr'}>
                     <Markdown value={@props.descr ? ''} />
@@ -243,3 +259,15 @@ exports.ExamplesBody = rclass
                     @render_body()
             }
         </Modal.Body>
+
+get_codemirror_mode = (language) ->
+    mode = {
+    python: "python",
+    sage: "python",
+    r: "r",
+    gap: "",
+    julia: "text/x-julia",
+    octave: "text/x-octave",
+    bash: "shell",
+    }[language]
+    return mode

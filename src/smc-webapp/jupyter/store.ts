@@ -2,13 +2,12 @@
 The Store
 */
 
+declare const localStorage: any;
+
 const misc = require("smc-util/misc");
 import { Store } from "../app-framework";
 import { Set } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
-
-// TODO: seperate front specific code that uses this stuff
-declare const localStorage: any;
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.

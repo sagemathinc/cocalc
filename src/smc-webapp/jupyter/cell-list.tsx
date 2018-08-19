@@ -56,7 +56,7 @@ export class CellList extends Component<CellListProps> {
       // stops changing or 2s elapses.
       const locals = {
         scrollTop: this.props.scrollTop,
-        scrollHeight: 0,
+        scrollHeight: 0
       };
       const f = () => {
         const elt = this.cell_list_ref;
@@ -106,10 +106,13 @@ export class CellList extends Component<CellListProps> {
     } else {
       this.props.actions.blur();
     }
-  }
+  };
 
   componentWillReceiveProps(nextProps) {
-    if (this.props.actions != null && nextProps.is_focused !== this.props.is_focused) {
+    if (
+      this.props.actions != null &&
+      nextProps.is_focused !== this.props.is_focused
+    ) {
       // the focus state changed.
       if (nextProps.is_focused) {
         this.props.actions.enable_key_handler();
@@ -158,7 +161,9 @@ export class CellList extends Component<CellListProps> {
           cur = elt.find(`#${this.props.cur_id}`)!;
           if (cur.length > 0) {
             return elt.scrollTop(
-              elt.scrollTop()! + (cur.position().top - elt.position().top) - PADDING,
+              elt.scrollTop()! +
+                (cur.position().top - elt.position().top) -
+                PADDING
             );
           }
           break;
@@ -166,7 +171,9 @@ export class CellList extends Component<CellListProps> {
           cur = elt.find(`#${this.props.cur_id}`)!;
           if (cur.length > 0) {
             return elt.scrollTop(
-              elt.scrollTop()! + (cur.position()!.top - elt.position()!.top) - elt.height()! * 0.5,
+              elt.scrollTop()! +
+                (cur.position()!.top - elt.position()!.top) -
+                elt.height()! * 0.5
             );
           }
           break;
@@ -177,30 +184,37 @@ export class CellList extends Component<CellListProps> {
               elt.scrollTop()! +
                 (cur.position().top - elt.position().top) -
                 elt.height()! * 0.9 +
-                PADDING,
+                PADDING
             );
           }
           break;
       }
     }
-  }
+  };
 
   render_loading() {
     return (
-      <div style={{ fontSize: "32pt", color: "#888", textAlign: "center", marginTop: "15px" }}>
+      <div
+        style={{
+          fontSize: "32pt",
+          color: "#888",
+          textAlign: "center",
+          marginTop: "15px"
+        }}
+      >
         <Loading />
       </div>
     );
   }
 
-  on_click = (e) => {
+  on_click = e => {
     this.props.actions.clear_complete();
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
       // See the complete component in codemirror-static.
       return this.props.actions.set_mode("edit");
     }
-  }
+  };
 
   render_insert_cell(id, position = "above") {
     return (
@@ -223,8 +237,14 @@ export class CellList extends Component<CellListProps> {
       let left, left1;
       const cell_data = this.props.cells.get(id);
       // is it possible/better idea to use the @actions.store here?
-      const editable = (left = cell_data.getIn(["metadata", "editable"])) != null ? left : true;
-      const deletable = (left1 = cell_data.getIn(["metadata", "deletable"])) != null ? left1 : true;
+      const editable =
+        (left = cell_data.getIn(["metadata", "editable"])) != null
+          ? left
+          : true;
+      const deletable =
+        (left1 = cell_data.getIn(["metadata", "deletable"])) != null
+          ? left1
+          : true;
       const cell = (
         <Cell
           key={id}
@@ -233,9 +253,15 @@ export class CellList extends Component<CellListProps> {
           cm_options={this.props.cm_options}
           cell={cell_data}
           is_current={id === this.props.cur_id}
-          is_selected={this.props.sel_ids != null ? this.props.sel_ids.contains(id) : undefined}
+          is_selected={
+            this.props.sel_ids != null
+              ? this.props.sel_ids.contains(id)
+              : undefined
+          }
           is_markdown_edit={
-            this.props.md_edit_ids != null ? this.props.md_edit_ids.contains(id) : undefined
+            this.props.md_edit_ids != null
+              ? this.props.md_edit_ids.contains(id)
+              : undefined
           }
           mode={this.props.mode}
           font_size={this.props.font_size}
@@ -243,7 +269,11 @@ export class CellList extends Component<CellListProps> {
           directory={this.props.directory}
           complete={this.props.complete}
           is_focused={this.props.is_focused}
-          more_output={this.props.more_output != null ? this.props.more_output.get(id) : undefined}
+          more_output={
+            this.props.more_output != null
+              ? this.props.more_output.get(id)
+              : undefined
+          }
           cell_toolbar={this.props.cell_toolbar}
           trust={this.props.trust}
           editable={editable}
@@ -267,22 +297,24 @@ export class CellList extends Component<CellListProps> {
       backgroundColor: "#eee",
       height: "100%",
       overflowY: "auto",
-      overflowX: "hidden",
+      overflowX: "hidden"
     };
 
     const cells_style: React.CSSProperties = {
       backgroundColor: "#fff",
       padding: "15px",
-      boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
+      boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)"
     };
 
     return (
       <div
         key="cells"
         style={style}
-        ref={(node: any) => this.cell_list_ref = node}
+        ref={(node: any) => (this.cell_list_ref = node)}
         onClick={
-          this.props.actions != null && this.props.complete != null ? this.on_click : undefined
+          this.props.actions != null && this.props.complete != null
+            ? this.on_click
+            : undefined
         }
       >
         <div style={cells_style}>{v}</div>

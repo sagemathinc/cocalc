@@ -83,7 +83,6 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   cancel_execute(id: string): void;
   execute_code_now(opts: ExecOpts): Promise<object[]>;
   process_output(content: any): void;
-  get_kernel_data(): Promise<any>;
   get_blob_store(): BlobStoreInterface;
   complete(opts: { code: any; cursor_pos: any });
   introspect(opts: {

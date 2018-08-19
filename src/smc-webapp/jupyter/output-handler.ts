@@ -1,14 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Class that handles output messages generated for evaluation of code
 for a particular cell.
 
@@ -41,9 +31,9 @@ const now = () => misc.server_time() - 0;
 
 export class OutputHandler extends EventEmitter {
   private _opts: any;
-  private _n: any;
-  private _clear_before_next_output: any;
-  private _output_length: any;
+  private _n: number;
+  private _clear_before_next_output: boolean;
+  private _output_length: number;
   private _in_more_output_mode: any;
   private _state: any;
   private _stdin_cb: any;
@@ -77,7 +67,7 @@ export class OutputHandler extends EventEmitter {
     this.stdin = this.stdin.bind(this);
   }
 
-  close = () => {
+  close = (): void => {
     this._state = "closed";
     this.emit("done");
     delete this._opts;
@@ -88,7 +78,7 @@ export class OutputHandler extends EventEmitter {
     this.removeAllListeners();
   };
 
-  _clear_output = (save?: any) => {
+  _clear_output = (save?: any): void => {
     if (this._state === "closed") {
       return;
     }
@@ -104,7 +94,7 @@ export class OutputHandler extends EventEmitter {
     this.emit("change", save);
   };
 
-  _report_started = () => {
+  _report_started = (): void => {
     if (this._n > 0) {
       // do nothing -- already getting output
       return;
@@ -123,7 +113,7 @@ export class OutputHandler extends EventEmitter {
 
   // Call error if an error occurs.  An appropriate error message is generated.
   // Computation is considered done.
-  error = (err: any) => {
+  error = (err: any): void => {
     if (err === "closed") {
       // See https://github.com/sagemathinc/cocalc/issues/2388
       this.message({
@@ -142,7 +132,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   // Call done exactly once when done
-  done = () => {
+  done = (): void => {
     if (this._state === "closed") {
       return;
     }
@@ -156,34 +146,29 @@ export class OutputHandler extends EventEmitter {
   };
 
   // Handle clear
-  clear = (wait: any) => {
+  clear = (wait: any): void => {
     if (wait) {
       // wait until next output before clearing.
-      return (this._clear_before_next_output = true);
+      this._clear_before_next_output = true;
+      return;
     }
     this._clear_output();
   };
 
-  _clean_mesg = (mesg: any) => {
+  _clean_mesg = (mesg: any): void => {
     delete mesg.execution_state;
     delete mesg.code;
     delete mesg.status;
     delete mesg.source;
-    return (() => {
-      const result: any[] = [];
-      for (let k in mesg) {
-        const v = mesg[k];
-        if (misc.is_object(v) && misc.len(v) === 0) {
-          result.push(delete mesg[k]);
-        } else {
-          result.push(undefined);
-        }
+    for (let k in mesg) {
+      const v = mesg[k];
+      if (misc.is_object(v) && misc.len(v) === 0) {
+        delete mesg[k];
       }
-      return result;
-    })();
+    }
   };
 
-  _push_mesg = (mesg: any, save = true) => {
+  _push_mesg = (mesg: any, save = true): void => {
     if (this._state === "closed") {
       return;
     }
@@ -192,19 +177,19 @@ export class OutputHandler extends EventEmitter {
     }
     this._opts.cell.output[`${this._n}`] = mesg;
     this._n += 1;
-    return this.emit("change", save);
+    this.emit("change", save);
   };
 
-  set_input = (input: any, save = true) => {
+  set_input = (input: any, save = true): void => {
     if (this._state === "closed") {
       return;
     }
     this._opts.cell.input = input;
-    return this.emit("change", save);
+    this.emit("change", save);
   };
 
   // Process incoming messages.  This may mutate mesg.
-  message = (mesg: any) => {
+  message = (mesg: any): void => {
     let has_exec_count: any;
     if (this._state === "closed") {
       return;
@@ -270,7 +255,7 @@ export class OutputHandler extends EventEmitter {
       this._push_mesg({ more_output: true });
       this._in_more_output_mode = true;
     }
-    return this.emit("more_output", mesg, mesg_length);
+    this.emit("more_output", mesg, mesg_length);
   };
 
   async stdin(prompt: string, password: boolean): Promise<string> {
@@ -285,7 +270,7 @@ export class OutputHandler extends EventEmitter {
   }
 
   // Call this when the cell changes; only used for stdin right now.
-  cell_changed = (cell: any, get_password: any) => {
+  cell_changed = (cell: any, get_password: any): void => {
     if (this._state === "closed") {
       return;
     }
