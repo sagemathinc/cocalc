@@ -1622,8 +1622,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "zip",
       args,
-      timeout: 50,
-      network_timeout: 60,
+      timeout: 10*60,   /* compressing CAN take a while -- zip is slow! */
+      network_timeout: 10*60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id)
