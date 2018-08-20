@@ -171,8 +171,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
 
     if (this._client) {
-      this.init_project_conn();
-
       const do_set = () => {
         return this.setState({
           has_unsaved_changes:
@@ -207,7 +205,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb.on("change", this._syncdb_change);
 
     if (!client.is_project()) {
-      // only run this when used on the frontend.
+      // Only run this code when used on the frontend.
+      this.init_project_conn();
+
       // Put an entry in the project log once the jupyter notebook gets opened.
       // NOTE: Obviously, the project does NOT need to put entries in the log.
       this.syncdb.once("change", () =>
