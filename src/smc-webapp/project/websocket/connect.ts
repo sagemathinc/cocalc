@@ -25,7 +25,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }
   const t0 = new Date().valueOf();
   console.log(`conn ${project_id} -- connecting...`);
-  const window0 = (global as any).window as any; // global part is so this also compiles on node.js.
+  const window0 : any = (global as any).window as any; // global part is so this also compiles on node.js.
   const url: string = `${
     window0.app_base_url
   }/${project_id}/raw/.smc/primus.js`;
