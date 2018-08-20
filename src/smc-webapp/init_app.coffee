@@ -126,6 +126,10 @@ class PageActions extends Actions
         redux.getActions('projects').set_project_closed(project_id)
         @save_session()
 
+        # if there happens to be a websocket to this project, get rid of it.  Nothing will be using it when the project is closed.
+        require('./project/websocket/connect').disconnect_from_project(project_id)
+
+        
     set_active_tab: (key) =>
         @setState(active_top_tab : key)
         switch key

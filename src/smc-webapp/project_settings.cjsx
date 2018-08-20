@@ -50,10 +50,10 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{AddCollaborators} = require('./collaborators/add-to-project')
-
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
+
+{AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -627,26 +627,6 @@ ProjectControlPanel = rclass
                 cb()
         ])
 
-    ssh_notice: ->
-        project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
-        if host?
-            if @state.show_ssh
-                <div>
-                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {### WARNING: previous use of <FormControl> here completely breaks copy on Firefox. ###}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
-                    <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
-                    <Icon name='life-ring'/> How to create SSH keys</a>
-                </div>
-            else
-                <Row>
-                    <Col sm={12}>
-                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
-                            <Icon name='terminal' /> SSH Into Your Project...
-                        </Button>
-                    </Col>
-                </Row>
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -718,13 +698,6 @@ ProjectControlPanel = rclass
                 <Icon name='stop' /> Stop Project...
             </Button>
         </ButtonToolbar>
-
-    show_host: ->
-        host = @props.project.get('host')?.get('host')
-        if host
-            <LabeledRow key='host' label='Host'>
-                <pre>{host}.sagemath.com</pre>
-            </LabeledRow>
 
     render_idle_timeout_row: ->
         if @props.project.getIn(['state', 'state']) != 'running'
@@ -888,110 +861,8 @@ ProjectControlPanel = rclass
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            {@show_host() if @props.allow_ssh}
+            {<hr /> if @props.kucalc != 'yes'}
             {@render_select_compute_image_row()}
-            {<hr /> if @props.allow_ssh}
-            {@ssh_notice() if @props.allow_ssh}
-        </ProjectSettingsPanel>
-
-exports.CollaboratorsList = CollaboratorsList = rclass
-    displayName : 'ProjectSettings-CollaboratorsList'
-
-    propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-
-    reduxProps :
-        account :
-            get_account_id : rtypes.func
-        projects :
-            sort_by_activity : rtypes.func
-
-    getInitialState: ->
-        removing : undefined  # id's of account that we are currently confirming to remove
-
-    remove_collaborator: (account_id) ->
-        project_id = @props.project.get('project_id')
-        @actions('projects').remove_collaborator(project_id, account_id)
-        @setState(removing:undefined)
-        if account_id == @props.get_account_id()
-            @actions('page').close_project_tab(project_id)
-
-    render_user_remove_confirm: (account_id) ->
-        if account_id == @props.get_account_id()
-            <Well style={background:'white'}>
-                Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
-                to this project and cannot add yourself back.
-                <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>
-                        Remove Myself</Button>
-                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-        else
-            <Well style={background:'white'}>
-                Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from
-                this project?  They will no longer have access to this project.
-                <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>Remove</Button>
-                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-
-    user_remove_button: (account_id, group) ->
-        <Button
-            disabled = {group is 'owner'}
-            style    = {marginBottom: '6px', float: 'right'}
-            onClick  = {=>@setState(removing:account_id)}
-        >
-            <Icon name='user-times' /> Remove...
-        </Button>
-
-    render_user: (user) ->
-        <div key={user.account_id}>
-            <Row>
-                <Col sm={8}>
-                    <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
-                    <span><Space/>({user.group})</span>
-                </Col>
-                <Col sm={4}>
-                    {@user_remove_button(user.account_id, user.group)}
-                </Col>
-            </Row>
-            {@render_user_remove_confirm(user.account_id) if @state.removing == user.account_id}
-        </div>
-
-    render_users: ->
-        u = @props.project.get('users')
-        if u
-            users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
-            for user in @props.sort_by_activity(users, @props.project.get('project_id'))
-                @render_user(user)
-
-    render: ->
-        <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
-            {@render_users()}
-        </Well>
-
-CollaboratorsPanel = rclass
-    displayName : 'ProjectSettings-CollaboratorsPanel'
-
-    propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-
-    render: ->
-        <ProjectSettingsPanel title='Add people to project' icon='user'>
-            <div key='mesg'>
-                <span style={color:'#333', fontSize:'12pt'}>
-                    Who would you like to work with on this project?  Anybody listed here can simultaneously work with you
-                    on any notebooks and terminals in this project, and add other people to this project.
-                </span>
-            </div>
-            <hr />
-            <AddCollaborators key='search' project={@props.project} />
-            {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
         </ProjectSettingsPanel>
 
 SSHPanel = rclass
@@ -1113,11 +984,9 @@ ProjectSettingsBody = rclass ({name}) ->
 
                 </Col>
                 <Col sm={6}>
-                    <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control'
-                        project={@props.project}
-                        allow_ssh={@props.kucalc != 'yes'}
-                    />
+                    <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>

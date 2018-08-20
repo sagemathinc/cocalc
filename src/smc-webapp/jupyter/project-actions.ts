@@ -295,7 +295,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     this.setState({
-      kernels: immutable.fromJS(kernels.jupyter_kernels)
+      kernels: immutable.fromJS(kernels)
     });
   };
 
@@ -439,14 +439,15 @@ export class JupyterActions extends JupyterActions0 {
     );
   };
 
-  manager_run_cell = (id: any) => {
+  manager_run_cell = (id: string) => {
     let left;
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
     dbg();
 
+    // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
     if (this._run_again != null) {
       delete this._run_again[id];
-    } // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
+    }
 
     this.ensure_backend_kernel_setup();
 
@@ -511,11 +512,13 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
 
-    const get_password = () => {
+    const get_password = () : string => {
       if (this._jupyter_kernel == null) {
+        dbg("get_password", id, "no kernel");
         return "";
       }
       const password = this._jupyter_kernel.store.get(id);
+        dbg("get_password", id, password);
       this._jupyter_kernel.store.delete(id);
       return password;
     };
@@ -1011,7 +1014,7 @@ Read the ipynb file from disk.
           if (err) {
             dbg("error running");
             if (!misc.is_string(err)) {
-              err = JSON.stringify(err);
+              err = `${err}`;
             }
             if (err.length >= 50) {
               // save in key:value store.

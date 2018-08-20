@@ -29,10 +29,6 @@ export async function get_kernel_data(): Promise<any> {
     });
   }
   v.sort(field_cmp("display_name"));
-  kernel_data.jupyter_kernels = v;
-  kernel_data.jupyter_kernels_json = JSON.stringify(
-    kernel_data.jupyter_kernels
-  );
-  cache.set("kernel_data", kernel_data);
-  return kernel_data;
+  cache.set("kernel_data", v);
+  return v;
 }
