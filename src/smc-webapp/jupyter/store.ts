@@ -327,9 +327,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
   jupyter_kernel_key = (): string => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
-    const compute_image =
-      projects_store.getIn(["project_map", project_id, "compute_image"]) ||
-      DEFAULT_COMPUTE_IMAGE;
+    const path = ["project_map", project_id, "compute_image"];
+    const compute_image = projects_store.getIn(path, DEFAULT_COMPUTE_IMAGE);
     const key = [project_id, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
