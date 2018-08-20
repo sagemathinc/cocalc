@@ -4,12 +4,11 @@ import {
   ListGroup,
   ListGroupItem,
   FormGroup,
-  FormControl,
   HelpBlock
 } from "react-bootstrap";
 import "./style.scss";
 
-const { Loading } = require("../r_misc");
+const { Loading, SearchInput } = require("../r_misc");
 
 interface Item {
   key: any;
@@ -20,23 +19,26 @@ interface Item {
 interface PickerListProps {
   inputValue: string;
   onInputChange(value: string): void;
+  onInputEnter(): void;
   isLoading?: boolean;
   results?: Item[];
   onSelect(value: any): void;
 }
 
 export class PickerList extends React.Component<PickerListProps> {
-  handleInputChange = (e: any) => this.props.onInputChange(e.target.value);
+  handleInputChange = (value) => this.props.onInputChange(value);
+  handleInputEnter = () => this.props.onInputEnter();
   render_input() {
     const { inputValue, results, isLoading } = this.props;
     return (
       <>
         <FormGroup style={{ margin: "15px" }}>
-          <FormControl
-            type="text"
+          <SearchInput
+            on_submit={this.handleInputEnter}
             value={inputValue}
-            placeholder="Search by name or email"
-            onChange={this.handleInputChange}
+            placeholder="Search by name or email address for CoCalc users:"
+            on_change={this.handleInputChange}
+            on_clear={() => this.handleInputChange("")}
           />
           {!isLoading &&
             inputValue &&

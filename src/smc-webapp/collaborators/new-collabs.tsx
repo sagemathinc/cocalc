@@ -16,8 +16,6 @@ import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
 
-import { debounce } from "underscore";
-
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
   is_collaborator?: boolean;
@@ -80,7 +78,7 @@ interface AddCollaboratorsPanelProps {
 interface AddCollaboratorsPanelState {
   search: string;
   loading: boolean;
-  results: UserAndProfile[];
+  results?: UserAndProfile[];
   selection: UserAndProfile[];
   error: any;
   email_to: string;
@@ -122,7 +120,7 @@ class AddCollaboratorsPanel0 extends Component<
   render_manual_email_entry() {
     return (
       <>
-        Enter an email address manually:
+        Or, type a comma-separated list of email addresses:
         <FormGroup style={{ margin: "15px" }}>
           <FormControl
             type="text"
@@ -172,7 +170,7 @@ class AddCollaboratorsPanel0 extends Component<
       </span>
     );
   }
-  query_for_results = debounce(search => {
+  query_for_results = search => {
     this.setState({ search, loading: true });
     search_for_accounts(search)
       .then(results => {
@@ -234,16 +232,17 @@ class AddCollaboratorsPanel0 extends Component<
           error
         });
       });
-  }, 500);
+  };
   render_cocalc_user_search() {
     return (
       <>
-        Search for a CoCalc user:
+        Search by name or email address for CoCalc users:
         <PickerList
           inputValue={this.state.search}
-          onInputChange={this.query_for_results}
+          onInputChange={search => this.setState({ search, results: undefined })}
+          onInputEnter={() => this.query_for_results(this.state.search)}
           isLoading={this.state.loading}
-          results={this.state.results.map(u => {
+          results={this.state.results && this.state.results.map(u => {
             const last_active =
               u.last_active != null
                 ? new Date(u.last_active).toLocaleDateString()
@@ -302,7 +301,7 @@ class AddCollaboratorsPanel0 extends Component<
           onSelect={value => {
             this.setState({
               selection: this.state.selection.concat([value]),
-              results: this.state.results.filter(
+              results: this.state.results && this.state.results.filter(
                 u => u.account_id !== value.account_id
               )
             });
@@ -429,7 +428,7 @@ ${name}
 
   render() {
     return (
-      <ProjectSettingsPanel title="Add New Collaborator" icon="plus">
+      <ProjectSettingsPanel title="Add New Collaborators" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.
