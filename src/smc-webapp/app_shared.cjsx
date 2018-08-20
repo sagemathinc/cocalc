@@ -558,6 +558,7 @@ exports.LocalStorageWarning = rclass
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.
 # 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
 # 20180713: enabled again, we need it to announce the K2 switch
+# 20180819: Ubuntu 18.04 project image upgrade
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
@@ -565,7 +566,7 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Maintenance-2018'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Ubuntu-18.04-project-image-upgrade'
         local_time = show_announce_end.toLocaleString()
         bgcol = COLORS.YELL_L
         style =
@@ -580,8 +581,9 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p><b>On {local_time} there will be a <a target='_blank' href={more_url}>scheduled downtime</a> for system maintenance.</b>
-                {' '}<a target='_blank' href={more_url}>More information...</a></p>
+                <p>
+                    <b>Global announcement: <a target='_blank' href={more_url}>A major software upgrade for all projects</a> is live.</b>
+                </p>
             </Col>
             <Col sm={3}>
                 <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'10px'}
