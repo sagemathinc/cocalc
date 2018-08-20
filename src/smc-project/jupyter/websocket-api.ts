@@ -5,14 +5,17 @@ various messages related to working with Jupyter.
 
 import { get_existing_kernel } from "./jupyter";
 import { get_kernel_data } from "./kernel-data";
+import { websocket_channel } from "./websocket-channel";
 
 export async function handle_request(
+  primus: any,
+  logger: any,
   path: string,
   endpoint: string,
   query?: any
 ): Promise<any> {
   // First handle endpoints that do not depend on a specific kernel.
-  switch(endpoint) {
+  switch (endpoint) {
     case "kernels":
       return await get_kernel_data();
   }
@@ -23,16 +26,18 @@ export async function handle_request(
     throw Error(`api endpoint ${endpoint}: no kernel with path '${path}'`);
   }
   switch (endpoint) {
-    case "signal":
+    case "channel": // get name of dedicated bidirection channel for async messages (not req/resp)
+      return (await websocket_channel(primus, logger, path, query)).name;
+    case "signal": // send signal to running kernel, e.g., SIGINT, SIGKILL
       kernel.signal(query.signal);
       return {};
-    case "kernel_info":
+    case "kernel_info": // get info about kernel
       return await kernel.kernel_info();
-    case "more_output":
+    case "more_output": // get more output for particular eval
       return kernel.more_output(query.id);
-    case "complete":
+    case "complete": // get tab completions
       return await kernel.complete(get_code_and_cursor_pos(query));
-    case "introspect":
+    case "introspect": // get help about a function
       const { code, cursor_pos } = get_code_and_cursor_pos(query);
       let detail_level = 0;
       if (query.level != null) {
@@ -50,7 +55,7 @@ export async function handle_request(
         cursor_pos,
         detail_level
       });
-    case "store":
+    case "store": // get or set something in the in-memory key:value store
       const { key, value } = query;
       if (value === undefined) {
         // undefined when getting the value
@@ -88,5 +93,3 @@ function get_code_and_cursor_pos(
 
   return { code, cursor_pos };
 }
-
-

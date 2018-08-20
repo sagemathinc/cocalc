@@ -49,7 +49,7 @@ async function handle_api_call(client: any, data: any, primus:any, logger:any): 
     case "prettier":
       return await prettier(client, data.path, data.options);
     case "jupyter":
-      return await jupyter(data.path, data.endpoint, data.query);
+      return await jupyter(primus, logger, data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
     case "terminal":

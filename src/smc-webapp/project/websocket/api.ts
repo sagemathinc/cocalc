@@ -28,10 +28,16 @@ export class API {
     query?: any,
     timeout_ms?: number
   ): Promise<any> {
-    return await this.call(
+    const resp = await this.call(
       { cmd: "jupyter", path, endpoint, query },
       timeout_ms
     );
+    if (endpoint === 'channel') {
+      // getting the channel
+      return this.conn.channel(resp);
+    } else {
+      return resp
+    }
   }
 
   async exec(opts: any): Promise<any> {
