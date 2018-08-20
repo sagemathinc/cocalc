@@ -120,7 +120,7 @@ class AddCollaboratorsPanel0 extends Component<
   render_manual_email_entry() {
     return (
       <>
-        Enter an email address manually:
+        Or, type a comma-separated list of email addresses:
         <FormGroup style={{ margin: "15px" }}>
           <FormControl
             type="text"
@@ -173,7 +173,7 @@ class AddCollaboratorsPanel0 extends Component<
   render_cocalc_user_search() {
     return (
       <>
-        Search for a CoCalc user:
+        Search by name or email address for CoCalc users:
         <PickerList
           inputValue={this.state.search}
           onInputChange={search => {
@@ -428,7 +428,7 @@ ${name}
 
   render() {
     return (
-      <ProjectSettingsPanel title="Add New Collaborator" icon="plus">
+      <ProjectSettingsPanel title="Add New Collaborators" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.
