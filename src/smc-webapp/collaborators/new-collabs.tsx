@@ -15,7 +15,8 @@ import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
-import { debounce } from "debounce";
+
+import { debounce } from "underscore";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
