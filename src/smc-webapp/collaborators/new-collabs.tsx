@@ -15,6 +15,7 @@ import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
+import { debounce } from "debounce";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
@@ -120,7 +121,7 @@ class AddCollaboratorsPanel0 extends Component<
   render_manual_email_entry() {
     return (
       <>
-        Or, type a comma-separated list of email addresses:
+        Enter an email address manually:
         <FormGroup style={{ margin: "15px" }}>
           <FormControl
             type="text"
@@ -170,77 +171,76 @@ class AddCollaboratorsPanel0 extends Component<
       </span>
     );
   }
+  query_for_results = debounce(search => {
+    this.setState({ search, loading: true });
+    search_for_accounts(search)
+      .then(results => {
+        // filter out users that are already collaborators on this project
+        results = results.filter(
+          u => !this.props.project.get("users").has(u.account_id)
+        );
+        // filter out users who are already selected
+        results = results.filter(
+          u =>
+            this.state.selection.find(s => s.account_id === u.account_id) ===
+            undefined
+        );
+        // put users who are collaborators on other projects at the top of the list
+        const are_collaborators: UserAndProfile[] = [];
+        const not_collaborators: UserAndProfile[] = [];
+        for (let u of results) {
+          if (this.props.user_map.has(u.account_id)) {
+            u.is_collaborator = true;
+            are_collaborators.push(u);
+          } else {
+            not_collaborators.push(u);
+          }
+        }
+        // sort by the last known activity
+        const cmp = (a: any, b: any) => {
+          if (a.last_active < b.last_active) {
+            return 1;
+          }
+          if (a.last_active > b.last_active) {
+            return -1;
+          }
+          if (a.last_name < b.last_name) {
+            return 1;
+          }
+          if (a.last_name > b.last_name) {
+            return -1;
+          }
+          if (a.account_id < b.account_id) {
+            return 1;
+          }
+          if (a.account_id > b.account_id) {
+            return -1;
+          }
+          return 0;
+        };
+        are_collaborators.sort(cmp);
+        not_collaborators.sort(cmp);
+        results = are_collaborators.concat(not_collaborators);
+        // update state
+        this.setState({
+          results,
+          loading: false
+        });
+      })
+      .catch(error => {
+        this.setState({
+          loading: false,
+          error
+        });
+      });
+  }, 500);
   render_cocalc_user_search() {
     return (
       <>
-        Search by name or email address for CoCalc users:
+        Search for a CoCalc user:
         <PickerList
           inputValue={this.state.search}
-          onInputChange={search => {
-            this.setState({ search, loading: true });
-            // TODO: debounce/cache/cancel on unmount
-            search_for_accounts(search)
-              .then(results => {
-                // filter out users that are already collaborators on this project
-                results = results.filter(
-                  u => !this.props.project.get("users").has(u.account_id)
-                );
-                // filter out users who are already selected
-                results = results.filter(
-                  u =>
-                    this.state.selection.find(
-                      s => s.account_id === u.account_id
-                    ) === undefined
-                );
-                // put users who are collaborators on other projects at the top of the list
-                const are_collaborators: UserAndProfile[] = [];
-                const not_collaborators: UserAndProfile[] = [];
-                for (let u of results) {
-                  if (this.props.user_map.has(u.account_id)) {
-                    u.is_collaborator = true;
-                    are_collaborators.push(u);
-                  } else {
-                    not_collaborators.push(u);
-                  }
-                }
-                // sort by the last known activity
-                const cmp = (a: any, b: any) => {
-                  if (a.last_active < b.last_active) {
-                    return 1;
-                  }
-                  if (a.last_active > b.last_active) {
-                    return -1;
-                  }
-                  if (a.last_name < b.last_name) {
-                    return 1;
-                  }
-                  if (a.last_name > b.last_name) {
-                    return -1;
-                  }
-                  if (a.account_id < b.account_id) {
-                    return 1;
-                  }
-                  if (a.account_id > b.account_id) {
-                    return -1;
-                  }
-                  return 0;
-                };
-                are_collaborators.sort(cmp);
-                not_collaborators.sort(cmp);
-                results = are_collaborators.concat(not_collaborators);
-                // update state
-                this.setState({
-                  results,
-                  loading: false
-                });
-              })
-              .catch(error => {
-                this.setState({
-                  loading: false,
-                  error
-                });
-              });
-          }}
+          onInputChange={this.query_for_results}
           isLoading={this.state.loading}
           results={this.state.results.map(u => {
             const last_active =
@@ -428,7 +428,7 @@ ${name}
 
   render() {
     return (
-      <ProjectSettingsPanel title="Add New Collaborators" icon="plus">
+      <ProjectSettingsPanel title="Add New Collaborator" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.
