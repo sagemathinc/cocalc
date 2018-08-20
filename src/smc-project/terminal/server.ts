@@ -9,7 +9,7 @@ import { exists } from "../jupyter/async-utils-node";
 
 const terminals = {};
 
-const MAX_HISTORY_LENGTH: number = 100000;
+const MAX_HISTORY_LENGTH: number = 200000;
 const truncate_thresh_ms: number = 500;
 const check_interval_ms: number = 3000;
 
