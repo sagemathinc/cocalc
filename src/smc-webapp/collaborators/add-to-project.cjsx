@@ -294,4 +294,3 @@ exports.AddCollaborators = rclass
             {@render_select_list()}
             {@render_send_email()}
         </div>
-

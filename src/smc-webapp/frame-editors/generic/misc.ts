@@ -5,6 +5,8 @@ THIS SHOULD BE MOVED OUT OF frame-editors/
 This is a rewrite of what we're using from smc-util/misc...
 */
 
+const underscore = require('underscore');
+
 interface SplittedPath {
   head: string;
   tail: string;
@@ -198,6 +200,15 @@ export function uuid(): string {
   });
 }
 
+const uuid_regexp = new RegExp(
+  /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
+);
+export function is_valid_uuid_string(uuid:string) : boolean {
+  return (
+    typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
+  );
+}
+
 export function history_path(path: string): string {
   const p = path_split(path);
   if (p.head) {
@@ -215,7 +226,7 @@ export function len(obj: object | undefined | null): number {
   return Object.keys(obj).length;
 }
 
-export const keys = Object.keys;
+export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).

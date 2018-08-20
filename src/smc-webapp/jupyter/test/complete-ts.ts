@@ -2,6 +2,9 @@
 Tests of fronted part of complete functionality.
 */
 
+// commented out since I eliminated use of _ajax...
+/*
+
 import {
   describe,
   before,
@@ -200,3 +203,5 @@ describe("edge cases completion tests -- ", () => {
     });
   });
 });
+
+*/

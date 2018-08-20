@@ -7,4 +7,4 @@ path = os.path.split(os.path.realpath(__file__))[0]; os.chdir(path); sys.path.in
 import util
 
 util.chdir()
-util.cmd("cd ../../ && git submodule update --init && . smc-env && npm run webpack-watch")
+util.cmd("cd ../../ && git submodule update --init && . smc-env && cd examples && env OUTDIR=../webapp-lib/examples make && cd .. && npm run webpack-watch")
