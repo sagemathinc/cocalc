@@ -18,8 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
-
 """
 Based on https://pypi.python.org/pypi/hash_ring (copyright: 2008 by Amir Salihefendic; license: BSD)
 
@@ -41,8 +39,8 @@ from bisect import bisect
 import hashlib
 md5_constructor = hashlib.md5
 
-class HashRing(object):
 
+class HashRing(object):
     def __init__(self, nodes=None, weights=1, vnodes=40, replicas=4):
         """
         `nodes` is a list of objects that have a proper __str__ representation.
@@ -53,14 +51,15 @@ class HashRing(object):
         self._sorted_keys = []
 
         if isinstance(nodes, dict):
-            weights = dict([(n, nodes[n].get('weight',weights)) for n in nodes])
-            vnodes  = dict([(n, nodes[n].get('vnodes',vnodes)) for n in nodes])
+            weights = dict(
+                [(n, nodes[n].get('weight', weights)) for n in nodes])
+            vnodes = dict([(n, nodes[n].get('vnodes', vnodes)) for n in nodes])
             nodes = nodes.keys()
 
         self.nodes = nodes
 
         if not isinstance(weights, dict):
-            weights = dict([(n,weights) for n in nodes])
+            weights = dict([(n, weights) for n in nodes])
         else:
             for n in nodes:
                 if n not in weights:
@@ -70,7 +69,7 @@ class HashRing(object):
         self.replicas = replicas
 
         if not isinstance(vnodes, dict):
-            vnodes = dict([(n,vnodes) for n in nodes])
+            vnodes = dict([(n, vnodes) for n in nodes])
         else:
             for n in nodes:
                 if n not in vnodes:
@@ -90,11 +89,12 @@ class HashRing(object):
 
         for node in self.nodes:
             weight = self.weights[node]
-            factor = (self.vnodes[node]*len(self.nodes)*weight) // total_weight
+            factor = (
+                self.vnodes[node] * len(self.nodes) * weight) // total_weight
             for j in xrange(0, int(factor)):
-                b_key = self._hash_digest('%s-%s'%(node, j))
+                b_key = self._hash_digest('%s-%s' % (node, j))
                 for i in xrange(0, self.replicas):
-                    key = self._hash_val(b_key, lambda x: x+i*4)
+                    key = self._hash_val(b_key, lambda x: x + i * 4)
                     self.ring[key] = node
                     self._sorted_keys.append(key)
 
@@ -109,8 +109,7 @@ class HashRing(object):
         pos = self.get_node_pos(string_key)
         if pos is None:
             return None
-        return self.ring[ self._sorted_keys[pos] ]
-
+        return self.ring[self._sorted_keys[pos]]
 
     def range(self, key, size=None, distinct=True):
         if size is None:
@@ -162,6 +161,7 @@ class HashRing(object):
             yield None, None
 
         returned_values = set()
+
         def distinct_filter(value):
             if str(value) not in returned_values:
                 returned_values.add(str(value))
@@ -191,10 +191,10 @@ class HashRing(object):
         return self._hash_val(b_key, lambda x: x)
 
     def _hash_val(self, b_key, entry_fn):
-        return (( b_key[entry_fn(3)] << 24)
-                |(b_key[entry_fn(2)] << 16)
-                |(b_key[entry_fn(1)] << 8)
-                | b_key[entry_fn(0)] )
+        return ((b_key[entry_fn(3)] << 24)
+                | (b_key[entry_fn(2)] << 16)
+                | (b_key[entry_fn(1)] << 8)
+                | b_key[entry_fn(0)])
 
     def _hash_digest(self, key):
         m = md5_constructor()
