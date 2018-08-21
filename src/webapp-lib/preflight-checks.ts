@@ -52,8 +52,9 @@ const oldChrome = spec.name === "Chrome" && spec.version < 62;
 
 if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
   const msg =
-    "<h1>Your browser is too old.</h1><div>We recommend <a href='https://google.com/chrome'>Google Chrome</a>.</div>";
+    "<div style='text-align:center'><h1>Your browser is too old.</h1><div>We recommend <a href='https://google.com/chrome'>Google Chrome</a>.</div></div>";
   document.open();
   document.write(msg);
   document.close();
+  window.stop();
 }
