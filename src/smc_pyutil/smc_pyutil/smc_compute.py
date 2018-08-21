@@ -448,6 +448,7 @@ class Project(object):
                     os.environ['COCALC_PROJECT_ID'] = self.project_id
                     os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = os.environ['COCALC_USERNAME'] = self.username
                     os.environ['MAIL'] = '/var/mail/%s'%self.username
+                    os.environ['COFFEE_CACHE_DIR'] = os.path.join(self.smc_path, 'coffee-cache')
                     # Needed to read code from system-wide installed location.
                     os.environ['NODE_PATH'] = '/cocalc/src/node_modules/smc-util:/cocalc/src/node_modules:/cocalc/src:/cocalc/src/smc-project/node_modules::/cocalc/src/smc-webapp/node_modules'
                     if self._single:
