@@ -32,21 +32,28 @@ def is_dataframe(obj):
         return False
     return isinstance(obj, DataFrame)
 
+
 # This reduces a lot of confusion for Sage worksheets -- people expect
 # to be able to import from the current working directory.
 sys.path.append('.')
 
 salvus = None
+
+
 def set_salvus(salvus_obj):
     global salvus
     salvus = salvus_obj
     import sage_jupyter
     sage_jupyter.salvus = salvus_obj
 
+
 import json
 from uuid import uuid4
+
+
 def uuid():
     return str(uuid4())
+
 
 ##########################################################################
 # New function interact implementation
@@ -54,6 +61,7 @@ def uuid():
 import inspect
 
 interacts = {}
+
 
 def jsonable(x):
     """
@@ -71,10 +79,17 @@ def jsonable(x):
         else:
             return str(x)
 
+
 class InteractCell(object):
-    def __init__(self, f, layout=None, width=None, style=None,
-                 update_args=None, auto_update=True,
-                 flicker=False, output=True):
+    def __init__(self,
+                 f,
+                 layout=None,
+                 width=None,
+                 style=None,
+                 update_args=None,
+                 auto_update=True,
+                 flicker=False,
+                 output=True):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
@@ -108,8 +123,10 @@ class InteractCell(object):
             defaults = []
 
         n = len(args) - len(defaults)
-        self._controls  = dict([(arg, interact_control(arg, defaults[i-n] if i >= n else None))
-                           for i, arg in enumerate(args)])
+        self._controls = dict([(arg,
+                                interact_control(
+                                    arg, defaults[i - n] if i >= n else None))
+                               for i, arg in enumerate(args)])
 
         self._last_vals = {}
         for arg in args:
@@ -125,10 +142,10 @@ class InteractCell(object):
             # unsuable, but there may be many interacts out there that
             # use it.
             # Example layout={'top': [['a', 'b'], ['x', 'y']], 'left': [['c']], 'bottom': [['d']]}
-            top    = layout.get('top', [])
+            top = layout.get('top', [])
             bottom = layout.get('bottom', [])
-            left   = layout.get('left', [])
-            right  = layout.get('right', [])
+            left = layout.get('left', [])
+            right = layout.get('right', [])
             new_layout = []
             for row in top:
                 new_layout.append(row)
@@ -166,9 +183,9 @@ class InteractCell(object):
                     new_row = []
                     for x in row:
                         if isinstance(x, str):
-                            x = (x,)
+                            x = (x, )
                         if len(x) == 1:
-                            new_row.append((str(x[0]), 12//len(row), None))
+                            new_row.append((str(x[0]), 12 // len(row), None))
                         elif len(x) == 2:
                             new_row.append((str(x[0]), int(x[1]), None))
                         elif len(x) == 3:
@@ -176,10 +193,12 @@ class InteractCell(object):
                     v.append(new_row)
                 layout = v
             except:
-                raise ValueError("layout must be None or a list of tuples (variable_name, width, [optional label]), where width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area.")
+                raise ValueError(
+                    "layout must be None or a list of tuples (variable_name, width, [optional label]), where width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
+                )
 
         # Append a row for any remaining controls:
-        layout_vars = set(sum([[x[0] for x in row] for row in layout],[]))
+        layout_vars = set(sum([[x[0] for x in row] for row in layout], []))
         for v in args:
             if v not in layout_vars:
                 layout.append([(v, 12, None)])
@@ -196,7 +215,7 @@ class InteractCell(object):
             c._opts['var'] = 'auto_update'
             self._controls['auto_update'] = c
             self._ordered_args.append("auto_update")
-            layout.append([('auto_update',2)])
+            layout.append([('auto_update', 2)])
             update_args = ['auto_update']
 
         self._update_args = update_args
@@ -206,7 +225,12 @@ class InteractCell(object):
         Return a JSON-able description of this interact, which the client
         can use for laying out controls.
         """
-        X = {'controls':[self._controls[arg].jsonable() for arg in self._ordered_args], 'id':self._uuid}
+        X = {
+            'controls':
+            [self._controls[arg].jsonable() for arg in self._ordered_args],
+            'id':
+            self._uuid
+        }
         if self._width is not None:
             X['width'] = self._width
         if self._layout is not None:
@@ -223,7 +247,7 @@ class InteractCell(object):
         self.changed = [str(x) for x in vals.keys()]
         for k, v in vals.iteritems():
             x = self._controls[k](v)
-            self._last_vals[k] =  x
+            self._last_vals[k] = x
 
         if self._update_args is not None:
             do_it = False
@@ -235,9 +259,10 @@ class InteractCell(object):
 
         interact_exec_stack.append(self)
         try:
-            self._f(**dict([(k,self._last_vals[k]) for k in self._args]))
+            self._f(**dict([(k, self._last_vals[k]) for k in self._args]))
         finally:
             interact_exec_stack.pop()
+
 
 class InteractFunction(object):
     def __init__(self, interact_cell):
@@ -254,7 +279,7 @@ class InteractFunction(object):
         if arg in I._controls and not isinstance(value, control):
             # setting value of existing control
             v = I._controls[arg].convert_to_client(value)
-            desc = {'var':arg, 'default':v}
+            desc = {'var': arg, 'default': v}
             I._last_vals[arg] = value
         else:
             # create a new control
@@ -263,7 +288,8 @@ class InteractFunction(object):
             desc = new_control.jsonable()
         # set the id of the containing interact
         desc['id'] = I._uuid
-        salvus.javascript("worksheet.set_interact_var(obj)", obj=jsonable(desc))
+        salvus.javascript(
+            "worksheet.set_interact_var(obj)", obj=jsonable(desc))
 
     def __getattr__(self, arg):
         I = self.__dict__['interact_cell']
@@ -271,7 +297,9 @@ class InteractFunction(object):
             return I._last_vals[arg]
         except Exception as err:
             print(err)
-            raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
+            raise AttributeError(
+                "no interact control corresponding to input variable '%s'" %
+                arg)
 
     def __delattr__(self, arg):
         I = self.__dict__['interact_cell']
@@ -279,8 +307,9 @@ class InteractFunction(object):
             del I._controls[arg]
         except KeyError:
             pass
-        desc = {'id':I._uuid, 'name':arg}
-        salvus.javascript("worksheet.del_interact_var(obj)", obj=jsonable(desc))
+        desc = {'id': I._uuid, 'name': arg}
+        salvus.javascript(
+            "worksheet.del_interact_var(obj)", obj=jsonable(desc))
 
     def changed(self):
         """
@@ -295,11 +324,14 @@ class InteractFunction(object):
         """
         return self.__dict__['interact_cell'].changed
 
+
 class _interact_layout:
     def __init__(self, *args):
         self._args = args
+
     def __call__(self, f):
         return interact(f, *self._args)
+
 
 class Interact(object):
     """
@@ -455,19 +487,36 @@ class Interact(object):
                 c += 1
                 sleep(.25)
     """
-    def __call__(self, f=None, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False, output=True):
+
+    def __call__(self,
+                 f=None,
+                 layout=None,
+                 width=None,
+                 style=None,
+                 update_args=None,
+                 auto_update=True,
+                 flicker=False,
+                 output=True):
         if f is None:
-            return _interact_layout(layout, width, style, update_args, auto_update, flicker)
+            return _interact_layout(layout, width, style, update_args,
+                                    auto_update, flicker)
         else:
-            return salvus.interact(f, layout=layout, width=width, style=style,
-                                   update_args=update_args, auto_update=auto_update, flicker=flicker, output=output)
+            return salvus.interact(
+                f,
+                layout=layout,
+                width=width,
+                style=style,
+                update_args=update_args,
+                auto_update=auto_update,
+                flicker=flicker,
+                output=output)
 
     def __setattr__(self, arg, value):
         I = interact_exec_stack[-1]
         if arg in I._controls and not isinstance(value, control):
             # setting value of existing control
             v = I._controls[arg].convert_to_client(value)
-            desc = {'var':arg, 'default':v}
+            desc = {'var': arg, 'default': v}
             I._last_vals[arg] = value
         else:
             # create a new control
@@ -489,7 +538,9 @@ class Interact(object):
         try:
             return interact_exec_stack[-1]._last_vals[arg]
         except Exception as err:
-            raise AttributeError("no interact control corresponding to input variable '%s'"%arg)
+            raise AttributeError(
+                "no interact control corresponding to input variable '%s'" %
+                arg)
 
     def changed(self):
         """
@@ -504,11 +555,18 @@ class Interact(object):
         """
         return interact_exec_stack[-1].changed
 
+
 interact = Interact()
 interact_exec_stack = []
 
+
 class control:
-    def __init__(self, control_type, opts, repr, convert_from_client=None, convert_to_client=jsonable):
+    def __init__(self,
+                 control_type,
+                 opts,
+                 repr,
+                 convert_from_client=None,
+                 convert_to_client=jsonable):
         # The type of the control -- a string, used for CSS selectors, switches, etc.
         self._control_type = control_type
         # The options that define the control -- passed to client
@@ -524,7 +582,7 @@ class control:
         try:
             return self._convert_to_client(value)
         except Exception as err:
-            sys.stderr.write("convert_to_client: %s -- %s\n"%(err, self))
+            sys.stderr.write("convert_to_client: %s -- %s\n" % (err, self))
             sys.stderr.flush()
             return jsonable(value)
 
@@ -537,7 +595,7 @@ class control:
             try:
                 x = self._convert_from_client(obj)
             except Exception as err:
-                sys.stderr.write("%s -- %s\n"%(err, self))
+                sys.stderr.write("%s -- %s\n" % (err, self))
                 sys.stderr.flush()
                 x = self._last_value
         else:
@@ -562,12 +620,14 @@ class control:
 
     def jsonable(self):
         """Return JSON-able object the client browser uses to render the control."""
-        X = {'control_type':self._control_type}
+        X = {'control_type': self._control_type}
         for k, v in self._opts.iteritems():
             X[k] = jsonable(v)
         return X
 
+
 import types, inspect
+
 
 def list_of_first_n(v, n):
     """Given an iterator v, return first n elements it produces as a list."""
@@ -582,6 +642,7 @@ def list_of_first_n(v, n):
         n -= 1
     return w
 
+
 def automatic_control(default):
     from sage.all import Color
     from sage.structure.element import is_Matrix
@@ -589,9 +650,11 @@ def automatic_control(default):
     default_value = None
 
     for _ in range(2):
-        if isinstance(default, tuple) and len(default) == 2 and isinstance(default[0], str):
+        if isinstance(default, tuple) and len(default) == 2 and isinstance(
+                default[0], str):
             label, default = default
-        if isinstance(default, tuple) and len(default) == 2 and hasattr(default[1],'__iter__'):
+        if isinstance(default, tuple) and len(default) == 2 and hasattr(
+                default[1], '__iter__'):
             default_value, default = default
 
     if isinstance(default, control):
@@ -605,22 +668,41 @@ def automatic_control(default):
     elif isinstance(default, bool):
         return checkbox(default, label=label)
     elif isinstance(default, list):
-        return selector(default, default=default_value, label=label, buttons=len(default) <= 5)
+        return selector(
+            default,
+            default=default_value,
+            label=label,
+            buttons=len(default) <= 5)
     elif isinstance(default, Color):
         return color_selector(default=default, label=label)
     elif isinstance(default, tuple):
         if len(default) == 2:
-            return slider(default[0], default[1], default=default_value, label=label)
+            return slider(
+                default[0], default[1], default=default_value, label=label)
         elif len(default) == 3:
-            return slider(default[0], default[1], default[2], default=default_value, label=label)
+            return slider(
+                default[0],
+                default[1],
+                default[2],
+                default=default_value,
+                label=label)
         else:
             return slider(list(default), default=default_value, label=label)
     elif is_Matrix(default):
-        return input_grid(default.nrows(), default.ncols(), default=default.list(), to_value=default.parent(), label=label)
+        return input_grid(
+            default.nrows(),
+            default.ncols(),
+            default=default.list(),
+            to_value=default.parent(),
+            label=label)
     elif hasattr(default, '__iter__'):
-        return slider(list_of_first_n(default, 10000), default=default_value, label=label)
+        return slider(
+            list_of_first_n(default, 10000),
+            default=default_value,
+            label=label)
     else:
         return input_box(default, label=label)
+
 
 def interact_control(arg, value):
     if isinstance(value, control):
@@ -634,6 +716,7 @@ def interact_control(arg, value):
     c._opts['var'] = arg
     return c
 
+
 def sage_eval(x, locals=None, **kwds):
     if isinstance(x, str):
         x = str(x).strip()
@@ -641,6 +724,7 @@ def sage_eval(x, locals=None, **kwds):
             return None
     from sage.all import sage_eval
     return sage_eval(x, locals=locals, **kwds)
+
 
 class ParseValue:
     def __init__(self, type):
@@ -650,7 +734,8 @@ class ParseValue:
         if isinstance(value, (str, unicode)):
             if not value:
                 return ''
-            return sage_eval(value, locals=None if salvus is None else salvus.namespace)
+            return sage_eval(
+                value, locals=None if salvus is None else salvus.namespace)
         else:
             return value
 
@@ -667,13 +752,20 @@ class ParseValue:
                 return Color(value)
             except ValueError:
                 try:
-                    return Color("#"+value)
+                    return Color("#" + value)
                 except ValueError:
-                    raise TypeError("invalid color '%s'"%value)
+                    raise TypeError("invalid color '%s'" % value)
         else:
             return self._type(self._eval(value))
 
-def input_box(default=None, label=None, type=None, nrows=1, width=None, readonly=False, submit_button=None):
+
+def input_box(default=None,
+              label=None,
+              type=None,
+              nrows=1,
+              width=None,
+              readonly=False,
+              submit_button=None):
     """
     An input box interactive control for use with the :func:`interact` command.
 
@@ -688,23 +780,24 @@ def input_box(default=None, label=None, type=None, nrows=1, width=None, readonly
         - submit_button -- defaults to true if nrows > 1 and false otherwise.
     """
     return control(
-            control_type = 'input-box',
-            opts         = locals(),
-            repr         = "Input box",
-            convert_from_client = ParseValue(type)
-        )
+        control_type='input-box',
+        opts=locals(),
+        repr="Input box",
+        convert_from_client=ParseValue(type))
+
 
 def checkbox(default=True, label=None, readonly=False):
     """
     A checkbox interactive control for use with the :func:`interact` command.
     """
-    return control(
-            control_type = 'checkbox',
-            opts         = locals(),
-            repr         = "Checkbox"
-        )
+    return control(control_type='checkbox', opts=locals(), repr="Checkbox")
 
-def color_selector(default='blue', label=None, readonly=False, widget=None, hide_box=False):
+
+def color_selector(default='blue',
+                   label=None,
+                   readonly=False,
+                   widget=None,
+                   hide_box=False):
     """
     A color selector.
 
@@ -720,12 +813,12 @@ def color_selector(default='blue', label=None, readonly=False, widget=None, hide
     from sage.all import Color
     default = Color(default).html_color()
     return control(
-            control_type = 'color-selector',
-            opts         = locals(),
-            repr         = "Color selector",
-            convert_from_client = lambda x : Color(str(x)),
-            convert_to_client = lambda x : Color(x).html_color()
-        )
+        control_type='color-selector',
+        opts=locals(),
+        repr="Color selector",
+        convert_from_client=lambda x: Color(str(x)),
+        convert_to_client=lambda x: Color(x).html_color())
+
 
 def text_control(default='', label=None, classes=None):
     """
@@ -762,10 +855,8 @@ def text_control(default='', label=None, classes=None):
                 sleep(speed/50.0)
     """
     return control(
-            control_type = 'text',
-            opts         = locals(),
-            repr         = "Text %r"%(default)
-        )
+        control_type='text', opts=locals(), repr="Text %r" % (default))
+
 
 def button(default=None, label=None, classes=None, width=None, icon=None):
     """
@@ -810,12 +901,11 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
             print(interact.changed())
     """
     return control(
-            control_type = "button",
-            opts         = locals(),
-            repr         = "Button",
-            convert_from_client = lambda x : default,
-            convert_to_client   = lambda x : str(x)
-    )
+        control_type="button",
+        opts=locals(),
+        repr="Button",
+        convert_from_client=lambda x: default,
+        convert_to_client=lambda x: str(x))
 
 
 class Slider:
@@ -825,16 +915,16 @@ class Slider:
         else:
             if step_size is None:
                 if stop is None:
-                    step_size = start/float(max_steps)
+                    step_size = start / float(max_steps)
                 else:
-                    step_size = (stop-start)/float(max_steps)
+                    step_size = (stop - start) / float(max_steps)
             from sage.all import srange  # sage range is much better/more flexible.
             self.vals = srange(start, stop, step_size, include_endpoint=True)
         # Now check to see if any of thee above constructed a list of
         # values that exceeds max_steps -- if so, linearly interpolate:
         if len(self.vals) > max_steps:
-            n = len(self.vals)//max_steps
-            self.vals = [self.vals[n*i] for i in range(len(self.vals)//n)]
+            n = len(self.vals) // max_steps
+            self.vals = [self.vals[n * i] for i in range(len(self.vals) // n)]
 
     def to_client(self, val):
         if val is None:
@@ -847,7 +937,7 @@ class Slider:
                 return self.vals.index(val)  # exact match
             except ValueError:
                 pass
-            z = [(abs(val-x),i) for i, x in enumerate(self.vals)]
+            z = [(abs(val - x), i) for i, x in enumerate(self.vals)]
             z.sort()
             return z[0][1]
 
@@ -860,18 +950,20 @@ class Slider:
         else:
             return self.vals[int(val)]
 
+
 class InputGrid:
     def __init__(self, nrows, ncols, default, to_value):
-        self.nrows    = nrows
-        self.ncols    = ncols
+        self.nrows = nrows
+        self.ncols = ncols
         self.to_value = to_value
-        self.value    = copy.deepcopy(self.adapt(default))
+        self.value = copy.deepcopy(self.adapt(default))
 
     def adapt(self, x):
         if not isinstance(x, list):
             return [[x for _ in range(self.ncols)] for _ in range(self.nrows)]
         elif not all(isinstance(elt, list) for elt in x):
-            return [[x[i * self.ncols + j] for j in xrange(self.ncols)] for i in xrange(self.nrows)]
+            return [[x[i * self.ncols + j] for j in xrange(self.ncols)]
+                    for i in xrange(self.nrows)]
         else:
             return x
 
@@ -884,9 +976,13 @@ class InputGrid:
             # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
             s = '[' + ','.join([str(t) for t in x]) + ']'
             v = sage_eval(s)
-            self.value = [v[n:n+self.ncols] for n in range(0, self.nrows*self.ncols, self.ncols)]
+            self.value = [
+                v[n:n + self.ncols]
+                for n in range(0, self.nrows * self.ncols, self.ncols)
+            ]
 
-        return self.to_value(self.value) if self.to_value is not None else self.value
+        return self.to_value(
+            self.value) if self.to_value is not None else self.value
 
     def to_client(self, x=None):
         if x is None:
@@ -943,20 +1039,30 @@ def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
     ig = InputGrid(nrows, ncols, default, to_value)
 
     return control(
-            control_type = 'input-grid',
-            opts         = {'default'       : ig.to_client(),
-                            'label'         : label,
-                            'width'         : width,
-                            'nrows'         : nrows,
-                            'ncols'         : ncols},
-            repr         = "Input Grid",
-            convert_from_client = ig.from_client,
-            convert_to_client   = ig.to_client
-        )
+        control_type='input-grid',
+        opts={
+            'default': ig.to_client(),
+            'label': label,
+            'width': width,
+            'nrows': nrows,
+            'ncols': ncols
+        },
+        repr="Input Grid",
+        convert_from_client=ig.from_client,
+        convert_to_client=ig.to_client)
 
-def slider(start, stop=None, step=None, default=None, label=None,
-           display_value=True, max_steps=500, step_size=None, range=False,
-           width=None, animate=True):
+
+def slider(start,
+           stop=None,
+           step=None,
+           default=None,
+           label=None,
+           display_value=True,
+           max_steps=500,
+           step_size=None,
+           range=False,
+           width=None,
+           animate=True):
     """
     An interactive slider control for use with :func:`interact`.
 
@@ -1003,24 +1109,26 @@ def slider(start, stop=None, step=None, default=None, label=None,
                 interact.x = slider([1..50], default=interact.x, animate=speed)
                 return
     """
-    if step_size is not None: # for compat with sage
+    if step_size is not None:  # for compat with sage
         step = step_size
     slider = Slider(start, stop, step, max_steps)
     vals = [str(x) for x in slider.vals]  # for display by the client
     if range and default is None:
-        default = [0, len(vals)-1]
+        default = [0, len(vals) - 1]
     return control(
-            control_type = 'range-slider' if range else 'slider',
-            opts         = {'default'       : slider.to_client(default),
-                            'label'         : label,
-                            'animate'       : animate,
-                            'vals'          : vals,
-                            'display_value' : display_value,
-                            'width'         : width},
-            repr         = "Slider",
-            convert_from_client = slider.from_client,
-            convert_to_client   = slider.to_client
-        )
+        control_type='range-slider' if range else 'slider',
+        opts={
+            'default': slider.to_client(default),
+            'label': label,
+            'animate': animate,
+            'vals': vals,
+            'display_value': display_value,
+            'width': width
+        },
+        repr="Slider",
+        convert_from_client=slider.from_client,
+        convert_to_client=slider.to_client)
+
 
 def range_slider(*args, **kwds):
     """
@@ -1037,8 +1145,14 @@ def range_slider(*args, **kwds):
     kwds['range'] = True
     return slider(*args, **kwds)
 
-def selector(values, label=None, default=None,
-             nrows=None, ncols=None, width=None, buttons=False,
+
+def selector(values,
+             label=None,
+             default=None,
+             nrows=None,
+             ncols=None,
+             width=None,
+             buttons=False,
              button_classes=None):
     """
         A drop down menu or a button bar for use in conjunction with
@@ -1074,7 +1188,8 @@ def selector(values, label=None, default=None,
           See http://twitter.github.com/bootstrap/base-css.html#buttons
           If button_classes a single string, that class is applied to all buttons.
     """
-    if (len(values) > 0 and isinstance(values[0], tuple) and len(values[0]) == 2):
+    if (len(values) > 0 and isinstance(values[0], tuple)
+            and len(values[0]) == 2):
         vals = [z[0] for z in values]
         lbls = [str(z[1]) if z[1] is not None else None for z in values]
     else:
@@ -1101,30 +1216,31 @@ def selector(values, label=None, default=None,
 
     opts['lbls'] = lbls
     return control(
-            control_type        = 'selector',
-            opts                = opts,
-            repr                = "Selector labeled %r with values %s"%(label, values),
-            convert_from_client = lambda n : vals[int(n)],
-            convert_to_client   = lambda x : vals.index(x)
-        )
-
+        control_type='selector',
+        opts=opts,
+        repr="Selector labeled %r with values %s" % (label, values),
+        convert_from_client=lambda n: vals[int(n)],
+        convert_to_client=lambda x: vals.index(x))
 
 
 interact_functions = {}
-interact_controls = ['button', 'checkbox', 'color_selector', 'input_box',
-                     'range_slider', 'selector', 'slider', 'text_control',
-                     'input_grid']
+interact_controls = [
+    'button', 'checkbox', 'color_selector', 'input_box', 'range_slider',
+    'selector', 'slider', 'text_control', 'input_grid'
+]
 
 for f in ['interact'] + interact_controls:
     interact_functions[f] = globals()[f]
 
+
 # A little magic so that "interact.controls.[tab]" shows all the controls.
 class Controls:
     pass
+
+
 Interact.controls = Controls()
 for f in interact_controls:
     interact.controls.__dict__[f] = interact_functions[f]
-
 
 ##########################################################################################
 # Cell object -- programatically control the current cell.
@@ -1172,6 +1288,7 @@ class Cell(object):
     #    salvus.javascript("cell.set_output(obj)", obj=val)
     #    return salvus.output(val, self._id)
 
+
 cell = Cell()
 
 ##########################################################################################
@@ -1183,6 +1300,7 @@ try:
     _html = sage.misc.html.HTML()
 except:
     _html = sage.misc.html.HTMLFragmentFactory
+
 
 class HTML:
     """
@@ -1207,6 +1325,7 @@ class HTML:
         %html(hide=False) <h1>Title</h1>
 
     """
+
     def __init__(self, hide=False):
         self._hide = hide
 
@@ -1223,7 +1342,7 @@ class HTML:
             salvus.hide('input')
         salvus.html(s)
 
-    def table(self, rows = None, header=False):
+    def table(self, rows=None, header=False):
         """
         Renders a given matrix or nested list as an HTML table.
 
@@ -1239,13 +1358,14 @@ class HTML:
         import numpy as np
 
         if is_Matrix(rows):
-            table = list(rows) # list of Sage Vectors
+            table = list(rows)  # list of Sage Vectors
         elif isinstance(rows, np.ndarray):
             table = rows.tolist()
         else:
             table = rows
 
-        assert isinstance(table, (tuple, list)), '"rows" must be a list of lists'
+        assert isinstance(table,
+                          (tuple, list)), '"rows" must be a list of lists'
 
         def as_unicode(s):
             '''
@@ -1260,18 +1380,26 @@ class HTML:
 
         def mk_row(row, header=False):
             is_vector = hasattr(row, 'is_vector') and row.is_vector()
-            assert isinstance(row, (tuple, list)) or is_vector, '"rows" must contain lists or vectors for each row'
+            assert isinstance(
+                row, (tuple, list)
+            ) or is_vector, '"rows" must contain lists or vectors for each row'
             tag = 'th' if header else 'td'
-            row = [u'<{tag}>{}</{tag}>'.format(as_unicode(_), tag = tag) for _ in row]
+            row = [
+                u'<{tag}>{}</{tag}>'.format(as_unicode(_), tag=tag)
+                for _ in row
+            ]
             return u'<tr>{}</tr>'.format(u''.join(row))
 
-        thead = u'<thead>{}</thead>'.format(mk_row(table.pop(0), header=True)) if header else ''
+        thead = u'<thead>{}</thead>'.format(mk_row(
+            table.pop(0), header=True)) if header else ''
         h_rows = [mk_row(row) for row in table]
         html_table = u'<table style="width: auto;" class="table table-bordered">{}<tbody>{}</tbody></table>'
         self(html_table.format(thead, ''.join(h_rows)))
 
+
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
+
 
 def coffeescript(s=None, once=False):
     """
@@ -1321,9 +1449,10 @@ def coffeescript(s=None, once=False):
     which is much faster, not requiring a round-trip to the server.
     """
     if s is None:
-        return lambda s : salvus.javascript(s, once=once, coffeescript=True)
+        return lambda s: salvus.javascript(s, once=once, coffeescript=True)
     else:
         return salvus.javascript(s, coffeescript=True, once=once)
+
 
 def javascript(s=None, once=False):
     """
@@ -1389,9 +1518,10 @@ def javascript(s=None, once=False):
     which is much faster, not requiring a round-trip to the server.
     """
     if s is None:
-        return lambda s : salvus.javascript(s, once=once)
+        return lambda s: salvus.javascript(s, once=once)
     else:
         return salvus.javascript(s, once=once)
+
 
 javascript_exec_doc = r"""
 
@@ -1446,6 +1576,7 @@ including jQuery, Twitter Bootstrap, jQueryUI, etc.
 for s in [coffeescript, javascript]:
     s.__doc__ += javascript_exec_doc
 
+
 def latex0(s=None, **kwds):
     """
     Create and display an arbitrary LaTeX document as a png image in the Salvus Notebook.
@@ -1454,7 +1585,7 @@ def latex0(s=None, **kwds):
     at the top of a cell, which will typeset everything else in the cell.
     """
     if s is None:
-        return lambda t : latex0(t, **kwds)
+        return lambda t: latex0(t, **kwds)
     import os
     if 'filename' not in kwds:
         import tempfile
@@ -1473,7 +1604,8 @@ def latex0(s=None, **kwds):
         os.unlink(kwds['filename'])
     return ''
 
-latex0.__doc__ +=  sage.misc.latex.Latex.eval.__doc__
+
+latex0.__doc__ += sage.misc.latex.Latex.eval.__doc__
 
 
 class Time:
@@ -1487,6 +1619,7 @@ class Time:
     If you want to time repeated execution of code for benchmarking purposes, use
     the timeit command instead.
     """
+
     def __init__(self, start=False):
         if start:
             from sage.all import walltime, cputime
@@ -1498,7 +1631,8 @@ class Time:
 
     def after(self, code):
         from sage.all import walltime, cputime
-        print("\nCPU time: %.2f s, Wall time: %.2f s" % (cputime(self._start_cputime), walltime(self._start_walltime)))
+        print("\nCPU time: %.2f s, Wall time: %.2f s" % (cputime(
+            self._start_cputime), walltime(self._start_walltime)))
         self._start_cputime = self._start_walltime = None
 
     def __call__(self, code):
@@ -1509,6 +1643,7 @@ class Time:
         salvus.execute(code)
         if not_as_decorator:
             self.after(code)
+
 
 time = Time()
 
@@ -1533,7 +1668,7 @@ def file(path):
 
         %file(a+b[0]+'.'+b[1])  rest of line goes in 'filename.txt'
     """
-    return lambda content: open(path,'w').write(content)
+    return lambda content: open(path, 'w').write(content)
 
 
 def timeit(*args, **kwds):
@@ -1560,12 +1695,17 @@ def timeit(*args, **kwds):
     Here is the original docstring for timeit:
 
     """
+
     def go(code):
-        print(sage.misc.sage_timeit.sage_timeit(code, globals_dict=salvus.namespace, **kwds))
+        print(
+            sage.misc.sage_timeit.sage_timeit(
+                code, globals_dict=salvus.namespace, **kwds))
+
     if len(args) == 0:
-        return lambda code : go(code)
+        return lambda code: go(code)
     else:
         go(*args)
+
 
 # TODO: these need to also give the argspec
 timeit.__doc__ += sage.misc.sage_timeit.sage_timeit.__doc__
@@ -1595,6 +1735,7 @@ class Capture:
     - append -- (default: False) if stdout/stderr are a string, append to corresponding variable
     - echo   -- (default: False) if True, also echo stdout/stderr to the output cell.
     """
+
     def __init__(self, stdout, stderr, append, echo):
         self.v = (stdout, stderr, append, echo)
 
@@ -1603,6 +1744,7 @@ class Capture:
         self._orig_stdout_f = orig_stdout_f = sys.stdout._f
         if stdout is not None:
             if hasattr(stdout, 'write'):
+
                 def write_stdout(buf):
                     stdout.write(buf)
             elif isinstance(stdout, str):
@@ -1610,26 +1752,33 @@ class Capture:
                     salvus.namespace[stdout] = ''
                 if not isinstance(salvus.namespace[stdout], str):
                     salvus.namespace[stdout] = str(salvus.namespace[stdout])
+
                 def write_stdout(buf):
                     salvus.namespace[stdout] += buf
             else:
-                raise TypeError("stdout must be None, a string, or have a write method")
+                raise TypeError(
+                    "stdout must be None, a string, or have a write method")
+
             def f(buf, done):
                 write_stdout(buf)
                 if echo:
                     orig_stdout_f(buf, done)
                 elif done:
                     orig_stdout_f('', done)
+
             sys.stdout._f = f
         elif not echo:
-            def f(buf,done):
+
+            def f(buf, done):
                 if done:
-                    orig_stdout_f('',done)
+                    orig_stdout_f('', done)
+
             sys.stdout._f = f
 
         self._orig_stderr_f = orig_stderr_f = sys.stderr._f
         if stderr is not None:
             if hasattr(stderr, 'write'):
+
                 def write_stderr(buf):
                     stderr.write(buf)
             elif isinstance(stderr, str):
@@ -1637,34 +1786,44 @@ class Capture:
                     salvus.namespace[stderr] = ''
                 if not isinstance(salvus.namespace[stderr], str):
                     salvus.namespace[stderr] = str(salvus.namespace[stderr])
+
                 def write_stderr(buf):
                     salvus.namespace[stderr] += buf
             else:
-                raise TypeError("stderr must be None, a string, or have a write method")
+                raise TypeError(
+                    "stderr must be None, a string, or have a write method")
+
             def f(buf, done):
                 write_stderr(buf)
                 if echo:
                     orig_stderr_f(buf, done)
                 elif done:
                     orig_stderr_f('', done)
+
             sys.stderr._f = f
         elif not echo:
-            def f(buf,done):
-                if done:
-                    orig_stderr_f('',done)
-            sys.stderr._f = f
 
+            def f(buf, done):
+                if done:
+                    orig_stderr_f('', done)
+
+            sys.stderr._f = f
 
         return self
 
-    def __call__(self, code=None, stdout=None, stderr=None, append=False, echo=False):
+    def __call__(self,
+                 code=None,
+                 stdout=None,
+                 stderr=None,
+                 append=False,
+                 echo=False):
         if code is None:
-            return Capture(stdout=stdout, stderr=stderr, append=append, echo=echo)
+            return Capture(
+                stdout=stdout, stderr=stderr, append=append, echo=echo)
         if salvus._prefix:
             if not code.startswith("%"):
                 code = salvus._prefix + '\n' + code
         salvus.execute(code)
-
 
     def after(self, code):
         sys.stdout._f = self._orig_stdout_f
@@ -1675,6 +1834,7 @@ capture = Capture(stdout=None, stderr=None, append=False, echo=False)
 
 import sage.misc.cython
 
+
 def asy(code=None, **kwds):
     # make a .pdf from .asy code and display it
     # asy command can also be used to make .eps file
@@ -1683,7 +1843,7 @@ def asy(code=None, **kwds):
     import os
     fname1 = tempfile.mkstemp(suffix=".asy")[1]
     fname2 = tempfile.mkstemp(suffix=".png")[1]
-    with open(fname1,"w") as outf1:
+    with open(fname1, "w") as outf1:
         outf1.write(code + '\n')
     cmd = "/usr/bin/asy -offscreen -f png -o {} {}".format(fname2, fname1)
     p = subprocess.call(cmd.split())
@@ -1691,6 +1851,7 @@ def asy(code=None, **kwds):
     os.unlink(fname1)
     os.unlink(fname2)
     print('')
+
 
 def cython(code=None, **kwds):
     """
@@ -1728,10 +1889,10 @@ def cython(code=None, **kwds):
     modname, path = sage.misc.cython.cython(filename, **kwds)
 
     try:
-    	sys.path.insert(0,path)
-    	module = __import__(modname)
+        sys.path.insert(0, path)
+        module = __import__(modname)
     finally:
-    	del sys.path[0]
+        del sys.path[0]
 
     import inspect
     defined = []
@@ -1752,7 +1913,9 @@ def cython(code=None, **kwds):
         if ext.startswith('.html') and '_pyx_' in base:
             html_filename = os.path.join(path, n)
     if html_filename is not None:
-        salvus.file(html_filename, raw=True, show=True, text="Auto-generated code...")
+        salvus.file(
+            html_filename, raw=True, show=True, text="Auto-generated code...")
+
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
 
@@ -1787,17 +1950,24 @@ class script:
 
     You may also specify the shell environment with the env keyword.
     """
+
     def __init__(self, args, env=None):
         self._args = args
         self._env = env
+
     def __call__(self, code=''):
         import subprocess
         try:
             s = None
-            s = subprocess.Popen(self._args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT, shell=isinstance(self._args, str),
-                                 env=self._env)
-            s.stdin.write(code); s.stdin.close()
+            s = subprocess.Popen(
+                self._args,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                shell=isinstance(self._args, str),
+                env=self._env)
+            s.stdin.write(code)
+            s.stdin.close()
         finally:
             if s is None:
                 return
@@ -1806,13 +1976,14 @@ class script:
                 sys.stdout.write(self.stdout)
             finally:
                 try:
-                    os.system("pkill -TERM -P %s"%s.pid)
+                    os.system("pkill -TERM -P %s" % s.pid)
                 except OSError:
                     pass
-               	try:
+                try:
                     os.kill(s.pid, 9)
                 except OSError:
                     pass
+
 
 def python(code):
     """
@@ -1825,7 +1996,8 @@ def python(code):
     """
     salvus.execute(code, preparse=False)
 
-def python3(code=None,**kwargs):
+
+def python3(code=None, **kwargs):
     """
     Block decorator to run code in a pure Python3 mode session.
 
@@ -1851,10 +2023,13 @@ def python3(code=None,**kwargs):
     """
     if python3.jupyter_kernel is None:
         python3.jupyter_kernel = jupyter("anaconda3")
-    return python3.jupyter_kernel(code,**kwargs)
+    return python3.jupyter_kernel(code, **kwargs)
+
+
 python3.jupyter_kernel = None
 
-def singular_kernel(code=None,**kwargs):
+
+def singular_kernel(code=None, **kwargs):
     """
     Block decorator to run code in a Singular mode session.
 
@@ -1876,8 +2051,11 @@ def singular_kernel(code=None,**kwargs):
     """
     if singular_kernel.jupyter_kernel is None:
         singular_kernel.jupyter_kernel = jupyter("singular")
-    return singular_kernel.jupyter_kernel(code,**kwargs)
+    return singular_kernel.jupyter_kernel(code, **kwargs)
+
+
 singular_kernel.jupyter_kernel = None
+
 
 def perl(code):
     """
@@ -2008,7 +2186,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         old_import_path = os.sys.path
         os.sys.path.append(mytmpdir)
 
-        name = "fortran_module_%s"%randint(0,2**64)  # Python module name
+        name = "fortran_module_%s" % randint(0, 2**64)  # Python module name
         # if the first line has !f90 as a comment, gfortran will
         # treat it as Fortran 90 code
         if x.startswith('!f90'):
@@ -2022,13 +2200,13 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
             s_lib_path = s_lib_path + "-L%s "
 
         for s in libraries:
-            s_lib = s_lib + "-l%s "%s
+            s_lib = s_lib + "-l%s " % s
 
         log = name + ".log"
-        extra_args = '--quiet --f77exec=sage-inline-fortran --f90exec=sage-inline-fortran %s %s >"%s" 2>&1'%(
+        extra_args = '--quiet --f77exec=sage-inline-fortran --f90exec=sage-inline-fortran %s %s >"%s" 2>&1' % (
             s_lib_path, s_lib, log)
 
-        f2py.compile(x, name, extra_args = extra_args, source_fn=fortran_file)
+        f2py.compile(x, name, extra_args=extra_args, source_fn=fortran_file)
         log_string = open(log).read()
 
         # f2py.compile() doesn't raise any exception if it fails.
@@ -2042,7 +2220,8 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         else:
             soname += '.so'
         if not os.path.isfile(soname):
-            raise RuntimeError("failed to compile Fortran code:\n" + log_string)
+            raise RuntimeError("failed to compile Fortran code:\n" +
+                               log_string)
 
         if verbose:
             print(log_string)
@@ -2063,7 +2242,8 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         if k[0] != '_':
             salvus.namespace[k] = x
 
-def sh(code=None,**kwargs):
+
+def sh(code=None, **kwargs):
     """
     Run a bash script in Salvus. Uses jupyter bash kernel
     which allows keeping state between cells.
@@ -2116,12 +2296,17 @@ def sh(code=None,**kwargs):
     """
     if sh.jupyter_kernel is None:
         sh.jupyter_kernel = jupyter("bash")
-        sh.jupyter_kernel('function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}')
-    return sh.jupyter_kernel(code,**kwargs)
+        sh.jupyter_kernel(
+            'function command_not_found_handle { printf "%s: command not found\n" "$1" >&2; return 127;}'
+        )
+    return sh.jupyter_kernel(code, **kwargs)
+
+
 sh.jupyter_kernel = None
 
+
 # use jupyter kernel for GNU octave instead of sage interpreter interface
-def octave(code=None,**kwargs):
+def octave(code=None, **kwargs):
     r"""
     Run GNU Octave code in a sage worksheet.
 
@@ -2142,11 +2327,14 @@ def octave(code=None,**kwargs):
     if octave.jupyter_kernel is None:
         octave.jupyter_kernel = jupyter("octave")
         octave.jupyter_kernel.smc_image_scaling = 1
-    return octave.jupyter_kernel(code,**kwargs)
+    return octave.jupyter_kernel(code, **kwargs)
+
+
 octave.jupyter_kernel = None
 
+
 # jupyter kernel for %ir mode
-def r(code=None,**kwargs):
+def r(code=None, **kwargs):
     r"""
     Run R code in a sage worksheet.
 
@@ -2168,11 +2356,14 @@ def r(code=None,**kwargs):
         r.jupyter_kernel = jupyter("ir")
         r.jupyter_kernel('options(repr.plot.res = 240)')
         r.jupyter_kernel.smc_image_scaling = .5
-    return r.jupyter_kernel(code,**kwargs)
+    return r.jupyter_kernel(code, **kwargs)
+
+
 r.jupyter_kernel = None
 
+
 # jupyter kernel for %scala mode
-def scala211(code=None,**kwargs):
+def scala211(code=None, **kwargs):
     r"""
     Run scala code in a sage worksheet.
 
@@ -2188,10 +2379,13 @@ def scala211(code=None,**kwargs):
     """
     if scala211.jupyter_kernel is None:
         scala211.jupyter_kernel = jupyter("scala211")
-    return scala211.jupyter_kernel(code,**kwargs)
+    return scala211.jupyter_kernel(code, **kwargs)
+
+
 scala211.jupyter_kernel = None
 # add alias for generic scala
 scala = scala211
+
 
 def prun(code):
     """
@@ -2216,17 +2410,25 @@ def prun(code):
     from sage.misc.all import tmp_filename
 
     filename = tmp_filename()
-    cProfile.runctx(salvus.namespace['preparse'](code), salvus.namespace, locals(), filename)
+    cProfile.runctx(salvus.namespace['preparse'](code), salvus.namespace,
+                    locals(), filename)
 
     @interact
-    def f(title = text_control('', "<h1>Salvus Profiler</h1>"),
-          sort=("First sort by", selector([('calls', 'number of calls to the function'),
-                                     ('time', ' total time spent in the function'),
-                                     ('cumulative', 'total time spent in this and all subfunctions (from invocation till exit)'),
-                                     ('module', 'name of the module that contains the function'),
-                                     ('name', 'name of the function')
-                                     ], width="100%", default='time')),
-          strip_dirs=True):
+    def f(
+            title=text_control('', "<h1>Salvus Profiler</h1>"),
+            sort=(
+                "First sort by",
+                selector(
+                    [('calls', 'number of calls to the function'),
+                     ('time', ' total time spent in the function'),
+                     ('cumulative',
+                      'total time spent in this and all subfunctions (from invocation till exit)'
+                      ), ('module',
+                          'name of the module that contains the function'),
+                     ('name', 'name of the function')],
+                    width="100%",
+                    default='time')),
+            strip_dirs=True):
         try:
             p = pstats.Stats(filename)
             if strip_dirs:
@@ -2237,23 +2439,25 @@ def prun(code):
             print(msg)
 
 
-
 ##############################################################
 # The %fork cell decorator.
 ##############################################################
 
+
 def _wait_in_thread(pid, callback, filename):
     from sage.structure.sage_object import load
+
     def wait():
         try:
-            os.waitpid(pid,0)
+            os.waitpid(pid, 0)
             callback(load(filename))
         except Exception as msg:
-        	callback(msg)
+            callback(msg)
 
     from threading import Thread
     t = Thread(target=wait, args=tuple([]))
     t.start()
+
 
 def async(f, args, kwds, callback):
     """
@@ -2313,6 +2517,7 @@ class Fork(object):
 
     NOTE: All pexpect interfaces are reset in the child process.
     """
+
     def __init__(self):
         self._children = {}
 
@@ -2321,7 +2526,7 @@ class Fork(object):
 
     def __call__(self, s):
 
-        if isinstance(s, types.FunctionType): # check for decorator usage
+        if isinstance(s, types.FunctionType):  # check for decorator usage
             import sage.parallel.decorate
             return sage.parallel.decorate.fork(s)
 
@@ -2352,11 +2557,11 @@ class Fork(object):
                 try:
                     result[var] = dumps(salvus.namespace[var])
                 except:
-                    result[var] = 'unable to pickle %s'%var
+                    result[var] = 'unable to pickle %s' % var
             return result
 
-
         from sage.structure.sage_object import loads
+
         def g(s):
             if isinstance(s, Exception):
                 sys.stderr.write(str(s))
@@ -2367,7 +2572,7 @@ class Fork(object):
                         salvus.namespace[var] = loads(val)
                     except:
                         print("unable to unpickle %s" % var)
-            salvus._conn.send_json({'event':'output', 'id':id, 'done':True})
+            salvus._conn.send_json({'event': 'output', 'id': id, 'done': True})
             if pid in self._children:
                 del self._children[pid]
 
@@ -2377,14 +2582,18 @@ class Fork(object):
 
     def kill(self, pid):
         if pid in self._children:
-            salvus._conn.send_json({'event':'output', 'id':self._children[pid], 'done':True})
+            salvus._conn.send_json({
+                'event': 'output',
+                'id': self._children[pid],
+                'done': True
+            })
             os.kill(pid, 9)
             del self._children[pid]
         else:
             raise ValueError("Unknown pid = (%s)" % pid)
 
-fork = Fork()
 
+fork = Fork()
 
 ####################################################
 # Display of 2d/3d graphics objects
@@ -2393,6 +2602,7 @@ fork = Fork()
 from sage.misc.all import tmp_filename
 from sage.plot.animate import Animation
 import matplotlib.figure
+
 
 def show_animation(obj, delay=20, gif=False, **kwds):
     if gif:
@@ -2403,7 +2613,10 @@ def show_animation(obj, delay=20, gif=False, **kwds):
     else:
         t = tmp_filename(ext='.webm')
         obj.ffmpeg(t, delay=delay, **kwds)
-        salvus.file(t, raw=True)   # and let delete when worksheet ends - need this so can replay video.
+        salvus.file(
+            t, raw=True
+        )  # and let delete when worksheet ends - need this so can replay video.
+
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     if isinstance(obj, matplotlib.image.AxesImage):
@@ -2424,13 +2637,14 @@ def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     if 'events' in kwds:
         from graphics import InteractiveGraphics
         ig = InteractiveGraphics(obj, **kwds['events'])
-        n = '__a'+uuid().replace('-','')  # so it doesn't get garbage collected instantly.
+        n = '__a' + uuid().replace(
+            '-', '')  # so it doesn't get garbage collected instantly.
         obj.__setattr__(n, ig)
         kwds2 = dict(kwds)
         del kwds2['events']
         ig.show(**kwds2)
     else:
-        t = tmp_filename(ext = '.svg' if svg else '.png')
+        t = tmp_filename(ext='.svg' if svg else '.png')
         if isinstance(obj, matplotlib.figure.Figure):
             obj.savefig(t, **kwds)
         else:
@@ -2438,19 +2652,26 @@ def show_2d_plot_using_matplotlib(obj, svg, **kwds):
         salvus.file(t)
         os.unlink(t)
 
+
 def show_3d_plot_using_tachyon(obj, **kwds):
-    t = tmp_filename(ext = '.png')
+    t = tmp_filename(ext='.png')
     obj.save(t, **kwds)
     salvus.file(t)
     os.unlink(t)
+
 
 def show_graph_using_d3(obj, **kwds):
     salvus.d3_graph(obj, **kwds)
 
 
-def plot3d_using_matplotlib(expr, rangeX, rangeY,
-                            density=40, elev=45., azim=35.,
-                            alpha=0.85, cmap=None):
+def plot3d_using_matplotlib(expr,
+                            rangeX,
+                            rangeY,
+                            density=40,
+                            elev=45.,
+                            azim=35.,
+                            alpha=0.85,
+                            cmap=None):
     """
     Plots a symbolic expression in two variables on a two dimensional grid
     and renders the function using matplotlib's 3D projection.
@@ -2494,10 +2715,16 @@ def plot3d_using_matplotlib(expr, rangeX, rangeY,
     Z = exprv(X, Y)
     zlim = np.min(Z), np.max(Z)
 
-    ax.plot_surface(X, Y, Z, alpha=alpha, cmap=cmap, linewidth=.5,
-                    shade=True,
-                    rstride=int(len(xx)/10),
-                    cstride=int(len(yy)/10))
+    ax.plot_surface(
+        X,
+        Y,
+        Z,
+        alpha=alpha,
+        cmap=cmap,
+        linewidth=.5,
+        shade=True,
+        rstride=int(len(xx) / 10),
+        cstride=int(len(yy) / 10))
 
     ax.set_xlabel('X')
     ax.set_xlim(*rangeX[1:])
@@ -2513,6 +2740,7 @@ from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 from sage.plot.plot3d.tachyon import Tachyon
 import cgi
+
 
 def show(*objs, **kwds):
     """
@@ -2595,17 +2823,19 @@ def show(*objs, **kwds):
             show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
     # svg=True, d3=True,
-    svg = kwds.get('svg',True)
-    d3 = kwds.get('d3',True)
+    svg = kwds.get('svg', True)
+    d3 = kwds.get('d3', True)
     display = kwds.get('display', True)
     for t in ['svg', 'd3', 'display']:
         if t in kwds:
             del kwds[t]
     import graphics
+
     def show0(obj, combine_all=False):
         # Either show the object and return None or
         # return a string of html to represent obj.
-        if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage)):
+        if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure,
+                            matplotlib.axes.Axes, matplotlib.image.AxesImage)):
             show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
         elif isinstance(obj, Animation):
             show_animation(obj, **kwds)
@@ -2614,7 +2844,10 @@ def show(*objs, **kwds):
             # _extra_kwds processing follows the example of
             # src/smc_sagews/smc_sagews/graphics.py:show_3d_plot_using_threejs()
             extra_kwds = {} if obj._extra_kwds is None else obj._extra_kwds
-            for k in ['spin', 'renderer', 'viewer', 'frame', 'height', 'width', 'background', 'foreground', 'aspect_ratio']:
+            for k in [
+                    'spin', 'renderer', 'viewer', 'frame', 'height', 'width',
+                    'background', 'foreground', 'aspect_ratio'
+            ]:
                 if k in extra_kwds and k not in kwds:
                     kwds[k] = obj._extra_kwds[k]
 
@@ -2629,7 +2862,8 @@ def show(*objs, **kwds):
                 # graphics.show_3d_plot_using_threejs(obj, **kwds)
         elif isinstance(obj, Tachyon):
             show_3d_plot_using_tachyon(obj, **kwds)
-        elif isinstance(obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
+        elif isinstance(
+                obj, (sage.graphs.graph.Graph, sage.graphs.digraph.DiGraph)):
             if d3:
                 show_graph_using_d3(obj, **kwds)
             else:
@@ -2646,9 +2880,9 @@ def show(*objs, **kwds):
                 return ' '.join(v)
             s = ', '.join(v)
             if isinstance(obj, list):
-                return '[%s]'%s
+                return '[%s]' % s
             else:
-                return '(%s)'%s
+                return '(%s)' % s
         elif is_dataframe(obj):
             html(obj.to_html(), hide=False)
         else:
@@ -2674,20 +2908,22 @@ def show(*objs, **kwds):
                 return ''
             # default
             elif display:
-                return "$\\displaystyle %s$"%s
+                return "$\\displaystyle %s$" % s
             else:
-                return "$%s$"%s
+                return "$%s$" % s
+
     sys.stdout.flush()
     sys.stderr.flush()
     s = show0(objs, combine_all=True)
     if s is not None:
         if len(s) > 0:
             if display:
-                salvus.html("<div align='center'>%s</div>"%cgi.escape(s))
+                salvus.html("<div align='center'>%s</div>" % cgi.escape(s))
             else:
-                salvus.html("<div>%s</div>"%cgi.escape(s))
+                salvus.html("<div>%s</div>" % cgi.escape(s))
         sys.stdout.flush()
         sys.stderr.flush()
+
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
@@ -2702,6 +2938,7 @@ except:
     # so doesn't crash on older versions of Sage.
     pass
 
+
 ###################################################
 # %auto -- automatically evaluate a cell on load
 ###################################################
@@ -2714,7 +2951,8 @@ def auto(s):
     Thus %auto allows you to initialize functions, variables, interacts,
     etc., e.g., when loading a worksheet.
     """
-    return s # the do-nothing block decorator.
+    return s  # the do-nothing block decorator.
+
 
 def hide(component='input'):
     """
@@ -2732,9 +2970,10 @@ def hide(component='input'):
         return component
     cell.hide(component)
 
+
 def hideall(code=None):
     cell.hideall()
-    if code is not None: # for backwards compat with sagenb
+    if code is not None:  # for backwards compat with sagenb
         return code
 
 
@@ -2755,58 +2994,63 @@ class Exercise:
 
         if check is None:
             R = sage.all.parent(answer[0])
+
             def check(attempt):
                 return R(attempt) == answer[0]
 
         if hints is None:
-            hints = ['','','',"The answer is %s."%answer[0]]
+            hints = ['', '', '', "The answer is %s." % answer[0]]
 
-        self._question       = question
-        self._answer         = answer
-        self._check          = check
-        self._hints          = hints
+        self._question = question
+        self._answer = answer
+        self._check = check
+        self._hints = hints
 
     def _check_attempt(self, attempt, interact):
         from sage.misc.all import walltime
         response = "<div class='well'>"
         try:
             r = self._check(attempt)
-            if isinstance(r, tuple) and len(r)==2:
+            if isinstance(r, tuple) and len(r) == 2:
                 correct = r[0]
                 comment = r[1]
             else:
                 correct = bool(r)
                 comment = ''
         except TypeError as msg:
-            response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>"%(msg, attempt)
+            response += "<h3 style='color:darkgreen'>Huh? -- %s (attempt=%s)</h3>" % (
+                msg, attempt)
         else:
             if correct:
                 response += "<h1 style='color:blue'>RIGHT!</h1>"
                 if self._start_time:
-                    response += "<h2 class='lighten'>Time: %.1f seconds</h2>"%(walltime()-self._start_time,)
+                    response += "<h2 class='lighten'>Time: %.1f seconds</h2>" % (
+                        walltime() - self._start_time, )
                 if self._number_of_attempts == 1:
                     response += "<h3 class='lighten'>You got it first try!</h3>"
                 else:
-                    response += "<h3 class='lighten'>It took you %s attempts.</h3>"%(self._number_of_attempts,)
+                    response += "<h3 class='lighten'>It took you %s attempts.</h3>" % (
+                        self._number_of_attempts, )
             else:
                 response += "<h3 style='color:darkgreen'>Not correct yet...</h3>"
                 if self._number_of_attempts == 1:
                     response += "<h4 style='lighten'>(first attempt)</h4>"
                 else:
-                    response += "<h4 style='lighten'>(%s attempts)</h4>"%self._number_of_attempts
+                    response += "<h4 style='lighten'>(%s attempts)</h4>" % self._number_of_attempts
 
                 if self._number_of_attempts > len(self._hints):
                     hint = self._hints[-1]
                 else:
-                    hint = self._hints[self._number_of_attempts-1]
+                    hint = self._hints[self._number_of_attempts - 1]
                 if hint:
-                    response += "<span class='lighten'>(HINT: %s)</span>"%(hint,)
+                    response += "<span class='lighten'>(HINT: %s)</span>" % (
+                        hint, )
             if comment:
-                response += '<h4>%s</h4>'%comment
+                response += '<h4>%s</h4>' % comment
 
         response += "</div>"
 
-        interact.feedback = text_control(response,label='')
+        interact.feedback = text_control(response, label='')
 
         return correct
 
@@ -2815,16 +3059,23 @@ class Exercise:
         self._start_time = walltime()
         self._number_of_attempts = 0
         attempts = []
-        @interact(layout=[[('question',12)],[('attempt',12)], [('feedback',12)]])
-        def f(question = ("<b>Question:</b>", text_control(self._question)),
-              attempt   = ('<b>Answer:</b>',self._answer[1])):
+
+        @interact(layout=[[('question', 12)], [('attempt', 12)], [('feedback',
+                                                                   12)]])
+        def f(
+                question=("<b>Question:</b>", text_control(self._question)),
+                attempt=('<b>Answer:</b>', self._answer[1])):
             if 'attempt' in interact.changed() and attempt != '':
                 attempts.append(attempt)
                 if self._start_time == 0:
                     self._start_time = walltime()
                 self._number_of_attempts += 1
                 if self._check_attempt(attempt, interact):
-                    cb({'attempts':attempts, 'time':walltime()-self._start_time})
+                    cb({
+                        'attempts': attempts,
+                        'time': walltime() - self._start_time
+                    })
+
 
 def exercise(code):
     r"""
@@ -2918,34 +3169,50 @@ def exercise(code):
                 return False, "too high"
     """
     f = closure(code)
+
     def g():
         x = f()
-        return x.get('title',''), x.get('question', ''), x.get('answer',''), x.get('check',None), x.get('hints',None)
+        return x.get('title',
+                     ''), x.get('question', ''), x.get('answer', ''), x.get(
+                         'check', None), x.get('hints', None)
 
     title, question, answer, check, hints = g()
     obj = {}
     obj['E'] = Exercise(question, answer, check, hints)
     obj['title'] = title
+
     def title_control(t):
-        return text_control('<h3 class="lighten">%s</h3>'%t)
+        return text_control('<h3 class="lighten">%s</h3>' % t)
 
     the_times = []
-    @interact(layout=[[('go',1), ('title',11,'')],[('')], [('times',12, "<b>Times:</b>")]], flicker=True)
-    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='fa-refresh', classes="btn-large btn-success"),
-          title = title_control(title),
-          times = text_control('')):
+
+    @interact(
+        layout=[[('go', 1), ('title', 11, '')], [('')], [('times', 12,
+                                                          "<b>Times:</b>")]],
+        flicker=True)
+    def h(
+            go=button(
+                "&nbsp;" * 5 + "Go" + "&nbsp;" * 7,
+                label='',
+                icon='fa-refresh',
+                classes="btn-large btn-success"),
+            title=title_control(title),
+            times=text_control('')):
         c = interact.changed()
         if 'go' in c or 'another' in c:
             interact.title = title_control(obj['title'])
+
             def cb(obj):
-                the_times.append("%.1f"%obj['time'])
+                the_times.append("%.1f" % obj['time'])
                 h.times = ', '.join(the_times)
 
             obj['E'].ask(cb)
 
-            title, question, answer, check, hints = g()   # get ready for next time.
+            title, question, answer, check, hints = g(
+            )  # get ready for next time.
             obj['title'] = title
             obj['E'] = Exercise(question, answer, check, hints)
+
 
 def closure(code):
     """
@@ -2957,11 +3224,13 @@ def closure(code):
     import uuid
     # TODO: strip string literals first
     code = ' ' + ('\n '.join(code.splitlines()))
-    fname = "__" + str(uuid.uuid4()).replace('-','_')
-    closure = "def %s():\n%s\n return locals()"%(fname, code)
+    fname = "__" + str(uuid.uuid4()).replace('-', '_')
+    closure = "def %s():\n%s\n return locals()" % (fname, code)
+
     class Closure:
         def __call__(self):
             return self._f()
+
     c = Closure()
     salvus.execute(closure)
     c._f = salvus.namespace[fname]
@@ -2973,20 +3242,23 @@ def closure(code):
 # Dynamic variables (linked to controls)
 #########################################
 
+
 def _dynamic(var, control=None):
     if control is None:
-        control = salvus.namespace.get(var,'')
+        control = salvus.namespace.get(var, '')
 
-    @interact(layout=[[(var,12)]], output=False)
-    def f(x=(var,control)):
+    @interact(layout=[[(var, 12)]], output=False)
+    def f(x=(var, control)):
         salvus.namespace.set(var, x, do_not_trigger=[var])
 
     def g(y):
         f.x = y
+
     salvus.namespace.on('change', var, g)
 
     if var in salvus.namespace:
         x = salvus.namespace[var]
+
 
 def dynamic(*args, **kwds):
     """
@@ -3007,7 +3279,7 @@ def dynamic(*args, **kwds):
     for var in args:
         if not isinstance(var, str):
             i = id(var)
-            for k,v in salvus.namespace.iteritems():
+            for k, v in salvus.namespace.iteritems():
                 if id(v) == i:
                     _dynamic(k)
             return
@@ -3020,8 +3292,9 @@ def dynamic(*args, **kwds):
 
 import sage.all
 
+
 def var0(*args, **kwds):
-    if len(args)==1:
+    if len(args) == 1:
         name = args[0]
     else:
         name = args
@@ -3033,6 +3306,7 @@ def var0(*args, **kwds):
     else:
         G[repr(v)] = v
     return v
+
 
 def var(*args, **kwds):
     """
@@ -3062,17 +3336,18 @@ def var(*args, **kwds):
     """
     if 'latex_name' in kwds:
         # wrap with braces -- sage should probably do this, but whatever.
-        kwds['latex_name'] = '{%s}'%kwds['latex_name']
+        kwds['latex_name'] = '{%s}' % kwds['latex_name']
     if len(args) > 0:
         return var0(*args, **kwds)
     else:
+
         def f(s):
             return var0(s, *args, **kwds)
+
         return f
 
+
 var.__doc__ += sage.all.var.__doc__
-
-
 
 #############################################
 # Variable reset -- we have to rewrite
@@ -3081,6 +3356,7 @@ var.__doc__ += sage.all.var.__doc__
 #############################################
 
 import sage.misc.reset
+
 
 def reset(vars=None, attached=False):
     """
@@ -3111,43 +3387,53 @@ def reset(vars=None, attached=False):
             except KeyError:
                 pass
     restore()
-    from sage.symbolic.assumptions import forget; forget()
+    from sage.symbolic.assumptions import forget
+    forget()
     sage.misc.reset.reset_interfaces()
     if attached:
         sage.misc.reset.reset_attached()
     # reset() adds 'pretty_print' and 'view' to show_identifiers()
     # user can shadow these and they will appear in show_identifiers()
     # 'sage_salvus' is added when the following line runs; user may not shadow it
-    exec('sage.misc.session.state_at_init = dict(globals())',salvus.namespace)
+    exec('sage.misc.session.state_at_init = dict(globals())', salvus.namespace)
+
 
 reset.__doc__ += sage.misc.reset.reset.__doc__
+
 
 def restore(vars=None):
     ""
     if isinstance(vars, unicode):
-        vars = str(vars)   # sage.misc.reset is unicode ignorant
-        if ',' in vars:    # sage.misc.reset is stupid about commas and space -- TODO: make a patch to sage
+        vars = str(vars)  # sage.misc.reset is unicode ignorant
+        if ',' in vars:  # sage.misc.reset is stupid about commas and space -- TODO: make a patch to sage
             vars = [v.strip() for v in vars.split(',')]
     import sage.calculus.calculus
     sage.misc.reset._restore(salvus.namespace, default_namespace, vars)
-    sage.misc.reset._restore(sage.calculus.calculus.syms_cur, sage.calculus.calculus.syms_default, vars)
+    sage.misc.reset._restore(sage.calculus.calculus.syms_cur,
+                             sage.calculus.calculus.syms_default, vars)
+
 
 restore.__doc__ += sage.misc.reset.restore.__doc__
+
 
 # NOTE: this is not used anymore
 def md2html(s):
     from markdown2Mathjax import sanitizeInput, reconstructMath
     from markdown2 import markdown
 
-    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'),
-              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
-              ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
-              ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
-              ('\\begin{math}', '\\end{math}'),
-              ('\\begin{displaymath}', '\\end{displaymath}')
-              ]
+    delims = [('\\(', '\\)'), ('$$', '$$'), ('\\[', '\\]'),
+              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}',
+                                                         '\\end{equation*}'),
+              ('\\begin{align}',
+               '\\end{align}'), ('\\begin{align*}',
+                                 '\\end{align*}'), ('\\begin{eqnarray}',
+                                                    '\\end{eqnarray}'),
+              ('\\begin{eqnarray*}',
+               '\\end{eqnarray*}'), ('\\begin{math}',
+                                     '\\end{math}'), ('\\begin{displaymath}',
+                                                      '\\end{displaymath}')]
 
-    tmp = [((s,None),None)]
+    tmp = [((s, None), None)]
     for d in delims:
         tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
 
@@ -3155,10 +3441,12 @@ def md2html(s):
     markedDownText = markdown(tmp[-1][0][0], extras=extras)
 
     while len(tmp) > 1:
-        markedDownText = reconstructMath(markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
+        markedDownText = reconstructMath(
+            markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
         del tmp[-1]
 
     return markedDownText
+
 
 # NOTE: this is not used anymore
 class Markdown(object):
@@ -3198,6 +3486,7 @@ class Markdown(object):
     typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
     \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
+
     def __init__(self, hide=False):
         self._hide = hide
 
@@ -3210,12 +3499,14 @@ class Markdown(object):
     def _render(self, s, hide=None):
         if hide is None:
             hide = self._hide
-        html(md2html(s),hide=hide)
+        html(md2html(s), hide=hide)
+
 
 # not used
 #md = Markdown()
 
 # Instead... of the above server-side markdown, we use this client-side markdown.
+
 
 class Marked(object):
     r"""
@@ -3248,6 +3539,7 @@ class Marked(object):
         %md(hide=False) `some code`
 
     """
+
     def __init__(self, hide=False):
         self._hide = hide
 
@@ -3264,14 +3556,21 @@ class Marked(object):
             salvus.hide('input')
         salvus.md(s)
 
+
 md = Marked()
+
 
 #####
 ## Raw Input
 # - this is the Python 2.x interpretation.  In Python 3.x there is no raw_input,
 # and raw_input is renamed input (to cause more confusion).
 #####
-def raw_input(prompt='', default='', placeholder='', input_width=None, label_width=None, type=None):
+def raw_input(prompt='',
+              default='',
+              placeholder='',
+              input_width=None,
+              label_width=None,
+              type=None):
     """
     Read a string from the user in the worksheet interface to Sage.
 
@@ -3297,7 +3596,14 @@ def raw_input(prompt='', default='', placeholder='', input_width=None, label_wid
          print(raw_input("What is your full name?", default="Sage Math", input_width="20ex", label_width="25ex"))
 
     """
-    return salvus.raw_input(prompt=prompt, default=default, placeholder=placeholder, input_width=input_width, label_width=label_width, type=type)
+    return salvus.raw_input(
+        prompt=prompt,
+        default=default,
+        placeholder=placeholder,
+        input_width=input_width,
+        label_width=label_width,
+        type=type)
+
 
 def input(*args, **kwds):
     """
@@ -3313,6 +3619,7 @@ def input(*args, **kwds):
     kwds['type'] = 'sage'
     return raw_input(*args, **kwds)
 
+
 #####
 ## Clear
 def clear():
@@ -3324,6 +3631,7 @@ def clear():
     """
     salvus.clear()
 
+
 def delete_last_output():
     """
     Delete the last output message.
@@ -3332,8 +3640,10 @@ def delete_last_output():
     """
     salvus.delete_last_output()
 
+
 #####
 # Generic Pandoc cell decorator
+
 
 def pandoc(fmt, doc=None, hide=True):
     """
@@ -3360,7 +3670,11 @@ def pandoc(fmt, doc=None, hide=True):
     if doc is None:
         return lambda x : html(pandoc(fmt, x), hide=hide) if x is not None else ''
     import subprocess
-    p = subprocess.Popen(['pandoc', '-f', fmt,  '--mathjax'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    p = subprocess.Popen(
+        ['pandoc', '-f', fmt, '--mathjax'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        stdin=subprocess.PIPE)
     if not isinstance(doc, unicode):
         doc = unicode(doc, 'utf8')
     p.stdin.write(doc.encode('UTF-8'))
@@ -3390,6 +3704,7 @@ mediawiki = wiki
 
 ######
 
+
 def load_html_resource(filename):
     fl = filename.lower()
     if fl.startswith('http://') or fl.startswith('https://'):
@@ -3400,13 +3715,18 @@ def load_html_resource(filename):
         url = salvus.file(filename, show=False)
     ext = os.path.splitext(filename)[1][1:].lower()
     if ext == "css":
-        salvus.javascript('''$.get("%s", function(css) { $('<style type=text/css></style>').html(css).appendTo("body")});'''%url)
+        salvus.javascript(
+            '''$.get("%s", function(css) { $('<style type=text/css></style>').html(css).appendTo("body")});'''
+            % url)
     elif ext == "html":
-        salvus.javascript('element.append($("<div>").load("%s"))'%url)
+        salvus.javascript('element.append($("<div>").load("%s"))' % url)
     elif ext == "coffee":
-        salvus.coffeescript('$.ajax({url:"%s"}).done (data) ->\n  eval(CoffeeScript.compile(data))'%url)
+        salvus.coffeescript(
+            '$.ajax({url:"%s"}).done (data) ->\n  eval(CoffeeScript.compile(data))'
+            % url)
     elif ext == "js":
-        salvus.html('<script src="%s"></script>'%url)
+        salvus.html('<script src="%s"></script>' % url)
+
 
 def attach(*args):
     r"""
@@ -3426,8 +3746,8 @@ def attach(*args):
     # can't (yet) pass "attach = True" to load(), so do this
 
     if len(args) == 1:
-        if isinstance(args[0], (unicode,str)):
-            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (unicode, str)):
+            args = tuple(args[0].replace(',', ' ').split())
         if isinstance(args[0], (list, tuple)):
             args = args[0]
     try:
@@ -3508,21 +3828,23 @@ def load(*args, **kwds):
         # load command, where it isn't verbose for network code, but is for objects.
         def f(*args):
             return load(*args, **kwds)
+
         return f
 
-    t = '__tmp__'; i=0
-    while t+str(i) in salvus.namespace:
+    t = '__tmp__'
+    i = 0
+    while t + str(i) in salvus.namespace:
         i += 1
     t += str(i)
 
     # First handle HTML related args -- these are all very oriented toward cloud.sagemath worksheets
-    html_extensions = set(['js','css','coffee','html'])
+    html_extensions = set(['js', 'css', 'coffee', 'html'])
     other_args = []
     for arg in args:
         i = arg.rfind('.')
-        if i != -1 and arg[i+1:].lower() in html_extensions:
+        if i != -1 and arg[i + 1:].lower() in html_extensions:
             load_html_resource(arg)
-        elif i != -1 and arg[i+1:].lower() == 'pdf':
+        elif i != -1 and arg[i + 1:].lower() == 'pdf':
             show_pdf(arg, **kwds)
         else:
             other_args.append(arg)
@@ -3534,18 +3856,25 @@ def load(*args, **kwds):
     # now handle remaining non-web arguments.
     if len(other_args) > 0:
         try:
-            exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':other_args, '__kwds':kwds}
+            exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)' % t in salvus.namespace, {
+                '__args': other_args,
+                '__kwds': kwds
+            }
             return salvus.namespace[t]
         finally:
             try:
                 del salvus.namespace[t]
-            except: pass
+            except:
+                pass
+
 
 # add alias, due to IPython.
 runfile = load
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
 import pylab
+
+
 def _show_pylab(svg=True):
     """
     Show a Pylab plot in a Sage Worksheet.
@@ -3565,10 +3894,13 @@ def _show_pylab(svg=True):
         except:
             pass
 
+
 pylab.show = _show_pylab
 matplotlib.figure.Figure.show = show
 
 import matplotlib.pyplot
+
+
 def _show_pyplot(svg=True):
     """
     Show a Pylab plot in a Sage Worksheet.
@@ -3587,26 +3919,33 @@ def _show_pyplot(svg=True):
             os.unlink(filename)
         except:
             pass
-matplotlib.pyplot.show = _show_pyplot
 
+
+matplotlib.pyplot.show = _show_pyplot
 
 ## Our own displayhook
 
 _system_sys_displayhook = sys.displayhook
 
+
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, matplotlib.axes.Axes, matplotlib.image.AxesImage, Animation, Tachyon)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray,
+                        matplotlib.figure.Figure, matplotlib.axes.Axes,
+                        matplotlib.image.AxesImage, Animation, Tachyon)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
 
+
 sys.displayhook = displayhook
 import sage.misc.latex, types
 # We make this a list so that users can append to it easily.
-TYPESET_MODE_EXCLUDES = [sage.misc.latex.LatexExpr, types.NoneType,
-                         type, sage.plot.plot3d.base.Graphics3d,
-                         sage.plot.graphics.Graphics,
-                         sage.plot.graphics.GraphicsArray]
+TYPESET_MODE_EXCLUDES = [
+    sage.misc.latex.LatexExpr, types.NoneType, type,
+    sage.plot.plot3d.base.Graphics3d, sage.plot.graphics.Graphics,
+    sage.plot.graphics.GraphicsArray
+]
+
 
 def typeset_mode(on=True, display=True, **args):
     """
@@ -3622,13 +3961,15 @@ def typeset_mode(on=True, display=True, **args):
 
     """
     if isinstance(on, (str, unicode)):  # e.g.,   %typeset_mode False
-        on = sage_eval(on, {'false':False, 'true':True})
+        on = sage_eval(on, {'false': False, 'true': True})
     if on:
+
         def f(obj):
             if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
                 displayhook(obj)
             else:
                 show(obj, display=display)
+
         sys.displayhook = f
     else:
         sys.displayhook = displayhook
@@ -3653,6 +3994,7 @@ def python_future_feature(feature=None, enable=None):
     """
     return salvus.python_future_feature(feature, enable)
 
+
 def py3print_mode(enable=None):
     """
     Enable python3 print syntax.
@@ -3671,6 +4013,7 @@ def py3print_mode(enable=None):
 
     """
     return salvus.python_future_feature('print_function', enable)
+
 
 def default_mode(mode):
     """
@@ -3697,10 +4040,6 @@ def default_mode(mode):
     return salvus.default_mode(mode)
 
 
-
-
-
-
 #######################################################
 # Monkey patching and deprecation --
 #######################################################
@@ -3710,16 +4049,22 @@ def default_mode(mode):
 # each block of code.  However, for now we have to do this.
 import inspect
 _findsource = inspect.findsource
+
+
 def findsource(object):
-    try: return _findsource(object)
-    except: raise IOError('source code not available')  # as *claimed* by the Python docs!
+    try:
+        return _findsource(object)
+    except:
+        raise IOError(
+            'source code not available')  # as *claimed* by the Python docs!
+
+
 inspect.findsource = findsource
-
-
 
 #######################################################
 # Viewing pdf's
 #######################################################
+
 
 def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     """
@@ -3737,7 +4082,7 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     url = salvus.file(filename, show=False)
     s = '''<object data="%s" type="application/pdf" width="%s" height="%s">
     <p>Your browser doesn't support embedded PDF's, but you can <a href="%s">download %s</a></p>
-    </object>'''%(url, width, height, url, filename)
+    </object>''' % (url, width, height, url, filename)
     salvus.html(s)
 
 
@@ -3747,10 +4092,12 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
 def sage_chat(chatroom=None, height="258px"):
     if chatroom is None:
         from random import randint
-        chatroom = randint(0,1e24)
-    html("""
+        chatroom = randint(0, 1e24)
+    html(
+        """
     <iframe src="/static/webrtc/group_chat_cell.html?%s" height="%s" width="100%%"></iframe>
-    """%(chatroom, height), hide=False)
+    """ % (chatroom, height),
+        hide=False)
 
 
 ########################################################
@@ -3777,13 +4124,16 @@ def modes():
         if s.startswith('%'):
             mode_cmds.add(re.findall(r'%[a-zA-Z]+', s)[0])
     mode_cmds.discard('%s')
-    for k,v in sage.interfaces.all.__dict__.iteritems():
+    for k, v in sage.interfaces.all.__dict__.iteritems():
         if isinstance(v, sage.interfaces.expect.Expect):
-            mode_cmds.add('%'+k)
-    mode_cmds.update(['%cython', '%time', '%auto', '%hide', '%hideall',
-                       '%fork', '%runfile', '%default_mode', '%typeset_mode'])
+            mode_cmds.add('%' + k)
+    mode_cmds.update([
+        '%cython', '%time', '%auto', '%hide', '%hideall', '%fork', '%runfile',
+        '%default_mode', '%typeset_mode'
+    ])
     v = list(sorted(mode_cmds))
     return v
+
 
 ########################################################
 # Go mode
@@ -3821,14 +4171,15 @@ def go(s):
     if 'package main' not in s:
         s = 'package main\n' + s
     try:
-        open(name +'.go','w').write(s.encode("UTF-8"))
-        (child_stdin, child_stdout, child_stderr) = os.popen3('go build %s.go'%name)
+        open(name + '.go', 'w').write(s.encode("UTF-8"))
+        (child_stdin, child_stdout,
+         child_stderr) = os.popen3('go build %s.go' % name)
         err = child_stderr.read()
         sys.stdout.write(child_stdout.read())
         sys.stderr.write(err)
         sys.stdout.flush()
         sys.stderr.flush()
-        if not os.path.exists(name): # failed to produce executable
+        if not os.path.exists(name):  # failed to produce executable
             return
         (child_stdin, child_stdout, child_stderr) = os.popen3("./" + name)
         sys.stdout.write(child_stdout.read())
@@ -3837,13 +4188,14 @@ def go(s):
         sys.stderr.flush()
     finally:
         try:
-            os.unlink(name+'.go')
+            os.unlink(name + '.go')
         except:
             pass
         try:
             os.unlink(name)
         except:
             pass
+
 
 ########################################################
 # Java mode
@@ -3873,36 +4225,39 @@ def java(s):
         print 'error public class name not found'
         return
     try:
-        open(name +'.java','w').write(s.encode("UTF-8"))
-        (child_stdin, child_stdout, child_stderr) = os.popen3('javac %s.java'%name)
+        open(name + '.java', 'w').write(s.encode("UTF-8"))
+        (child_stdin, child_stdout,
+         child_stderr) = os.popen3('javac %s.java' % name)
         err = child_stderr.read()
         sys.stdout.write(child_stdout.read())
         sys.stderr.write(err)
         sys.stdout.flush()
         sys.stderr.flush()
-        if not os.path.exists(name+'.class'): # failed to produce executable
+        if not os.path.exists(name + '.class'):  # failed to produce executable
             return
-        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s'%name)
+        (child_stdin, child_stdout, child_stderr) = os.popen3('java %s' % name)
         sys.stdout.write(child_stdout.read())
-        sys.stderr.write('\n'+child_stderr.read())
+        sys.stderr.write('\n' + child_stderr.read())
         sys.stdout.flush()
         sys.stderr.flush()
     finally:
         pass
         try:
-            os.unlink(name+'.java')
+            os.unlink(name + '.java')
         except:
             pass
         try:
-            os.unlink(name+'.class')
+            os.unlink(name + '.class')
         except:
             pass
+
 
 ########################################################
 # Julia mode
 ########################################################
 
-def julia(code=None,**kwargs):
+
+def julia(code=None, **kwargs):
     """
     Block decorator to run Julia over Jupyter bridge.
 
@@ -3918,13 +4273,17 @@ def julia(code=None,**kwargs):
     """
     if julia.jupyter_kernel is None:
         julia.jupyter_kernel = jupyter("julia")
-    return julia.jupyter_kernel(code,**kwargs)
+    return julia.jupyter_kernel(code, **kwargs)
+
+
 julia.jupyter_kernel = None
 
 # Help command
 import sage.misc.sagedoc
 import sage.version
 import sage.misc.sagedoc
+
+
 def help(*args, **kwds):
     if len(args) > 0 or len(kwds) > 0:
         sage.misc.sagedoc.help(*args, **kwds)
@@ -3940,11 +4299,13 @@ def help(*args, **kwds):
 
 - **Source code:** Enter `matrix_plot??` followed by tab or shift+enter to look at the source code of `matrix_plot`.
 
-- **License information:** For license information about Sage and its components, enter `license()`."""%sage.version.version
+- **License information:** For license information about Sage and its components, enter `license()`.""" % sage.version.version
         salvus.md(s)
+
 
 # Import the jupyter kernel client.
 from sage_jupyter import jupyter
+
 
 # license() workaround for IPython pager
 # could also set os.environ['TERM'] to 'dumb' to workaround the pager
@@ -3960,21 +4321,26 @@ def license():
     """
     print(sage.misc.copying.license)
 
+
 # search_src
 import os
 import glob
 
+
 # from http://stackoverflow.com/questions/9877462/is-there-a-python-equivalent-to-the-which-commane
 # in python 3.3+ there is shutil.which()
 def which(pgm):
-    path=os.getenv('PATH')
+    path = os.getenv('PATH')
     for p in path.split(os.path.pathsep):
-        p=os.path.join(p,pgm)
-        if os.path.exists(p) and os.access(p,os.X_OK):
+        p = os.path.join(p, pgm)
+        if os.path.exists(p) and os.access(p, os.X_OK):
             return p
 
+
 from sage_server import MAX_CODE_SIZE
-def search_src(str, max_chars = MAX_CODE_SIZE):
+
+
+def search_src(str, max_chars=MAX_CODE_SIZE):
     r"""
     Get file names resulting from git grep of smc repo
 
@@ -4001,17 +4367,18 @@ def search_src(str, max_chars = MAX_CODE_SIZE):
     # /projects/sage/sage-x.y/src
     sdir = glob.glob(sdir + "/src/sage")[0]
 
-    cmd = 'cd %s;timeout 5 git grep -il "%s"'%(sdir, str)
+    cmd = 'cd %s;timeout 5 git grep -il "%s"' % (sdir, str)
     srch = os.popen(cmd).read().splitlines()
     header = "files matched"
-    nftext = header + ": %s"%len(srch)
+    nftext = header + ": %s" % len(srch)
 
     @interact
-    def _(fname = selector([nftext]+srch,"view source file:")):
+    def _(fname=selector([nftext] + srch, "view source file:")):
         if not fname.startswith(header):
             with open(os.path.join(sdir, fname), 'r') as infile:
                 code = infile.read(max_chars)
-            salvus.code(code, mode = "python", filename = fname)
+            salvus.code(code, mode="python", filename=fname)
+
 
 # search_doc
 def search_doc(str):
@@ -4031,7 +4398,10 @@ def search_doc(str):
     str + '&oq=site%3Adoc.sagemath.org">'+str+'</a>'
     salvus.html(txt)
 
+
 import sage.misc.session
+
+
 def show_identifiers():
     """
     Returns a list of all variable names that have been defined during this session.
@@ -4040,8 +4410,11 @@ def show_identifiers():
     These identifiers are removed from the output of sage.misc.session.show_identifiers() on return.
     User should not assign to these variables when running code in a worksheet.
     """
-    si =  eval('show_identifiers.fn()',salvus.namespace)
-    si2 = [v for v in si if v not in ['smc','salvus','require','sage_salvus']]
+    si = eval('show_identifiers.fn()', salvus.namespace)
+    si2 = [
+        v for v in si if v not in ['smc', 'salvus', 'require', 'sage_salvus']
+    ]
     return si2
+
 
 show_identifiers.fn = sage.misc.session.show_identifiers

@@ -25,11 +25,13 @@ salvus = None  # set externally
 
 # jupyter kernel
 
-class JUPYTER(object):
 
+class JUPYTER(object):
     def __call__(self, kernel_name, **kwargs):
         if kernel_name.startswith('sage'):
-            raise ValueError("You may not run Sage kernels from a Sage worksheet.\nInstead use the sage_select command in a Terminal to\nswitch to a different version of Sage, then restart your project.")
+            raise ValueError(
+                "You may not run Sage kernels from a Sage worksheet.\nInstead use the sage_select command in a Terminal to\nswitch to a different version of Sage, then restart your project."
+            )
         return _jkmagic(kernel_name, **kwargs)
 
     def available_kernels(self):
@@ -86,6 +88,7 @@ class JUPYTER(object):
 
     __doc__ = property(_get_doc)
 
+
 jupyter = JUPYTER()
 
 
@@ -103,18 +106,19 @@ def _jkmagic(kernel_name, **kwargs):
     """
     # CRITICAL: We import these here rather than at module scope, since they can take nearly a second
     # i CPU time to import.
-    import jupyter_client                     # TIMING: takes a bit of time
+    import jupyter_client  # TIMING: takes a bit of time
     from ansi2html import Ansi2HTMLConverter  # TIMING: this is surprisingly bad.
-    from Queue import Empty                   # TIMING: cheap
-    import base64, tempfile, sys, re          # TIMING: cheap
+    from Queue import Empty  # TIMING: cheap
+    import base64, tempfile, sys, re  # TIMING: cheap
 
     import warnings
     import sage.misc.latex
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", DeprecationWarning)
-        km, kc = jupyter_client.manager.start_new_kernel(kernel_name = kernel_name)
+        km, kc = jupyter_client.manager.start_new_kernel(
+            kernel_name=kernel_name)
         import sage.interfaces.cleaner
-        sage.interfaces.cleaner.cleaner(km.kernel.pid,"km.kernel.pid")
+        sage.interfaces.cleaner.cleaner(km.kernel.pid, "km.kernel.pid")
         import atexit
         atexit.register(km.shutdown_kernel)
         atexit.register(kc.hb_channel.close)
@@ -123,7 +127,7 @@ def _jkmagic(kernel_name, **kwargs):
     # linkify: little gimmik, translates URLs to anchor tags
     conv = Ansi2HTMLConverter(inline=True, linkify=True)
 
-    def hout(s, block = True, scroll = False, error = False):
+    def hout(s, block=True, scroll=False, error=False):
         r"""
         wrapper for ansi conversion before displaying output
 
@@ -140,11 +144,11 @@ def _jkmagic(kernel_name, **kwargs):
         # `full = False` or else cell output is huge
         if "\x1b[" in s:
             # use html output if ansi control code found in string
-            h = conv.convert(s, full = False)
+            h = conv.convert(s, full=False)
             if block:
-                h2 = '<pre style="font-family:monospace;">'+h+'</pre>'
+                h2 = '<pre style="font-family:monospace;">' + h + '</pre>'
             else:
-                h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">'+h+'</pre>'
+                h2 = '<pre style="display:inline-block;margin-right:-1ch;font-family:monospace;">' + h + '</pre>'
             if scroll:
                 h2 = '<div style="max-height:320px;width:80%;overflow:auto;">' + h2 + '</div>'
             salvus.html(h2)
@@ -157,19 +161,19 @@ def _jkmagic(kernel_name, **kwargs):
                 sys.stdout.flush()
 
     def run_code(code=None, **kwargs):
-
         def p(*args):
             from smc_sagews.sage_server import log
             if run_code.debug:
-                log("kernel {}: {}".format(kernel_name, ' '.join(str(a) for a in args)))
+                log("kernel {}: {}".format(kernel_name, ' '.join(
+                    str(a) for a in args)))
 
-        if kwargs.get('get_kernel_client',False):
+        if kwargs.get('get_kernel_client', False):
             return kc
 
-        if kwargs.get('get_kernel_manager',False):
+        if kwargs.get('get_kernel_manager', False):
             return km
 
-        if kwargs.get('get_kernel_name',False):
+        if kwargs.get('get_kernel_name', False):
             return kernel_name
 
         if code is None:
@@ -208,7 +212,6 @@ def _jkmagic(kernel_name, **kwargs):
             if msg_type == 'status' and content['execution_state'] == 'idle':
                 break
 
-
             def display_mime(msg_data):
                 '''
                 jupyter server does send data dictionaries, that do contain mime-type:data mappings
@@ -225,22 +228,25 @@ def _jkmagic(kernel_name, **kwargs):
                     If an html style is defined for this kernel, use it.
                     Otherwise use salvus.file().
                     """
-                    suffix = '.'+suffix
+                    suffix = '.' + suffix
                     fname = tempfile.mkstemp(suffix=suffix)[1]
-                    with open(fname,'w') as fo:
+                    with open(fname, 'w') as fo:
                         fo.write(data)
 
                     if run_code.smc_image_scaling is None:
                         salvus.file(fname)
                     else:
                         img_src = salvus.file(fname, show=False)
-                        htms = '<img src="{0}" smc-image-scaling="{1}" />'.format(img_src, run_code.smc_image_scaling)
+                        htms = '<img src="{0}" smc-image-scaling="{1}" />'.format(
+                            img_src, run_code.smc_image_scaling)
                         salvus.html(htms)
                     os.unlink(fname)
 
                 mkeys = msg_data.keys()
                 imgmodes = ['image/svg+xml', 'image/png', 'image/jpeg']
-                txtmodes = ['text/html', 'text/plain', 'text/latex', 'text/markdown']
+                txtmodes = [
+                    'text/html', 'text/plain', 'text/latex', 'text/markdown'
+                ]
                 if any('image' in k for k in mkeys):
                     dfim = run_code.default_image_fmt
                     #print('default_image_fmt %s'%dfim)
@@ -253,13 +259,13 @@ def _jkmagic(kernel_name, **kwargs):
                     # <img src='data:image/svg+xml;utf8,<svg ... > ... </svg>'>
                     if dispmode == 'image/svg+xml':
                         data = msg_data[dispmode]
-                        show_plot(data,'svg')
+                        show_plot(data, 'svg')
                     elif dispmode == 'image/png':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        show_plot(data,'png')
+                        show_plot(data, 'png')
                     elif dispmode == 'image/jpeg':
                         data = base64.standard_b64decode(msg_data[dispmode])
-                        show_plot(data,'jpg')
+                        show_plot(data, 'jpg')
                     return
                 elif any('text' in k for k in mkeys):
                     dftm = run_code.default_text_fmt
@@ -269,9 +275,10 @@ def _jkmagic(kernel_name, **kwargs):
                     if dispmode is None:
                         dispmode = next(m for m in txtmodes if m in mkeys)
                     if dispmode == 'text/plain':
-                        p('text/plain',msg_data[dispmode])
+                        p('text/plain', msg_data[dispmode])
                         # override if plain text is object marker for latex output
-                        if re.match('<IPython.core.display.\w+ object>', msg_data[dispmode]):
+                        if re.match('<IPython.core.display.\w+ object>',
+                                    msg_data[dispmode]):
                             p("overriding plain -> latex")
                             show(msg_data['text/latex'])
                         else:
@@ -280,12 +287,11 @@ def _jkmagic(kernel_name, **kwargs):
                     elif dispmode == 'text/html':
                         salvus.html(msg_data[dispmode])
                     elif dispmode == 'text/latex':
-                        p('text/latex',msg_data[dispmode])
+                        p('text/latex', msg_data[dispmode])
                         sage.misc.latex.latex.eval(msg_data[dispmode])
                     elif dispmode == 'text/markdown':
                         salvus.md(msg_data[dispmode])
                     return
-
 
             # reminder of iopub loop is switch on value of msg_type
 
@@ -295,49 +301,53 @@ def _jkmagic(kernel_name, **kwargs):
                 # but if code calls python3 input(), wait for message on stdin channel
                 if 'code' in content:
                     ccode = content['code']
-                    if kernel_name in ['python3','anaconda3','octave'] and re.match('^[^#]*\W?input\(', ccode):
+                    if kernel_name in ['python3', 'anaconda3',
+                                       'octave'] and re.match(
+                                           '^[^#]*\W?input\(', ccode):
                         # FIXME input() will be ignored if it's aliased to another name
-                        p('iopub input call: ',ccode)
+                        p('iopub input call: ', ccode)
                         try:
                             # do nothing if no messsage on stdin channel within 0.5 sec
-                            imsg = stdinj.get_msg(timeout = 0.5)
+                            imsg = stdinj.get_msg(timeout=0.5)
                             imsg_type = imsg['msg_type']
                             icontent = imsg['content']
                             p('stdin', imsg_type, str(icontent)[:300])
                             # kernel is now blocked waiting for input
                             if imsg_type == 'input_request':
-                                prompt = '' if icontent['password'] else icontent['prompt']
-                                value = salvus.raw_input(prompt = prompt)
+                                prompt = '' if icontent[
+                                    'password'] else icontent['prompt']
+                                value = salvus.raw_input(prompt=prompt)
                                 xcontent = dict(value=value)
                                 xmsg = kc.session.msg('input_reply', xcontent)
-                                p('sending input_reply',xcontent)
+                                p('sending input_reply', xcontent)
                                 stdinj.send(xmsg)
                         except:
                             pass
-                    elif kernel_name == 'octave' and re.search(r"\s*pause\s*([#;\n].*)?$", ccode, re.M):
+                    elif kernel_name == 'octave' and re.search(
+                            r"\s*pause\s*([#;\n].*)?$", ccode, re.M):
                         # FIXME "1+2\npause\n3+4" pauses before executing any code
                         # would need block parser here
-                        p('iopub octave pause: ',ccode)
+                        p('iopub octave pause: ', ccode)
                         try:
                             # do nothing if no messsage on stdin channel within 0.5 sec
-                            imsg = stdinj.get_msg(timeout = 0.5)
+                            imsg = stdinj.get_msg(timeout=0.5)
                             imsg_type = imsg['msg_type']
                             icontent = imsg['content']
                             p('stdin', imsg_type, str(icontent)[:300])
                             # kernel is now blocked waiting for input
                             if imsg_type == 'input_request':
                                 prompt = "Paused, enter any value to continue"
-                                value = salvus.raw_input(prompt = prompt)
+                                value = salvus.raw_input(prompt=prompt)
                                 xcontent = dict(value=value)
                                 xmsg = kc.session.msg('input_reply', xcontent)
-                                p('sending input_reply',xcontent)
+                                p('sending input_reply', xcontent)
                                 stdinj.send(xmsg)
                         except:
                             pass
             elif msg_type == 'execute_result':
                 if not 'data' in content:
                     continue
-                p('execute_result data keys: ',content['data'].keys())
+                p('execute_result data keys: ', content['data'].keys())
                 display_mime(content['data'])
 
             elif msg_type == 'display_data':
@@ -357,9 +367,9 @@ def _jkmagic(kernel_name, **kwargs):
                     # bash kernel uses stream messages with output in 'text' field
                     # might be ANSI color-coded
                     if 'name' in content and content['name'] == 'stderr':
-                        hout(content['text'], error = True)
+                        hout(content['text'], error=True)
                     else:
-                        hout(content['text'],block = False)
+                        hout(content['text'], block=False)
 
             elif msg_type == 'error':
                 # XXX look for ename and evalue too?
@@ -367,14 +377,14 @@ def _jkmagic(kernel_name, **kwargs):
                     tr = content['traceback']
                     if isinstance(tr, list):
                         for tr in content['traceback']:
-                            hout(tr+'\n', error = True)
+                            hout(tr + '\n', error=True)
                     else:
-                        hout(tr, error = True)
+                        hout(tr, error=True)
 
         # handle shell messages
         while True:
             try:
-                msg = shell.get_msg(timeout = 0.2)
+                msg = shell.get_msg(timeout=0.2)
                 msg_type = msg['msg_type']
                 content = msg['content']
             except Empty:
@@ -392,12 +402,13 @@ def _jkmagic(kernel_name, **kwargs):
                                     data = payload[0]['data']
                                     if 'text/plain' in data:
                                         text = data['text/plain']
-                                        hout(text, scroll = True)
+                                        hout(text, scroll=True)
                     break
             else:
                 # not our reply
                 continue
         return
+
     # 'html', 'plain', 'latex', 'markdown' - support depends on jupyter kernel
     run_code.default_text_fmt = 'html'
 
@@ -411,4 +422,3 @@ def _jkmagic(kernel_name, **kwargs):
     run_code.debug = False
 
     return run_code
-

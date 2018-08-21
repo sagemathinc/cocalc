@@ -97,6 +97,9 @@ misc = require('./misc')
 
 {DEFAULT_QUOTAS} = require('./upgrade-spec')
 
+# better make sure the storage server has something available under "default"
+exports.DEFAULT_COMPUTE_IMAGE = 'default'
+
 schema = exports.SCHEMA = {}
 
 schema.account_creation_actions =
@@ -309,6 +312,22 @@ schema.accounts =
                     if obj[field]?
                         obj[field] = obj[field].slice(0,254)
                 cb()
+
+
+schema.account_profiles =
+    desc : '(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.'
+    virtual : 'accounts'
+    anonymous : false
+    user_query :
+        get :
+            pg_where : []
+            options : [{limit : 1}] # in case user queries for [{account_id:null, profile:null}] they should not get the whole database.
+            fields :
+                account_id      : null
+                profile :
+                    image       : undefined
+                    color       : undefined
+
 
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
@@ -792,7 +811,7 @@ schema.projects =
             desc : 'If project is running, this is the quota that it is running with.'
         compute_image :
             type : 'string'
-            desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+            desc : "Specify the name of the underlying (kucalc) compute image (default: '#{exports.DEFAULT_COMPUTE_IMAGE}')"
         addons :
             type : 'map'
             desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
@@ -824,7 +843,7 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
-                compute_image  : 'latest'
+                compute_image  : exports.DEFAULT_COMPUTE_IMAGE
                 addons         : null
         set :
             fields :
@@ -1181,7 +1200,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : false     # allow user read access, even if not signed in
+    anonymous   : false     # if true, this would allow user read access, even if not signed in -- we used to do this but decided to use polling instead, since update interval is predictable.
     fields:
         id                  :
             type : 'uuid'

@@ -506,6 +506,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             if not @address?
                 cb("no address")
                 return
+            if not @address.port?
+                cb("no port")
+                return
+            if not @address.host?
+                cb("no host")
+                return
+            if not @address.secret_token?
+                cb("no secret_token")
+                return
             connect_to_a_local_hub
                 port         : @address.port
                 host         : @address.host

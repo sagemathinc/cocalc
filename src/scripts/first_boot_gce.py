@@ -20,8 +20,6 @@
 #
 ###############################################################################
 
-
-
 ### DEPRECATED ##
 
 # This script is run by /etc/rc.local when booting up gce machines.  It does special configuration
@@ -30,6 +28,7 @@
 import os, socket
 
 hostname = socket.gethostname()
+
 
 def cmd(s):
     print s
@@ -41,6 +40,7 @@ def cmd(s):
         print t
     return t
 
+
 def get_disks():
     ans = {}
     for x in cmd("/bin/ls -l /dev/disk/by-uuid/").splitlines():
@@ -51,6 +51,7 @@ def get_disks():
             ans[device] = uuid
     return ans
 
+
 def mount_conf():
     # mount the /mnt/conf partition if available and return True if so.
     # return False if not available
@@ -58,10 +59,12 @@ def mount_conf():
     if '/dev/sdb1' in d:
         # have a conf partition
         # critical to protect visibility, since contains vpn keys.
-        cmd("mkdir -p /mnt/conf; mount /dev/sdb1 /mnt/conf; chmod og-rwx /mnt/conf; chown root. /mnt/conf")
+        cmd("mkdir -p /mnt/conf; mount /dev/sdb1 /mnt/conf; chmod og-rwx /mnt/conf; chown root. /mnt/conf"
+            )
         return True
     else:
         return False
+
 
 def conf():
     # assuming /mnt/conf got mounted, do the configuration.
@@ -76,7 +79,7 @@ def conf():
             if not x.startswith('#'):
                 v = x.split()
                 if len(v) >= 2:
-                   cmd('mkdir -p "%s"'%v[1])
+                    cmd('mkdir -p "%s"' % v[1])
 
     # append /mnt/conf/fstab to the end of fstab and do "mount -a"
     if os.path.exists('/mnt/conf/fstab'):
@@ -85,7 +88,10 @@ def conf():
         i = fstab0.find("#SALVUS")
         if i != -1:
             fstab0 = fstab0[:i]
-        open('/etc/fstab','w').write(fstab0 + '\n#SALVUS -- everything below this is automatically added from /mnt/conf/fstab! \n' + fstab1)
+        open('/etc/fstab', 'w').write(
+            fstab0 +
+            '\n#SALVUS -- everything below this is automatically added from /mnt/conf/fstab! \n'
+            + fstab1)
         cmd("mount -a")
 
     # hostname
@@ -96,7 +102,8 @@ def conf():
     # tinc
     if os.path.exists('/mnt/conf/tinc'):
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/etc/tinc")
-        cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc")
+        cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc"
+            )
         cmd("cp /mnt/conf/tinc/hosts.0/* /mnt/conf/tinc/hosts/")
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/var/run/")
         cmd("/home/salvus/salvus/salvus/data/local/sbin/tincd -k; sleep 2")
@@ -104,7 +111,9 @@ def conf():
 
     # Copy over newest version of certain scripts and set permissions
     for s in ['bup_storage.py', 'hashring.py']:
-        os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
+        os.system(
+            "cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"
+            % (s, s, s))
 
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
     cmd("ip link add link eth0 address f0:de:f1:b0:66:8e eth0.1 type macvlan")
@@ -125,16 +134,20 @@ def conf():
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
         # Start the storage server
-        os.system("umount /projects; umount /bup/conf; umount /bup/bups; zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . smc-env&& ./bup_server start'")
+        os.system(
+            "umount /projects; umount /bup/conf; umount /bup/bups; zpool import -f bup; zfs set mountpoint=/projects bup/projects; chmod og-r /projects; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . smc-env&& ./bup_server start'"
+        )
         # Install crontab for snapshotting the bup pool, etc.
-        os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
+        os.system(
+            "crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
     if hostname.startswith("cassandra"):
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/")
         # Copy custom config, start cassandra Daemon
         cmd("mkdir /cassandra; mount /dev/sdb2 /cassandra")
-        cmd("rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  rm -rf /var/lib/cassandra; ln -s /cassandra/lib /var/lib/cassandra; service cassandra start")
+        cmd("rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  rm -rf /var/lib/cassandra; ln -s /cassandra/lib /var/lib/cassandra; service cassandra start"
+            )
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets")
 
 

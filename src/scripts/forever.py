@@ -14,17 +14,19 @@ import os, sys, time
 
 SERVICES = sys.argv[1:]
 if len(SERVICES) == 0 or len([x for x in SERVICES if x.startswith('-')]):
-    sys.stderr.write("usage: %s <service> <service> ...\n"%sys.argv[0])
+    sys.stderr.write("usage: %s <service> <service> ...\n" % sys.argv[0])
     sys.exit(1)
 
+
 def is_running(service):
-    return bool(os.popen("pidof %s"%service).read())
+    return bool(os.popen("pidof %s" % service).read())
+
 
 def test(service):
     if not is_running(service):
-        print("%s: %s not running so restarting"%(service, time.asctime()))
-        os.system("sudo service %s restart"%service)
+        print("%s: %s not running so restarting" % (service, time.asctime()))
+        os.system("sudo service %s restart" % service)
+
 
 for service in SERVICES:
     test(service)
-

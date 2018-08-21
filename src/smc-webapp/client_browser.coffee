@@ -361,3 +361,4 @@ exports.connect = (url) ->
         return connection = new Connection(url)
 
 exports.connect()
+
