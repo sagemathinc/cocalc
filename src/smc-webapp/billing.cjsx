@@ -140,7 +140,6 @@ class BillingActions extends Actions
         @_action('cancel_subscription', 'Cancel a subscription', {subscription_id : id, cb : cb})
 
     create_subscription: (plan='standard') =>
-        {webapp_client} = require('./webapp_client')   # do not put at top level, since some code runs on server
         lsa = last_subscription_attempt
         if lsa? and lsa.plan == plan and lsa.timestamp > misc.server_minutes_ago(2)
             @setState(action:'', error: 'Too many subscription attempts in the last minute.  Please **REFRESH YOUR BROWSER** THEN  DOUBLE CHECK YOUR SUBSCRIPTION LIST!')
@@ -1866,7 +1865,7 @@ exports.PayCourseFee = PayCourseFee = rclass
                 members-only server and enable full internet access.
                 <br/><br/>
                 <ButtonToolbar>
-                    <Button onClick={@buy_subscription} bsStyle='primary'>
+                    <Button onClick={=>@buy_subscription()} bsStyle='primary'>
                         Pay ${STUDENT_COURSE_PRICE} Fee
                     </Button>
                     <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
