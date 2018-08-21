@@ -18,8 +18,8 @@
 # The views and conclusions contained in the software and documentation are those of the authors and should not be interpreted as representing official policies, either expressed or implied, of the SageMath Project.
 ######################################################################
 
-
 import json, os, random, signal, sys, time
+
 
 def server_setup():
     global SMC, DATA, DAEMON_FILE, mode, INFO_FILE, info, project_id, base_url, ip
@@ -39,7 +39,7 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print "Usage: %s [start/stop/status] normal Jupyter notebook options..."%sys.argv[0]
+        print "Usage: %s [start/stop/status] normal Jupyter notebook options..." % sys.argv[0]
         print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
         sys.exit(1)
 
@@ -60,19 +60,21 @@ def server_setup():
         base_url = ''
         ip = '127.0.0.1'
 
+
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
     while True:
-        port = random.randint(1025,65536)
-        a = os.popen("netstat -ano|grep %s|grep LISTEN"%port).read()
+        port = random.randint(1025, 65536)
+        a = os.popen("netstat -ano|grep %s|grep LISTEN" % port).read()
         if len(a) < 5:
             return port
+
 
 def command():
     port = random_port()  # time consuming!
     if project_id:
-        b = "%s/%s/port/jupyter/"%(base_url, project_id)
-        base = " --NotebookApp.base_url=%s "%(b)
+        b = "%s/%s/port/jupyter/" % (base_url, project_id)
+        base = " --NotebookApp.base_url=%s " % (b)
     else:
         base = ''
 
@@ -80,7 +82,7 @@ def command():
     if len(sys.argv) >= 2:
         mathjax_url = sys.argv.pop(1)
     else:
-        mathjax_url = "/static/mathjax/MathJax.js" # fallback
+        mathjax_url = "/static/mathjax/MathJax.js"  # fallback
 
     # --NotebookApp.iopub_data_rate_limit=<Float>
     #     Default: 0
@@ -90,13 +92,16 @@ def command():
     #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
     #     are limited.
 
-    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password=''"%(mathjax_url, base, ip, port)
+    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password=''" % (
+        mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
+
 
 if '--help' in ''.join(sys.argv):
     os.system("jupyter " + ' '.join(sys.argv))
     sys.exit(0)
+
 
 def is_daemon_running():
     if not os.path.exists(DAEMON_FILE):
@@ -105,7 +110,7 @@ def is_daemon_running():
         s = open(DAEMON_FILE).read()
         info = json.loads(s)
         try:
-            os.kill(info['pid'],0)
+            os.kill(info['pid'], 0)
             # process exists
             return info
         except OSError:
@@ -126,12 +131,13 @@ def action(mode):
             info['status'] = 'running'
             s = info
         else:
-            s = {'status':'stopped'}
+            s = {'status': 'stopped'}
         print json.dumps(s)
         return
 
     elif mode == 'start':
-        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(DAEMON_FILE) < 60:
+        if os.path.exists(DAEMON_FILE) and time.time() - os.path.getmtime(
+                DAEMON_FILE) < 60:
             # If we just tried to start then called again, wait a bit before checking
             # on process.  Note that this should never happen, since local_hub doesn't
             # call this script repeatedly.
@@ -148,12 +154,14 @@ def action(mode):
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2> "%s"/jupyter-notebook.err 1>"%s"/jupyter-notebook.log &'%(cmd, DATA, DATA)
-        sys.stderr.write(c+'\n'); sys.stderr.flush()
+        c = '%s 2> "%s"/jupyter-notebook.err 1>"%s"/jupyter-notebook.log &' % (
+            cmd, DATA, DATA)
+        sys.stderr.write(c + '\n')
+        sys.stderr.flush()
         os.system(c)
 
-        s = json.dumps({'base':base, 'port':port})
-        open(DAEMON_FILE,'w').write(s)
+        s = json.dumps({'base': base, 'port': port})
+        open(DAEMON_FILE, 'w').write(s)
 
         tries = 0
         pid = 0
@@ -163,7 +171,9 @@ def action(mode):
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
-                print json.dumps({"error":"Failed to find pid of subprocess."})
+                print json.dumps({
+                    "error": "Failed to find pid of subprocess."
+                })
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep '/usr/local/bin/jupyter-notebook'"
@@ -172,9 +182,11 @@ def action(mode):
                 if len(v) < 2 or not v[1].split('/')[-1].startswith('python'):
                     continue
                 p = int(v[0])
-                if "port=%s"%port not in s:
+                if "port=%s" % port not in s:
                     try:
-                        os.kill(p, 9)  # kill any other ipython notebook servers by this user
+                        os.kill(
+                            p, 9
+                        )  # kill any other ipython notebook servers by this user
                     except:
                         pass
                 else:
@@ -184,9 +196,9 @@ def action(mode):
                 wait *= 1.2
                 wait = min(wait, 10)
 
-        s = json.dumps({'base':base, 'port':port, 'pid':pid})
+        s = json.dumps({'base': base, 'port': port, 'pid': pid})
         print s
-        open(DAEMON_FILE,'w').write(s)
+        open(DAEMON_FILE, 'w').write(s)
         return
 
     elif mode == 'stop':
@@ -210,11 +222,13 @@ def action(mode):
         action('start')
 
     else:
-        raise RuntimeError("unknown command '%s'"%mode)
+        raise RuntimeError("unknown command '%s'" % mode)
+
 
 def main():
     server_setup()
     action(mode)
+
 
 def prepare_file_for_open():
     # This is unrelated to running the server; instead, before opening
@@ -223,4 +237,6 @@ def prepare_file_for_open():
     # See https://github.com/sagemathinc/cocalc/issues/1978
     for path in sys.argv[1:]:
         if not os.path.exists(path) or len(open(path).read().strip()) == 0:
-            open(path,'w').write('{"cells": [{"outputs": [], "source": [], "cell_type": "code", "metadata": {"collapsed": false}, "execution_count": null}], "nbformat_minor": 0, "nbformat": 4, "metadata": {"language_info": {"mimetype": "text/x-python", "version": "2.7.8", "nbconvert_exporter": "python", "pygments_lexer": "ipython2", "codemirror_mode": {"name": "ipython", "version": 2}, "file_extension": ".py", "name": "python"}, "kernelspec": {"name": "python2", "language": "python", "display_name": "Python 2"}}}')
+            open(path, 'w').write(
+                '{"cells": [{"outputs": [], "source": [], "cell_type": "code", "metadata": {"collapsed": false}, "execution_count": null}], "nbformat_minor": 0, "nbformat": 4, "metadata": {"language_info": {"mimetype": "text/x-python", "version": "2.7.8", "nbconvert_exporter": "python", "pygments_lexer": "ipython2", "codemirror_mode": {"name": "ipython", "version": 2}, "file_extension": ".py", "name": "python"}, "kernelspec": {"name": "python2", "language": "python", "display_name": "Python 2"}}}'
+            )

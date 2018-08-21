@@ -20,13 +20,16 @@
 #
 ###############################################################################
 
-MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
+MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
 import cPickle, json, os, sys
 
 from uuid import uuid4
+
+
 def uuid():
     return unicode(uuid4())
+
 
 def process_html(html):
     if '"div-interact-1"' in html:
@@ -34,6 +37,7 @@ def process_html(html):
         return ""
     else:
         return html
+
 
 def process_output(s):
     s = s.strip()
@@ -44,32 +48,52 @@ def process_output(s):
         s0 = s[:i]
         s1 = s[i:]
         if s0:
-            return [{'stdout':s0}, {'stderr':s1}]
+            return [{'stdout': s0}, {'stderr': s1}]
         else:
-            return [{'stderr':s1}]
+            return [{'stderr': s1}]
     else:
-        return [{'stdout':s}]
+        return [{'stdout': s}]
 
 
-DISPLAY_MATH = {'open':'<html><script type=\"math/tex; mode=display\">', 'close':'</script></html>', 'display':True}
-INLINE_MATH = {'open':'<html><script type=\"math/tex\">', 'close':'</script></html>', 'display':False}
-INLINE_MATH_2009 = {'open':'<html><span class=\"math\">', 'close':'</span></html>', 'display':False}
-HTML = {'open':'<html>', 'close':'</html>'}
+DISPLAY_MATH = {
+    'open': '<html><script type=\"math/tex; mode=display\">',
+    'close': '</script></html>',
+    'display': True
+}
+INLINE_MATH = {
+    'open': '<html><script type=\"math/tex\">',
+    'close': '</script></html>',
+    'display': False
+}
+INLINE_MATH_2009 = {
+    'open': '<html><span class=\"math\">',
+    'close': '</span></html>',
+    'display': False
+}
+HTML = {'open': '<html>', 'close': '</html>'}
 mnames = ['DISPLAY_MATH', 'INLINE_MATH', 'INLINE_MATH_2009']
+
+
 def output_messages(output):
     messages = []
 
     while len(output) > 0:
         found = False
-        for ii, marker in enumerate([DISPLAY_MATH, INLINE_MATH, INLINE_MATH_2009]):
+        for ii, marker in enumerate(
+            [DISPLAY_MATH, INLINE_MATH, INLINE_MATH_2009]):
             i = output.find(marker['open'])
             if i != -1:
                 #print('found',mnames[ii])
                 messages.extend(process_output(output[:i]))
                 j = output.find(marker['close'])
                 if j != -1:
-                    messages.append({'tex':{'tex':output[i+len(marker['open']):j], 'display':marker['display']}})
-                    output = output[j+len(marker['close']):]
+                    messages.append({
+                        'tex': {
+                            'tex': output[i + len(marker['open']):j],
+                            'display': marker['display']
+                        }
+                    })
+                    output = output[j + len(marker['close']):]
                     found = True
                     break
         if found: continue
@@ -79,8 +103,11 @@ def output_messages(output):
             messages.extend(process_output(output[:i]))
             j = output.find(HTML['close'])
             if j != -1:
-                messages.append({'html':process_html(output[i+len(HTML['open']):j])})
-                output = output[j+len(HTML['close']):]
+                messages.append({
+                    'html':
+                    process_html(output[i + len(HTML['open']):j])
+                })
+                output = output[j + len(HTML['close']):]
                 continue
 
         messages.extend(process_output(output))
@@ -88,21 +115,23 @@ def output_messages(output):
 
     return MARKERS['output'].join(unicode(json.dumps(x)) for x in messages)
 
+
 def migrate_input(s):
     # Given the input to a cell, possibly make modifications heuristically to it to make it more
     # Sagemath Cloud friendly.
     return s
 
+
 def sws_body_to_sagews(body):
 
     out = u""
     i = 0
-    while i!=-1 and i <len(body):
+    while i != -1 and i < len(body):
         j = body.find("{{{", i)
         if j == -1:
             j = len(body)
         html = body[i:j]
-        k = body.find("\n", j+3)
+        k = body.find("\n", j + 3)
         if k == -1:
             break
         k2 = body.find("///", k)
@@ -114,29 +143,30 @@ def sws_body_to_sagews(body):
                 k2 = len(body)
                 i = len(body)
             else:
-                input = body[k+1:k2]
-                i = k2+4
+                input = body[k + 1:k2]
+                i = k2 + 4
         else:
-            input = body[k+1:k2]
-            k3 = body.find("}}}", k2+4)
+            input = body[k + 1:k2]
+            k3 = body.find("}}}", k2 + 4)
             if k3 == -1:
                 output = ""
                 i = len(body)
             else:
-                output = body[k2+4:k3]
-                i = k3+4
+                output = body[k2 + 4:k3]
+                i = k3 + 4
 
-        html   = unicode(html.strip(), encoding='utf8')
-        input  = unicode(migrate_input(input.strip()), encoding='utf8')
+        html = unicode(html.strip(), encoding='utf8')
+        input = unicode(migrate_input(input.strip()), encoding='utf8')
         output = unicode(output.strip(), encoding='utf8')
-
 
         if html:
             out += MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
             out += '%html\n'
             out += html + u'\n'
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({'html':html}) + MARKERS['output']) + u'\n'
+                    json.dumps({
+                        'html': html
+                    }) + MARKERS['output']) + u'\n'
 
         if input or output:
             modes = ''
@@ -153,18 +183,20 @@ def sws_body_to_sagews(body):
 
     return out
 
+
 def extra_modes(meta):
     s = ''
     if 'pretty_print' in meta:
         s += u'typeset_mode(True, display=False)\n'
     if 'system' in meta and meta['system'] != 'sage':
-        s += u'%%default_mode %s\n'%meta['system']
+        s += u'%%default_mode %s\n' % meta['system']
     if not s:
         return ''
     # The 'a' means "auto".
     return MARKERS['cell'] + uuid() + 'a' + MARKERS['cell'] + u'\n%auto\n' + s
 
-def write_data_files(t, pfx = 'sage_worksheet'):
+
+def write_data_files(t, pfx='sage_worksheet'):
     prefix = '{}/data/'.format(pfx)
     data = [p for p in t if p.startswith(prefix)]
     out = []
@@ -175,8 +207,9 @@ def write_data_files(t, pfx = 'sage_worksheet'):
         for p in data:
             dest = os.path.join(target, p[len(prefix):])
             out.append(dest)
-            open(dest,'wb').write(t.extractfile(p).read())
+            open(dest, 'wb').write(t.extractfile(p).read())
     return out, target
+
 
 def sws_to_sagews(filename):
     """
@@ -221,22 +254,26 @@ def sws_to_sagews(filename):
     else:
         # older format files will not have 'sage_worksheet' at top level
         pfx = tfiles[0]
-        wkfile = os.path.join(pfx,'worksheet.txt')
+        wkfile = os.path.join(pfx, 'worksheet.txt')
         if wkfile in tfiles:
-            fmt_2011 = False # 2009 format
+            fmt_2011 = False  # 2009 format
         else:
-            raise ValueError('could not find sage_worksheet/worksheet.html or {} in {}'.format(wkfile, filename))
+            raise ValueError(
+                'could not find sage_worksheet/worksheet.html or {} in {}'.
+                format(wkfile, filename))
 
     body = t.extractfile(wkfile).read()
     data_files, data_path = write_data_files(pfx, t)
     if data_files:
-        out += MARKERS['cell'] + uuid() + 'ai' + MARKERS['cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n'%data_path
+        out += MARKERS['cell'] + uuid(
+        ) + 'ai' + MARKERS['cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n' % data_path
     out += sws_body_to_sagews(body)
 
     meta = {}
     if fmt_2011:
         try:
-            meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
+            meta = cPickle.loads(
+                t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
         except KeyError:
             if INLINE_MATH['open'] in body:
                 meta['pretty_print'] = True
@@ -249,12 +286,15 @@ def sws_to_sagews(filename):
     i = 0
     outfile = base + '.sagews'
     if os.path.exists(outfile):
-        sys.stderr.write("%s: Warning --Sagemath cloud worksheet '%s' already exists.  Not overwriting.\n"%(sys.argv[0], outfile))
+        sys.stderr.write(
+            "%s: Warning --Sagemath cloud worksheet '%s' already exists.  Not overwriting.\n"
+            % (sys.argv[0], outfile))
         sys.stderr.flush()
     else:
-        sys.stdout.write("%s: Creating Sagemath cloud worksheet '%s'\n"%(sys.argv[0], outfile))
+        sys.stdout.write("%s: Creating Sagemath cloud worksheet '%s'\n" %
+                         (sys.argv[0], outfile))
         sys.stdout.flush()
-        open(outfile,'w').write(out.encode('utf8'))
+        open(outfile, 'w').write(out.encode('utf8'))
 
 
 def main():
@@ -267,17 +307,12 @@ Convert a Sage Notebook sws file to a SageMath Cloud sagews file.
 Creates corresponding file path/to/filename.sagews, if it doesn't exist.
 Also, a data/ directory may be created in the current directory, which contains
 the contents of the data path in filename.sws.
-"""%sys.argv[0])
+""" % sys.argv[0])
         sys.exit(1)
 
     for path in sys.argv[1:]:
         sws_to_sagews(path)
 
+
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
