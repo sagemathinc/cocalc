@@ -5,6 +5,13 @@ export class API {
 
   constructor(conn: string) {
     this.conn = conn;
+
+    this.call = this.call.bind(this);
+    this.listing = this.listing.bind(this);
+    this.prettier = this.prettier.bind(this);
+    this.jupyter = this.jupyter.bind(this);
+    this.exec = this.exec.bind(this);
+    this.terminal = this.terminal.bind(this);
   }
 
   async call(mesg: object, timeout_ms?: number): Promise<any> {

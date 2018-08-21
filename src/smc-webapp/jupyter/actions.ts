@@ -87,7 +87,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private project_id: any;
   private set_save_status: any;
   private update_keyboard_shortcuts: any;
-  private project_conn: any;
+  private jupyter_api: Function;
+  private jupyter_channel: any;
 
   protected _client: any;
   protected _file_watcher: any;
@@ -206,7 +207,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (!client.is_project()) {
       // Only run this code when used on the frontend.
-      this.init_project_conn();
+      this.init_jupyter_conn();
 
       // Put an entry in the project log once the jupyter notebook gets opened.
       // NOTE: Obviously, the project does NOT need to put entries in the log.
@@ -247,11 +248,30 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  init_project_conn = reuseInFlight(async (): Promise<any> => {
-    return (this.project_conn = await connection_to_project(
+  init_jupyter_conn = reuseInFlight(async (): Promise<void> => {
+    if (this.jupyter_api != null) {
+      // already connected.
+      return;
+    }
+    this.jupyter_api = (await connection_to_project(
       this.store.get("project_id")
-    ));
+    )).api.jupyter;
+    this.jupyter_channel = await this.jupyter_api(this.path, "channel");
   });
+
+  close_jupyter_conn = () : void => {
+    if (this.jupyter_api == null) {
+      return;
+    }
+    this.jupyter_channel.end();
+    delete this.jupyter_api;
+    delete this.jupyter_channel;
+  }
+
+  // Send a message via the channel to the project.
+  send_via_channel = (mesg: any): void => {
+    this.jupyter_channel.write(mesg);
+  };
 
   // private api call function
   _api_call = async (
@@ -262,7 +282,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    return await (await this.init_project_conn()).api.jupyter(
+    await this.init_jupyter_conn(); // ensure connected.
+    return await this.jupyter_api(
       this.store.get("path"),
       endpoint,
       query,
@@ -336,6 +357,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         account.removeListener("change", this._account_change);
       }
     }
+    this.close_jupyter_conn();
   };
 
   enable_key_handler = () => {
@@ -764,7 +786,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cells =
       (left = this.store.get("cells")) != null ? left : immutable.Map();
     let cell_list_needs_recompute = false;
-    //@dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
+    //this.dbg("_syncdb_cell_change")("#{id} #{JSON.stringify(new_cell?.toJS())}")
     let old_cell = cells.get(id);
     if (new_cell == null) {
       // delete cell
@@ -820,7 +842,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   __syncdb_change = (changes: any): void => {
     const do_init = this._is_project && this._state === "init";
-    //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
+    //this.dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
     if (changes != null) {
       changes.forEach(key => {
@@ -1000,7 +1022,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _set = (obj: any, save = true) => {
+  _set = (obj: any, save = true): void => {
     if (this._state === "closed") {
       return;
     }
@@ -1016,10 +1038,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         }
       }
     }
-    //@dbg("_set")("obj=#{misc.to_json(obj)}")
+    this.dbg("_set")(`obj=${misc.to_json(obj)}`);
+
     this.syncdb.set(obj, save);
     // ensure that we update locally immediately for our own changes.
-    return this._syncdb_change(
+    this._syncdb_change(
       immutable.fromJS([misc.copy_with(obj, ["id", "type"])])
     );
   };
@@ -1238,7 +1261,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   };
 
-  run_code_cell = (id: any, save = true) => {
+  run_code_cell = (id: any, save = true): void => {
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
 
@@ -1261,7 +1284,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-    return this.set_trust_notebook(true);
+    this.set_trust_notebook(true);
   };
 
   clear_cell = (id: any, save = true) => {
@@ -1923,11 +1946,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     id?: any,
     offset?: any
   ): Promise<void> => {
-    if (this.project_conn === undefined) {
-      this.setState({ complete: { error: "no project connection" } });
-      return;
-    }
-
     let cursor_pos;
     const req = (this._complete_request =
       (this._complete_request != null ? this._complete_request : 0) + 1);
@@ -2577,7 +2595,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         See the documentation for load_ipynb_file in project-actions.ts for
         documentation about the data_only input variable.
         */
-    //dbg = @dbg("set_to_ipynb")
+    //dbg = this.dbg("set_to_ipynb")
     let set, trust;
     this._state = "load";
 
