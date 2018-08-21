@@ -2100,19 +2100,19 @@ BillingPage = rclass
         </div>
 
 exports.BillingPageRedux = rclass
-    displayName : 'BillingPage-redux'
+    displayName : 'BillingPageRedux-redux'
 
     render: ->
         <BillingPage is_simplified={false} redux={redux} />
 
 exports.BillingPageSimplifiedRedux = rclass
-    displayName : 'BillingPage-redux'
+    displayName : 'BillingPageSimplifiedRedux-redux'
 
     render: ->
         <BillingPage is_simplified={true} redux={redux} />
 
 exports.BillingPageForCourseRedux = rclass
-    displayName : 'BillingPage-redux'
+    displayName : 'BillingPageForCourseRedux-redux'
 
     render: ->
         <BillingPage is_simplified={true} for_course={true} redux={redux} />

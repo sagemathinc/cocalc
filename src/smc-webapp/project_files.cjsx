@@ -2267,7 +2267,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 <Icon name='exclamation-triangle'/> Error: Your instructor requires you to pay the course fee for this project.
                 {<CourseProjectExtraHelp/> if cards}
             </h4>
-            {@render_upgrade_in_place()}
+            {@render_pay()}
         </Alert>
 
     render_course_payment_warning: (pay) ->
