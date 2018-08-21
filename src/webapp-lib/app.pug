@@ -6,12 +6,14 @@ html(lang="en")
   head
     include _inc_head.pug
     title= fulltitle
+    script(type="text/javascript")
+      include:typescript preflight-checks.ts
   body
     style.
       #{require('!css-loader?minimize!app-startup-style.css')}
-    
+
     div#mocha
-    
+
     div#smc-startup-banner
       div.banner-blink
         img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-icon-white-transparent.svg'))
