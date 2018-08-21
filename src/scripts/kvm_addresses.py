@@ -20,8 +20,6 @@
 #
 ###############################################################################
 
-
-
 import os, sys
 
 
@@ -30,7 +28,7 @@ def ip_addresses(name):
     for x in os.popen('arp -an').readlines():
         v = x.split()
         mac_to_addr[v[3]] = v[1][1:-1]
-    v = os.popen('virsh dumpxml "%s"'%name).readlines()
+    v = os.popen('virsh dumpxml "%s"' % name).readlines()
     ans = []
     for x in v:
         if 'mac address' in x:
@@ -46,7 +44,7 @@ if __name__ == "__main__":
 Get ip addresses of a KVM virtual machine (not vpn related), one per line:
 
     Usage: %s [name of machine]
-"""%sys.argv[0])
+""" % sys.argv[0])
         sys.exit(1)
 
     for x in ip_addresses(sys.argv[1]):
