@@ -44,7 +44,7 @@ navigator["browserSpecs"] = spec;
 console.log("browser spec:", spec); //Object { name: "Firefox", version: 42 }
 
 const oldFF = spec.name === "Firefox" && spec.version < 54;
-const oldIE = spec.name === "IE"; // all of them are a problem
+const oldIE = spec.name === "MSIE" || spec.name === "IE"; // all of them are a problem
 const oldEdge = spec.name === "Edge" && spec.version < 14;
 const oldSafari = spec.name === "Safari" && spec.version < 10;
 const oldOpera = spec.name === "Opera" && spec.version < 55;
