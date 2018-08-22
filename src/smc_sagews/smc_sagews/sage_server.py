@@ -2144,7 +2144,7 @@ def serve(port, host, extra_imports=False):
         namespace['_salvus_parsing'] = sage_parsing
 
         for name in [
-                'asy', 'attach', 'auto', 'capture', 'cell', 'clear',
+                'anaconda', 'asy', 'attach', 'auto', 'capture', 'cell', 'clear',
                 'coffeescript', 'cython', 'default_mode', 'delete_last_output',
                 'dynamic', 'exercise', 'fork', 'fortran', 'go', 'help', 'hide',
                 'hideall', 'input', 'java', 'javascript', 'julia', 'jupyter',
