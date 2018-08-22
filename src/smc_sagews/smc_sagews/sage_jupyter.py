@@ -421,4 +421,7 @@ def _jkmagic(kernel_name, **kwargs):
     # set True to record jupyter messages to sage_server log
     run_code.debug = False
 
+    # allow `anaconda.jupyter_kernel.kernel_name` etc.
+    run_code.kernel_name = kernel_name
+
     return run_code
