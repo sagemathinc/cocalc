@@ -6,7 +6,17 @@ import { CodemirrorEditor } from "./codemirror-editor";
 import { filename_extension, set } from "../generic/misc";
 import { createEditor } from "../frame-tree/editor";
 
-const FORMAT = set(["js", "jsx", "ts", "tsx", "json", "md", "css", "py"]);
+const FORMAT = set([
+  "js",
+  "jsx",
+  "ts",
+  "tsx",
+  "json",
+  "md",
+  "css",
+  "py",
+  "yaml"
+]);
 
 const EDITOR_SPEC = {
   cm: {
