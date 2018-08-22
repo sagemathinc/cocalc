@@ -2019,15 +2019,41 @@ def python3(code=None, **kwargs):
     .. note::
 
         State is preserved between cells.
-        SMC %python3 mode uses the jupyter `anaconda3` kernel.
+        CoCalc %python3 mode uses the jupyter `python3` kernel.
     """
     if python3.jupyter_kernel is None:
-        python3.jupyter_kernel = jupyter("anaconda3")
+        python3.jupyter_kernel = jupyter("python3")
     return python3.jupyter_kernel(code, **kwargs)
-
-
 python3.jupyter_kernel = None
 
+def anaconda(code=None, **kwargs):
+    """
+    Block decorator to run code in a pure anaconda mode session.
+
+    To use this, put %anaconda by itself in a cell so that it applies to
+    the rest of the cell, or put it at the beginning of a line to
+    run just that line using anaconda.
+
+    You can combine %anaconda with capture, if you would like to capture
+    the output to a variable.  For example::
+
+        %capture(stdout='a')
+        %anaconda
+        x = set([1,2,3])
+        print(x)
+
+    Afterwards, a contains the output '{1, 2, 3}' and the variable x
+    in the controlling Sage session is in no way impacted.
+
+    .. note::
+
+        State is preserved between cells.
+        CoCalc %anaconda mode uses the jupyter `anaconda5` kernel.
+    """
+    if anaconda.jupyter_kernel is None:
+        anaconda.jupyter_kernel = jupyter("anaconda5")
+    return anaconda.jupyter_kernel(code, **kwargs)
+anaconda.jupyter_kernel = None
 
 def singular_kernel(code=None, **kwargs):
     """
