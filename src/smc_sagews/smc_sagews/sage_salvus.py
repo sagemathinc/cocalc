@@ -3882,7 +3882,7 @@ def load(*args, **kwds):
     # now handle remaining non-web arguments.
     if len(other_args) > 0:
         try:
-            exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)' % t in salvus.namespace, {
+            exec 'salvus.namespace["%s"] = sage.misc.persist.load(*__args, **__kwds)' % t in salvus.namespace, {
                 '__args': other_args,
                 '__kwds': kwds
             }
