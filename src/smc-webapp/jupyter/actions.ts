@@ -28,7 +28,6 @@ declare const localStorage: any;
 
 import * as immutable from "immutable";
 import * as underscore from "underscore";
-import * as promiseLimit from "promise-limit";
 import { reuseInFlight } from "async-await-utils/hof";
 import { retry_until_success } from "../frame-editors/generic/async-utils";
 
@@ -3088,18 +3087,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       jobs.push(id);
     }
 
-    // limit to max 3 promise api calls at once (think of selecting 100+ cells)
-    const limit = promiseLimit(3);
-
-    Promise.all(
-      jobs.map(id => {
-        return limit(() => this._format_cell(id));
-      })
-    );
-    // TODO maybe process any errors here (returning string instead of boolean?)
-    // .then(results => {
-    //  console.log("results:", results);
-    // });
+    util.map_limit(this._format_cell, jobs);
 
     if (sync) {
       this._sync();
