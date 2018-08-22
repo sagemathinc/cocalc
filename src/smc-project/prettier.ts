@@ -18,6 +18,7 @@ const { math_escape, math_unescape } = require("smc-util/markdown-utils");
 const prettier = require("prettier");
 const { latex_format } = require("./latex-format");
 const { python_format } = require("./python-format");
+const { html_format } = require("./html-format");
 const body_parser = require("body-parser");
 const express = require("express");
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
@@ -49,6 +50,8 @@ export async function run_prettier(
       case "python":
         pretty = await python_format(input, options);
         break;
+      case "html-tidy":
+        pretty = await html_format(input, options);
       default:
         pretty = prettier.format(input, options);
     }
