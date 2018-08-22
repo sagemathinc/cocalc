@@ -167,10 +167,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_group_run() {
     let stop_style: React.CSSProperties | undefined;
-    if (
-      ((this.props.kernel_usage && this.props.kernel_usage.get("cpu")) || 0) >
-      50
-    ) {
+    const cpu_usage =
+      (this.props.kernel_usage && this.props.kernel_usage.get("cpu")) || 0;
+    if (cpu_usage > 50) {
       stop_style = { backgroundColor: "rgb(92,184,92)", color: "white" };
     }
 
@@ -178,7 +177,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       { name: "run cell and select next", label: "Run" },
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
-      { name: "tab key", label: "Tab" }
+      { name: "tab key", label: "Tab" },
+      { name: "format cells", label: "FMT" }
     ]);
   }
 

@@ -42,16 +42,7 @@ export async function run_prettier(
     [input, math] = remove_math(math_escape(input));
   }
   try {
-    switch (options.parser) {
-      case "latex":
-        pretty = await latex_format(input, options);
-        break;
-      case "python":
-        pretty = await python_format(input, options);
-        break;
-      default:
-        pretty = prettier.format(input, options);
-    }
+    pretty = await run_prettier_string(input, options);
   } catch (err) {
     return { status: "error", phase: "format", error: err };
   }
@@ -61,4 +52,22 @@ export async function run_prettier(
   syncstring.from_str(pretty);
   await callback(syncstring._save);
   return { status: "ok" };
+}
+
+export async function run_prettier_string(
+  str: string,
+  options: any
+): Promise<string> {
+  let pretty;
+  switch (options.parser) {
+    case "latex":
+      pretty = await latex_format(str, options);
+      break;
+    case "python":
+      pretty = await python_format(str, options);
+      break;
+    default:
+      pretty = prettier.format(str, options);
+  }
+  return pretty;
 }

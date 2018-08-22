@@ -42,12 +42,19 @@ export function init_websocket_api(
   });
 }
 
-async function handle_api_call(client: any, data: any, primus:any, logger:any): Promise<any> {
+async function handle_api_call(
+  client: any,
+  data: any,
+  primus: any,
+  logger: any
+): Promise<any> {
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
     case "prettier":
       return await prettier(client, data.path, data.options);
+    case "prettier_string":
+      return await prettier_string(data.str, data.options);
     case "jupyter":
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
@@ -66,9 +73,12 @@ async function listing(path: string, hidden?: boolean): Promise<object[]> {
   return await callback(get_listing, path, hidden);
 }
 
-import { run_prettier } from "../prettier";
+import { run_prettier, run_prettier_string } from "../prettier";
 async function prettier(client: any, path: string, options: any): Promise<any> {
   return await run_prettier(client, path, options);
+}
+async function prettier_string(str: string, options: any): Promise<string> {
+  return await run_prettier_string(str, options);
 }
 
 import { handle_request as jupyter } from "../jupyter/websocket-api";

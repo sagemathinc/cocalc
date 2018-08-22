@@ -48,8 +48,8 @@ export async function python_format(
   }
 
   // all fine, we read from the temp file
-  let output : Buffer = await callback(readFile, input_path);
-  let s : string = output.toString('utf-8');
+  let output: Buffer = await callback(readFile, input_path);
+  let s: string = output.toString("utf-8");
 
   return s;
 }

@@ -28,6 +28,7 @@ declare const localStorage: any;
 
 import * as immutable from "immutable";
 import * as underscore from "underscore";
+import * as promiseLimit from "promise-limit";
 import { reuseInFlight } from "async-await-utils/hof";
 import { retry_until_success } from "../frame-editors/generic/async-utils";
 
@@ -402,7 +403,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
-  set_cell_input = (id: any, input: any, save = true) => {
+  set_cell_input = (id: string, input: any, save = true) => {
     if (this.store.check_edit_protection(id, this)) {
       return;
     }
@@ -2924,7 +2925,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  edit_cell_metadata = (id: any): void => {
+  edit_cell_metadata = (id: string): void => {
     let left: any;
     const metadata =
       (left = this.store.getIn(["cells", id, "metadata"])) != null
@@ -3012,6 +3013,97 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });
+  };
+
+  _api_call_prettier = async (
+    str: string,
+    options: object,
+    timeout_ms?: number
+  ): Promise<any> => {
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
+    return await (await this.init_project_conn()).api.prettier_string(
+      str,
+      options,
+      timeout_ms
+    );
+  };
+
+  // the "boolean" return is somehow necessary for promise-limit's limit function
+  // it's used to indicate if there is an early return or error
+  _format_cell = async (id: string): Promise<boolean> => {
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      return false;
+    }
+    const code = this._get_cell_input(id).trim();
+    let options: any; // TODO type this with a global interface
+    const cell_type = cell.get("cell_type", "code");
+    const language = this.store.getIn(["kernel_info", "language"]);
+    switch (cell_type) {
+      case "code":
+        if (language == "python") {
+          options = { parser: "python" };
+        } else {
+          // TODO handle more than just python
+          return false;
+        }
+        break;
+      case "markdown":
+        options = { parser: "markdown" };
+        break;
+      default:
+        this.set_error(`unknown cell_type: '${cell_type}'`);
+        return false;
+    }
+    // console.log("FMT", cell_type, options, code);
+    const resp = await this._api_call_prettier(code, options);
+    if (resp.status == "error") {
+      this.set_error(resp.error);
+      return false;
+    }
+    // console.log("FMT resp", resp);
+
+    // we additionally trim the output, because prettier introduces a trailing newline
+    const trim = function(str: string): string {
+      str = str.trim();
+      if (str.length > 0 && str.slice(-1) == "\n") {
+        return str.slice(0, -2);
+      }
+      return str;
+    };
+
+    this.set_cell_input(id, trim(resp), false);
+    return true;
+  };
+
+  format_selected_cells = (id: string, sync = true): void => {
+    const selected = this.store.get_selected_cell_ids_list();
+    let jobs: string[] = [];
+    for (id of selected) {
+      if (!this.store.is_cell_editable(id)) {
+        continue;
+      }
+      jobs.push(id);
+    }
+
+    // limit to max 3 promise api calls at once (think of selecting 100+ cells)
+    const limit = promiseLimit(3);
+
+    Promise.all(
+      jobs.map(id => {
+        return limit(() => this._format_cell(id));
+      })
+    );
+    // TODO maybe process any errors here (returning string instead of boolean?)
+    // .then(results => {
+    //  console.log("results:", results);
+    // });
+
+    if (sync) {
+      this._sync();
+    }
   };
 
   switch_to_classical_notebook = () => {

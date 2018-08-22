@@ -184,9 +184,8 @@ export async function user_search(opts: {
   query_id?: number;
   limit?: number;
   timeout?: number;
-  admin? : boolean;
-  active? : string;
+  admin?: boolean;
+  active?: string;
 }): Promise<User[]> {
   return callback_opts(webapp_client.user_search)(opts);
 }
-
