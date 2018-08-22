@@ -13,15 +13,6 @@ const IMMUTABLE_COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES); // only becau
 const { Alert, Button, DropdownButton, MenuItem } = require("react-bootstrap");
 const { Icon, Loading, Space } = require("./r_misc");
 
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * DS208: Avoid top-level this
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
 type ProjectInfo = TypedMap<{
   compute_image: string;
   project_id: string;
@@ -71,7 +62,7 @@ export const ComputeImageSelector = rclass<ReactProps>(
       }
       const new_image = props.project.get("compute_image");
       if (new_image !== this.state.compute_image) {
-        return this.setState({
+        this.setState({
           compute_image: new_image,
           compute_image_changing: false
         });
@@ -79,7 +70,7 @@ export const ComputeImageSelector = rclass<ReactProps>(
     }
 
     cancel_compute_image(current_image) {
-      return this.setState({
+      this.setState({
         compute_image: current_image,
         compute_image_changing: false,
         compute_image_focused: false
@@ -87,9 +78,7 @@ export const ComputeImageSelector = rclass<ReactProps>(
     }
 
     restart_project() {
-      return redux
-        .getActions("projects")
-        .restart_project(this.props.project_id);
+      redux.getActions("projects").restart_project(this.props.project_id);
     }
 
     async save_compute_image(current_image) {
@@ -114,7 +103,7 @@ export const ComputeImageSelector = rclass<ReactProps>(
     }
 
     set_compute_image(name) {
-      return this.setState({ compute_image: name });
+      this.setState({ compute_image: name });
     }
 
     compute_image_info(name, type) {
