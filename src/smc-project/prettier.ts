@@ -18,6 +18,7 @@ const { math_escape, math_unescape } = require("smc-util/markdown-utils");
 const prettier = require("prettier");
 const { latex_format } = require("./latex-format");
 const { python_format } = require("./python-format");
+const { r_format } = require("./r-format");
 const body_parser = require("body-parser");
 const express = require("express");
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
@@ -27,7 +28,8 @@ import { callback } from "awaiting";
 export async function run_prettier(
   client: any,
   path: string,
-  options: any
+  options: any,
+  logger: any
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   let syncstring = client.sync_string({ path, reference_only: true });
@@ -49,11 +51,15 @@ export async function run_prettier(
       case "python":
         pretty = await python_format(input, options);
         break;
+      case "r":
+        pretty = await r_format(input, options, logger);
+        break;
       default:
         pretty = prettier.format(input, options);
     }
   } catch (err) {
-    return { status: "error", phase: "format", error: err };
+    logger.debug(`run_prettier error: ${err.message}`);
+    return { status: "error", phase: "format", error: err.message };
   }
   if (options.parser === "markdown") {
     pretty = math_unescape(replace_math(pretty, math));

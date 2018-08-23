@@ -21,6 +21,17 @@ function yapf(input_path) {
   return spawn("yapf", ["-i", input_path]);
 }
 
+// TODO this doesn't do what it should …
+function last_line(str: string): string {
+  return (
+    str
+      .trim()
+      .split(/\r?\n/)
+      .slice(-1)
+      .pop() || ""
+  );
+}
+
 export async function python_format(
   input: string,
   options: ParserOptions
@@ -39,17 +50,20 @@ export async function python_format(
   // read data as it is produced.
   py_formatter.stdout.on("data", data => (stdout += data.toString()));
   py_formatter.stderr.on("data", data => (stderr += data.toString()));
+  // only last line
+  // stdout = last_line(stdout);
+  stderr = last_line(stderr);
   // wait for subprocess to close.
   let code = await callback(close, py_formatter);
   if (code) {
-    throw Error(
-      `Python formatter "${util}" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`
+    throw new Error(
+      `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`
     );
   }
 
   // all fine, we read from the temp file
-  let output : Buffer = await callback(readFile, input_path);
-  let s : string = output.toString('utf-8');
+  let output: Buffer = await callback(readFile, input_path);
+  let s: string = output.toString("utf-8");
 
   return s;
 }

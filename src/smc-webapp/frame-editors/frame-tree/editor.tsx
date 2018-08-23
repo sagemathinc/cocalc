@@ -1,4 +1,10 @@
-import { React, rclass, rtypes, Component, Rendered } from "../../app-framework";
+import {
+  React,
+  rclass,
+  rtypes,
+  Component,
+  Rendered
+} from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 
@@ -23,7 +29,6 @@ interface FrameTreeEditorReactProps {
 
 interface FrameTreeEditorReduxProps {
   editor_settings?: Map<string, any>;
-
   is_public: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
@@ -33,20 +38,18 @@ interface FrameTreeEditorReduxProps {
   error: string;
   cursors: Map<string, any>;
   status: string;
-
   load_time_estimate?: Map<string, any>;
   value?: string;
-
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
   misspelled_words: Set<string>;
   is_saving: boolean;
   gutter_markers: Map<string, any>;
-
   settings: Map<string, any>;
 }
 
-type FrameTreeEditorProps = FrameTreeEditorReactProps & FrameTreeEditorReduxProps;
+type FrameTreeEditorProps = FrameTreeEditorReactProps &
+  FrameTreeEditorReduxProps;
 
 const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   private editor_spec: any = {};
@@ -120,7 +123,6 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "status",
           "load_time_estimate",
           "value",
-
           "reload",
           "resize",
           "misspelled_words",
@@ -128,9 +130,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "has_uncommitted_changes",
           "is_saving",
           "gutter_markers",
-
           "editor_settings",
-
           "settings"
         ]
       ) ||
@@ -205,7 +205,9 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           maxWidth: "100%",
           margin: "1ex",
           maxHeight: "30%",
-          overflowY: "scroll"
+          overflowY: "scroll",
+          fontFamily: "monospace",
+          fontSize: "85%"
         }}
       />
     );
@@ -249,7 +251,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
       </div>
     );
   }
-} as React.ComponentType<FrameTreeEditorReactProps>
+} as React.ComponentType<FrameTreeEditorReactProps>;
 
 const FrameTreeEditor = rclass(FrameTreeEditor0);
 

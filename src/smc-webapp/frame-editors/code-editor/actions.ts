@@ -1468,6 +1468,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "py":
         parser = "python";
         break;
+      case "r":
+        parser = "r";
+        break;
       default:
         return;
     }
