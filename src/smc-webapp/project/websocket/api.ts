@@ -52,10 +52,10 @@ export class API {
     return this.conn.channel(channel_name);
   }
 
-  async sync_table(query: object): Promise<any> {
+  async symmetric_channel(name:string): Promise<any> {
     const channel_name = await this.call({
-      cmd: "sync_table",
-      query
+      cmd: "symmetric_channel",
+      name
     });
     return this.conn.channel(channel_name);
   }
