@@ -43,7 +43,8 @@ import * as nbgrader from "./nbgrader";
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 
-let jupyter_kernels = immutable.Map(); // map project_id (string) -> kernels (immutable)
+// map project_id (string) -> kernels (immutable)
+let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
@@ -377,9 +378,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_error(data.error);
       return;
     }
-    const project_id = this.store.get("project_id");
     const kernels = immutable.fromJS(data);
-    jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
+    const key = this.store.jupyter_kernel_key();
+    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
     this.setState({ kernels });
     // We must also update the kernel info (e.g., display name), now that we
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
@@ -389,7 +390,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = () => {
-    const kernels = jupyter_kernels.get(this.store.get("project_id"));
+    const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
     } else {

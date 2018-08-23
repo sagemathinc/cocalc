@@ -14,6 +14,7 @@ interface Item {
   key: any;
   label: any;
   value: any;
+  highlight?: boolean;
 }
 
 interface PickerListProps {
@@ -26,7 +27,7 @@ interface PickerListProps {
 }
 
 export class PickerList extends React.Component<PickerListProps> {
-  handleInputChange = (value) => this.props.onInputChange(value);
+  handleInputChange = value => this.props.onInputChange(value);
   handleInputEnter = () => this.props.onInputEnter();
   render_input() {
     const { inputValue, results, isLoading } = this.props;
@@ -75,7 +76,8 @@ export class PickerList extends React.Component<PickerListProps> {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                cursor: "pointer"
+                cursor: "pointer",
+                backgroundColor: r.highlight ? "#cbe4fa" : undefined
               }}
               onClick={() => this.props.onSelect(r.value)}
               key={r.key}

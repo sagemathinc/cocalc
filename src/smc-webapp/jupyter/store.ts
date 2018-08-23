@@ -8,6 +8,7 @@ const misc = require("smc-util/misc");
 import { Store, AppRedux } from "../app-framework";
 import { Set } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
+const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
 
 import * as nbgrader from "./nbgrader";
 
@@ -342,5 +343,15 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_cell_metadata_flag = (id: any, key: any) => {
     // default is true
     return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
+  };
+
+  jupyter_kernel_key = (): string => {
+    const project_id = this.get("project_id");
+    const projects_store = this.redux.getStore("projects");
+    const path = ["project_map", project_id, "compute_image"];
+    const compute_image = projects_store.getIn(path, DEFAULT_COMPUTE_IMAGE);
+    const key = [project_id, compute_image].join("::");
+    // console.log("jupyter store / jupyter_kernel_key", key);
+    return key;
   };
 }

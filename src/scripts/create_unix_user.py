@@ -19,9 +19,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
-
-
 """
 Create a unix user and setup ssh keys.   Usage:
 
@@ -45,20 +42,22 @@ scripts/skel to massively speed up new project creation.  You might make a symli
 
 """
 
-BASE_DIR='/mnt/home'
+BASE_DIR = '/mnt/home'
 
 from subprocess import Popen, PIPE
 import os, random, string, sys, uuid
 
 if len(sys.argv) > 2:
-    sys.stderr.write("Usage: sudo %s [optional username]\n"%sys.argv[0])
+    sys.stderr.write("Usage: sudo %s [optional username]\n" % sys.argv[0])
     sys.stderr.flush()
     sys.exit(1)
 
 # os.system('whoami')
 
 skel = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'skel')
+
 #print skel
+
 
 def cmd(args):
     if isinstance(args, str):
@@ -75,14 +74,15 @@ def cmd(args):
         sys.stdout.write(stdout)
         sys.stderr.write(stderr)
         sys.exit(e)
-    return {'stdout':stdout, 'stderr':stderr}
+    return {'stdout': stdout, 'stderr': stderr}
+
 
 if len(sys.argv) == 2:
-    username = sys.argv[1].replace('-','')[:32]
+    username = sys.argv[1].replace('-', '')[:32]
 else:
     # Using a random username helps to massively reduce the chances of race conditions...
-    alpha    =  string.ascii_letters + string.digits
-    username =  ''.join([random.choice(alpha) for _ in range(8)])
+    alpha = string.ascii_letters + string.digits
+    username = ''.join([random.choice(alpha) for _ in range(8)])
 
 if os.path.exists(os.path.join(BASE_DIR, username)):
     # "creating" an existing user is fine -- really the point of this script is to ensure the
@@ -96,12 +96,18 @@ else:
 # megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 # ensure host system is setup with quota for this to do anything: http://www.ubuntugeek.com/how-to-setup-disk-quotas-in-ubuntu.html
 
-disk_soft_mb = 512 # 250 megabytes
+disk_soft_mb = 512  # 250 megabytes
 disk_soft = disk_soft_mb * 245
-disk_hard = 2*disk_soft
+disk_hard = 2 * disk_soft
 inode_soft = 20000
-inode_hard = 2*inode_soft
-cmd(["setquota", '-u', username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+inode_hard = 2 * inode_soft
+cmd([
+    "setquota", '-u', username,
+    str(disk_soft),
+    str(disk_hard),
+    str(inode_soft),
+    str(inode_hard), '-a'
+])
 
 print username
 
