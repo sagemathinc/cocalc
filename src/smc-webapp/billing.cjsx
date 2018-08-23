@@ -2058,7 +2058,12 @@ BillingPage = rclass
         if not @props.loaded
             # nothing loaded yet from backend
             <Loading />
-        else if not @props.customer? or @props.continue_first_purchase
+        else if not @props.customer? and @props.for_course
+            # user not initialized yet -- only thing to do is add a card.
+            <div>
+                <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+            </div>
+        else if not @props.for_course and (not @props.customer? or @props.continue_first_purchase)
             <div>
                 <AddSubscription
                     on_close        = {@finish_first_subscription}

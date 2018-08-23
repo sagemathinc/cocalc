@@ -19,7 +19,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-
 """
 This script converts a .m GNU Octave file to an SMC sagews file.
 It relies on the sagews built-in mode `%octave` to instantiate a communication bridge
@@ -41,7 +40,6 @@ from smc_pyutil.lib import SagewsCell
 
 
 class M2SageWS(object):
-
     def __init__(self, filename, overwrite=True):
         """
         Convert a GNU Octave .m file to a CoCalc .sagews file.
@@ -57,7 +55,8 @@ class M2SageWS(object):
         self.outfile = base + '.sagews'
         if not overwrite and os.path.exists(self.outfile):
             raise Exception(
-                "%s: Warning --CoCalc worksheet '%s' already exists.  Not overwriting.\n" % (sys.argv[0], self.outfile))
+                "%s: Warning --CoCalc worksheet '%s' already exists.  Not overwriting.\n"
+                % (sys.argv[0], self.outfile))
 
         self.m = None  # holds the notebook data
         self.output = None  # use self.write([line]) to write to output
@@ -94,6 +93,7 @@ class M2SageWS(object):
                     if cell is None:
                         break
                     fout.write(cell)
+
         self.output = output()
         self.output.next()
 
@@ -113,7 +113,7 @@ class M2SageWS(object):
         Convert input to body of the sagews document.
         """
         fhead = "# {}\n".format(self.infile)
-        self.write(SagewsCell(input=fhead+self.m).convert())
+        self.write(SagewsCell(input=fhead + self.m).convert())
 
 
 def main():
@@ -131,6 +131,7 @@ file name in a comment at the start.
 
     for path in sys.argv[1:]:
         M2SageWS(path).convert()
+
 
 if __name__ == "__main__":
     main()

@@ -19,9 +19,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
-
-
 """
 Complete delete a given unix user
 
@@ -34,6 +31,7 @@ You should put the following in visudo:
 from subprocess import Popen, PIPE
 import os, sys
 
+
 def cmd(args, exit_on_error=True):
     print ' '.join(args)
     out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
@@ -44,28 +42,30 @@ def cmd(args, exit_on_error=True):
         print "ERROR --", e
         sys.stdout.write(stdout)
         sys.stderr.write(stderr)
-        sys.stdout.flush(); sys.stderr.flush()
+        sys.stdout.flush()
+        sys.stderr.flush()
         if exit_on_error:
-           sys.exit(e)
+            sys.exit(e)
 
 
 def deluser(username):
     if len(username) != 8:
-         sys.stderr.write("Suspicious username '%s' doesn't have length -- refusing to delete!\n"%username)
-         sys.exit(1)
+        sys.stderr.write(
+            "Suspicious username '%s' doesn't have length -- refusing to delete!\n"
+            % username)
+        sys.exit(1)
     else:
-         # We use the deluser unix command.
-         # deluser [options] [--force] [--remove-home] [--remove-all-files]
-         home = os.popen("echo ~%s"%username).read().strip()
-         cmd(['killall', '-9', '-u', username], exit_on_error=False)
-         cmd(['deluser', '--force', username], exit_on_error=True)
-         cmd(['rm', '-rf', home], exit_on_error=False)
+        # We use the deluser unix command.
+        # deluser [options] [--force] [--remove-home] [--remove-all-files]
+        home = os.popen("echo ~%s" % username).read().strip()
+        cmd(['killall', '-9', '-u', username], exit_on_error=False)
+        cmd(['deluser', '--force', username], exit_on_error=True)
+        cmd(['rm', '-rf', home], exit_on_error=False)
+
 
 if len(sys.argv) != 2:
-    sys.stderr.write("Usage: sudo %s <username>\n"%sys.argv[0])
+    sys.stderr.write("Usage: sudo %s <username>\n" % sys.argv[0])
     sys.stderr.flush()
     sys.exit(1)
 else:
     deluser(sys.argv[1])
-
-

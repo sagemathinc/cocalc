@@ -19,6 +19,7 @@ const onecolor = require("onecolor");
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
   is_collaborator?: boolean;
+  is_selected?: boolean;
 };
 
 /**
@@ -178,12 +179,6 @@ class AddCollaboratorsPanel0 extends Component<
         results = results.filter(
           u => !this.props.project.get("users").has(u.account_id)
         );
-        // filter out users who are already selected
-        results = results.filter(
-          u =>
-            this.state.selection.find(s => s.account_id === u.account_id) ===
-            undefined
-        );
         // put users who are collaborators on other projects at the top of the list
         const are_collaborators: UserAndProfile[] = [];
         const not_collaborators: UserAndProfile[] = [];
@@ -220,6 +215,13 @@ class AddCollaboratorsPanel0 extends Component<
         are_collaborators.sort(cmp);
         not_collaborators.sort(cmp);
         results = are_collaborators.concat(not_collaborators);
+        // mark those that are selected
+        for (let i = 0; i < results.length; i++) {
+          const u = results[i];
+          if (this.state.selection.find(w => w.account_id === u.account_id)) {
+            u.is_selected = true;
+          }
+        }
         // update state
         this.setState({
           results,
@@ -239,72 +241,97 @@ class AddCollaboratorsPanel0 extends Component<
         Search by name or email address for CoCalc users:
         <PickerList
           inputValue={this.state.search}
-          onInputChange={search => this.setState({ search, results: undefined })}
+          onInputChange={search =>
+            this.setState({ search, results: undefined })
+          }
           onInputEnter={() => this.query_for_results(this.state.search)}
           isLoading={this.state.loading}
-          results={this.state.results && this.state.results.map(u => {
-            const last_active =
-              u.last_active != null
-                ? new Date(u.last_active).toLocaleDateString()
-                : undefined;
-            const created =
-              u.created != null
-                ? new Date(u.created).toLocaleDateString()
-                : undefined;
-            return {
-              key: u.account_id,
-              value: u,
-              label: (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-                    overflow: "auto",
-                    height: "60px"
-                  }}
-                >
-                  {this.render_avatar(u)}
-                  <span
-                    style={{
-                      fontSize: "16px"
-                    }}
-                  >
-                    {u.first_name} {u.last_name}
-                  </span>
+          results={
+            this.state.results &&
+            this.state.results.map(u => {
+              const last_active =
+                u.last_active != null
+                  ? new Date(u.last_active).toLocaleDateString()
+                  : undefined;
+              const created =
+                u.created != null
+                  ? new Date(u.created).toLocaleDateString()
+                  : undefined;
+              return {
+                key: u.account_id,
+                value: u,
+                highlight: u.is_selected,
+                label: (
                   <div
                     style={{
-                      width: "145px",
-                      fontSize: "14px",
-                      textAlign: "right",
                       display: "flex",
-                      flexDirection: "column"
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      overflow: "auto",
+                      height: "60px"
                     }}
                   >
-                    {u.is_collaborator ? <div>Collaborator</div> : undefined}
-                    {last_active != null ? (
-                      <div>{`Last active ${last_active}`}</div>
-                    ) : (
-                      undefined
-                    )}
-                    {created != null ? (
-                      <div>{`Created ${created}`}</div>
-                    ) : (
-                      undefined
-                    )}
+                    {this.render_avatar(u)}
+                    <span
+                      style={{
+                        fontSize: "16px"
+                      }}
+                    >
+                      {u.first_name} {u.last_name}
+                    </span>
+                    <div
+                      style={{
+                        width: "145px",
+                        fontSize: "14px",
+                        textAlign: "right",
+                        display: "flex",
+                        flexDirection: "column"
+                      }}
+                    >
+                      {u.is_collaborator ? <div>Collaborator</div> : undefined}
+                      {last_active != null ? (
+                        <div>{`Last active ${last_active}`}</div>
+                      ) : (
+                        undefined
+                      )}
+                      {created != null ? (
+                        <div>{`Created ${created}`}</div>
+                      ) : (
+                        undefined
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            };
-          })}
-          onSelect={value => {
-            this.setState({
-              selection: this.state.selection.concat([value]),
-              results: this.state.results && this.state.results.filter(
-                u => u.account_id !== value.account_id
-              )
-            });
+                )
+              };
+            })
+          }
+          onSelect={u => {
+            if (this.state.selection.find(w => w.account_id === u.account_id)) {
+              this.setState({
+                selection: this.state.selection.filter(
+                  w => w.account_id !== u.account_id
+                ),
+                results:
+                  this.state.results &&
+                  this.state.results.map(w => ({
+                    ...w,
+                    is_selected:
+                      w.account_id === u.account_id ? false : w.is_selected
+                  }))
+              });
+            } else {
+              this.setState({
+                selection: this.state.selection.concat([u]),
+                results:
+                  this.state.results &&
+                  this.state.results.map(w => ({
+                    ...w,
+                    is_selected:
+                      w.account_id === u.account_id ? true : w.is_selected
+                  }))
+              });
+            }
           }}
         />
         {this.state.error != null && (
