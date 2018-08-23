@@ -53,7 +53,7 @@ export async function html_format(
   await callback(writeFile, input_path, input);
 
   // spawn the html formatter
-  const html_formatter;
+  let html_formatter;
   switch (options.parser) {
     case "tidy-html":
       html_formatter = tidy(input_path);
