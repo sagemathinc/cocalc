@@ -12,6 +12,8 @@ const {
   callback_opts
 } = require("../smc-webapp/frame-editors/generic/async-utils");
 
+import {sync_table} from "./sync-table";
+
 export function init_websocket_api(
   primus: any,
   logger: any,
@@ -54,6 +56,8 @@ async function handle_api_call(client: any, data: any, primus:any, logger:any): 
       return await exec(data.opts);
     case "terminal":
       return await terminal(primus, logger, data.path, data.options);
+    case "sync_table":
+      return await sync_table(client, primus, logger, data.query);
     default:
       throw Error(`command "${data.cmd}" not implemented`);
   }

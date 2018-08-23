@@ -51,6 +51,14 @@ export class API {
     //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
   }
+
+  async sync_table(query: object): Promise<any> {
+    const channel_name = await this.call({
+      cmd: "sync_table",
+      query
+    });
+    return this.conn.channel(channel_name);
+  }
 }
 
 function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
