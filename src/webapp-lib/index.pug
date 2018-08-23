@@ -6,7 +6,7 @@
 
 //- development:
 //- webpack-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors
-//- webpack-watch-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors --watch
+//- webpack-watch-staticpages: env CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors --watch --watch-poll=1000
 
 extends _base.pug
 
