@@ -49,7 +49,7 @@ export async function run_prettier(
         pretty = await latex_format(input, options);
         break;
       case "python":
-        pretty = await python_format(input, options);
+        pretty = await python_format(input, options, logger);
         break;
       case "r":
         pretty = await r_format(input, options, logger);

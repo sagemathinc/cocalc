@@ -34,7 +34,8 @@ function last_line(str: string): string {
 
 export async function python_format(
   input: string,
-  options: ParserOptions
+  options: ParserOptions,
+  logger: any
 ): Promise<string> {
   // create input temp file
   const input_path: string = await callback(tmp.file);
@@ -50,15 +51,15 @@ export async function python_format(
   // read data as it is produced.
   py_formatter.stdout.on("data", data => (stdout += data.toString()));
   py_formatter.stderr.on("data", data => (stderr += data.toString()));
+  // wait for subprocess to close.
+  let code = await callback(close, py_formatter);
   // only last line
   // stdout = last_line(stdout);
   stderr = last_line(stderr);
-  // wait for subprocess to close.
-  let code = await callback(close, py_formatter);
   if (code) {
-    throw new Error(
-      `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`
-    );
+    const err_msg = `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`;
+    logger.debug(`format python error: ${err_msg}`);
+    throw new Error(err_msg);
   }
 
   // all fine, we read from the temp file
