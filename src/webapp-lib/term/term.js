@@ -460,6 +460,7 @@
       i = 0,
       div;
 
+    this.set_color_scheme("default");
     this.element = document.createElement("div");
     this.element.setAttribute("spellcheck", "false");
     this.children = [];
@@ -531,10 +532,50 @@
     }
 
     // sync default bg/fg colors
-    this.element.style.backgroundColor = Terminal.defaultColors.bg;
-    this.element.style.color = Terminal.defaultColors.fg;
+    this.element.style.backgroundColor = this.defaultColors.bg;
+    this.element.style.color = this.defaultColors.fg;
 
     //this.emit('open');
+  };
+
+  Terminal.prototype.set_color_scheme = function(color_scheme) {
+    const data = Terminal.color_schemes[color_scheme];
+    if (data == null) {
+      console.warn(`unknown color scheme "${color_scheme}"`);
+      return;
+    }
+    const colors = data.colors;
+    this.colors = [];
+    for (let i = 0; i < 16; i++) {
+      this.colors[i] = colors[i];
+    }
+
+    if (colors.length > 16) {
+      this.defaultColors = {
+        fg: colors[16],
+        bg: colors[17]
+      };
+    } else {
+      this.defaultColors = {
+        fg: colors[15],
+        bg: colors[0]
+      };
+    }
+    this.colors[256] = this.defaultColors.bg;
+    this.colors[257] = this.defaultColors.fg;
+
+    if (this.element != null) {
+      this.element.style.backgroundColor = this.defaultColors.bg;
+      this.element.style.color = this.defaultColors.fg;
+    }
+  };
+
+  Terminal.prototype.set_font_size = function(size) {
+    $(this.element).css("font-size", `${size}px`);
+  };
+
+  Terminal.prototype.set_font_family = function(family) {
+    $(this.element).css("font-family", family);
   };
 
   // XTerm mouse events
@@ -989,11 +1030,11 @@
               }
 
               if (bgColor !== 256) {
-                out += "background-color:" + Terminal.colors[bgColor] + ";";
+                out += "background-color:" + this.colors[bgColor] + ";";
               }
 
               if (fgColor !== 257) {
-                out += "color:" + Terminal.colors[fgColor] + ";";
+                out += "color:" + this.colors[fgColor] + ";";
               }
 
               out += '">';

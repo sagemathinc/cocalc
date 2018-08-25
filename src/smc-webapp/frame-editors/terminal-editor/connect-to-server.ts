@@ -10,7 +10,8 @@ export async function connect_to_server(
   terminal: any
 ): Promise<void> {
   const ws = await webapp_client.project_websocket(project_id);
-  const conn = await ws.api.terminal(path);
+
+  terminal.conn = await ws.api.terminal(path);
 
   terminal.is_paused = false;
 
@@ -29,7 +30,7 @@ export async function connect_to_server(
     render_buffer = "";
   };
 
-  conn.on("data", function(data) {
+  terminal.conn.on("data", function(data) {
     if (typeof data === "string")
       if (terminal.is_paused) {
         render_buffer += data;
@@ -42,6 +43,6 @@ export async function connect_to_server(
   });
 
   terminal.on("data", function(data) {
-    conn.write(data);
+    terminal.conn.write(data);
   });
 }

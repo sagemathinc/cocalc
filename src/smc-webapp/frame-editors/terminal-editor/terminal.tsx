@@ -59,9 +59,11 @@ export class TerminalFrame extends Component<Props, {}> {
     if (node == null) {
       return;
     }
-    this.terminal = new Terminal({ row: 40, col: 80 });
+    this.terminal = new Terminal();
     this.terminal.open();
-    $(this.terminal.element).appendTo($(node));
+    const elt = $(this.terminal.element)
+    elt.css('width', '100%');
+    elt.appendTo($(node));
     this.terminal.element.className = "webapp-console-terminal";
     this.props.actions.set_terminal(this.props.id, this.terminal);
   }
@@ -88,10 +90,6 @@ export class TerminalFrame extends Component<Props, {}> {
       >
         <div
           ref={"terminal"}
-          style={{
-            margin: "10px auto",
-            padding: "0 10px"
-          }}
         />
       </div>
     );
