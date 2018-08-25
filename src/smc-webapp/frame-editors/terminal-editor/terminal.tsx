@@ -50,7 +50,6 @@ export class TerminalFrame extends Component<Props, {}> {
   componentWillUnmount(): void {
     if (this.terminal !== undefined) {
       $(this.terminal.element).remove();
-      this.terminal.destroy();
     }
   }
 
@@ -59,13 +58,18 @@ export class TerminalFrame extends Component<Props, {}> {
     if (node == null) {
       return;
     }
-    this.terminal = new Terminal();
-    this.terminal.open();
+    const terminal = this.props.actions._get_terminal(this.props.id);
+    if(terminal != null) {
+      this.terminal = terminal;
+    } else {
+      this.terminal = new Terminal();
+      this.terminal.open();
+      this.props.actions.set_terminal(this.props.id, this.terminal);
+    }
     const elt = $(this.terminal.element)
     elt.css('width', '100%');
     elt.appendTo($(node));
     this.terminal.element.className = "webapp-console-terminal";
-    this.props.actions.set_terminal(this.props.id, this.terminal);
   }
 
   async restore_scroll(): Promise<void> {

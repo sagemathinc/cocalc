@@ -912,6 +912,7 @@
     this.handler = function() {};
     this.write = function() {};
     //this.emit('close');
+    this.removeAllListeners();
   };
 
   /**

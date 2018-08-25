@@ -23,6 +23,18 @@ export class Actions extends CodeEditorActions {
     this.init_settings(terminal);
   }
 
+  _get_terminal(id:string) : any {
+    return this.terminals[id];
+  }
+
+  close_frame_hook(id: string): void {
+    const term = this.terminals[id];
+    if (term != null) {
+      delete this.terminals[id];
+      term.destroy();
+    }
+  }
+
   set_title(id: string, title: string) {
     console.log("set title of term ", id, " to ", title);
   }
