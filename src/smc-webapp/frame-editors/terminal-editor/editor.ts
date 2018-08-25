@@ -3,7 +3,7 @@ Top-level React component for the terminal
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { Terminal } from "./terminal";
+import { TerminalFrame } from "./terminal";
 import { set } from "../generic/misc";
 
 const EDITOR_SPEC = {
@@ -11,7 +11,7 @@ const EDITOR_SPEC = {
     short: "Terminal",
     name: "Terminal",
     icon: "terminal",
-    component: Terminal,
+    component: TerminalFrame,
     buttons: set([
       "print",
       "decrease_font_size",

@@ -444,7 +444,6 @@ Terminal.prototype.open = function() {
     , div;
 
   this.element = document.createElement('div');
-  this.element.className = 'webapp-console-terminal';
   this.element.setAttribute('spellcheck', 'false');
   this.children = [];
 
