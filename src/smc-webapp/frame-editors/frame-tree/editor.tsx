@@ -9,9 +9,9 @@ import {
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 
 import { FormatBar } from "./format-bar";
-
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
+import { ErrorStyles } from "../frame-tree/types";
 
 import { copy, is_different } from "../generic/misc";
 
@@ -36,6 +36,7 @@ interface FrameTreeEditorReduxProps {
   is_loaded: boolean;
   local_view_state: Map<string, any>;
   error: string;
+  errorstyle: ErrorStyles;
   cursors: Map<string, any>;
   status: string;
   load_time_estimate?: Map<string, any>;
@@ -82,6 +83,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         is_loaded: rtypes.bool.isRequired,
         local_view_state: rtypes.immutable.Map.isRequired,
         error: rtypes.string.isRequired,
+        errorstyle: rtypes.string,
         cursors: rtypes.immutable.Map.isRequired,
         status: rtypes.string.isRequired,
 
@@ -119,6 +121,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "is_loaded",
           "local_view_state",
           "error",
+          "errorstyle",
           "cursors",
           "status",
           "load_time_estimate",
@@ -197,18 +200,21 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (!this.props.error) {
       return;
     }
+    let style: any = {
+      maxWidth: "100%",
+      margin: "1ex",
+      maxHeight: "30%",
+      overflowY: "scroll"
+    };
+    if (this.props.errorstyle === "monospace") {
+      style.fontFamily = "monospace";
+      style.fontSize = "85%";
+    }
     return (
       <ErrorDisplay
         error={this.props.error}
         onClose={() => this.props.actions.set_error("")}
-        style={{
-          maxWidth: "100%",
-          margin: "1ex",
-          maxHeight: "30%",
-          overflowY: "scroll",
-          fontFamily: "monospace",
-          fontSize: "85%"
-        }}
+        style={style}
       />
     );
   }
