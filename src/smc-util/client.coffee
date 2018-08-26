@@ -1787,6 +1787,12 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
+    # this is async
+    symmetric_channel: (name, project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.symmetric_channel(name)
+
     sync_string: (opts) =>
         opts = defaults opts,
             id                 : undefined

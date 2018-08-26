@@ -12,7 +12,7 @@ function get_name(name: string): string {
   return `symmetric_channel:${name}`;
 }
 
-export async function symmetric_channel(
+export async function browser_symmetric_channel(
   client: any,
   primus: any,
   logger: any,
@@ -20,9 +20,9 @@ export async function symmetric_channel(
 ): Promise<string> {
   name = get_name(name);
 
-  // The code below is way more complicated because LocalChannel
+  // The code below is way more complicated because SymmetricChannel
   // can be made *before* this sync function is called.  If that
-  // happens, and we also have to set the channel of LocalChannel.
+  // happens, and we also have to set the channel of SymmetricChannel.
 
   if (
     sync_tables[name] !== undefined &&
@@ -33,14 +33,14 @@ export async function symmetric_channel(
   }
 
   const channel = primus.channel(name);
-  let local: LocalChannel;
+  let local: SymmetricChannel;
 
   if (sync_tables[name] !== undefined) {
     local = sync_tables[name].local;
     local.channel = channel;
     sync_tables[name].channel = channel;
   } else {
-    local = new LocalChannel(channel);
+    local = new SymmetricChannel(channel);
     sync_tables[name] = {
       local,
       channel
@@ -66,7 +66,7 @@ export async function symmetric_channel(
   return name;
 }
 
-class LocalChannel extends EventEmitter {
+class SymmetricChannel extends EventEmitter {
   channel: any;
 
   constructor(channel?: any) {
@@ -85,18 +85,13 @@ class LocalChannel extends EventEmitter {
   }
 }
 
-export function local_channel(name:string): LocalChannel {
+export function symmetric_channel(name: string): SymmetricChannel {
   name = get_name(name);
   if (sync_tables[name] !== undefined) {
     return sync_tables[name].local;
   }
-  const local = new LocalChannel(undefined);
+  const local = new SymmetricChannel(undefined);
   sync_tables[name] = { local };
   return local;
 }
 
-const foo = local_channel("foo");
-foo.on("data", function(data) {
-  foo.write("echoing");
-  foo.write(data);
-});
