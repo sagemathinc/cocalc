@@ -29,7 +29,7 @@ function tidy(input_path) {
     "--break-before-br",
     "yes",
     "--indent-spaces",
-    "2",  // tune that if we let users ever choose the indentation
+    "2", // tune that if we let users ever choose the indentation
     "--wrap",
     "80",
     "--sort-attributes",
@@ -69,7 +69,8 @@ export async function html_format(
   html_formatter.stderr.on("data", data => (stderr += data.toString()));
   // wait for subprocess to close.
   let code = await callback(close, html_formatter);
-  if (code) {
+  // TODO exit code 1 is a "warning", which requires show-warnings yes
+  if (code >= 2) {
     throw Error(
       `HTML formatter "${
         options.parser
