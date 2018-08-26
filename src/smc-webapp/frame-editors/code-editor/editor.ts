@@ -15,6 +15,7 @@ const FORMAT = set([
   "md",
   "css",
   "py",
+  "r",
   "yaml"
 ]);
 

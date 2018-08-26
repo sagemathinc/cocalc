@@ -1474,6 +1474,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "yaml":
         parser = "yaml";
         break;
+      case "r":
+        parser = "r";
+        break;
       default:
         return;
     }
