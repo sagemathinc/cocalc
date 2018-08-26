@@ -1439,6 +1439,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
+  // ATTN to enable a formatter, you also have to let it show up in the format bar
+  // e.g. look into frame-editors/code-editor/editor.ts
   async format(id?: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
@@ -1467,6 +1469,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         break;
       case "py":
         parser = "python";
+        break;
+      case "yml":
+      case "yaml":
+        parser = "yaml";
+        break;
+      case "r":
+        parser = "r";
+        break;
+      case "html":
+        parser = "html-tidy";
         break;
       default:
         return;

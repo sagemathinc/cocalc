@@ -55,11 +55,11 @@ export async function html_format(
   // spawn the html formatter
   let html_formatter;
   switch (options.parser) {
-    case "tidy-html":
+    case "html-tidy":
       html_formatter = tidy(input_path);
       break;
     default:
-      throw Error(`Unkown HTML formatter utility '${options.parser}'`);
+      throw Error(`Unknown HTML formatter utility '${options.parser}'`);
   }
   // stdout/err capture
   let stdout: string = "";

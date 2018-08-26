@@ -15,6 +15,8 @@ const FORMAT = set([
   "md",
   "css",
   "py",
+  "r",
+  "yaml"
 ]);
 
 const EDITOR_SPEC = {

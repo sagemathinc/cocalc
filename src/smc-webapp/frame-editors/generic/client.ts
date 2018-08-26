@@ -86,6 +86,8 @@ export async function prettier(
           loc.start.line
         } column ${loc.start.column}) -- fix and run again.`
       );
+    } else if (resp.error) {
+      throw Error(resp.error);
     } else {
       throw Error("Syntax error prevented formatting code.");
     }
