@@ -5,7 +5,7 @@ THIS SHOULD BE MOVED OUT OF frame-editors/
 This is a rewrite of what we're using from smc-util/misc...
 */
 
-const underscore = require('underscore');
+const underscore = require("underscore");
 
 interface SplittedPath {
   head: string;
@@ -28,7 +28,7 @@ export function filename_extension(filename: string): string {
     return "";
   }
   const ext = match[1];
-  return ext ? ext : "";
+  return (ext ? ext : "").toLowerCase();
 }
 
 // If input name foo.bar, returns object {name:'foo', ext:'bar'}.
@@ -203,7 +203,7 @@ export function uuid(): string {
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i
 );
-export function is_valid_uuid_string(uuid:string) : boolean {
+export function is_valid_uuid_string(uuid: string): boolean {
   return (
     typeof uuid === "string" && uuid.length === 36 && uuid_regexp.test(uuid)
   );

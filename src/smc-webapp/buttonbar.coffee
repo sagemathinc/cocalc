@@ -1116,9 +1116,9 @@ exports.commands =
             insert : "%javascript\n/* Use print(...) for output */"
         mode_jupyter_bridge:
             insert : """
-                     a3 = jupyter("anaconda3")
-                     # start new cells with %a3
-                     # or set %default_mode a3
+                     a5 = jupyter("anaconda5")
+                     # start new cells with %a5
+                     # or set %default_mode a5
                      """
         mode_md:
             insert : "%md\n"
@@ -1126,6 +1126,10 @@ exports.commands =
             insert : "%octave\n"
         mode_python:
             insert : "%python\n"
+        mode_python3:
+            insert : "%python3\n"
+        mode_anaconda:
+            insert : "%anaconda\n"
         mode_r:
             insert : "%r\n"
         mode_scilab:
@@ -1596,6 +1600,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Benchmark code repeatedly", "#mode_timeit"],
             ["Time code once", "#mode_time"],
             ["Language modes"],
+            ["Anaconda", "#mode_anaconda"],
             ["Cython", "#mode_cython"],
             ["Gap", "#mode_gap"],
             ["PARI/GP", "#mode_gp"],
@@ -1606,6 +1611,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Markdown", "#mode_md"],
             ["Octave", "#mode_octave"],
             ["Python", "#mode_python"],
+            ["Python 3", "#mode_python3"],
             ["R", "#mode_r"],
             ["Shell", "#mode_sh"],
         ]]
