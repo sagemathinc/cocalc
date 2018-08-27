@@ -18,7 +18,6 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "save",
       "find",
-      "cut",
       "paste",
       "copy"
     ])

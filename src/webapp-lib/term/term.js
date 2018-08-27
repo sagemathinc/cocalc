@@ -575,7 +575,7 @@
   };
 
   Terminal.prototype.set_font_family = function(family) {
-    $(this.element).css("font-family", family);
+    $(this.element).css("font-family", `${family}, Monospace`);
   };
 
   // XTerm mouse events
