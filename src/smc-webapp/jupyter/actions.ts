@@ -3046,10 +3046,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const language = this.store.getIn(["kernel_info", "language"]);
     switch (cell_type) {
       case "code":
-        if (language == "python") {
-          options = { parser: "python" };
-        } else {
-          throw new Error(`Formatting "${language}" cells is not supported yet.`);
+        switch (language) {
+          case "python":
+            options = { parser: "python" };
+            break;
+          case "r":
+            options = { parser: "r" };
+            break;
+          default:
+            throw new Error(
+              `Formatting "${language}" cells is not supported yet.`
+            );
         }
         break;
       case "markdown":
@@ -3079,6 +3086,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   format_selected_cells = async (id: string, sync = true): Promise<void> => {
+    this.set_error(null);
     const selected = this.store.get_selected_cell_ids_list();
     let jobs: string[] = [];
     for (id of selected) {
@@ -3092,6 +3100,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       await util.map_limit(this._format_cell, jobs);
     } catch (err) {
       this.set_error(err.message);
+      return;
     }
 
     if (sync) {
