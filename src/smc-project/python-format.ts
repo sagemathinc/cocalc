@@ -21,7 +21,7 @@ function yapf(input_path) {
   return spawn("yapf", ["-i", input_path]);
 }
 
-// TODO this doesn't do what it should …
+// from a full stacktrace, only show user the last line (encodes some reason and line number) ... everything else does not help.
 function last_line(str: string): string {
   return (
     str
