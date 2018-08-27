@@ -6,8 +6,6 @@ html(lang="en")
   head
     include _inc_head.pug
     title= fulltitle
-    script(type="text/javascript")
-      include:typescript preflight-checks.ts
   body
     style.
       #{require('!css-loader?minimize!app-startup-style.css')}
@@ -22,6 +20,11 @@ html(lang="en")
           | Timeout while loading CoCalc.
           br/
           | If the problem persists, try <a target='_blank' href="https://github.com/sagemathinc/cocalc/wiki/Connection-Timeout">these steps</a> or email <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>.
+
+    //- preflight check comes **after** the startup banner!
+    script(type="text/javascript")
+      include:typescript preflight-checks.ts
+
     div#smc-startup-banner-status
       | Initializing ...
 

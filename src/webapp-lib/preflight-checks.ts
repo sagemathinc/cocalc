@@ -51,8 +51,21 @@ const oldOpera = spec.name === "Opera" && spec.version < 55;
 const oldChrome = spec.name === "Chrome" && spec.version < 62;
 
 if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
-  const msg =
-    "<div style='text-align:center'><h1>Your browser is too old.</h1><div>We recommend <a href='https://google.com/chrome'>Google Chrome</a>.</div></div>";
+  try {
+    const banner = document.getElementById("smc-startup-banner");
+    banner.parentNode.removeChild(banner);
+  } finally {
+  }
+  const msg = `<div style='text-align:center'>
+      <h1 style="color:red;font-size:300%">&#9888;</h1>
+      <h2>Your browser ${spec.name} of version ${spec.version} is too old.</h2>
+      <div>
+          <p>We recommend to run the newest <a href='https://google.com/chrome'>Google Chrome</a>.</p>
+          <p>Learn more about our
+            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements">browser requirements</a>.
+          </p>
+      </div>
+    </div>`;
   document.open();
   document.write(msg);
   document.close();
