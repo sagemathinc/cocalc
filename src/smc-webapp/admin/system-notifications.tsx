@@ -54,11 +54,11 @@ class SystemNotifications extends Component<Props, State> {
     if (open > 0) {
       return (
         <Button onClick={() => this.mark_all_done()}>
-          Mark {open} {plural(open, "notification")} done
+          Mark {open} {plural(open, "Notification")} Done
         </Button>
       );
     } else {
-      return <Button disabled={true}>No outstanding notifications</Button>;
+      return <Button disabled={true}>No Outstanding Notifications</Button>;
     }
   }
 

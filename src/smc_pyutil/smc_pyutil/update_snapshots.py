@@ -6,10 +6,12 @@ join = os.path.join
 SNAPSHOTS = join(os.environ['HOME'], '.snapshots')
 MNT = "/mnt/snapshots/"
 
-project_id = json.loads(open(join(os.environ['SMC'], 'info.json')).read())['project_id']
+project_id = json.loads(open(join(os.environ['SMC'],
+                                  'info.json')).read())['project_id']
+
 
 def find_snapshots():
-    listing_file = join(MNT,'listing')
+    listing_file = join(MNT, 'listing')
     if not os.path.exists(listing_file):
         return []
     for x in open(listing_file).read().split('\n\n'):
@@ -45,4 +47,3 @@ def update_snapshots():
             target = join(MNT, path, s, project_id)
             if os.path.exists(target):
                 os.symlink(target, join(SNAPSHOTS, s))
-

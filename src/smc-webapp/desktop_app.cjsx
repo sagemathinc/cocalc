@@ -46,6 +46,8 @@ misc = require('smc-util/misc')
 
 nav_class = 'hidden-xs'
 
+HIDE_LABEL_THOLD = 6
+
 FileUsePageWrapper = (props) ->
     styles =
         zIndex       : '10'
@@ -105,8 +107,16 @@ Page = rclass
     propTypes :
         redux : rtypes.object
 
-    shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, PAGE_REDUX_FIELDS)
+    shouldComponentUpdate: (props, state) ->
+        state_changed = misc.is_different(@state, state, ['show_label'])
+        redux_changed = misc.is_different(@props, props, PAGE_REDUX_FIELDS)
+        return redux_changed or state_changed
+
+    getInitialState: ->
+        show_label : true
+
+    componentWillReceiveProps: (next) ->
+        @setState(show_label : next.open_projects.size <= HIDE_LABEL_THOLD)
 
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()
@@ -129,6 +139,7 @@ Page = rclass
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
+            show_label     = {@state.show_label}
         />
 
     render_admin_tab: ->
@@ -140,6 +151,7 @@ Page = rclass
             inner_style    = {padding: '10px', display: 'flex'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
+            show_label     = {@state.show_label}
         />
 
     sign_in_tab_clicked: ->
@@ -158,6 +170,7 @@ Page = rclass
             active_top_tab  = {@props.active_top_tab}
             style           = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}
             add_inner_style = {color: 'black'}
+            show_label     = {@state.show_label}
         />
 
     render_support: ->
@@ -171,6 +184,7 @@ Page = rclass
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
+            show_label     = {@state.show_label}
         />
 
     render_bell: ->
@@ -193,7 +207,9 @@ Page = rclass
                 icon           = {'info-circle'}
                 inner_style    = {padding: '10px', display: 'flex'}
                 actions        = {@actions('page')}
-                active_top_tab = {@props.active_top_tab} />
+                active_top_tab = {@props.active_top_tab}
+                show_label     = {@state.show_label}
+            />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
             {@render_bell()}
@@ -215,9 +231,9 @@ Page = rclass
                 active_top_tab = {@props.active_top_tab}
 
             >
-                <div style={projects_styles} className={nav_class}>
+                {<div style={projects_styles} className={nav_class}>
                     Projects
-                </div>
+                </div> if @state.show_label}
                 <AppLogo />
             </NavTab>
         </Nav>
@@ -263,7 +279,7 @@ Page = rclass
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
-            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
+            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} show_pingtime = {@state.show_label}/> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}

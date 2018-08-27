@@ -3,7 +3,9 @@
 # this script should be python3, but geolite2 requires 2 :-\
 from __future__ import print_function, unicode_literals
 
-print("WARNING: CONFIDENTIAL -- don't share the generated data publicly. It is solely used to improve the service!")
+print(
+    "WARNING: CONFIDENTIAL -- don't share the generated data publicly. It is solely used to improve the service!"
+)
 
 import sys, os
 d = os.path.abspath(os.path.dirname(__file__))
@@ -22,15 +24,20 @@ from collections import Counter
 
 try:
     from geoip import geolite2
-    print("don't forget to periodically update the geolite2 db via pip install --user -U python-geoip-geolite2")
+    print(
+        "don't forget to periodically update the geolite2 db via pip install --user -U python-geoip-geolite2"
+    )
 except:
-    print("do $ pip install --user python-geoip-geolite2 ... or something like that")
+    print(
+        "do $ pip install --user python-geoip-geolite2 ... or something like that"
+    )
     sys.exit(1)
 
 try:
     # Open Street Map
     from geopy.geocoders import Nominatim
     geolocator = Nominatim()
+
     def loc2addr(loc):
         addr = loc.address.split(",")
         country = addr[-1]
@@ -55,6 +62,7 @@ q = Queue()
 recent = dict()
 countries = Counter()
 
+
 def print_data():
     # doing this async because of Nominatim
     while True:
@@ -64,14 +72,15 @@ def print_data():
             # first, a bit of rate limiting
             account_id = right["account_id"]
             if account_id in recent:
-                if datetime.utcnow() - timedelta(minutes = 10) < recent[account_id]:
+                if datetime.utcnow() - timedelta(
+                        minutes=10) < recent[account_id]:
                     continue
             recent[account_id] = datetime.utcnow()
 
             c = left["new_val"]
             event = c["event"]
             value = c["value"]
-            now = datetime.utcnow().replace(tzinfo = utc)
+            now = datetime.utcnow().replace(tzinfo=utc)
             last_active = right.get("last_active", None)
             if last_active:
                 ago = (now - last_active).total_seconds() / (24 * 60 * 60)
@@ -82,8 +91,10 @@ def print_data():
                 last_active = "NaN"
 
             ip = value["ip_address"]
-            email_address = right.get("email_address", value.get("email_address", None))
-            name = "{first_name} {last_name} <{email}>".format(email = email_address, **right)
+            email_address = right.get("email_address",
+                                      value.get("email_address", None))
+            name = "{first_name} {last_name} <{email}>".format(
+                email=email_address, **right)
             print("{name:<60s}\n    last seen: {last_active} ({ago:.2f} days ago)"\
                   .format(ago=ago, name = name, ip = ip, last_active = last_active, **right))
 
@@ -108,7 +119,8 @@ def print_data():
             print("")
             q.task_done()
 
-t = Thread(target = print_data)
+
+t = Thread(target=print_data)
 t.daemon = True
 t.start()
 

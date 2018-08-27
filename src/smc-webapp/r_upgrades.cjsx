@@ -272,7 +272,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
                         onClick  = {=>@setState(expand_remove_all_upgrades:true)}
                         disabled = {@state.expand_remove_all_upgrades}
                     >
-                        Remove all upgrades you have applied to projects...
+                        Remove All Upgrades You Applied to Projects...
                     </Button>
                 </Col>
             </Row>
@@ -303,7 +303,7 @@ ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
         <UpgradeRestartWarning style={display:'inline-block', margin:'15px 0'} />
         <ButtonToolbar>
             <Button bsStyle='warning' onClick={on_confirm}>
-                Yes, remove all upgrades
+                Yes, please remove all upgrades
             </Button>
             <Button onClick={on_cancel}>
                 Cancel

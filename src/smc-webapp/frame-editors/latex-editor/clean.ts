@@ -41,7 +41,7 @@ export async function clean(
   // this in particular gets rid of the sagetex files
   let exts = EXTENSIONS;
   if (delete_tex) {
-    // this looks weird, but for .rnw files Knitr generates the .tex file
+    // this looks weird, but in case of .rnw/.rtex, Knitr generates the .tex file
     exts = exts.concat(".tex");
   }
   const files = exts.map(ext => `${base}${ext}`);

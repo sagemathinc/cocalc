@@ -61,6 +61,7 @@ codemirror_associations =
     r      : 'r'
     rmd    : 'gfm'
     rnw    : 'stex2'
+    rtex   : 'stex2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -132,7 +133,13 @@ file_associations['rnw'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-    name   : "R/knitr LaTeX"
+    name   : "R Knitr Rnw"
+
+file_associations['rtex'] =
+    editor : 'latex'
+    icon   : 'cc-icon-tex-file'
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "R Knitr Rtex"
 
 file_associations['html'] =
     icon   : 'fa-file-code-o'

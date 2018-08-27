@@ -3,7 +3,7 @@ Customization and selection of the build command.
 
 */
 
-import { List } from "immutable";
+import { List, fromJS } from "immutable";
 
 const { Loading } = require("smc-webapp/r_misc");
 
@@ -40,11 +40,14 @@ export class BuildCommand extends Component<Props, State> {
     super(props);
     this.state = {
       build_command: this.build_command_string(props.build_command),
-      focus: false,
+      focus: false
     };
   }
 
   componentWillReceiveProps(next: Props): void {
+    if (this.state.focus) {
+      return;
+    }
     if (next.build_command != this.props.build_command) {
       // set by another user or menu selection.
       this.setState({
@@ -76,9 +79,13 @@ export class BuildCommand extends Component<Props, State> {
   }
 
   select_engine(engine: Engine): void {
-    this.props.actions.set_build_command(
-      build_command(engine, this.props.filename, this.props.knitr)
+    const cmd: string[] = build_command(
+      engine,
+      this.props.filename,
+      this.props.knitr
     );
+    this.props.actions.set_build_command(cmd);
+    this.setState({ build_command: this.build_command_string(fromJS(cmd)) });
   }
 
   render_item(engine: string): Rendered {
@@ -120,7 +127,11 @@ export class BuildCommand extends Component<Props, State> {
       this.state.build_command !=
       this.build_command_string(this.props.build_command)
     ) {
-      this.props.actions.set_build_command(this.state.build_command);
+      if (!this.state.build_command) {
+        this.select_engine(ENGINES[0]);
+      } else {
+        this.props.actions.set_build_command(this.state.build_command);
+      }
     }
   }
 

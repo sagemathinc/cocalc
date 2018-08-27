@@ -86,7 +86,6 @@ class BillingActions extends Actions
             cb?(err)
         )
 
-
     _action: (action, desc, opts) =>
         @setState(action: desc)
         cb = opts.cb
@@ -239,6 +238,8 @@ AddPaymentMethod = rclass
 
     submit_payment_method: ->
         @setState(error: false, submitting:true)
+        if not redux.getStore('billing').get('customer')?
+            @props.redux.getActions('billing').setState({continue_first_purchase: true})
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
@@ -1012,6 +1013,8 @@ ConfirmPaymentMethod = rclass
         </span>
 
     render: ->
+        if not @props.customer
+            return <AddPaymentMethod redux={redux} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
@@ -1601,15 +1604,18 @@ Subscription = rclass
     render_confirm: ->
         if not @state.confirm_cancel
             return
+        ###
+        TODO: these buttons do not seem consistent with other button language, but makes sense because of the use of "Cancel" a subscription
+        ###
         <Alert bsStyle='warning'>
             <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
                 <Col md={6}>
                     Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
                 </Col>
                 <Col md={6}>
-                    <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
+                    <Button onClick={=>@setState(confirm_cancel:false)}>Make No Change</Button>
                     <div style={float:'right'}>
-                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                        <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, please cancel and do not auto-renew my subscription</Button>
                     </div>
                 </Col>
             </Row>
@@ -1861,7 +1867,7 @@ exports.PayCourseFee = PayCourseFee = rclass
                 <br/><br/>
                 <ButtonToolbar>
                     <Button onClick={@buy_subscription} bsStyle='primary'>
-                        Pay ${STUDENT_COURSE_PRICE} fee
+                        Pay ${STUDENT_COURSE_PRICE} Fee
                     </Button>
                     <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
                 </ButtonToolbar>
@@ -1936,6 +1942,7 @@ BillingPage = rclass
             selected_plan   : rtypes.string
             applied_coupons : rtypes.immutable.Map
             coupon_error    : rtypes.string
+            continue_first_purchase: rtypes.bool
         projects :
             project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
         account :
@@ -2040,16 +2047,30 @@ BillingPage = rclass
             selected_plan   = {@props.selected_plan}
             redux           = {@props.redux} />
 
+    finish_first_subscription: ->
+        set_selected_plan('')
+        @actions('billing').remove_all_coupons();
+        @actions('billing').setState({continue_first_purchase: false})
+
     render_page: ->
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
         if not @props.loaded
             # nothing loaded yet from backend
             <Loading />
-        else if not @props.customer?
+        else if not @props.customer? and @props.for_course
             # user not initialized yet -- only thing to do is add a card.
             <div>
                 <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
+            </div>
+        else if not @props.for_course and (not @props.customer? or @props.continue_first_purchase)
+            <div>
+                <AddSubscription
+                    on_close        = {@finish_first_subscription}
+                    selected_plan   = {@props.selected_plan}
+                    actions         = {@props.redux.getActions('billing')}
+                    applied_coupons = {@props.applied_coupons}
+                    coupon_error    = {@props.coupon_error} />
             </div>
         else
             # data loaded and customer exists

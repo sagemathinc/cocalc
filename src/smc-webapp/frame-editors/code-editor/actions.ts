@@ -225,7 +225,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         );
         return;
       }
-      if (!this._syncstring || this._state == 'closed') {
+      if (!this._syncstring || this._state == "closed") {
         // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
         return;
       }
@@ -264,7 +264,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // This is currently NOT used in this base class.  It's used in other
   // editors to store shared configuration or other information.  E.g., it's
   // used by the latex editor to store the build command, master file, etc.
-  _init_syncdb(primary_keys: string[], string_cols?: string[], path?: string): void {
+  _init_syncdb(
+    primary_keys: string[],
+    string_cols?: string[],
+    path?: string
+  ): void {
     const aux = aux_file(path || this.path, "syncdb");
     this._syncdb = syncdb({
       project_id: this.project_id,
@@ -291,7 +295,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Reload the document.  This is used mainly for *public* viewing of
   // a file.
-  reload(_ : string): void {  // id not used here...
+  reload(_: string): void {
+    // id not used here...
     if (!this.store.get("is_loaded")) {
       // currently in the process of loading
       return;
@@ -812,7 +817,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // so the information can propogate to other users via the syncstring.
   set_cursor_locs(locs: any[]): void {
     if (!this._syncstring) {
-      return;  // not currently valid.
+      return; // not currently valid.
     }
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
@@ -1312,6 +1317,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return cm.focus();
   }
 
+  // returns the path, unless we aim to spellcheck for a related file (e.g. rnw, rtex)
+  // overwritten in derived classes
+  get_spellcheck_path(): string {
+    return this.path;
+  }
+
   // Runs spellchecker on the backend last saved file, then
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
@@ -1332,7 +1343,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     try {
       const words: string[] = await misspelled_words({
         project_id: this.project_id,
-        path: this.path,
+        path: this.get_spellcheck_path(),
         lang,
         time
       });
@@ -1428,6 +1439,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
+  // ATTN to enable a formatter, you also have to let it show up in the format bar
+  // e.g. look into frame-editors/code-editor/editor.ts
   async format(id?: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
@@ -1456,6 +1469,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         break;
       case "py":
         parser = "python";
+        break;
+      case "yml":
+      case "yaml":
+        parser = "yaml";
+        break;
+      case "r":
+        parser = "r";
         break;
       default:
         return;

@@ -13,24 +13,21 @@ export async function latexmk(
   status: Function
 ): Promise<ExecOutput> {
   const x = path_split(path);
-  let bash: boolean;
   let command: string;
   let args: string[] | undefined;
   if (typeof build_command === "string") {
-    bash = true;
     command = build_command;
     args = undefined;
     status(command);
   } else {
-    bash = false;
     command = build_command[0];
     args = build_command.slice(1);
     status([command].concat(args).join(" "));
   }
   return await exec({
-    bash: bash,
+    bash: true,    // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
     allow_post: false, // definitely could take a long time to fully run latex
-    timeout: 90,
+    timeout: 60,
     command: command,
     args: args,
     project_id: project_id,

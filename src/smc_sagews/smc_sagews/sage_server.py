@@ -32,6 +32,7 @@ For debugging, this may help:
 import os, sys, time, operator
 import __future__ as future
 
+
 def unicode8(s):
     # I evidently don't understand Python unicode...  Do the following for now:
     # TODO: see http://stackoverflow.com/questions/21897664/why-does-unicodeu-passed-an-errors-parameter-raise-typeerror for how to fix.
@@ -39,21 +40,27 @@ def unicode8(s):
         return unicode(s, 'utf8')
     except:
         try:
-             return unicode(s)
+            return unicode(s)
         except:
-             return s
+            return s
+
 
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 PID = os.getpid()
 from datetime import datetime
+
+
 def log(*args):
     try:
         debug_log = open(LOGFILE, 'a')
-        mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
+        mesg = "%s (%s): %s\n" % (PID, datetime.utcnow().strftime(
+            '%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x)
+                                                    for x in args]))
         debug_log.write(mesg)
         debug_log.flush()
     except Exception, err:
-        print("an error writing a log message (ignoring) -- %s"%err, args)
+        print("an error writing a log message (ignoring) -- %s" % err, args)
+
 
 # used for clearing pylab figure
 pylab = None
@@ -81,6 +88,8 @@ import sage_parsing, sage_salvus
 uuid = sage_salvus.uuid
 
 reload_attached_files_if_mod_smc_available = True
+
+
 def reload_attached_files_if_mod_smc():
     # CRITICAL: do NOT impor sage.repl.attach!!  That will import IPython, wasting several seconds and
     # killing the user experience for no reason.
@@ -103,9 +112,11 @@ def reload_attached_files_if_mod_smc():
     for filename, mtime in modified_file_iterator():
         basename = os.path.basename(filename)
         timestr = time.strftime('%T', mtime)
-        log('reloading attached file {0} modified at {1}'.format(basename, timestr))
+        log('reloading attached file {0} modified at {1}'.format(
+            basename, timestr))
         from sage_salvus import load
         load(filename)
+
 
 # Determine the info object, if available.  There's no good reason
 # it wouldn't be available, unless a user explicitly deleted it, but
@@ -119,7 +130,6 @@ else:
 if 'base_url' not in INFO:
     INFO['base_url'] = ''
 
-
 # Configure logging
 #logging.basicConfig()
 #log = logging.getLogger('sage_server')
@@ -127,6 +137,8 @@ if 'base_url' not in INFO:
 
 # A CoffeeScript version of this function is in misc_node.coffee.
 import hashlib
+
+
 def uuidsha1(data):
     sha1sum = hashlib.sha1()
     sha1sum.update(data)
@@ -136,16 +148,21 @@ def uuidsha1(data):
     j = 0
     for i in range(len(t)):
         if t[i] == 'x':
-            r[i] = s[j]; j += 1
+            r[i] = s[j]
+            j += 1
         elif t[i] == 'y':
             # take 8 + low order 3 bits of hex number.
-            r[i] = hex( (int(s[j],16)&0x3) |0x8)[-1]; j += 1
+            r[i] = hex((int(s[j], 16) & 0x3) | 0x8)[-1]
+            j += 1
     return ''.join(r)
+
 
 # A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(conn, ConnectionJSON)  # avoid common mistake -- conn is supposed to be from socket.socket...
+        assert not isinstance(
+            conn, ConnectionJSON
+        )  # avoid common mistake -- conn is supposed to be from socket.socket...
         self._conn = conn
 
     def close(self):
@@ -169,7 +186,7 @@ class ConnectionJSON(object):
         return s
 
     def send_file(self, filename):
-        log("sending file '%s'"%filename)
+        log("sending file '%s'" % filename)
         f = open(filename, 'rb')
         data = f.read()
         f.close()
@@ -177,7 +194,9 @@ class ConnectionJSON(object):
 
     def _recv(self, n):
         #print("_recv(%s)"%n)
-        for i in range(20): # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
+        for i in range(
+                20
+        ):  # see http://stackoverflow.com/questions/3016369/catching-blocking-sigint-during-system-call
             try:
                 #print "blocking recv (i = %s), pid=%s"%(i, os.getpid())
                 r = self._conn.recv(n)
@@ -193,7 +212,7 @@ class ConnectionJSON(object):
         n = self._recv(4)
         if len(n) < 4:
             raise EOFError
-        n = struct.unpack('>L', n)[0]   # big endian 32 bits
+        n = struct.unpack('>L', n)[0]  # big endian 32 bits
         s = self._recv(n)
         while len(s) < n:
             t = self._recv(n - len(s))
@@ -205,18 +224,20 @@ class ConnectionJSON(object):
             try:
                 return 'json', json.loads(s[1:])
             except Exception as msg:
-                log("Unable to parse JSON '%s'"%s[1:])
+                log("Unable to parse JSON '%s'" % s[1:])
                 raise
 
         elif s[0] == 'b':
             return 'blob', s[1:]
-        raise ValueError("unknown message type '%s'"%s[0])
+        raise ValueError("unknown message type '%s'" % s[0])
+
 
 def truncate_text(s, max_size):
     if len(s) > max_size:
         return s[:max_size] + "[...]", True
     else:
         return s, False
+
 
 def truncate_text_warn(s, max_size, name):
     r"""
@@ -239,7 +260,7 @@ def truncate_text_warn(s, max_size, name):
     tmsg = "WARNING: Output: %s truncated by %s to %s.  Type 'smc?' to learn how to raise the output limit."
     lns = len(s)
     if lns > max_size:
-        tmsg = tmsg%(lns, name, max_size)
+        tmsg = tmsg % (lns, name, max_size)
         return s[:max_size] + "[...]", True, tmsg
     else:
         return s, False, ''
@@ -247,7 +268,7 @@ def truncate_text_warn(s, max_size, name):
 
 class Message(object):
     def _new(self, event, props={}):
-        m = {'event':event}
+        m = {'event': event}
         for key, val in props.iteritems():
             if key != 'self':
                 m[key] = val
@@ -257,7 +278,7 @@ class Message(object):
         return self._new('start_session')
 
     def session_description(self, pid):
-        return self._new('session_description', {'pid':pid})
+        return self._new('session_description', {'pid': pid})
 
     def send_signal(self, pid, signal=signal.SIGINT):
         return self._new('send_signal', locals())
@@ -271,53 +292,61 @@ class Message(object):
     def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id,
-               stdout       = None,
-               stderr       = None,
-               code         = None,
-               html         = None,
-               javascript   = None,
-               coffeescript = None,
-               interact     = None,
-               md           = None,
-               tex          = None,
-               d3           = None,
-               file         = None,
-               raw_input    = None,
-               obj          = None,
-               once         = None,
-               hide         = None,
-               show         = None,
-               events       = None,
-               clear        = None,
-               delete_last  = None,
-               done         = False   # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
-              ):
+    def output(
+            self,
+            id,
+            stdout=None,
+            stderr=None,
+            code=None,
+            html=None,
+            javascript=None,
+            coffeescript=None,
+            interact=None,
+            md=None,
+            tex=None,
+            d3=None,
+            file=None,
+            raw_input=None,
+            obj=None,
+            once=None,
+            hide=None,
+            show=None,
+            events=None,
+            clear=None,
+            delete_last=None,
+            done=False  # CRITICAL: done must be specified for multi-response; this is assumed by sage_session.coffee; otherwise response assumed single.
+    ):
         m = self._new('output')
         m['id'] = id
         t = truncate_text_warn
         did_truncate = False
         import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
-            code['source'], did_truncate, tmsg = t(code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
+            code['source'], did_truncate, tmsg = t(
+                code['source'], sage_server.MAX_CODE_SIZE, 'MAX_CODE_SIZE')
             m['code'] = code
         if stderr is not None and len(stderr) > 0:
-            m['stderr'], did_truncate, tmsg = t(stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
+            m['stderr'], did_truncate, tmsg = t(
+                stderr, sage_server.MAX_STDERR_SIZE, 'MAX_STDERR_SIZE')
         if stdout is not None and len(stdout) > 0:
-            m['stdout'], did_truncate, tmsg  = t(stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
-        if html is not None  and len(html) > 0:
-            m['html'], did_truncate, tmsg  = t(html, sage_server.MAX_HTML_SIZE, 'MAX_HTML_SIZE')
-        if md is not None  and len(md) > 0:
-            m['md'], did_truncate, tmsg  = t(md, sage_server.MAX_MD_SIZE, 'MAX_MD_SIZE')
-        if tex is not None and len(tex)>0:
-            tex['tex'], did_truncate, tmsg  = t(tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
+            m['stdout'], did_truncate, tmsg = t(
+                stdout, sage_server.MAX_STDOUT_SIZE, 'MAX_STDOUT_SIZE')
+        if html is not None and len(html) > 0:
+            m['html'], did_truncate, tmsg = t(html, sage_server.MAX_HTML_SIZE,
+                                              'MAX_HTML_SIZE')
+        if md is not None and len(md) > 0:
+            m['md'], did_truncate, tmsg = t(md, sage_server.MAX_MD_SIZE,
+                                            'MAX_MD_SIZE')
+        if tex is not None and len(tex) > 0:
+            tex['tex'], did_truncate, tmsg = t(
+                tex['tex'], sage_server.MAX_TEX_SIZE, 'MAX_TEX_SIZE')
             m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if interact is not None: m['interact'] = interact
         if d3 is not None: m['d3'] = d3
         if obj is not None: m['obj'] = json.dumps(obj)
-        if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
+        if file is not None: m['file'] = file  # = {'filename':..., 'uuid':...}
         if raw_input is not None: m['raw_input'] = raw_input
         if done is not None: m['done'] = done
         if once is not None: m['once'] = once
@@ -348,9 +377,11 @@ class Message(object):
         m['id'] = id
         return m
 
+
 message = Message()
 
 whoami = os.environ['USER']
+
 
 def client1(port, hostname):
     conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -365,7 +396,7 @@ def client1(port, hostname):
     id = 0
     while True:
         try:
-            code = sage_parsing.get_input('sage [%s]: '%id)
+            code = sage_parsing.get_input('sage [%s]: ' % id)
             if code is None:  # EOF
                 break
             conn.send_json(message.execute_code(code=code, id=id))
@@ -375,9 +406,11 @@ def client1(port, hostname):
                     return
                 elif mesg['event'] == 'output':
                     if 'stdout' in mesg:
-                        sys.stdout.write(mesg['stdout']); sys.stdout.flush()
+                        sys.stdout.write(mesg['stdout'])
+                        sys.stdout.flush()
                     if 'stderr' in mesg:
-                        print('!  ' + '\n!  '.join(mesg['stderr'].splitlines()))
+                        print(
+                            '!  ' + '\n!  '.join(mesg['stderr'].splitlines()))
                     if 'done' in mesg and mesg['id'] >= id:
                         break
             id += 1
@@ -393,6 +426,7 @@ def client1(port, hostname):
 
     conn.send_json(message.terminate_session())
     print("\nExiting Sage client.")
+
 
 class BufferedOutputStream(object):
     def __init__(self, f, flush_size=4096, flush_interval=.1):
@@ -414,13 +448,13 @@ class BufferedOutputStream(object):
         # is destined to be *rendered* in the browser.  This is only a partial
         # solution to a more general problem, but it is safe.
         try:
-            self._buf += output.replace('\x00','')
+            self._buf += output.replace('\x00', '')
         except UnicodeDecodeError:
-            self._buf += output.decode('utf-8').replace('\x00','')
+            self._buf += output.decode('utf-8').replace('\x00', '')
         #self.flush()
         t = time.time()
-        if ((len(self._buf) >= self._flush_size) or
-                  (t - self._last_flush_time >= self._flush_interval)):
+        if ((len(self._buf) >= self._flush_size)
+                or (t - self._last_flush_time >= self._flush_interval)):
             self.flush()
             self._last_flush_time = t
 
@@ -436,6 +470,7 @@ class BufferedOutputStream(object):
 
     def isatty(self):
         return False
+
 
 # This will *have* to be re-done using Cython for speed.
 class Namespace(dict):
@@ -504,18 +539,23 @@ class Namespace(dict):
                     f(y)
         if None in self._on_change:
             for f in self._on_change[None]:
-                f(x,y)
+                f(x, y)
+
 
 class TemporaryURL:
     def __init__(self, url, ttl):
         self.url = url
         self.ttl = ttl
+
     def __repr__(self):
         return repr(self.url)
+
     def __str__(self):
         return self.url
 
+
 namespace = Namespace({})
+
 
 class Salvus(object):
     """
@@ -543,8 +583,8 @@ class Salvus(object):
                                           # terminated/truncated if sum of above exceeds this.
     """
     Namespace = Namespace
-    _prefix       = ''
-    _postfix      = ''
+    _prefix = ''
+    _postfix = ''
     _default_mode = 'sage'
     _py_features = {}
 
@@ -564,16 +604,17 @@ class Salvus(object):
         self._num_output_messages = 0
         self._total_output_length = 0
         self._output_warning_sent = False
-        self._id   = id
-        self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
+        self._id = id
+        self._done = True  # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
         self.cell_id = cell_id
         self.namespace = namespace
         self.message_queue = message_queue
-        self.code_decorators = [] # gets reset if there are code decorators
+        self.code_decorators = []  # gets reset if there are code decorators
         # Alias: someday remove all references to "salvus" and instead use smc.
         # For now this alias is easier to think of and use.
-        namespace['smc'] = namespace['salvus'] = self   # beware of circular ref?
+        namespace['smc'] = namespace[
+            'salvus'] = self  # beware of circular ref?
         # Monkey patch in our "require" command.
         namespace['require'] = self.require
         # Make the salvus object itself available when doing "from sage.all import *".
@@ -584,14 +625,16 @@ class Salvus(object):
         if self._output_warning_sent:
             raise KeyboardInterrupt
         mesg = message.output(*args, **kwds)
-        if not mesg.get('once',False):
+        if not mesg.get('once', False):
             self._num_output_messages += 1
         import sage_server
 
         if self._num_output_messages > sage_server.MAX_OUTPUT_MESSAGES:
             self._output_warning_sent = True
-            err = "\nToo many output messages: %s (at most %s per cell -- type 'smc?' to learn how to raise this limit): attempting to terminate..."%(self._num_output_messages , sage_server.MAX_OUTPUT_MESSAGES)
-            self._conn.send_json(message.output(stderr=err, id=self._id, once=False, done=True))
+            err = "\nToo many output messages: %s (at most %s per cell -- type 'smc?' to learn how to raise this limit): attempting to terminate..." % (
+                self._num_output_messages, sage_server.MAX_OUTPUT_MESSAGES)
+            self._conn.send_json(
+                message.output(stderr=err, id=self._id, once=False, done=True))
             raise KeyboardInterrupt
 
         n = self._conn.send_json(mesg)
@@ -599,8 +642,10 @@ class Salvus(object):
 
         if self._total_output_length > sage_server.MAX_OUTPUT:
             self._output_warning_sent = True
-            err = "\nOutput too long: %s -- MAX_OUTPUT (=%s) exceeded (type 'smc?' to learn how to raise this limit): attempting to terminate..."%(self._total_output_length, sage_server.MAX_OUTPUT)
-            self._conn.send_json(message.output(stderr=err, id=self._id, once=False, done=True))
+            err = "\nOutput too long: %s -- MAX_OUTPUT (=%s) exceeded (type 'smc?' to learn how to raise this limit): attempting to terminate..." % (
+                self._total_output_length, sage_server.MAX_OUTPUT)
+            self._conn.send_json(
+                message.output(stderr=err, id=self._id, once=False, done=True))
             raise KeyboardInterrupt
 
     def obj(self, obj, done=False):
@@ -656,14 +701,23 @@ class Salvus(object):
 
 
         """
-        path = os.path.abspath(filename)[len(os.environ['HOME'])+1:]
+        path = os.path.abspath(filename)[len(os.environ['HOME']) + 1:]
         if label is None:
             label = filename
         id = uuid()
-        self.html("<a class='%s' style='cursor:pointer'; id='%s'></a>"%(cls, id))
+        self.html(
+            "<a class='%s' style='cursor:pointer'; id='%s'></a>" % (cls, id))
 
-        s = "$('#%s').html(obj.label).click(function() {%s; return false;});"%(id, self._action(path, foreground))
-        self.javascript(s, obj={'label':label, 'path':path, 'foreground':foreground}, once=False)
+        s = "$('#%s').html(obj.label).click(function() {%s; return false;});" % (
+            id, self._action(path, foreground))
+        self.javascript(
+            s,
+            obj={
+                'label': label,
+                'path': path,
+                'foreground': foreground
+            },
+            once=False)
 
     def _action(self, path, foreground):
         if os.path.isdir(path):
@@ -680,39 +734,50 @@ class Salvus(object):
         Open a new file (or directory) document in another tab.
         See the documentation for salvus.link.
         """
-        path = os.path.abspath(filename)[len(os.environ['HOME'])+1:]
-        self.javascript(self._action(path, foreground),
-                         obj = {'path':path, 'foreground':foreground}, once=True)
+        path = os.path.abspath(filename)[len(os.environ['HOME']) + 1:]
+        self.javascript(
+            self._action(path, foreground),
+            obj={
+                'path': path,
+                'foreground': foreground
+            },
+            once=True)
 
     def close_tab(self, filename):
         """
         Close an open file tab.  The filename is relative to the current working directory.
         """
-        self.javascript("worksheet.project_page.close_file(obj)", obj = filename, once=True)
+        self.javascript(
+            "worksheet.project_page.close_file(obj)", obj=filename, once=True)
 
-    def threed(self,
-               g,                   # sage Graphic3d object.
-               width        = None,
-               height       = None,
-               frame        = True, # True/False or {'color':'black', 'thickness':.4, 'labels':True, 'fontsize':14, 'draw':True,
-                                    #                'xmin':?, 'xmax':?, 'ymin':?, 'ymax':?, 'zmin':?, 'zmax':?}
-               background   = None,
-               foreground   = None,
-               spin         = False,
-               aspect_ratio = None,
-               frame_aspect_ratio = None,  # synonym for aspect_ratio
-
-               done         = False,
-               renderer     = None,   # None, 'webgl', or 'canvas'
-              ):
+    def threed(
+            self,
+            g,  # sage Graphic3d object.
+            width=None,
+            height=None,
+            frame=True,  # True/False or {'color':'black', 'thickness':.4, 'labels':True, 'fontsize':14, 'draw':True,
+            #                'xmin':?, 'xmax':?, 'ymin':?, 'ymax':?, 'zmin':?, 'zmax':?}
+            background=None,
+            foreground=None,
+            spin=False,
+            aspect_ratio=None,
+            frame_aspect_ratio=None,  # synonym for aspect_ratio
+            done=False,
+            renderer=None,  # None, 'webgl', or 'canvas'
+    ):
 
         from graphics import graphics3d_to_jsonable, json_float as f
 
         # process options, combining ones set explicitly above with ones inherited from 3d scene
-        opts = { 'width':width, 'height':height,
-                 'background':background, 'foreground':foreground,
-                 'spin':spin, 'aspect_ratio':aspect_ratio,
-                  'renderer':renderer}
+        opts = {
+            'width': width,
+            'height': height,
+            'background': background,
+            'foreground': foreground,
+            'spin': spin,
+            'aspect_ratio': aspect_ratio,
+            'renderer': renderer
+        }
 
         extra_kwds = {} if g._extra_kwds is None else g._extra_kwds
 
@@ -727,28 +792,40 @@ class Salvus(object):
         if aspect_ratio is not None:
             if aspect_ratio == 1 or aspect_ratio == "automatic":
                 aspect_ratio = None
-            elif not (isinstance(aspect_ratio, (list, tuple)) and len(aspect_ratio) == 3):
-                raise TypeError("aspect_ratio must be None, 1 or a 3-tuple, but it is '%s'"%(aspect_ratio,))
+            elif not (isinstance(aspect_ratio,
+                                 (list, tuple)) and len(aspect_ratio) == 3):
+                raise TypeError(
+                    "aspect_ratio must be None, 1 or a 3-tuple, but it is '%s'"
+                    % (aspect_ratio, ))
             else:
                 aspect_ratio = [f(x) for x in aspect_ratio]
 
         opts['aspect_ratio'] = aspect_ratio
 
-        for k in ['spin', 'height', 'width', 'background', 'foreground', 'renderer']:
-            if k in extra_kwds and not opts.get(k,None):
+        for k in [
+                'spin', 'height', 'width', 'background', 'foreground',
+                'renderer'
+        ]:
+            if k in extra_kwds and not opts.get(k, None):
                 opts[k] = extra_kwds[k]
 
         if not isinstance(opts['spin'], bool):
             opts['spin'] = f(opts['spin'])
-        opts['width']  = f(opts['width'])
+        opts['width'] = f(opts['width'])
         opts['height'] = f(opts['height'])
 
         # determine the frame
         b = g.bounding_box()
-        xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
-        fr = opts['frame'] = {'xmin':f(xmin), 'xmax':f(xmax),
-                              'ymin':f(ymin), 'ymax':f(ymax),
-                              'zmin':f(zmin), 'zmax':f(zmax)}
+        xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][
+            1], b[0][2], b[1][2]
+        fr = opts['frame'] = {
+            'xmin': f(xmin),
+            'xmax': f(xmax),
+            'ymin': f(ymin),
+            'ymax': f(ymax),
+            'zmin': f(zmin),
+            'zmax': f(zmax)
+        }
 
         if isinstance(frame, dict):
             for k in fr.keys():
@@ -764,8 +841,7 @@ class Salvus(object):
             fr['draw'] = frame
 
         # convert the Sage graphics object to a JSON object that can be rendered
-        scene = {'opts' : opts,
-                 'obj'  : graphics3d_to_jsonable(g)}
+        scene = {'opts': opts, 'obj': graphics3d_to_jsonable(g)}
 
         # Store that object in the database, rather than sending it directly as an output message.
         # We do this since obj can easily be quite large/complicated, and managing it as part of the
@@ -777,14 +853,32 @@ class Salvus(object):
         self._flush_stdio()
 
         # send message pointing to the 3d 'file', which will get downloaded from database
-        self._send_output(id=self._id, file={'filename':unicode8("%s.sage3d"%uuid), 'uuid':uuid}, done=done)
-
+        self._send_output(
+            id=self._id,
+            file={
+                'filename': unicode8("%s.sage3d" % uuid),
+                'uuid': uuid
+            },
+            done=done)
 
     def d3_graph(self, g, **kwds):
         from graphics import graph_to_d3_jsonable
-        self._send_output(id=self._id, d3={"viewer":"graph", "data":graph_to_d3_jsonable(g, **kwds)})
+        self._send_output(
+            id=self._id,
+            d3={
+                "viewer": "graph",
+                "data": graph_to_d3_jsonable(g, **kwds)
+            })
 
-    def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False, text=None):
+    def file(self,
+             filename,
+             show=True,
+             done=False,
+             download=False,
+             once=False,
+             events=None,
+             raw=False,
+             text=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
@@ -833,11 +927,23 @@ class Salvus(object):
             if path.startswith(home):
                 path = path[len(home):]
             else:
-                raise ValueError(u"can only send raw files in your home directory")
-            url  = os.path.join(u'/',info['base_url'].strip('/'), info['project_id'], u'raw', path.lstrip('/'))
+                raise ValueError(
+                    u"can only send raw files in your home directory")
+            url = os.path.join(u'/', info['base_url'].strip('/'),
+                               info['project_id'], u'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
-                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show, 'text':text}, events=events, done=done)
+                self._send_output(
+                    id=self._id,
+                    once=once,
+                    file={
+                        'filename': filename,
+                        'url': url,
+                        'show': show,
+                        'text': text
+                    },
+                    events=events,
+                    done=done)
                 return
             else:
                 return TemporaryURL(url=url, ttl=0)
@@ -848,35 +954,50 @@ class Salvus(object):
         while mesg is None:
             self.message_queue.recv()
             for i, (typ, m) in enumerate(self.message_queue.queue):
-                if typ == 'json' and m.get('event') == 'save_blob' and m.get('sha1') == file_uuid:
+                if typ == 'json' and m.get('event') == 'save_blob' and m.get(
+                        'sha1') == file_uuid:
                     mesg = m
                     del self.message_queue[i]
                     break
 
         if 'error' in mesg:
-            raise RuntimeError("error saving blob -- %s"%mesg['error'])
+            raise RuntimeError("error saving blob -- %s" % mesg['error'])
 
         self._flush_stdio()
-        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show, 'text':text}, events=events, done=done)
+        self._send_output(
+            id=self._id,
+            once=once,
+            file={
+                'filename': filename,
+                'uuid': file_uuid,
+                'show': show,
+                'text': text
+            },
+            events=events,
+            done=done)
         if not show:
             info = self.project_info()
-            url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
+            url = u"%s/blobs/%s?uuid=%s" % (info['base_url'], filename,
+                                            file_uuid)
             if download:
                 url += u'?download'
-            return TemporaryURL(url=url, ttl=mesg.get('ttl',0))
+            return TemporaryURL(url=url, ttl=mesg.get('ttl', 0))
 
-    def python_future_feature(self, feature = None, enable = None):
+    def python_future_feature(self, feature=None, enable=None):
         """
         Allow users to enable, disable, and query the features in the python __future__ module.
         """
         if feature is None:
             if enable is not None:
-                raise ValueError("enable may not be specified when feature is None")
+                raise ValueError(
+                    "enable may not be specified when feature is None")
             return sorted(Salvus._py_features.iterkeys())
 
         attr = getattr(future, feature, None)
-        if (feature not in future.all_feature_names) or (attr is None) or not isinstance(attr, future._Feature):
-            raise RuntimeError("future feature %.50r is not defined" % (feature,))
+        if (feature not in future.all_feature_names) or (
+                attr is None) or not isinstance(attr, future._Feature):
+            raise RuntimeError(
+                "future feature %.50r is not defined" % (feature, ))
 
         if enable is None:
             return feature in Salvus._py_features
@@ -985,7 +1106,9 @@ class Salvus(object):
         if pylab is not None:
             pylab.clf()
 
-        compile_flags = reduce(operator.or_, (feature.compiler_flag for feature in Salvus._py_features.itervalues()), 0)
+        compile_flags = reduce(
+            operator.or_, (feature.compiler_flag
+                           for feature in Salvus._py_features.itervalues()), 0)
 
         #code   = sage_parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print(x)"
         blocks = sage_parsing.divide_into_blocks(code)
@@ -1010,7 +1133,8 @@ class Salvus(object):
                 do_pp = True
             if preparse and do_pp:
                 block = sage_parsing.preparse_code(block)
-            sys.stdout.reset(); sys.stderr.reset()
+            sys.stdout.reset()
+            sys.stderr.reset()
             try:
                 b = block.rstrip()
                 # get rid of comments at the end of the line -- issue #1835
@@ -1021,12 +1145,13 @@ class Salvus(object):
                 #b = ''.join(s)
                 # e.g. now a line like 'x = test?   # bar' becomes 'x=test?'
                 if b.endswith('??'):
-                    p = sage_parsing.introspect(b,
-                                   namespace=namespace, preparse=False)
-                    self.code(source = p['result'], mode = "python")
+                    p = sage_parsing.introspect(
+                        b, namespace=namespace, preparse=False)
+                    self.code(source=p['result'], mode="python")
                 elif b.endswith('?'):
-                    p = sage_parsing.introspect(b, namespace=namespace, preparse=False)
-                    self.code(source = p['result'], mode = "text/x-rst")
+                    p = sage_parsing.introspect(
+                        b, namespace=namespace, preparse=False)
+                    self.code(source=p['result'], mode="text/x-rst")
                 else:
                     reload_attached_files_if_mod_smc()
                     if execute.count < 2:
@@ -1037,44 +1162,77 @@ class Salvus(object):
                             # sage.misc.session.init() is not called until first call of show_identifiers
                             # BUGFIX: be careful to *NOT* assign to _!!  see https://github.com/sagemathinc/cocalc/issues/1107
                             block2 = "sage.misc.session.state_at_init = dict(globals());sage.misc.session._dummy=sage.misc.session.show_identifiers();\n"
-                            exec compile(block2, '', 'single') in namespace, locals
-                    features = sage_parsing.get_future_features(block, 'single')
+                            exec compile(block2, '',
+                                         'single') in namespace, locals
+                            b2a = """
+if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP_FILE']):
+    try:
+        load(os.environ['SAGE_STARTUP_FILE'])
+    except:
+        sys.stdout.flush()
+        sys.stderr.write('\\nException loading startup file: {}\\n'.format(os.environ['SAGE_STARTUP_FILE']))
+        sys.stderr.flush()
+        raise
+"""
+                            exec compile(b2a, '', 'exec') in namespace, locals
+                    features = sage_parsing.get_future_features(
+                        block, 'single')
                     if features:
-                        compile_flags = reduce(operator.or_, (feature.compiler_flag for feature in features.itervalues()), compile_flags)
-                    exec compile(block+'\n', '', 'single', flags=compile_flags) in namespace, locals
+                        compile_flags = reduce(
+                            operator.or_,
+                            (feature.compiler_flag
+                             for feature in features.itervalues()),
+                            compile_flags)
+                    exec compile(
+                        block + '\n', '', 'single',
+                        flags=compile_flags) in namespace, locals
                     if features:
                         Salvus._py_features.update(features)
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
                 if ascii_warn:
-                    sys.stderr.write('\n\n*** WARNING: Code contains non-ascii characters    ***\n')
+                    sys.stderr.write(
+                        '\n\n*** WARNING: Code contains non-ascii characters    ***\n'
+                    )
                     for c in u'\u201c\u201d':
                         if c in code:
-                            sys.stderr.write(u'*** Maybe the character < %s > should be replaced by < " > ? ***\n' % c)
+                            sys.stderr.write(
+                                u'*** Maybe the character < %s > should be replaced by < " > ? ***\n'
+                                % c)
                             break
                     sys.stderr.write('\n\n')
 
-                from exceptions import SyntaxError,TypeError
+                from exceptions import SyntaxError, TypeError
                 exc_type, _, _ = sys.exc_info()
-                if exc_type in [SyntaxError,TypeError]:
+                if exc_type in [SyntaxError, TypeError]:
                     from sage_parsing import strip_string_literals
                     code0, _, _ = strip_string_literals(code)
                     implicit_mul = RE_POSSIBLE_IMPLICIT_MUL.findall(code0)
                     if len(implicit_mul) > 0:
-                        implicit_mul_list = ', '.join(str(_) for _ in implicit_mul)
+                        implicit_mul_list = ', '.join(
+                            str(_) for _ in implicit_mul)
                         # we know there is a SyntaxError and there could be an implicit multiplication
-                        sys.stderr.write('\n\n*** WARNING: Code contains possible implicit multiplication    ***\n')
-                        sys.stderr.write('*** Check if any of [ %s ] need a "*" sign for multiplication, e.g. 5x should be 5*x ! ***\n\n' % implicit_mul_list)
+                        sys.stderr.write(
+                            '\n\n*** WARNING: Code contains possible implicit multiplication    ***\n'
+                        )
+                        sys.stderr.write(
+                            '*** Check if any of [ %s ] need a "*" sign for multiplication, e.g. 5x should be 5*x ! ***\n\n'
+                            % implicit_mul_list)
 
                 sys.stdout.flush()
-                sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
+                sys.stderr.write(
+                    'Error in lines %s-%s\n' % (start + 1, stop + 1))
                 traceback.print_exc()
                 sys.stderr.flush()
                 break
 
-
-    def execute_with_code_decorators(self, code_decorators, code, preparse=True, namespace=None, locals=None):
+    def execute_with_code_decorators(self,
+                                     code_decorators,
+                                     code,
+                                     preparse=True,
+                                     namespace=None,
+                                     locals=None):
         """
         salvus.execute_with_code_decorators is used when evaluating
         code blocks that are set to any non-default code_decorator.
@@ -1086,7 +1244,10 @@ class Salvus(object):
         if preparse:
             code_decorators = map(sage_parsing.preparse_code, code_decorators)
 
-        code_decorators = [eval(code_decorator, self.namespace) for code_decorator in code_decorators]
+        code_decorators = [
+            eval(code_decorator, self.namespace)
+            for code_decorator in code_decorators
+        ]
 
         # The code itself may want to know exactly what code decorators are in effect.
         # For example, r.eval can do extra things when being used as a decorator.
@@ -1094,11 +1255,13 @@ class Salvus(object):
 
         for i, code_decorator in enumerate(code_decorators):
             # eval is for backward compatibility
-            if not hasattr(code_decorator, 'eval') and hasattr(code_decorator, 'before'):
+            if not hasattr(code_decorator, 'eval') and hasattr(
+                    code_decorator, 'before'):
                 code_decorators[i] = code_decorator.before(code)
 
         for code_decorator in reversed(code_decorators):
-            if hasattr(code_decorator, 'eval'):   # eval is for backward compatibility
+            if hasattr(code_decorator,
+                       'eval'):  # eval is for backward compatibility
                 print(code_decorator.eval(code, locals=self.namespace)),
                 code = ''
             elif code_decorator is sage:
@@ -1110,10 +1273,12 @@ class Salvus(object):
                 code = ''
 
         if code != '' and isinstance(code, (str, unicode)):
-            self.execute(code, preparse=preparse, namespace=namespace, locals=locals)
+            self.execute(
+                code, preparse=preparse, namespace=namespace, locals=locals)
 
         for code_decorator in code_decorators:
-            if not hasattr(code_decorator, 'eval') and hasattr(code_decorator, 'after'):
+            if not hasattr(code_decorator, 'eval') and hasattr(
+                    code_decorator, 'after'):
                 code_decorator.after(code)
 
     def html(self, html, done=False, once=None):
@@ -1125,7 +1290,8 @@ class Salvus(object):
             salvus.html("<b>Hi</b>")
         """
         self._flush_stdio()
-        self._send_output(html=unicode8(html), id=self._id, done=done, once=once)
+        self._send_output(
+            html=unicode8(html), id=self._id, done=done, once=once)
 
     def md(self, md, done=False, once=None):
         """
@@ -1151,8 +1317,16 @@ class Salvus(object):
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         self._flush_stdio()
-        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj, **kwds)
-        self._send_output(tex={'tex':tex, 'display':display}, id=self._id, done=done, once=once)
+        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj,
+                                                                       **kwds)
+        self._send_output(
+            tex={
+                'tex': tex,
+                'display': display
+            },
+            id=self._id,
+            done=done,
+            once=once)
         return self
 
     def start_executing(self):
@@ -1174,7 +1348,8 @@ class Salvus(object):
         - output -- string or object
 
         """
-        stdout = output if isinstance(output, (str, unicode)) else unicode8(output)
+        stdout = output if isinstance(output,
+                                      (str, unicode)) else unicode8(output)
         self._send_output(stdout=stdout, done=done, id=self._id, once=once)
         return self
 
@@ -1188,24 +1363,31 @@ class Salvus(object):
         - output -- string or object
 
         """
-        stderr = output if isinstance(output, (str, unicode)) else unicode8(output)
+        stderr = output if isinstance(output,
+                                      (str, unicode)) else unicode8(output)
         self._send_output(stderr=stderr, done=done, id=self._id, once=once)
         return self
 
-    def code(self, source,            # actual source code
-                   mode     = None,   # the syntax highlight codemirror mode
-                   filename = None,   # path of file it is contained in (if applicable)
-                   lineno   = -1,   # line number where source starts (0-based)
-                   done=False, once=None):
+    def code(
+            self,
+            source,  # actual source code
+            mode=None,  # the syntax highlight codemirror mode
+            filename=None,  # path of file it is contained in (if applicable)
+            lineno=-1,  # line number where source starts (0-based)
+            done=False,
+            once=None):
         """
         Send a code message, which is to be rendered as code by the client, with
         appropriate syntax highlighting, maybe a link to open the source file, etc.
         """
-        source = source if isinstance(source, (str, unicode)) else unicode8(source)
-        code = {'source'   : source,
-                'filename' : filename,
-                'lineno'   : int(lineno),
-                'mode'     : mode}
+        source = source if isinstance(source,
+                                      (str, unicode)) else unicode8(source)
+        code = {
+            'source': source,
+            'filename': filename,
+            'lineno': int(lineno),
+            'mode': mode
+        }
         self._send_output(code=code, done=done, id=self._id, once=once)
         return self
 
@@ -1219,10 +1401,16 @@ class Salvus(object):
     def interact(self, f, done=False, once=None, **kwds):
         I = sage_salvus.InteractCell(f, **kwds)
         self._flush_stdio()
-        self._send_output(interact = I.jsonable(), id=self._id, done=done, once=once)
+        self._send_output(
+            interact=I.jsonable(), id=self._id, done=done, once=once)
         return sage_salvus.InteractFunction(I)
 
-    def javascript(self, code, once=False, coffeescript=False, done=False, obj=None):
+    def javascript(self,
+                   code,
+                   once=False,
+                   coffeescript=False,
+                   done=False,
+                   obj=None):
         """
         Execute the given Javascript code as part of the output
         stream.  This same code will be executed (at exactly this
@@ -1255,7 +1443,15 @@ class Salvus(object):
         """
         if obj is None:
             obj = {}
-        self._send_output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once)
+        self._send_output(
+            javascript={
+                'code': code,
+                'coffeescript': coffeescript
+            },
+            id=self._id,
+            done=done,
+            obj=obj,
+            once=once)
 
     def coffeescript(self, *args, **kwds):
         """
@@ -1266,9 +1462,16 @@ class Salvus(object):
         kwds['coffeescript'] = True
         self.javascript(*args, **kwds)
 
-    def raw_input(self, prompt='', default='', placeholder='', input_width=None, label_width=None, done=False, type=None):  # done is ignored here
+    def raw_input(self,
+                  prompt='',
+                  default='',
+                  placeholder='',
+                  input_width=None,
+                  label_width=None,
+                  done=False,
+                  type=None):  # done is ignored here
         self._flush_stdio()
-        m = {'prompt':unicode8(prompt)}
+        m = {'prompt': unicode8(prompt)}
         if input_width is not None:
             m['input_width'] = unicode8(input_width)
         if label_width is not None:
@@ -1283,7 +1486,7 @@ class Salvus(object):
         if typ == 'json' and mesg['event'] == 'sage_raw_input':
             # everything worked out perfectly
             self.delete_last_output()
-            m['value'] = mesg['value'] # as unicode!
+            m['value'] = mesg['value']  # as unicode!
             m['submitted'] = True
             self._send_output(raw_input=m, id=self._id)
             value = mesg['value']
@@ -1299,7 +1502,9 @@ class Salvus(object):
                         value = type(str(value))
             return value
         else:
-            raise KeyboardInterrupt("raw_input interrupted by another action: event='%s' (expected 'sage_raw_input')"%mesg['event'])
+            raise KeyboardInterrupt(
+                "raw_input interrupted by another action: event='%s' (expected 'sage_raw_input')"
+                % mesg['event'])
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
@@ -1368,8 +1573,11 @@ class Salvus(object):
 
         See the docs for the top-level javascript function for more details.
         """
-        self._conn.send_json(message.execute_javascript(code,
-            coffeescript=coffeescript, obj=json.dumps(obj,separators=(',', ':'))))
+        self._conn.send_json(
+            message.execute_javascript(
+                code,
+                coffeescript=coffeescript,
+                obj=json.dumps(obj, separators=(',', ':'))))
 
     def execute_coffeescript(self, *args, **kwds):
         """
@@ -1400,7 +1608,7 @@ class Salvus(object):
         import sage.misc.cython
         modname, path = sage.misc.cython.cython(filename, **opts)
         try:
-            sys.path.insert(0,path)
+            sys.path.insert(0, path)
             module = __import__(modname)
         finally:
             del sys.path[0]
@@ -1408,29 +1616,31 @@ class Salvus(object):
 
     def _import_code(self, content, **opts):
         while True:
-            py_file_base = uuid().replace('-','_')
+            py_file_base = uuid().replace('-', '_')
             if not os.path.exists(py_file_base + '.py'):
                 break
         try:
-            open(py_file_base+'.py', 'w').write(content)
+            open(py_file_base + '.py', 'w').write(content)
             try:
                 sys.path.insert(0, os.path.abspath('.'))
                 mod = __import__(py_file_base)
             finally:
                 del sys.path[0]
         finally:
-            os.unlink(py_file_base+'.py')
-            os.unlink(py_file_base+'.pyc')
+            os.unlink(py_file_base + '.py')
+            os.unlink(py_file_base + '.pyc')
         return mod
 
     def _sage(self, filename, **opts):
         import sage.misc.preparser
-        content = "from sage.all import *\n" + sage.misc.preparser.preparse_file(open(filename).read())
+        content = "from sage.all import *\n" + sage.misc.preparser.preparse_file(
+            open(filename).read())
         return self._import_code(content, **opts)
 
     def _spy(self, filename, **opts):
         import sage.misc.preparser
-        content = "from sage.all import Integer, RealNumber, PolynomialRing\n" + sage.misc.preparser.preparse_file(open(filename).read())
+        content = "from sage.all import Integer, RealNumber, PolynomialRing\n" + sage.misc.preparser.preparse_file(
+            open(filename).read())
         return self._import_code(content, **opts)
 
     def _py(self, filename, **opts):
@@ -1438,8 +1648,8 @@ class Salvus(object):
 
     def require(self, filename, **opts):
         if not os.path.exists(filename):
-            raise ValueError("file '%s' must exist"%filename)
-        base,ext = os.path.splitext(filename)
+            raise ValueError("file '%s' must exist" % filename)
+        base, ext = os.path.splitext(filename)
         if ext == '.pyx' or ext == '.spyx':
             return self._cython(filename, **opts)
         if ext == ".sage":
@@ -1448,7 +1658,8 @@ class Salvus(object):
             return self._spy(filename, **opts)
         if ext == ".py":
             return self._py(filename, **opts)
-        raise NotImplementedError("require file of type %s not implemented"%ext)
+        raise NotImplementedError(
+            "require file of type %s not implemented" % ext)
 
     def typeset_mode(self, on=True):
         sage_salvus.typeset_mode(on)
@@ -1470,9 +1681,15 @@ Salvus.raw_input.__func__.__doc__ = sage_salvus.raw_input.__doc__
 Salvus.clear.__func__.__doc__ = sage_salvus.clear.__doc__
 Salvus.delete_last_output.__func__.__doc__ = sage_salvus.delete_last_output.__doc__
 
+
 def execute(conn, id, code, data, cell_id, preparse, message_queue):
 
-    salvus = Salvus(conn=conn, id=id, data=data, message_queue=message_queue, cell_id=cell_id)
+    salvus = Salvus(
+        conn=conn,
+        id=id,
+        data=data,
+        message_queue=message_queue,
+        cell_id=cell_id)
 
     #salvus.start_executing()  # with our new mainly client-side execution this isn't needed; not doing this makes evaluation roundtrip around 100ms instead of 200ms too, which is a major win.
 
@@ -1506,6 +1723,8 @@ def execute(conn, id, code, data, cell_id, preparse, message_queue):
         else:
             sys.stdout.flush(done=salvus._done)
         (sys.stdout, sys.stderr) = streams
+
+
 # execute.count goes from 0 to 2
 # used for show_identifiers()
 execute.count = 0
@@ -1538,7 +1757,7 @@ def drop_privileges(id, home, transient, username):
 class MessageQueue(list):
     def __init__(self, conn):
         self.queue = []
-        self.conn  = conn
+        self.conn = conn
 
     def __repr__(self):
         return "Sage Server Message Queue"
@@ -1566,9 +1785,8 @@ class MessageQueue(list):
         Also returns the mesg.
         """
         mesg = self.conn.recv()
-        self.queue.insert(0,mesg)
+        self.queue.insert(0, mesg)
         return mesg
-
 
 
 def session(conn):
@@ -1586,13 +1804,14 @@ def session(conn):
     pid = os.getpid()
 
     # seed the random number generator(s)
-    import sage.all; sage.all.set_random_seed()
-    import random; random.seed(sage.all.initial_seed())
+    import sage.all
+    sage.all.set_random_seed()
+    import random
+    random.seed(sage.all.initial_seed())
 
     # get_memory_usage is not aware of being forked...
     import sage.misc.getusage
-    sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
-
+    sage.misc.getusage._proc_status = "/proc/%s/status" % os.getpid()
 
     cnt = 0
     while True:
@@ -1606,44 +1825,55 @@ def session(conn):
                 return
             elif event == 'execute_code':
                 try:
-                    execute(conn          = conn,
-                            id            = mesg['id'],
-                            code          = mesg['code'],
-                            data          = mesg.get('data',None),
-                            cell_id       = mesg.get('cell_id',None),
-                            preparse      = mesg.get('preparse',True),
-                            message_queue = mq)
+                    execute(
+                        conn=conn,
+                        id=mesg['id'],
+                        code=mesg['code'],
+                        data=mesg.get('data', None),
+                        cell_id=mesg.get('cell_id', None),
+                        preparse=mesg.get('preparse', True),
+                        message_queue=mq)
                 except Exception as err:
-                    log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
+                    log("ERROR -- exception raised '%s' when executing '%s'" %
+                        (err, mesg['code']))
             elif event == 'introspect':
                 try:
                     # check for introspect from jupyter cell
                     prefix = Salvus._default_mode
                     if 'top' in mesg:
                         top = mesg['top']
-                        log('introspect cell top line %s'%top)
+                        log('introspect cell top line %s' % top)
                         if top.startswith("%"):
                             prefix = top[1:]
                     try:
                         # see if prefix is the name of a jupyter kernel function
-                        kc = eval(prefix+"(get_kernel_client=True)",namespace,locals())
-                        kn = eval(prefix+"(get_kernel_name=True)",namespace,locals())
-                        log("jupyter introspect prefix %s kernel %s"%(prefix, kn)) # e.g. "p2", "python2"
-                        jupyter_introspect(conn=conn,
-                                           id=mesg['id'],
-                                           line=mesg['line'],
-                                           preparse=mesg.get('preparse', True),
-                                           kc=kc)
+                        kc = eval(prefix + "(get_kernel_client=True)",
+                                  namespace, locals())
+                        kn = eval(prefix + "(get_kernel_name=True)", namespace,
+                                  locals())
+                        log("jupyter introspect prefix %s kernel %s" %
+                            (prefix, kn))  # e.g. "p2", "python2"
+                        jupyter_introspect(
+                            conn=conn,
+                            id=mesg['id'],
+                            line=mesg['line'],
+                            preparse=mesg.get('preparse', True),
+                            kc=kc)
                     except:
                         import traceback
                         exc_type, exc_value, exc_traceback = sys.exc_info()
-                        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+                        lines = traceback.format_exception(
+                            exc_type, exc_value, exc_traceback)
                         log(lines)
-                        introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
+                        introspect(
+                            conn=conn,
+                            id=mesg['id'],
+                            line=mesg['line'],
+                            preparse=mesg.get('preparse', True))
                 except:
                     pass
             else:
-                raise RuntimeError("invalid message '%s'"%mesg)
+                raise RuntimeError("invalid message '%s'" % mesg)
         except:
             # When hub connection dies, loop goes crazy.
             # Unfortunately, just catching SIGINT doesn't seem to
@@ -1655,6 +1885,7 @@ def session(conn):
                 sys.exit(0)
             else:
                 pass
+
 
 def jupyter_introspect(conn, id, line, preparse, kc):
     import jupyter_client
@@ -1669,7 +1900,7 @@ def jupyter_introspect(conn, id, line, preparse, kc):
         # handle iopub responses
         while True:
             try:
-                msg = iopub.get_msg(timeout = 1)
+                msg = iopub.get_msg(timeout=1)
                 msg_type = msg['msg_type']
                 content = msg['content']
 
@@ -1681,7 +1912,7 @@ def jupyter_introspect(conn, id, line, preparse, kc):
             if msg['parent_header'].get('msg_id') != msg_id:
                 continue
 
-            log("jupyter iopub recv %s %s"%(msg_type, str(content)))
+            log("jupyter iopub recv %s %s" % (msg_type, str(content)))
 
             if msg_type == 'status' and content['execution_state'] == 'idle':
                 break
@@ -1689,7 +1920,7 @@ def jupyter_introspect(conn, id, line, preparse, kc):
         # handle shell responses
         while True:
             try:
-                msg = shell.get_msg(timeout = 10)
+                msg = shell.get_msg(timeout=10)
                 msg_type = msg['msg_type']
                 content = msg['content']
 
@@ -1701,29 +1932,37 @@ def jupyter_introspect(conn, id, line, preparse, kc):
             if msg['parent_header'].get('msg_id') != msg_id:
                 continue
 
-            log("jupyter shell recv %s %s"%(msg_type, str(content)))
+            log("jupyter shell recv %s %s" % (msg_type, str(content)))
 
             if msg_type == 'complete_reply' and content['status'] == 'ok':
                 # jupyter kernel returns matches like "xyz.append" and smc wants just "append"
                 matches = content['matches']
                 offset = content['cursor_end'] - content['cursor_start']
                 completions = [s[offset:] for s in matches]
-                mesg = message.introspect_completions(id=id, completions=completions, target=line[-offset:])
+                mesg = message.introspect_completions(
+                    id=id, completions=completions, target=line[-offset:])
                 conn.send_json(mesg)
                 break
     except:
-        log("jupyter completion exception: %s"%sys.exc_info()[0])
+        log("jupyter completion exception: %s" % sys.exc_info()[0])
+
 
 def introspect(conn, id, line, preparse):
-    salvus = Salvus(conn=conn, id=id) # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
+    salvus = Salvus(
+        conn=conn, id=id
+    )  # so salvus.[tab] works -- note that Salvus(...) modifies namespace.
     z = sage_parsing.introspect(line, namespace=namespace, preparse=preparse)
     if z['get_completions']:
-        mesg = message.introspect_completions(id=id, completions=z['result'], target=z['target'])
+        mesg = message.introspect_completions(
+            id=id, completions=z['result'], target=z['target'])
     elif z['get_help']:
-        mesg = message.introspect_docstring(id=id, docstring=z['result'], target=z['expr'])
+        mesg = message.introspect_docstring(
+            id=id, docstring=z['result'], target=z['expr'])
     elif z['get_source']:
-        mesg = message.introspect_source_code(id=id, source_code=z['result'], target=z['expr'])
+        mesg = message.introspect_source_code(
+            id=id, source_code=z['result'], target=z['expr'])
     conn.send_json(mesg)
+
 
 def handle_session_term(signum, frame):
     while True:
@@ -1733,12 +1972,14 @@ def handle_session_term(signum, frame):
             return
         if not pid: return
 
+
 secret_token = None
 
 if 'COCALC_SECRET_TOKEN' in os.environ:
     secret_token_path = os.environ['COCALC_SECRET_TOKEN']
 else:
     secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
+
 
 def unlock_conn(conn):
     global secret_token
@@ -1747,7 +1988,9 @@ def unlock_conn(conn):
             secret_token = open(secret_token_path).read().strip()
         except:
             conn.send('n')
-            conn.send("Unable to accept connection, since Sage server doesn't yet know the secret token; unable to read from '%s'"%secret_token_path)
+            conn.send(
+                "Unable to accept connection, since Sage server doesn't yet know the secret token; unable to read from '%s'"
+                % secret_token_path)
             conn.close()
 
     n = len(secret_token)
@@ -1755,16 +1998,17 @@ def unlock_conn(conn):
     while len(token) < n:
         token += conn.recv(n)
         if token != secret_token[:len(token)]:
-            break # definitely not right -- don't try anymore
+            break  # definitely not right -- don't try anymore
     if token != secret_token:
-        log("token='%s'; secret_token='%s'"%(token, secret_token))
+        log("token='%s'; secret_token='%s'" % (token, secret_token))
         conn.send('n')  # no -- invalid login
         conn.send("Invalid secret token.")
         conn.close()
         return False
     else:
-        conn.send('y') # yes -- valid login
+        conn.send('y')  # yes -- valid login
         return True
+
 
 def serve_connection(conn):
     global PID
@@ -1783,9 +2027,9 @@ def serve_connection(conn):
     try:
         conn = ConnectionJSON(conn)
         typ, mesg = conn.recv()
-        log("Received message %s"%mesg)
+        log("Received message %s" % mesg)
     except Exception as err:
-        log("Error receiving message: %s (connection terminated)"%str(err))
+        log("Error receiving message: %s (connection terminated)" % str(err))
         raise
 
     if mesg['event'] == 'send_signal':
@@ -1796,14 +2040,16 @@ def serve_connection(conn):
             os.kill(mesg['pid'], mesg['signal'])
         return
     if mesg['event'] != 'start_session':
-        log("Received an unknown message event = %s; terminating session."%mesg['event'])
+        log("Received an unknown message event = %s; terminating session." %
+            mesg['event'])
         return
 
     log("Starting a session")
     desc = message.session_description(os.getpid())
-    log("child sending session description back: %s"%desc)
+    log("child sending session description back: %s" % desc)
     conn.send_json(desc)
     session(conn=conn)
+
 
 def serve(port, host, extra_imports=False):
     #log.info('opening connection on port %s', port)
@@ -1815,7 +2061,7 @@ def serve(port, host, extra_imports=False):
     s.settimeout(5)
 
     s.bind((host, port))
-    log('Sage server %s:%s'%(host, port))
+    log('Sage server %s:%s' % (host, port))
 
     # Enabling the following signal completely breaks subprocess pexpect in many cases, which is
     # obviously totally unacceptable.
@@ -1850,7 +2096,7 @@ def serve(port, host, extra_imports=False):
             log("initialized user_globals")
         except RuntimeError:
             # may happen with sage version < 8.0
-            log("user_globals.set_globals failed, continuing",sys.exc_info())
+            log("user_globals.set_globals failed, continuing", sys.exc_info())
 
         sage.all.html = sage.misc.html.html = sage_salvus.html
 
@@ -1862,31 +2108,34 @@ def serve(port, host, extra_imports=False):
 
         # Set a useful figsize default; the matplotlib one is not notebook friendly.
         import sage.plot.graphics
-        sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize']=[8,4]
+        sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize'] = [8, 4]
 
         # Monkey patch latex.eval, so that %latex works in worksheets
         sage.misc.latex.latex.eval = sage_salvus.latex0
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
-        cmds = ['from sage.all import *',
-                'from sage.calculus.predefined import x',
-                'import pylab']
+        cmds = [
+            'from sage.all import *', 'from sage.calculus.predefined import x',
+            'import pylab'
+        ]
         if extra_imports:
-            cmds.extend(['import scipy',
-                    'import sympy',
-                    "plot(sin).save('%s/a.png'%os.environ['SMC'], figsize=2)",
-                    'integrate(sin(x**2),x)'])
+            cmds.extend([
+                'import scipy', 'import sympy',
+                "plot(sin).save('%s/a.png'%os.environ['SMC'], figsize=2)",
+                'integrate(sin(x**2),x)'
+            ])
         tm0 = time.time()
         for cmd in cmds:
             log(cmd)
             exec cmd in namespace
 
         global pylab
-        pylab = namespace['pylab']     # used for clearing
+        pylab = namespace['pylab']  # used for clearing
 
-        log('imported sage library and other components in %s seconds'%(time.time() - tm))
+        log('imported sage library and other components in %s seconds' %
+            (time.time() - tm))
 
-        for k,v in sage_salvus.interact_functions.iteritems():
+        for k, v in sage_salvus.interact_functions.iteritems():
             namespace[k] = v
             # See above -- not doing this, since it is REALLY SLOW to import.
             # This does mean that some old code that tries to use interact might break (?).
@@ -1894,28 +2143,37 @@ def serve(port, host, extra_imports=False):
 
         namespace['_salvus_parsing'] = sage_parsing
 
-        for name in ['asy', 'attach', 'auto', 'capture', 'cell', 'clear', 'coffeescript', 'cython',
-                     'default_mode', 'delete_last_output', 'dynamic', 'exercise', 'fork',
-                     'fortran', 'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript', 'julia',
-                     'jupyter', 'license', 'load', 'md', 'mediawiki', 'modes', 'octave', 'pandoc',
-                     'perl', 'plot3d_using_matplotlib', 'prun', 'python_future_feature', 'py3print_mode',
-                     'python', 'python3', 'r', 'raw_input', 'reset', 'restore', 'ruby', 'runfile', 'sage_chat',
-                     'sage_eval', 'scala', 'scala211', 'script', 'search_doc', 'search_src', 'sh', 'show', 'show_identifiers',
-                     'singular_kernel', 'time', 'timeit', 'typeset_mode', 'var', 'wiki']:
+        for name in [
+                'anaconda', 'asy', 'attach', 'auto', 'capture', 'cell', 'clear',
+                'coffeescript', 'cython', 'default_mode', 'delete_last_output',
+                'dynamic', 'exercise', 'fork', 'fortran', 'go', 'help', 'hide',
+                'hideall', 'input', 'java', 'javascript', 'julia', 'jupyter',
+                'license', 'load', 'md', 'mediawiki', 'modes', 'octave',
+                'pandoc', 'perl', 'plot3d_using_matplotlib', 'prun',
+                'python_future_feature', 'py3print_mode', 'python', 'python3',
+                'r', 'raw_input', 'reset', 'restore', 'ruby', 'runfile',
+                'sage_chat', 'sage_eval', 'scala', 'scala211', 'script',
+                'search_doc', 'search_src', 'sh', 'show', 'show_identifiers',
+                'singular_kernel', 'time', 'timeit', 'typeset_mode', 'var',
+                'wiki'
+        ]:
             namespace[name] = getattr(sage_salvus, name)
 
-        namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself
+        namespace['sage_server'] = sys.modules[
+            __name__]  # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself
 
         # alias pretty_print_default to typeset_mode, since sagenb has/uses that.
         namespace['pretty_print_default'] = namespace['typeset_mode']
         # and monkey patch it
-        sage.misc.latex.pretty_print_default = namespace['pretty_print_default']
+        sage.misc.latex.pretty_print_default = namespace[
+            'pretty_print_default']
 
         sage_salvus.default_namespace = dict(namespace)
         log("setup namespace with extra functions")
 
         # Sage's pretty_print and view are both ancient and a mess
-        sage.all.pretty_print = sage.misc.latex.pretty_print = namespace['pretty_print'] = namespace['view'] = namespace['show']
+        sage.all.pretty_print = sage.misc.latex.pretty_print = namespace[
+            'pretty_print'] = namespace['view'] = namespace['show']
 
         # this way client code can tell it is running as a Sage Worksheet.
         namespace['__SAGEWS__'] = True
@@ -1937,8 +2195,9 @@ def serve(port, host, extra_imports=False):
             try:
                 if children:
                     for pid in children.keys():
-                        if os.waitpid(pid, os.WNOHANG) != (0,0):
-                            log("subprocess %s terminated, closing connection"%pid)
+                        if os.waitpid(pid, os.WNOHANG) != (0, 0):
+                            log("subprocess %s terminated, closing connection"
+                                % pid)
                             conn.close()
                             del children[pid]
 
@@ -1952,8 +2211,9 @@ def serve(port, host, extra_imports=False):
             except socket.error, msg:
                 continue
             child_pid = os.fork()
-            if child_pid: # parent
-                log("forked off child with pid %s to handle this connection"%child_pid)
+            if child_pid:  # parent
+                log("forked off child with pid %s to handle this connection" %
+                    child_pid)
                 children[child_pid] = conn
             else:
                 # child
@@ -1973,40 +2233,84 @@ def serve(port, host, extra_imports=False):
         #s.shutdown(0)
         s.close()
 
+
 def run_server(port, host, pidfile, logfile=None):
     global LOGFILE
     if logfile:
         LOGFILE = logfile
     if pidfile:
-        open(pidfile,'w').write(str(os.getpid()))
-    log("run_server: port=%s, host=%s, pidfile='%s', logfile='%s'"%(port, host, pidfile, LOGFILE))
+        open(pidfile, 'w').write(str(os.getpid()))
+    log("run_server: port=%s, host=%s, pidfile='%s', logfile='%s'" %
+        (port, host, pidfile, LOGFILE))
     try:
         serve(port, host)
     finally:
         if pidfile:
             os.unlink(pidfile)
 
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
-    parser.add_argument("-p", dest="port", type=int, default=0,
-                        help="port to listen on (default: 0); 0 = automatically allocated; saved to $SMC/data/sage_server.port")
-    parser.add_argument("-l", dest='log_level', type=str, default='INFO',
-                        help="log level (default: INFO) useful options include WARNING and DEBUG")
-    parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
-                        help="daemon mode (default: False)")
-    parser.add_argument("--host", dest="host", type=str, default='127.0.0.1',
-                        help="host interface to bind to -- default is 127.0.0.1")
-    parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
-                        help="store pid in this file")
-    parser.add_argument("--logfile", dest="logfile", type=str, default='',
-                        help="store log in this file (default: '' = don't log to a file)")
-    parser.add_argument("-c", dest="client", default=False, action="store_const", const=True,
-                        help="run in test client mode number 1 (command line)")
-    parser.add_argument("--hostname", dest="hostname", type=str, default='',
-                        help="hostname to connect to in client mode")
-    parser.add_argument("--portfile", dest="portfile", type=str, default='',
-                        help="write port to this file")
+    parser.add_argument(
+        "-p",
+        dest="port",
+        type=int,
+        default=0,
+        help=
+        "port to listen on (default: 0); 0 = automatically allocated; saved to $SMC/data/sage_server.port"
+    )
+    parser.add_argument(
+        "-l",
+        dest='log_level',
+        type=str,
+        default='INFO',
+        help=
+        "log level (default: INFO) useful options include WARNING and DEBUG")
+    parser.add_argument(
+        "-d",
+        dest="daemon",
+        default=False,
+        action="store_const",
+        const=True,
+        help="daemon mode (default: False)")
+    parser.add_argument(
+        "--host",
+        dest="host",
+        type=str,
+        default='127.0.0.1',
+        help="host interface to bind to -- default is 127.0.0.1")
+    parser.add_argument(
+        "--pidfile",
+        dest="pidfile",
+        type=str,
+        default='',
+        help="store pid in this file")
+    parser.add_argument(
+        "--logfile",
+        dest="logfile",
+        type=str,
+        default='',
+        help="store log in this file (default: '' = don't log to a file)")
+    parser.add_argument(
+        "-c",
+        dest="client",
+        default=False,
+        action="store_const",
+        const=True,
+        help="run in test client mode number 1 (command line)")
+    parser.add_argument(
+        "--hostname",
+        dest="hostname",
+        type=str,
+        default='',
+        help="hostname to connect to in client mode")
+    parser.add_argument(
+        "--portfile",
+        dest="portfile",
+        type=str,
+        default='',
+        help="write port to this file")
 
     args = parser.parse_args()
 
@@ -2020,23 +2324,26 @@ if __name__ == "__main__":
         #log.setLevel(level)
 
     if args.client:
-        client1(port=args.port if args.port else int(open(args.portfile).read()), hostname=args.hostname)
+        client1(
+            port=args.port if args.port else int(open(args.portfile).read()),
+            hostname=args.hostname)
         sys.exit(0)
 
     if not args.port:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0)) # pick a free port
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(('', 0))  # pick a free port
         args.port = s.getsockname()[1]
         del s
 
     if args.portfile:
-        open(args.portfile,'w').write(str(args.port))
+        open(args.portfile, 'w').write(str(args.port))
 
     pidfile = os.path.abspath(args.pidfile) if args.pidfile else ''
     logfile = os.path.abspath(args.logfile) if args.logfile else ''
     if logfile:
         LOGFILE = logfile
         open(LOGFILE, 'w')  # for now we clear it on restart...
-        log("setting logfile to %s"%LOGFILE)
+        log("setting logfile to %s" % LOGFILE)
 
     main = lambda: run_server(port=args.port, host=args.host, pidfile=pidfile)
     if args.daemon and args.pidfile:
@@ -2045,4 +2352,3 @@ if __name__ == "__main__":
         main()
     else:
         main()
-

@@ -83,7 +83,6 @@ class TestErr:
         assert 'stderr' in mesg
         assert 'Error in lines 1-1' in mesg['stderr']
         assert 'should be replaced by < " >' not in mesg['stderr']
-        # 2 done
         conftest.recv_til_done(sagews, test_id)
     def test_bad_quote(self, test_id, sagews):
         # assign x to U+201C (could use U+201D) to trigger bad quote warning
@@ -96,9 +95,13 @@ class TestErr:
         assert typ == 'json'
         assert mesg['id'] == test_id
         assert 'stderr' in mesg
-        assert 'Error in lines 1-1' in mesg['stderr']
-        assert 'should be replaced by < " >' in mesg['stderr']
-        # 2 done
+        assert 'non-ascii' in mesg['stderr']
+        if 'should be replaced by < " >' not in mesg['stderr']:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stderr' in mesg
+            assert 'should be replaced by < " >' in mesg['stderr']
         conftest.recv_til_done(sagews, test_id)
     def test_bad_mult(self, test_id, sagews):
         # warn about possible missing '*' with patterns like 3x^2 and 5(1+x)

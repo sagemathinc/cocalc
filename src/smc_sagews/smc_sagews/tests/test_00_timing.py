@@ -66,7 +66,7 @@ class TestStartSageServer:
         start = time.time()
 
         # start a new sage_server process
-        os.system("smc-sage-server start")
+        os.system(conftest.start_cmd())
         print("sage_server start time %s sec"%(time.time() - start))
         # add pause here because sometimes the log file isn't ready immediately
         time.sleep(0.5)

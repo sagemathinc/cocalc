@@ -11,13 +11,10 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
 
-{jupyter_router} = require('./jupyter/jupyter')
-
-{directory_listing_router} = require('./directory-listing')
+{jupyter_router} = require('./jupyter/http-server')
 
 {lean_router} = require('./lean/http')
-
-{prettier_router} = require('./prettier')
+{init_websocket_server} = require('./browser-websocket/server')
 
 {upload_endpoint} = require('./upload')
 
@@ -39,6 +36,7 @@ exports.start_raw_server = (opts) ->
 
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
+    http_server   = require('http').createServer(raw_server);
 
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
     compression = require('compression')
@@ -91,16 +89,15 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
 
-            # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
-            # to the hub (at least in KuCalc).
-            raw_server.use(base, directory_listing_router(express))
-            
+
             # Setup the /.smc/lean/... server, which is used for the HTTP part of the lean
             # interface, and does nothing if not used.
-            raw_server.use(base, lean_router(express, opts.client));
+            raw_server.use(base, lean_router(express, opts.client))
 
-            # Setup the /.smc/prettier POST endpoint, which is used for prettifying code.
-            raw_server.use(base, prettier_router(opts.client, opts.logger))
+            # Setup the /.smc/ws websocket server, which is used by clients
+            # for direct websocket connections to the project, and also
+            # servers /.smc/primus.js, which is the relevant client library.
+            raw_server.use(base, init_websocket_server(express, http_server, base, opts.logger, opts.client))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))
@@ -123,7 +120,8 @@ exports.start_raw_server = (opts) ->
             # We also firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of
             # auth (?) just in case?
-            raw_server.listen(port, host, cb)
+            http_server.listen(port, host)
+            cb()
     ], (err) ->
         if err
             opts.logger?.debug("error starting raw_server: err = #{misc.to_json(err)}")

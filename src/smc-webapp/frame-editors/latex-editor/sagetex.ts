@@ -45,6 +45,7 @@ export async function sagetex(
   return exec({
     allow_post: false, // definitely could take a long time to fully run sage
     timeout: 360,
+    bash: true,   // so timeout is enforced by ulimit
     command: "sage",
     args: [s],
     project_id: project_id,
