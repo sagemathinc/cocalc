@@ -59,11 +59,6 @@ export function init_websocket_server(
     });
   });
 
-  const random_channel = primus.channel("random");
-  setInterval(function() {
-    random_channel.write(Math.random());
-  }, 3000);
-
   const router = express.Router();
   const library: string = primus.library();
 
