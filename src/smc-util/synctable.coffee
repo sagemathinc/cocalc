@@ -211,12 +211,23 @@ class Plug
 class SyncTable extends EventEmitter
     constructor: (_query, _options, _client, _debounce_interval, _throttle_changes, _cache_key) ->
         super()
+
+        if _options?
+            _options2 = []
+            for opt in _options
+                if opt.symmetric_channel?
+                    @_init_symmetric_channel(opt.symmetric_channel, _client, _query)
+                else
+                    _options2.push(opt)
+            _options = _options2
+
         @_query = _query
         @_options = _options
         @_client = _client
         @_debounce_interval = _debounce_interval
         @_throttle_changes = _throttle_changes
         @_cache_key = _cache_key
+
 
         @_init_query()
         # The value of this query locally.
@@ -582,6 +593,43 @@ class SyncTable extends EventEmitter
         #    if Math.random() <= .5
         #        query = []
         #@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
+
+        success = =>
+            if @_state == 'closed'
+                # this can happen in case synctable is closed after _save is called but before returning from this query.
+                cb?("closed")
+                return
+            if not @_value_server? or not @_value_local?
+                # There is absolutely no possible way this can happen, since it was
+                # checked for above before the call, and these can only get set by
+                # the close method to undefined, which also sets the @_state to closed,
+                # so would get caught above.  However, evidently this **does happen**:
+                #   https://github.com/sagemathinc/cocalc/issues/1870
+                cb?("value_server and value_local must be set")
+                return
+            @emit('saved', saved_objs)
+            # success: each change in the query what committed successfully to the database; we can
+            # safely set @_value_server (for each value) as long as it didn't change in the meantime.
+            for k, v of changed
+                if immutable.is(@_value_server.get(k), v.old_val)  # immutable.is since either could be undefined
+                    #console.log "setting @_value_server[#{k}] =", v.new_val?.toJS()
+                    @_value_server = @_value_server.set(k, v.new_val)
+            if not at_start.equals(@_value_local)
+                # keep saving until @_value_local doesn't change *during* the save -- this means
+                # when saving stops that we guarantee there are no unsaved changes.
+                @_save(cb)
+            else
+                cb?()
+
+
+        # Fast path
+        @_send_query_via_symmetric_channel(query)
+        #if @_send_query_via_symmetric_channel(query)
+        #    if not @_client.is_project()
+        #        success()
+        #        return
+
+        # Slow path
         @_client.query
             query   : query
             options : [{set:true}]  # force it to be a set query
@@ -600,31 +648,7 @@ class SyncTable extends EventEmitter
                         @_client.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is or was off!  Fix it and **refresh your browser**.")
                     cb?(err)
                 else
-                    if @_state == 'closed'
-                        # this can happen in case synctable is closed after _save is called but before returning from this query.
-                        cb?("closed")
-                        return
-                    if not @_value_server? or not @_value_local?
-                        # There is absolutely no possible way this can happen, since it was
-                        # checked for above before the call, and these can only get set by
-                        # the close method to undefined, which also sets the @_state to closed,
-                        # so would get caught above.  However, evidently this **does happen**:
-                        #   https://github.com/sagemathinc/cocalc/issues/1870
-                        cb?("value_server and value_local must be set")
-                        return
-                    @emit('saved', saved_objs)
-                    # success: each change in the query what committed successfully to the database; we can
-                    # safely set @_value_server (for each value) as long as it didn't change in the meantime.
-                    for k, v of changed
-                        if immutable.is(@_value_server.get(k), v.old_val)  # immutable.is since either could be undefined
-                            #console.log "setting @_value_server[#{k}] =", v.new_val?.toJS()
-                            @_value_server = @_value_server.set(k, v.new_val)
-                    if not at_start.equals(@_value_local)
-                        # keep saving until @_value_local doesn't change *during* the save -- this means
-                        # when saving stops that we guarantee there are no unsaved changes.
-                        @_save(cb)
-                    else
-                        cb?()
+                    success()
 
     save: (cb) =>
         if @_state == 'closed'
@@ -745,7 +769,9 @@ class SyncTable extends EventEmitter
     # Apply one incoming change from the database to the in-memory
     # local synchronized table
     _update_change: (change) =>
-        #console.log("_update_change", change)
+        #if @_symmetric_channel?
+        #    console.log("_update_change", JSON.stringify(change))
+
         if @_state == 'closed'
             # We might get a few more updates even after
             # canceling the changefeed, so we just ignore them.
@@ -990,6 +1016,42 @@ class SyncTable extends EventEmitter
                 opts.cb('timeout')
             fail_timer = setTimeout(fail, 1000*opts.timeout)
         return
+
+    ###
+    Symmetric channel optimization for project-specific queries.
+    ###
+
+    _init_symmetric_channel: (project_id, client, query) =>
+        console.log("_init_symmetric_channel to project_id=", project_id, " for ", query)
+        name = require('json-stable-stringify')(query)
+        @_symmetric_channel = await client.symmetric_channel(name, project_id)
+        @_symmetric_channel.on 'data', (query) =>
+            if @_state == 'closed'
+                return
+            console.log("_symmetric_channel(#{@_table}) GOT\n", JSON.stringify(query))
+            for x in query
+                obj = x[@_table]
+                if obj?
+                    change = {new_val:obj}
+                    @_update_change(change)
+            ###
+            if client.is_project()
+                client.dbg("project -- send to database too. #{JSON.stringify(query)}")
+                client.query
+                    query   : query
+                    options : [{set:true}]  # force it to be a set query
+                    timeout : 30
+                    cb      : (err) => # TODO: retry until success?
+            ###
+
+    _send_query_via_symmetric_channel: (query) =>
+        if not @_symmetric_channel?
+            return false
+        t = @_symmetric_channel.write(query)
+        console.log("_symmetric_channel(#{@_table}) SEND\n", JSON.stringify(query))
+        return t
+
+
 
 synctables = {}
 

@@ -37,9 +37,9 @@ export function register() {
       const syncdb = webapp_client.sync_db({
         project_id,
         path: misc.meta_file(path, "jupyter2"), // a.ipynb --> ".a.ipynb.sage-jupyter2"
-        change_throttle: 5, // our UI/React can handle more rapid updates; plus we want output FAST.
-        patch_interval: 5,
-        save_interval: 1500,
+        change_throttle: 1, // our UI/React can handle more rapid updates; plus we want output FAST.
+        patch_interval: 1,
+        save_interval: 1,
         primary_keys: ["type", "id"],
         string_cols: ["input"],
         cursors: true

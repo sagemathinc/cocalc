@@ -5,6 +5,8 @@ React component that renders the ordered list of cells
 Meant as a simple proof of concept.
 */
 
+const SAVE_INTERVAL_MS = 1;
+
 import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
 const { CodeMirror } = require("./codemirror");
 import * as immutable from "immutable";
@@ -154,7 +156,7 @@ export class CellList extends Component<CellListProps> {
     this.cm = CodeMirror.fromTextArea(node, options);
     $(this.cm.getWrapperElement()).css({ height: "auto", backgroundColor: "#f7f7f7" });
     this._cm_merge_remote(this.props.cell_list, this.props.cells);
-    this._cm_change = underscore.debounce(this._cm_save, 1000);
+    this._cm_change = underscore.debounce(this._cm_save, SAVE_INTERVAL_MS);
     this.cm.on("change", this._cm_change);
 
     // replace undo/redo by our sync aware versions

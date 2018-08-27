@@ -248,8 +248,8 @@ class exports.Client extends EventEmitter
                                 type = 'string'
 
                             if ext == 'sage-ipython'
-                                opts.change_throttle = opts.patch_interval = 5
-                                opts.save_interval = 25
+                                opts.change_throttle = opts.patch_interval = 1
+                                opts.save_interval = 1
 
                             ss = @_open_syncstrings[string_id] = @["sync_#{type}"](opts)
 

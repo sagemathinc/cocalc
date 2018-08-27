@@ -1185,7 +1185,7 @@ class SyncDoc extends EventEmitter
         patch_list = new SortedPatchList(@_from_str)
 
         @_patches_table = @_client.sync_table({patches : @_patch_table_query(@_last_snapshot)}, \
-                                              undefined, @_patch_interval, @_patch_interval)
+                                              [{symmetric_channel:@_project_id}], @_patch_interval, @_patch_interval)
 
         if @_patches_table_queue?
             for opts in @_patches_table_queue
@@ -1250,7 +1250,9 @@ class SyncDoc extends EventEmitter
                     user_id   : null
                     locs      : null
                     time      : null
-            @_cursors = @_client.sync_table(query, [], @_opts.cursor_interval)
+            #options = [{symmetric_channel:@_project_id}]
+            options = []
+            @_cursors = @_client.sync_table(query, options, @_opts.cursor_interval)
             @_cursors.once 'connected', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
                 # which tracks positions of cursors by account_id:

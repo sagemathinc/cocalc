@@ -4,6 +4,8 @@ Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 
+const SAVE_INTERVAL_MS = 1;
+
 import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
@@ -389,7 +391,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this._cm_last_remote = value;
     this.cm.setValue(value);
 
-    this._cm_change = underscore.debounce(this._cm_save, 1000);
+    this._cm_change = underscore.debounce(this._cm_save, SAVE_INTERVAL_MS);
     this.cm.on("change", this._cm_change);
     this.cm.on("focus", this._cm_focus);
     this.cm.on("blur", this._cm_blur);
