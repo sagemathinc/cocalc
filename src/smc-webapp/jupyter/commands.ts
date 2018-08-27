@@ -6,6 +6,8 @@ Comprehensive list of Jupyter notebook (version 5) command,
 
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
+import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/util";
+
 // TODO: type
 export function commands(actions: any) {
   // TODO: if actions is not defined, what does this do?
@@ -819,6 +821,7 @@ export function commands(actions: any) {
     },
 
     "format cells": {
+      i: FORMAT_SOURCE_ICON,
       m: "Format cells",
       f: () => actions.format_selected_cells()
     }

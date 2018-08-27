@@ -156,7 +156,12 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_group_edit() {
     return this.render_button_group(
-      ["cut cell", "copy cell", "paste cell and replace"],
+      [
+        "cut cell",
+        "copy cell",
+        "paste cell and replace",
+        { name: "format cells" }
+      ],
       true
     );
   }
@@ -177,8 +182,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       { name: "run cell and select next", label: "Run" },
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
-      { name: "tab key", label: "Tab" },
-      { name: "format cells", label: "FMT" }
+      { name: "tab key", label: "Tab" }
     ]);
   }
 

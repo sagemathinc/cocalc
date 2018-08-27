@@ -34,6 +34,10 @@ export function aux_file(path: string, ext: string): string {
   }
 }
 
+// the icon we use for formatting sources throughout the UI
+export const FORMAT_SOURCE_ICON = "fa-sitemap";
+
+// the list of filename extensions where we do support source formatting
 export const PRETTIER_SUPPORT = {
   js: true,
   jsx: true,

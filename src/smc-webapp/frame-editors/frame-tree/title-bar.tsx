@@ -759,7 +759,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           "Run Prettier (or some other AST-based service) to canonically format this entire document"
         }
       >
-        <Icon name={"fa-sitemap"} />{" "}
+        <Icon name={util.FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
       </Button>
     );
