@@ -6,7 +6,8 @@ Comprehensive list of Jupyter notebook (version 5) command,
 
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
-import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/util";
+const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
+  .FORMAT_SOURCE_ICON;
 
 // TODO: type
 export function commands(actions: any) {
