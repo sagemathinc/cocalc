@@ -33,7 +33,8 @@ import {
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
-  SetMap
+  SetMap,
+  ErrorStyles
 } from "../frame-tree/types";
 import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
@@ -75,6 +76,7 @@ export interface CodeEditorState {
   value?: string;
   load_time_estimate: number;
   error: any;
+  errorstyle?: ErrorStyles;
   status: any;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
@@ -1278,7 +1280,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // big scary error shown at top
-  set_error(error?: object | string): void {
+  set_error(error?: object | string, style?: ErrorStyles): void {
     if (error === undefined) {
       this.setState({ error });
     } else {
@@ -1293,6 +1295,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         error = e;
       }
       this.setState({ error });
+    }
+
+    switch (style) {
+      case "monospace":
+        this.setState({ errorstyle: style });
+        break;
+      default:
+        this.setState({ errorstyle: undefined });
     }
   }
 
@@ -1483,6 +1493,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "r":
         parser = "r";
         break;
+      case "html":
+        parser = "html-tidy";
+        break;
       default:
         return;
     }
@@ -1507,7 +1520,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       await prettier(this.project_id, this.path, options);
       this.set_error("");
     } catch (err) {
-      this.set_error(`Error formatting code: \n${err}`);
+      this.set_error(`Error formatting code: \n${err}`, "monospace");
     } finally {
       this.set_status("");
     }
