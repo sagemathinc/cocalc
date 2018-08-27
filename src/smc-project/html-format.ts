@@ -39,6 +39,8 @@ function tidy(input_path) {
     "--write-back",
     "yes",
     "--show-warnings",
+    "no", // enable it, if we want to show warnings upon exit code == 1
+    "--tidy-mark",
     "no",
     input_path
   ]);
