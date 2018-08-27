@@ -74,10 +74,12 @@ class SymmetricChannel extends EventEmitter {
     this.channel = channel;
   }
 
-  write(data: any): void {
+  // Returns true if immediate write succeeds
+  write(data: any): boolean {
     if (this.channel !== undefined) {
-      this.channel.write(data);
+      return this.channel.write(data);
     }
+    return false;
   }
 
   _data_from_spark(data: any): void {
