@@ -30,7 +30,6 @@ const EDITOR_SPEC = {
       "undo",
       "redo",
       "reload",
-      "auto_indent",
       "format"
     ])
   },
