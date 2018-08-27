@@ -29,10 +29,13 @@ export const JUPYTER_MIMETYPES = [
 const promiseLimit = promiseLimitModule(3);
 
 // J = job-type, R = return-type
-export function map_limit<J, R>(op: ((J) => Promise<R>), jobs: J[]): R[] {
-  Promise.all(
+export async function map_limit<J, R>(
+  fn: ((J) => Promise<R>),
+  jobs: J[]
+): Promise<R[]> {
+  await Promise.all(
     jobs.map(job => {
-      return promiseLimit(() => op(job));
+      return promiseLimit(() => fn(job));
     })
   ).then(results => {
     return results;

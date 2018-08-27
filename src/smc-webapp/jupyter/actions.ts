@@ -247,11 +247,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  init_project_conn = reuseInFlight(async (): Promise<any> => {
-    return (this.project_conn = await connection_to_project(
-      this.store.get("project_id")
-    ));
-  });
+  init_project_conn = reuseInFlight(
+    async (): Promise<any> => {
+      return (this.project_conn = await connection_to_project(
+        this.store.get("project_id")
+      ));
+    }
+  );
 
   // private api call function
   _api_call = async (
@@ -2114,34 +2116,36 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._api_call("signal", { signal: signal }, 5000);
   };
 
-  set_backend_kernel_info = reuseInFlight(async (): Promise<void> => {
-    if (this._state === "closed") {
-      return;
-    }
-
-    if (this._is_project) {
-      const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
-      if (this._jupyter_kernel == null) {
-        dbg("not defined");
+  set_backend_kernel_info = reuseInFlight(
+    async (): Promise<void> => {
+      if (this._state === "closed") {
         return;
       }
-      dbg("getting kernel_info...");
-      try {
-        this.setState({
-          backend_kernel_info: await this._jupyter_kernel.kernel_info()
+
+      if (this._is_project) {
+        const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
+        if (this._jupyter_kernel == null) {
+          dbg("not defined");
+          return;
+        }
+        dbg("getting kernel_info...");
+        try {
+          this.setState({
+            backend_kernel_info: await this._jupyter_kernel.kernel_info()
+          });
+        } catch (err) {
+          dbg(`error = ${err}`);
+        }
+      } else {
+        await retry_until_success({
+          max_time: 120000,
+          start_delay: 1000,
+          max_delay: 10000,
+          f: this._fetch_backend_kernel_info_from_server
         });
-      } catch (err) {
-        dbg(`error = ${err}`);
       }
-    } else {
-      await retry_until_success({
-        max_time: 120000,
-        start_delay: 1000,
-        max_delay: 10000,
-        f: this._fetch_backend_kernel_info_from_server
-      });
     }
-  });
+  );
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
     const data = await this._api_call("kernel_info", {});
@@ -3045,22 +3049,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         if (language == "python") {
           options = { parser: "python" };
         } else {
-          // TODO handle more than just python
-          return false;
+          throw new Error(`Formatting "${language}" cells is not supported yet.`);
         }
         break;
       case "markdown":
         options = { parser: "markdown" };
         break;
       default:
-        this.set_error(`unknown cell_type: '${cell_type}'`);
-        return false;
+        throw new Error(`Unknown cell_type: '${cell_type}'`);
     }
     // console.log("FMT", cell_type, options, code);
     const resp = await this._api_call_prettier(code, options);
     if (resp.status == "error") {
-      this.set_error(resp.error);
-      return false;
+      throw new Error(resp.error);
     }
     // console.log("FMT resp", resp);
 
@@ -3077,7 +3078,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return true;
   };
 
-  format_selected_cells = (id: string, sync = true): void => {
+  format_selected_cells = async (id: string, sync = true): Promise<void> => {
     const selected = this.store.get_selected_cell_ids_list();
     let jobs: string[] = [];
     for (id of selected) {
@@ -3087,7 +3088,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       jobs.push(id);
     }
 
-    util.map_limit(this._format_cell, jobs);
+    try {
+      await util.map_limit(this._format_cell, jobs);
+    } catch (err) {
+      this.set_error(err.message);
+    }
 
     if (sync) {
       this._sync();
