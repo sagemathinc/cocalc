@@ -31,6 +31,7 @@
 
 // 3rd party libs
 import * as async from "async";
+import * as awaiting from "awaiting";
 const markdownlib = require("../markdown");
 
 // CoCalc libraries
@@ -69,6 +70,12 @@ export class CourseActions extends Actions<CourseState> {
   private _creating_student_project: boolean;
   private prev_interval_id: number;
   private prev_timeout_id: number;
+  private interval_ids: {
+    [key: string]: number;
+  };
+  private timeout_ids: {
+    [key: string]: number;
+  };
 
   constructor(name, redux) {
     super(name, redux);
@@ -1084,45 +1091,28 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // start projects of all (non-deleted) students running
-  action_all_student_projects(action) {
+  async action_all_student_projects(action) {
     if (!["start", "stop", "restart"].includes(action)) {
       throw Error("action must be start, stop or restart");
     }
     this.action_shared_project(action);
 
-    // Returns undefined if no store.
-    const act_on_student_projects = () => {
-      return __guard__(this.get_store(), x =>
-        x
-          .get_students()
-          .filter(student => {
-            return !student.get("deleted") && student.get("project_id") != null;
-          })
-          .map(student => {
-            return this.redux
-              .getActions("projects")
-              [action + "_project"](student.get("project_id"));
-          })
-      );
-    };
-    if (!act_on_student_projects()) {
-      return;
-    }
-
-    if (this.prev_interval_id != null) {
-      window.clearInterval(this.prev_interval_id);
-    }
-    if (this.prev_timeout_id != null) {
-      window.clearTimeout(this.prev_timeout_id);
-    }
-
-    const clear_state = () => {
-      window.clearInterval(this.prev_interval_id);
-      return this.setState({ action_all_projects_state: "any" });
-    };
-
-    this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
-    this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
+    // This will go on for 5 minutes continually trying to
+    // put the projects in the desired state
+    await this.map_over_student_projects(
+      "action_all_student_projects",
+      async student => {
+        this.redux
+          .getActions("projects")
+          [action + "_project"](student.get("project_id"));
+        return {student, failed: true} // Assume failed.
+      },
+      {
+        on_clean_up: () => {
+          this.setState({ action_all_projects_state: "any" });
+        }
+      }
+    );
 
     if (["start", "restart"].includes(action)) {
       this.setState({ action_all_projects_state: "starting" });
@@ -1587,7 +1577,10 @@ export class CourseActions extends Actions<CourseState> {
     comments[student.get("student_id")] = edited_feedback.get(
       "edited_comments"
     );
-    const feedback_changes = Object.assign({ grades: grades, comments:comments }, query);
+    const feedback_changes = Object.assign(
+      { grades: grades, comments: comments },
+      query
+    );
     this._set(feedback_changes);
     this.clear_edited_feedback(assignment, student);
   };
@@ -2950,6 +2943,104 @@ You can find the comments they made in the folders below.\
     }
     // Now open it
     return this.redux.getProjectActions(proj).open_directory(path);
+  }
+
+  // Sets the desired compute image for all student projects
+  set_compute_image(new_image: string) {
+    this.map_over_student_projects(
+      "action_all_student_projects",
+      async student => {
+      try {
+        await this.redux
+          .getActions({ project_id: student.get("project_id") })
+          .set_compute_image(new_image);
+        return { student, failed: false };
+      } catch (err) {
+        return { student, failed: true };
+      }
+    });
+  }
+
+  async map_over_student_projects(
+    action_id: string,
+    async_fn: (
+      student: StudentRecord
+    ) => Promise<{ student: StudentRecord; failed: boolean }>,
+    {
+      on_clean_up,
+      retry_interval = 30000,
+      timeout = 300000, // 5 minutes
+      max_tries = 3,
+    }: {
+      on_clean_up?: () => void;
+      retry_interval?: number;
+      timeout?: number;
+      max_tries?: number;
+    } = {}
+  ) {
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+
+    // Action is already running asynchronously.
+    // They're not cancellable (yet) so we return early
+    if (
+      this.interval_ids[action_id] != undefined ||
+      this.timeout_ids[action_id] != undefined
+    ) {
+      return;
+    }
+
+    let unfinished_students = store
+      .get_students()
+      .filter(student => {
+        return !student.get("deleted") && student.get("project_id") != null;
+      })
+      .valueSeq()
+      .toArray();
+
+    let results: { student: StudentRecord; failed: boolean }[];
+    let tries = 0;
+
+    const retry = async () => {
+      if (tries == max_tries) {
+        clear_state();
+        return;
+      }
+
+      results = await awaiting.map(
+        unfinished_students,
+        PARALLEL_LIMIT,
+        async_fn
+      );
+
+      unfinished_students = results
+        .filter(value => {
+          return value.failed;
+        })
+        .map(value => value.student);
+
+      if (unfinished_students.length == 0) {
+        clear_state();
+      } else {
+        tries += 1;
+      }
+    };
+
+    // Stops all future tries. Does not stop the current attempt.
+    const clear_state = () => {
+      window.clearInterval(this.interval_ids[action_id]);
+      window.clearInterval(this.timeout_ids[action_id]);
+      delete this.interval_ids[action_id];
+      delete this.timeout_ids[action_id];
+      if (on_clean_up != undefined) {
+        on_clean_up();
+      }
+    };
+
+    this.interval_ids[action_id] = window.setInterval(retry, retry_interval);
+    this.timeout_ids[action_id] = window.setTimeout(clear_state, timeout);
   }
 }
 
