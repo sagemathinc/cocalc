@@ -45,7 +45,11 @@ def process(paths):
                     path
                 )  # see https://github.com/sagemathinc/cocalc/issues/1476
 
-        path = os.path.abspath(path)
+        if not path.startswith('/'):
+            # we use pwd instead of getcwd or os.path.abspath since we want this to
+            # work when used inside a directory that is a symlink!  I could find
+            # no analogue of pwd directly in Python (getcwd is not it!).
+            path = os.path.join(os.popen('pwd').read().strip(), path)
 
         # determine name relative to home directory
         if path.startswith(home):
