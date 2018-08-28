@@ -1217,7 +1217,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       case "code":
         var code = this._get_cell_input(id).trim();
         var cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-        var language = this.store.getIn(["kernel_info", "language"]);
+        var language = this.store.get_kernel_language();
         switch (parsing.run_mode(code, cm_mode, language)) {
           case "show_source":
             this.introspect(code.slice(0, code.length - 2), 1);
@@ -2338,18 +2338,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   show_code_assistant = () => {
-    let lang;
     if (this.assistant_actions == null) {
       return;
     }
     this.blur_lock();
 
-    // special case: sage is language "python", but the assistant needs "sage"
-    if (misc.startswith(this.store.get("kernel"), "sage")) {
-      lang = "sage";
-    } else {
-      lang = this.store.getIn(["kernel_info", "language"]);
-    }
+    const lang = this.store.get_kernel_language();
 
     this.assistant_actions.init(lang);
     return this.assistant_actions.set({
@@ -3043,20 +3037,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const code = this._get_cell_input(id).trim();
     let options: any; // TODO type this with a global interface
     const cell_type = cell.get("cell_type", "code");
-    const language = this.store.getIn(["kernel_info", "language"]);
+    const language = this.store.get_kernel_language();
     switch (cell_type) {
       case "code":
-        switch (language) {
-          case "python":
-            options = { parser: "python" };
-            break;
-          case "r":
-            options = { parser: "r" };
-            break;
-          default:
-            throw new Error(
-              `Formatting "${language}" cells is not supported yet.`
-            );
+        if (language == null) {
+          throw new Error(
+            `Formatting code cells is impossible, because their language is not known.`
+          );
+        } else {
+          switch (language) {
+            case "python":
+              options = { parser: "python" };
+              break;
+            case "r":
+              options = { parser: "r" };
+              break;
+            default:
+              throw new Error(
+                `Formatting "${language}" cells is not supported yet.`
+              );
+          }
         }
         break;
       case "markdown":
