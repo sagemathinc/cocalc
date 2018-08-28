@@ -193,3 +193,13 @@ export async function user_search(opts: {
 }): Promise<User[]> {
   return callback_opts(webapp_client.user_search)(opts);
 }
+
+export async function project_websocket(project_id:string) : Promise<any> {
+  return await webapp_client.project_websocket(project_id);
+}
+
+import { API } from "smc-webapp/project/websocket/api";
+
+export async function project_api(project_id:string) : Promise<API> {
+  return (await project_websocket(project_id)).api as API;
+}

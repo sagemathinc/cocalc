@@ -10,7 +10,7 @@ import {
 
 interface Props {
   // reduxProps:
-  server: List<any>;
+  messages: List<any>;
 }
 
 class LeanInfo extends Component<Props, {}> {
@@ -19,14 +19,14 @@ class LeanInfo extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        server: rtypes.immutable.List
+        messages: rtypes.immutable.List
       }
     };
   }
 
-  render_message(x): Rendered {
+  render_message(key, x): Rendered {
     return (
-      <div key={x.n} style={{ borderTop: "1px solid grey" }}>
+      <div key={key} style={{ borderTop: "1px solid grey" }}>
         {JSON.stringify(x)}
         <br />
       </div>
@@ -34,14 +34,14 @@ class LeanInfo extends Component<Props, {}> {
   }
 
   render_messages(): Rendered | Rendered[] {
-    if (!this.props.server) {
+    if (!this.props.messages) {
       return <div>(nothing)</div>;
     }
     const v: Rendered[] = [];
-    for (let x of this.props.server.toJS()) {
-      if (x.type == "mesg") {
-        v.push(this.render_message(x));
-      }
+    let i = 0;
+    for (let x of this.props.messages.toJS()) {
+      v.push(this.render_message(i, x));
+      i += 1;
     }
     return v;
   }

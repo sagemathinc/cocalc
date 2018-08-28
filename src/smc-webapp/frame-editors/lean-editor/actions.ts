@@ -9,24 +9,34 @@ import {
 
 import { FrameTree } from "../frame-tree/types";
 
+import { project_api } from "../generic/client";
+
+import { Channel } from "smc-webapp/project/websocket/types";
+
 interface LeanEditorState extends CodeEditorState {
-  server: any;
+  messages: object[];
 }
 
 export class Actions extends BaseActions<LeanEditorState> {
+  private channel: Channel;
+
   _init2(): void {
     if (!this.is_public) {
-      // start server (?)
-      this._init_state();
+      this._init_channel();
     } else {
       this._init_value();
     }
   }
 
-  _init_state(): void {
-    this._init_syncdb(["type", "n"]);
-    this._syncdb.on("change", () => {
-      this.setState({ server: this._syncdb.get() });
+  async _init_channel(): Promise<void> {
+    this.channel = await (await project_api(this.project_id)).lean(this.path);
+    this.channel.on("data", x => {
+      console.log(JSON.stringify(x));
+      if (typeof x === "object") {
+        if (x.messages !== undefined) {
+          this.setState({ messages: x.messages });
+        }
+      }
     });
   }
 
