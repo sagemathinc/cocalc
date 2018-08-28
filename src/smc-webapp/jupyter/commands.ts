@@ -823,8 +823,14 @@ export function commands(actions: any) {
 
     "format cells": {
       i: FORMAT_SOURCE_ICON,
-      m: "Format cells",
+      m: "Format selected cells",
       f: () => actions.format_selected_cells()
+    },
+
+    "format all cells": {
+      i: FORMAT_SOURCE_ICON,
+      m: "Format all cells",
+      f: () => actions.format_all_cells()
     }
   };
 }

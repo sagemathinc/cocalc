@@ -3085,11 +3085,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return true;
   };
 
-  format_selected_cells = async (id: string, sync = true): Promise<void> => {
+  format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
     this.set_error(null);
-    const selected = this.store.get_selected_cell_ids_list();
     let jobs: string[] = [];
-    for (id of selected) {
+    for (let id of cell_ids) {
       if (!this.store.is_cell_editable(id)) {
         continue;
       }
@@ -3105,6 +3104,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     if (sync) {
       this._sync();
+    }
+  };
+
+  format_selected_cells = async (sync = true): Promise<void> => {
+    const selected = this.store.get_selected_cell_ids_list();
+    await this.format_cells(selected, sync);
+  };
+
+  format_all_cells = async (sync = true): Promise<void> => {
+    const all_cells = this.store.get("cell_list");
+    if (all_cells != null) {
+      await this.format_cells(all_cells.toJS(), sync);
     }
   };
 
