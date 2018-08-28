@@ -18,6 +18,7 @@ const { math_escape, math_unescape } = require("smc-util/markdown-utils");
 const prettier = require("prettier");
 const { latex_format } = require("./latex-format");
 const { python_format } = require("./python-format");
+const { html_format } = require("./html-format");
 const { r_format } = require("./r-format");
 const body_parser = require("body-parser");
 const express = require("express");
@@ -44,6 +45,7 @@ export async function run_prettier(
     [input, math] = remove_math(math_escape(input));
   }
   try {
+    logger.debug(`run_prettier options.parser: "${options.parser}"`);
     switch (options.parser) {
       case "latex":
         pretty = await latex_format(input, options);
@@ -53,6 +55,9 @@ export async function run_prettier(
         break;
       case "r":
         pretty = await r_format(input, options, logger);
+        break;
+      case "html-tidy":
+        pretty = await html_format(input, options);
         break;
       default:
         pretty = prettier.format(input, options);

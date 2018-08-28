@@ -46,5 +46,6 @@ export const PRETTIER_SUPPORT = {
   yml: true,
   py: true, // use external tool
   tex: true, // actually use latexformat
+  html: true, // uses old-school "tidy" with some specific parameters
   r: true // formatR
 };
