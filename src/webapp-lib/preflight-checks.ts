@@ -51,11 +51,11 @@ const oldOpera = spec.name === "Opera" && spec.version < 55;
 const oldChrome = spec.name === "Chrome" && spec.version < 62;
 
 if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
-  try {
-    const banner = document.getElementById("smc-startup-banner");
+  const banner = document.getElementById("smc-startup-banner");
+  if (banner != null && banner.parentNode != null) {
     banner.parentNode.removeChild(banner);
-  } finally {
   }
+
   const msg = `<div style='text-align:center'>
       <h1 style="color:red;font-size:300%">&#9888;</h1>
       <h2>Your browser ${spec.name} of version ${spec.version} is too old.</h2>
