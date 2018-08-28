@@ -61,15 +61,15 @@ function preflight_check(): void {
     }
 
     const msg = `<div style='text-align:center'>
-      <h1 style="color:red;font-size:300%">&#9888;</h1>
-      <h2>Your browser ${spec.name} of version ${spec.version} is too old.</h2>
+      <h1 style="color:red;font-size:400%">&#9888;</h1>
+      <h2>CoCalc does not support ${spec.name} version ${spec.version}.</h2>
       <div>
-          <p>We recommend to run the newest <a href='https://google.com/chrome'>Google Chrome</a>.</p>
+          <p>We recommend that you use the newest version of <a target="_blank" href='https://google.com/chrome'>Google Chrome</a>.</p>
           <p>Learn more about our
-            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements">browser requirements</a>.
+            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" >browser requirements</a>.
           </p>
           <p style="font-weight:bold; font-size: 115%">
-            <a href="./app?${SKIP_TOKEN}">Continue anyways ...</a>
+            <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my old browser...</a>
           </p>
       </div>
     </div>`;
