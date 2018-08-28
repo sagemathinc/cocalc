@@ -30,7 +30,7 @@
     "node-cleanup": "^2.1.2",
     "pidusage": "^1.2.0",
     "posix": "^4.0.0",
-    "prettier": "^1.12.0",
+    "prettier": "^1.14.2",
     "primus": "^7.2.2",
     "primus-multiplex": "^3.2.1",
     "primus-responder": "^1.0.4",
