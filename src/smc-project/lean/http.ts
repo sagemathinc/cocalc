@@ -21,7 +21,7 @@ timeout -- client should retry).
 
 const BASE: string = "/.smc/lean/";
 
-import { lean, Lean } from "./lean";
+import { lean_server as lean, Lean } from "./lean";
 
 type Router = any; // TODO
 

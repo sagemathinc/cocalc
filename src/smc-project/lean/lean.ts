@@ -2,26 +2,9 @@ import * as lean_client from "lean-client-js-node";
 import { callback } from "awaiting";
 import { EventEmitter } from "events";
 
-// TODO: this is from
-//import { aux_file } from "smc-webapp/frame-tree/util";
-function path_split(path: string): any {
-  const v = path.split("/");
-  return { head: v.slice(0, -1).join("/"), tail: v[v.length - 1] };
-}
-function aux_file(path: string, ext: string): string {
-  let s = path_split(path);
-  s.tail += "." + ext;
-  if (s.head) {
-    return s.head + "/." + s.tail;
-  } else {
-    return "." + s.tail;
-  }
-}
-// end todo
-
+import { path_split } from "../smc-webapp/frame-editors/generic/misc";
 
 type SyncString = any;
-type SyncDB = any;
 type Client = any;
 type LeanServer = any;
 
@@ -67,7 +50,8 @@ export class Lean extends EventEmitter {
       this.dbg("messages: ", allMessages.msgs);
       const to_save = {};
       for (let x of allMessages.msgs) {
-        const path : string = x.file_name;
+        const path: string = x.file_name;
+        to_save[path] = true;
         delete x.file_name;
         if (this._state.paths[path] === undefined) {
           this._state.paths[path] = [x];
@@ -78,21 +62,17 @@ export class Lean extends EventEmitter {
             // to detect when to do this delete differently.
             const y = this.paths[path];
             if (y !== undefined) {
-              y.syncdb.delete({type:'mesg'}, false);
+              this.emit("messages", path, []);
             }
           }
           this._state.paths[path].push(x);
         }
-        x.n = this._state.paths[path].length - 1;
-        x.type = "mesg";
-        const y = this.paths[path];
-        if (y !== undefined) {
-          y.syncdb.set(x, false);
-          to_save[path] = true;
-        }
       }
       for (let path in to_save) {
-        this.paths[path].syncdb.save();
+        const state = this._state.paths[path];
+        if (state !== undefined) {
+          this.emit("messages", path, state);
+        }
       }
     });
     this._server.tasks.on(currentTasks => {
@@ -103,7 +83,7 @@ export class Lean extends EventEmitter {
     return this._server;
   }
 
-  // Start learn server parsing and reporting info about the given file
+  // Start learn server parsing and reporting info about the given file.
   // It will get updated whenever the file change.
   register(path: string) {
     this.dbg("register", path);
@@ -120,18 +100,16 @@ export class Lean extends EventEmitter {
       that.dbg("sync", path);
       that._state.paths[path] = [];
       await that.server().sync(path, syncstring.to_str());
-      that.emit(`sync-${path}`);
+      that.emit("sync", path);
     }
-    const syncdb: SyncDB = this.client.sync_db({
-      path: aux_file(path, "syncdb"),
-      primary_keys: ["type", "n"]
-    });
     this.paths[path] = {
       syncstring: syncstring,
-      syncdb: syncdb,
       on_change: on_change
     };
-    this.paths[path].syncstring.on("change", on_change);
+    syncstring.on("change", on_change);
+    if (!syncstring._closed) {
+      on_change();
+    }
   }
 
   // Stop updating given file on changes.
@@ -144,7 +122,6 @@ export class Lean extends EventEmitter {
     const x = this.paths[path];
     x.syncstring.removeListener("change", x.on_change);
     x.syncstring.close();
-    x.syncdb.close();
     delete this.paths[path];
   }
 
@@ -208,10 +185,9 @@ export class Lean extends EventEmitter {
 let singleton: Lean | undefined;
 
 // Return the singleton lean instance.  The client is assumed to never change.
-export function lean(client: Client): Lean {
+export function lean_server(client: Client): Lean {
   if (singleton === undefined) {
     singleton = new Lean(client);
   }
   return singleton;
 }
-
