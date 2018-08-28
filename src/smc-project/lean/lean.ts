@@ -214,3 +214,4 @@ export function lean(client: Client): Lean {
   }
   return singleton;
 }
+

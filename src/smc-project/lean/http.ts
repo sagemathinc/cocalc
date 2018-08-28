@@ -1,7 +1,7 @@
-/* 
+/*
 HTTP access to the LEAN server.
 
-Below path is the path to a .lean file, relative to the home 
+Below path is the path to a .lean file, relative to the home
 directory of the CoCalc project.
 
 /info/path='...'?line=x[&column=y]       -- get info about particular point
@@ -66,6 +66,9 @@ function lean_http_server(
     switch (command) {
       case "info":
         try {
+          if (path === undefined) {
+            throw Error("path must be defined");
+          }
           res.json(await lean.info(path, line, column));
         } catch (err) {
           res.json({ status: "error", error: err });
@@ -73,6 +76,9 @@ function lean_http_server(
         return;
       case "complete":
         try {
+          if (path === undefined) {
+            throw Error("path must be defined");
+          }
           res.json(await lean.complete(path, line, column));
         } catch (err) {
           res.json({ status: "error", error: err });
@@ -83,10 +89,18 @@ function lean_http_server(
         res.json({ status: "ok" });
         return;
       case "unregister":
+        if(path === undefined) {
+          res.json({ status: "error", error: "path must be defined" });
+          return;
+        }
         lean.unregister(path);
         res.json({ status: "ok" });
         return;
       case "register":
+        if(path === undefined) {
+          res.json({ status: "error", error: "path must be defined" });
+          return;
+        }
         lean.register(path);
         res.json({ status: "ok" });
         return;
@@ -94,6 +108,9 @@ function lean_http_server(
         res.json({ status: "ok", state: lean.state() });
         return;
       case "messages":
+        if (path === undefined) {
+          throw Error("path must be defined");
+        }
         res.json({ status: "ok", messages: lean.messages(path) });
         return;
       case "tasks":

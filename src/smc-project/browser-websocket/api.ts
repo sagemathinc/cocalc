@@ -61,6 +61,8 @@ async function handle_api_call(
       return await exec(data.opts);
     case "terminal":
       return await terminal(primus, logger, data.path, data.options);
+    case "lean":
+      return await lean(client, primus, logger, data.path);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
@@ -99,3 +101,7 @@ async function exec(opts: any): Promise<ExecuteOutput> {
 }
 
 import { terminal } from "../terminal/server";
+
+import { lean } from "../lean/server";
+
+

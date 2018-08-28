@@ -52,6 +52,14 @@ export class API {
     return this.conn.channel(channel_name);
   }
 
+  async lean(path: string): Promise<any> {
+    const channel_name = await this.call({
+      cmd: "lean",
+      path: path
+    });
+    return this.conn.channel(channel_name);
+  }
+
   async symmetric_channel(name:string): Promise<any> {
     const channel_name = await this.call({
       cmd: "symmetric_channel",
