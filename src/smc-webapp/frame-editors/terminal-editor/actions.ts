@@ -37,6 +37,7 @@ export class Actions extends CodeEditorActions {
 
   set_title(id: string, title: string) {
     console.log("set title of term ", id, " to ", title);
+    this.set_frame_tree({id:id, title:title});
   }
 
   handle_mesg(

@@ -16,7 +16,6 @@ const EDITOR_SPEC = {
       "print",
       "decrease_font_size",
       "increase_font_size",
-      "save",
       "find",
       "paste",
       "copy"
