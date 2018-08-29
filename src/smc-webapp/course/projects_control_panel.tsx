@@ -206,13 +206,13 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
         <Panel
           header={
             <h4>
-              <Icon name="flash" /> Student projects control
+              <Icon name="cogs" /> Student projects control
             </h4>
           }
         >
           {this.render_select_compute_image_row()}
           <Row>
-            <Col md={9}>
+            <Col md={9} style={{ marginTop: "10px" }}>
               {r} of {n} student projects currently running.
             </Col>
           </Row>
