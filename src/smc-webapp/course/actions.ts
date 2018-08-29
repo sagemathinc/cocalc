@@ -68,8 +68,6 @@ export class CourseActions extends Actions<CourseState> {
   private _activity_id: number;
   private _create_student_project_queue: any[];
   private _creating_student_project: boolean;
-  private prev_interval_id: number;
-  private prev_timeout_id: number;
   private interval_ids: {
     [key: string]: number;
   };
