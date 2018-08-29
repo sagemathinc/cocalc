@@ -31,7 +31,7 @@ export class Actions extends BaseActions<LeanEditorState> {
   async _init_channel(): Promise<void> {
     this.channel = await (await project_api(this.project_id)).lean(this.path);
     this.channel.on("data", x => {
-      console.log(JSON.stringify(x));
+      console.log(this.path, "channel got: ", JSON.stringify(x));
       if (typeof x === "object") {
         if (x.messages !== undefined) {
           this.setState({ messages: x.messages });

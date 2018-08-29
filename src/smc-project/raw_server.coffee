@@ -13,7 +13,6 @@ misc_node = require('smc-util-node/misc_node')
 
 {jupyter_router} = require('./jupyter/http-server')
 
-{lean_router} = require('./lean/http')
 {init_websocket_server} = require('./browser-websocket/server')
 
 {upload_endpoint} = require('./upload')
@@ -89,10 +88,6 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
 
-
-            # Setup the /.smc/lean/... server, which is used for the HTTP part of the lean
-            # interface, and does nothing if not used.
-            raw_server.use(base, lean_router(express, opts.client))
 
             # Setup the /.smc/ws websocket server, which is used by clients
             # for direct websocket connections to the project, and also

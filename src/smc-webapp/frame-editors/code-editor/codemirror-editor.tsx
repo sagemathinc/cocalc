@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-const SAVE_INTERVAL_MS = 2000;
+const SAVE_INTERVAL_MS = 500;
 
 import { delay } from "awaiting";
 

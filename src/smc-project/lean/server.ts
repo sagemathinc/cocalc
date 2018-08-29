@@ -10,6 +10,14 @@ let the_lean_server: Lean | undefined = undefined;
 
 function init_lean_server(client: any, logger: any): void {
   the_lean_server = lean_server(client);
+  the_lean_server.on("tasks", function(tasks: object[]) {
+    logger.debug("lean_server:websocket:tasks -- ", tasks);
+    for (let x in lean_files) {
+      const lean_file = lean_files[x];
+      lean_file.channel.write({ tasks });
+    }
+  });
+
   the_lean_server.on("messages", function(path: string, messages: object) {
     logger.debug("lean_server:websocket:messages -- ", path, messages);
     const lean_file = lean_files[`lean:${path}`];

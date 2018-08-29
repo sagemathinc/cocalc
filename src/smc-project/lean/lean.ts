@@ -23,6 +23,7 @@ export class Lean extends EventEmitter {
   client: Client;
   _server: LeanServer | undefined;
   _state: State = { tasks: [], paths: {} };
+  private last_pos: { [key: string]: any } = {};
   dbg: Function;
 
   constructor(client: Client) {
@@ -51,6 +52,18 @@ export class Lean extends EventEmitter {
       const to_save = {};
       for (let x of allMessages.msgs) {
         const path: string = x.file_name;
+        const last = this.last_pos[path];
+        if (
+          last !== undefined &&
+          x.pos_line !== undefined &&
+          x.pos_col != undefined &&
+          (x.pos_line < last.line ||
+            (x.pos_line === last.line && x.pos_col <= last.col))
+        ) {
+          // resending data for a file that has not been updated.
+          continue;
+        }
+        this.last_pos[path] = { line: x.pos_line, col: x.pos_col };
         to_save[path] = true;
         delete x.file_name;
         if (this._state.paths[path] === undefined) {
@@ -78,6 +91,7 @@ export class Lean extends EventEmitter {
     this._server.tasks.on(currentTasks => {
       this.dbg("tasks: ", currentTasks.tasks);
       this._state.tasks = currentTasks.tasks;
+      this.emit("tasks", currentTasks.tasks);
     });
     this._server.connect();
     return this._server;
@@ -88,7 +102,7 @@ export class Lean extends EventEmitter {
   register(path: string) {
     this.dbg("register", path);
     if (this.paths[path] !== undefined) {
-      // already watching it
+      this.dbg("register", path, "already registered");
       return;
     }
     // get the syncstring and start updating based on content
@@ -98,7 +112,11 @@ export class Lean extends EventEmitter {
     const that = this;
     async function on_change() {
       that.dbg("sync", path);
+
       that._state.paths[path] = [];
+      delete that.last_pos[path];
+      that.emit("messages", path, []);
+
       await that.server().sync(path, syncstring.to_str());
       that.emit("sync", path);
     }
