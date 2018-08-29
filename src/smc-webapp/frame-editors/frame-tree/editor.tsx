@@ -1,11 +1,17 @@
-import { React, rclass, rtypes, Component, Rendered } from "../../app-framework";
+import {
+  React,
+  rclass,
+  rtypes,
+  Component,
+  Rendered
+} from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 
 import { FormatBar } from "./format-bar";
-
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
+import { ErrorStyles } from "../frame-tree/types";
 
 import { copy, is_different } from "../generic/misc";
 
@@ -23,7 +29,6 @@ interface FrameTreeEditorReactProps {
 
 interface FrameTreeEditorReduxProps {
   editor_settings?: Map<string, any>;
-
   is_public: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
@@ -31,22 +36,21 @@ interface FrameTreeEditorReduxProps {
   is_loaded: boolean;
   local_view_state: Map<string, any>;
   error: string;
+  errorstyle: ErrorStyles;
   cursors: Map<string, any>;
   status: string;
-
   load_time_estimate?: Map<string, any>;
   value?: string;
-
   reload: Map<string, number>;
   resize: number; // if changes, means that frames have been resized, so may need refreshing; passed to leaf.
   misspelled_words: Set<string>;
   is_saving: boolean;
   gutter_markers: Map<string, any>;
-
   settings: Map<string, any>;
 }
 
-type FrameTreeEditorProps = FrameTreeEditorReactProps & FrameTreeEditorReduxProps;
+type FrameTreeEditorProps = FrameTreeEditorReactProps &
+  FrameTreeEditorReduxProps;
 
 const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   private editor_spec: any = {};
@@ -79,6 +83,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         is_loaded: rtypes.bool.isRequired,
         local_view_state: rtypes.immutable.Map.isRequired,
         error: rtypes.string.isRequired,
+        errorstyle: rtypes.string,
         cursors: rtypes.immutable.Map.isRequired,
         status: rtypes.string.isRequired,
 
@@ -116,11 +121,11 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "is_loaded",
           "local_view_state",
           "error",
+          "errorstyle",
           "cursors",
           "status",
           "load_time_estimate",
           "value",
-
           "reload",
           "resize",
           "misspelled_words",
@@ -128,9 +133,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "has_uncommitted_changes",
           "is_saving",
           "gutter_markers",
-
           "editor_settings",
-
           "settings"
         ]
       ) ||
@@ -197,16 +200,21 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     if (!this.props.error) {
       return;
     }
+    let style: any = {
+      maxWidth: "100%",
+      margin: "1ex",
+      maxHeight: "30%",
+      overflowY: "scroll"
+    };
+    if (this.props.errorstyle === "monospace") {
+      style.fontFamily = "monospace";
+      style.fontSize = "85%";
+    }
     return (
       <ErrorDisplay
         error={this.props.error}
         onClose={() => this.props.actions.set_error("")}
-        style={{
-          maxWidth: "100%",
-          margin: "1ex",
-          maxHeight: "30%",
-          overflowY: "scroll"
-        }}
+        style={style}
       />
     );
   }
@@ -249,7 +257,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
       </div>
     );
   }
-} as React.ComponentType<FrameTreeEditorReactProps>
+} as React.ComponentType<FrameTreeEditorReactProps>;
 
 const FrameTreeEditor = rclass(FrameTreeEditor0);
 

@@ -23,7 +23,7 @@ export async function misspelled_words(opts: Options): Promise<string[]> {
   }
 
   let mode: string;
-  const ext = filename_extension(opts.path).toLowerCase();
+  const ext = filename_extension(opts.path);
   if (ext == "html") {
     mode = "--mode=html";
   } else if (ext == "tex" || KNITR_EXTS.includes(ext)) {
