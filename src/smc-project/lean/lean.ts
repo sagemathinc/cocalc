@@ -1,3 +1,5 @@
+import { isEqual } from "underscore";
+
 import * as lean_client from "lean-client-js-node";
 import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
@@ -23,14 +25,14 @@ export class Lean extends EventEmitter {
   client: Client;
   _server: LeanServer | undefined;
   _state: State = { tasks: [], paths: {} };
-  private listening: { [key: string]: boolean } = {};
+  private running: { [key: string]: boolean } = {};
   dbg: Function;
 
   constructor(client: Client) {
     super();
     this.client = client;
     this.dbg = this.client.dbg("LEAN SERVER");
-    this.listening = {};
+    this.running = {};
   }
 
   close(): void {
@@ -49,33 +51,33 @@ export class Lean extends EventEmitter {
     );
     this._server.error.on(err => this.dbg("error:", err));
     this._server.allMessages.on(allMessages => {
-      this.dbg("messages: ", allMessages.msgs);
-      const to_emit = {};
+      this.dbg("messages: ", allMessages);
+
+      const new_messages = {};
       for (let x of allMessages.msgs) {
         const path: string = x.file_name;
-        if (!this.listening[path]) {
-          // ignore re-sent message data for a file that has not been updated.
-          this.dbg("ignoring message for ", path, " since not listening");
-          continue;
-        }
-        to_emit[path] = true;
         delete x.file_name;
-        if (this._state.paths[path] === undefined) {
-          this._state.paths[path] = [x];
+        if (new_messages[path] === undefined) {
+          new_messages[path] = [x];
         } else {
-          this._state.paths[path].push(x);
+          new_messages[path].push(x);
         }
       }
-      for (let path in to_emit) {
-        this.emit("messages", path, this._state.paths[path]);
+
+      for (let path in this._state.paths) {
+        if (!isEqual(this._state.paths[path], new_messages[path])) {
+          this.emit("messages", path, new_messages[path]);
+          this._state.paths[path] = new_messages[path];
+        }
       }
     });
+
     this._server.tasks.on(currentTasks => {
       let { tasks } = currentTasks;
       this.dbg("tasks: ", tasks);
       const running = {};
       for (let task of tasks) {
-        this.listening[task.file_name] = running[task.file_name] = true;
+        running[task.file_name] = true;
       }
       for (let path in running) {
         const v: any[] = [];
@@ -87,17 +89,10 @@ export class Lean extends EventEmitter {
         }
         this.emit("tasks", path, v);
       }
-      for (let path in this.listening) {
+      for (let path in this.running) {
         if (!running[path]) {
-          this.dbg("server", path, " done; no longer listening");
-          this.listening[path] = false;
-          if (
-            this._state.paths[path] === undefined ||
-            this._state.paths[path].length == 0
-          ) {
-            // nothing sent (no output), so we need to update client to know
-            this.emit("messages", path, []);
-          }
+          this.dbg("server", path, " done; no longer running");
+          this.running[path] = false;
           this.emit("tasks", path, []);
           if (this.paths[path].changed) {
             // file changed while lean was running -- so run lean again.
@@ -146,7 +141,7 @@ export class Lean extends EventEmitter {
         this.dbg("sync", path, "closed");
         return;
       }
-      if (this.listening[path]) {
+      if (this.running[path]) {
         // already running, so do nothing - it will rerun again when done with current run.
         this.dbg("sync", path, "already running");
         this.paths[path].changed = true;
@@ -160,7 +155,7 @@ export class Lean extends EventEmitter {
       }
       this.paths[path].last_value = value;
       this._state.paths[path] = [];
-      this.listening[path] = true;
+      this.running[path] = true;
       this.paths[path].changed = false;
       this.dbg("sync", path, "causing server sync now");
       await this.server().sync(path, value);
