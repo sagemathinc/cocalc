@@ -14,7 +14,17 @@ function init_lean_server(client: any, logger: any): void {
     logger.debug("lean_server:websocket:tasks -- ", path, tasks);
     const lean_file = lean_files[`lean:${path}`];
     if (lean_file !== undefined) {
+      lean_file.tasks = tasks;
       lean_file.channel.write({ tasks });
+    }
+  });
+
+  the_lean_server.on("sync", function(path: string, hash: number) {
+    logger.debug("lean_server:websocket:sync -- ", path, hash);
+    const lean_file = lean_files[`lean:${path}`];
+    if (lean_file !== undefined) {
+      lean_file.sync = sync;
+      lean_file.channel.write({ sync: hash });
     }
   });
 
@@ -75,7 +85,11 @@ export async function lean(
       "lean channel",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
-    spark.write({ messages: lean_file.messages });
+    spark.write({
+      messages: lean_file.messages,
+      sync: lean_file.sync,
+      tasks: lean_file.tasks
+    });
     spark.on("end", function() {});
     spark.on("data", function(data) {
       if (typeof data === "object") {

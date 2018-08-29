@@ -13,20 +13,27 @@ import { project_api } from "../generic/client";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
-import {Task, Message} from "./types";
-
+import { Task, Message } from "./types";
 
 interface LeanEditorState extends CodeEditorState {
   messages: Message[];
   tasks: Task[];
+  sync: number; // hash of last version sync'd to lean
+  syncstring_hash: number; // hash of actual syncstring in client
 }
 
 export class Actions extends BaseActions<LeanEditorState> {
   private channel: Channel;
 
   _init2(): void {
+    this.setState({ messages: [], tasks: [], sync: 0, syncstring_hash: 0 });
     if (!this.is_public) {
       this._init_channel();
+      this._syncstring.on("change", () => {
+        this.setState({
+          syncstring_hash: this._syncstring.hash_of_live_version()
+        });
+      });
     } else {
       this._init_value();
     }
@@ -42,6 +49,9 @@ export class Actions extends BaseActions<LeanEditorState> {
         }
         if (x.tasks !== undefined) {
           this.setState({ tasks: x.tasks });
+        }
+        if (x.sync !== undefined) {
+          this.setState({ sync: x.sync });
         }
       }
     });

@@ -15,6 +15,8 @@ interface Props {
   // reduxProps:
   messages: List<any>;
   tasks: List<any>;
+  sync: number;
+  syncstring_hash: number;
 }
 
 function render_pos(line: number, col: number): Rendered {
@@ -67,7 +69,9 @@ class LeanInfo extends Component<Props, {}> {
     return {
       [name]: {
         messages: rtypes.immutable.List,
-        tasks: rtypes.immutable.List
+        tasks: rtypes.immutable.List,
+        sync: rtypes.number,
+        syncstring_hash: rtypes.number
       }
     };
   }
@@ -161,6 +165,14 @@ class LeanInfo extends Component<Props, {}> {
     return v;
   }
 
+  render_sync(): Rendered {
+    if (this.props.sync === this.props.syncstring_hash) {
+      return <div style={{float:'right', marginTop:'5px'}}>Synchronized</div>;
+    } else {
+      return <div style={{float:'right', marginTop:'5px'}}>Syncing...</div>;
+    }
+  }
+
   render(): Rendered {
     return (
       <div
@@ -170,6 +182,7 @@ class LeanInfo extends Component<Props, {}> {
           fontSize: this.props.font_size
         }}
       >
+        {this.render_sync()}
         {this.render_tasks()}
         {this.render_messages()}
       </div>

@@ -148,7 +148,7 @@ export class Lean extends EventEmitter {
         return;
       }
 
-      const value: string = syncstring.to_str().trim();
+      const value: string = syncstring.to_str();
       if (this.paths[path].last_value === value) {
         this.dbg("sync", path, "skipping sync since value did not change");
         return;
@@ -159,7 +159,7 @@ export class Lean extends EventEmitter {
       this.paths[path].changed = false;
       this.dbg("sync", path, "causing server sync now");
       await this.server().sync(path, value);
-      this.emit("sync", path);
+      this.emit("sync", path, syncstring.hash_of_live_version());
     };
     this.paths[path] = {
       syncstring,
