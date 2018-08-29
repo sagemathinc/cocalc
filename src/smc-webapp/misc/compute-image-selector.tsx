@@ -1,5 +1,5 @@
 import * as immutable from "immutable";
-import { redux, React, Component, rtypes, rclass } from "../app-framework";
+import { React, Component, } from "../app-framework";
 import { TypedMap } from "../app-framework/TypedMap";
 
 const { alert_message } = require("./alerts");
@@ -19,51 +19,26 @@ type ProjectInfo = TypedMap<{
 }>;
 
 interface ReactProps {
-  current_compute_image: string;
-  project_id: string;
-}
-
-interface ReduxProps {
-  kucalc: string;
+  save_compute_image: (name: string) => Promise<void>;
+  active_compute_image: string;
 }
 
 interface StateTypes {
-  compute_image: string;
+  displayed_compute_image: string;
   compute_image_changing: boolean;
   compute_image_focused: boolean;
   compute_image_info?: ProjectInfo;
 }
 
-export const ComputeImageSelector = rclass<ReactProps>(
-  class ComputeImageSelector extends Component<
-    ReactProps & ReduxProps,
-    StateTypes
-  > {
-    constructor(props) {
-      super(props);
-      this.state = {
-        compute_image: this.props.current_compute_image,
-        compute_image_changing: false,
-        compute_image_focused: false
-      };
-    }
-
-    static reduxProps = () => {
-      return {
-        customize: {
-          kucalc: rtypes.string
-        }
-      };
-    };
-
-    componentWillReceiveProps(props) {
+export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
+    componentWillReceiveProps(props: ReactProps) {
       if (this.state.compute_image_focused) {
         return;
       }
-      const new_image = props.project.get("compute_image");
-      if (new_image !== this.state.compute_image) {
+      const new_image = props.active_compute_image;
+      if (new_image !== this.state.displayed_compute_image) {
         this.setState({
-          compute_image: new_image,
+          displayed_compute_image: new_image,
           compute_image_changing: false
         });
       }
@@ -71,30 +46,22 @@ export const ComputeImageSelector = rclass<ReactProps>(
 
     cancel_compute_image(current_image) {
       this.setState({
-        compute_image: current_image,
+        displayed_compute_image: current_image,
         compute_image_changing: false,
         compute_image_focused: false
       });
     }
 
-    restart_project() {
-      redux.getActions("projects").restart_project(this.props.project_id);
-    }
-
     async save_compute_image(current_image) {
       // image is reset to the previous name and componentWillReceiveProps will set it when new
       this.setState({
-        compute_image: current_image,
+        displayed_compute_image: current_image,
         compute_image_changing: true,
         compute_image_focused: false
       });
-      const new_image = this.state.compute_image;
-      const actions = redux.getActions({
-        project_id: this.props.project_id
-      });
+      const new_image = this.state.displayed_compute_image;
       try {
-        await actions.set_compute_image(new_image);
-        this.restart_project();
+        await this.props.save_compute_image(new_image);
       } catch (error) {
         const err = error;
         alert_message({ type: "error", message: err });
@@ -103,7 +70,7 @@ export const ComputeImageSelector = rclass<ReactProps>(
     }
 
     set_compute_image(name) {
-      this.setState({ compute_image: name });
+      this.setState({ displayed_compute_image: name });
     }
 
     compute_image_info(name, type) {
@@ -136,7 +103,7 @@ export const ComputeImageSelector = rclass<ReactProps>(
     }
 
     render() {
-      const no_value = this.state.compute_image == null;
+      const no_value = this.state.displayed_compute_image == null;
       if (no_value || this.state.compute_image_changing) {
         return <Loading />;
       }
@@ -144,8 +111,8 @@ export const ComputeImageSelector = rclass<ReactProps>(
         return this.render_select_compute_image_error();
       }
       // this will at least return a suitable default value
-      const selected_image = this.state.compute_image;
-      const current_image = this.props.current_compute_image;
+      const selected_image = this.state.displayed_compute_image;
+      const current_image = this.props.active_compute_image;
       const default_title = this.compute_image_info(
         DEFAULT_COMPUTE_IMAGE,
         "title"
@@ -199,5 +166,4 @@ export const ComputeImageSelector = rclass<ReactProps>(
         </div>
       );
     }
-  }
-);
+}

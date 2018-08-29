@@ -305,6 +305,7 @@ export const ProjectControlPanel = rclass<ReactProps>(
       if (this.props.kucalc !== "yes") {
         return;
       }
+      const project_id = this.props.project.get("project_id");
       return (
         <div>
           <LabeledRow
@@ -313,8 +314,10 @@ export const ProjectControlPanel = rclass<ReactProps>(
             style={this.rowstyle(true)}
           >
             <ComputeImageSelector
-              current_compute_image={this.props.project.get("compute_image")}
-              project_id={this.props.project.get("project_id")}
+              active_compute_image={this.props.project.get("compute_image")}
+              save_compute_image={
+                redux.getActions({ project_id }).set_compute_image
+              }
             />
           </LabeledRow>
         </div>
