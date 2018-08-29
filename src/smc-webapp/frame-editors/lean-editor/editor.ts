@@ -27,7 +27,6 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "reload"
     ])
   },
   "lean-goal": {
