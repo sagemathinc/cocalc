@@ -52,7 +52,7 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
           course_project_id: rtypes.string
         },
         projects: {
-          project_map: rtypes.object
+          project_map: rtypes.immutable.Map
         },
         customize: {
           kucalc: rtypes.string
@@ -78,7 +78,7 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
         ]) ||
         this.props.project_map
           .get(this.props.course_project_id)
-          .get("compute_image") !=
+          .get("compute_image") !==
           props.project_map
             .get(this.props.course_project_id)
             .get("compute_image")
@@ -187,8 +187,7 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
             style={{
               marginBottom: "5px",
               paddingBottom: "10px",
-              borderBottom: "1px solid #ccc",
-              borderTop: "1px solid #ccc"
+              borderBottom: "1px solid #ccc"
             }}
           >
             <ComputeImageSelector
@@ -211,6 +210,7 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
             </h4>
           }
         >
+          {this.render_select_compute_image_row()}
           <Row>
             <Col md={9}>
               {r} of {n} student projects currently running.
