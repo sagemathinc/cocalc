@@ -23,13 +23,14 @@ export class Lean extends EventEmitter {
   client: Client;
   _server: LeanServer | undefined;
   _state: State = { tasks: [], paths: {} };
-  private last_pos: { [key: string]: any } = {};
+  private listening: { [key: string]: boolean } = {};
   dbg: Function;
 
   constructor(client: Client) {
     super();
     this.client = client;
     this.dbg = this.client.dbg("LEAN SERVER");
+    this.listening = {};
   }
 
   close(): void {
@@ -52,32 +53,15 @@ export class Lean extends EventEmitter {
       const to_save = {};
       for (let x of allMessages.msgs) {
         const path: string = x.file_name;
-        const last = this.last_pos[path];
-        if (
-          last !== undefined &&
-          x.pos_line !== undefined &&
-          x.pos_col != undefined &&
-          (x.pos_line < last.line ||
-            (x.pos_line === last.line && x.pos_col <= last.col))
-        ) {
-          // resending data for a file that has not been updated.
+        if (!this.listening[path]) {
+          // ignore resent message data for a file that has not been updated.
           continue;
         }
-        this.last_pos[path] = { line: x.pos_line, col: x.pos_col };
         to_save[path] = true;
         delete x.file_name;
         if (this._state.paths[path] === undefined) {
           this._state.paths[path] = [x];
         } else {
-          if (this._state.paths[path].length == 0) {
-            // delete everything since this was caused by a new sync.
-            // TODO: if we get rid of this._state.paths, we will need
-            // to detect when to do this delete differently.
-            const y = this.paths[path];
-            if (y !== undefined) {
-              this.emit("messages", path, []);
-            }
-          }
           this._state.paths[path].push(x);
         }
       }
@@ -89,9 +73,25 @@ export class Lean extends EventEmitter {
       }
     });
     this._server.tasks.on(currentTasks => {
-      this.dbg("tasks: ", currentTasks.tasks);
-      this._state.tasks = currentTasks.tasks;
-      this.emit("tasks", currentTasks.tasks);
+      let { tasks } = currentTasks;
+      this.dbg("tasks: ", tasks);
+      const running = {};
+      for (let task of tasks) {
+        running[task.file_name] = true;
+      }
+      for (let path in this.listening) {
+        if (!running[path]) {
+          this.listening[path] = false;
+          if (
+            this._state.paths[path] === undefined ||
+            this._state.paths[path].length == 0
+          ) {
+            // nothing sent, so we need to update client to know
+            this.emit("messages", path, []);
+          }
+        }
+      }
+      this.emit("tasks", tasks);
     });
     this._server.connect();
     return this._server;
@@ -122,26 +122,26 @@ export class Lean extends EventEmitter {
       return; // failed to register
     }
     const syncstring = s as SyncString;
-    const that = this;
-    async function on_change() {
-      that.dbg("sync", path);
+    const on_change = async () => {
+      this.dbg("sync", path);
 
-      that._state.paths[path] = [];
-      delete that.last_pos[path];
-      that.emit("messages", path, []);
+      this._state.paths[path] = [];
+      this.listening[path] = true;
 
-      await that.server().sync(path, syncstring.to_str());
-      that.emit("sync", path);
-    }
+      await this.server().sync(path, syncstring.to_str());
+      this.emit("sync", path);
+    };
     this.paths[path] = {
-      syncstring: syncstring,
-      on_change: on_change
+      syncstring,
+      on_change
     };
     syncstring.on("change", on_change);
     if (!syncstring._closed) {
       on_change();
     }
-    syncstring.on("close", () => { this.unregister(path); })
+    syncstring.on("close", () => {
+      this.unregister(path);
+    });
   }
 
   // Stop updating given file on changes.
@@ -207,10 +207,6 @@ export class Lean extends EventEmitter {
       return x;
     }
     return [];
-  }
-
-  tasks(): any {
-    return this._state.tasks;
   }
 }
 
