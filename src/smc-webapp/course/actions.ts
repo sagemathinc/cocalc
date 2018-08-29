@@ -32,6 +32,7 @@
 // 3rd party libs
 import * as async from "async";
 import * as awaiting from "awaiting";
+import { resilient, timed } from "async-await-utils/hof";
 const markdownlib = require("../markdown");
 
 // CoCalc libraries
@@ -68,12 +69,7 @@ export class CourseActions extends Actions<CourseState> {
   private _activity_id: number;
   private _create_student_project_queue: any[];
   private _creating_student_project: boolean;
-  private interval_ids: {
-    [key: string]: number;
-  };
-  private timeout_ids: {
-    [key: string]: number;
-  };
+  private project_actions_in_progress: { [key: string]: boolean };
 
   constructor(name, redux) {
     super(name, redux);
@@ -1095,20 +1091,18 @@ export class CourseActions extends Actions<CourseState> {
     }
     this.action_shared_project(action);
 
-    // This will go on for 5 minutes continually trying to
-    // put the projects in the desired state
     await this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
         this.redux
           .getActions("projects")
           [action + "_project"](student.get("project_id"));
-        return {student, failed: true} // Assume failed.
       },
       {
         on_clean_up: () => {
           this.setState({ action_all_projects_state: "any" });
-        }
+        },
+        max_tries: 5
       }
     );
 
@@ -2948,30 +2942,22 @@ You can find the comments they made in the folders below.\
     return this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
-      try {
         await this.redux
           .getActions({ project_id: student.get("project_id") })
           .set_compute_image(new_image);
-        return { student, failed: false };
-      } catch (err) {
-        return { student, failed: true };
       }
-    });
+    );
   }
 
   async map_over_student_projects(
     action_id: string,
-    async_fn: (
-      student: StudentRecord
-    ) => Promise<{ student: StudentRecord; failed: boolean }>,
+    async_fn: (student: StudentRecord) => Promise<any>,
     {
       on_clean_up,
-      retry_interval = 30000,
       timeout = 300000, // 5 minutes
-      max_tries = 3,
+      max_tries = 3
     }: {
       on_clean_up?: () => void;
-      retry_interval?: number;
       timeout?: number;
       max_tries?: number;
     } = {}
@@ -2981,16 +2967,7 @@ You can find the comments they made in the folders below.\
       return;
     }
 
-    // Action is already running asynchronously.
-    // They're not cancellable (yet) so we return early
-    if (
-      this.interval_ids[action_id] != undefined ||
-      this.timeout_ids[action_id] != undefined
-    ) {
-      return;
-    }
-
-    let unfinished_students = store
+    let students = store
       .get_students()
       .filter(student => {
         return !student.get("deleted") && student.get("project_id") != null;
@@ -2998,47 +2975,28 @@ You can find the comments they made in the folders below.\
       .valueSeq()
       .toArray();
 
-    let results: { student: StudentRecord; failed: boolean }[];
-    let tries = 0;
+    this.project_actions_in_progress[action_id] = true;
 
-    const retry = async () => {
-      if (tries == max_tries) {
-        clear_state();
-        return;
-      }
-
-      results = await awaiting.map(
-        unfinished_students,
-        PARALLEL_LIMIT,
-        async_fn
+    try {
+      await timed(
+        awaiting.map(students, PARALLEL_LIMIT, async () => {
+          try {
+            await resilient(async_fn, { attempts: max_tries });
+          } catch (err) {
+            return "failed";
+          }
+        }),
+        timeout
       );
+    } catch (err) {
+      console.warn("Either async-await-utils or awaiting or seems broken.")
+    }
 
-      unfinished_students = results
-        .filter(value => {
-          return value.failed;
-        })
-        .map(value => value.student);
+    delete this.project_actions_in_progress[action_id];
 
-      if (unfinished_students.length == 0) {
-        clear_state();
-      } else {
-        tries += 1;
-      }
-    };
-
-    // Stops all future tries. Does not stop the current attempt.
-    const clear_state = () => {
-      window.clearInterval(this.interval_ids[action_id]);
-      window.clearInterval(this.timeout_ids[action_id]);
-      delete this.interval_ids[action_id];
-      delete this.timeout_ids[action_id];
-      if (on_clean_up != undefined) {
-        on_clean_up();
-      }
-    };
-
-    this.interval_ids[action_id] = window.setInterval(retry, retry_interval);
-    this.timeout_ids[action_id] = window.setTimeout(clear_state, timeout);
+    if (on_clean_up != undefined) {
+      on_clean_up();
+    }
   }
 }
 
