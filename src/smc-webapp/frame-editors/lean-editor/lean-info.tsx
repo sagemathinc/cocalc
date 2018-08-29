@@ -11,6 +11,7 @@ import {
 } from "../../app-framework";
 
 interface Props {
+  font_size: number;
   // reduxProps:
   messages: List<any>;
   tasks: List<any>;
@@ -162,7 +163,13 @@ class LeanInfo extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <div style={{ overflowY: "auto", margin: "0px 15px" }}>
+      <div
+        style={{
+          overflowY: "auto",
+          margin: "0px 15px",
+          fontSize: this.props.font_size
+        }}
+      >
         {this.render_tasks()}
         {this.render_messages()}
       </div>
