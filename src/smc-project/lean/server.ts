@@ -5,6 +5,7 @@ LEAN server
 const lean_files = {};
 
 import { lean_server, Lean } from "./lean";
+import { isEqual } from "underscore";
 
 let the_lean_server: Lean | undefined = undefined;
 
@@ -13,7 +14,7 @@ function init_lean_server(client: any, logger: any): void {
   the_lean_server.on("tasks", function(path: string, tasks: object[]) {
     logger.debug("lean_server:websocket:tasks -- ", path, tasks);
     const lean_file = lean_files[`lean:${path}`];
-    if (lean_file !== undefined) {
+    if (lean_file !== undefined && !isEqual(lean_file.tasks, tasks)) {
       lean_file.tasks = tasks;
       lean_file.channel.write({ tasks });
     }
@@ -22,7 +23,7 @@ function init_lean_server(client: any, logger: any): void {
   the_lean_server.on("sync", function(path: string, hash: number) {
     logger.debug("lean_server:websocket:sync -- ", path, hash);
     const lean_file = lean_files[`lean:${path}`];
-    if (lean_file !== undefined) {
+    if (lean_file !== undefined && !isEqual(lean_file.sync, hash)) {
       lean_file.sync = hash;
       lean_file.channel.write({ sync: hash });
     }
@@ -31,11 +32,7 @@ function init_lean_server(client: any, logger: any): void {
   the_lean_server.on("messages", function(path: string, messages: object) {
     logger.debug("lean_server:websocket:messages -- ", path, messages);
     const lean_file = lean_files[`lean:${path}`];
-    if (lean_file === undefined) {
-      if (the_lean_server !== undefined) {
-        the_lean_server.unregister(path);
-      }
-    } else {
+    if (lean_file !== undefined && !isEqual(lean_file.messages, messages)) {
       lean_file.messages = messages;
       lean_file.channel.write({ messages });
     }
