@@ -2938,15 +2938,15 @@ You can find the comments they made in the folders below.\
   }
 
   // Sets the desired compute image for all student projects
-  async set_compute_image(new_image: string) {
+  set_compute_image = async (new_image: string) => {
     const store = this.get_store();
     if (store == null) {
       return;
     }
     try {
       await resilient(
-        redux
-          .getProjectActions({ project_id: store.get("course_project_id") })
+        this.redux
+          .getProjectActions(store.get("course_project_id"))
           .set_compute_image(new_image),
         { attempts: 5 }
       );
@@ -2972,7 +2972,7 @@ You can find the comments they made in the folders below.\
     );
   }
 
-  async map_over_student_projects(
+  map_over_student_projects = async (
     action_id: string,
     async_fn: (student: StudentRecord) => Promise<any>,
     {
@@ -2986,7 +2986,7 @@ You can find the comments they made in the folders below.\
       timeout?: number;
       max_tries?: number;
     } = {}
-  ) {
+  ) => {
     const store = this.get_store();
     if (store == undefined) {
       return;
