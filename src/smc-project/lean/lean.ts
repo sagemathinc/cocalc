@@ -1,5 +1,5 @@
 import * as lean_client from "lean-client-js-node";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
 
 import { path_split } from "../smc-webapp/frame-editors/generic/misc";
@@ -99,16 +99,29 @@ export class Lean extends EventEmitter {
 
   // Start learn server parsing and reporting info about the given file.
   // It will get updated whenever the file change.
-  register(path: string) {
+  async register(path: string): Promise<void> {
     this.dbg("register", path);
     if (this.paths[path] !== undefined) {
       this.dbg("register", path, "already registered");
       return;
     }
     // get the syncstring and start updating based on content
-    const syncstring: SyncString = this.client.sync_string({
-      path: path
-    });
+    let s = undefined;
+    for (let i = 0; i < 60 && s === undefined; i++) {
+      s = this.client.sync_string({
+        path: path,
+        reference_only: true
+      });
+      if (s === undefined) {
+        this.dbg("register -- will try again", path);
+        await delay(1000);
+      }
+    }
+    if (s === undefined) {
+      this.dbg("register -- failed", path);
+      return; // failed to register
+    }
+    const syncstring = s as SyncString;
     const that = this;
     async function on_change() {
       that.dbg("sync", path);
@@ -128,6 +141,7 @@ export class Lean extends EventEmitter {
     if (!syncstring._closed) {
       on_change();
     }
+    syncstring.on("close", () => { this.unregister(path); })
   }
 
   // Stop updating given file on changes.
