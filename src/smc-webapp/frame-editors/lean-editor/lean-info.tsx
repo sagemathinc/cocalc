@@ -1,6 +1,6 @@
 import { List } from "immutable";
 
-const { Space } = require("smc-webapp/r_misc");
+const { Icon, Space } = require("smc-webapp/r_misc");
 
 import {
   React,
@@ -13,6 +13,7 @@ import {
 interface Props {
   // reduxProps:
   messages: List<any>;
+  tasks: List<any>;
 }
 
 function render_pos(line: number, col: number): Rendered {
@@ -64,7 +65,8 @@ class LeanInfo extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        messages: rtypes.immutable.List
+        messages: rtypes.immutable.List,
+        tasks: rtypes.immutable.List
       }
     };
   }
@@ -96,12 +98,63 @@ class LeanInfo extends Component<Props, {}> {
 
   render_messages(): Rendered | Rendered[] {
     if (!this.props.messages) {
-      return <div>(nothing)</div>;
+      return <div key="messages">(nothing)</div>;
     }
     const v: Rendered[] = [];
     let i = 0;
-    for (let x of this.props.messages.toJS()) {
-      v.push(this.render_message(i, x));
+    for (let message of this.props.messages.toJS()) {
+      v.push(this.render_message(i, message));
+      i += 1;
+    }
+    return v;
+  }
+
+  render_task(i, task): Rendered {
+    return (
+      <div
+        key={i}
+        style={{
+          fontSize: "12pt",
+          color: "#666",
+          fontWeight: "bold",
+          borderBottom: "1px solid black",
+          minHeight: "30px"
+        }}
+      >
+        <Icon name="cc-icon-cocalc-ring" spin />
+        <Space />
+        {task.desc}
+        <Space /> (processing {task.pos_line}:{task.pos_col} -{" "}
+        {task.end_pos_line}:{task.end_pos_col})
+      </div>
+    );
+  }
+
+  render_done(): Rendered {
+    return (
+      <div
+        key={0}
+        style={{
+          fontSize: "12pt",
+          color: "#666",
+          fontWeight: "bold",
+          borderBottom: "1px solid black",
+          minHeight: "30px"
+        }}
+      >
+        <Icon name="check-circle" />
+      </div>
+    );
+  }
+
+  render_tasks(): Rendered | Rendered[] {
+    if (!this.props.tasks || this.props.tasks.size === 0) {
+      return this.render_done();
+    }
+    const v: Rendered[] = [];
+    let i = 0;
+    for (let task of this.props.tasks.toJS()) {
+      v.push(this.render_task(i, task));
       i += 1;
     }
     return v;
@@ -110,6 +163,7 @@ class LeanInfo extends Component<Props, {}> {
   render(): Rendered {
     return (
       <div style={{ overflowY: "auto", margin: "0px 15px" }}>
+        {this.render_tasks()}
         {this.render_messages()}
       </div>
     );

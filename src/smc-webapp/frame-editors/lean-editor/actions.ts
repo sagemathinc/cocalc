@@ -13,8 +13,12 @@ import { project_api } from "../generic/client";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
+import {Task, Message} from "./types";
+
+
 interface LeanEditorState extends CodeEditorState {
-  messages: object[];
+  messages: Message[];
+  tasks: Task[];
 }
 
 export class Actions extends BaseActions<LeanEditorState> {
@@ -35,6 +39,9 @@ export class Actions extends BaseActions<LeanEditorState> {
       if (typeof x === "object") {
         if (x.messages !== undefined) {
           this.setState({ messages: x.messages });
+        }
+        if (x.tasks !== undefined) {
+          this.setState({ tasks: x.tasks });
         }
       }
     });

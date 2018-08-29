@@ -79,6 +79,16 @@ export class Lean extends EventEmitter {
       for (let task of tasks) {
         running[task.file_name] = true;
       }
+      for (let path in running) {
+        const v: any[] = [];
+        for (let task of tasks) {
+          if (task.file_name === path) {
+            delete task.file_name; // no longer needed
+            v.push(task);
+          }
+        }
+        this.emit("tasks", path, v);
+      }
       for (let path in this.listening) {
         if (!running[path]) {
           this.listening[path] = false;
@@ -89,9 +99,9 @@ export class Lean extends EventEmitter {
             // nothing sent, so we need to update client to know
             this.emit("messages", path, []);
           }
+          this.emit("tasks", path, []);
         }
       }
-      this.emit("tasks", tasks);
     });
     this._server.connect();
     return this._server;

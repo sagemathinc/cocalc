@@ -10,10 +10,10 @@ let the_lean_server: Lean | undefined = undefined;
 
 function init_lean_server(client: any, logger: any): void {
   the_lean_server = lean_server(client);
-  the_lean_server.on("tasks", function(tasks: object[]) {
-    logger.debug("lean_server:websocket:tasks -- ", tasks);
-    for (let x in lean_files) {
-      const lean_file = lean_files[x];
+  the_lean_server.on("tasks", function(path: string, tasks: object[]) {
+    logger.debug("lean_server:websocket:tasks -- ", path, tasks);
+    const lean_file = lean_files[`lean:${path}`];
+    if (lean_file !== undefined) {
       lean_file.channel.write({ tasks });
     }
   });
@@ -59,6 +59,13 @@ export async function lean(
   };
 
   channel.on("connection", function(spark: any): void {
+    // make sure lean server cares:
+    if (the_lean_server === undefined) {
+      // just to satisfy typescript.
+      throw Error("lean server not defined");
+    }
+    the_lean_server.register(path);
+
     const lean_file = lean_files[name];
     if (lean_file === undefined) {
       return;
