@@ -32,7 +32,7 @@ const misc = require("smc-util/misc");
 const { webapp_client } = require("../webapp_client");
 
 // React libraries and Components
-import { React, rclass, rtypes, Component, AppRedux } from "../app-framework";
+import { React, Component, AppRedux } from "../app-framework";
 const {
   Alert,
   Button,
@@ -62,212 +62,13 @@ import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import { ProjectMap } from "../todo-types";
 import { CourseSettingsRecord, CourseStore } from "./store";
+import { StudentProjectsControlPanel } from "./projects_control_panel";
 const { HelpBox } = require("./help_box");
 const { DeleteStudentsPanel } = require("./delete_students");
 const { DeleteSharedProjectPanel } = require("./delete_shared_project");
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
-
-interface StartStopPanelReactProps {
-  name: string;
-  num_running_projects: number;
-  num_students?: number;
-}
-
-interface StartStopPanelReduxProps {
-  action_all_projects_state: string;
-}
-
-interface StartStopPanelState {
-  confirm_stop_all_projects: boolean;
-  confirm_start_all_projects: boolean;
-}
-
-const StudentProjectsStartStopPanel = rclass<StartStopPanelReactProps>(
-  class StudentProjectsStartStopPanel extends Component<
-    StartStopPanelReactProps & StartStopPanelReduxProps,
-    StartStopPanelState
-  > {
-    displayName: "CourseEditorConfiguration-StudentProjectsStartStopPanel";
-
-    static reduxProps({ name }) {
-      return {
-        [name]: {
-          action_all_projects_state: rtypes.string
-        }
-      };
-    }
-
-    constructor(props) {
-      super(props);
-      this.state = {
-        confirm_stop_all_projects: false,
-        confirm_start_all_projects: false
-      };
-    }
-
-    get_actions(): CourseActions {
-      return redux.getActions(this.props.name);
-    }
-
-    render_in_progress_action() {
-      let bsStyle;
-      const state_name = this.props.action_all_projects_state;
-      switch (state_name) {
-        case "stopping":
-          if (this.props.num_running_projects === 0) {
-            return;
-          }
-          bsStyle = "warning";
-          break;
-        default:
-          if (this.props.num_running_projects === this.props.num_students) {
-            return;
-          }
-          bsStyle = "info";
-      }
-
-      return (
-        <Alert bsStyle={bsStyle}>
-          {misc.capitalize(state_name)} all projects...{" "}
-          <Icon name="cc-icon-cocalc-ring" spin />
-        </Alert>
-      );
-    }
-
-    render_confirm_stop_all_projects() {
-      return (
-        <Alert bsStyle="warning">
-          Are you sure you want to stop all student projects (this might be
-          disruptive)?
-          <br />
-          <br />
-          <ButtonToolbar>
-            <Button
-              bsStyle="warning"
-              onClick={() => {
-                this.setState({ confirm_stop_all_projects: false });
-                return this.get_actions().action_all_student_projects("stop");
-              }}
-            >
-              <Icon name="hand-stop-o" /> Stop all
-            </Button>
-            <Button
-              onClick={() =>
-                this.setState({ confirm_stop_all_projects: false })
-              }
-            >
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
-      );
-    }
-
-    render_confirm_start_all_projects() {
-      return (
-        <Alert bsStyle="info">
-          Are you sure you want to start all student projects? This will ensure
-          the projects are already running when the students open them.
-          <br />
-          <br />
-          <ButtonToolbar>
-            <Button
-              bsStyle="primary"
-              onClick={() => {
-                this.setState({ confirm_start_all_projects: false });
-                return this.get_actions().action_all_student_projects("start");
-              }}
-            >
-              <Icon name="flash" /> Start all
-            </Button>
-            <Button
-              onClick={() =>
-                this.setState({ confirm_start_all_projects: false })
-              }
-            >
-              Cancel
-            </Button>
-          </ButtonToolbar>
-        </Alert>
-      );
-    }
-
-    render() {
-      const r = this.props.num_running_projects;
-      const n = this.props.num_students;
-      return (
-        <Panel
-          header={
-            <h4>
-              <Icon name="flash" /> Student projects control
-            </h4>
-          }
-        >
-          <Row>
-            <Col md={9}>
-              {r} of {n} student projects currently running.
-            </Col>
-          </Row>
-          <Row style={{ marginTop: "10px" }}>
-            <Col md={12}>
-              <ButtonToolbar>
-                <Button
-                  onClick={() =>
-                    this.setState({ confirm_start_all_projects: true })
-                  }
-                  disabled={
-                    n === 0 ||
-                    n === r ||
-                    this.state.confirm_start_all_projects ||
-                    this.props.action_all_projects_state === "starting"
-                  }
-                >
-                  <Icon name="flash" /> Start all...
-                </Button>
-                <Button
-                  onClick={() =>
-                    this.setState({ confirm_stop_all_projects: true })
-                  }
-                  disabled={
-                    n === 0 ||
-                    r === 0 ||
-                    this.state.confirm_stop_all_projects ||
-                    this.props.action_all_projects_state === "stopping"
-                  }
-                >
-                  <Icon name="hand-stop-o" /> Stop all...
-                </Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-          <Row style={{ marginTop: "10px" }}>
-            <Col md={12}>
-              {this.state.confirm_start_all_projects
-                ? this.render_confirm_start_all_projects()
-                : undefined}
-              {this.state.confirm_stop_all_projects
-                ? this.render_confirm_stop_all_projects()
-                : undefined}
-              {this.props.action_all_projects_state !== "any"
-                ? this.render_in_progress_action()
-                : undefined}
-            </Col>
-          </Row>
-          <hr />
-          <span style={{ color: "#666" }}>
-            Start all projects associated with this course so they are
-            immediately ready for your students to use. For example, you might
-            do this before a computer lab. You can also stop all projects in
-            order to ensure that they do not waste resources or are properly
-            upgraded when next used by students.
-          </span>
-        </Panel>
-      );
-    }
-  }
-);
 
 interface DisableStudentCollaboratorsPanelProps {
   checked: boolean;
@@ -618,7 +419,8 @@ export class ConfigurationPanel extends Component<
             href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
           >
             import the CSV file
-          </a>.
+          </a>
+          .
         </div>
       </Panel>
     );
@@ -669,7 +471,7 @@ export class ConfigurationPanel extends Component<
     const r = this.get_store().num_running_projects(this.props.project_map);
     const n = this.get_store().num_students();
     return (
-      <StudentProjectsStartStopPanel
+      <StudentProjectsControlPanel
         name={this.props.name}
         num_running_projects={r}
         num_students={n}
@@ -699,7 +501,8 @@ export class ConfigurationPanel extends Component<
         <Icon name="arrow-circle-up" />{" "}
         {this.state.students_pay
           ? "Adjust settings"
-          : "Configure how students will pay"}...
+          : "Configure how students will pay"}
+        ...
       </Button>
     );
   }
@@ -860,12 +663,11 @@ export class ConfigurationPanel extends Component<
     } else {
       return (
         <span>
-          Require that all students in the course pay a one-time ${
-            STUDENT_COURSE_PRICE
-          }{" "}
-          fee to move their projects off trial servers and enable full internet
-          access, for four months. This is strongly recommended, and ensures
-          that your students have a better experience, and do not see a large{" "}
+          Require that all students in the course pay a one-time $
+          {STUDENT_COURSE_PRICE} fee to move their projects off trial servers
+          and enable full internet access, for four months. This is strongly
+          recommended, and ensures that your students have a better experience,
+          and do not see a large{" "}
           <span style={{ color: "red" }}>RED warning banner</span> all the time.
           Alternatively, you (or your university) can pay for all students at
           one for a significant discount -- see below.

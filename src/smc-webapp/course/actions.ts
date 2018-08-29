@@ -2946,8 +2946,8 @@ You can find the comments they made in the folders below.\
   }
 
   // Sets the desired compute image for all student projects
-  set_compute_image(new_image: string) {
-    this.map_over_student_projects(
+  async set_compute_image(new_image: string) {
+    return this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
       try {
