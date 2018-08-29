@@ -7,9 +7,9 @@ const { project_tasks } = require("../project_tasks");
 
 const misc = require("smc-util/misc");
 const { Button, ButtonToolbar, Well } = require("react-bootstrap");
-const { Icon, LabeledRow, ProjectState, TimeAgo } = require("./r_misc");
+const { Icon, LabeledRow, ProjectState, TimeAgo } = require("../r_misc");
 
-const { ProjectSettingsPanel } = require("./project/project-settings-support");
+const { ProjectSettingsPanel } = require("./project-settings-support");
 
 type ProjectInfo = TypedMap<{
   compute_image: string;

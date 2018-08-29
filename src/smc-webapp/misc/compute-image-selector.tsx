@@ -2,7 +2,7 @@ import * as immutable from "immutable";
 import { React, Component, } from "../app-framework";
 import { TypedMap } from "../app-framework/TypedMap";
 
-const { alert_message } = require("./alerts");
+const { alert_message } = require("../alerts");
 const { COLORS } = require("smc-util/theme");
 const {
   COMPUTE_IMAGES,
@@ -11,7 +11,7 @@ const {
 const IMMUTABLE_COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES); // only because that's how all the ui code was written.
 
 const { Alert, Button, DropdownButton, MenuItem } = require("react-bootstrap");
-const { Icon, Loading, Space } = require("./r_misc");
+const { Icon, Loading, Space } = require("../r_misc");
 
 type ProjectInfo = TypedMap<{
   compute_image: string;
