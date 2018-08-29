@@ -18,7 +18,7 @@ import { Task, Message } from "./types";
 interface LeanEditorState extends CodeEditorState {
   messages: Message[];
   tasks: Task[];
-  sync: number; // hash of last version sync'd to lean
+  sync: { hash: number; time: number }; // hash is the hash of last version sync'd to lean, and time is *when*
   syncstring_hash: number; // hash of actual syncstring in client
 }
 
@@ -26,7 +26,12 @@ export class Actions extends BaseActions<LeanEditorState> {
   private channel: Channel;
 
   _init2(): void {
-    this.setState({ messages: [], tasks: [], sync: 0, syncstring_hash: 0 });
+    this.setState({
+      messages: [],
+      tasks: [],
+      sync: { hash: 0, time: 0 },
+      syncstring_hash: 0
+    });
     if (!this.is_public) {
       this._init_channel();
       this._syncstring.on("change", () => {

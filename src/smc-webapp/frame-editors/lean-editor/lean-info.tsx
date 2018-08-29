@@ -1,6 +1,8 @@
-import { List } from "immutable";
+import { List, Map } from "immutable";
 
-const { Icon, Space } = require("smc-webapp/r_misc");
+const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
+
+import { server_time } from "../generic/client";
 
 import {
   React,
@@ -15,7 +17,7 @@ interface Props {
   // reduxProps:
   messages: List<any>;
   tasks: List<any>;
-  sync: number;
+  sync: Map<any, number>;
   syncstring_hash: number;
 }
 
@@ -70,7 +72,7 @@ class LeanInfo extends Component<Props, {}> {
       [name]: {
         messages: rtypes.immutable.List,
         tasks: rtypes.immutable.List,
-        sync: rtypes.number,
+        sync: rtypes.immutable.Map,
         syncstring_hash: rtypes.number
       }
     };
@@ -165,11 +167,25 @@ class LeanInfo extends Component<Props, {}> {
     return v;
   }
 
+  render_last_run_time(): Rendered {
+    const time = this.props.sync.get("time");
+    if (!time) {
+      return;
+    }
+    const t =
+      new Date().valueOf() - Math.max(0, server_time().valueOf() - time);
+    return <TimeAgo date={t} />;
+  }
+
   render_sync(): Rendered {
-    if (this.props.sync === this.props.syncstring_hash) {
-      return <div style={{float:'right', marginTop:'5px'}}>Synchronized</div>;
+    if (this.props.sync.get("hash") === this.props.syncstring_hash) {
+      return (
+        <div style={{ marginTop: "5px" }}>
+          Synchronized ({this.render_last_run_time()})
+        </div>
+      );
     } else {
-      return <div style={{float:'right', marginTop:'5px'}}>Syncing...</div>;
+      return <div style={{ marginTop: "5px" }}>Syncing...</div>;
     }
   }
 
