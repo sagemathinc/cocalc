@@ -2939,12 +2939,35 @@ You can find the comments they made in the folders below.\
 
   // Sets the desired compute image for all student projects
   async set_compute_image(new_image: string) {
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    try {
+      await resilient(
+        redux
+          .getProjectActions({ project_id: store.get("course_project_id") })
+          .set_compute_image(new_image),
+        { attempts: 5 }
+      );
+    } catch (err) {
+      this.set_error("Failed to change course image.");
+    }
     return this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
         await this.redux
           .getActions({ project_id: student.get("project_id") })
           .set_compute_image(new_image);
+      },
+      {
+        max_tries: 5,
+        on_failure: () => {
+          this.set_error(
+            "An error occured while changing the course project image." +
+            "Please check your internet connection and try again."
+          );
+        }
       }
     );
   }
@@ -2954,10 +2977,12 @@ You can find the comments they made in the folders below.\
     async_fn: (student: StudentRecord) => Promise<any>,
     {
       on_clean_up,
+      on_failure,
       timeout = 300000, // 5 minutes
-      max_tries = 3
+      max_tries = 3,
     }: {
       on_clean_up?: () => void;
+      on_failure?: () => void;
       timeout?: number;
       max_tries?: number;
     } = {}
@@ -2989,7 +3014,9 @@ You can find the comments they made in the folders below.\
         timeout
       );
     } catch (err) {
-      console.warn("Either async-await-utils or awaiting or seems broken.")
+      if (on_failure !== undefined) {
+        on_failure();
+      }
     }
 
     delete this.project_actions_in_progress[action_id];
