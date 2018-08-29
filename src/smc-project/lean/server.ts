@@ -23,7 +23,7 @@ function init_lean_server(client: any, logger: any): void {
     logger.debug("lean_server:websocket:sync -- ", path, hash);
     const lean_file = lean_files[`lean:${path}`];
     if (lean_file !== undefined) {
-      lean_file.sync = sync;
+      lean_file.sync = hash;
       lean_file.channel.write({ sync: hash });
     }
   });

@@ -153,6 +153,11 @@ export class Lean extends EventEmitter {
         this.dbg("sync", path, "skipping sync since value did not change");
         return;
       }
+      if (value.trim() === '') {
+        this.dbg("sync", path, "skipping sync document is empty (and LEAN behaves weird in this case)");
+        this.emit("sync", path, syncstring.hash_of_live_version());
+        return;
+      }
       this.paths[path].last_value = value;
       this._state.paths[path] = [];
       this.running[path] = true;
@@ -182,9 +187,9 @@ export class Lean extends EventEmitter {
       return;
     }
     const x = this.paths[path];
+    delete this.paths[path];
     x.syncstring.removeListener("change", x.on_change);
     x.syncstring.close();
-    delete this.paths[path];
   }
 
   // Kill the lean server and unregister all paths.
