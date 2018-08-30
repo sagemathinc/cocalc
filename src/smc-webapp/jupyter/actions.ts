@@ -30,6 +30,7 @@ import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
 import { retry_until_success } from "../frame-editors/generic/async-utils";
+import * as awaiting from "awaiting";
 
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
@@ -3027,12 +3028,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  // the "boolean" return is somehow necessary for promise-limit's limit function
-  // it's used to indicate if there is an early return or error
-  _format_cell = async (id: string): Promise<boolean> => {
+  _format_cell = async (id: string): Promise<void> => {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return false;
+      return;
     }
     const code = this._get_cell_input(id).trim();
     let options: any; // TODO type this with a global interface
@@ -3082,7 +3081,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     };
 
     this.set_cell_input(id, trim(resp), false);
-    return true;
   };
 
   format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
@@ -3096,7 +3094,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     try {
-      await util.map_limit(this._format_cell, jobs);
+      await awaiting.map(jobs, 4, this._format_cell);
     } catch (err) {
       this.set_error(err.message);
       return;
