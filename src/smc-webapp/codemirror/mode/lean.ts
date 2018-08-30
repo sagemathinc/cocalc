@@ -1,3 +1,5 @@
+import * as CodeMirror from "codemirror";
+
 CodeMirror.defineMode('lean', function() {
 
   var words = {};
