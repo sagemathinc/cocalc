@@ -7,7 +7,7 @@ export interface Task {
 }
 
 export interface Message {
-  caption: text;
+  caption: string;
   end_pos_col: number;
   end_pos_line: number;
   pos_col: number;
