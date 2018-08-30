@@ -11,7 +11,8 @@ type Client = any;
 type LeanServer = any;
 
 // do not try to sync with lean more frequently than this
-const SYNC_INTERVAL: number = 3000;
+// unless it is completing quickly.
+const SYNC_INTERVAL: number = 6000;
 
 // What lean has told us about a given file.
 type Message = any;

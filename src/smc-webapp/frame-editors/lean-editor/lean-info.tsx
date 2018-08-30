@@ -176,7 +176,8 @@ class LeanInfo extends Component<Props, {}> {
           color: "#666",
           fontWeight: "bold",
           borderBottom: "1px solid black",
-          minHeight: "30px"
+          minHeight: "30px",
+          marginBottom: "15px"
         }}
       >
         <Icon name="cc-icon-cocalc-ring" spin />
