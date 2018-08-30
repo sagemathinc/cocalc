@@ -66,7 +66,7 @@ export class Actions extends BaseActions<LeanEditorState> {
       });
     });
     channel.on("data", x => {
-      console.log(this.path, "channel got: ", JSON.stringify(x).slice(0,70));
+      //console.log(this.path, "channel got: ", JSON.stringify(x).slice(0,70));
       if (typeof x === "object") {
         if (x.messages !== undefined) {
           this.setState({ messages: x.messages });
