@@ -59,7 +59,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // However, we don't want to overwrite the usual global window.Primus.
   const conn = (connections[project_id] = Primus.connect({
     reconnect: {
-      max: 10000,
+      max: 3000,
       min: 1000,
       factor: 1.3,
       retries: 1000
