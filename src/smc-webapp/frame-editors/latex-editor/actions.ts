@@ -143,33 +143,27 @@ export class Actions extends BaseActions<LatexEditorState> {
     const path: string = this.knitr ? this.filename_knitr : this.path;
     this._init_syncdb(["key"], undefined, path);
 
-    const set_cmd = (cmd: string | undefined): void => {
-      if (cmd === undefined || cmd.length === 0) {
-        const default_cmd = build_command(
-          "PDFLaTeX",
-          path_split(this.path).tail,
-          this.knitr
-        );
-        this.set_build_command(default_cmd);
-      } else {
-        this.setState({ build_command: fromJS(cmd) });
-      }
-    };
-
-    this._syncdb.on("init", () => {
-      const x = this._syncdb.get_one({
-        key: "build_command"
-      });
-      if (x !== undefined) {
-        set_cmd(x.get("value"));
-      }
-    });
-    this._syncdb.on("change", () => {
+    const set_cmd = (): void => {
       const x = this._syncdb.get_one({ key: "build_command" });
       if (x !== undefined && x.get("value") !== undefined) {
-        set_cmd(x.get("value"));
+        const cmd: List<string> = x.get("value");
+        if (cmd.size > 0) {
+          this.setState({ build_command: fromJS(cmd) });
+          return;
+        }
       }
-    });
+
+      // fallback
+      const default_cmd = build_command(
+        "PDFLaTeX",
+        path_split(this.path).tail,
+        this.knitr
+      );
+      this.set_build_command(default_cmd);
+    };
+
+    this._syncdb.on("init", set_cmd);
+    this._syncdb.on("change", set_cmd);
   }
 
   _raw_default_frame_tree(): FrameTree {
