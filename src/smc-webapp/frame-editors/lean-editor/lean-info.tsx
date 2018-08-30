@@ -4,6 +4,10 @@ const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
 
 import { server_time } from "../generic/client";
 
+import { Message } from "./types";
+
+import { is_different } from "../generic/misc";
+
 import {
   React,
   Component,
@@ -38,14 +42,25 @@ function render_caption(caption: string): Rendered {
 }
 
 const COLORS = {
-  information: "green",
-  error: "red",
-  warning: "orange"
+  information: "#5bc0de",
+  error: "#d9534f",
+  warning: "#f0ad4e"
 };
 
-function message_color(severity: string): string {
+export function message_color(severity: string): string {
   const color = COLORS[severity];
   return color ? color : "grey";
+}
+
+const ICONS = {
+  information: "info-circle",
+  error: "exclamation-triangle",
+  warning: "exclamation-circle"
+};
+
+export function message_icon(severity: string): string {
+  const icon = ICONS[severity];
+  return icon ? icon : "question-circle";
 }
 
 function render_text(text: string): Rendered {
@@ -64,8 +79,59 @@ function render_text(text: string): Rendered {
   );
 }
 
+// nothing extra yet.
+interface MessageProps {
+  message: Message;
+}
+
+export class RenderedMessage extends Component<MessageProps, {}> {
+  static displayName = "LeanInfoMessage";
+
+  render(): Rendered {
+    const message = this.props.message;
+    const color = message_color(message.severity);
+    return (
+      <div>
+        <div
+          style={{
+            fontFamily: "sans-serif",
+            fontWeight: "bold",
+            color: color,
+            borderBottom: `1px solid ${color}`
+          }}
+        >
+          <Icon name={message_icon(message.severity)} />
+          <Space />
+          {message.pos_line !== undefined && message.pos_col !== undefined
+            ? render_pos(message.pos_line, message.pos_col)
+            : undefined}
+          <Space />
+          {message.severity !== undefined
+            ? render_severity(message.severity)
+            : undefined}
+          <Space />
+          {message.caption !== undefined
+            ? render_caption(message.caption)
+            : undefined}
+        </div>
+        {message.text !== undefined ? render_text(message.text) : undefined}
+      </div>
+    );
+  }
+}
+
 class LeanInfo extends Component<Props, {}> {
   static displayName = "LeanInfo";
+
+  shouldComponentUpdate(next_props): boolean {
+    return is_different(this.props, next_props, [
+      "font_size",
+      "messages",
+      "tasks",
+      "sync",
+      "syncstring_hash"
+    ]);
+  }
 
   static reduxProps({ name }) {
     return {
@@ -78,27 +144,10 @@ class LeanInfo extends Component<Props, {}> {
     };
   }
 
-  render_message(key, x): Rendered {
-    const color = message_color(x.severity);
+  render_message(key, message): Rendered {
     return (
       <div key={key} style={{ paddingBottom: "1ex" }}>
-        <div
-          style={{
-            fontFamily: "sans-serif",
-            fontWeight: "bold",
-            color: color,
-            borderBottom: `1px solid ${color}`
-          }}
-        >
-          {x.pos_line !== undefined && x.pos_col !== undefined
-            ? render_pos(x.pos_line, x.pos_col)
-            : undefined}
-          <Space />
-          {x.severity !== undefined ? render_severity(x.severity) : undefined}
-          <Space />
-          {x.caption !== undefined ? render_caption(x.caption) : undefined}
-        </div>
-        {x.text !== undefined ? render_text(x.text) : undefined}
+        <RenderedMessage message={message} />
       </div>
     );
   }
@@ -108,8 +157,10 @@ class LeanInfo extends Component<Props, {}> {
       return <div key="messages">(nothing)</div>;
     }
     const v: Rendered[] = [];
+    const messages = this.props.messages.toJS();
+    messages.sort(cmp_messages);
     let i = 0;
-    for (let message of this.props.messages.toJS()) {
+    for (let message of messages) {
       v.push(this.render_message(i, message));
       i += 1;
     }
@@ -208,3 +259,16 @@ class LeanInfo extends Component<Props, {}> {
 
 const LeanInfo0 = rclass(LeanInfo);
 export { LeanInfo0 as LeanInfo };
+
+function cmp_messages(m0:Message, m1:Message) : number {
+  if (
+    m0.pos_line < m1.pos_line ||
+    (m0.pos_line === m1.pos_line && m0.pos_col < m1.pos_col)
+  ) {
+    return -1;
+  } else if (m0.pos_line === m1.pos_line && m0.pos_col === m1.pos_col) {
+    return 0;
+  } else {
+    return 1;
+  }
+}

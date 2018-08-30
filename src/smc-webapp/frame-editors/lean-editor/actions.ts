@@ -2,6 +2,8 @@
 Lean Editor Actions
 */
 
+import { Store } from "../../app-framework";
+
 import {
   Actions as BaseActions,
   CodeEditorState
@@ -15,6 +17,9 @@ import { Channel } from "smc-webapp/project/websocket/types";
 
 import { Task, Message } from "./types";
 
+import { update_gutters } from "./gutters";
+console.log(update_gutters);
+
 interface LeanEditorState extends CodeEditorState {
   messages: Message[];
   tasks: Task[];
@@ -24,6 +29,7 @@ interface LeanEditorState extends CodeEditorState {
 
 export class Actions extends BaseActions<LeanEditorState> {
   private channel: Channel;
+  public store: Store<LeanEditorState>;
 
   _init2(): void {
     this.setState({
@@ -58,9 +64,25 @@ export class Actions extends BaseActions<LeanEditorState> {
         if (x.sync !== undefined) {
           this.setState({ sync: x.sync });
         }
+        this.update_gutters();
       }
     });
   }
+
+  update_gutters = (): void => {
+    this.clear_gutter("Codemirror-lean-info")
+    update_gutters({
+      messages: this.store.unsafe_getIn(["messages"]),
+      tasks: this.store.unsafe_getIn(["tasks"]),
+      set_gutter: (line, component) => {
+        this.set_gutter_marker({
+          line,
+          component,
+          gutter_id: "Codemirror-lean-info"
+        });
+      }
+    });
+  };
 
   _raw_default_frame_tree(): FrameTree {
     if (this.is_public) {

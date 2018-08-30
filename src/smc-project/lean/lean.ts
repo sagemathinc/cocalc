@@ -188,6 +188,7 @@ export class Lean extends EventEmitter {
     }
     const x = this.paths[path];
     delete this.paths[path];
+    delete this.running[path];
     x.syncstring.removeListener("change", x.on_change);
     x.syncstring.close();
   }
