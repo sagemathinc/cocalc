@@ -2,6 +2,8 @@
 Lean Editor Actions
 */
 
+import { List } from "immutable";
+
 import { Store } from "../../app-framework";
 
 import {
@@ -30,6 +32,7 @@ interface LeanEditorState extends CodeEditorState {
 export class Actions extends BaseActions<LeanEditorState> {
   private channel: Channel;
   public store: Store<LeanEditorState>;
+  private gutter_last: { synced: boolean; messages: any; tasks: any };
 
   _init2(): void {
     this.setState({
@@ -38,12 +41,14 @@ export class Actions extends BaseActions<LeanEditorState> {
       sync: { hash: 0, time: 0 },
       syncstring_hash: 0
     });
+    this.gutter_last = { synced: false, messages: List(), tasks: List() };
     if (!this.is_public) {
       this._init_channel();
       this._syncstring.on("change", () => {
         this.setState({
           syncstring_hash: this._syncstring.hash_of_live_version()
         });
+        this.update_gutters();
       });
     } else {
       this._init_value();
@@ -70,19 +75,32 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   close(): void {
-    if(this.channel !== undefined) {
+    if (this.channel !== undefined) {
       this.channel.end();
       delete this.channel;
     }
     super.close();
   }
 
-
   update_gutters = (): void => {
-    this.clear_gutter("Codemirror-lean-info")
+    const synced =
+      this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
+    const messages = this.store.unsafe_getIn(["messages"]);
+    const tasks = this.store.unsafe_getIn(["tasks"]);
+    const last = this.gutter_last;
+    if (
+      synced === last.synced &&
+      messages === last.messages &&
+      tasks === last.tasks
+    ) {
+      return;
+    }
+    this.gutter_last = { synced, messages, tasks };
+    this.clear_gutter("Codemirror-lean-info");
     update_gutters({
-      messages: this.store.unsafe_getIn(["messages"]),
-      tasks: this.store.unsafe_getIn(["tasks"]),
+      synced,
+      messages,
+      tasks,
       set_gutter: (line, component) => {
         this.set_gutter_marker({
           line,

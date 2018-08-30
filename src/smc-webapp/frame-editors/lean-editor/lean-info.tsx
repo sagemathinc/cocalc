@@ -47,7 +47,10 @@ const COLORS = {
   warning: "#f0ad4e"
 };
 
-export function message_color(severity: string): string {
+export function message_color(severity: string, synced: boolean): string {
+  if (!synced) {
+    return "grey";
+  }
   const color = COLORS[severity];
   return color ? color : "grey";
 }
@@ -82,6 +85,7 @@ function render_text(text: string): Rendered {
 // nothing extra yet.
 interface MessageProps {
   message: Message;
+  synced: boolean;
 }
 
 export class RenderedMessage extends Component<MessageProps, {}> {
@@ -89,7 +93,7 @@ export class RenderedMessage extends Component<MessageProps, {}> {
 
   render(): Rendered {
     const message = this.props.message;
-    const color = message_color(message.severity);
+    const color = message_color(message.severity, this.props.synced);
     return (
       <div>
         <div
@@ -147,7 +151,10 @@ class LeanInfo extends Component<Props, {}> {
   render_message(key, message): Rendered {
     return (
       <div key={key} style={{ paddingBottom: "1ex" }}>
-        <RenderedMessage message={message} />
+        <RenderedMessage
+          message={message}
+          synced={this.props.sync.get("hash") === this.props.syncstring_hash}
+        />
       </div>
     );
   }
@@ -261,7 +268,7 @@ class LeanInfo extends Component<Props, {}> {
 const LeanInfo0 = rclass(LeanInfo);
 export { LeanInfo0 as LeanInfo };
 
-function cmp_messages(m0:Message, m1:Message) : number {
+function cmp_messages(m0: Message, m1: Message): number {
   if (
     m0.pos_line < m1.pos_line ||
     (m0.pos_line === m1.pos_line && m0.pos_col < m1.pos_col)
