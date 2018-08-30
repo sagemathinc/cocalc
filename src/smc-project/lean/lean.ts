@@ -10,6 +10,9 @@ type SyncString = any;
 type Client = any;
 type LeanServer = any;
 
+// do not try to sync with lean more frequently than this
+const SYNC_INTERVAL: number = 3000;
+
 // What lean has told us about a given file.
 type Message = any;
 type Messages = Message[];
@@ -25,7 +28,7 @@ export class Lean extends EventEmitter {
   client: Client;
   _server: LeanServer | undefined;
   _state: State = { tasks: [], paths: {} };
-  private running: { [key: string]: boolean } = {};
+  private running: { [key: string]: number } = {};
   dbg: Function;
 
   constructor(client: Client) {
@@ -40,6 +43,10 @@ export class Lean extends EventEmitter {
     delete this.client;
     delete this.paths;
     delete this._server;
+  }
+
+  is_running(path: string): boolean {
+    return !!this.running[path] && now() - this.running[path] < SYNC_INTERVAL;
   }
 
   server(): LeanServer {
@@ -89,10 +96,11 @@ export class Lean extends EventEmitter {
         }
         this.emit("tasks", path, v);
       }
+      const t = now();
       for (let path in this.running) {
         if (!running[path]) {
           this.dbg("server", path, " done; no longer running");
-          this.running[path] = false;
+          this.running[path] = 0;
           this.emit("tasks", path, []);
           if (this.paths[path].changed) {
             // file changed while lean was running -- so run lean again.
@@ -141,7 +149,7 @@ export class Lean extends EventEmitter {
         this.dbg("sync", path, "closed");
         return;
       }
-      if (this.running[path]) {
+      if (this.is_running(path)) {
         // already running, so do nothing - it will rerun again when done with current run.
         this.dbg("sync", path, "already running");
         this.paths[path].changed = true;
@@ -153,14 +161,18 @@ export class Lean extends EventEmitter {
         this.dbg("sync", path, "skipping sync since value did not change");
         return;
       }
-      if (value.trim() === '') {
-        this.dbg("sync", path, "skipping sync document is empty (and LEAN behaves weird in this case)");
+      if (value.trim() === "") {
+        this.dbg(
+          "sync",
+          path,
+          "skipping sync document is empty (and LEAN behaves weird in this case)"
+        );
         this.emit("sync", path, syncstring.hash_of_live_version());
         return;
       }
       this.paths[path].last_value = value;
       this._state.paths[path] = [];
-      this.running[path] = true;
+      this.running[path] = now();
       this.paths[path].changed = false;
       this.dbg("sync", path, "causing server sync now");
       await this.server().sync(path, value);
@@ -254,4 +266,8 @@ export function lean_server(client: Client): Lean {
     singleton = new Lean(client);
   }
   return singleton;
+}
+
+function now(): number {
+  return new Date().valueOf();
 }
