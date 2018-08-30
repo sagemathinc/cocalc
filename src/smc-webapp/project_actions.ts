@@ -2650,7 +2650,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ free_warning_closed: true });
   }
 
-  async set_compute_image(new_image: string): Promise<void> {
+  set_compute_image = async (new_image: string): Promise<void> => {
+    let {fake_async_client_action} = require('./test/util');
+    await fake_async_client_action({wait_time: 1000, failure_odds: 0.5, expected_return:"none"})
+    /*
     await client_query({
       query: {
         projects: {
@@ -2659,6 +2662,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     });
+    */
   }
 }
 

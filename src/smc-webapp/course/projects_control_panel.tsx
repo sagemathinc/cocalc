@@ -173,7 +173,7 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
     }
 
     render_select_compute_image_row() {
-      if (this.props.kucalc !== "yes") {
+      if (false && this.props.kucalc !== "yes") {
         return;
       }
       const current_image = this.props.project_map
@@ -192,7 +192,7 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
           >
             <ComputeImageSelector
               active_compute_image={current_image}
-              save_compute_image={this.get_actions().set_compute_image}
+              save_compute_image={async (image_name) => await this.get_actions().set_compute_image(image_name)}
             />
           </LabeledRow>
         </div>

@@ -63,9 +63,10 @@ export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
     const new_image = this.state.displayed_compute_image;
     try {
       await this.props.save_compute_image(new_image);
-    } catch (error) {
-      const err = error;
-      alert_message({ type: "error", message: err });
+    } catch (err) {
+      if (err && err.message) {
+        alert_message({ type: "error", message: err.message });
+      }
       this.setState({ compute_image_changing: false });
     }
   }

@@ -73,6 +73,7 @@ export class CourseActions extends Actions<CourseState> {
 
   constructor(name, redux) {
     super(name, redux);
+    this.project_actions_in_progress = {};
     this._loaded = this._loaded.bind(this);
     this._store_is_initialized = this._store_is_initialized.bind(this);
     this._set = this._set.bind(this);
@@ -412,6 +413,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // PUBLIC API
   set_error(error) {
+    console.log("Setting error:", error);
     if (error === "") {
       return this.setState({ error });
     } else {
@@ -2862,7 +2864,7 @@ You can find the comments they made in the folders below.\
   copy_handout_to_all_students(handout, new_only, overwrite?) {
     const desc = `Copying handouts to all students ${
       new_only ? "who have not already received it" : ""
-    }`;
+    }`; // This comment exists for imperfect code highlighting in codemirror`
     const short_desc = "copy to student";
 
     const id = this.set_activity({ desc });
@@ -2943,17 +2945,30 @@ You can find the comments they made in the folders below.\
     if (store == null) {
       return;
     }
+    const activity_id = "set_compute_image_all_student_projects";
+    this.set_activity({
+      id: activity_id,
+      desc: `Setting all projects to ${new_image}`
+    });
     try {
+      console.log("Trying to change course project image");
       await resilient(
         this.redux
           .getProjectActions(store.get("course_project_id"))
-          .set_compute_image(new_image),
-        { attempts: 5 }
-      );
+          .set_compute_image,
+        { attempts: 5 , context: this }
+      )(new_image);
+      console.log("Finished resilient function")
     } catch (err) {
+      console.log("Failed");
       this.set_error("Failed to change course image.");
+      this.clear_activity(activity_id);
+      throw err;
+      return;
     }
-    return this.map_over_student_projects(
+    console.log("Trying to change student projects");
+    return;
+    this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
         await this.redux
@@ -2963,14 +2978,12 @@ You can find the comments they made in the folders below.\
       {
         max_tries: 5,
         on_failure: () => {
-          this.set_error(
-            "An error occured while changing the course project image." +
-            "Please check your internet connection and try again."
-          );
+          this.set_error("An error occured while changing the course project image. Please check your internet connection and try again.");
         }
       }
     );
-  }
+    this.clear_activity(activity_id);
+  };
 
   map_over_student_projects = async (
     action_id: string,
@@ -2979,7 +2992,7 @@ You can find the comments they made in the folders below.\
       on_clean_up,
       on_failure,
       timeout = 300000, // 5 minutes
-      max_tries = 3,
+      max_tries = 3
     }: {
       on_clean_up?: () => void;
       on_failure?: () => void;
@@ -3000,14 +3013,19 @@ You can find the comments they made in the folders below.\
       .valueSeq()
       .toArray();
 
+    if (students.length == 0) {
+      return;
+    }
+
     this.project_actions_in_progress[action_id] = true;
 
     try {
       await timed(
-        awaiting.map(students, PARALLEL_LIMIT, async () => {
+        awaiting.map(students, PARALLEL_LIMIT, async (student) => {
           try {
-            await resilient(async_fn, { attempts: max_tries });
+            await resilient(async_fn, { attempts: max_tries })(student);
           } catch (err) {
+            console.log("Failed inside mapper")
             return "failed";
           }
         }),
@@ -3024,7 +3042,7 @@ You can find the comments they made in the folders below.\
     if (on_clean_up != undefined) {
       on_clean_up();
     }
-  }
+  };
 }
 
 function __guard__(value, transform) {
