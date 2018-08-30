@@ -69,6 +69,15 @@ export class Actions extends BaseActions<LeanEditorState> {
     });
   }
 
+  close(): void {
+    if(this.channel !== undefined) {
+      this.channel.end();
+      delete this.channel;
+    }
+    super.close();
+  }
+
+
   update_gutters = (): void => {
     this.clear_gutter("Codemirror-lean-info")
     update_gutters({
