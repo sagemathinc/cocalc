@@ -143,8 +143,6 @@ class Console extends EventEmitter
         # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
 
-        @_init_colors()
-
         @terminal = new Terminal
             cols: @opts.cols
             rows: @opts.rows
@@ -516,23 +514,6 @@ class Console extends EventEmitter
             @unpause_rendering()
             setTimeout(@focus, 5)  # must happen in next cycle or copy will not work due to loss of focus.
 
-    _init_colors: () =>
-        colors = Terminal.color_schemes[@opts.color_scheme].colors
-        for i in [0...16]
-            Terminal.colors[i] = colors[i]
-
-        if colors.length > 16
-            Terminal.defaultColors =
-                fg: colors[16]
-                bg: colors[17]
-        else
-            Terminal.defaultColors =
-                fg: colors[15]
-                bg: colors[0]
-
-        Terminal.colors[256] = Terminal.defaultColors.bg
-        Terminal.colors[257] = Terminal.defaultColors.fg
-
     mark_file_use: () =>
         redux.getActions('file_use').mark_file(@project_id, @path, 'edit')
 
@@ -603,6 +584,8 @@ class Console extends EventEmitter
     _init_ttyjs: () ->
         # Create the terminal DOM objects
         @terminal.open()
+        @terminal.set_color_scheme(@opts.color_scheme)
+
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
         @terminal.element.className = "webapp-console-terminal"
         ter = $(@terminal.element)
