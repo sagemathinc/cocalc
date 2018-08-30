@@ -139,9 +139,9 @@ HelpPageUsageSection = rclass
             </span>
 
     render: ->
-        # TODO: it would be nice to change the share link to
-        #     https://cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html
-        # but this seems stale for some reason sometimes.
+        # TODO: I changed to the share link since the raw link is no longer support (XSS attacks).
+        # Unfortunately, it *will* be stale until we improve how things work; the only workaround
+        # is to sign into that project and manually edit something right now...
         <Col sm={12} md={6}>
             <h3>
                 <Icon name='dashboard' /> Statistics
@@ -155,7 +155,7 @@ HelpPageUsageSection = rclass
                 </div>
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
-                <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                <a target='_blank' href='https://share.cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html'>
                 More data...
                 </a>
                 <br/>
