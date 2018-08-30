@@ -23,7 +23,6 @@
 
 # Authors:
 # Harald Schilly <hsy@sagemath.com>
-
 '''
 This command-line utility gathers statistics and general information about a user's
 project from "inside" the project.
@@ -124,14 +123,11 @@ def read(fn):
         ret = f.read()
     return ret
 
+
 # This is a classification mechanism for tasks.
 CATEGORY = [
-    "SMC Project",
-    "SageMath",
-    "Terminal",
-    "Jupyter",
-    "SMC Management",
-    "Other"]
+    "SMC Project", "SageMath", "Terminal", "Jupyter", "SMC Management", "Other"
+]
 
 
 def classify_proc(proc):
@@ -269,10 +265,7 @@ class SmcTop(object):
             except IOError as e:
                 return {"error": str(e)}
 
-        self._totals = {
-            "mem": memory(),
-            "cpu": cpu()
-        }
+        self._totals = {"mem": memory(), "cpu": cpu()}
         return self._totals
 
     def user_processes(self):
@@ -392,7 +385,7 @@ class SmcTop(object):
             self._tree = [{r: tree[r]} for r in roots]
 
         self._procs = procs
-        for c in proc_stats: # type for instance counter is 'int'
+        for c in proc_stats:  # type for instance counter is 'int'
             proc_stats[c]["instances"] = int(proc_stats[c]["instances"])
         self._proc_stats = proc_stats
         return self._procs, self._tree, self._proc_stats
@@ -447,30 +440,29 @@ class SmcTop(object):
             ret.write(sep.join(args))
             if nl:
                 ret.write('\n')
-        
+
         if sortby == "mem":
-            sortkey = lambda x: - x["memory"]["percent"]
+            sortkey = lambda x: -x["memory"]["percent"]
         elif sortby == "cpu":
-            sortkey = lambda x: - x["cpu_percent"]
+            sortkey = lambda x: -x["cpu_percent"]
         elif sortby == "auto":
-            sortkey = lambda x: - max(x["cpu_percent"],
-                                      x["memory"]["percent"])
+            sortkey = lambda x: -max(x["cpu_percent"], x["memory"]["percent"])
         elif sortby == "time":
-            sortkey = lambda x: - x["time"]["used"]
+            sortkey = lambda x: -x["time"]["used"]
         else:
             # default is by pid
             sortkey = lambda x: x["pid"]
 
         ts = date_parser(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-        print0(" CoCalc Process Accounting -- {} UTC "
-              .format(ts).center(width, "="))
+        print0(" CoCalc Process Accounting -- {} UTC ".format(ts).center(
+            width, "="))
         print0()
         if self.summarize:
-            print0("{} {:>6s} {:>14s} {:>7s} {:>7s} {:>13s}"
-                  .format(I, "", "#", "CPU%", "MEM%", "TIME+"))
+            print0("{} {:>6s} {:>14s} {:>7s} {:>7s} {:>13s}".format(
+                I, "", "#", "CPU%", "MEM%", "TIME+"))
         else:
-            print0("{} {:>6s} {:<12s} {:>7s} {:>7s} {:>13s}   {:s}"
-                  .format(I, "PID", "Name", "CPU%", "MEM%", "TIME+", "COMMAND"))
+            print0("{} {:>6s} {:<12s} {:>7s} {:>7s} {:>13s}   {:s}".format(
+                I, "PID", "Name", "CPU%", "MEM%", "TIME+", "COMMAND"))
         print0(width * "-")
 
         cat_fn = lambda x: x["category"]
@@ -494,13 +486,15 @@ class SmcTop(object):
                         print0("")
                     for l, idx in enumerate(range(0, len(cltxt), 80)):
                         indent = 3 if l == 0 else (width - 74)
-                        print0("{}{}".format(" " * indent, cltxt[idx:idx + 80]))
+                        print0("{}{}".format(" " * indent,
+                                             cltxt[idx:idx + 80]))
 
             if self.summarize:
                 sums = data["summaries"][cat]
                 sums["time"] = secs2hms(sums["time"])
-                print0("{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
-                      .format(**sums))
+                print0(
+                    "{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
+                    .format(**sums))
 
         totals = data["totals"]
         print0()
@@ -522,9 +516,7 @@ def parse_arguments():
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     paa = parser.add_argument
 
-    paa("--tree",
-        action="store_true",
-        help="also generate a process tree")
+    paa("--tree", action="store_true", help="also generate a process tree")
 
     paa("--format",
         help="the output format",
@@ -577,6 +569,7 @@ def main():
         return top.json(indent=indent)
     elif format == "text":
         return top.text(sortby=sortby)
+
 
 if __name__ == "__main__":
     out = main()

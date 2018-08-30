@@ -24,20 +24,28 @@
 import json, os, signal, socket, sys, time
 from subprocess import Popen, PIPE
 
+
 def log(s, *args):
     if args:
         try:
-            s = str(s%args)
+            s = str(s % args)
         except Exception, mesg:
             s = str(mesg) + str(s)
-    sys.stderr.write(s+'\n')
+    sys.stderr.write(s + '\n')
     sys.stderr.flush()
 
-def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True, system=False):
+
+def cmd(s,
+        ignore_errors=False,
+        verbose=2,
+        timeout=None,
+        stdout=True,
+        stderr=True,
+        system=False):
     if isinstance(s, list):
         s = [str(x) for x in s]
     if isinstance(s, list):
-        c = ' '.join([x if len(x.split()) <=1  else "'%s'"%x for x in s])
+        c = ' '.join([x if len(x.split()) <= 1 else "'%s'" % x for x in s])
     else:
         c = s
     if verbose >= 1:
@@ -50,36 +58,45 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
     if system:
         if os.system(c):
             if verbose >= 1:
-                log("(%s seconds)", time.time()-t)
+                log("(%s seconds)", time.time() - t)
             if ignore_errors:
                 return
             else:
-                raise RuntimeError('error executing %s'%c)
+                raise RuntimeError('error executing %s' % c)
         return
 
     mesg = "ERROR"
     if timeout:
-        mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed"%(s, timeout)
+        mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed" % (
+            s, timeout)
+
         def handle(*a):
             if ignore_errors:
                 return mesg
             else:
                 raise KeyboardInterrupt(mesg)
+
         signal.signal(signal.SIGALRM, handle)
         signal.alarm(timeout)
     try:
-        out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
+        out = Popen(
+            s,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            shell=not isinstance(s, list))
         x = out.stdout.read() + out.stderr.read()
-        e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        e = out.wait(
+        )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
         if e:
             if ignore_errors:
                 return (x + "ERROR").strip()
             else:
                 raise RuntimeError(x)
-        if verbose>=2:
-            log("(%s seconds): %s", time.time()-t, x[:500])
+        if verbose >= 2:
+            log("(%s seconds): %s", time.time() - t, x[:500])
         elif verbose >= 1:
-            log("(%s seconds)", time.time()-t)
+            log("(%s seconds)", time.time() - t)
         return x.strip()
     except IOError:
         return mesg
@@ -90,7 +107,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 class Firewall(object):
     def iptables(self, args, **kwds):
-        return cmd(['iptables','-v'] + args, **kwds)
+        return cmd(['iptables', '-v'] + args, **kwds)
 
     def insert_rule(self, rule, force=False):
         if not self.exists(rule):
@@ -139,9 +156,11 @@ class Firewall(object):
         """
         Remove all firewall rules, making everything completely open.
         """
-        self.iptables(['-F'])    # clear the normal rules
-        self.iptables(['-t', 'mangle', '-F'])    # clear the mangle rules used to shape traffic (using tc)
-        return {'status':'success'}
+        self.iptables(['-F'])  # clear the normal rules
+        self.iptables(
+            ['-t', 'mangle',
+             '-F'])  # clear the mangle rules used to shape traffic (using tc)
+        return {'status': 'success'}
 
     def show(self, names=False):
         """
@@ -152,7 +171,12 @@ class Firewall(object):
         else:
             os.system("iptables -v -n -L")
 
-    def outgoing(self, whitelist_hosts='', whitelist_hosts_file='', whitelist_users='', blacklist_users='', bandwidth_Kbps=1000):
+    def outgoing(self,
+                 whitelist_hosts='',
+                 whitelist_hosts_file='',
+                 whitelist_users='',
+                 blacklist_users='',
+                 bandwidth_Kbps=1000):
         """
         Block all outgoing traffic, except what is given
         in a specific whitelist and DNS.  Also throttle
@@ -179,23 +203,30 @@ class Firewall(object):
         # about security at all, and still have it be secure, even from users on
         # the same machine.  We insert and remove this every time we mess with the firewall
         # rules to ensure that it is at the very top.
-        self.insert_rule(['OUTPUT', '-o', 'lo', '-d', socket.gethostname(), '-j', 'REJECT'], force=True)
+        self.insert_rule(
+            ['OUTPUT', '-o', 'lo', '-d',
+             socket.gethostname(), '-j', 'REJECT'],
+            force=True)
 
         if bandwidth_Kbps:
             self.configure_tc(bandwidth_Kbps)
 
-        return {'status':'success'}
+        return {'status': 'success'}
 
     def configure_tc(self, bandwidth_Kbps):
         try:
             cmd("tc qdisc  del dev eth0 root".split())
         except:
-            pass # will fail if not already configured
+            pass  # will fail if not already configured
         try:
             cmd("tc qdisc add dev eth0 root handle 1:0 htb default 99".split())
-            cmd(("tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"%(bandwidth_Kbps,bandwidth_Kbps)).split())
-            cmd("tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10".split())
-            cmd("tc filter add dev eth0 parent 1:0 protocol ip prio 1 handle 1 fw classid 1:10".split())
+            cmd((
+                "tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"
+                % (bandwidth_Kbps, bandwidth_Kbps)).split())
+            cmd("tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10".
+                split())
+            cmd("tc filter add dev eth0 parent 1:0 protocol ip prio 1 handle 1 fw classid 1:10".
+                split())
         except Exception:
             pass  # this is more serious but I don't have time to debug this
 
@@ -220,23 +251,30 @@ class Firewall(object):
         self.insert_rule(['OUTPUT', '-o', 'lo', '-j', 'ACCEPT'])
 
         # Block all new outgoing connections that we didn't allow above.
-        self.append_rule(['OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
+        self.append_rule(
+            ['OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
 
     def outgoing_user(self, add='', remove=''):
         def rules(user):
             # returns rule for allowing this user and whether rule is already in chain
-            v = [['OUTPUT', '-m', 'owner', '--uid-owner', user , '-j', 'ACCEPT']]
+            v = [[
+                'OUTPUT', '-m', 'owner', '--uid-owner', user, '-j', 'ACCEPT'
+            ]]
             if False and user != 'salvus' and user != 'root':
                 # Make it so this user has their bandwidth throttled so DOS attacks are more difficult, and also spending
                 # thousands in bandwidth is harder.
                 # -t mangle mangles packets by adding a mark, which is needed by tc.
                 # -p all -- match all protocols, including both tcp and udp
-                # ! -d 10.240.0.0/8 ensures this rule does NOT apply to any destination inside GCE.; 
-                # CRITICAL -- I thought 10.240.0.0/16 was right because that's what it says in the google firewall rules; but with k8s 
+                # ! -d 10.240.0.0/8 ensures this rule does NOT apply to any destination inside GCE.;
+                # CRITICAL -- I thought 10.240.0.0/16 was right because that's what it says in the google firewall rules; but with k8s
                 # it's definitely wrong and this mistake frickin' kills everything!!!
                 # -m owner --uid-owner [user] makes the rule apply only to this user
                 # -j MARK --set-mark 0x1 marks packet so the throttling tc filter we created elsewhere gets applied
-                v.append(['OUTPUT', '-t', 'mangle', '-p', 'all', '!', '-d', '10.240.0.0/8', '-m', 'owner', '--uid-owner', user , '-j', 'MARK', '--set-mark', '0x1'])
+                v.append([
+                    'OUTPUT', '-t', 'mangle', '-p', 'all', '!', '-d',
+                    '10.240.0.0/8', '-m', 'owner', '--uid-owner', user, '-j',
+                    'MARK', '--set-mark', '0x1'
+                ])
             return v
 
         for user in remove.split(','):
@@ -250,7 +288,8 @@ class Firewall(object):
                     for x in rules(user):
                         self.insert_rule(x, force=True)
                 except Exception, mesg:
-                    log("\nWARNING whitelisting user: %s\n", str(mesg).splitlines()[:-1])
+                    log("\nWARNING whitelisting user: %s\n",
+                        str(mesg).splitlines()[:-1])
 
     def incoming(self, whitelist_hosts='', whitelist_ports=''):
         """
@@ -259,13 +298,16 @@ class Firewall(object):
         """
         # Allow some incoming packets from the whitelist of ports.
         for p in whitelist_ports.split(','):
-            self.insert_rule(['INPUT', '-p', 'tcp', '--dport', p, '-j', 'ACCEPT'])
+            self.insert_rule(
+                ['INPUT', '-p', 'tcp', '--dport', p, '-j', 'ACCEPT'])
 
         # Allow incoming connections/packets from anything in the whitelist
         if not whitelist_hosts.strip():
             v = []
             for t in ['smc', 'storage', 'admin']:
-                s = cmd("curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/%s-servers -H 'Metadata-Flavor: Google'"%t)
+                s = cmd(
+                    "curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/%s-servers -H 'Metadata-Flavor: Google'"
+                    % t)
                 v.append(s.replace(' ', ','))
             whitelist_hosts = ','.join(v)
 
@@ -278,62 +320,98 @@ class Firewall(object):
         # Block *new* packets arriving via a new connection from anywhere else.  We
         # don't want to block all packets -- e.g., if something on this machine
         # connects to DNS, it should be allowed to receive the answer back.
-        self.append_rule(['INPUT', '-m', 'state', '--state', 'NEW', '-j', 'DROP'])
+        self.append_rule(
+            ['INPUT', '-m', 'state', '--state', 'NEW', '-j', 'DROP'])
 
-        return {'status':'success'}
+        return {'status': 'success'}
+
 
 if __name__ == "__main__":
 
     import socket
     hostname = socket.gethostname()
-    log("hostname=%s",hostname)
+    log("hostname=%s", hostname)
     if not hostname.startswith('compute') and not hostname.startswith('web'):
         log("skipping firewall since this is not a production SMC machine")
         sys.exit(0)
 
     import argparse
-    parser = argparse.ArgumentParser(description="CoCalc firewall control script")
+    parser = argparse.ArgumentParser(
+        description="CoCalc firewall control script")
     subparsers = parser.add_subparsers(help='sub-command help')
 
     def f(subparser):
         function = subparser.prog.split()[-1]
+
         def g(args):
             special = [k for k in args.__dict__.keys() if k not in ['func']]
             out = []
             errors = False
-            kwds = dict([(k,getattr(args, k)) for k in special])
+            kwds = dict([(k, getattr(args, k)) for k in special])
             try:
                 result = getattr(Firewall(), function)(**kwds)
             except Exception, mesg:
-                raise #-- for debugging
+                raise  #-- for debugging
                 errors = True
-                result = {'error':str(mesg)}
+                result = {'error': str(mesg)}
             print json.dumps(result)
             if errors:
                 sys.exit(1)
+
         subparser.set_defaults(func=g)
 
-    parser_outgoing = subparsers.add_parser('outgoing', help='create firewall to block all outgoing traffic, except explicit whitelist)')
-    parser_outgoing.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (not run if empty)", default='')
-    parser_outgoing.add_argument('--whitelist_hosts_file',help="filename of file with one line for each host (comments and blank lines are ignored)", default='')
-    parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
-    parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
-    parser_outgoing.add_argument('--bandwidth_Kbps', help="throttle user bandwidth", default=1000)
+    parser_outgoing = subparsers.add_parser(
+        'outgoing',
+        help=
+        'create firewall to block all outgoing traffic, except explicit whitelist)'
+    )
+    parser_outgoing.add_argument(
+        '--whitelist_hosts',
+        help="comma separated list of sites to whitelist (not run if empty)",
+        default='')
+    parser_outgoing.add_argument(
+        '--whitelist_hosts_file',
+        help=
+        "filename of file with one line for each host (comments and blank lines are ignored)",
+        default='')
+    parser_outgoing.add_argument(
+        '--whitelist_users',
+        help="comma separated list of users to whitelist",
+        default='')
+    parser_outgoing.add_argument(
+        '--blacklist_users',
+        help="comma separated list of users to remove from whitelist",
+        default='')
+    parser_outgoing.add_argument(
+        '--bandwidth_Kbps', help="throttle user bandwidth", default=1000)
     f(parser_outgoing)
 
-    parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist')
-    parser_incoming.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (default: use metadata server to get smc vms)", default='')
-    parser_incoming.add_argument('--whitelist_ports',help="comma separated list of ports to whitelist", default='22,80,111,443')
+    parser_incoming = subparsers.add_parser(
+        'incoming',
+        help=
+        'create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist'
+    )
+    parser_incoming.add_argument(
+        '--whitelist_hosts',
+        help=
+        "comma separated list of sites to whitelist (default: use metadata server to get smc vms)",
+        default='')
+    parser_incoming.add_argument(
+        '--whitelist_ports',
+        help="comma separated list of ports to whitelist",
+        default='22,80,111,443')
     f(parser_incoming)
 
     f(subparsers.add_parser('clear', help='clear all rules'))
 
     parser_show = subparsers.add_parser('show', help='show all rules')
-    parser_show.add_argument('--names',help="show hostnames (potentially expensive DNS lookup)", default=False, action="store_const", const=True)
+    parser_show.add_argument(
+        '--names',
+        help="show hostnames (potentially expensive DNS lookup)",
+        default=False,
+        action="store_const",
+        const=True)
     f(parser_show)
 
     args = parser.parse_args()
     args.func(args)
-
-
-

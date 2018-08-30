@@ -6,6 +6,8 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
 import { retry_until_success } from "../../frame-editors/generic/async-utils";
 
+import { getScript } from "jquery";
+
 const connections = {};
 
 // This is a horrible temporary hack to ensure that we do not load two global Primus
@@ -23,7 +25,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }
   const t0 = new Date().valueOf();
   console.log(`conn ${project_id} -- connecting...`);
-  const window0 = (global as any).window as any; // global part is so this also compiles on node.js.
+  const window0 : any = (global as any).window as any; // global part is so this also compiles on node.js.
   const url: string = `${
     window0.app_base_url
   }/${project_id}/raw/.smc/primus.js`;
@@ -33,13 +35,13 @@ async function connection_to_project0(project_id: string): Promise<any> {
 
   await retry_until_success({
     f: async function() {
-      if(READING_PRIMUS_JS) {
+      if (READING_PRIMUS_JS) {
         throw Error("currently reading one already");
       }
       try {
         READING_PRIMUS_JS = true;
         //console.log(`reading primus.js from ${project_id}...`);
-        await $.getScript(url);
+        await getScript(url);
         Primus = window0.Primus;
         window0.Primus = Primus0; // restore global primus
       } finally {
@@ -47,17 +49,17 @@ async function connection_to_project0(project_id: string): Promise<any> {
         //console.log("success!");
       }
     },
-    max_time: 1000*60*30,
+    max_time: 1000 * 60 * 30,
     start_delay: 250,
     max_delay: 1500,
-    factor:1.2
+    factor: 1.2
   });
 
   // This dance is because evaling primus_js sets window.Primus.
   // However, we don't want to overwrite the usual global window.Primus.
   const conn = (connections[project_id] = Primus.connect({
     reconnect: {
-      max: 10000,
+      max: 3000,
       min: 1000,
       factor: 1.3,
       retries: 1000

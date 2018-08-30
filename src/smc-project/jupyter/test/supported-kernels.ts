@@ -29,13 +29,10 @@ $ jupyter kernelspec list
   python2           /ext/jupyter/kernels/python2
   python2-ubuntu    /ext/jupyter/kernels/python2-ubuntu
   python3           /ext/jupyter/kernels/python3
-  sage-7.6          /ext/jupyter/kernels/sage-7.6
-  sage-8.0          /ext/jupyter/kernels/sage-8.0
   sage-8.1          /ext/jupyter/kernels/sage-8.1
   sage-8.2          /ext/jupyter/kernels/sage-8.2
   sage-develop      /ext/jupyter/kernels/sage-develop
   sagemath          /ext/jupyter/kernels/sagemath
-  scala211          /ext/jupyter/kernels/scala211
   singular          /ext/jupyter/kernels/singular
   vpython           /ext/jupyter/kernels/vpython
 */
@@ -140,22 +137,12 @@ const EXEC_TESTS: TestKernel[] = [
     ]
   },
   {
-    kernel: "sage-7.6",
-    tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000 // reallly long, since this probably hasn't been accessed in a long time.
-  },
-  {
-    kernel: "sage-8.0",
-    tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000
-  },
-  {
-    kernel: "sage-8.1",
-    tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
-    timeout: 60000
-  },
-  {
     kernel: "sage-8.2",
+    tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
+    timeout: 60000
+  },
+  {
+    kernel: "sage-8.3",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
     timeout: 60000
   },
@@ -168,16 +155,6 @@ const EXEC_TESTS: TestKernel[] = [
     kernel: "sagemath",
     tests: [{ input: "1/3 + 4/3", output: '{"text/plain":"5/3"}' }],
     timeout: 60000
-  },
-  {
-    kernel: "scala211",
-    tests: [
-      {
-        input: "1/3 + 4/3",
-        output:
-          '{"text/plain":"\\u001b[36mres0\\u001b[39m: \\u001b[32mInt\\u001b[39m = \\u001b[32m1\\u001b[39m"}'
-      }
-    ]
   },
   {
     /* Rant here: https://github.com/sagemathinc/cocalc/issues/3071 */

@@ -26,7 +26,6 @@ declare const $: any;
 declare const window: any;
 declare const localStorage: any;
 
-
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
@@ -43,7 +42,8 @@ const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 
-let jupyter_kernels = immutable.Map(); // map project_id (string) -> kernels (immutable)
+// map project_id (string) -> kernels (immutable)
+let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
@@ -171,8 +171,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
 
     if (this._client) {
-      this.init_project_conn();
-
       const do_set = () => {
         return this.setState({
           has_unsaved_changes:
@@ -207,7 +205,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb.on("change", this._syncdb_change);
 
     if (!client.is_project()) {
-      // only run this when used on the frontend.
+      // Only run this code when used on the frontend.
+      this.init_project_conn();
+
       // Put an entry in the project log once the jupyter notebook gets opened.
       // NOTE: Obviously, the project does NOT need to put entries in the log.
       this.syncdb.once("change", () =>
@@ -364,9 +364,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_error(data.error);
       return;
     }
-    const project_id = this.store.get("project_id");
     const kernels = immutable.fromJS(data);
-    jupyter_kernels = jupyter_kernels.set(project_id, kernels); // global
+    const key = this.store.jupyter_kernel_key();
+    jupyter_kernels = jupyter_kernels.set(key, kernels); // global
     this.setState({ kernels });
     // We must also update the kernel info (e.g., display name), now that we
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
@@ -376,7 +376,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_jupyter_kernels = () => {
-    const kernels = jupyter_kernels.get(this.store.get("project_id"));
+    const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
     } else {
@@ -2115,9 +2115,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_backend_kernel_info = reuseInFlight(async (): Promise<void> => {
-    if (
-      this._state === "closed"
-    ) {
+    if (this._state === "closed") {
       return;
     }
 
@@ -2147,7 +2145,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
     const data = await this._api_call("kernel_info", {});
-    if (data.status === 'error') {
+    if (data.status === "error") {
       throw Error(data.error);
     }
     this.setState({

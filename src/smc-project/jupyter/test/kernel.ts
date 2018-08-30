@@ -3,7 +3,7 @@ import * as expect from "expect";
 import * as common from "./common";
 import { endswith } from "../../smc-webapp/frame-editors/generic/misc";
 
-describe("compute 2+2 using the python2 kernel -- ", function() {
+describe("compute 2+7 using the python2 kernel -- ", function() {
   this.timeout(5000);
   let kernel: common.JupyterKernel = common.kernel("test-python2");
 

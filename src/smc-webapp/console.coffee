@@ -28,6 +28,8 @@
 
 ACTIVE_INTERVAL_MS = 10000
 
+MAX_TERM_HISTORY = 500000
+
 $                = window.$
 
 {debounce}       = require('underscore')
@@ -257,6 +259,10 @@ class Console extends EventEmitter
         @value_orig ?= ''
         @value_orig += data
         @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
+        if @value_orig.length > MAX_TERM_HISTORY
+            @value_orig = @value_orig.slice(@value_orig.length - Math.round(MAX_TERM_HISTORY/1.5))
+            @full_rerender()
+
 
     init_mesg: () =>
         @terminal.on 'mesg', (mesg) =>

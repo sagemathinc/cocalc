@@ -60,15 +60,16 @@ import os
 import sys
 import errno
 
+
 def basic_daemonize():
     # See http://www.erlenstar.demon.co.uk/unix/faq_toc.html#TOC16
-    if os.fork():   # launch child and...
-        os._exit(0) # kill off parent
+    if os.fork():  # launch child and...
+        os._exit(0)  # kill off parent
     os.setsid()
-    if os.fork():   # launch child and...
-        os._exit(0) # kill off parent again.
-    os.umask(022)   # Don't allow others to write
-    null=os.open('/dev/null', os.O_RDWR)
+    if os.fork():  # launch child and...
+        os._exit(0)  # kill off parent again.
+    os.umask(022)  # Don't allow others to write
+    null = os.open('/dev/null', os.O_RDWR)
     for i in range(3):
         try:
             os.dup2(null, i)
@@ -79,9 +80,9 @@ def basic_daemonize():
 
 
 def writePID(pidfile):
-    open(pidfile,'wb').write(str(os.getpid()))
+    open(pidfile, 'wb').write(str(os.getpid()))
     if not os.path.exists(pidfile):
-        raise Exception( "pidfile %s does not exist" % pidfile )
+        raise Exception("pidfile %s does not exist" % pidfile)
 
 
 def checkPID(pidfile):
@@ -103,10 +104,10 @@ def checkPID(pidfile):
                 sys.exit("Can't check status of PID %s from pidfile %s: %s" %
                          (pid, pidfile, why[1]))
         else:
-            sys.exit("Another server is running, PID %s\n" %  pid)
+            sys.exit("Another server is running, PID %s\n" % pid)
+
 
 def daemonize(pidfile):
     checkPID(pidfile)
     basic_daemonize()
     writePID(pidfile)
-

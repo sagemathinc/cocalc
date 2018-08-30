@@ -2,14 +2,14 @@
 
 const { spawn } = require("pty.js");
 
-import { len } from "../smc-webapp/frame-editors/generic/misc";
+import { len, merge, path_split } from "../smc-webapp/frame-editors/generic/misc";
 const { console_init_filename } = require("smc-util/misc");
 
 import { exists } from "../jupyter/async-utils-node";
 
 const terminals = {};
 
-const MAX_HISTORY_LENGTH: number = 100000;
+const MAX_HISTORY_LENGTH: number = 200000;
 const truncate_thresh_ms: number = 500;
 const check_interval_ms: number = 3000;
 
@@ -34,13 +34,18 @@ export async function terminal(
   async function init_term() {
     const args: string[] = [];
 
+
     const init_filename: string = console_init_filename(path);
     if (await exists(init_filename)) {
       args.push("--init-file");
-      args.push(init_filename);
+      args.push(path_split(init_filename).tail);
     }
 
-    const term = spawn("/bin/bash", args, {});
+    const s = path_split(path);
+    const env = merge({COCALC_TERMINAL_FILENAME: s.tail}, process.env);
+    const cwd = s.head;
+
+    const term = spawn("/bin/bash", args, {cwd, env});
     logger.debug("terminal", "init_term", name, "pid=", term.pid, 'args', args);
     terminals[name].term = term;
     term.on("data", function(data) {
@@ -103,7 +108,7 @@ export async function terminal(
   await init_term();
 
   function resize() {
-    logger.debug("resize");
+    //logger.debug("resize");
     if (
       terminals[name] === undefined ||
       terminals[name].client_sizes === undefined ||
@@ -120,7 +125,7 @@ export async function terminal(
       cols = Math.min(cols, sizes[id].cols);
     }
     terminals[name].size = { rows, cols };
-    logger.debug("resize", "new size", rows, cols);
+    //logger.debug("resize", "new size", rows, cols);
     terminals[name].term.resize(cols, rows);
     channel.write({ cmd: "size", rows, cols });
   }
@@ -158,7 +163,7 @@ export async function terminal(
         }
       } else if (typeof data === "object") {
         // control message
-        logger.debug("terminal channel control message", JSON.stringify(data));
+        //logger.debug("terminal channel control message", JSON.stringify(data));
         switch (data.cmd) {
           case "size":
             const size = (terminals[name].client_sizes[spark.id] = {

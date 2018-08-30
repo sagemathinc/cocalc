@@ -103,7 +103,7 @@ EmailVerification = rclass
 
     test : ->
         if not @props.email_address?
-            <span>Unkown</span>
+            <span>Unknown</span>
         else
             if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
