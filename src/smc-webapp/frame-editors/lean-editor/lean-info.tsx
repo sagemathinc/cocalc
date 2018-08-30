@@ -6,7 +6,7 @@ import { server_time } from "../generic/client";
 
 import { Message } from "./types";
 
-import { is_different } from "../generic/misc";
+import { capitalize, is_different } from "../generic/misc";
 
 import {
   React,
@@ -189,9 +189,8 @@ class LeanInfo extends Component<Props, {}> {
       >
         <Icon name="cc-icon-cocalc-ring" spin />
         <Space />
-        {task.desc}
-        <Space /> (processing {task.pos_line}:{task.pos_col} -{" "}
-        {task.end_pos_line}:{task.end_pos_col})
+        {capitalize(task.desc)}
+        <Space /> (Processing lines {task.pos_line}-{task.end_pos_line})
       </div>
     );
   }
@@ -240,7 +239,7 @@ class LeanInfo extends Component<Props, {}> {
     if (this.props.sync.get("hash") === this.props.syncstring_hash) {
       return (
         <div style={{ marginTop: "5px" }}>
-          Synchronized ({this.render_last_run_time()})
+          Synced ({this.render_last_run_time()})
         </div>
       );
     } else {

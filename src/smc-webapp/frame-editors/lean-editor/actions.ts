@@ -14,6 +14,7 @@ import {
 import { FrameTree } from "../frame-tree/types";
 
 import { project_api } from "../generic/client";
+import { capitalize } from "../generic/misc";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
@@ -49,6 +50,7 @@ export class Actions extends BaseActions<LeanEditorState> {
           syncstring_hash: this._syncstring.hash_of_live_version()
         });
         this.update_gutters();
+        this.update_status_bar();
       });
     } else {
       this._init_value();
@@ -77,6 +79,7 @@ export class Actions extends BaseActions<LeanEditorState> {
           this.setState({ sync: x.sync });
         }
         this.update_gutters();
+        this.update_status_bar();
       }
     });
   }
@@ -88,6 +91,22 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
     super.close();
   }
+
+  update_status_bar = (): void => {
+    const synced =
+      this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
+    const tasks = this.store.unsafe_getIn(["tasks"]);
+    let status = "";
+    if (!synced) {
+      status += "Syncing... ";
+    }
+    if (tasks.size > 0) {
+      const task = tasks.get(0).toJS();
+      status += `${capitalize(task.desc)}. Processing lines ${task.pos_line}-${task.end_pos_line}...`;
+    }
+    console.log("update_status_bar", status);
+    this.set_status(status);
+  };
 
   update_gutters = (): void => {
     const synced =
