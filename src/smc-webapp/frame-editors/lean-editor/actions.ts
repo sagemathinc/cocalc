@@ -56,8 +56,15 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   async _init_channel(): Promise<void> {
-    this.channel = await (await project_api(this.project_id)).lean(this.path);
-    this.channel.on("data", x => {
+    const channel: any = (this.channel = await (await project_api(
+      this.project_id
+    )).lean(this.path));
+    channel.on("close", () => {
+      channel.conn.once("open", () => {
+        channel.connect();
+      });
+    });
+    channel.on("data", x => {
       console.log(this.path, "channel got: ", JSON.stringify(x));
       if (typeof x === "object") {
         if (x.messages !== undefined) {

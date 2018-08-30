@@ -3,4 +3,6 @@ export interface Channel {
   on(event: string, f: Function): void;
   end(): void;
   close(): void;
+  connect(): void;
+  conn:any;
 }
