@@ -21,7 +21,6 @@ import { Channel } from "smc-webapp/project/websocket/types";
 import { Task, Message } from "./types";
 
 import { update_gutters } from "./gutters";
-console.log(update_gutters);
 
 interface LeanEditorState extends CodeEditorState {
   messages: Message[];
@@ -67,7 +66,7 @@ export class Actions extends BaseActions<LeanEditorState> {
       });
     });
     channel.on("data", x => {
-      console.log(this.path, "channel got: ", JSON.stringify(x));
+      console.log(this.path, "channel got: ", JSON.stringify(x).slice(0,70));
       if (typeof x === "object") {
         if (x.messages !== undefined) {
           this.setState({ messages: x.messages });
@@ -106,7 +105,7 @@ export class Actions extends BaseActions<LeanEditorState> {
         task.end_pos_line
       }...`;
     }
-    console.log("update_status_bar", status);
+    //console.log("update_status_bar", status);
     this.set_status(status);
   };
 
@@ -160,4 +159,22 @@ export class Actions extends BaseActions<LeanEditorState> {
       };
     }
   }
+
+  /*
+  // overload the base class so we can handle symbols.
+  set_syncstring_to_codemirror(id?: string): void {
+    const cm = this._get_cm(id);
+    if (!cm) {
+      return;
+    }
+    const value : string = cm.getValue();
+    console.log("value=", value);
+    const value2 = substitute_symbols(value);
+    if (value2 !== value) {
+      cm.setValueNoJump(value2);
+    }
+    this.set_syncstring(value2);
+  }
+  */
+
 }

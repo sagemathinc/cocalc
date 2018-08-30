@@ -396,6 +396,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       "matchBrackets",
       "autoCloseBrackets",
       "autoCloseLatex",
+      "leanSymbols",
       "lineWrapping",
       "indentWithTabs",
       "theme"
