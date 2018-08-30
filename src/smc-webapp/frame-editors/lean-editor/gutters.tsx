@@ -12,9 +12,12 @@ const { Icon, Tip } = require("smc-webapp/r_misc");
 
 import { RenderedMessage, message_color, message_icon } from "./lean-info";
 
-import { Task } from "./types";
+import { Message, Task } from "./types";
+
+import { Editor } from "codemirror";
 
 export function update_gutters(opts: {
+  cm: Editor;
   synced: boolean;
   set_gutter: Function;
   messages: List<any>;
@@ -23,7 +26,11 @@ export function update_gutters(opts: {
   for (let message of opts.messages.toJS()) {
     opts.set_gutter(
       message.pos_line - 1,
-      message_component(message, opts.synced)
+      message_component(
+        message,
+        opts.synced,
+        opts.cm.getDoc().getLine(message.pos_line - 1)
+      )
     );
   }
   if (opts.tasks.size > 0) {
@@ -36,7 +43,7 @@ export function update_gutters(opts: {
   }
 }
 
-function task_component(synced): Rendered {
+function task_component(synced: boolean): Rendered {
   let color;
   if (synced) {
     color = "#5cb85c";
@@ -46,16 +53,19 @@ function task_component(synced): Rendered {
   return <Icon name={"square"} style={{ color }} />;
 }
 
-function message_component(message, synced): Rendered {
+function message_component(
+  message: Message,
+  synced: boolean,
+  context: string
+): Rendered {
   const icon = message_icon(message.severity);
   const color = message_color(message.severity, synced);
   const content = <RenderedMessage message={message} synced={synced} />;
   return (
     <Tip
-      title={"title"}
+      title={<pre>{context}</pre>}
       tip={content}
       placement={"right"}
-      icon={"file"}
       stable={true}
       popover_style={{
         marginLeft: "10px",

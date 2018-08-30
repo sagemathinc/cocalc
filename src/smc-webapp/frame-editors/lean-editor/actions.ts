@@ -102,7 +102,9 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
     if (tasks.size > 0) {
       const task = tasks.get(0).toJS();
-      status += `${capitalize(task.desc)}. Processing lines ${task.pos_line}-${task.end_pos_line}...`;
+      status += `${capitalize(task.desc)}. Processing lines ${task.pos_line}-${
+        task.end_pos_line
+      }...`;
     }
     console.log("update_status_bar", status);
     this.set_status(status);
@@ -123,7 +125,12 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
     this.gutter_last = { synced, messages, tasks };
     this.clear_gutter("Codemirror-lean-info");
+    const cm = this._get_cm();
+    if (cm === undefined) {
+      return; // satisfy typescript
+    }
     update_gutters({
+      cm,
       synced,
       messages,
       tasks,
