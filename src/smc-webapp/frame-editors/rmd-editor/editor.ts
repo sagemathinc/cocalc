@@ -9,8 +9,8 @@ import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { IFrameHTML } from "../html-editor/iframe-html";
-import { PDFJS } from "../latex-editor/pdfjs";
-import { pdfjs_buttons } from "../latex-editor/editor";
+// import { PDFJS } from "../latex-editor/pdfjs";
+// import { pdfjs_buttons } from "../latex-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -54,18 +54,20 @@ const EDITOR_SPEC = {
     ])
   },
 
-  pdfjs_canvas: {
-    short: "PDF",
-    name: "PDF - Preview",
-    icon: "file-pdf-o",
-    component: PDFJS,
-    buttons: pdfjs_buttons,
-    style: { background: "#525659" },
-    renderer: "canvas",
-    path(path) {
-      return change_filename_extension(path, "pdf");
-    }
-  },
+  // TODO pdf disabled, because too flaky. We should add an explicit "PDF" button to the UI, which runs on demand
+
+  // pdfjs_canvas: {
+  //   short: "PDF",
+  //   name: "PDF - Preview",
+  //   icon: "file-pdf-o",
+  //   component: PDFJS,
+  //   buttons: pdfjs_buttons,
+  //   style: { background: "#525659" },
+  //   renderer: "canvas",
+  //   path(path) {
+  //     return change_filename_extension(path, "pdf");
+  //   }
+  // },
 
   markdown: {
     short: "View",

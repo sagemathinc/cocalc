@@ -18,7 +18,11 @@ export async function convert(
   const args = [
     "-e",
     // `library(knitr);knit('${infile}','${outfile}',quiet=TRUE)`
-    `rmarkdown::render('${infile}', output_format=c('pdf_document', 'html_document', 'md_document'), runtime=c('static'), run_pandoc=TRUE)`
+    // add 'pdf_document' to also produce a pdf out of a .tex file, but this is too flaky -- disabled
+    // TODO maybe we add a "PDF" button to the UI, which runs this explicitly
+    // output_format=c('md_document', 'html_document') ... but we allow the first one specified or html by default
+    // https://www.rdocumentation.org/packages/rmarkdown/versions/1.10/topics/render
+    `rmarkdown::render('${infile}', output_format=NULL, run_pandoc=TRUE)`
   ];
 
   await exec({
