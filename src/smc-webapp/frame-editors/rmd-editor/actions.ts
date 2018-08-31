@@ -23,11 +23,13 @@ export class RmdActions extends Actions {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
     this.set_status("Running knitr...");
+    this.set_error('');
     let markdown: string;
     try {
       markdown = await convert(this.project_id, this.path, time);
     } catch (err) {
       this.set_error(err);
+      this.setState({ value: 'Error processing RMarkdown.'})
       return;
     } finally {
       this.set_status("");

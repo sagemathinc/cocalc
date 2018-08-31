@@ -17,13 +17,14 @@ export async function convert(
 
   const args = [
     "-e",
-    `library(knitr);knit('${infile}','${outfile}',quiet=TRUE)`
+    // `library(knitr);knit('${infile}','${outfile}',quiet=TRUE)`
+    `require(rmarkdown); rmarkdown::render('${infile}', output_format='md_document', output_file = '${outfile}', runtime=c('static'), run_pandoc=TRUE)`
   ];
 
   await exec({
     allow_post: false, // definitely could take a long time to fully run all the R stuff...
     timeout: 90,
-    bash: true,   // so timeout is enforced by ulimit
+    bash: true, // so timeout is enforced by ulimit
     command: "Rscript",
     args,
     project_id: project_id,
@@ -31,6 +32,10 @@ export async function convert(
     err_on_exit: true,
     aggregate: time
   });
+
+  //if (output.status && output.status == 'error') {
+  //  throw new Error(output.error);
+  //}
 
   return await read_text_file_from_project({
     project_id: project_id,
