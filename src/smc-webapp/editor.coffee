@@ -1720,7 +1720,7 @@ class Terminal extends FileEditor
         @console = elt.data("console")
         @console.is_hidden = true
         @element = @console.element
-        @element.show()
+        @console.blur()
 
     _get: =>  # FUTURE ??
         return @opts.session_uuid ? ''

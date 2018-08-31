@@ -535,7 +535,6 @@ class Console extends EventEmitter
         redux.getActions('file_use').mark_file(@project_id, @path, 'edit')
 
     client_keydown: (ev) =>
-        #console.log("client_keydown")
         @allow_resize = true
 
         if @_ignore
