@@ -4,7 +4,7 @@ Top-level react component for editing R markdown documents
 
 import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set, change_filename_extension } from "../generic/misc";
-import { aux_file } from "../frame-tree/util";
+// import { aux_file } from "../frame-tree/util";
 import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";

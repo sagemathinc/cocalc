@@ -18,7 +18,7 @@ export async function convert(
   const args = [
     "-e",
     // `library(knitr);knit('${infile}','${outfile}',quiet=TRUE)`
-    `require(rmarkdown); rmarkdown::render('${infile}', output_format=c('pdf_document', 'html_document', 'md_document'), runtime=c('static'), run_pandoc=TRUE)`
+    `rmarkdown::render('${infile}', output_format=c('pdf_document', 'html_document', 'md_document'), runtime=c('static'), run_pandoc=TRUE)`
   ];
 
   await exec({
