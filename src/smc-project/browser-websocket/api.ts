@@ -70,7 +70,7 @@ async function handle_api_call(
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
-      throw Error(`command "${data.cmd}" not implemented`);
+      throw Error(`command "${data.cmd}" not implemented -- try restarting your project`);
   }
 }
 
