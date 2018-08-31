@@ -28,6 +28,14 @@ export class API {
     return await this.call({ cmd: "prettier", path: path, options: options });
   }
 
+  async prettier_string(str: string, options: any): Promise<any> {
+    return await this.call({
+      cmd: "prettier_string",
+      str: str,
+      options: options
+    });
+  }
+
   async jupyter(
     path: string,
     endpoint: string,

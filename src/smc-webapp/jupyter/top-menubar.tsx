@@ -90,10 +90,15 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     let script_entry, trust;
     const ext =
       this.props.backend_kernel_info != null
-        ? this.props.backend_kernel_info.getIn(["language_info", "file_extension"])
+        ? this.props.backend_kernel_info.getIn([
+            "language_info",
+            "file_extension"
+          ])
         : undefined;
     if (ext != null) {
-      const m = misc.capitalize(this.props.backend_kernel_info.getIn(["language_info", "name"]));
+      const m = misc.capitalize(
+        this.props.backend_kernel_info.getIn(["language_info", "name"])
+      );
       script_entry = { name: ">nbconvert script", display: `${m} (${ext})...` };
     } else {
       script_entry = ">nbconvert script";
@@ -157,8 +162,10 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   }
 
   render_edit() {
-    const cell_type = this.props.cells != null
-      ? this.props.cells.getIn([this.props.cur_id,"cell_type"]) : undefined;
+    const cell_type =
+      this.props.cells != null
+        ? this.props.cells.getIn([this.props.cur_id, "cell_type"])
+        : undefined;
     return this.render_menu({
       heading: "Edit",
       disabled: this.props.read_only,
@@ -198,7 +205,10 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       json: ">view notebook json"
     };
 
-    shownb[this.props.view_mode] = { name: shownb[this.props.view_mode], style: SELECTED_STYLE };
+    shownb[this.props.view_mode] = {
+      name: shownb[this.props.view_mode],
+      style: SELECTED_STYLE
+    };
 
     const toolbar = {
       name: "toggle toolbar",
@@ -208,7 +218,10 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     const cell_toolbars: any = [];
     for (let name of ["none", "metadata", "slideshow", "attachments", "tags"]) {
       const item_name = `>cell toolbar ${name}`;
-      if ((this.props.cell_toolbar != null ? this.props.cell_toolbar : "none") === name) {
+      if (
+        (this.props.cell_toolbar != null ? this.props.cell_toolbar : "none") ===
+        name
+      ) {
         cell_toolbars.push({ name: item_name, style: SELECTED_STYLE });
       } else {
         cell_toolbars.push(item_name);
@@ -218,7 +231,13 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     return this.render_menu({
       heading: "View",
       disabled: this.props.read_only,
-      names: ["toggle header", toolbar, "toggle all line numbers", "", "<Cell Toolbar..."]
+      names: [
+        "toggle header",
+        toolbar,
+        "toggle all line numbers",
+        "",
+        "<Cell Toolbar..."
+      ]
         .concat(cell_toolbars)
         .concat([
           "",
@@ -267,7 +286,11 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "<All Output...",
         ">toggle all cells output collapsed",
         ">toggle all cells output scrolled",
-        ">clear all cells output"
+        ">clear all cells output",
+        "",
+        "<Format Code...",
+        ">format cells",
+        ">format all cells"
       ]
     });
   }
@@ -315,7 +338,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       "",
       "<Change kernel..."
     ]
-      .concat(items as any || [])
+      .concat((items as any) || [])
       .concat(["", "refresh kernels"]);
 
     return this.render_menu({
@@ -381,7 +404,9 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         name = name.slice(1);
       }
       const obj =
-        this.props.actions._commands != null ? this.props.actions._commands[name] : undefined;
+        this.props.actions._commands != null
+          ? this.props.actions._commands[name]
+          : undefined;
       if (obj == null) {
         return (
           <MenuItem disabled={disabled} key={key}>
@@ -404,7 +429,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       return (
         <MenuItem key={key} onSelect={this.command(name)} disabled={disabled}>
           <span style={style}>
-            {s} {(left = display != null ? display : obj.m) != null ? left : name}{" "}
+            {s}{" "}
+            {(left = display != null ? display : obj.m) != null ? left : name}{" "}
             {/* shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 */}
           </span>
         </MenuItem>
@@ -498,8 +524,10 @@ render_widgets: -> # TODO: not supported in v1
   links_octave() {
     return {
       Octave: "https://www.gnu.org/software/octave/",
-      "Octave Documentation": "https://www.gnu.org/software/octave/doc/interpreter/",
-      "Octave Tutorial": "https://en.wikibooks.org/wiki/Octave_Programming_Tutorial",
+      "Octave Documentation":
+        "https://www.gnu.org/software/octave/doc/interpreter/",
+      "Octave Tutorial":
+        "https://en.wikibooks.org/wiki/Octave_Programming_Tutorial",
       "Octave FAQ": "http://wiki.octave.org/FAQ"
     };
   }
@@ -507,22 +535,29 @@ render_widgets: -> # TODO: not supported in v1
   links_postgresql() {
     return {
       PostgreSQL: "https://www.postgresql.org/docs/",
-      "PostgreSQL Jupyter Kernel": "https://github.com/bgschiller/postgres_kernel"
+      "PostgreSQL Jupyter Kernel":
+        "https://github.com/bgschiller/postgres_kernel"
     };
   }
 
   links_scala211() {
-    return { "Scala Documentation": "https://www.scala-lang.org/documentation/" };
+    return {
+      "Scala Documentation": "https://www.scala-lang.org/documentation/"
+    };
   }
 
   links_singular() {
-    return { "Singular Manual": "http://www.singular.uni-kl.de/Manual/latest/index.htm" };
+    return {
+      "Singular Manual": "http://www.singular.uni-kl.de/Manual/latest/index.htm"
+    };
   }
 
   render_links() {
     const v: any = [];
     const lang =
-      this.props.kernel_info != null ? this.props.kernel_info.get("language") : undefined;
+      this.props.kernel_info != null
+        ? this.props.kernel_info.get("language")
+        : undefined;
     const f = this[`links_${lang}`];
     if (f != null) {
       const object = f();
@@ -541,11 +576,17 @@ render_widgets: -> # TODO: not supported in v1
           Help
         </Dropdown.Toggle>
         <Dropdown.Menu>
-          <MenuItem eventKey="help-about" onSelect={() => this.props.actions.show_about()}>
+          <MenuItem
+            eventKey="help-about"
+            onSelect={() => this.props.actions.show_about()}
+          >
             <Icon name="question-circle" /> About...
           </MenuItem>
           <MenuItem divider />
-          <MenuItem eventKey="help-keyboard" onClick={this.command("edit keyboard shortcuts")}>
+          <MenuItem
+            eventKey="help-keyboard"
+            onClick={this.command("edit keyboard shortcuts")}
+          >
             <Icon name="keyboard-o" /> Keyboard shortcuts...
           </MenuItem>
           <MenuItem divider />
@@ -571,7 +612,11 @@ render_widgets: -> # TODO: not supported in v1
   render() {
     return (
       <div
-        style={{ backgroundColor: "rgb(247,247,247)", border: "1px solid #e7e7e7", height: "34px" }}
+        style={{
+          backgroundColor: "rgb(247,247,247)",
+          border: "1px solid #e7e7e7",
+          height: "34px"
+        }}
       >
         <ButtonGroup>
           {this.render_file()}

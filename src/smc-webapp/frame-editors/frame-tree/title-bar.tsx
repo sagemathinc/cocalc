@@ -32,6 +32,7 @@ const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
 
 const util = require("../frame-tree/util");
+const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
@@ -761,7 +762,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           "Run Prettier (or some other AST-based service) to canonically format this entire document"
         }
       >
-        <Icon name={"fa-sitemap"} />{" "}
+        <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
       </Button>
     );
