@@ -713,6 +713,7 @@ FileListing = rclass
                 create_file   = {@props.create_file} />
 
     render_first_steps: ->
+        return  # See https://github.com/sagemathinc/cocalc/issues/3138
         name = 'first_steps'
         return if @props.public_view
         return if not @props.library[name]
