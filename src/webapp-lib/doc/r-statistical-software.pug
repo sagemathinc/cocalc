@@ -11,6 +11,9 @@ block header
     include:coffee-script ../index.coffee
 
 block content
+  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
   //- CSS: overwrites styles defined in the header
   style
@@ -49,10 +52,9 @@ block content
               margin-bottom : 2rem
             > div
               margin-bottom : 1rem
-
-  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
-  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
-  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+      #nosetup
+        background-color  : $COL_GRAY_LL
+        padding-bottom    : 4rem
 
   a.anchor#a-top
   div.container
@@ -79,24 +81,29 @@ block content
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
 
-    div.row
-      div.col-sm-4.col-sm-offset-2
+  a.anchor#a-nosetup
+  div.space#nosetup
+    div.container
+      div.row
+        div.col-md-12.center
+          h2 #[i.fa.fa-lightbulb-o] Zero setup
+      div.col-sm-5.col-sm-offset-1
         p.
           You no longer have to:
         ul
-          li download and install the R software
-          li setup additional packages you want to use
-          li integrate additonal software like a LaTeX editor with R
-          li maintain everything on your own.
-      div.col-sm-4
+          li Download and install the R software
+          li Setup additional packages you want to use
+          li Integrate additional software like a LaTeX editor with R
+          li Maintain everything on your own
+      div.col-sm-5
         p.
           Instead, all you need to do to get started is to
         ol
-          li create an account
-          li create a project
-          li upload your existing code files, create a Jupyter Notebook using the R kernel, or work on your LaTeX files
+          li Create an account
+          li Create a project
+          li Start working by creating or uploading LaTeX files, RMarkdown or Jupyter Notebooks
 
-
+  div.space
     a.anchor#a-jupyternotebook
     div.container.space#jupyternotebook
       div.row
@@ -134,6 +141,17 @@ block content
             By simply clicking one button,
             #[strong your R source code is formatted in a clean and consistent way].
             This reduces cognitive load reading source code, brings everyone in the team on the same page, and reduces misunderstandings.
+
+    a.anchor#a-rmarkdown
+    div.container.space#rmarkdown
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] RMarkdown support
+        div.col-md-6
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
+        div.col-md-6
+          div.
+            You can work on #[a(href="https://rmarkdown.rstudio.com/") RMarkdown files] in #{NAME}'s native code editor.
 
     a.anchor#a-collaboration
     div.container.space#collaboration

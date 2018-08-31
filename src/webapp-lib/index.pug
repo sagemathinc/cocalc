@@ -24,6 +24,61 @@ block header
   meta(name="description" content=htmlWebpackPlugin.options.description)
 
 block content
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      #statstable td,
+      #statstable th
+        text-align       : right
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #statstable td.left
+        text-align     : left
+      #explore,
+      #bottom
+        background-color : $COL_GRAY_LL
+        div > h3
+          white-space    : nowrap
+      #included > div
+        padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block
+
   - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
@@ -325,57 +380,3 @@ block content
           p Do you have any further questions or want to see how #{NAME} helps you with teaching?
           p
             a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
-
-  //- CSS comes at the bottom: overwrites styles defined in the header
-  style
-    :sass
-      @import "smc-webapp/_colors.sass"
-      body > div.space
-        margin-top       : 5rem
-      div#top
-        margin           : 10rem 0 5rem 0
-        .descr
-          color          : $COL_GRAY
-          font-size      : 2rem
-        > div
-          margin-bottom  : 2rem
-      #statstable td,
-      #statstable th
-        text-align       : right
-      blockquote.blockquote
-        font-size        : 16px
-        img
-          height         : 10rem
-          width          : auto
-          float          : left
-          margin         : 0 1rem 1rem 0
-      ul,
-      ol
-        padding-left     : 2rem
-      div
-        img
-          width             : 100%
-          height            : auto
-        &.row
-          margin-top        : 2rem
-          margin-bottom     : 4rem
-          > div
-            > h1
-              margin-bottom : 4rem
-            > h2, h3
-              margin-bottom : 2rem
-      .left,
-      #statstable td.left
-        text-align     : left
-      #explore,
-      #bottom
-        background-color : $COL_GRAY_LL
-        div > h3
-          white-space    : nowrap
-      #included > div
-        padding          : 0
-      .ff-only
-        display: none
-      @supports (-moz-appearance:none)
-        .ff-only
-          display: block
