@@ -1,4 +1,10 @@
+/*
+API for direct connection to a project; implemented using the websocket.
+*/
+
 import { callback } from "awaiting";
+
+import { Channel } from "./types";
 
 export class API {
   private conn: any;
@@ -42,13 +48,29 @@ export class API {
     return await this.call({ cmd: "exec", opts }, timeout_ms);
   }
 
-  async terminal(path: string, options: object = {}): Promise<any> {
+  async terminal(path: string, options: object = {}): Promise<Channel> {
     const channel_name = await this.call({
       cmd: "terminal",
       path: path,
       options
     });
     //console.log(path, "got terminal channel", channel_name);
+    return this.conn.channel(channel_name);
+  }
+
+  async lean(path: string): Promise<Channel> {
+    const channel_name = await this.call({
+      cmd: "lean",
+      path: path
+    });
+    return this.conn.channel(channel_name);
+  }
+
+  async symmetric_channel(name:string): Promise<Channel> {
+    const channel_name = await this.call({
+      cmd: "symmetric_channel",
+      name
+    });
     return this.conn.channel(channel_name);
   }
 }

@@ -1787,6 +1787,12 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
+    # this is async
+    symmetric_channel: (name, project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.symmetric_channel(name)
+
     sync_string: (opts) =>
         opts = defaults opts,
             id                 : undefined
@@ -1795,6 +1801,7 @@ class exports.Connection extends EventEmitter
             file_use_interval  : 'default'
             cursors            : false
             patch_interval     : 1000
+            save_interval      : 2000
             before_change_hook : undefined
             after_change_hook  : undefined
         opts.client = @
@@ -1808,8 +1815,8 @@ class exports.Connection extends EventEmitter
             string_cols     : undefined
             cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
-            save_interval   : 2000    # amount to debounce saves (in ms)
             patch_interval  : 1000
+            save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
 

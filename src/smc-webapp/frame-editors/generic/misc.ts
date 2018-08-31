@@ -378,3 +378,12 @@ export function getIn(x: any, path: string[], default_value?: any): any {
   }
   return x === undefined ? default_value : x;
 }
+
+// see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
+export function replace_all(
+  s: string,
+  search: string,
+  replace: string
+): string {
+  return s.split(search).join(replace);
+}

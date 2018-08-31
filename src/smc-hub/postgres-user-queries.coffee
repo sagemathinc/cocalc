@@ -1531,7 +1531,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         # Check that string_id is the id of a syncstring the given account_id or
         # project_id is allowed to write to.  NOTE: We do not concern ourselves (for now at least)
         # with proof of identity (i.e., one user with full read/write access to a project
-        # claiming they are another users of that project), since our security model
+        # claiming they are another users of that SAME project), since our security model
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
         if string_id?.length != 40

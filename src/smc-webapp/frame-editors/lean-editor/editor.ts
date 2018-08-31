@@ -26,13 +26,20 @@ const EDITOR_SPEC = {
       "paste",
       "copy",
       "undo",
-      "redo",
-      "reload"
-    ])
+      "redo"
+    ]),
+    gutters: ["Codemirror-lean-info"]
   },
+  /* "lean-goal": {
+    short: "Goal",
+    name: "Display Goal",  // more focused -- usually used in "tactic mode"
+    icon: "eye",
+    component: LeanInfo,
+    buttons: set(["decrease_font_size", "increase_font_size"])
+  }, */
   "lean-info": {
-    short: "Info",
-    name: "Information View",
+    short: "Mesages",
+    name: "Display Messages" /* less focused -- usually used in "term mode" */,
     icon: "eye",
     component: LeanInfo,
     buttons: set(["decrease_font_size", "increase_font_size"])

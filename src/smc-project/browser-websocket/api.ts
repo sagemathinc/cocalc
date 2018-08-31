@@ -12,6 +12,8 @@ const {
   callback_opts
 } = require("../smc-webapp/frame-editors/generic/async-utils");
 
+import {browser_symmetric_channel} from "./symmetric_channel";
+
 export function init_websocket_api(
   primus: any,
   logger: any,
@@ -59,6 +61,10 @@ async function handle_api_call(
       return await exec(data.opts);
     case "terminal":
       return await terminal(primus, logger, data.path, data.options);
+    case "lean":
+      return await lean(client, primus, logger, data.path);
+    case "symmetric_channel":
+      return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
       throw Error(`command "${data.cmd}" not implemented`);
   }
@@ -95,3 +101,7 @@ async function exec(opts: any): Promise<ExecuteOutput> {
 }
 
 import { terminal } from "../terminal/server";
+
+import { lean } from "../lean/server";
+
+

@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-const SAVE_INTERVAL_MS = 2000;
+const SAVE_INTERVAL_MS = 500;
 
 import { delay } from "awaiting";
 
@@ -288,6 +288,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     // now in the next render loop
     this.cm_refresh();
     if (props.is_current && this.cm) {
+      await delay(1); // just in case.
       this.cm.focus();
     }
   }
@@ -395,6 +396,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       "matchBrackets",
       "autoCloseBrackets",
       "autoCloseLatex",
+      "leanSymbols",
       "lineWrapping",
       "indentWithTabs",
       "theme"
