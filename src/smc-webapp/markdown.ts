@@ -4,6 +4,8 @@ Conversion from Markdown *to* HTML, trying not to horribly mangle math.
 
 import * as MarkdownIt from "markdown-it";
 
+import * as MarkdownItFrontMatter from "markdown-it-front-matter";
+
 const misc = require("smc-util/misc");
 
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
@@ -21,7 +23,11 @@ const OPTIONS: MarkdownIt.Options = {
   linkify: true
 };
 
-const markdown_it = new MarkdownIt(OPTIONS);
+let front_matter: string = "";
+
+const markdown_it = new MarkdownIt(OPTIONS).use(MarkdownItFrontMatter, fm => {
+  front_matter = fm;
+});
 
 /*
 Turn the given markdown *string* into an HTML *string*.
@@ -42,6 +48,7 @@ for another example where remove_math is annoying.
 export function markdown_to_html(markdown_string: string): string {
   let text: string;
   let math: string[];
+  front_matter = "";
   // console.log(0, JSON.stringify(markdown_string));
   // console.log(1, JSON.stringify(math_escape(markdown_string)));
   [text, math] = remove_math(math_escape(markdown_string));
@@ -56,6 +63,10 @@ export function markdown_to_html(markdown_string: string): string {
   // console.log(4, JSON.stringify(html));
   html = math_unescape(html);
   // console.log(5, JSON.stringify(html));
+
+  // INFO in case you need it, the global var front_matter contains that config block (usually yaml)
+  //console.log("markdown front matter:", front_matter);
+  front_matter;
 
   return html;
 }
