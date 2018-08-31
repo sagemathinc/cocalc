@@ -55,11 +55,34 @@ const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
-  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME".split(
-    " "
-  ),
+  tex: [
+    "aux",
+    "bbl",
+    "blg",
+    "fdb_latexmk",
+    "fls",
+    "glo",
+    "idx",
+    "ilg",
+    "ind",
+    "lof",
+    "log",
+    "nav",
+    "out",
+    "snm",
+    "synctex.gz",
+    "toc",
+    "xyc",
+    "synctex.gz(busy)",
+    "sagetex.sage",
+    "sagetex.sout",
+    "sagetex.scmd",
+    "sagetex.sage.py",
+    "sage-plots-for-FILENAME"
+  ],
   rnw: ["tex", "NODOT-concordance.tex"],
-  rtex: ["tex", "NODOT-concordance.tex"]
+  rtex: ["tex", "NODOT-concordance.tex"],
+  rmd: ["pdf", "html", "md", "NODOT_files"]
 };
 
 export interface ProjectStoreState {
