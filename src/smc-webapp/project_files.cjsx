@@ -30,6 +30,8 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
 
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
+
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
 {MiniTerminal}        = require('./project_miniterm')
@@ -713,6 +715,7 @@ FileListing = rclass
                 create_file   = {@props.create_file} />
 
     render_first_steps: ->
+        return  # See https://github.com/sagemathinc/cocalc/issues/3138
         name = 'first_steps'
         return if @props.public_view
         return if not @props.library[name]
@@ -2264,15 +2267,19 @@ exports.ProjectFiles = rclass ({name}) ->
         cards = @props.customer?.sources?.total_count ? 0
         <Alert bsStyle='danger'>
             <h4 style={padding: '2em'}>
-                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to pay the course fee for this project.
+                <Icon name='exclamation-triangle'/> Error: Your instructor requires that you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this project.
                 {<CourseProjectExtraHelp/> if cards}
             </h4>
             {@render_upgrade_in_place()}
         </Alert>
 
     render_course_payment_warning: (pay) ->
-        <Alert bsStyle='warning'>
-            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the course fee</a> for this project
+        if @state.show_pay
+            link = <span>pay the one-time ${STUDENT_COURSE_PRICE} course fee</span>
+        else
+            link = <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the one-time ${STUDENT_COURSE_PRICE} course fee</a>
+        <Alert bsStyle={'warning'} style={fontSize:'12pt'}>
+            <Icon name='exclamation-triangle'/> Warning: Your instructor requires that you {link} for this project
             within <TimeAgo date={pay}/>.
             {@render_upgrade_in_place() if @state.show_pay}
         </Alert>

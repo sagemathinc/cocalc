@@ -50,6 +50,10 @@ console_template = templates.find(".webapp-console")
 
 feature = require('./feature')
 
+# How long to wait after any full rerender.
+# Obviously, this is stupid code, but this code is slated to go away.
+IGNORE_TERMINAL_TIME_MS = 500
+
 IS_TOUCH = feature.IS_TOUCH  # still have to use crappy mobile for now on
 
 initfile_content = (filename) ->
@@ -143,8 +147,6 @@ class Console extends EventEmitter
         # static/term/term.js -- it's a nearly complete implementation of
         # the xterm protocol.
 
-        @_init_colors()
-
         @terminal = new Terminal
             cols: @opts.cols
             rows: @opts.rows
@@ -171,6 +173,11 @@ class Console extends EventEmitter
             @set_scrollbar_to_term()
 
         @terminal.on 'data', (data) =>
+            #console.log('terminal data', @_ignore_terminal)
+            if @_ignore_terminal? and new Date() - @_ignore_terminal < IGNORE_TERMINAL_TIME_MS
+                #console.log("ignore", data)
+                return
+            #console.log("@terminal data='#{JSON.stringify(data)}'")
             @conn?.write(data)
 
         @_init_ttyjs()
@@ -198,6 +205,7 @@ class Console extends EventEmitter
             @element.find(".webapp-console-down").hide()
 
         @connect()
+        #window.c = @
 
     connect: =>
         {webapp_client} = require('./webapp_client')
@@ -207,14 +215,19 @@ class Console extends EventEmitter
             if @conn?
                 @connect()
         @_ignore = true
+        first_render = true
         @conn.on 'data', (data) =>
             #console.log("@conn got data '#{data}'")
+            #console.log("@conn data='#{JSON.stringify(data)}'")
             #console.log("@conn got data of length", data.length)
             if typeof(data) == 'string'
                 if @_rendering_is_paused
                     @_render_buffer ?= ''
                     @_render_buffer += data
                 else
+                    if first_render
+                        first_render = false
+                        @_ignore_terminal = new Date()
                     @render(data)
             else if typeof(data) == 'object'
                 @handle_control_mesg(data)
@@ -248,6 +261,8 @@ class Console extends EventEmitter
                 break
 
     handle_resize: (rows, cols) =>
+        if @_terminal_size and rows == @_terminal_size.rows and cols == @_terminal_size.cols
+            return
         # Resize the renderer
         @_terminal_size = {rows:rows, cols:cols}
         @terminal.resize(cols, rows)
@@ -516,23 +531,6 @@ class Console extends EventEmitter
             @unpause_rendering()
             setTimeout(@focus, 5)  # must happen in next cycle or copy will not work due to loss of focus.
 
-    _init_colors: () =>
-        colors = Terminal.color_schemes[@opts.color_scheme].colors
-        for i in [0...16]
-            Terminal.colors[i] = colors[i]
-
-        if colors.length > 16
-            Terminal.defaultColors =
-                fg: colors[16]
-                bg: colors[17]
-        else
-            Terminal.defaultColors =
-                fg: colors[15]
-                bg: colors[0]
-
-        Terminal.colors[256] = Terminal.defaultColors.bg
-        Terminal.colors[257] = Terminal.defaultColors.fg
-
     mark_file_use: () =>
         redux.getActions('file_use').mark_file(@project_id, @path, 'edit')
 
@@ -603,6 +601,8 @@ class Console extends EventEmitter
     _init_ttyjs: () ->
         # Create the terminal DOM objects
         @terminal.open()
+        @terminal.set_color_scheme(@opts.color_scheme)
+
         # Give it our style; there is one in term.js (upstream), but it is named in a too-generic way.
         @terminal.element.className = "webapp-console-terminal"
         ter = $(@terminal.element)
@@ -619,6 +619,8 @@ class Console extends EventEmitter
             @mobile_target.css('width', ter.css('width'))
             @mobile_target.css('height', ter.css('height'))
             @_click = (e) =>
+                if @is_hidden
+                    return
                 t = $(e.target)
                 if t[0]==@mobile_target[0] or t.hasParent(@element).length > 0
                     @focus()
@@ -626,14 +628,21 @@ class Console extends EventEmitter
                     @blur()
             $(document).on 'click', @_click
         else
+            mousedown_focus = false
             @_mousedown = (e) =>
-                if $(e.target).hasParent(@element).length > 0
+                if @is_hidden
+                    return
+                if mousedown_focus or $(e.target).hasParent(@element).length > 0
+                    mousedown_focus = true
                     @focus()
                 else
                     @blur()
             $(document).on 'mousedown', @_mousedown
 
             @_mouseup = (e) =>
+                if @is_hidden
+                    return
+                mousedown_focus = false
                 t = $(e.target)
                 sel = window.getSelection().toString()
                 if t.hasParent(@element).length > 0 and sel.length == 0
@@ -916,6 +925,7 @@ class Console extends EventEmitter
         @terminal.showCursor()
 
     full_rerender: =>
+        @_ignore_terminal = new Date() # ignore output from *client side* of terminal until user types.
         locals =
             value  : @value_orig
             ignore : @_ignore
@@ -925,6 +935,7 @@ class Console extends EventEmitter
             @render(locals.value)
         @_ignore = locals.ignore  # do not change value of @_ignore
         @terminal.showCursor()
+
 
     resize_terminal: () =>
         @element.find(".webapp-console-terminal").css({width:'100%', height:'100%'})

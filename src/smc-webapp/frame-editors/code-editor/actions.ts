@@ -207,7 +207,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         cursors: true,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
-        fake: fake_syncstring
+        fake: fake_syncstring,
+        save_interval: 500,
+        patch_interval: 500
       });
     } else if (this.doctype == "syncdb") {
       this._syncstring = syncdb({
@@ -657,10 +659,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     delete this._cm[id];
 
+    this.close_frame_hook(id);
+
     // if id is the current active_id, change to most recent one.
     if (id === this.store.getIn(["local_view_state", "active_id"])) {
       this.make_most_recent_frame_active();
     }
+  }
+
+  close_frame_hook(_:string) : void {
+    // overload in derived class...
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {

@@ -321,7 +321,7 @@ class SyncTable extends EventEmitter
                     return
 
                 if is_fatal(err)
-                    console.warn('setting up changefeed', @_table, err)
+                    console.warn('setting up changefeed', @_table, err, @_query)
                     @close(true)
                     cb?(err)
                     cb = undefined
