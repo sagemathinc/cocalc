@@ -1,5 +1,5 @@
 /*
-Lean Editor Actions
+Lean Editor Actions.
 */
 
 import { List } from "immutable";
