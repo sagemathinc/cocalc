@@ -3299,8 +3299,7 @@
 
     if (!this.prefix) {
       if (this.is("xterm") || this.is("rxvt-unicode") || this.is("screen")) {
-        // This causes enormous pain - I don't understand it.  For now, let's just
-        // comment it out.
+        // This causes enormous pain - I don't understand it. 
         // To trigger this pain in CoCalc,
         // type this into a terminal:
         //   printf "\E[c\n" ; sleep 1 ; echo

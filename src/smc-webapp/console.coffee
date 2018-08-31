@@ -552,6 +552,9 @@ class Console extends EventEmitter
                 when 188       # "control-shift-<"
                     @_decrease_font_size()
                     return false
+        else
+            delete @_ignore_terminal
+
         if (ev.metaKey or ev.ctrlKey or ev.altKey) and (ev.keyCode in [17, 86, 91, 93, 223, 224])  # command or control key (could be a paste coming)
             #console.log("resetting hidden textarea")
             #console.log("clear hidden text area paste bin")
