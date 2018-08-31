@@ -2,8 +2,8 @@
 Convert R Markdown file to hidden Markdown file, then read.
 */
 
-import { aux_file } from "../frame-tree/util";
-import { path_split } from "../generic/misc";
+// import { aux_file } from "../frame-tree/util";
+import { path_split, change_filename_extension } from "../generic/misc";
 import { exec, read_text_file_from_project } from "../generic/client";
 
 export async function convert(
@@ -12,13 +12,13 @@ export async function convert(
   time?: number
 ): Promise<string> {
   const x = path_split(path);
-  let infile = x.tail,
-    outfile = aux_file(x.tail, "md");
+  let infile = x.tail;
+  //let outfile = aux_file(x.tail, "html");
 
   const args = [
     "-e",
     // `library(knitr);knit('${infile}','${outfile}',quiet=TRUE)`
-    `require(rmarkdown); rmarkdown::render('${infile}', output_format='md_document', output_file = '${outfile}', runtime=c('static'), run_pandoc=TRUE)`
+    `require(rmarkdown); rmarkdown::render('${infile}', output_format=c('pdf_document', 'html_document', 'md_document'), runtime=c('static'), run_pandoc=TRUE)`
   ];
 
   await exec({
@@ -37,8 +37,10 @@ export async function convert(
   //  throw new Error(output.error);
   //}
 
+  // magling formuas is a known issue, e.g. I found
+  // https://stackoverflow.com/questions/39183406/do-not-escape-backslashes-in-formulas-with-rmarkdown-md-document
   return await read_text_file_from_project({
     project_id: project_id,
-    path: aux_file(path, "md")
+    path: change_filename_extension(path, "html") // aux_file(path, "md")
   });
 }

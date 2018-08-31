@@ -22,14 +22,15 @@ export class RmdActions extends Actions {
   async _run_rmd2md(time?: number): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
-    this.set_status("Running knitr...");
-    this.set_error('');
+    this.set_status("Running RMarkdown...");
+    this.set_error("");
     let markdown: string;
     try {
       markdown = await convert(this.project_id, this.path, time);
+      this.set_reload("iframe");
+      //this.set_reload("pdfjs_canvas");
     } catch (err) {
       this.set_error(err);
-      this.setState({ value: 'Error processing RMarkdown.'})
       return;
     } finally {
       this.set_status("");
@@ -48,7 +49,7 @@ export class RmdActions extends Actions {
           type: "cm"
         },
         second: {
-          type: "markdown"
+          type: "iframe"
         }
       };
     }
