@@ -3305,7 +3305,7 @@
         // type this into a terminal:
         //   printf "\E[c\n" ; sleep 1 ; echo
         // See https://stackoverflow.com/questions/47691348/how-to-determine-graphics-capabilities-of-an-x11-terminal-window
-        // this.send('\x1b[?1;2c');
+        this.send('\x1b[?1;2c');
       } else if (this.is("linux")) {
         this.send("\x1b[?6c");
       }
