@@ -24,18 +24,19 @@ export class RmdActions extends Actions {
     // maybe not, since might want to show error.
     this.set_status("Running RMarkdown...");
     this.set_error("");
-    let markdown: string;
+    // let markdown: string;
     try {
-      markdown = await convert(this.project_id, this.path, time);
+      // markdown =
+      await convert(this.project_id, this.path, time);
       this.set_reload("iframe");
-      //this.set_reload("pdfjs_canvas");
+      this.set_reload("pdfjs_canvas");
     } catch (err) {
       this.set_error(err);
       return;
     } finally {
       this.set_status("");
     }
-    this.setState({ value: markdown });
+    // this.setState({ value: markdown });
   }
 
   _raw_default_frame_tree(): FrameTree {

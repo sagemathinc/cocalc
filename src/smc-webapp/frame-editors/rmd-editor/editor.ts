@@ -2,15 +2,15 @@
 Top-level react component for editing R markdown documents
 */
 
-import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
+// import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set, change_filename_extension } from "../generic/misc";
 // import { aux_file } from "../frame-tree/util";
 import { createEditor } from "../frame-tree/editor";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { IFrameHTML } from "../html-editor/iframe-html";
-// import { PDFJS } from "../latex-editor/pdfjs";
-// import { pdfjs_buttons } from "../latex-editor/editor";
+import { PDFJS } from "../latex-editor/pdfjs";
+import { pdfjs_buttons } from "../latex-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -54,36 +54,36 @@ const EDITOR_SPEC = {
     ])
   },
 
-  // TODO pdf disabled, because too flaky. We should add an explicit "PDF" button to the UI, which runs on demand
+  // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
 
-  // pdfjs_canvas: {
-  //   short: "PDF",
-  //   name: "PDF - Preview",
-  //   icon: "file-pdf-o",
-  //   component: PDFJS,
-  //   buttons: pdfjs_buttons,
-  //   style: { background: "#525659" },
-  //   renderer: "canvas",
-  //   path(path) {
-  //     return change_filename_extension(path, "pdf");
-  //   }
-  // },
-
-  markdown: {
-    short: "View",
-    name: "Rendered Markdown",
-    icon: "eye",
-    component: RenderedMarkdown,
-    reload_images: true,
-    buttons: set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "reload"
-    ])
+  pdfjs_canvas: {
+    short: "PDF",
+    name: "PDF - Preview",
+    icon: "file-pdf-o",
+    component: PDFJS,
+    buttons: pdfjs_buttons,
+    style: { background: "#525659" },
+    renderer: "canvas",
+    path(path) {
+      return change_filename_extension(path, "pdf");
+    }
   },
+
+  //markdown: {
+  //  short: "View",
+  //  name: "Rendered Markdown",
+  //  icon: "eye",
+  //  component: RenderedMarkdown,
+  //  reload_images: true,
+  //  buttons: set([
+  //    "print",
+  //    "decrease_font_size",
+  //    "increase_font_size",
+  //    "save",
+  //    "time_travel",
+  //    "reload"
+  //  ])
+  //},
   settings: SETTINGS_SPEC
 };
 
