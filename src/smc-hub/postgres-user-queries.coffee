@@ -641,6 +641,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query      : required
             options    : undefined     # {delete:true} is the only supported option
             cb         : required   # cb(err)
+        if @is_standby
+            opts.cb("set queries against standby not allowed")
+            return
         r = @_parse_set_query_opts(opts)
         #r.dbg("parsed query opts = #{misc.to_json(r)}")
         if not r?  # nothing to do

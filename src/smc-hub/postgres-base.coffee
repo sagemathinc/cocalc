@@ -243,6 +243,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 @_connect_time = new Date()
                 dbg("now connected; disabling nestloop query planning.")
                 client.query("SET enable_nestloop TO off", cb)
+            (cb) =>
+                # Is this a read/write or read-only connection?
+                client.query "SELECT pg_is_in_recovery()", (err, resp) =>
+                    if err
+                        cb(err)
+                    else
+                        # True if and only if this db connection is read only.
+                        @is_standby = resp.rows[0].pg_is_in_recovery
+                        cb()
         ], (err) =>
             if err
                 mesg = "Failed to connect to database -- #{err}"
@@ -316,6 +325,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             safety_check: true
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
             cb          : undefined
+
+        # quick check for write query against read-only connection
+        if @is_standby and (opts.set? or opts.jsonb_set? or opts.jsonb_merge?)
+            opts.cb("set queries against standby not allowed")
+            return
 
         if opts.retry_until_success
             @_query_retry_until_success(opts)

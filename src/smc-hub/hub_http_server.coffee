@@ -69,7 +69,10 @@ exports.init_express_http_server = (opts) ->
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
-    server_settings = require('./server-settings')(opts.database)
+    if opts.database.is_standby
+        server_settings = undefined
+    else
+        server_settings = require('./server-settings')(opts.database)
 
     # Create an express application
     router = express.Router()
@@ -335,14 +338,16 @@ exports.init_express_http_server = (opts) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
-    router.get '/registration', (req, res) ->
-        if server_settings.all.account_creation_token
-            res.json({token:true})
-        else
-            res.json({})
+    if server_settings?
+        router.get '/registration', (req, res) ->
+            if server_settings.all.account_creation_token
+                res.json({token:true})
+            else
+                res.json({})
 
-    router.get '/customize', (req, res) ->
-        res.json(server_settings.pub)
+    if server_settings?
+        router.get '/customize', (req, res) ->
+            res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*'], (req, res) ->

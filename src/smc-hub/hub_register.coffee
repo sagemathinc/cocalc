@@ -47,6 +47,10 @@ register_hub = (cb) ->
     if not the_database?
         cb?("database not yet set")
         return
+    if the_database.is_standby
+        winston.debug("not registering -- is only using a standby server")
+        cb?()
+        return
     the_database.register_hub
         host    : the_host
         port    : the_port
