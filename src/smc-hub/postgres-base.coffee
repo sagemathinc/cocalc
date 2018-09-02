@@ -207,7 +207,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if @_client?
             @_client.end()
             delete @_client
-        client = undefined
+        locals =
+            client: undefined
+            host  : undefined
         @_connect_time = 0
         async.series([
             (cb) =>
@@ -218,23 +220,43 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     dbg("assuming database exists")
                     cb()
             (cb) =>
+                if not @_host   # undefined if @_host=''
+                    cb()
+                    return
+                if @_host.indexOf('/') != -1
+                    dbg("using a local socket file (not a hostname)")
+                    locals.host = @_host
+                    cb()
+                    return
+                require('dns').lookup @_host, {all:true}, (err, ips) =>
+                    if err
+                        cb(err)
+                    else
+                        # In kubernetes the stateful set service just has
+                        # lots of ips (rather than) round robbin...
+                        # TODO: connect to *all* of them, and spread queries
+                        # across them...?
+                        locals.host = misc.random_choice(ips).address
+                        dbg("connecting to #{locals.host}")
+                        cb()
+            (cb) =>
                 dbg("create client and start connecting...")
-                client = new pg.Client
+                locals.client = new pg.Client
                     user     : 'smc'
-                    host     : if @_host then @_host    # undefined if @_host=''
+                    host     : locals.host
                     port     : @_port
                     password : @_password
                     database : @_database
                 if @_notification?
-                    client.on('notification', @_notification)
-                client.on 'error', (err) =>
+                    locals.client.on('notification', @_notification)
+                locals.client.on 'error', (err) =>
                     @emit('disconnect')
                     dbg("error -- #{err}")
-                    client?.end()
-                    client?.removeAllListeners()
+                    locals.client?.end()
+                    locals.client?.removeAllListeners()
                     delete @_client
                     @connect()  # start trying to reconnect
-                client.connect(cb)
+                locals.client.connect(cb)
             (cb) =>
                 # CRITICAL!  At scale, this query
                 #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
@@ -242,10 +264,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # disable doing so!
                 @_connect_time = new Date()
                 dbg("now connected; disabling nestloop query planning.")
-                client.query("SET enable_nestloop TO off", cb)
+                locals.client.query("SET enable_nestloop TO off", cb)
             (cb) =>
                 # Is this a read/write or read-only connection?
-                client.query "SELECT pg_is_in_recovery()", (err, resp) =>
+                locals.client.query "SELECT pg_is_in_recovery()", (err, resp) =>
                     if err
                         cb(err)
                     else
@@ -259,9 +281,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 console.warn(mesg)  # make it clear for interactive users with debugging off -- common mistake with env not setup right.
                 cb?(err)
             else
-                @_client = client
-                client.concurrent_queries = 0
-                client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
+                @_client = locals.client
+                locals.client.concurrent_queries = 0
+                locals.client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
                 dbg("connected!")
                 cb?(undefined, @)
         )
