@@ -48,6 +48,8 @@ register_hub = (cb) ->
         cb?("database not yet set")
         return
     if the_database.is_standby
+        # TODO: maybe check an actual query?
+        database_is_working = the_database._client?
         winston.debug("not registering -- is only using a standby server")
         cb?()
         return
