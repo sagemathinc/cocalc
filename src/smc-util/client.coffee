@@ -1853,9 +1853,10 @@ class exports.Connection extends EventEmitter
         #console.log '_post_query', data
         if opts.standby
             path = 'db_standby'
+            #console.log("doing db_standby query -- ", opts.query)
         else
             path = 'user_query'
-        jqXHR = $.post("#{window?.app_base_url ? ''}/#{path}", data)
+        jqXHR = $.post("#{window?.app_base_url ? ''}/#{path}", data, null, 'text')
         if not opts.cb?
             #console.log 'no cb'
             return
@@ -1863,9 +1864,11 @@ class exports.Connection extends EventEmitter
             #console.log 'failed'
             opts.cb("failed")
             return
-        jqXHR.done (resp) ->
+        jqXHR.done (data) ->
             #console.log 'got back ', JSON.stringify(resp)
             #console.log 'TIME: ', new Date() - tt0
+            window.data = data
+            resp = misc.from_json(data)
             if resp.error
                 opts.cb(resp.error)
             else
