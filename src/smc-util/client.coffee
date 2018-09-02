@@ -1844,13 +1844,18 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            standby : false        # if true, use standby server; query must be 100% read only.
             cb      : undefined
         data =
             query   : misc.to_json(opts.query)
             options : if opts.options then misc.to_json(opts.options)
         #tt0 = new Date()
         #console.log '_post_query', data
-        jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)
+        if opts.standby
+            path = 'db_standby'
+        else
+            path = 'user_query'
+        jqXHR = $.post("#{window?.app_base_url ? ''}/#{path}", data)
         if not opts.cb?
             #console.log 'no cb'
             return
@@ -1872,6 +1877,7 @@ class exports.Connection extends EventEmitter
             query   : required
             changes : undefined
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
@@ -1882,6 +1888,7 @@ class exports.Connection extends EventEmitter
             @_post_query
                 query   : opts.query
                 options : opts.options
+                standby : opts.standby
                 cb      : opts.cb
             return
 
