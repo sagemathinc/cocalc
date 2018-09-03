@@ -22,7 +22,7 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/postgres').db(debug:false)
+        db = require('./smc-hub/postgres').db(debug:true)
         db.connect(cb:cb)
         return db
 # get a connection to the db
