@@ -324,7 +324,12 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 f = (client, cb) =>
                     dbg("now connected; disabling nestloop query planning for client #{locals.i}")
                     locals.i += 1
-                    client.query("SET enable_nestloop TO off", cb)
+                    client.query "SET enable_nestloop TO off", (err) =>
+                        if err
+                            dbg("disabling nestloop failed for client #{locals.i}")
+                        else
+                            dbg("disabling nestloop done for client #{locals.i}")
+                        cb(err)
                 async.map(locals.clients, f, cb)
             (cb) =>
                 dbg("checking if ANY db server is in recovery, i.e., we are doing standby queries only")
@@ -348,6 +353,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 cb?(err)
             else
                 @_clients = locals.clients
+                @_concurrent_queries = 0
                 dbg("connected!")
                 cb?(undefined, @)
         )
