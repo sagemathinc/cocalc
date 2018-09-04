@@ -781,7 +781,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _ensure_database_exists: (cb) =>
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
-        args = ['--user', @_user, '--host', @_host, '--port', @_port, '--list', '--tuples-only']
+        args = ['--user', @_user, '--host', @_host.split(',')[0], '--port', @_port, '--list', '--tuples-only']
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
