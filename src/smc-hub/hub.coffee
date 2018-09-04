@@ -83,7 +83,7 @@ hub_register = require('./hub_register')
 
 # How frequently to register with the database that this hub is up and running,
 # and also report number of connected clients
-REGISTER_INTERVAL_S = 45   # every 45 seconds
+REGISTER_INTERVAL_S = 15   # every 15 seconds
 
 init_smc_version = (db, cb) ->
     if db.is_standby

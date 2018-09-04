@@ -284,13 +284,32 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 for host in locals.hosts
                     init_client(host)
 
+                # Connect the clients.  If at least one succeeds, we use this.
+                # If none succeed, we declare failure.
+                # Obviously, this is NOT optimal -- it's just hopefully sufficiently robust/works.
+                # I'm going to redo this with experience.
+                locals.clients_that_worked = []
+                locals.errors = []
+                f = (c) =>
+                    try
+                        await c.connect()
+                        locals.clients_that_worked.push(c)
+                    catch err
+                        locals.errors.push(err)
 
-                # c.connect is now async, not a cb function!
-                try
-                    await Promise.all((c.connect() for c in locals.clients))
+                await Promise.all((f(c) for c in locals.clients))
+
+                if locals.clients_that_worked.length == 0
+                    dbg("ALL clients failed", locals.errors)
+                    cb("ALL clients failed to connect")
+                else
+                    # take what we got
+                    if locals.clients.length == locals.clients_that_worked.length
+                        dbg("ALL clients worked")
+                    else
+                        dbg("ONLY #{locals.clients_that_worked.length} clients worked")
+                    locals.clients = locals.clients_that_worked
                     cb()
-                catch err
-                    cb(err)
 
             (cb) =>
                 # CRITICAL!  At scale, this query
@@ -298,7 +317,6 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # will take forever due to the query planner using a nestloop scan.  We thus
                 # disable doing so!
                 @_connect_time = new Date()
-                global.locals = locals
                 locals.i = 0
                 f = (client, cb) =>
                     dbg("now connected; disabling nestloop query planning for client #{locals.i}")

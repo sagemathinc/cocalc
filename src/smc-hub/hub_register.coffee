@@ -44,15 +44,22 @@ exports.number_of_clients = () ->
     return number_of_clients()
 
 register_hub = (cb) ->
+    winston.debug("register_hub")
     if not the_database?
+        database_is_working = false
+        winston.debug("register_hub -- no database, so FAILED")
         cb?("database not yet set")
         return
-    if the_database.is_standby
-        # TODO: maybe check an actual query?
+    if not the_database._clients?
         database_is_working = the_database._clients?
-        winston.debug("not registering -- is only using a standby server")
+        winston.debug("register_hub -- not connected, so FAILED")
         cb?()
         return
+    if the_database.is_standby
+        # TODO: do an actual read only query
+        # for now, connected is enough, which is checked above.
+        return
+    winston.debug("register_hub -- doing db query")
     the_database.register_hub
         host    : the_host
         port    : the_port
@@ -61,9 +68,10 @@ register_hub = (cb) ->
         cb      : (err) ->
             if err
                 database_is_working = false
-                winston.debug("Error registering with database - #{err}")
+                winston.debug("register_hub -- fail - #{err}")
             else
                 database_is_working = true
+                winston.debug("register_hub -- success")
             cb?(err)
 
 exports.database_is_working = ->
