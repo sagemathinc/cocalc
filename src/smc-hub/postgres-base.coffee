@@ -240,7 +240,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     require('dns').lookup hostname, {all:true}, (err, ips) =>
                         if err
                             winston.debug("Got #{hostname} --> err=#{err}")
-                            cb(err)
+                            # NON-FATAL -- we just don't include these and hope to
+                            # have at least one total working host...
+                            cb()
                         else
                             winston.debug("Got #{hostname} --> #{JSON.stringify(ips)}")
                             # In kubernetes the stateful set service just has
