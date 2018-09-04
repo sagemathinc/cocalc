@@ -39,6 +39,7 @@ const markdownlib = require("../markdown");
 const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 const { webapp_client } = require("../webapp_client");
+const { alert_message } = require("../alerts");
 
 // Course Library
 import { previous_step, Step, assignment_identifier } from "./util";
@@ -2939,7 +2940,7 @@ You can find the comments they made in the folders below.\
     return this.redux.getProjectActions(proj).open_directory(path);
   }
 
-  // Sets the desired compute image for all student projects
+  // Sets the desired compute image for all course projects
   set_compute_image = async (new_image: string) => {
     const store = this.get_store();
     if (store == null) {
@@ -2950,38 +2951,37 @@ You can find the comments they made in the folders below.\
       id: activity_id,
       desc: `Setting all projects to ${new_image}`
     });
+    this.setState({compute_image_is_changing: true});
+
     try {
-      console.log("Trying to change course project image");
       await resilient(
-        this.redux
-          .getProjectActions(store.get("course_project_id"))
+        this.redux.getProjectActions(store.get("course_project_id"))
           .set_compute_image,
-        { attempts: 5 , context: this }
-      )(new_image);
-      console.log("Finished resilient function")
+        { attempts: 5, context: this }
+      )(new_image, true);
     } catch (err) {
-      console.log("Failed");
-      this.set_error("Failed to change course image.");
+      alert_message({ type: "error", message: err.message });
+      this.setState({compute_image_is_changing: false})
       this.clear_activity(activity_id);
-      throw err;
       return;
     }
-    console.log("Trying to change student projects");
-    return;
-    this.map_over_student_projects(
+    await this.map_over_student_projects(
       "action_all_student_projects",
       async student => {
         await this.redux
           .getActions({ project_id: student.get("project_id") })
-          .set_compute_image(new_image);
+          .set_compute_image(new_image, true);
       },
       {
         max_tries: 5,
         on_failure: () => {
-          this.set_error("An error occured while changing the course project image. Please check your internet connection and try again.");
+          this.set_error(
+            "An error occured while changing the course project image. Please check your internet connection and try again."
+          );
         }
       }
     );
+    this.setState({compute_image_is_changing: false})
     this.clear_activity(activity_id);
   };
 
@@ -3020,16 +3020,16 @@ You can find the comments they made in the folders below.\
     this.project_actions_in_progress[action_id] = true;
 
     try {
-      await timed(
-        awaiting.map(students, PARALLEL_LIMIT, async (student) => {
+      await timed(awaiting.map, timeout)(
+        students,
+        PARALLEL_LIMIT,
+        async student => {
           try {
             await resilient(async_fn, { attempts: max_tries })(student);
           } catch (err) {
-            console.log("Failed inside mapper")
-            return "failed";
+            console.log(`Failed inside mapper for ${student.toJS()}`);
           }
-        }),
-        timeout
+        }
       );
     } catch (err) {
       if (on_failure !== undefined) {

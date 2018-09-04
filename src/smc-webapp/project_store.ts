@@ -123,6 +123,7 @@ export interface ProjectStoreState {
   // Project Settings
   get_public_path_id?: (path: string) => any;
   stripped_public_paths: any; //computed(immutable.List)
+  compute_image_is_changing?: boolean;
 
   other_settings: any;
 }

@@ -29,6 +29,7 @@ interface ReduxProps {
   action_all_projects_state: string;
   set_compute_image: (image_name: string) => Promise<void>;
   course_project_id: string;
+  compute_image_is_changing: boolean;
   kucalc: "yes" | undefined;
   project_map: ProjectMap;
 }
@@ -49,7 +50,8 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
       return {
         [name]: {
           action_all_projects_state: rtypes.string,
-          course_project_id: rtypes.string
+          course_project_id: rtypes.string,
+          compute_image_is_changing: rtypes.bool
         },
         projects: {
           project_map: rtypes.immutable.Map
@@ -192,7 +194,8 @@ export const StudentProjectsControlPanel = rclass<ReactProps>(
           >
             <ComputeImageSelector
               active_compute_image={current_image}
-              save_compute_image={async (image_name) => await this.get_actions().set_compute_image(image_name)}
+              save_compute_image={this.get_actions().set_compute_image}
+              compute_image_is_changing={this.props.compute_image_is_changing}
             />
           </LabeledRow>
         </div>

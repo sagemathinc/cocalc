@@ -15,11 +15,11 @@ const { Icon, Loading, Space } = require("../r_misc");
 interface ReactProps {
   save_compute_image: (name: string) => Promise<void>;
   active_compute_image: string;
+  compute_image_is_changing: boolean;
 }
 
 interface StateTypes {
   displayed_compute_image: string;
-  compute_image_changing: boolean;
   compute_image_focused: boolean;
 }
 
@@ -28,7 +28,6 @@ export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
     super(props);
     this.state = {
       displayed_compute_image: props.active_compute_image,
-      compute_image_changing: false,
       compute_image_focused: false
     };
   }
@@ -39,8 +38,7 @@ export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
     const new_image = props.active_compute_image;
     if (new_image !== this.state.displayed_compute_image) {
       this.setState({
-        displayed_compute_image: new_image,
-        compute_image_changing: false
+        displayed_compute_image: new_image
       });
     }
   }
@@ -48,7 +46,6 @@ export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
   cancel_compute_image(current_image) {
     this.setState({
       displayed_compute_image: current_image,
-      compute_image_changing: false,
       compute_image_focused: false
     });
   }
@@ -57,18 +54,10 @@ export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
     // image is reset to the previous name and componentWillReceiveProps will set it when new
     this.setState({
       displayed_compute_image: current_image,
-      compute_image_changing: true,
       compute_image_focused: false
     });
     const new_image = this.state.displayed_compute_image;
-    try {
-      await this.props.save_compute_image(new_image);
-    } catch (err) {
-      if (err && err.message) {
-        alert_message({ type: "error", message: err.message });
-      }
-      this.setState({ compute_image_changing: false });
-    }
+    await this.props.save_compute_image(new_image);
   }
 
   set_compute_image = name => {
@@ -102,7 +91,7 @@ export class ComputeImageSelector extends Component<ReactProps, StateTypes> {
 
   render() {
     const no_value = this.state.displayed_compute_image == null;
-    if (no_value || this.state.compute_image_changing) {
+    if (no_value || this.props.compute_image_is_changing) {
       return <Loading />;
     }
     if (IMMUTABLE_COMPUTE_IMAGES.has("error")) {

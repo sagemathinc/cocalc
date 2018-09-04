@@ -35,8 +35,6 @@ misc                    = require('smc-util/misc')
 {alert_message}         = require('./alerts')
 {project_tasks}         = require('./project_tasks')
 {COLORS}                = require('smc-util/theme')
-{COMPUTE_IMAGES, DEFAULT_COMPUTE_IMAGE} = require('smc-util/compute-images')
-COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all the ui code was written.
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
@@ -706,7 +704,7 @@ ProjectSettingsBody = rclass ({name}) ->
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
                     <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
-                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
+                    <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} name={@props.name} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
                 </Col>

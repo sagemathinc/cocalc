@@ -123,6 +123,7 @@ export interface CourseState {
   assignments: AssignmentsMap;
   course_filename: string;
   course_project_id: string;
+  compute_image_is_changing?: boolean;
   configure_projects: string;
   error?: string;
   expanded_students: Set<string>;

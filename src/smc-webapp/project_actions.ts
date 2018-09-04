@@ -1622,8 +1622,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "zip",
       args,
-      timeout: 10*60,   /* compressing CAN take a while -- zip is slow! */
-      network_timeout: 10*60,
+      timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
+      network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id)
@@ -2650,9 +2650,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ free_warning_closed: true });
   }
 
-  set_compute_image = async (new_image: string): Promise<void> => {
-    let {fake_async_client_action} = require('./test/util');
-    await fake_async_client_action({wait_time: 1000, failure_odds: 0.5, expected_return:"none"})
+  set_compute_image = async (new_image: string, rethrow_errors: boolean = false): Promise<void> => {
+    this.setState({ compute_image_is_changing: true });
+    let { fake_async_client_action } = require("./test/util");
+    try {
+      await fake_async_client_action({
+        wait_time: 1000,
+        failure_odds: 0.8,
+        expected_return: "none"
+      });
+    } catch (err) {
+      console.log(`SET COMPUTE IMAGE FOR ${this.project_id} FAILED`);
+      if (rethrow_errors) {
+        throw err;
+      }
+    }
+    this.setState({ compute_image_is_changing: false });
     /*
     await client_query({
       query: {
@@ -2663,7 +2676,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     });
     */
-  }
+  };
 }
 
 const prom_client = require("./prom-client");

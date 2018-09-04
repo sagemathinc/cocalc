@@ -18,11 +18,13 @@ type ProjectInfo = TypedMap<{
 }>;
 
 interface ReactProps {
+  name: string;
   project: ProjectInfo;
 }
 
 interface ReduxProps {
   kucalc: string;
+  compute_image_is_changing: boolean;
 }
 
 interface StateTypes {
@@ -47,8 +49,11 @@ export const ProjectControlPanel = rclass<ReactProps>(
       };
     }
 
-    static reduxProps = () => {
+    static reduxProps = ({name}) => {
       return {
+        [name]: {
+          compute_image_is_changing: rtypes.bool
+        },
         customize: {
           kucalc: rtypes.string
         }
@@ -318,6 +323,7 @@ export const ProjectControlPanel = rclass<ReactProps>(
               save_compute_image={
                 redux.getActions({ project_id }).set_compute_image
               }
+              compute_image_is_changing={this.props.compute_image_is_changing}
             />
           </LabeledRow>
         </div>
