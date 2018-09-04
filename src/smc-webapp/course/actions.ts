@@ -2952,19 +2952,6 @@ You can find the comments they made in the folders below.\
       desc: `Setting all projects to ${new_image}`
     });
     this.setState({compute_image_is_changing: true});
-
-    try {
-      await resilient(
-        this.redux.getProjectActions(store.get("course_project_id"))
-          .set_compute_image,
-        { attempts: 5, context: this }
-      )(new_image, true);
-    } catch (err) {
-      alert_message({ type: "error", message: err.message });
-      this.setState({compute_image_is_changing: false})
-      this.clear_activity(activity_id);
-      return;
-    }
     await this.map_over_student_projects(
       "action_all_student_projects",
       async student => {

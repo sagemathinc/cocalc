@@ -307,7 +307,7 @@ export const ProjectControlPanel = rclass<ReactProps>(
     }
 
     render_select_compute_image_row() {
-      if (this.props.kucalc !== "yes") {
+      if (false && this.props.kucalc !== "yes") {
         return;
       }
       const project_id = this.props.project.get("project_id");

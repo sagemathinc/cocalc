@@ -2650,8 +2650,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ free_warning_closed: true });
   }
 
+  // Throws
   set_compute_image = async (new_image: string, rethrow_errors: boolean = false): Promise<void> => {
     this.setState({ compute_image_is_changing: true });
+    /*
     let { fake_async_client_action } = require("./test/util");
     try {
       await fake_async_client_action({
@@ -2665,8 +2667,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         throw err;
       }
     }
-    this.setState({ compute_image_is_changing: false });
-    /*
+    */
     await client_query({
       query: {
         projects: {
@@ -2675,7 +2676,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     });
-    */
+    this.redux.getActions("projects").restart_project(this.project_id);
+    this.setState({ compute_image_is_changing: false });
   };
 }
 
