@@ -228,12 +228,16 @@ exports.init_express_http_server = (opts) ->
     # returns 404 error, meaning hub may be unhealthy.  Kubernetes will try a few times before
     # killing the container.  Will also return 404 if there is no working database connection.
     router.get '/concurrent-warn', (req, res) ->
-        c = opts.database.concurrent()
-        if not hub_register.database_is_working() or c >= opts.database._concurrent_warn
-            winston.debug("/concurrent: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+        if not hub_register.database_is_working()
+            winston.debug("/concurrent-warn: not healthy, since database connection not working")
             res.status(404).end()
-        else
-            res.send("#{c}")
+            return
+        c = opts.database.concurrent()
+        if c >= opts.database._concurrent_warn
+            winston.debug("/concurrent-warn: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+            res.status(404).end()
+            return
+        res.send("#{c}")
 
     # Return number of concurrent connections (could be useful)
     router.get '/concurrent', (req, res) ->
