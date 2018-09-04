@@ -206,7 +206,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         delete @_clients
 
     _connect: (cb) =>
-        dbg = @_dbg("_do_connect"); dbg()
+        dbg = @_dbg("_do_connect")
+        dbg("connect to #{@_host}")
         @_clear_listening_state()   # definitely not listening
         if @_clients?
             @disconnect()
@@ -682,6 +683,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         # needed at some point for debugging.
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
         client = @_client()
+        if not client?
+            opts.cb?("not connected")
+            return
         @_concurrent_queries ?= 0
         @_concurrent_queries += 1
         dbg("query='#{opts.query} (concurrent=#{@_concurrent_queries})'")
@@ -826,8 +830,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         async.series([
             (cb) =>
                 dbg("disconnect from db")
-                for client in @_clients ? []
-                    client.end()
+                @disconnect()
                 cb()
             (cb) =>
                 misc_node.execute_code

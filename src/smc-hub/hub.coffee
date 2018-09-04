@@ -83,7 +83,7 @@ hub_register = require('./hub_register')
 
 # How frequently to register with the database that this hub is up and running,
 # and also report number of connected clients
-REGISTER_INTERVAL_S = 15   # every 15 seconds
+REGISTER_INTERVAL_S = 20
 
 init_smc_version = (db, cb) ->
     if db.is_standby
@@ -568,7 +568,7 @@ exports.start_server = start_server = (cb) ->
                     host           : program.host
 
             if program.port or program.share_port or program.proxy_port
-                # Register periodically with the database.
+                winston.debug("Starting registering periodically with the database and updating a health check...")
                 hub_register.start
                     database   : database
                     clients    : clients
