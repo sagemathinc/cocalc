@@ -234,10 +234,14 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     cb()
                     return
                 f = (host, cb) =>
-                    require('dns').lookup host.split(':')[0], {all:true}, (err, ips) =>
+                    hostname = host.split(':')[0]
+                    winston.debug("Looking up ip addresses of #{hostname}")
+                    require('dns').lookup hostname, {all:true}, (err, ips) =>
                         if err
+                            winston.debug("Got #{hostname} --> err=#{err}")
                             cb(err)
                         else
+                            winston.debug("Got #{hostname} --> #{JSON.stringify(ips)}")
                             # In kubernetes the stateful set service just has
                             # lots of ip address.  We connect to *all* of them,
                             # and spread queries across them equally.
