@@ -382,6 +382,14 @@ class SyncTable extends EventEmitter
             # This still could miss a small amount of data, but only
             # for a tiny window.
             f = async.series
+
+        ###
+        # Use this for simulating async/slow loading behavior for a specific table.
+        if @_table == 'accounts'
+            console.log("delaying")
+            await require('awaiting').delay(5000)
+        ###
+
         f([
             @_start_changefeed,
             @_do_initial_read_query,
