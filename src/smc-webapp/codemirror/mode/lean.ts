@@ -16,11 +16,11 @@ This is just a first tiny quick step.  To finish this:
       token: "keyword"
     },
     {
-      regex: /\b(?<!\\.)(import|prelude|theory|definition|def|abbreviation|instance|renaming|hiding|exposing|parameter|parameters|begin|constant|constants|lemma|variable|variables|theorem|example|open|axiom|inductive|coinductive|with|structure|universe|universes|alias|precedence|reserve|postfix|prefix|infix|infixl|infixr|notation|end|using|namespace|section|local|set_option|extends|include|omit|class|classes|instances|raw|run_cmd)\b/,
+      regex: /\b(?!\.)(import|prelude|theory|definition|def|abbreviation|instance|renaming|hiding|exposing|parameter|parameters|begin|constant|constants|lemma|variable|variables|theorem|example|open|axiom|inductive|coinductive|with|structure|universe|universes|alias|precedence|reserve|postfix|prefix|infix|infixl|infixr|notation|end|using|namespace|section|local|set_option|extends|include|omit|class|classes|instances|raw|run_cmd)\b/,
       token: "keyword"
     },
     {
-      regex: /\b(?<!\\.)(calc|have|this|match|do|suffices|show|by|in|at|let|forall|fun|exists|assume|from)\b/,
+      regex: /\b(?!\.)(calc|have|this|match|do|suffices|show|by|in|at|let|forall|fun|exists|assume|from)\b/,
       token: "keyword"
     },
     {
