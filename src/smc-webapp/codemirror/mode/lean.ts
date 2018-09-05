@@ -44,8 +44,8 @@ playgroud: https://regex101.com/r/lop9Se/1
     { regex: /[a-z$][\w$]*/, token: "variable" }
   ],
   string: [
-    {regex: /"/, token: "string", next: "start"},
-    {regex: /(?:[^\\"]|\\(?:.|$))*/, token: "string"}
+    { regex: /"/, token: "string", next: "start" },
+    { regex: /(?:[^\\"]|\\(?:.|$))*/, token: "string" }
   ],
   comment: [{ regex: /\(-.*-\)/, token: "comment", next: "start" }],
   meta: {

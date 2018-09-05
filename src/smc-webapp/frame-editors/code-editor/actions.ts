@@ -1126,14 +1126,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     let cm: any = this._get_cm(undefined, true);
-    if (!cm) {
+    if (cm != null) {
       try {
         cm = this._get_doc();
       } catch (err) {
         return;
       }
     }
-    cm.setValueNoJump(this._syncstring.to_str());
+    if (this._syncstring != null) {
+      cm.setValueNoJump(this._syncstring.to_str());
+    }
     this.update_save_status();
   }
 

@@ -110,7 +110,11 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
-    const buttons = this.props.editor_spec[this.props.type].buttons;
+    const spec = this.props.editor_spec[this.props.type];
+    if (spec == null) {
+      return false;
+    }
+    const buttons = spec.buttons;
     if (!explicit && buttons == null) {
       return true;
     }
@@ -174,7 +178,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           eventKey={type}
           onSelect={type => this.select_type(type)}
         >
-          <Icon name={spec.icon} style={ICON_STYLE} /> {spec.name}
+          <Icon name={spec.icon ? spec.icon : 'file'} style={ICON_STYLE} /> {spec.name}
         </MenuItem>
       );
       items.push(item);
