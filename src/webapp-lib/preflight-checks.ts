@@ -13,7 +13,6 @@ interface ISpecs {
 }
 
 /* credits: https://stackoverflow.com/a/38080051/54236 */
-/*
 const get_spec = function(): ISpecs {
   const mstr = /(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i;
   const ua = navigator.userAgent;
@@ -116,4 +115,3 @@ function preflight_check(): void {
 if (window.location.search.indexOf(SKIP_TOKEN) < 0) {
   preflight_check();
 }
-*/
