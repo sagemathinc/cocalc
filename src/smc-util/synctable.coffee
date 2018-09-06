@@ -302,11 +302,19 @@ class SyncTable extends EventEmitter
         )
 
     _reconnect: (cb) =>
-        dbg = @dbg("_run")
+        dbg = @dbg("_reconnect")
         if @_state == 'closed'
             dbg("closed so don't do anything ever again")
             cb?()
             return
+        # console.log("synctable", @_table, @_schema.db_standby)
+        if @_schema.db_standby
+            @_do_the_query_using_db_standby(cb)
+        else
+            @_do_the_query(cb)
+
+    _do_the_query: (cb) =>
+        dbg = @dbg("_do_the_query")
         first_resp = true
         this_query_id = undefined
         dbg("do the query")
@@ -360,6 +368,111 @@ class SyncTable extends EventEmitter
                     else
                         # Handle the update
                         @_update_change(resp)
+
+    _do_the_query_using_db_standby: (cb) =>
+        dbg = @dbg("_do_the_query_using_db_standby")
+        if @_schema.db_standby == 'unsafe'
+            # do not even require the changefeed to be
+            # working before doing the full query.  This would
+            # for sure miss all changes from when the query
+            # finishes until the changefeed starts.  For some
+            # tables this is fine; for others, not.
+            f = async.parallel
+        else
+            # This still could miss a small amount of data, but only
+            # for a tiny window.
+            f = async.series
+
+        ###
+        # Use this for simulating async/slow loading behavior for a specific table.
+        if @_table == 'accounts'
+            console.log("delaying")
+            await require('awaiting').delay(5000)
+        ###
+
+        f([
+            @_start_changefeed,
+            @_do_initial_read_query,
+        ], (err) =>
+            if err
+                dbg("FAIL", err)
+                cb?(err)
+                return
+            dbg("Success")
+            cb?()
+            # Do any pending saves
+            for c in @_connected_save_cbs ? []
+                @save(c)
+            delete @_connected_save_cbs
+        )
+
+    _do_initial_read_query: (cb) =>
+        dbg = @dbg("_do_initial_read_query")
+        dbg()
+        @_client.query
+            query   : @_query
+            standby : true
+            timeout : 30
+            options : @_options
+            cb      : (err, resp) =>
+                if err
+                    dbg("FAIL", err)
+                    cb?(err)
+                else
+                    dbg("success!")
+                    @_update_all(resp.query[@_table])
+                    @_state = 'connected'
+                    @emit("connected", resp.query[@_table])  # ready to use!
+                    cb?()
+
+    _start_changefeed: (cb) =>
+        dbg = @dbg("start_changefeed")
+        first_resp = true
+        this_query_id = undefined
+        dbg("do the query")
+        @_client.query
+            query   : @_query
+            changes : true
+            timeout : 30
+            options : (@_options ? []).concat({only_changes:true})
+            cb      : (err, resp) =>
+                if @_state == 'closed'
+                    # already closed so ignore anything else.
+                    return
+
+                if is_fatal(err)
+                    console.warn('setting up changefeed', @_table, err, @_query)
+                    @close(true)
+                    cb?(err)
+                    cb = undefined
+                    return
+
+                if first_resp
+                    dbg("query got first resp", err, resp)
+                    first_resp = false
+                    if @_state == 'closed'
+                        cb?("closed")
+                    else if resp?.event == 'query_cancel'
+                        cb?("query-cancel")
+                    else if err
+                        cb?(err)
+                    else
+                        # Successfully completed query to start changefeed.
+                        this_query_id = @_id = resp.id
+                        cb?()
+                else
+                    if @_state != 'connected'
+                        # TODO: save them up and apply...?
+                        dbg("nothing to do -- ignore these, and make sure they stop")
+                        if this_query_id?
+                            @_client.query_cancel(id:this_query_id)
+                        return
+                    if err or resp?.event == 'query_cancel'
+                        @_disconnected("err=#{err}, resp?.event=#{resp?.event}")
+                    else
+                        # Handle the update
+                        @_update_change(resp)
+
 
     _disconnected: (why) =>
         dbg = @dbg("_disconnected")

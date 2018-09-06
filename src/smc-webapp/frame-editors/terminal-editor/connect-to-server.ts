@@ -14,6 +14,7 @@ export async function connect_to_server(
   terminal.conn = await ws.api.terminal(path);
 
   terminal.is_paused = false;
+  terminal.conn.write({ cmd: "size", rows: 25, cols: 140 });
 
   let render_buffer: string = "";
   function render(data: string): void {

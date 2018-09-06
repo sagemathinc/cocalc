@@ -1,131 +1,58 @@
 import * as CodeMirror from "codemirror";
 
-CodeMirror.defineMode('lean', function() {
+/*
+This is just a first tiny quick step.  To finish this:
 
-  var words = {};
+- Look at https://codemirror.net/demo/simplemode.html for how this works.
+- Put everything from https://github.com/leanprover/vscode-lean/blob/master/syntaxes/lean.json in here.
 
-  function tokenBase(stream, state) {
-    if (stream.eatSpace()) return null;
+NOTE(hsy): I think the alternative that works with safari is this negative look ahead
 
-    var sol = stream.sol();
-    var ch = stream.next();
-    var cur = stream.current();
+/((?!\.).{1}|^)\b(import|prelude|theory|definition|def|abbreviation|instance|renaming|hiding|exposing|parameter|parameters|begin|constant|constants|lemma|variable|variables|theorem|example|open|axiom|inductive|coinductive|with|structure|universe|universes|alias|precedence|reserve|postfix|prefix|infix|infixl|infixr|notation|end|using|namespace|section|local|set_option|extends|include|omit|class|classes|instances|raw|run_cmd)\b/gm
 
-    if (ch === '@') { return "atom"; }
+playgroud: https://regex101.com/r/lop9Se/1
 
-    if (sol) {
+*/
 
-      if (ch === '#') {
-        if (stream.eat('!')) {
-          stream.skipToEnd();
-          return 'meta';
-        }
-        stream.skipToEnd();
-        return 'tag';
-      }
-
-      // if, ifdef, ifndef, ifeq, ifneq
-      if (ch === 'i' && (stream.match('f ') || stream.match('fdef ') || stream.match('fndef ') || stream.match('feq (') || stream.match('fneq ('))) {
-        stream.skipToEnd();
-        return "bracket";
-      }
-      // else, endif
-      if (ch === 'e' && (stream.match('lse') || stream.match('ndif'))) { return "bracket"; }
-      // include
-      if (ch === 'i' && stream.match('nclude ')) { return "string"; }
-      // -include
-      if (ch === '-' && stream.match('include ')) { return "string"; }
-      // vpath
-      if (ch === 'v' && stream.match('path ')) { return "string"; }
-
-      // makros
-      if ((stream.match(/^[\w]+[\s]+/) || stream.match(/^[\w]+/)) &&
-         (stream.peek() === '=' ||
-         ((stream.match('?') || stream.match('+') || stream.match('-')) && stream.peek() === '='))
-         ) { return "variable-2"; }
-
-      // Makefile targets
-      if ( stream.eat(':') || stream.match(/^[\w]+:/) || stream.match(/^(.)+[\w]+:/) ||
-          (ch === '$' && stream.match(/^\(+[\w]+\)+/) && stream.eat(':'))
-         ) {
-        if (stream.peek() === '=') {
-          return "variable-2";
-        } else {
-          return "header";
-        }
-      }
-
-    } else {
-
-      if (ch === '*') { return "quote"; }
-      if (ch === '%') { return 'atom'; }
-      if (ch === '\\' && stream.eol()) { return "comment"; }
-      if (ch === '#') {
-        stream.skipToEnd();
-        return 'tag';
-      }
-
-      if ((stream.eat(':') || stream.eat('+')) && stream.peek('=')) { return "variable-2"; }
-
-      if (ch === '$' && stream.eat('$') && stream.match(/^[\w]+/)) { return "variable-2"; }
-      if (ch === '$' && stream.eat('(')) {
-        state.tokens.unshift(tokenDollar);
-        return tokenize(stream, state);
-      }
-      if (ch === '$' && stream.eat('{')) {
-        state.tokens.unshift(tokenDollarB);
-        return tokenize(stream, state);
-      }
-      if (ch === '$' && (stream.eat('@') || stream.eat('<') || stream.eat('^'))) { return "quote"; }
-
-      if (ch === '\'' || ch === '"' || ch === '`') {
-        state.tokens.unshift(tokenString(ch));
-        return tokenize(stream, state);
-      }
-    }
-
-    stream.eatWhile(/[\w-]/);
-    return words.hasOwnProperty(cur) ? words[cur] : null;
-  }
-
-  function tokenString(quote) {
-    return function(stream, state) {
-      var next, end = false, escaped = false;
-      while ((next = stream.next()) != null) {
-        if (next === quote && !escaped) {
-          end = true;
-          break;
-        }
-      }
-      if (end || !escaped) {
-        state.tokens.shift();
-      }
-      return ((quote === ')' || quote === '}') ? 'variable-2' : 'string');
-    };
-  };
-
-  var tokenDollar = function(stream, state) {
-    if (state.tokens.length > 1) stream.eat('$');
-    state.tokens[0] = tokenString(')');
-    return tokenize(stream, state);
-  };
-  var tokenDollarB = function(stream, state) {
-    if (state.tokens.length > 1) stream.eat('$');
-    state.tokens[0] = tokenString('}');
-    return tokenize(stream, state);
-  };
-
-  function tokenize(stream, state) {
-    return (state.tokens[0] || tokenBase) (stream, state);
-  };
-
-  return {
-    startState: function() {return {tokens:[]};},
-    token: function(stream, state) {
-      return tokenize(stream, state);
+(CodeMirror as any).defineSimpleMode("lean", {
+  start: [
+    { regex: /"(?:[^\\]|\\.)*?(?:"|$)/, token: "string" },
+    {
+      regex: /#(print|eval|reduce|check|help|exit)\b/,
+      token: "keyword"
     },
-  lineComment: "#"
-  };
+    {
+      regex: /\b(?!\.)(import|prelude|theory|definition|def|abbreviation|instance|renaming|hiding|exposing|parameter|parameters|begin|constant|constants|lemma|variable|variables|theorem|example|open|axiom|inductive|coinductive|with|structure|universe|universes|alias|precedence|reserve|postfix|prefix|infix|infixl|infixr|notation|end|using|namespace|section|local|set_option|extends|include|omit|class|classes|instances|raw|run_cmd)\b/,
+      token: "keyword"
+    },
+    {
+      regex: /\b(?!\.)(calc|have|this|match|do|suffices|show|by|in|at|let|forall|fun|exists|assume|from)\b/,
+      token: "keyword"
+    },
+    {
+      regex: /\b(Prop|Type|Sort)\b/,
+      token: "keyword"
+    },
+    {
+      regex: /0x[a-f\d]+|[-+]?(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i,
+      token: "number"
+    },
+    { regex: /--.*/, token: "comment" },
+    { regex: /[-+\/*=<>!]+/, token: "operator" },
+    { regex: /begin/, indent: true },
+    { regex: /end/, dedent: true },
+    { regex: /[a-z$][\w$]*/, token: "variable" }
+  ],
+  string: [
+    { regex: /"/, token: "string", next: "start" },
+    { regex: /(?:[^\\"]|\\(?:.|$))*/, token: "string" }
+  ],
+  comment: [{ regex: /\(-.*-\)/, token: "comment", next: "start" }],
+  meta: {
+    dontIndentStates: ["comment"],
+    /* electricInput: /^\s*\}$/, */
+    blockCommentStart: "(-",
+    blockCommentEnd: "-)",
+    lineComment: "--"
+  }
 });
-
-

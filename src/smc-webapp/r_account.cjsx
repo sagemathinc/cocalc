@@ -126,6 +126,9 @@ EmailVerification = rclass
                 ]
 
     render : ->
+        # disabled since it is very confusing and not used at all yet:
+        #   see https://github.com/sagemathinc/cocalc/issues/3147 and https://github.com/sagemathinc/cocalc/issues/3148
+        return <span></span>
         <LabeledRow label='Email verification' style={marginBottom: '15px'}>
             <div>
                 Status: {@test()}

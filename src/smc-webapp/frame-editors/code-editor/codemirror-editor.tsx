@@ -288,7 +288,8 @@ export class CodemirrorEditor extends Component<Props, State> {
     // now in the next render loop
     this.cm_refresh();
     if (props.is_current && this.cm) {
-      await delay(1); // just in case.
+      this.cm.focus();
+      await delay(15); // just in case.
       this.cm.focus();
     }
   }

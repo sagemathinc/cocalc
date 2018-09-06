@@ -8,6 +8,8 @@ Initially only the simplest possible client-side implementation.
 misc = require('smc-util/misc')
 {webapp_client} = require('./webapp_client')
 
+async = require('async')
+
 exports.session_manager = (name, redux) ->
     return new SessionManager(name, redux)
 
@@ -27,14 +29,25 @@ class SessionManager
         @_local_storage_name_closed = "closed-session#{prefix}.#{webapp_client.account_id}.#{@name}"
         @_load_from_local_storage()
 
-        # Wait until projects is defined (loaded from db) before trying to restore open projects and their files.
+        # Wait until projects *and* accounts are
+        # defined (loaded from db) before trying to
+        # restore open projects and their files.
         # Otherwise things will randomly fail.
-        @redux.getStore('projects').wait
-            until   : (store) -> store.get('project_map')?
-            timeout : 0
-            cb      : =>
-                @restore()
-                @_initialized = true
+        async.series([
+            (cb) =>
+                @redux.getStore('account').wait
+                    until   : (store) -> store.get('editor_settings')?
+                    timeout : 0
+                    cb      : cb
+            (cb) =>
+                @redux.getStore('projects').wait
+                    until   : (store) -> store.get('project_map')?
+                    timeout : 0
+                    cb      : cb
+        ], (err) =>
+            @restore()
+            @_initialized = true
+        )
 
     save: =>
         if @_ignore or not @_initialized

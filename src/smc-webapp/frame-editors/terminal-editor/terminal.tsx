@@ -64,6 +64,7 @@ export class TerminalFrame extends Component<Props, {}> {
     } else {
       this.terminal = new Terminal();
       this.terminal.open();
+      this.terminal.resize(140,25);
       this.props.actions.set_terminal(this.props.id, this.terminal);
     }
     const elt = $(this.terminal.element)
