@@ -10,6 +10,7 @@ LICENSE   : AGPLv3
 ###
 
 async = require('async')
+require('ts-node').register() # be able to load typescript
 
 global.misc = require('smc-util/misc')
 global.done = misc.done
