@@ -1235,6 +1235,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return async.series(
       [
         cb => {
+          // make sure the user type is known;
+          // otherwise, our relationship to project
+          // below can't be determined properly.
+          this.redux.getStore("account").wait({
+            until: s =>
+              (s.get("is_logged_in") && s.get("account_id")) ||
+              !s.get("is_logged_in"),
+            cb: cb
+          });
+        },
+
+        cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
           return (

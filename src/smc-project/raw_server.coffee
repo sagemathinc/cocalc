@@ -88,6 +88,7 @@ exports.start_raw_server = (opts) ->
             # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
             raw_server.use(base, jupyter_router(express))
 
+
             # Setup the /.smc/ws websocket server, which is used by clients
             # for direct websocket connections to the project, and also
             # servers /.smc/primus.js, which is the relevant client library.

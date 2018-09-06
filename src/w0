@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+import os, time
+
+print("Starting webpack")
+s = "cd $SALVUS_ROOT; unset CC_STATICPAGES; . smc-env; CC_NOCLEAN=true npm run webpack-watch"
+while True:
+    print(s)
+    os.system(s)
+    time.sleep(3)

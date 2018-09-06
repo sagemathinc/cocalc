@@ -6,7 +6,7 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/editor"; // TO
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
-const MAX_SAVE_TIME_S = 90; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
+const MAX_SAVE_TIME_S = 45; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
@@ -207,7 +207,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         cursors: true,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
-        fake: fake_syncstring
+        fake: fake_syncstring,
+        save_interval: 500,
+        patch_interval: 500
       });
     } else if (this.doctype == "syncdb") {
       this._syncstring = syncdb({
@@ -657,10 +659,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     delete this._cm[id];
 
+    this.close_frame_hook(id);
+
     // if id is the current active_id, change to most recent one.
     if (id === this.store.getIn(["local_view_state", "active_id"])) {
       this.make_most_recent_frame_active();
     }
+  }
+
+  close_frame_hook(_:string) : void {
+    // overload in derived class...
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {
@@ -861,9 +869,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.setState({ is_saving: true });
     try {
       await callback(this._syncstring.save_to_disk);
-    } catch (err) {
-      this.set_error(`${SAVE_ERROR} '${err}'.  ${SAVE_WORKAROUND}`);
-      return;
     } finally {
       this.update_save_status();
       this.setState({ is_saving: false });
@@ -1121,14 +1126,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     let cm: any = this._get_cm(undefined, true);
-    if (!cm) {
+    if (cm == null) {
       try {
         cm = this._get_doc();
       } catch (err) {
         return;
       }
     }
-    cm.setValueNoJump(this._syncstring.to_str());
+    if (this._syncstring != null && cm != null) {
+      cm.setValueNoJump(this._syncstring.to_str());
+    }
     this.update_save_status();
   }
 

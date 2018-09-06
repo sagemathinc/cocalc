@@ -188,6 +188,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
         status={this.props.status}
+        title={desc.get("title")}
       />
     );
   }
@@ -265,7 +266,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     } else {
       // fix this disaster next time around.
       this.reset_frame_tree();
-      return <div>Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}'.</div>;
+      return (
+        <div>
+          Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}
+          '.
+        </div>
+      );
     }
     return (
       <div

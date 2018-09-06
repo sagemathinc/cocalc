@@ -1,16 +1,22 @@
-import { React, Component } from "./app-framework";
+import { React, Component, Rendered } from "./app-framework";
 import { Map as ImmutableMap } from "immutable";
-import { Button, ButtonToolbar, Well } from "react-bootstrap";
+import { Button, ButtonToolbar, FormControl, Well } from "react-bootstrap";
 const { Avatar } = require("./other-users");
-const { Icon } = require("./r_misc");
-// TODO: try this one https://github.com/exelban/react-image-crop-component
+const { ErrorDisplay, Icon } = require("./r_misc");
 const ReactCrop = require("react-image-crop");
 import "react-image-crop/dist/ReactCrop.css";
 const md5 = require("md5");
 
+// This is what facebook uses, and it makes
+// 40x40 look very good.  It takes about 20KB
+// per image.
+const AVATAR_SIZE: number = 160;
+
+import { callback } from "awaiting";
+
 interface ProfileImageSelectorProps {
-  profile: ImmutableMap<any, any>; // TODO: type
-  redux: any; // TODO: type
+  profile: ImmutableMap<any, any>;
+  redux: any;
   account_id: any;
   email_address: string;
 }
@@ -18,8 +24,8 @@ interface ProfileImageSelectorProps {
 interface ProfileImageSelectorState {
   is_dragging_image_over_dropzone: boolean;
   custom_image_src?: string;
-  crop?: any; // TODO: type
-  pixelCrop?: any; // TODO: type
+  crop?: any;
+  pixelCrop?: any;
   is_loading?: boolean;
   error?: any;
   show_default_explanation?: boolean;
@@ -31,7 +37,8 @@ export class ProfileImageSelector extends Component<
   ProfileImageSelectorProps,
   ProfileImageSelectorState
 > {
-  private cancel_loading: (() => void) | undefined;
+  private is_mounted: boolean = true;
+
   constructor(props: ProfileImageSelectorProps, context: any) {
     super(props, context);
     this.state = {
@@ -40,28 +47,26 @@ export class ProfileImageSelector extends Component<
   }
 
   componentWillUnmount() {
-    if (this.cancel_loading != null) {
-      this.cancel_loading();
-    }
+    this.is_mounted = false;
   }
 
-  set_image = (src: string) => {
+  set_image = async (src: string) => {
     this.setState({ is_loading: true });
-    const p = makeCancelable(
-      new Promise(resolve =>
-        this.props.redux
-          .getTable("account")
-          .set({ profile: { image: src } }, "none", resolve)
-      )
-    );
-    // TODO: wrap redux set in a async wrapper and use regular js errors, then have one catch here.
-    p.promise
-      .then((e: any) => {
-        // TODO: view this error
-        this.setState({ error: `${e}`, is_loading: false });
-      })
-      .catch((e: any) => e != null && !e.isCanceled && console.error(e)); // this is just to suppress the canceled error
-    this.cancel_loading = p.cancel;
+    try {
+      await callback(
+        this.props.redux.getTable("account").set,
+        { profile: { image: src } },
+        "none"
+      );
+    } catch (err) {
+      if (this.is_mounted) {
+        this.setState({ error: `${err}` });
+      }
+    } finally {
+      if (this.is_mounted) {
+        this.setState({ is_loading: false });
+      }
+    }
   };
 
   handle_gravatar_click = () =>
@@ -87,15 +92,15 @@ export class ProfileImageSelector extends Component<
       return;
     }
     const reader = new FileReader();
-    // TODO: type e
-    // TODO: cancel on unmount
     reader.onload = (e: any) => {
+      if (!this.is_mounted) {
+        return;
+      }
       this.setState({ custom_image_src: e.target.result });
     };
     reader.readAsDataURL(file);
   };
 
-  // TODO: type e
   handle_image_file_upload = (e: any) => {
     const files = e.target.files;
     let file: File | undefined;
@@ -106,7 +111,6 @@ export class ProfileImageSelector extends Component<
     this.handle_image_file(file);
   };
 
-  // TODO: type e
   handle_image_file_drop = (e: any) => {
     e.preventDefault();
     e.stopPropagation();
@@ -123,7 +127,6 @@ export class ProfileImageSelector extends Component<
     }
   };
 
-  // TODO: type e
   handle_image_file_paste = (e: any) => {
     e.preventDefault();
     const items = e.clipboardData.items;
@@ -139,7 +142,6 @@ export class ProfileImageSelector extends Component<
     }
   };
 
-  // TODO: type e
   handle_image_file_input = (e: any) => {
     e.preventDefault();
     const files = e.target.files;
@@ -252,20 +254,12 @@ export class ProfileImageSelector extends Component<
         ) : (
           <br />
         )}
-        <Button
+        <FormControl
+          type="file"
+          onChange={this.handle_image_file_input}
+          className="btn btn-default"
           style={{ marginTop: "5px" }}
-          onClick={() =>
-            document.getElementById("upload-profile-image-input")!.click()
-          }
-        >
-          <input
-            id="upload-profile-image-input"
-            style={{ display: "none" }}
-            type="file"
-            onChange={this.handle_image_file_input}
-          />
-          Upload an image
-        </Button>
+        />
         <br />
         <div
           className={
@@ -291,19 +285,24 @@ export class ProfileImageSelector extends Component<
     );
   }
 
-  handle_done_cropping = () => {
+  handle_done_cropping = async (): Promise<void> => {
     const { pixelCrop, custom_image_src: src } = this.state;
-    this.setState({ custom_image_src: undefined });
-    if (pixelCrop === undefined) {
-      this.set_image(src!);
+    if (src == null) {
+      this.setState({ error: "image should be set" });
       return;
     }
+    this.setState({ custom_image_src: undefined });
     const image = new Image();
     image.src = src as string;
-    this.set_image(getCroppedImg(image, pixelCrop));
+    try {
+      this.set_image(await getCroppedImg(image, pixelCrop));
+    } catch (err) {
+      console.warn("ERROR cropping -- ", err);
+      this.setState({ error: `${err}` });
+    }
   };
 
-  render_crop_selection() {
+  render_crop_selection(): Rendered {
     return (
       <>
         <ReactCrop
@@ -314,16 +313,19 @@ export class ProfileImageSelector extends Component<
             this.setState({ crop, pixelCrop })
           }
           onImageLoaded={image => {
+            const crop = ReactCrop.makeAspectCrop(
+              {
+                x: 0,
+                y: 0,
+                aspect: 1,
+                width: 30
+              },
+              image.width / image.height
+            );
+            const pixelCrop = ReactCrop.getPixelCrop(image, crop);
             this.setState({
-              crop: ReactCrop.makeAspectCrop(
-                {
-                  x: 0,
-                  y: 0,
-                  aspect: 1,
-                  width: 30
-                },
-                image.width / image.height
-              )
+              crop,
+              pixelCrop
             });
           }}
           crop={this.state.crop}
@@ -356,6 +358,18 @@ export class ProfileImageSelector extends Component<
     );
   }
 
+  render_error(): Rendered {
+    if (this.state.error == null) {
+      return;
+    }
+    return (
+      <ErrorDisplay
+        error={this.state.error}
+        onClose={() => this.setState({ error: undefined })}
+      />
+    );
+  }
+
   render() {
     if (this.state.is_loading) {
       return this.render_loading();
@@ -372,6 +386,8 @@ export class ProfileImageSelector extends Component<
           no_loading={true}
         />
         <br />
+        {this.render_error()}
+        <br />
         {this.render_options()}
       </>
     );
@@ -381,14 +397,19 @@ export class ProfileImageSelector extends Component<
 /**
  * @param {File} image - Image File Object
  * @param {Object} pixelCrop - pixelCrop Object provided by react-image-crop
+
+ Returns a Base64 string
  */
-function getCroppedImg(image, pixelCrop) {
+async function getCroppedImg(image, pixelCrop): Promise<string> {
+  (window as any).image = image;
   const canvas = document.createElement("canvas");
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (ctx == null) {
+    throw Error("Error cropping image; please retry later");
+  }
 
-  // TODO: resize to max of 100 by 100 px
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -401,32 +422,15 @@ function getCroppedImg(image, pixelCrop) {
     pixelCrop.height
   );
 
-  // As Base64 string
-  return canvas.toDataURL("image/jpeg");
-}
-
-function makeCancelable<T>(promise: Promise<T>) {
-  let hasCanceled_ = false;
-  const wrappedPromise = new Promise((resolve, reject) => {
-    promise.then(
-      val =>
-        hasCanceled_
-          ? reject(
-              Object.assign(new Error("is canceled"), { isCanceled: true })
-            )
-          : resolve(val),
-      error =>
-        hasCanceled_
-          ? reject(
-              Object.assign(new Error("is canceled"), { isCanceled: true })
-            )
-          : reject(error)
-    );
-  });
-  return {
-    promise: wrappedPromise,
-    cancel() {
-      hasCanceled_ = true;
-    }
-  };
+  // Resize to at most AVATAR_SIZE.
+  if (pixelCrop.width > AVATAR_SIZE || pixelCrop.height > AVATAR_SIZE) {
+    const canvas2 = document.createElement("canvas");
+    canvas2.width = AVATAR_SIZE;
+    canvas2.height = AVATAR_SIZE;
+    const pica = require("pica")();
+    await pica.resize(canvas, canvas2);
+    return canvas2.toDataURL("image/jpeg");
+  } else {
+    return canvas.toDataURL("image/jpeg");
+  }
 }

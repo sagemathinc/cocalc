@@ -150,6 +150,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where_function : undefined # if given; a function of the *primary* key that returns true if and only if it matches the changefeed
             idle_timeout_s : undefined   # TODO: currently ignored
             cb       : undefined
+        if @is_standby
+            opts.cb?("synctable against standby database not allowed")
+            return
         return new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
 
     changefeed: (opts) =>
@@ -160,6 +163,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             watch  : required   # Array of field names we watch for changes
             where  : required   # Condition involving only the fields in select; or function taking obj with select and returning true or false
             cb     : required
+        if @is_standby
+            opts.cb?("changefeed against standby database not allowed")
+            return
         new Changes(@, opts.table, opts.select, opts.watch, opts.where, opts.cb)
         return
 

@@ -69,7 +69,10 @@ exports.init_express_http_server = (opts) ->
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
 
-    server_settings = require('./server-settings')(opts.database)
+    if opts.database.is_standby
+        server_settings = undefined
+    else
+        server_settings = require('./server-settings')(opts.database)
 
     # Create an express application
     router = express.Router()
@@ -225,12 +228,16 @@ exports.init_express_http_server = (opts) ->
     # returns 404 error, meaning hub may be unhealthy.  Kubernetes will try a few times before
     # killing the container.  Will also return 404 if there is no working database connection.
     router.get '/concurrent-warn', (req, res) ->
-        c = opts.database.concurrent()
-        if not hub_register.database_is_working() or c >= opts.database._concurrent_warn
-            winston.debug("/concurrent: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+        if not hub_register.database_is_working()
+            winston.debug("/concurrent-warn: not healthy, since database connection not working")
             res.status(404).end()
-        else
-            res.send("#{c}")
+            return
+        c = opts.database.concurrent()
+        if c >= opts.database._concurrent_warn
+            winston.debug("/concurrent-warn: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+            res.status(404).end()
+            return
+        res.send("#{c}")
 
     # Return number of concurrent connections (could be useful)
     router.get '/concurrent', (req, res) ->
@@ -335,14 +342,16 @@ exports.init_express_http_server = (opts) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
-    router.get '/registration', (req, res) ->
-        if server_settings.all.account_creation_token
-            res.json({token:true})
-        else
-            res.json({})
+    if server_settings?
+        router.get '/registration', (req, res) ->
+            if server_settings.all.account_creation_token
+                res.json({token:true})
+            else
+                res.json({})
 
-    router.get '/customize', (req, res) ->
-        res.json(server_settings.pub)
+    if server_settings?
+        router.get '/customize', (req, res) ->
+            res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*'], (req, res) ->

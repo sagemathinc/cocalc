@@ -526,6 +526,13 @@ HideDeletePanel = rclass
                     {@render_expanded_delete_info()}
                 </Col>
             </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
+            <hr/>
+            <Row style={color: '#666'}>
+                <Col sm={12}>
+                    If you do need to permanently delete some sensitive information
+                    that you accidentally copied into a project, contact <HelpEmailLink/>.
+                </Col>
+            </Row>
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass

@@ -24,6 +24,7 @@ exports.get_account_id = (database, remember_me, cb) ->
         cb   : (err, signed_in_mesg) ->
             if err
                 cb(err)
+                return
             remember_me_cache.set(remember_me, signed_in_mesg?.account_id)
             if not signed_in_mesg?
                 cb('not signed in')
