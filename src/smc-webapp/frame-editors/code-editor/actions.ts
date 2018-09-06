@@ -1476,6 +1476,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         parser = "typescript";
         break;
       case "md":
+      case "rmd":
         parser = "markdown";
         break;
       case "css":
