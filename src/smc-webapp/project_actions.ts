@@ -2653,12 +2653,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Throws
   set_compute_image = async (new_image: string, rethrow_errors: boolean = false): Promise<void> => {
     this.setState({ compute_image_is_changing: true });
-    /*
     let { fake_async_client_action } = require("./test/util");
     try {
       await fake_async_client_action({
         wait_time: 1000,
-        failure_odds: 0.8,
+        failure_odds: 0.2,
         expected_return: "none"
       });
     } catch (err) {
@@ -2667,7 +2666,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         throw err;
       }
     }
-    */
+
     await client_query({
       query: {
         projects: {

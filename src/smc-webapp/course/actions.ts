@@ -2961,9 +2961,9 @@ You can find the comments they made in the folders below.\
       },
       {
         max_tries: 5,
-        on_failure: () => {
+        on_failure: (err) => {
           this.set_error(
-            "An error occured while changing the course project image. Please check your internet connection and try again."
+            `An error occured while changing the course project image. Please check your internet connection and try again. ${err}`
           );
         }
       }
@@ -3020,7 +3020,7 @@ You can find the comments they made in the folders below.\
       );
     } catch (err) {
       if (on_failure !== undefined) {
-        on_failure();
+        on_failure(err);
       }
     }
 
