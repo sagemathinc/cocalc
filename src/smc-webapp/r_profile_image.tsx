@@ -1,11 +1,16 @@
-import { React, Component } from "./app-framework";
+import { React, Component, Rendered } from "./app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "react-bootstrap";
 const { Avatar } = require("./other-users");
-const { Icon } = require("./r_misc");
+const { ErrorDisplay, Icon } = require("./r_misc");
 const ReactCrop = require("react-image-crop");
 import "react-image-crop/dist/ReactCrop.css";
 const md5 = require("md5");
+
+// This is what facebook uses, and it makes
+// 40x40 look very good.  It takes about 20KB
+// per image.
+const AVATAR_SIZE: number = 160;
 
 import { callback } from "awaiting";
 
@@ -46,7 +51,6 @@ export class ProfileImageSelector extends Component<
   }
 
   set_image = async (src: string) => {
-    console.log(src.length);
     this.setState({ is_loading: true });
     try {
       await callback(
@@ -281,27 +285,24 @@ export class ProfileImageSelector extends Component<
     );
   }
 
-  handle_done_cropping = () => {
+  handle_done_cropping = async (): Promise<void> => {
     const { pixelCrop, custom_image_src: src } = this.state;
     if (src == null) {
       this.setState({ error: "image should be set" });
       return;
     }
     this.setState({ custom_image_src: undefined });
-    if (pixelCrop === undefined) {
-      this.set_image(src);
-      return;
-    }
     const image = new Image();
     image.src = src as string;
     try {
-      this.set_image(getCroppedImg(image, pixelCrop));
+      this.set_image(await getCroppedImg(image, pixelCrop));
     } catch (err) {
+      console.warn("ERROR cropping -- ", err);
       this.setState({ error: `${err}` });
     }
   };
 
-  render_crop_selection() {
+  render_crop_selection(): Rendered {
     return (
       <>
         <ReactCrop
@@ -312,16 +313,19 @@ export class ProfileImageSelector extends Component<
             this.setState({ crop, pixelCrop })
           }
           onImageLoaded={image => {
+            const crop = ReactCrop.makeAspectCrop(
+              {
+                x: 0,
+                y: 0,
+                aspect: 1,
+                width: 30
+              },
+              image.width / image.height
+            );
+            const pixelCrop = ReactCrop.getPixelCrop(image, crop);
             this.setState({
-              crop: ReactCrop.makeAspectCrop(
-                {
-                  x: 0,
-                  y: 0,
-                  aspect: 1,
-                  width: 30
-                },
-                image.width / image.height
-              )
+              crop,
+              pixelCrop
             });
           }}
           crop={this.state.crop}
@@ -354,6 +358,18 @@ export class ProfileImageSelector extends Component<
     );
   }
 
+  render_error(): Rendered {
+    if (this.state.error == null) {
+      return;
+    }
+    return (
+      <ErrorDisplay
+        error={this.state.error}
+        onClose={() => this.setState({ error: undefined })}
+      />
+    );
+  }
+
   render() {
     if (this.state.is_loading) {
       return this.render_loading();
@@ -370,6 +386,8 @@ export class ProfileImageSelector extends Component<
           no_loading={true}
         />
         <br />
+        {this.render_error()}
+        <br />
         {this.render_options()}
       </>
     );
@@ -379,8 +397,11 @@ export class ProfileImageSelector extends Component<
 /**
  * @param {File} image - Image File Object
  * @param {Object} pixelCrop - pixelCrop Object provided by react-image-crop
+
+ Returns a Base64 string
  */
-function getCroppedImg(image, pixelCrop) {
+async function getCroppedImg(image, pixelCrop): Promise<string> {
+  (window as any).image = image;
   const canvas = document.createElement("canvas");
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
@@ -389,7 +410,6 @@ function getCroppedImg(image, pixelCrop) {
     throw Error("Error cropping image; please retry later");
   }
 
-  // TODO: resize to max of 100 by 100 px
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -402,6 +422,15 @@ function getCroppedImg(image, pixelCrop) {
     pixelCrop.height
   );
 
-  // As Base64 string
-  return canvas.toDataURL("image/jpeg");
+  // Resize to at most AVATAR_SIZE.
+  if (pixelCrop.width > AVATAR_SIZE || pixelCrop.height > AVATAR_SIZE) {
+    const canvas2 = document.createElement("canvas");
+    canvas2.width = AVATAR_SIZE;
+    canvas2.height = AVATAR_SIZE;
+    const pica = require("pica")();
+    await pica.resize(canvas, canvas2);
+    return canvas2.toDataURL("image/jpeg");
+  } else {
+    return canvas.toDataURL("image/jpeg");
+  }
 }
