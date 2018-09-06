@@ -1235,6 +1235,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return async.series(
       [
         cb => {
+          // make sure the user type is known;
+          // otherwise, our relationship to project
+          // below can't be determined properly.
+          this.redux.getStore("account").wait({
+            until: s =>
+              (s.get("is_logged_in") && s.get("account_id")) ||
+              !s.get("is_logged_in"),
+            cb: cb
+          });
+        },
+
+        cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
           return (
@@ -1622,8 +1634,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "zip",
       args,
-      timeout: 10*60,   /* compressing CAN take a while -- zip is slow! */
-      network_timeout: 10*60,
+      timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
+      network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id)

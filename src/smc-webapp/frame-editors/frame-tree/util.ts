@@ -34,6 +34,7 @@ export function aux_file(path: string, ext: string): string {
   }
 }
 
+// the list of filename extensions where we do support source formatting
 export const PRETTIER_SUPPORT = {
   js: true,
   jsx: true,

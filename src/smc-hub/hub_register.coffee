@@ -23,7 +23,7 @@
 Hub Registration (recording number of clients)
 ###
 
-winston = require('winston')
+winston = require('./winston-metrics').get_logger('hub')
 misc    = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -44,9 +44,30 @@ exports.number_of_clients = () ->
     return number_of_clients()
 
 register_hub = (cb) ->
+    winston.debug("register_hub")
     if not the_database?
+        database_is_working = false
+        winston.debug("register_hub -- no database, so FAILED")
         cb?("database not yet set")
         return
+    if not the_database._clients?
+        database_is_working = false
+        winston.debug("register_hub -- not connected, so FAILED")
+        cb?()
+        return
+    if the_database.is_standby
+        winston.debug("register_hub -- doing read query of site settings")
+        the_database.get_site_settings
+            cb : (err, settings) ->
+                if err
+                    winston.debug("register_hub -- FAILED read query")
+                    database_is_working = false
+                else
+                    winston.debug("register_hub -- read query worked")
+                    database_is_working = true
+        return
+
+    winston.debug("register_hub -- doing db query")
     the_database.register_hub
         host    : the_host
         port    : the_port
@@ -55,9 +76,10 @@ register_hub = (cb) ->
         cb      : (err) ->
             if err
                 database_is_working = false
-                winston.debug("Error registering with database - #{err}")
+                winston.debug("register_hub -- fail - #{err}")
             else
                 database_is_working = true
+                winston.debug("register_hub -- success")
             cb?(err)
 
 exports.database_is_working = ->
@@ -70,6 +92,7 @@ exports.start = (opts) ->
         host       : required
         port       : required
         interval_s : required
+    winston.debug("hub_register.start...")
     the_database = opts.database
     the_clients  = opts.clients
     the_host     = opts.host

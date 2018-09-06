@@ -6,6 +6,9 @@ Comprehensive list of Jupyter notebook (version 5) command,
 
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
+const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
+  .FORMAT_SOURCE_ICON;
+
 // TODO: type
 export function commands(actions: any) {
   // TODO: if actions is not defined, what does this do?
@@ -109,7 +112,8 @@ export function commands(actions: any) {
     "close pager": {
       m: "Close pager",
       k: [{ which: 27, mode: "escape" }],
-      f: () => (store.get("introspect") != null ? actions.clear_introspect() : undefined)
+      f: () =>
+        store.get("introspect") != null ? actions.clear_introspect() : undefined
     },
 
     "confirm restart kernel": {
@@ -119,7 +123,8 @@ export function commands(actions: any) {
       f() {
         return actions.confirm_dialog({
           title: "Restart kernel?",
-          body: "Do you want to restart the current kernel?  All variables will be lost.",
+          body:
+            "Do you want to restart the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Restart", style: "danger", default: true }
@@ -142,7 +147,11 @@ export function commands(actions: any) {
             "Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
           choices: [
             { title: "Continue running" },
-            { title: "Restart and clear all outputs", style: "danger", default: true }
+            {
+              title: "Restart and clear all outputs",
+              style: "danger",
+              default: true
+            }
           ],
           cb(choice) {
             if (choice === "Restart and clear all outputs") {
@@ -164,7 +173,11 @@ export function commands(actions: any) {
             "Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.",
           choices: [
             { title: "Continue running" },
-            { title: "Restart and run all cells", style: "danger", default: true }
+            {
+              title: "Restart and run all cells",
+              style: "danger",
+              default: true
+            }
           ],
           cb(choice) {
             if (choice === "Restart and run all cells") {
@@ -190,7 +203,8 @@ export function commands(actions: any) {
       f() {
         actions.confirm_dialog({
           title: "Shutdown kernel?",
-          body: "Do you want to shutdown the current kernel?  All variables will be lost.",
+          body:
+            "Do you want to shutdown the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Shutdown", style: "danger", default: true }
@@ -266,33 +280,47 @@ export function commands(actions: any) {
     },
 
     "extend selection above": {
-      k: [{ mode: "escape", shift: true, which: 75 }, { mode: "escape", shift: true, which: 38 }],
+      k: [
+        { mode: "escape", shift: true, which: 75 },
+        { mode: "escape", shift: true, which: 38 }
+      ],
       f: () => actions.extend_selection(-1)
     },
 
     "extend selection below": {
-      k: [{ mode: "escape", shift: true, which: 74 }, { mode: "escape", shift: true, which: 40 }],
+      k: [
+        { mode: "escape", shift: true, which: 74 },
+        { mode: "escape", shift: true, which: 40 }
+      ],
       f: () => actions.extend_selection(1)
     },
 
     "find and replace": {
       m: "Find and replace",
-      k: [{ mode: "escape", which: 70 }, { alt: true, mode: "escape", which: 70 }],
+      k: [
+        { mode: "escape", which: 70 },
+        { alt: true, mode: "escape", which: 70 }
+      ],
       f: () => actions.show_find_and_replace()
     },
 
     "global undo": {
       m: "Undo",
       i: "undo",
-      d: "Global user-aware undo.  Undo the last change *you* made to the notebook.",
-      k: [{ alt: true, mode: "escape", which: 90 }, { ctrl: true, mode: "escape", which: 90 }],
+      d:
+        "Global user-aware undo.  Undo the last change *you* made to the notebook.",
+      k: [
+        { alt: true, mode: "escape", which: 90 },
+        { ctrl: true, mode: "escape", which: 90 }
+      ],
       f: () => actions.undo()
     },
 
     "global redo": {
       m: "Redo",
       i: "repeat",
-      d: "Global user-aware redo.  Redo the last change *you* made to the notebook.",
+      d:
+        "Global user-aware redo.  Redo the last change *you* made to the notebook.",
       k: [
         { alt: true, mode: "escape", which: 90, shift: true },
         { ctrl: true, mode: "escape", which: 90, shift: true },
@@ -603,7 +631,10 @@ export function commands(actions: any) {
 
     "select all cells": {
       m: "Select all cells",
-      k: [{ alt: true, mode: "escape", which: 65 }, { ctrl: true, mode: "escape", which: 65 }],
+      k: [
+        { alt: true, mode: "escape", which: 65 },
+        { ctrl: true, mode: "escape", which: 65 }
+      ],
       f: () => actions.select_all_cells()
     },
 
@@ -788,6 +819,18 @@ export function commands(actions: any) {
     "delete protect": {
       m: "Toggle delete protection",
       f: () => actions.toggle_delete_protection()
+    },
+
+    "format cells": {
+      i: FORMAT_SOURCE_ICON,
+      m: "Format selected cells",
+      f: () => actions.format_selected_cells()
+    },
+
+    "format all cells": {
+      i: FORMAT_SOURCE_ICON,
+      m: "Format all cells",
+      f: () => actions.format_all_cells()
     }
   };
 }

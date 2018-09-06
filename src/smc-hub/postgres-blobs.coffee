@@ -872,3 +872,23 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb    : cb
         ], (err) => opts.cb?(err))
 
+
+    # Some one off code...
+    resize_profile_image: (account_id) =>
+        console.log("resize_profile_image", account_id)
+        {callback_opts} = require("../smc-webapp/frame-editors/generic/async-utils")
+        result = await callback_opts(@_query)(query : "SELECT profile FROM accounts WHERE account_id='#{account_id}'")
+        image = result.rows[0].profile.image
+        v = image.split(',')
+        data = new Buffer(v[1], 'base64')
+        data2 = await require('sharp')(data).resize(140,140).toBuffer()
+        image2 = v[0] + ',' + data2.toString('base64')
+        #return image2
+        await callback_opts(@_query)(query: "UPDATE accounts SET profile = jsonb_set(profile, '{image}', '\"#{image2}\"') WHERE account_id='#{account_id}'")
+
+    resize_all_profile_images: () =>
+        {callback_opts} = require("../smc-webapp/frame-editors/generic/async-utils")
+        result = await callback_opts(@_query)(query : "SELECT account_id FROM accounts WHERE length(profile#>>'{image}')>5000")
+        for x in result.rows
+            account_id = x.account_id
+            await @resize_profile_image(account_id)

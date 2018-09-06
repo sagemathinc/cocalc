@@ -45,23 +45,7 @@ export async function run_prettier(
     [input, math] = remove_math(math_escape(input));
   }
   try {
-    logger.debug(`run_prettier options.parser: "${options.parser}"`);
-    switch (options.parser) {
-      case "latex":
-        pretty = await latex_format(input, options);
-        break;
-      case "python":
-        pretty = await python_format(input, options, logger);
-        break;
-      case "r":
-        pretty = await r_format(input, options, logger);
-        break;
-      case "html-tidy":
-        pretty = await html_format(input, options);
-        break;
-      default:
-        pretty = prettier.format(input, options);
-    }
+    pretty = await run_prettier_string(input, options, logger);
   } catch (err) {
     logger.debug(`run_prettier error: ${err.message}`);
     return { status: "error", phase: "format", error: err.message };
@@ -72,4 +56,30 @@ export async function run_prettier(
   syncstring.from_str(pretty);
   await callback(syncstring._save);
   return { status: "ok" };
+}
+
+export async function run_prettier_string(
+  str: string,
+  options: any,
+  logger: any
+): Promise<string> {
+  let pretty;
+  logger.debug(`run_prettier options.parser: "${options.parser}"`);
+  switch (options.parser) {
+    case "latex":
+      pretty = await latex_format(str, options);
+      break;
+    case "python":
+      pretty = await python_format(str, options, logger);
+      break;
+    case "r":
+      pretty = await r_format(str, options, logger);
+      break;
+    case "html-tidy":
+      pretty = await html_format(str, options);
+      break;
+    default:
+      pretty = prettier.format(str, options);
+  }
+  return pretty;
 }

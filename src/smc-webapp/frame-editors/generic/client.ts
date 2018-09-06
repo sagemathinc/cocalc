@@ -108,6 +108,8 @@ interface SyncstringOpts {
   before_change_hook?: Function;
   after_change_hook?: Function;
   fake?: boolean; // if true make a fake syncstring with a similar API, but does nothing. (Used to make code more uniform.)
+  save_interval?: number; // amount to debounce saves (in ms)
+  patch_interval?: number;
 }
 
 export function syncstring(opts: SyncstringOpts): any {
@@ -190,4 +192,14 @@ export async function user_search(opts: {
   active?: string;
 }): Promise<User[]> {
   return callback_opts(webapp_client.user_search)(opts);
+}
+
+export async function project_websocket(project_id:string) : Promise<any> {
+  return await webapp_client.project_websocket(project_id);
+}
+
+import { API } from "smc-webapp/project/websocket/api";
+
+export async function project_api(project_id:string) : Promise<API> {
+  return (await project_websocket(project_id)).api as API;
 }

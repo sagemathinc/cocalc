@@ -553,6 +553,9 @@ class exports.Client extends EventEmitter
         @dbg("sync_db(path='#{opts.path}')")()
         return new db_doc.SyncDB(opts)
 
+    symmetric_channel: (name) =>
+        return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
+
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
     # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
     write_file: (opts) =>

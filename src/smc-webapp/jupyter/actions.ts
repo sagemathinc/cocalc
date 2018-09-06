@@ -30,6 +30,7 @@ import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
 import { retry_until_success } from "../frame-editors/generic/async-utils";
+import * as awaiting from "awaiting";
 
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
@@ -247,11 +248,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  init_project_conn = reuseInFlight(async (): Promise<any> => {
-    return (this.project_conn = await connection_to_project(
-      this.store.get("project_id")
-    ));
-  });
+  init_project_conn = reuseInFlight(
+    async (): Promise<any> => {
+      return (this.project_conn = await connection_to_project(
+        this.store.get("project_id")
+      ));
+    }
+  );
 
   // private api call function
   _api_call = async (
@@ -402,7 +405,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
-  set_cell_input = (id: any, input: any, save = true) => {
+  set_cell_input = (id: string, input: any, save = true) => {
     if (this.store.check_edit_protection(id, this)) {
       return;
     }
@@ -1215,7 +1218,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       case "code":
         var code = this._get_cell_input(id).trim();
         var cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-        var language = this.store.getIn(["kernel_info", "language"]);
+        var language = this.store.get_kernel_language();
         switch (parsing.run_mode(code, cm_mode, language)) {
           case "show_source":
             this.introspect(code.slice(0, code.length - 2), 1);
@@ -2114,34 +2117,36 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._api_call("signal", { signal: signal }, 5000);
   };
 
-  set_backend_kernel_info = reuseInFlight(async (): Promise<void> => {
-    if (this._state === "closed") {
-      return;
-    }
-
-    if (this._is_project) {
-      const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
-      if (this._jupyter_kernel == null) {
-        dbg("not defined");
+  set_backend_kernel_info = reuseInFlight(
+    async (): Promise<void> => {
+      if (this._state === "closed") {
         return;
       }
-      dbg("getting kernel_info...");
-      try {
-        this.setState({
-          backend_kernel_info: await this._jupyter_kernel.kernel_info()
+
+      if (this._is_project) {
+        const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
+        if (this._jupyter_kernel == null) {
+          dbg("not defined");
+          return;
+        }
+        dbg("getting kernel_info...");
+        try {
+          this.setState({
+            backend_kernel_info: await this._jupyter_kernel.kernel_info()
+          });
+        } catch (err) {
+          dbg(`error = ${err}`);
+        }
+      } else {
+        await retry_until_success({
+          max_time: 120000,
+          start_delay: 1000,
+          max_delay: 10000,
+          f: this._fetch_backend_kernel_info_from_server
         });
-      } catch (err) {
-        dbg(`error = ${err}`);
       }
-    } else {
-      await retry_until_success({
-        max_time: 120000,
-        start_delay: 1000,
-        max_delay: 10000,
-        f: this._fetch_backend_kernel_info_from_server
-      });
     }
-  });
+  );
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
     const data = await this._api_call("kernel_info", {});
@@ -2334,18 +2339,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   show_code_assistant = () => {
-    let lang;
     if (this.assistant_actions == null) {
       return;
     }
     this.blur_lock();
 
-    // special case: sage is language "python", but the assistant needs "sage"
-    if (misc.startswith(this.store.get("kernel"), "sage")) {
-      lang = "sage";
-    } else {
-      lang = this.store.getIn(["kernel_info", "language"]);
-    }
+    const lang = this.store.get_kernel_language();
 
     this.assistant_actions.init(lang);
     return this.assistant_actions.set({
@@ -2925,7 +2924,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  edit_cell_metadata = (id: any): void => {
+  edit_cell_metadata = (id: string): void => {
     let left: any;
     const metadata =
       (left = this.store.getIn(["cells", id, "metadata"])) != null
@@ -3013,6 +3012,110 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });
+  };
+
+  _api_call_prettier = async (
+    str: string,
+    options: object,
+    timeout_ms?: number
+  ): Promise<any> => {
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
+    return await (await this.init_project_conn()).api.prettier_string(
+      str,
+      options,
+      timeout_ms
+    );
+  };
+
+  _format_cell = async (id: string): Promise<void> => {
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      return;
+    }
+    const code = this._get_cell_input(id).trim();
+    let options: any; // TODO type this with a global interface
+    const cell_type = cell.get("cell_type", "code");
+    const language = this.store.get_kernel_language();
+    switch (cell_type) {
+      case "code":
+        if (language == null) {
+          throw new Error(
+            `Formatting code cells is impossible, because their language is not known.`
+          );
+        } else {
+          switch (language) {
+            case "python":
+              options = { parser: "python" };
+              break;
+            case "r":
+              options = { parser: "r" };
+              break;
+            default:
+              throw new Error(
+                `Formatting "${language}" cells is not supported yet.`
+              );
+          }
+        }
+        break;
+      case "markdown":
+        options = { parser: "markdown" };
+        break;
+      default:
+        throw new Error(`Unknown cell_type: '${cell_type}'`);
+    }
+    // console.log("FMT", cell_type, options, code);
+    const resp = await this._api_call_prettier(code, options);
+    if (resp.status == "error") {
+      throw new Error(resp.error);
+    }
+    // console.log("FMT resp", resp);
+
+    // we additionally trim the output, because prettier introduces a trailing newline
+    const trim = function(str: string): string {
+      str = str.trim();
+      if (str.length > 0 && str.slice(-1) == "\n") {
+        return str.slice(0, -2);
+      }
+      return str;
+    };
+
+    this.set_cell_input(id, trim(resp), false);
+  };
+
+  format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
+    this.set_error(null);
+    let jobs: string[] = [];
+    for (let id of cell_ids) {
+      if (!this.store.is_cell_editable(id)) {
+        continue;
+      }
+      jobs.push(id);
+    }
+
+    try {
+      await awaiting.map(jobs, 4, this._format_cell);
+    } catch (err) {
+      this.set_error(err.message);
+      return;
+    }
+
+    if (sync) {
+      this._sync();
+    }
+  };
+
+  format_selected_cells = async (sync = true): Promise<void> => {
+    const selected = this.store.get_selected_cell_ids_list();
+    await this.format_cells(selected, sync);
+  };
+
+  format_all_cells = async (sync = true): Promise<void> => {
+    const all_cells = this.store.get("cell_list");
+    if (all_cells != null) {
+      await this.format_cells(all_cells.toJS(), sync);
+    }
   };
 
   switch_to_classical_notebook = () => {
