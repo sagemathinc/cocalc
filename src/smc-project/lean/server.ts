@@ -89,15 +89,59 @@ export async function lean(
       tasks: lean_file.tasks
     });
     spark.on("end", function() {});
-    spark.on("data", function(data) {
+    spark.on("data", async function(data) {
+      if (the_lean_server == null) {
+        // to satisfy typescript -- should never happen
+        return;
+      }
       if (typeof data === "object") {
         // control message
         logger.debug("lean_file channel control message", JSON.stringify(data));
-        switch (data.cmd) {
+        try {
+          switch (data.cmd) {
+            case "info":
+              assert_type("line", data.line, "number");
+              assert_type("column", data.column, "number");
+              data.info = await the_lean_server.info(
+                path,
+                data.line,
+                data.column
+              );
+              spark.write(data);
+              return;
+            case "complete":
+              assert_type("line", data.line, "number");
+              assert_type("column", data.column, "number");
+              data.complete = await the_lean_server.complete(
+                path,
+                data.line,
+                data.column,
+                data.skipCompletions
+              );
+              if (data.complete.completions != undefined) {
+                // delete the source fields -- they are LARGE and not used at all in the UI.
+                for (let c of data.complete.completions) {
+                  delete c.source;
+                }
+              }
+              spark.write(data);
+              return;
+            default:
+              throw Error(`unknown cmd ${data.cmd}`);
+          }
+        } catch (err) {
+          data.err = err;
+          spark.write(data);
         }
       }
     });
   });
 
   return name;
+}
+
+function assert_type(name: string, x: any, type: string): void {
+  if (typeof x != type) {
+    throw Error(`${name} must have type ${type}`);
+  }
 }
