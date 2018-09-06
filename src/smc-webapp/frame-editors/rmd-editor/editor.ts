@@ -2,7 +2,7 @@
 Top-level react component for editing R markdown documents
 */
 
-// import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
+import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set, change_filename_extension } from "../generic/misc";
 // import { aux_file } from "../frame-tree/util";
 import { createEditor } from "../frame-tree/editor";
@@ -39,7 +39,7 @@ const EDITOR_SPEC = {
 
   iframe: {
     short: "HTML",
-    name: "Rendered HTML",
+    name: "Converted HTML",
     icon: "compass",
     component: IFrameHTML,
     path(path) {
@@ -59,7 +59,7 @@ const EDITOR_SPEC = {
 
   pdfjs_canvas: {
     short: "PDF",
-    name: "PDF - Preview",
+    name: "Converted PDF (if available)",
     icon: "file-pdf-o",
     component: PDFJS,
     buttons: pdfjs_buttons,
@@ -70,21 +70,22 @@ const EDITOR_SPEC = {
     }
   },
 
-  //markdown: {
-  //  short: "View",
-  //  name: "Rendered Markdown",
-  //  icon: "eye",
-  //  component: RenderedMarkdown,
-  //  reload_images: true,
-  //  buttons: set([
-  //    "print",
-  //    "decrease_font_size",
-  //    "increase_font_size",
-  //    "save",
-  //    "time_travel",
-  //    "reload"
-  //  ])
-  //},
+  markdown: {
+    short: "Markdown",
+    name: "Rendered Markdown",
+    icon: "eye",
+    component: RenderedMarkdown,
+    reload_images: true,
+    buttons: set([
+      "print",
+      "decrease_font_size",
+      "increase_font_size",
+      "save",
+      "time_travel",
+      "reload"
+    ])
+  },
+
   settings: SETTINGS_SPEC
 };
 
