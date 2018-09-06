@@ -23,10 +23,10 @@ const OPTIONS: MarkdownIt.Options = {
   linkify: true
 };
 
-let front_matter: string = "";
+let frontmatter: string = "";
 
 const markdown_it = new MarkdownIt(OPTIONS).use(MarkdownItFrontMatter, fm => {
-  front_matter = fm;
+  frontmatter = fm;
 });
 
 /*
@@ -45,10 +45,15 @@ See https://github.com/sagemathinc/cocalc/issues/2863
 for another example where remove_math is annoying.
 */
 
-export function markdown_to_html(markdown_string: string): string {
+export interface MD2html {
+  html: string;
+  frontmatter: string;
+}
+
+export function markdown_to_html_frontmatter(markdown_string: string): MD2html {
   let text: string;
   let math: string[];
-  front_matter = "";
+  frontmatter = "";
   // console.log(0, JSON.stringify(markdown_string));
   // console.log(1, JSON.stringify(math_escape(markdown_string)));
   [text, math] = remove_math(math_escape(markdown_string));
@@ -64,9 +69,11 @@ export function markdown_to_html(markdown_string: string): string {
   html = math_unescape(html);
   // console.log(5, JSON.stringify(html));
 
-  // INFO in case you need it, the global var front_matter contains that config block (usually yaml)
   //console.log("markdown front matter:", front_matter);
-  front_matter;
 
-  return html;
+  return { html, frontmatter };
+}
+
+export function markdown_to_html(s: string): string {
+  return markdown_to_html_frontmatter(s).html;
 }

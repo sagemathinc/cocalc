@@ -2,8 +2,10 @@
 R Markdown Editor Actions
 */
 
+import { debounce } from "lodash";
 import { Actions } from "../markdown-editor/actions";
 import { convert } from "./rmd2md";
+import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 
 export class RmdActions extends Actions {
@@ -15,7 +17,11 @@ export class RmdActions extends Actions {
   }
 
   _init_rmd2md(): void {
-    this._syncstring.on("save-to-disk", () => this._run_rmd2md());
+    const run_debounced = debounce(() => this._run_rmd2md(), 10 * 1000, {
+      leading: true,
+      trailing: true
+    });
+    this._syncstring.on("save-to-disk", run_debounced);
     this._run_rmd2md();
   }
 
@@ -24,10 +30,15 @@ export class RmdActions extends Actions {
     // maybe not, since might want to show error.
     this.set_status("Running RMarkdown...");
     this.set_error("");
-    // let markdown: string;
     try {
-      // markdown =
-      await convert(this.project_id, this.path, time);
+      const md: string = this._syncstring.to_str();
+      let frontmatter: string;
+      if (md !== undefined) {
+        frontmatter = markdown_to_html_frontmatter(md).frontmatter;
+      } else {
+        frontmatter = "";
+      }
+      await convert(this.project_id, this.path, frontmatter, time);
       this.set_reload("iframe");
       this.set_reload("pdfjs_canvas");
     } catch (err) {

@@ -12,28 +12,30 @@ import {
 export async function convert(
   project_id: string,
   path: string,
+  frontmatter: string,
   time?: number
 ): Promise<ExecOutput> {
   const x = path_split(path);
   let infile = x.tail;
   //let outfile = aux_file(x.tail, "html");
 
-  const args = [
-    "-e",
-    // `library(knitr);knit('${infile}','${outfile}',quiet=TRUE)`
-    // add 'pdf_document' to also produce a pdf out of a .tex file, but this is too flaky -- disabled
-    // TODO maybe we add a "PDF" button to the UI, which runs this explicitly
-    // output_format=c('md_document', 'html_document') ... but we allow the first one specified or html by default
-    // https://www.rdocumentation.org/packages/rmarkdown/versions/1.10/topics/render
-    `rmarkdown::render('${infile}', output_format=NULL, run_pandoc=TRUE)`
-  ];
+  // console.log("frontmatter", frontmatter);
+  let cmd: string;
+  // add 'pdf_document' to also produce a pdf out of a .tex file, but this is too flaky -- disabled
+  // https://www.rdocumentation.org/packages/rmarkdown/versions/1.10/topics/render
+  // unless user specifies some self_contained value, we disable it as a convenience (rough heuristic, but should be fine)
+  if (frontmatter.indexOf("self_contained") >= 0) {
+    cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE)`;
+  } else {
+    cmd = `rmarkdown::render('${infile}', output_format = NULL, output_options = list(self_contained = FALSE) , run_pandoc = TRUE)`;
+  }
 
   return await exec({
     allow_post: false, // definitely could take a long time to fully run all the R stuff...
     timeout: 90,
     bash: true, // so timeout is enforced by ulimit
     command: "Rscript",
-    args,
+    args: ["-e", cmd],
     project_id: project_id,
     path: x.head,
     err_on_exit: true,
