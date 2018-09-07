@@ -285,7 +285,7 @@ exports.init_http_proxy_server = (opts) ->
                                         dbg("project.status finished (mark: #{misc.walltime(tm)})")
                                         if err
                                             cb(err)
-                                        else if not status['raw.port']?
+                                        else if not status['raw.port']
                                             cb("raw port not available -- project might not be opened or running")
                                         else
                                             port = status['raw.port']

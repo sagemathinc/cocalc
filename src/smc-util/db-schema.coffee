@@ -543,7 +543,7 @@ schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
-    db_standby : 'unsafe' # allow doing the initial read part of the query from a standby node.
+    db_standby : 'safer' # allow doing the initial read part of the query from a standby node.
     fields:
         id          :
             type : 'string'
@@ -722,7 +722,8 @@ schema.project_log =
 
 schema.projects =
     primary_key: 'project_id'
-    db_standby : 'unsafe'
+    ## a lot depends on this being right at all times, e.g., restart state, so do not use 'unsafe'
+    db_standby : 'safer'
     fields :
         project_id  :
             type : 'uuid',
@@ -958,7 +959,7 @@ schema.public_projects =
 
 schema.public_paths =
     primary_key : 'id'
-    db_standby : 'safer'
+    db_standby : 'unsafe'
     anonymous   : true   # allow user *read* access, even if not signed in
     fields:
         id          :
