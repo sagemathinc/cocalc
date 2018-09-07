@@ -21,14 +21,18 @@ export async function convert(
 
   // console.log("frontmatter", frontmatter);
   let cmd: string;
-  // add 'pdf_document' to also produce a pdf out of a .tex file, but this is too flaky -- disabled
   // https://www.rdocumentation.org/packages/rmarkdown/versions/1.10/topics/render
-  // unless user specifies some self_contained value, we disable it as a convenience (rough heuristic, but should be fine)
-  if (frontmatter.indexOf("self_contained") >= 0) {
+  // unless user specifies some self_contained value or user did set an explicit "output: ..." mode,
+  // we disable it as a convenience (rough heuristic, but should be fine)
+  if (
+    frontmatter.indexOf("self_contained") >= 0 ||
+    frontmatter.indexOf("output:") >= 0
+  ) {
     cmd = `rmarkdown::render('${infile}', output_format = NULL, run_pandoc = TRUE)`;
   } else {
     cmd = `rmarkdown::render('${infile}', output_format = NULL, output_options = list(self_contained = FALSE) , run_pandoc = TRUE)`;
   }
+  // console.log("rmd cmd", cmd);
 
   return await exec({
     allow_post: false, // definitely could take a long time to fully run all the R stuff...
@@ -41,15 +45,4 @@ export async function convert(
     err_on_exit: true,
     aggregate: time
   });
-
-  //if (output.status && output.status == 'error') {
-  //  throw new Error(output.error);
-  //}
-
-  // mangling formuas is a known issue, e.g. I found
-  // https://stackoverflow.com/questions/39183406/do-not-escape-backslashes-in-formulas-with-rmarkdown-md-document
-  // return await read_text_file_from_project({
-  //   project_id: project_id,
-  //   path: change_filename_extension(path, "md") // aux_file(path, "md")
-  // });
 }

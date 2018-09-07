@@ -4,7 +4,7 @@ R Markdown Editor Actions
 
 import { debounce } from "lodash";
 import { Actions } from "../markdown-editor/actions";
-import { convert } from "./rmd2md";
+import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 
@@ -14,12 +14,12 @@ export class RmdActions extends Actions {
   _init2(): void {
     if (!this.is_public) {
       // one extra thing after markdown.
-      this._init_rmd2md();
+      this._init_rmd_converter();
     }
   }
 
-  _init_rmd2md(): void {
-    const run_debounced = debounce(() => this._run_rmd2md(), 5 * 1000, {
+  _init_rmd_converter(): void {
+    const run_debounced = debounce(() => this._run_rmd_converter(), 5 * 1000, {
       leading: true,
       trailing: true
     });
@@ -27,10 +27,10 @@ export class RmdActions extends Actions {
       this._last_save_time = time;
       run_debounced();
     });
-    this._syncstring.once("init", () => this._run_rmd2md());
+    this._syncstring.once("init", () => this._run_rmd_converter());
   }
 
-  async _run_rmd2md(time?: number): Promise<void> {
+  async _run_rmd_converter(time?: number): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
     this.set_status("Running RMarkdown...");
@@ -43,6 +43,8 @@ export class RmdActions extends Actions {
         const md2html = markdown_to_html_frontmatter(md);
         frontmatter = md2html.frontmatter;
         markdown = md2html.html;
+      } else {
+        return;
       }
       await convert(
         this.project_id,
