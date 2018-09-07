@@ -33,9 +33,9 @@ exports.INIT_STATE =
     category_list0      : []
     category_list1      : []
     category_list2      : []
-    code                : ''
+    code                : undefined
     setup_code          : undefined
-    descr               : ''
+    descr               : undefined
     hits                : []
     search_str          : null
     search_sel          : null

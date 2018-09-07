@@ -1492,6 +1492,7 @@ class CodeMirrorEditor extends FileEditor
         @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
+        # insert : {lang: string, descr: string, code: string[]}
         {code, lang} = insert
         cm = @focused_codemirror()
         line = cm.getCursor().line
@@ -1501,17 +1502,21 @@ class CodeMirrorEditor extends FileEditor
             # insert a "hidden" markdown cell and evaluate it
             cm.replaceRange("%md(hide=True)\n#{insert.descr}\n", {line : line+1, ch:0})
             @action_key(execute: true, advance:false, split:false)
-        line = cm.getCursor().line
-        # next, we insert the code cell and prefix it with a mode change, iff the mode is different from the current one
-        @syncdoc?.insert_new_cell(line)
-        cell = "#{code}\n"
-        if lang != @_current_mode
-            # special case: %sh for bash language
-            if lang == 'bash' then lang = 'sh'
-            cell = "%#{lang}\n#{cell}"
-        cm.replaceRange(cell, {line : line+1, ch:0})
-        # and we evaluate and sync all this, too…
-        @action_key(execute: true, advance:false, split:false)
+
+        # inserting one or more code cells
+        for c in code
+            line = cm.getCursor().line
+            # next, we insert the code cell and prefix it with a mode change,
+            # iff the mode is different from the current one
+            @syncdoc?.insert_new_cell(line)
+            cell = "#{c}\n"
+            if lang != @_current_mode
+                # special case: %sh for bash language
+                if lang == 'bash' then lang = 'sh'
+                cell = "%#{lang}\n#{cell}"
+            cm.replaceRange(cell, {line : line+1, ch:0})
+            # and we evaluate and sync all this, too…
+            @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
