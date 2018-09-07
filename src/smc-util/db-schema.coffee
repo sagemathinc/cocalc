@@ -722,8 +722,10 @@ schema.project_log =
 
 schema.projects =
     primary_key: 'project_id'
-    ## a lot depends on this being right at all times, e.g., restart state, so do not use 'unsafe'
-    db_standby : 'safer'
+    ## A lot depends on this being right at all times, e.g., restart state,
+    ## so do not use db_standby yet.
+    ## It is simply not robust enough.
+    ## db_standby : 'safer'
     fields :
         project_id  :
             type : 'uuid',
