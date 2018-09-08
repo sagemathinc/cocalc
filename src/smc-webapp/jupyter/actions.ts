@@ -2037,7 +2037,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, new_input, save);
   };
 
-  complete_handle_key = (keyCode: any): void => {
+  complete_handle_key = (_ : string, keyCode: any): void => {
     // User presses a key while the completions dialog is open.
     let complete = this.store.get("complete");
     if (complete == null) {

@@ -80,6 +80,7 @@ export interface CodeEditorState {
   status: any;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
+  complete: Map<string, any>;
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -137,7 +138,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       is_saving: false,
       gutter_markers: Map(),
       cursors: Map(),
-      settings: fromJS(this._default_settings())
+      settings: fromJS(this._default_settings()),
+      complete: Map()
     });
 
     this._save_local_view_state = debounce(
@@ -667,7 +669,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  close_frame_hook(_:string) : void {
+  close_frame_hook(_: string): void {
     // overload in derived class...
   }
 
@@ -1655,4 +1657,60 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.setState({ settings: settings });
     });
   }
+
+  /* Functions related to completions */
+
+  /*
+  Request completion at a given position -- this must
+  be overloaded in derived Actions that actually have
+  a notion of completing (there is nothing for a generic file).
+
+  Format of complete object in store that this sets:
+     {id : {
+       hash : hash of version of document completion computed against,
+       matches : list of strings (the completions),
+       offset : { top:?, left:?, gutter:?}
+     },
+     id2: ...
+     }
+
+  */
+  complete = async (
+    id: string,
+    cursor: any,
+    offset: { top: number; left: number; gutter: number }
+  ): Promise<void> => {
+    console.log("complete", id, cursor, offset);
+    let complete = { hash: 0, matches: ["id", "if", "import"], offset: offset };
+    this.setState({
+      complete: this.store.get("complete").set(id, fromJS(complete))
+    });
+  };
+
+  // User selects completion from list of choices
+  select_complete = (id: string, item: string): void => {
+    console.log("select_complete", id, item);
+  };
+
+  close_complete = async (id: string): Promise<void> => {
+    console.log("close_complete", id);
+    this.setState({
+      complete: this.store.get("complete").delete(id)
+    });
+    await delay(1);
+    const cm = this._get_cm(id);
+    if(cm != null) {
+      cm.focus();
+    }
+  };
+
+  // User presses a key while the completions dialog is open.
+  complete_handle_key = (id: string, keyCode: any): void => {
+    console.log("complete_handle_key", id, keyCode);
+    let complete = this.store.get("complete").get(id);
+    if (complete == null) {
+      return;
+    }
+    //const c = String.fromCharCode(keyCode);
+  };
 }

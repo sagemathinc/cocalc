@@ -19,6 +19,7 @@ import { throttle, isEqual } from "underscore";
 const misc = require("smc-util/misc");
 
 const { Cursors } = require("smc-webapp/jupyter/cursors");
+const { Complete } = require("smc-webapp/jupyter/complete");
 
 const { cm_options } = require("../codemirror/cm-options");
 const codemirror_state = require("../codemirror/codemirror-state");
@@ -52,6 +53,7 @@ interface Props {
   gutters: string[];
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  complete?: Map<string, any>;
 }
 
 interface State {
@@ -80,7 +82,8 @@ export class CodemirrorEditor extends Component<Props, State> {
         "is_public",
         "resize",
         "editor_state",
-        "gutter_markers"
+        "gutter_markers",
+        "complete"
       ])
     );
   }
@@ -239,6 +242,18 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (props.is_public) {
       options.readOnly = true;
     }
+
+    if (options.extraKeys == null) {
+      options.extraKeys = {};
+    }
+    options.extraKeys["Tab"] = this.tab_key;
+    // options.extraKeys["Shift-Tab"] = this.shift_tab_key;
+    // options.extraKeys["Up"] = this.up_key;
+    // options.extraKeys["Down"] = this.down_key;
+    // options.extraKeys["PageUp"] = this.page_up_key;
+    // options.extraKeys["PageDown"] = this.page_down_key;
+    options.extraKeys["Cmd-/"] = "toggleComment";
+    options.extraKeys["Ctrl-/"] = "toggleComment";
 
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
@@ -408,6 +423,70 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   }
 
+  tab_nothing_selected = (): void => {
+    if (this.cm == null) {
+      return;
+    }
+    const cursor = this.cm.getDoc().getCursor();
+    if (
+      cursor.ch === 0 ||
+      /\s/.test(this.cm.getDoc().getLine(cursor.line)[cursor.ch - 1])
+    ) {
+      // whitspace before cursor -- just do normal tab
+      if (this.cm.options.indentWithTabs) {
+        (CodeMirror as any).commands.defaultTab(this.cm);
+      } else {
+        (this.cm as any).tab_as_space();
+      }
+      return;
+    }
+    // Do completion at cursor.
+    this.complete_at_cursor();
+  };
+
+  tab_key = (): void => {
+    console.log("tab_key");
+    if (this.cm == null) {
+      return;
+    }
+    if ((this.cm as any).somethingSelected()) {
+      (CodeMirror as any).commands.defaultTab(this.cm);
+    } else {
+      this.tab_nothing_selected();
+    }
+  };
+
+
+  // Do completion at the current cursor position.
+  complete_at_cursor = (): void => {
+    if (this.cm == null) {
+      return;
+    }
+    const cursor = this.cm.getDoc().getCursor();
+    const pos = this.cm.cursorCoords(cursor, "local");
+    const top = pos.bottom;
+    const { left } = pos;
+    const gutter = $(this.cm.getGutterElement()).width();
+    const offset = { top, left, gutter };
+    this.props.actions.complete(this.props.id, cursor, offset);
+  };
+
+  render_complete() : Rendered {
+    if (
+      this.props.complete != null &&
+      this.props.complete.get("matches") &&
+      this.props.complete.get("matches").size > 0
+    ) {
+      return (
+        <Complete
+          complete={this.props.complete}
+          actions={this.props.actions}
+          id={this.props.id}
+        />
+      );
+    }
+  }
+
   render_cursors(): Rendered {
     if (this.props.cursors != null && this.cm != null && this.state.has_cm) {
       // Very important not to render without cm defined, because that renders
@@ -438,6 +517,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       <div style={style} className="smc-vfill cocalc-editor-div">
         {this.render_cursors()}
         {this.render_gutter_markers()}
+        {this.render_complete()}
         <textarea ref="textarea" style={{ display: "none" }} />
       </div>
     );
