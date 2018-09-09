@@ -232,7 +232,12 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
-        @_redux = undefined # set this if you want to be able to use mark_file
+
+        # Browser client should set @_redux, since this
+        # is used in a few ways:
+        #   - to be able to use mark_file
+        #   - raising an error on attempt to get project_websocket for non-collab
+        @_redux = undefined
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -1442,6 +1447,9 @@ class exports.Connection extends EventEmitter
     # File Management
     #################################################
     project_websocket: (project_id) =>
+        group = @_redux?.getStore('projects')?.get_my_group(project_id)
+        if not group? or group == 'public'
+            throw Error("no access to project websocket")
         return await require('smc-webapp/project/websocket/connect').connection_to_project(project_id)
 
     project_directory_listing: (opts) =>
