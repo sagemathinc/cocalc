@@ -36,7 +36,7 @@ export function cm_options(
 
   let opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
-    mode: 'txt',
+    mode: "txt",
     show_trailing_whitespace: editor_settings.get(
       "show_trailing_whitespace",
       true
@@ -222,11 +222,18 @@ export function cm_options(
     opts.style_active_line = false;
   }
 
-  const ext = filename_extension_notilde(filename);
+  const ext = filename_extension_notilde(filename).toLowerCase();
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
   if (["js", "jsx", "ts", "tsx", "json", "md", "r", "html"].includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
+  }
+
+  // why? gofmt and the whole go-world use 8-space-tabs instead of normal spaces
+  // ... maybe change this to 4, 8 is really wide …
+  if ("go" === ext) {
+    opts.spaces_instead_of_tabs = false;
+    opts.tab_size = opts.indent_unit = 8;
   }
 
   const options: any = {
