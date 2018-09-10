@@ -451,6 +451,7 @@ class exports.Client extends EventEmitter
             changes : undefined     # whether or not to create a changefeed
             options : undefined     # options to the query, e.g., [{limit:5}] )
             timeout : 30            # how long to wait for initial result
+            standby : undefined     # IGNORED
             cb      : required
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
