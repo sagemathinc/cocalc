@@ -308,7 +308,7 @@ class SyncTable extends EventEmitter
             cb?()
             return
         # console.log("synctable", @_table, @_schema.db_standby)
-        if @_schema.db_standby
+        if @_schema.db_standby and not @_client.is_project()
             @_do_the_query_using_db_standby(cb)
         else
             @_do_the_query(cb)
