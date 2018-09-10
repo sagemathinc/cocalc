@@ -20,6 +20,8 @@ const { latex_format } = require("./latex-format");
 const { python_format } = require("./python-format");
 const { html_format } = require("./html-format");
 const { r_format } = require("./r-format");
+const { clang_format } = require("./clang-format");
+const misc = require("smc-util/misc");
 const body_parser = require("body-parser");
 const express = require("express");
 const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
@@ -34,18 +36,19 @@ export async function run_prettier(
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   let syncstring = client.sync_string({ path, reference_only: true });
-  if (syncstring == null) {
+  let doc;
+  if (syncstring == null || (doc = syncstring.get_doc()) == null) {
     /* file not opened yet -- nothing to do. */
     return { status: "ok", phase: "loading" };
   }
 
   let pretty, math;
-  let input = syncstring.get_doc().to_str();
+  let input = doc.to_str();
   if (options.parser === "markdown") {
     [input, math] = remove_math(math_escape(input));
   }
   try {
-    pretty = await run_prettier_string(input, options, logger);
+    pretty = await run_prettier_string(path, input, options, logger);
   } catch (err) {
     logger.debug(`run_prettier error: ${err.message}`);
     return { status: "error", phase: "format", error: err.message };
@@ -59,6 +62,7 @@ export async function run_prettier(
 }
 
 export async function run_prettier_string(
+  path: string,
   str: string,
   options: any,
   logger: any
@@ -77,6 +81,10 @@ export async function run_prettier_string(
       break;
     case "html-tidy":
       pretty = await html_format(str, options);
+      break;
+    case "clang-format":
+      const ext = misc.filename_extension(path);
+      pretty = await clang_format(str, options, ext, logger);
       break;
     default:
       pretty = prettier.format(str, options);

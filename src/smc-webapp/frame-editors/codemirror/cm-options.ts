@@ -36,7 +36,7 @@ export function cm_options(
 
   let opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
-    mode: 'txt',
+    mode: "txt",
     show_trailing_whitespace: editor_settings.get(
       "show_trailing_whitespace",
       true
@@ -225,7 +225,23 @@ export function cm_options(
   const ext = filename_extension_notilde(filename);
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
-  if (["js", "jsx", "ts", "tsx", "json", "md", "r", "html"].includes(ext)) {
+  if (
+    [
+      "js",
+      "jsx",
+      "ts",
+      "tsx",
+      "json",
+      "md",
+      "r",
+      "html",
+      "c",
+      "c++",
+      "cc",
+      "cpp",
+      "h"
+    ].includes(ext)
+  ) {
     opts.tab_size = opts.indent_unit = 2;
   }
 
