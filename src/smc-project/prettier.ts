@@ -62,7 +62,7 @@ export async function run_prettier(
 }
 
 export async function run_prettier_string(
-  path: string,
+  path: string | undefined,
   str: string,
   options: any,
   logger: any
@@ -83,7 +83,7 @@ export async function run_prettier_string(
       pretty = await html_format(str, options);
       break;
     case "clang-format":
-      const ext = misc.filename_extension(path);
+      const ext = misc.filename_extension(path !== undefined ? path : '');
       pretty = await clang_format(str, options, ext, logger);
       break;
     default:
