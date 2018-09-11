@@ -938,7 +938,7 @@ EDITOR_COLOR_SCHEMES =
     'gruvbox-dark'            : 'Gruvbox-Dark'
     'hopscotch'               : 'Hopscotch'
     'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'
+    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
     'isotope'                 : 'Isotope'
     'lesser-dark'             : 'Lesser dark'
     'liquibyte'               : 'Liquibyte'

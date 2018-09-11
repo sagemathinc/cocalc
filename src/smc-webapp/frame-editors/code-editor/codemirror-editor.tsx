@@ -19,7 +19,6 @@ import { throttle, isEqual } from "underscore";
 const misc = require("smc-util/misc");
 
 const { Cursors } = require("smc-webapp/jupyter/cursors");
-const { Complete } = require("smc-webapp/jupyter/complete");
 
 const { cm_options } = require("../codemirror/cm-options");
 const codemirror_state = require("../codemirror/codemirror-state");
@@ -53,7 +52,6 @@ interface Props {
   gutters: string[];
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
-  complete?: Map<string, any>;
 }
 
 interface State {
@@ -82,8 +80,7 @@ export class CodemirrorEditor extends Component<Props, State> {
         "is_public",
         "resize",
         "editor_state",
-        "gutter_markers",
-        "complete"
+        "gutter_markers"
       ])
     );
   }
@@ -246,9 +243,8 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (options.extraKeys == null) {
       options.extraKeys = {};
     }
-    if (this.props.actions.get_completions !== undefined) {
-      options.extraKeys["Tab"] = this.tab_key;
-    }
+
+    options.extraKeys["Tab"] = this.tab_key;
     // options.extraKeys["Shift-Tab"] = this.shift_tab_key;
     // options.extraKeys["Up"] = this.up_key;
     // options.extraKeys["Down"] = this.down_key;
@@ -434,7 +430,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       cursor.ch === 0 ||
       /\s/.test(this.cm.getDoc().getLine(cursor.line)[cursor.ch - 1])
     ) {
-      // whitspace before cursor -- just do normal tab
+      // whitespace before cursor -- just do normal tab
       if (this.cm.options.indentWithTabs) {
         (CodeMirror as any).commands.defaultTab(this.cm);
       } else {
@@ -457,36 +453,16 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
   };
 
-
-  // Do completion at the current cursor position.
+  // Do completion at the current cursor position -- this uses
+  // the codemirror plugin, which can be configured with lots of
+  // ways of completing -- see "show-hint.js" at
+  // https://codemirror.net/doc/manual.html#addons
   complete_at_cursor = (): void => {
     if (this.cm == null) {
       return;
     }
-    const cursor = this.cm.getDoc().getCursor();
-    const pos = this.cm.cursorCoords(cursor, "local");
-    const top = pos.bottom;
-    const { left } = pos;
-    const gutter = $(this.cm.getGutterElement()).width();
-    const offset = { top, left, gutter };
-    this.props.actions.complete(this.props.id, cursor, offset);
+    this.cm.execCommand("autocomplete");
   };
-
-  render_complete() : Rendered {
-    if (
-      this.props.complete != null &&
-      this.props.complete.get("matches") &&
-      this.props.complete.get("matches").size > 0
-    ) {
-      return (
-        <Complete
-          complete={this.props.complete}
-          actions={this.props.actions}
-          id={this.props.id}
-        />
-      );
-    }
-  }
 
   render_cursors(): Rendered {
     if (this.props.cursors != null && this.cm != null && this.state.has_cm) {
@@ -518,7 +494,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       <div style={style} className="smc-vfill cocalc-editor-div">
         {this.render_cursors()}
         {this.render_gutter_markers()}
-        {this.render_complete()}
         <textarea ref="textarea" style={{ display: "none" }} />
       </div>
     );
