@@ -222,27 +222,33 @@ export function cm_options(
     opts.style_active_line = false;
   }
 
-  const ext = filename_extension_notilde(filename);
+  const ext = filename_extension_notilde(filename).toLowerCase();
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
-  if (
-    [
-      "js",
-      "jsx",
-      "ts",
-      "tsx",
-      "json",
-      "md",
-      "r",
-      "html",
-      "c",
-      "c++",
-      "cc",
-      "cpp",
-      "h"
-    ].includes(ext)
-  ) {
+  const tab2exts = [
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "json",
+    "md",
+    "r",
+    "html",
+    "c",
+    "c++",
+    "cc",
+    "cpp",
+    "h"
+  ];
+  if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
+  }
+
+  // special case gofmt? yes, the whole go-world use 8-space-tabs instead of normal spaces.
+  // we change it to 4 in the editor, though, because 8 is really wide.
+  if ("go" === ext) {
+    opts.spaces_instead_of_tabs = false;
+    opts.tab_size = opts.indent_unit = 4;
   }
 
   const options: any = {
