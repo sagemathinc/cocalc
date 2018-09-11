@@ -23,11 +23,7 @@ const OPTIONS: MarkdownIt.Options = {
   linkify: true
 };
 
-let frontmatter: string = "";
-
-const markdown_it = new MarkdownIt(OPTIONS).use(MarkdownItFrontMatter, fm => {
-  frontmatter = fm;
-});
+const markdown_it = new MarkdownIt(OPTIONS);
 
 /*
 Turn the given markdown *string* into an HTML *string*.
@@ -50,30 +46,48 @@ export interface MD2html {
   frontmatter: string;
 }
 
-export function markdown_to_html_frontmatter(markdown_string: string): MD2html {
+function process(
+  markdown_string: string,
+  mode: "default" | "frontmatter"
+): MD2html {
   let text: string;
   let math: string[];
-  frontmatter = "";
   // console.log(0, JSON.stringify(markdown_string));
   // console.log(1, JSON.stringify(math_escape(markdown_string)));
   [text, math] = remove_math(math_escape(markdown_string));
   // console.log(2, JSON.stringify(text), JSON.stringify(math));
   // Process checkboxes [ ].
   text = checkboxes(text);
-  // Render text to HTML.
-  let html: string = markdown_it.render(text);
+
+  let html: string;
+  let frontmatter = "";
+
+  // avoid instantiating a new markdown object for normal md processing
+  if (mode == "frontmatter") {
+    const md_frontmatter = new MarkdownIt(OPTIONS).use(
+      MarkdownItFrontMatter,
+      fm => {
+        frontmatter = fm;
+      }
+    );
+    html = md_frontmatter.render(text);
+  } else {
+    html = markdown_it.render(text);
+  }
+
   // console.log(3, JSON.stringify(html));
   // Substitute processed math back in.
   html = replace_math(html, math);
   // console.log(4, JSON.stringify(html));
   html = math_unescape(html);
   // console.log(5, JSON.stringify(html));
-
-  //console.log("markdown front matter:", front_matter);
-
   return { html, frontmatter };
 }
 
+export function markdown_to_html_frontmatter(s: string): MD2html {
+  return process(s, "frontmatter");
+}
+
 export function markdown_to_html(s: string): string {
-  return markdown_to_html_frontmatter(s).html;
+  return process(s, "default").html;
 }
