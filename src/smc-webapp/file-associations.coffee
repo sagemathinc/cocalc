@@ -59,7 +59,7 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rmd    : 'yaml-frontmatter'
+    rmd    : 'rmd'
     rnw    : 'stex2'
     rtex   : 'stex2'
     rst    : 'rst'
@@ -302,3 +302,4 @@ file_associations['sagews'] =
     opts              : {mode:'sagews'}
     name              : 'sagews'
     exclude_from_menu : true
+
