@@ -42,6 +42,7 @@ const EDITOR_SPEC = {
     name: "Converted HTML",
     icon: "compass",
     component: IFrameHTML,
+    mode: 'rmd',
     path(path) {
       return change_filename_extension(path, "html");
     },

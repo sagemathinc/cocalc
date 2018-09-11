@@ -4,7 +4,7 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 
 import * as $ from "jquery";
 
-import {is_safari} from "../generic/browser";
+import { is_safari } from "../generic/browser";
 
 import { is_different } from "../generic/misc";
 
@@ -29,6 +29,7 @@ interface PropTypes {
   path: string;
   reload: number;
   font_size: number;
+  mode: "rmd" | undefined;
   style?: any;
 } // should be static; change does NOT cause update.
 
@@ -97,18 +98,41 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     elt.css("opacity", 1);
   }
 
+  check_404(src_url) {
+    if (this.props.mode != "rmd") {
+      return;
+    }
+    // grabs the http header to learn if there is a problem
+    $(() => {
+      $.ajax({
+        method: "HEAD",
+        async: true,
+        url: src_url
+      })
+        .done(() => {
+          alert("iframe success");
+        })
+        .fail(() => {
+          alert("iframe failed to load");
+        });
+    });
+  }
+
   render_iframe() {
     // param below is just to avoid caching.
+    const src_url = `${window.app_base_url}/${this.props.project_id}/raw/${
+      this.props.path
+    }?param=${this.props.reload}`;
+    console.log("rmd_mode", this.props.mode);
     return (
       <iframe
         ref={"iframe"}
-        src={`${window.app_base_url}/${this.props.project_id}/raw/${
-          this.props.path
-        }?param=${this.props.reload}`}
+        src={src_url}
         width={"100%"}
         height={"100%"}
         style={{ border: 0, opacity: 0 }}
         onLoad={() => {
+          this.check_404(src_url);
           this.set_iframe_style();
           this.restore_scroll();
           this.init_scroll_handler();

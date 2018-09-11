@@ -211,6 +211,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           id={id}
           name={this.props.name}
           actions={this.props.actions}
+          mode={spec.mode}
           read_only={desc.get(
             "read_only",
             this.props.read_only || this.props.is_public

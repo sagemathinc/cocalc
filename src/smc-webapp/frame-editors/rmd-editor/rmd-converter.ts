@@ -17,7 +17,6 @@ export async function convert(
 ): Promise<ExecOutput> {
   const x = path_split(path);
   let infile = x.tail;
-  //let outfile = aux_file(x.tail, "html");
 
   // console.log("frontmatter", frontmatter);
   let cmd: string;
