@@ -245,6 +245,13 @@ export function cm_options(
     opts.tab_size = opts.indent_unit = 2;
   }
 
+  // special case gofmt? yes, the whole go-world use 8-space-tabs instead of normal spaces.
+  // we change it to 4 in the editor, though, because 8 is really wide.
+  if ("go" === ext) {
+    opts.spaces_instead_of_tabs = false;
+    opts.tab_size = opts.indent_unit = 4;
+  }
+
   const options: any = {
     firstLineNumber: opts.first_line_number,
     autofocus: false,

@@ -16,6 +16,8 @@ const FORMAT = set([
   "css",
   "py",
   "r",
+  "go",
+  "yaml",
   "yaml",
   "c",
   "c++",
