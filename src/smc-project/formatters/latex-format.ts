@@ -2,7 +2,7 @@ const { writeFile } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
-const { replace_all } = require("smc-util/misc");
+const { replace_all } = require("../smc-util/misc");
 
 interface ParserOptions {
   parser: string;

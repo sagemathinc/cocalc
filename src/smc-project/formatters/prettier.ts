@@ -14,7 +14,7 @@ NOTE: for tex files, we use latexformat, rather than prettier.
 
 declare var require: any;
 
-const { math_escape, math_unescape } = require("smc-util/markdown-utils");
+const { math_escape, math_unescape } = require("../smc-util/markdown-utils");
 const prettier = require("prettier");
 const { latex_format } = require("./latex-format");
 const { python_format } = require("./python-format");
@@ -22,10 +22,10 @@ const { html_format } = require("./html-format");
 const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
 const { gofmt } = require("./gofmt");
-const misc = require("smc-util/misc");
+const misc = require("../smc-util/misc");
 const body_parser = require("body-parser");
 const express = require("express");
-const { remove_math, replace_math } = require("smc-util/mathjax-utils"); // from project Jupyter
+const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // from project Jupyter
 
 import { callback } from "awaiting";
 

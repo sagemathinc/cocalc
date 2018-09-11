@@ -44,7 +44,7 @@ export function init_websocket_api(
   });
 }
 
-import { run_prettier, run_prettier_string } from "../prettier";
+import { run_prettier, run_prettier_string } from "../formatters/prettier";
 
 async function handle_api_call(
   client: any,
