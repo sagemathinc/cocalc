@@ -1667,7 +1667,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   Format of complete object in store that this sets:
      {id : {
-       hash : hash of version of document completion computed against,
        matches : list of strings (the completions),
        offset : { top:?, left:?, gutter:?}
      },
@@ -1675,21 +1674,42 @@ export class Actions<T = CodeEditorState> extends BaseActions<
      }
 
   */
+  // completions will ONLY be available if you define get_completions in
+  // a derived class.
+  //    - a list of strings
+  async get_completions(
+    id: string,
+    cursor: { line: number; ch: number }
+  ): Promise<string[]> {
+    console.log("get_completions", id, cursor);
+    return  ["id", "int", "import", "idiot"];
+  }
+
   complete = async (
     id: string,
     cursor: any,
     offset: { top: number; left: number; gutter: number }
   ): Promise<void> => {
     console.log("complete", id, cursor, offset);
-    let complete = { hash: 0, matches: ["id", "if", "import"], offset: offset };
+    // TODO: ensure a push of changes to backend here.
+    if (this.get_completions === undefined) {
+      // no completions available -- should never happen.
+      return;
+    }
+    const matches = await this.get_completions(id, cursor);
     this.setState({
-      complete: this.store.get("complete").set(id, fromJS(complete))
+      complete: this.store.get("complete").set(id, fromJS({ matches, offset }))
     });
   };
 
   // User selects completion from list of choices
   select_complete = (id: string, item: string): void => {
     console.log("select_complete", id, item);
+    this.close_complete(id);
+    const cm = this._get_cm(id);
+    if (cm != null) {
+      cm.insertCompletion(item);
+    }
   };
 
   close_complete = async (id: string): Promise<void> => {
@@ -1699,7 +1719,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
     await delay(1);
     const cm = this._get_cm(id);
-    if(cm != null) {
+    if (cm != null) {
       cm.focus();
     }
   };
@@ -1711,6 +1731,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (complete == null) {
       return;
     }
+    // Key that was pressed.
     //const c = String.fromCharCode(keyCode);
+    // Restrict matches to just the ones that start with this.
+    //complete.get('current_search')
   };
 }

@@ -246,7 +246,9 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (options.extraKeys == null) {
       options.extraKeys = {};
     }
-    options.extraKeys["Tab"] = this.tab_key;
+    if (this.props.actions.get_completions !== undefined) {
+      options.extraKeys["Tab"] = this.tab_key;
+    }
     // options.extraKeys["Shift-Tab"] = this.shift_tab_key;
     // options.extraKeys["Up"] = this.up_key;
     // options.extraKeys["Down"] = this.down_key;
@@ -445,7 +447,6 @@ export class CodemirrorEditor extends Component<Props, State> {
   };
 
   tab_key = (): void => {
-    console.log("tab_key");
     if (this.cm == null) {
       return;
     }
