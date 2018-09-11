@@ -49,5 +49,10 @@ export const PRETTIER_SUPPORT = {
   tex: true, // actually use latexformat
   html: true, // uses old-school "tidy" with some specific parameters
   r: true, // formatR
-  go: true // gofmt
+  go: true, // gofmt
+  c: true, // clang-format
+  cc: true, // --*--
+  "c++": true, // --*--
+  cpp: true, // --*--
+  h: true // --*--
 };

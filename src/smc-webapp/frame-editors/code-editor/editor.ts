@@ -17,7 +17,13 @@ const FORMAT = set([
   "py",
   "r",
   "go",
-  "yaml"
+  "yaml",
+  "yaml",
+  "c",
+  "c++",
+  "cc",
+  "cpp",
+  "h"
 ]);
 
 const EDITOR_SPEC = {

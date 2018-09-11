@@ -1500,6 +1500,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "html":
         parser = "html-tidy";
         break;
+      case "c":
+      case "c++":
+      case "cc":
+      case "cpp":
+      case "h":
+        parser = "clang-format";
+        break;
       default:
         return;
     }

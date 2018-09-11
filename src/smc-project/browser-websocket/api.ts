@@ -58,7 +58,7 @@ async function handle_api_call(
     case "prettier":
       return await run_prettier(client, data.path, data.options, logger);
     case "prettier_string":
-      return await run_prettier_string(data.str, data.options, logger);
+      return await run_prettier_string(data.path, data.str, data.options, logger);
     case "jupyter":
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":

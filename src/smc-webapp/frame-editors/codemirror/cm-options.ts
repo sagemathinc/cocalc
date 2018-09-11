@@ -225,7 +225,23 @@ export function cm_options(
   const ext = filename_extension_notilde(filename).toLowerCase();
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
-  if (["js", "jsx", "ts", "tsx", "json", "md", "r", "html"].includes(ext)) {
+  if (
+    [
+      "js",
+      "jsx",
+      "ts",
+      "tsx",
+      "json",
+      "md",
+      "r",
+      "html",
+      "c",
+      "c++",
+      "cc",
+      "cpp",
+      "h"
+    ].includes(ext)
+  ) {
     opts.tab_size = opts.indent_unit = 2;
   }
 
