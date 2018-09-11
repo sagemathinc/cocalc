@@ -21,6 +21,7 @@ const { python_format } = require("./python-format");
 const { html_format } = require("./html-format");
 const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
+const { gofmt } = require("./gofmt");
 const misc = require("smc-util/misc");
 const body_parser = require("body-parser");
 const express = require("express");
@@ -83,8 +84,11 @@ export async function run_prettier_string(
       pretty = await html_format(str, options);
       break;
     case "clang-format":
-      const ext = misc.filename_extension(path !== undefined ? path : '');
+      const ext = misc.filename_extension(path !== undefined ? path : "");
       pretty = await clang_format(str, options, ext, logger);
+      break;
+    case "gofmt":
+      pretty = await gofmt(str, options, logger);
       break;
     default:
       pretty = prettier.format(str, options);
