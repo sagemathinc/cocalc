@@ -1,4 +1,4 @@
-const { writeFile, readFile } = require("fs");
+const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
@@ -37,41 +37,45 @@ export async function gofmt(
 ): Promise<string> {
   // create input temp file
   const input_path: string = await callback(tmp.file);
-  // logger.debug(`gofmt tmp file: ${input_path}`);
-  await callback(writeFile, input_path, input);
+  try {
+    // logger.debug(`gofmt tmp file: ${input_path}`);
+    await callback(writeFile, input_path, input);
 
-  // spawn the html formatter
-  let formatter;
+    // spawn the html formatter
+    let formatter;
 
-  switch (options.parser) {
-    case "gofmt":
-      formatter = run_gofmt(input_path /*, logger*/);
-      break;
-    default:
-      throw Error(`Unknown Go code formatting utility '${options.parser}'`);
+    switch (options.parser) {
+      case "gofmt":
+        formatter = run_gofmt(input_path /*, logger*/);
+        break;
+      default:
+        throw Error(`Unknown Go code formatting utility '${options.parser}'`);
+    }
+    // stdout/err capture
+    let stdout: string = "";
+    let stderr: string = "";
+    // read data as it is produced.
+    formatter.stdout.on("data", data => (stdout += data.toString()));
+    formatter.stderr.on("data", data => (stderr += data.toString()));
+    // wait for subprocess to close.
+    let code = await callback(close, formatter);
+    if (code >= 1) {
+      stdout = cleanup_error(stdout, input_path);
+      stderr = cleanup_error(stderr, input_path);
+      const err_msg = `Gofmt code formatting utility "${
+        options.parser
+      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      logger.debug(`gofmt error: ${err_msg}`);
+      throw Error(err_msg);
+    }
+
+    // all fine, we read from the temp file
+    let output: Buffer = await callback(readFile, input_path);
+    let s: string = output.toString("utf-8");
+    // logger.debug(`gofmt_format output s ${s}`);
+
+    return s;
+  } finally {
+    unlink(input_path); // don't wait and don't worry about any error.
   }
-  // stdout/err capture
-  let stdout: string = "";
-  let stderr: string = "";
-  // read data as it is produced.
-  formatter.stdout.on("data", data => (stdout += data.toString()));
-  formatter.stderr.on("data", data => (stderr += data.toString()));
-  // wait for subprocess to close.
-  let code = await callback(close, formatter);
-  if (code >= 1) {
-    stdout = cleanup_error(stdout, input_path);
-    stderr = cleanup_error(stderr, input_path);
-    const err_msg = `Gofmt code formatting utility "${
-      options.parser
-    }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
-    logger.debug(`gofmt error: ${err_msg}`);
-    throw Error(err_msg);
-  }
-
-  // all fine, we read from the temp file
-  let output: Buffer = await callback(readFile, input_path);
-  let s: string = output.toString("utf-8");
-  // logger.debug(`gofmt_format output s ${s}`);
-
-  return s;
 }
