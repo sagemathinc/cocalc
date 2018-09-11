@@ -14,6 +14,8 @@ Handling of output messages.
 TODO: most components should instead be in separate files.
 */
 
+declare const $: any;
+
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Button } from "react-bootstrap";
 import * as immutable from "immutable";

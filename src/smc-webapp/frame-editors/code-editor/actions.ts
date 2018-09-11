@@ -1496,8 +1496,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "r":
         parser = "r";
         break;
+      case "go":
+        parser = "gofmt";
+        break;
       case "html":
         parser = "html-tidy";
+        break;
+      case "c":
+      case "c++":
+      case "cc":
+      case "cpp":
+      case "h":
+        parser = "clang-format";
         break;
       default:
         return;

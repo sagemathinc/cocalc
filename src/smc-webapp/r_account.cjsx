@@ -1251,18 +1251,6 @@ OtherSettings = rclass
 
 
 
-AdminSettings = rclass
-    propTypes :
-        groups : rtypes.immutable.List
-
-    render: ->
-        if not @props.groups?.contains('admin')
-            return <span />
-
-        <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            Moved to the new Admin top level page.
-        </Panel>
-
 # Render the entire settings component
 exports.AccountSettingsTop = rclass
     displayName : 'AccountSettingsTop'
@@ -1327,7 +1315,6 @@ exports.AccountSettingsTop = rclass
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />
-                    <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
             <Footer/>
