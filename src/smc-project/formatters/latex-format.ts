@@ -19,7 +19,7 @@ export async function latex_format(
   options: ParserOptions
 ): Promise<string> {
   // create input temp file
-  const input_path: string = await callback(tmp.file);
+  const input_path: string = await callback(tmp.file, { postfix: ".tex" });
   try {
     await callback(writeFile, input_path, input);
     // spawn the latexindent script.
