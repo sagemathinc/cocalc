@@ -104,7 +104,6 @@ CodeMirror.defineMode "rmd", (config) ->
     for name in  ['ruby', 'r', 'python', 'octave', 'fortran95', 'fortran',  'octave', 'bash', 'go', 'julia', 'perl']
         mode = modes[name]
         open = new RegExp("```{#{name}[^}]*?}")
-        console.log(name, mode, open)
         options.push
             open  : open
             close : "```"
