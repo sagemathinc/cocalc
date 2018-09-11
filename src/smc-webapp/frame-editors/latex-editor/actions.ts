@@ -146,8 +146,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     const set_cmd = (): void => {
       const x = this._syncdb.get_one({ key: "build_command" });
       if (x !== undefined && x.get("value") !== undefined) {
-        const cmd: List<string> = x.get("value");
-        if (cmd.size > 0) {
+        const cmd: List<string> | string = x.get("value");
+        if (typeof cmd === "string") {
+          // #3159
+          if (cmd.length > 0) {
+            this.setState({ build_command: cmd });
+            return;
+          }
+        } else if (cmd.size > 0) {
           this.setState({ build_command: fromJS(cmd) });
           return;
         }

@@ -667,7 +667,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  close_frame_hook(_:string) : void {
+  close_frame_hook(_: string): void {
     // overload in derived class...
   }
 
@@ -1497,6 +1497,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         break;
       case "html":
         parser = "html-tidy";
+        break;
+      case "c":
+      case "c++":
+      case "cc":
+      case "cpp":
+      case "h":
+        parser = "clang-format";
         break;
       default:
         return;
