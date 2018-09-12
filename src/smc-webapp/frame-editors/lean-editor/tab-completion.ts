@@ -11,21 +11,34 @@ import { Completion } from "./types";
 
 import { Actions } from "./actions";
 
+import { completions } from "smc-webapp/codemirror/mode/lean";
+
 async function leanHint(
   cm: CodeMirror.Editor
 ): Promise<{ list: string[]; from: any; to: any } | void> {
   var cur = cm.getDoc().getCursor(),
     token = cm.getTokenAt(cur);
 
+  const set: any = {};
+  const list: string[] = [];
+  function include(words: string[]): void {
+    for (let word of words) {
+      if (!set[word]) {
+        set[word] = true;
+        list.push(word);
+      }
+    }
+  }
+
   // First start with list of completions coming from
-    // the syntax highlighting mode.
-  const list: string[] = (CodeMirror as any).hint.anyword(cm).list;
+  // the syntax highlighting mode.
+  include((CodeMirror as any).hint.anyword(cm).list);
+  // We have to also do this, since the above misses words that haven't already been highlighted!
+  include((CodeMirror as any).hint.fromList(cm, { words: completions }).list);
+  list.sort();
 
-  // completions coming from the syntax highlighting mode.
-
+  // completions coming from backend LEAN server.
   if ((cm as any).cocalc_actions !== undefined) {
-    // completions coming from backend LEAN server.
-
     const actions: Actions = (cm as any).cocalc_actions;
 
     const resp: Completion[] = await actions.complete(cur.line, cur.ch);
