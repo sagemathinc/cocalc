@@ -95,6 +95,7 @@ interface FrameTreeProps {
   status: string;
   settings: Map<string, any>;
   complete: Map<string, any>;
+  derived_file_types: Set<string>;
 }
 
 interface FrameTreeState {
@@ -130,7 +131,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "editor_settings",
         "settings",
         "status",
-        "complete"
+        "complete",
+        "derived_file_types"
       ])
     );
   }
@@ -164,6 +166,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         settings={this.props.settings}
         status={this.props.status}
         complete={this.props.complete}
+        derived_file_types={this.props.derived_file_types}
       />
     );
   }
@@ -242,6 +245,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           status={this.props.status}
           renderer={spec.renderer}
           complete={this.props.complete.get(desc.get("id"))}
+          derived_file_types={this.props.derived_file_types}
         />
       </div>
     );

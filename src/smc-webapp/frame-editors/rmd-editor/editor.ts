@@ -39,10 +39,10 @@ const EDITOR_SPEC = {
 
   iframe: {
     short: "HTML",
-    name: "Converted HTML",
+    name: "HTML (Converted)",
     icon: "compass",
     component: IFrameHTML,
-    mode: 'rmd',
+    mode: "rmd",
     path(path) {
       return change_filename_extension(path, "html");
     },
@@ -60,9 +60,10 @@ const EDITOR_SPEC = {
 
   pdfjs_canvas: {
     short: "PDF",
-    name: "Converted PDF (if available)",
+    name: "PDF (Converted)",
     icon: "file-pdf-o",
     component: PDFJS,
+    mode: "rmd",
     buttons: pdfjs_buttons,
     style: { background: "#525659" },
     renderer: "canvas",
@@ -73,7 +74,7 @@ const EDITOR_SPEC = {
 
   markdown: {
     short: "Markdown",
-    name: "Rendered Markdown",
+    name: "Markdown (only rendered)",
     icon: "eye",
     component: RenderedMarkdown,
     reload_images: true,
