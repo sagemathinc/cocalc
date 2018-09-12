@@ -362,9 +362,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   fetch_jupyter_kernels = async (): Promise<void> => {
-    const data = await this._api_call("kernels");
-    if (data.status == "error") {
-      this.set_error(data.error);
+    let data;
+    try {
+      data = await this._api_call("kernels");
+    } catch (err) {
+      this.set_error(err);
       return;
     }
     const kernels = immutable.fromJS(data);
@@ -2037,7 +2039,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, new_input, save);
   };
 
-  complete_handle_key = (_ : string, keyCode: any): void => {
+  complete_handle_key = (_: string, keyCode: any): void => {
     // User presses a key while the completions dialog is open.
     let complete = this.store.get("complete");
     if (complete == null) {
@@ -2150,9 +2152,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
     const data = await this._api_call("kernel_info", {});
-    if (data.status === "error") {
-      throw Error(data.error);
-    }
     this.setState({
       backend_kernel_info: data,
       // this is when the server for this doc started, not when kernel last started!
@@ -3067,9 +3066,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     // console.log("FMT", cell_type, options, code);
     const resp = await this._api_call_prettier(code, options);
-    if (resp.status == "error") {
-      throw new Error(resp.error);
-    }
     // console.log("FMT resp", resp);
 
     // we additionally trim the output, because prettier introduces a trailing newline
