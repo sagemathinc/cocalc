@@ -5,6 +5,9 @@ Register a CodeMirror hinter for the mode with name 'lean'.
 
 import * as CodeMirror from "codemirror";
 
+
+import { Completion } from "./types";
+
 import { Actions } from "./actions";
 
 async function leanHint(
@@ -18,7 +21,12 @@ async function leanHint(
   }
   const actions: Actions = (cm as any).cocalc_actions;
 
-  const list = await actions.complete(cur.line, cur.ch);
+  const resp: Completion[] = await actions.complete(cur.line, cur.ch);
+
+  const list: string[] = [];
+  for (let i = 0; i < resp.length; i++) {
+    list.push(resp[i].text);
+  }
 
   return {
     list,

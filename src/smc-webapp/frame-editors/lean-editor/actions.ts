@@ -18,7 +18,7 @@ import { capitalize } from "../generic/misc";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
-import { Task, Message } from "./types";
+import { Task, Message, Completion } from "./types";
 
 import { update_gutters } from "./gutters";
 
@@ -54,7 +54,9 @@ export class Actions extends BaseActions<LeanEditorState> {
         await this._init_channel();
       } catch (err) {
         this.set_error(
-          err + " Also, refresh your browser or close and open this file."
+          // TODO: should retry instead (?)
+          err +
+            " -- you might need to refresh your browser or close and open this file."
         );
       }
     } else {
@@ -166,34 +168,37 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
   }
 
-  async complete(line: number, column: number): Promise<string[]> {
-    console.log("actions.complete");
-    const api = await project_api(this.project_id);
-    const resp = await api.lean({
-      path: this.path,
-      cmd: "complete",
-
-      line,
-      column
-    });
-    console.log(resp);
-    return ["foo", "bar"];
-  }
-
-  /*
-  // overload the base class so we can handle symbols.
-  set_syncstring_to_codemirror(id?: string): void {
-    const cm = this._get_cm(id);
-    if (!cm) {
-      return;
+  // Use the backend LEAN server via the api to complete
+  // at the given position.
+  async complete(line: number, column: number): Promise<Completion[]> {
+    if (!await this.ensure_latest_changes_are_saved()) {
+      return [];
     }
-    const value : string = cm.getValue();
-    console.log("value=", value);
-    const value2 = substitute_symbols(value);
-    if (value2 !== value) {
-      cm.setValueNoJump(value2);
+
+    this.set_status("Complete...");
+    try {
+      const api = await project_api(this.project_id);
+      const resp = await api.lean({
+        path: this.path,
+        cmd: "complete",
+        line: line + 1, // codemirror is 0 based but lean is 1-based.
+        column
+      });
+      if (resp.completions != null) {
+        return resp.completions;
+      } else {
+        return [];
+      }
+    } catch (err) {
+      err = err.toString();
+      if (err === "timeout") {
+        // user likely doesn't care about error report if this is the reason.
+        return [];
+      }
+      this.set_error(`Error getting completions -- ${err}`);
+      return [];
+    } finally {
+      this.set_status("");
     }
-    this.set_syncstring(value2);
   }
-  */
 }

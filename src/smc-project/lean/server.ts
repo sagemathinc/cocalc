@@ -4,6 +4,8 @@ LEAN server
 
 const lean_files = {};
 
+import { cmp } from "../smc-webapp/frame-editors/generic/misc";
+
 import { lean_server, Lean } from "./lean";
 import { isEqual } from "underscore";
 
@@ -100,7 +102,12 @@ function assert_type(name: string, x: any, type: string): void {
   }
 }
 
-export async function lean(client: any, primus: any, logger: any, opts: any): Promise<any> {
+export async function lean(
+  client: any,
+  primus: any,
+  logger: any,
+  opts: any
+): Promise<any> {
   if (the_lean_server === undefined) {
     init_lean_server(client, logger);
     if (the_lean_server === undefined) {
@@ -129,11 +136,18 @@ export async function lean(client: any, primus: any, logger: any, opts: any): Pr
         opts.column,
         opts.skipCompletions
       );
-      if (complete.completions != undefined) {
+      if (complete != null && complete.completions != undefined) {
         // delete the source fields -- they are LARGE and not used at all in the UI.
-        for (let c of opts.complete.completions) {
-          delete c.source;
+        for (let c of complete.completions) {
+          delete (c as any).source; // cast because of mistake in upstream type def.  sigh.
         }
+        complete.completions.sort(function(a, b): number {
+          if (a.text == null || b.text == null) {
+            // satisfy typescript null checks; shouldn't happen.
+            return 0;
+          }
+          return cmp(a.text.toLowerCase(), b.text.toLowerCase());
+        });
       }
       return complete;
     default:

@@ -1,3 +1,5 @@
+declare const $: any;
+
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 

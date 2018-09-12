@@ -1465,11 +1465,36 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
+  async ensure_latest_changes_are_saved(): Promise<boolean> {
+    this.set_status("Ensuring your latest changes are saved...");
+    this.set_syncstring_to_codemirror();
+    try {
+      await retry_until_success({
+        f: async () => {
+          await callback(this._syncstring._save);
+        },
+        max_time: 10000,
+        max_delay: 1500
+      });
+      return true;
+    } catch (err) {
+      this.set_error(`Error saving to server: \n${err}`);
+      return false;
+    } finally {
+      this.set_status("");
+    }
+  }
+
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   async format(id?: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
+
+    if (!(await this.ensure_latest_changes_are_saved())) {
+      return;
+    }
+
     cm.focus();
     let parser;
     switch (filename_extension(this.path)) {
@@ -1524,16 +1549,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       tabWidth: cm.getOption("tabSize"),
       useTabs: cm.getOption("indentWithTabs")
     };
-    this.set_status("Ensuring your latest changes are saved...");
-    this.set_syncstring_to_codemirror();
-    try {
-      await callback(this._syncstring._save);
-    } catch (err) {
-      this.set_error(`Error saving code: \n${err}`);
-      return;
-    } finally {
-      this.set_status("");
-    }
 
     this.set_status("Running code formatter...");
     try {

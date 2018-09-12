@@ -242,7 +242,14 @@ export class Lean extends EventEmitter {
       this.register(path);
       await callback(cb => this.once(`sync-#{path}`, cb));
     }
-    return await this.server().complete(path, line, column, skipCompletions);
+    const resp = await this.server().complete(
+      path,
+      line,
+      column,
+      skipCompletions
+    );
+    //this.dbg("complete response", path, line, column, resp);
+    return resp;
   }
 
   // Return state of parsing for everything that is currently registered.
