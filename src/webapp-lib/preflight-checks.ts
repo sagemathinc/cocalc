@@ -10,7 +10,8 @@ Chrome is wrong on that page, I assume we should check for 61 or 62.
 interface ISpecs {
   name: string;
   version: number;
-  buildID: string /* only FF, first 8 digits are a date-timestamp */;
+  /* buildID only for FF, first 8 digits are a date-timestamp */
+  buildID: string | undefined;
 }
 
 /* credits: https://stackoverflow.com/a/38080051/54236 */
@@ -36,7 +37,11 @@ const get_spec = function(): ISpecs {
   if ((tem = ua.match(/version\/(\d+)/i)) != null) {
     M.splice(1, 1, tem[1]);
   }
-  return { name: M[0], version: parseInt(M[1]), buildID: navigator.buildID };
+  return {
+    name: M[0],
+    version: parseInt(M[1]),
+    buildID: (navigator as any).buildID
+  };
 };
 
 function halt_and_catch_fire(msg: string): void {

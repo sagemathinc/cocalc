@@ -1,3 +1,5 @@
+declare const $: any;
+
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 
@@ -46,7 +48,7 @@ export class Complete extends Component<CompleteProps> {
   }
 
   key = (e: any) => {
-    if (e.keyCode === 27  && this.props.actions.close_complete != null) {
+    if (e.keyCode === 27 && this.props.actions.close_complete != null) {
       this.props.actions.close_complete(this.props.id);
     }
     if (e.keyCode !== 13) {
