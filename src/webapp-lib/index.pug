@@ -49,7 +49,8 @@ block content
       div.col-sm-6
         //- img(src=require('!file-loader!sagepreview/01-worksheet.png'))
         div.
-          Intro to CoCalc (credits: Mark Quinn, University of Sheffield)
+          #[strong Intro to CoCalc] (credits: Mark Quinn, University of Sheffield)
+        br
         div.youtube-video-container
           iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
@@ -97,9 +98,26 @@ block content
             li Share your files #[em privately] with project collaborators &mdash; all files are synchronized in real-time.
             li #[em Time-travel] is a detailed history of all your edits and everything is backed up in #[em consistent snapshots].
             li Finally, you can select any document to #[em publish it online].
-        p.
-          A default project under a free plan has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-          #[a(href="policies/pricing.html") Subscriptions] make hosting more robust and increase quotas.
+
+      div.col-sm-6
+        div.
+          #[strong CoCalc presentation by William Stein] (Harvard, 2018)
+        br
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/G5SIwRinEYk?rel=0" frameborder="0" allowfullscreen)
+      div.col-sm-6
+        p This presentation covers these topics
+        ul
+          li Background and history of CoCalc
+          li Demonstration of functionality
+          li Architectural overview, underlying tech stack, ...
+          li Synchronization of documents
+          li Collaboration and chat
+          li Culture of users, academic and commercial usage
+
+      //- p.
+      //-    A default project under a free plan has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+      //-    #[a(href="policies/pricing.html") Subscriptions] make hosting more robust and increase quotas.
 
   a.anchor#a-explore
   div.space#explore
