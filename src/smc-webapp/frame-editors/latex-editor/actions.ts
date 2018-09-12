@@ -17,6 +17,7 @@ import {
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
 import { sagetex, sagetex_hash } from "./sagetex";
+import { pythontex } from "./pythontex";
 import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
@@ -277,8 +278,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_patch_synctex(time, force);
     }
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
-    if (typeof s == "string" && s.indexOf("sagetex.sty") != -1) {
-      await this.run_sagetex(time, force);
+    if (typeof s == "string") {
+      if (s.indexOf("sagetex.sty") != -1) {
+        await this.run_sagetex(time, force);
+      }
+      if (s.indexOf("pythontex.sty") != -1 || s.indexOf("PythonTeX") != -1) {
+        await this.run_pythontex(time, force);
+      }
     }
   }
 
@@ -449,6 +455,30 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  async run_pythontex(time: number, force: boolean): Promise<void> {
+    const status = s => this.set_status(`Running PythonTeX... ${s}`);
+    status("");
+    try {
+      // Run PythonTeX.
+      const output: BuildLog = await pythontex(
+        this.project_id,
+        this.path,
+        "hash",
+        status
+      );
+      this.set_build_logs({ pythontex: output });
+      // Now run latex again, since we had to run sagetex, which changes
+      // the sage output. This +1 forces re-running latex... but still dedups
+      // it in case of multiple users.
+      await this.run_latex(time + 1, force);
+    } catch (err) {
+      this.set_error(err);
+    } finally {
+      // this._last_sagetex_hash = hash;
+      this.set_status("");
+    }
+  }
+
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
     this.set_status("Running SyncTex...");
     try {
@@ -590,6 +620,9 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       case "sagetex":
         this.run_sagetex(now, false);
+        return;
+      case "pythontex":
+        this.run_pythontex(now, false);
         return;
       case "clean":
         this.run_clean();
