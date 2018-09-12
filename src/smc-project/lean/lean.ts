@@ -1,7 +1,12 @@
 import { isEqual } from "underscore";
 
+import { exec } from "child_process";
+
+import { access, readFile } from "fs";
+
 import * as lean_client from "lean-client-js-node";
 import { callback, delay } from "awaiting";
+import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 
 import { path_split } from "../smc-webapp/frame-editors/generic/misc";
@@ -34,6 +39,7 @@ export class Lean extends EventEmitter {
 
   constructor(client: Client) {
     super();
+    this.server = reuseInFlight(this.server);
     this.client = client;
     this.dbg = this.client.dbg("LEAN SERVER");
     this.running = {};
@@ -50,10 +56,43 @@ export class Lean extends EventEmitter {
     return !!this.running[path] && now() - this.running[path] < SYNC_INTERVAL;
   }
 
-  server(): LeanServer {
+  // Ensure that process.env.LEAN_PATH is set. If already set, do nothing.
+  // If not set, run `lean --path` and figure out the default system-wide
+  // path, then extend it with mathlib.
+  // Also, if the file ~/leanpkg.path, include it too.
+  async init_lean_path(): Promise<void> {
+    this.dbg("init_lean_path - ");
+    if (process.env.LEAN_PATH != null) {
+      delete process.env.LEAN_PATH; // otherwise this impacts lean --path below.
+    }
+
+    let path: string = JSON.parse(
+      await callback(exec, "cd / && lean --path")
+    ).path.join(":");
+
+    this.dbg("init_lean_path - ", "from lean --path=", path);
+
+    const leanpkg = `${process.env.HOME}/leanpkg.path`;
+    try {
+      await callback(access, leanpkg);
+      path = (await callback(readFile, leanpkg)).toString().trim() + ':' + path;
+      this.dbg("init_lean_path - ", "read more from ~/leanpkg.path", path);
+    } catch {
+      this.dbg("init_lean_path - ", "skipping ~/leanpkg.path");
+      // just means there is no such file.
+    }
+
+    path = "/ext/lean/mathlib" + ':' + path;
+    this.dbg("init_lean_path - LEAN_PATH set to ", path);
+
+    process.env.LEAN_PATH = path;
+  }
+
+  private async server(): Promise<LeanServer> {
     if (this._server != undefined) {
       return this._server;
     }
+    await this.init_lean_path();
     this._server = new lean_client.Server(
       new lean_client.ProcessTransport("lean", ".", [])
     );
@@ -176,7 +215,7 @@ export class Lean extends EventEmitter {
       this.running[path] = now();
       this.paths[path].changed = false;
       this.dbg("sync", path, "causing server sync now");
-      await this.server().sync(path, value);
+      await (await this.server()).sync(path, value);
       this.emit("sync", path, syncstring.hash_of_live_version());
     };
     this.paths[path] = {
@@ -228,7 +267,7 @@ export class Lean extends EventEmitter {
       this.register(path);
       await callback(cb => this.once(`sync-#{path}`, cb));
     }
-    return await this.server().info(path, line, column);
+    return await (await this.server()).info(path, line, column);
   }
 
   async complete(
@@ -242,7 +281,7 @@ export class Lean extends EventEmitter {
       this.register(path);
       await callback(cb => this.once(`sync-#{path}`, cb));
     }
-    const resp = await this.server().complete(
+    const resp = await (await this.server()).complete(
       path,
       line,
       column,
@@ -250,6 +289,10 @@ export class Lean extends EventEmitter {
     );
     //this.dbg("complete response", path, line, column, resp);
     return resp;
+  }
+
+  async version(): Promise<string> {
+    return (await this.server()).getVersion();
   }
 
   // Return state of parsing for everything that is currently registered.

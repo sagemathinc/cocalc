@@ -168,10 +168,17 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
   }
 
+  // uses API to get running version of LEAN server.
+  // I'm just implementing this now; not needed yet.
+  async version(): Promise<string> {
+    const api = await project_api(this.project_id);
+    return await api.lean({ cmd: "version" });
+  }
+
   // Use the backend LEAN server via the api to complete
   // at the given position.
   async complete(line: number, column: number): Promise<Completion[]> {
-    if (!await this.ensure_latest_changes_are_saved()) {
+    if (!(await this.ensure_latest_changes_are_saved())) {
       return [];
     }
 

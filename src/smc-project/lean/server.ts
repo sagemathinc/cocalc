@@ -126,6 +126,16 @@ export async function lean(
       assert_type("line", opts.line, "number");
       assert_type("column", opts.column, "number");
       return await the_lean_server.info(opts.path, opts.line, opts.column);
+
+    // get server version
+    case "version":
+      return await the_lean_server.version();
+
+    // kill the LEAN server.
+    // this can help with, e.g., updating the LEAN_PATH
+    case "kill":
+      return the_lean_server.kill();
+
     case "complete":
       assert_type("path", opts.path, "string");
       assert_type("line", opts.line, "number");
