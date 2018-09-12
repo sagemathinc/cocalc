@@ -17,7 +17,7 @@ import {
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
 import { sagetex, sagetex_hash } from "./sagetex";
-import { pythontex } from "./pythontex";
+import { pythontex, pythontex_errors } from "./pythontex";
 import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
@@ -63,6 +63,7 @@ interface LatexEditorState extends CodeEditorState {
   build_command: string | List<string>;
   knitr: boolean;
   knitr_error: boolean; // true, if there is a knitr problem
+  // pythontex_error: boolean;  // true, if pythontex processing had an issue
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -456,27 +457,39 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_pythontex(time: number, force: boolean): Promise<void> {
+    let output: BuildLog;
     const status = s => this.set_status(`Running PythonTeX... ${s}`);
     status("");
+
     try {
-      // Run PythonTeX.
-      const output: BuildLog = await pythontex(
-        this.project_id,
-        this.path,
-        "hash",
-        status
-      );
-      this.set_build_logs({ pythontex: output });
-      // Now run latex again, since we had to run sagetex, which changes
-      // the sage output. This +1 forces re-running latex... but still dedups
+      // Run PythonTeX
+      output = await pythontex(this.project_id, this.path, time, status);
+      // Now run latex again, since we had to run pythontex, which changes
+      // the inserted snippets. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
+      // this.setState({ pythontex_error: true });
+      return;
     } finally {
-      // this._last_sagetex_hash = hash;
       this.set_status("");
     }
+    // this is similar to how knitr errors are processed
+    output.parse = pythontex_errors(this.path, output).toJS();
+    this.set_build_logs({ pythontex: output });
+    update_gutters({
+      path: this.path,
+      log: output.parse,
+      set_gutter: (line, component) => {
+        this.set_gutter_marker({
+          line,
+          component,
+          gutter_id: "Codemirror-latex-errors"
+        });
+      }
+    });
+    // this.setState({ pythontex_error: output.parse.all.length > 0 });
   }
 
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {

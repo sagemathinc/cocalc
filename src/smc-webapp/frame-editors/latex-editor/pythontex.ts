@@ -4,28 +4,8 @@ Run PythonTeX
 
 import { exec, ExecOutput } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
-
-// export async function sagetex_hash(
-//   project_id: string,
-//   path: string,
-//   time: number,
-//   status: Function
-// ): Promise<string> {
-//   const { base, directory } = parse_path(path); // base, directory, filename
-//   const s = sagetex_file(base);
-//   status(`sha1sum ${s}`);
-//   const output = await exec({
-//     allow_post: true, // very quick computation of sha1 hash
-//     timeout: 10,
-//     command: "sha1sum",
-//     args: [s],
-//     project_id: project_id,
-//     path: directory,base
-//     err_on_exit: true,
-//     aggregate: time
-//   });
-//   return output.stdout.split(" ")[0];
-// }
+import { ProcessedLatexLog, Error } from "./latex-log-parser";
+import { BuildLog } from "./actions";
 
 // command documentation
 //
@@ -35,7 +15,7 @@ import { parse_path } from "../frame-tree/util";
 export async function pythontex(
   project_id: string,
   path: string,
-  hash: string,
+  time: number,
   status: Function
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
@@ -50,6 +30,59 @@ export async function pythontex(
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: hash ? { value: hash } : undefined
+    aggregate: time ? { value: time } : undefined
   });
+}
+
+/*
+example of what we're after:
+the line number on the first line is correct (in the tex file)
+
+This is PythonTeX 0.16
+
+----  Messages for py:default:default  ----
+* PythonTeX stderr - error on line 19:
+    File "<outputdir>/py_default_default.py", line 65
+      print(pytex.formatter(34*131*))
+                                   ^
+  SyntaxError: invalid syntax
+
+--------------------------------------------------
+PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
+*/
+
+export function pythontex_errors(path: string, output: BuildLog): ProcessedLatexLog {
+  const pll = new ProcessedLatexLog();
+
+  let err: Error | undefined = undefined;
+
+  for (let line of output.stdout.split("\n")) {
+    if (line.search("PythonTeX stderr") > 0) {
+      const hit = line.match(/line (\d+):/);
+      let line_no: number | null = null;
+      if (hit !== null && hit.length >= 2) {
+        line_no = parseInt(hit[1]);
+      }
+      err = {
+        line : line_no,
+        file: path,
+        level: "error",
+        message: line,
+        content: "",
+        raw: ""
+      };
+      pll.errors.push(err);
+      pll.all.push(err);
+      continue;
+    }
+
+    // collecting message until the end
+    if (err != undefined) {
+      if (line.startsWith("-----")) {
+        break;
+      }
+      err.content += `${line}\n`;
+    }
+  }
+  return pll;
 }
