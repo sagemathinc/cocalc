@@ -34,7 +34,7 @@ export class Actions extends BaseActions<LeanEditorState> {
   public store: Store<LeanEditorState>;
   private gutter_last: { synced: boolean; messages: any; tasks: any };
 
-  _init2(): void {
+  async _init2(): Promise<void> {
     this.setState({
       messages: [],
       tasks: [],
@@ -43,7 +43,6 @@ export class Actions extends BaseActions<LeanEditorState> {
     });
     this.gutter_last = { synced: false, messages: List(), tasks: List() };
     if (!this.is_public) {
-      this._init_channel();
       this._syncstring.on("change", () => {
         this.setState({
           syncstring_hash: this._syncstring.hash_of_live_version()
@@ -51,15 +50,22 @@ export class Actions extends BaseActions<LeanEditorState> {
         this.update_gutters();
         this.update_status_bar();
       });
+      try {
+        await this._init_channel();
+      } catch (err) {
+        this.set_error(
+          err + " Also, refresh your browser or close and open this file."
+        );
+      }
     } else {
       this._init_value();
     }
   }
 
   async _init_channel(): Promise<void> {
-    const channel: any = (this.channel = await (await project_api(
-      this.project_id
-    )).lean(this.path));
+    const api = await project_api(this.project_id);
+    this.channel = await api.lean_channel(this.path);
+    const channel: any = this.channel;
     channel.on("close", () => {
       channel.conn.once("open", () => {
         channel.connect();
@@ -160,6 +166,20 @@ export class Actions extends BaseActions<LeanEditorState> {
     }
   }
 
+  async complete(line: number, column: number): Promise<string[]> {
+    console.log("actions.complete");
+    const api = await project_api(this.project_id);
+    const resp = await api.lean({
+      path: this.path,
+      cmd: "complete",
+
+      line,
+      column
+    });
+    console.log(resp);
+    return ["foo", "bar"];
+  }
+
   /*
   // overload the base class so we can handle symbols.
   set_syncstring_to_codemirror(id?: string): void {
@@ -176,5 +196,4 @@ export class Actions extends BaseActions<LeanEditorState> {
     this.set_syncstring(value2);
   }
   */
-
 }

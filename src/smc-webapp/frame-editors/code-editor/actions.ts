@@ -621,6 +621,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
+      delete (this._cm[id] as any).cocalc_actions;
       delete this._cm[id];
     }
 
@@ -659,7 +660,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._cm_selections != null) {
       delete this._cm_selections[id];
     }
-    delete this._cm[id];
+    if (this._cm[id] !== undefined) {
+      delete (this._cm[id] as any).cocalc_actions;
+      delete this._cm[id];
+    }
 
     this.close_frame_hook(id);
 
@@ -992,6 +996,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
+    // reference to this actions object, so codemirror plugins
+    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
+    (cm as any).cocalc_actions = this;
 
     if (len(this._cm) > 0) {
       // just making another cm
