@@ -909,7 +909,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         );
       }
       log_error({
-        string_id: this._syncstring._string_id,
+        string_id: this._syncstring ? this._syncstring._string_id : "",
         path: this.path,
         project_id: this.project_id,
         error: "Error saving file -- has_unsaved_changes"

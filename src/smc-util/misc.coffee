@@ -2173,6 +2173,8 @@ exports.referrer_cookie_name = 'CC_REF'
 
 
 exports.human_readable_size = (bytes) ->
+    if not bytes?
+        return "?"
     if bytes < 1000
         return "#{bytes} bytes"
     if bytes < 1000000

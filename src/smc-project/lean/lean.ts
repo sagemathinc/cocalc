@@ -56,13 +56,17 @@ export class Lean extends EventEmitter {
     return !!this.running[path] && now() - this.running[path] < SYNC_INTERVAL;
   }
 
+  // nothing actually async in here... yet.
   private async server(): Promise<LeanServer> {
     if (this._server != undefined) {
       return this._server;
     }
-    await this.init_lean_path();
     this._server = new lean_client.Server(
-      new lean_client.ProcessTransport("lean", process.env.HOME, [])
+      new lean_client.ProcessTransport(
+        "lean",
+        process.env.HOME ? process.env.HOME : ".",  // satisfy typescript.
+        []
+      )
     );
     this._server.error.on(err => this.dbg("error:", err));
     this._server.allMessages.on(allMessages => {
