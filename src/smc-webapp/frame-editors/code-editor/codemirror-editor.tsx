@@ -240,6 +240,19 @@ export class CodemirrorEditor extends Component<Props, State> {
       options.readOnly = true;
     }
 
+    if (options.extraKeys == null) {
+      options.extraKeys = {};
+    }
+
+    options.extraKeys["Tab"] = this.tab_key;
+    // options.extraKeys["Shift-Tab"] = this.shift_tab_key;
+    // options.extraKeys["Up"] = this.up_key;
+    // options.extraKeys["Down"] = this.down_key;
+    // options.extraKeys["PageUp"] = this.page_up_key;
+    // options.extraKeys["PageDown"] = this.page_down_key;
+    options.extraKeys["Cmd-/"] = "toggleComment";
+    options.extraKeys["Ctrl-/"] = "toggleComment";
+
     // Needed e.g., for vim ":w" support; obviously this is global, so be careful.
     if ((CodeMirror as any).commands.save == null) {
       (CodeMirror as any).commands.save = function(cm: any) {
@@ -407,6 +420,49 @@ export class CodemirrorEditor extends Component<Props, State> {
       }
     }
   }
+
+  tab_nothing_selected = (): void => {
+    if (this.cm == null) {
+      return;
+    }
+    const cursor = this.cm.getDoc().getCursor();
+    if (
+      cursor.ch === 0 ||
+      /\s/.test(this.cm.getDoc().getLine(cursor.line)[cursor.ch - 1])
+    ) {
+      // whitespace before cursor -- just do normal tab
+      if (this.cm.options.indentWithTabs) {
+        (CodeMirror as any).commands.defaultTab(this.cm);
+      } else {
+        (this.cm as any).tab_as_space();
+      }
+      return;
+    }
+    // Do completion at cursor.
+    this.complete_at_cursor();
+  };
+
+  tab_key = (): void => {
+    if (this.cm == null) {
+      return;
+    }
+    if ((this.cm as any).somethingSelected()) {
+      (CodeMirror as any).commands.defaultTab(this.cm);
+    } else {
+      this.tab_nothing_selected();
+    }
+  };
+
+  // Do completion at the current cursor position -- this uses
+  // the codemirror plugin, which can be configured with lots of
+  // ways of completing -- see "show-hint.js" at
+  // https://codemirror.net/doc/manual.html#addons
+  complete_at_cursor = (): void => {
+    if (this.cm == null) {
+      return;
+    }
+    this.cm.execCommand("autocomplete");
+  };
 
   render_cursors(): Rendered {
     if (this.props.cursors != null && this.cm != null && this.state.has_cm) {

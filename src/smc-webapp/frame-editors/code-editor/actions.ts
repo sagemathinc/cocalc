@@ -80,6 +80,7 @@ export interface CodeEditorState {
   status: any;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
+  complete: Map<string, any>;
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -137,7 +138,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       is_saving: false,
       gutter_markers: Map(),
       cursors: Map(),
-      settings: fromJS(this._default_settings())
+      settings: fromJS(this._default_settings()),
+      complete: Map()
     });
 
     this._save_local_view_state = debounce(

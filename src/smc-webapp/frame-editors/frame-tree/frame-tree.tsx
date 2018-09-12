@@ -94,6 +94,7 @@ interface FrameTreeProps {
   editor_settings: Map<string, any>;
   status: string;
   settings: Map<string, any>;
+  complete: Map<string, any>;
 }
 
 interface FrameTreeState {
@@ -128,7 +129,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "gutter_markers",
         "editor_settings",
         "settings",
-        "status"
+        "status",
+        "complete"
       ])
     );
   }
@@ -161,6 +163,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         editor_settings={this.props.editor_settings}
         settings={this.props.settings}
         status={this.props.status}
+        complete={this.props.complete}
       />
     );
   }
@@ -238,6 +241,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           settings={this.props.settings}
           status={this.props.status}
           renderer={spec.renderer}
+          complete={this.props.complete.get(desc.get("id"))}
         />
       </div>
     );
