@@ -4,6 +4,8 @@ LEAN server
 
 const lean_files = {};
 
+import { cmp } from "../smc-webapp/frame-editors/generic/misc";
+
 import { lean_server, Lean } from "./lean";
 import { isEqual } from "underscore";
 
@@ -40,7 +42,7 @@ function init_lean_server(client: any, logger: any): void {
   });
 }
 
-export async function lean(
+export async function lean_channel(
   client: any,
   primus: any,
   logger: any,
@@ -89,52 +91,6 @@ export async function lean(
       tasks: lean_file.tasks
     });
     spark.on("end", function() {});
-    spark.on("data", async function(data) {
-      if (the_lean_server == null) {
-        // to satisfy typescript -- should never happen
-        return;
-      }
-      if (typeof data === "object") {
-        // control message
-        logger.debug("lean_file channel control message", JSON.stringify(data));
-        try {
-          switch (data.cmd) {
-            case "info":
-              assert_type("line", data.line, "number");
-              assert_type("column", data.column, "number");
-              data.info = await the_lean_server.info(
-                path,
-                data.line,
-                data.column
-              );
-              spark.write(data);
-              return;
-            case "complete":
-              assert_type("line", data.line, "number");
-              assert_type("column", data.column, "number");
-              data.complete = await the_lean_server.complete(
-                path,
-                data.line,
-                data.column,
-                data.skipCompletions
-              );
-              if (data.complete.completions != undefined) {
-                // delete the source fields -- they are LARGE and not used at all in the UI.
-                for (let c of data.complete.completions) {
-                  delete c.source;
-                }
-              }
-              spark.write(data);
-              return;
-            default:
-              throw Error(`unknown cmd ${data.cmd}`);
-          }
-        } catch (err) {
-          data.err = err;
-          spark.write(data);
-        }
-      }
-    });
   });
 
   return name;
@@ -143,5 +99,72 @@ export async function lean(
 function assert_type(name: string, x: any, type: string): void {
   if (typeof x != type) {
     throw Error(`${name} must have type ${type}`);
+  }
+}
+
+export async function lean(
+  client: any,
+  primus: any,
+  logger: any,
+  opts: any
+): Promise<any> {
+  if (the_lean_server === undefined) {
+    init_lean_server(client, logger);
+    if (the_lean_server === undefined) {
+      // just to satisfy typescript.
+      throw Error("lean server not defined");
+    }
+  }
+  if (opts == null || typeof opts.cmd != "string") {
+    throw Error("opts must be an object with cmd field a string");
+  }
+  // control message
+  logger.debug("lean command", JSON.stringify(opts));
+  switch (opts.cmd) {
+    case "info":
+      assert_type("path", opts.path, "string");
+      assert_type("line", opts.line, "number");
+      assert_type("column", opts.column, "number");
+      const r = (await the_lean_server.info(opts.path, opts.line, opts.column))
+        .record;
+      return r ? r : {};
+
+    // get server version
+    case "version":
+      return await the_lean_server.version();
+
+    // kill the LEAN server.
+    // this can help with, e.g., updating the LEAN_PATH
+    case "kill":
+      return the_lean_server.kill();
+
+    case "complete":
+      assert_type("path", opts.path, "string");
+      assert_type("line", opts.line, "number");
+      assert_type("column", opts.column, "number");
+      const complete = await the_lean_server.complete(
+        opts.path,
+        opts.line,
+        opts.column,
+        opts.skipCompletions
+      );
+      if (complete == null || complete.completions == null) {
+        return [];
+      }
+      // delete the source fields -- they are LARGE and not used at all in the UI.
+      for (let c of complete.completions) {
+        delete (c as any).source; // cast because of mistake in upstream type def.  sigh.
+      }
+      complete.completions.sort(function(a, b): number {
+        if (a.text == null || b.text == null) {
+          // satisfy typescript null checks; shouldn't happen.
+          return 0;
+        }
+        return cmp(a.text.toLowerCase(), b.text.toLowerCase());
+      });
+      return complete.completions;
+
+    default:
+      throw Error(`unknown cmd ${opts.cmd}`);
   }
 }
