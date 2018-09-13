@@ -1,4 +1,6 @@
-// Returns the name of the channel.
+/*
+Terminal server
+*/
 
 const { spawn } = require("pty.js");
 

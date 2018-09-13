@@ -294,7 +294,11 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "<All Output...",
         ">toggle all cells output collapsed",
         ">toggle all cells output scrolled",
-        ">clear all cells output"
+        ">clear all cells output",
+        "",
+        "<Format Code...",
+        ">format cells",
+        ">format all cells"
       ]
     });
   }

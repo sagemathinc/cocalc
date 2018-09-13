@@ -46,6 +46,10 @@ def hub_args(server_id):
         share_path=args.share_path,
         base_url=args.base_url)
 
+    if args.database_nodes:
+        s += ' --database_nodes {database_nodes} '.format(
+            database_nodes=args.database_nodes)
+
     if args.kucalc:
         s += ' --kucalc '
 
@@ -132,6 +136,9 @@ if __name__ == "__main__":
         type=str)
     parser.add_argument(
         '--base_url', help="base url", dest='base_url', default='')
+
+    parser.add_argument(
+        '--database_nodes', help="", dest='database_nodes', default='')
 
     parser.add_argument(
         '--foreground',

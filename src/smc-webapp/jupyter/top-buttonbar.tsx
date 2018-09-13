@@ -159,7 +159,12 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_group_edit() {
     return this.render_button_group(
-      ["cut cell", "copy cell", "paste cell and replace"],
+      [
+        "cut cell",
+        "copy cell",
+        "paste cell and replace",
+        { name: "format cells" }
+      ],
       true
     );
   }
@@ -170,10 +175,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_group_run() {
     let stop_style: React.CSSProperties | undefined;
-    if (
-      ((this.props.kernel_usage && this.props.kernel_usage.get("cpu")) || 0) >
-      50
-    ) {
+    const cpu_usage =
+      (this.props.kernel_usage && this.props.kernel_usage.get("cpu")) || 0;
+    if (cpu_usage > 50) {
       stop_style = { backgroundColor: "rgb(92,184,92)", color: "white" };
     }
 

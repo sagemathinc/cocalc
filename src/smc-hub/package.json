@@ -57,6 +57,7 @@
     "rimraf": "^2.4.4",
     "sendgrid": "^4.7.1",
     "serve-index": "^1.9.1",
+    "sharp": "^0.20.8",
     "snappy": "^6.0.1",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",

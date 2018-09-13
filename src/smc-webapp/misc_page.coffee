@@ -122,10 +122,14 @@ exports.scroll_top = () ->
 require('./jquery-plugins/katex')
 
 # Force reload all images by appending random query param to their src URL.
+# But not for base64 data images -- https://github.com/sagemathinc/cocalc/issues/3141
 $.fn.reload_images = (opts) ->
     @each ->
         for img in $(this).find('img')
-            $(img).attr('src', $(img).attr('src')+'?'+Math.random())
+            src = $(img).attr('src')
+            if misc.startswith(src, 'data:')
+                continue
+            $(img).attr('src', src + '?' + Math.random())
 
 # Highlight all code blocks that have CSS class language-r, language-python.
 # TODO: I just put in r and python for now, since this is mainly

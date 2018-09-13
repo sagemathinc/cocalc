@@ -6,6 +6,9 @@ Comprehensive list of Jupyter notebook (version 5) command,
 
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
+const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
+  .FORMAT_SOURCE_ICON;
+
 // TODO: type
 export function commands(actions: any) {
   // TODO: if actions is not defined, what does this do?
@@ -827,6 +830,18 @@ export function commands(actions: any) {
     "delete protect": {
       m: "Toggle delete protection",
       f: () => actions.toggle_delete_protection()
+    },
+
+    "format cells": {
+      i: FORMAT_SOURCE_ICON,
+      m: "Format selected cells",
+      f: () => actions.format_selected_cells()
+    },
+
+    "format all cells": {
+      i: FORMAT_SOURCE_ICON,
+      m: "Format all cells",
+      f: () => actions.format_all_cells()
     }
   };
 }
