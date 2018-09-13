@@ -114,9 +114,18 @@ block content
           li Collaboration and chat
           li Culture, open-source, academic and commercial usage
 
-      //- p.
-      //-    A default project under a free plan has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-      //-    #[a(href="policies/pricing.html") Subscriptions] make hosting more robust and increase quotas.
+
+  a.anchor#a-startnow
+  div.container
+    div.row
+      div.col-sm-12.center
+        h2 Start free, upgrade later
+      div.col-sm-6.col-sm-offset-3.center
+        p.
+           A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+           Purchasing #[a(href="policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increase its quotas.
+      div.col-sm-12.center
+        +start_button
 
   a.anchor#a-explore
   div.space#explore
