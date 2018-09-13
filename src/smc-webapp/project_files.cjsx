@@ -152,7 +152,7 @@ FileRow = rclass
     propTypes :
         name         : rtypes.string.isRequired
         display_name : rtypes.string  # if given, will display this, and will show true filename in popover
-        size         : rtypes.number.isRequired
+        size         : rtypes.number  # sometimes is NOT known!
         time         : rtypes.number
         checked      : rtypes.bool
         bordered     : rtypes.bool

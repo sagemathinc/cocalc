@@ -17,7 +17,11 @@ export class API {
     if (timeout_ms === undefined) {
       timeout_ms = 30000;
     }
-    return await callback(call, this.conn, mesg, timeout_ms);
+    const resp = await callback(call, this.conn, mesg, timeout_ms);
+    if (resp != null && resp.status === "error") {
+      throw Error(resp.error);
+    }
+    return resp;
   }
 
   async listing(path: string, hidden?: boolean): Promise<object[]> {
@@ -66,15 +70,25 @@ export class API {
     return this.conn.channel(channel_name);
   }
 
-  async lean(path: string): Promise<Channel> {
+  // Get the lean *channel* for the given '.lean' path.
+  async lean_channel(path: string): Promise<Channel> {
     const channel_name = await this.call({
-      cmd: "lean",
+      cmd: "lean_channel",
       path: path
     });
     return this.conn.channel(channel_name);
   }
 
-  async symmetric_channel(name:string): Promise<Channel> {
+  // Do a request/response command to the lean server.
+  async lean(opts: any): Promise<any> {
+    let timeout_ms = 10000;
+    if (opts.timeout) {
+      timeout_ms = opts.timeout * 1000 + 2000;
+    }
+    return await this.call({ cmd: "lean", opts }, timeout_ms);
+  }
+
+  async symmetric_channel(name: string): Promise<Channel> {
     const channel_name = await this.call({
       cmd: "symmetric_channel",
       name
