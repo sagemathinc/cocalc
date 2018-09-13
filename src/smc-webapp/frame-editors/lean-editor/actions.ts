@@ -229,7 +229,7 @@ export class Actions extends BaseActions<LeanEditorState> {
       return [];
     }
 
-    this.set_status("Completing at line ${line+1}...");
+    this.set_status(`Completing at line ${line+1}...`);
     try {
       const api = await project_api(this.project_id);
       return await api.lean({
