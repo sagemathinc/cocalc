@@ -523,6 +523,8 @@ export class CourseActions extends Actions<CourseState> {
       delete x[opts.id];
     } else {
       x[opts.id] = opts.desc;
+      // enable for debugging:
+      // console.log(opts.desc);
     }
     this.setState({ activity: x });
     return opts.id;
@@ -1044,6 +1046,7 @@ export class CourseActions extends Actions<CourseState> {
         : SITE_NAME;
     let body = s.get_email_invite();
     const invite = x => {
+      // console.log("invite", x, " to ", student_project_id);
       const account_store = this.redux.getStore("account");
       const name = account_store.get_fullname();
       const replyto = account_store.get_email_address();
@@ -1053,7 +1056,7 @@ export class CourseActions extends Actions<CourseState> {
           const subject = `${SiteName} Invitation to Course ${title}`;
           body = body.replace(/{title}/g, title).replace(/{name}/g, name);
           body = markdownlib.markdown_to_html(body);
-          return this.redux
+          this.redux
             .getActions("projects")
             .invite_collaborators_by_email(
               student_project_id,
@@ -1066,7 +1069,7 @@ export class CourseActions extends Actions<CourseState> {
             );
         }
       } else {
-        return this.redux
+        this.redux
           .getActions("projects")
           .invite_collaborator(student_project_id, x);
       }
@@ -1088,11 +1091,12 @@ export class CourseActions extends Actions<CourseState> {
       .getStore("projects")
       .get_users(s.get("course_project_id"));
     if (target_users == null) {
-      return; // projects store isn't sufficiently initialized, so we can't do this yet...
+      // console.log("projects store isn't sufficiently initialized yet...");
+      return;
     }
     target_users.map((_, account_id) => {
       if (users.get(account_id) == null) {
-        return invite(account_id);
+        invite(account_id);
       }
     });
     if (!s.get_allow_collabs()) {
@@ -1280,24 +1284,26 @@ export class CourseActions extends Actions<CourseState> {
     student_id,
     do_not_invite_student_by_email,
     student_project_id?
-  ) {
+  ): void {
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
     // description, and collaborators for belonging to the indicated student.
     // - Add student and collaborators on project containing this course to the new project.
     // - Hide project from owner/collabs of the project containing the course.
     // - Set the title to [Student name] + [course title] and description to course description.
+    // console.log("configure_project", student_id);
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    student_project_id =
-      student_project_id != null
-        ? student_project_id
-        : store.getIn(["students", student_id, "project_id"]);
     if (student_project_id == null) {
-      return this.create_student_project(student_id);
+      student_project_id = store.getIn(["students", student_id, "project_id"]);
+    }
+    // console.log("configure_project", student_id, student_project_id);
+    if (student_project_id == null) {
+      this.create_student_project(student_id);
     } else {
+      // console.log("configure_project", student_project_id, "will config users");
       this.configure_project_users(
         student_project_id,
         student_id,
@@ -1305,7 +1311,7 @@ export class CourseActions extends Actions<CourseState> {
       );
       this.configure_project_visibility(student_project_id);
       this.configure_project_title(student_project_id, student_id);
-      return this.configure_project_description(student_project_id);
+      this.configure_project_description(student_project_id);
     }
   }
 
@@ -1340,7 +1346,7 @@ export class CourseActions extends Actions<CourseState> {
     }
   }
 
-  configure_all_projects() {
+  configure_all_projects(): void {
     const id = this.set_activity({ desc: "Configuring all projects" });
     this.setState({ configure_projects: "Configuring projects" });
     const store = this.get_store();
@@ -1357,7 +1363,7 @@ export class CourseActions extends Actions<CourseState> {
     } // always re-invite students on running this.
     this.configure_shared_project();
     this.set_activity({ id });
-    return this.set_all_student_project_course_info();
+    this.set_all_student_project_course_info();
   }
 
   // Deletes student projects and removes students from those projects

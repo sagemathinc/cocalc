@@ -324,6 +324,18 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
   };
 
+  // canonicalize the language of the kernel
+  get_kernel_language = (): string | undefined => {
+    let lang;
+    // special case: sage is language "python", but the assistant needs "sage"
+    if (misc.startswith(this.get("kernel"), "sage")) {
+      lang = "sage";
+    } else {
+      lang = this.getIn(["kernel_info", "language"]);
+    }
+    return lang;
+  };
+
   jupyter_kernel_key = (): string => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");

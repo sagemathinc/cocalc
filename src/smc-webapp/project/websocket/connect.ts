@@ -23,9 +23,8 @@ async function connection_to_project0(project_id: string): Promise<any> {
   if (connections[project_id] !== undefined) {
     return connections[project_id];
   }
-  const t0 = new Date().valueOf();
-  console.log(`conn ${project_id} -- connecting...`);
-  const window0 : any = (global as any).window as any; // global part is so this also compiles on node.js.
+  console.log(`project websocket: connecting to ${project_id}...`);
+  const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
   const url: string = `${
     window0.app_base_url
   }/${project_id}/raw/.smc/primus.js`;
@@ -67,9 +66,12 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }));
   conn.api = new API(conn);
   conn.verbose = false;
-  console.log(
-    `conn ${project_id} -- connected! (${new Date().valueOf() - t0}ms)`
-  );
+  conn.on("open", function() {
+    console.log(`project websocket: connected to ${project_id}`);
+  });
+  conn.on("reconnect", function() {
+    console.log(`project websocket: trying to reconnect to ${project_id}`);
+  });
   return conn;
 }
 

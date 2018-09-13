@@ -12,6 +12,8 @@ const {
   callback_opts
 } = require("../smc-webapp/frame-editors/generic/async-utils");
 
+import { browser_symmetric_channel } from "./symmetric_channel";
+
 export function init_websocket_api(
   primus: any,
   logger: any,
@@ -42,6 +44,8 @@ export function init_websocket_api(
   });
 }
 
+import { run_prettier, run_prettier_string } from "../formatters/prettier";
+
 async function handle_api_call(
   client: any,
   data: any,
@@ -52,15 +56,30 @@ async function handle_api_call(
     case "listing":
       return await listing(data.path, data.hidden);
     case "prettier":
-      return await prettier(client, data.path, data.options, logger);
+      return await run_prettier(client, data.path, data.options, logger);
+    case "prettier_string":
+      return await run_prettier_string(
+        data.path,
+        data.str,
+        data.options,
+        logger
+      );
     case "jupyter":
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
     case "terminal":
       return await terminal(primus, logger, data.path, data.options);
+    case "lean":
+      return await lean(client, primus, logger, data.opts);
+    case "lean_channel":
+      return await lean_channel(client, primus, logger, data.path);
+    case "symmetric_channel":
+      return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
-      throw Error(`command "${data.cmd}" not implemented`);
+      throw Error(
+        `command "${data.cmd}" not implemented -- try restarting your project`
+      );
   }
 }
 
@@ -69,16 +88,6 @@ async function handle_api_call(
 const { get_listing } = require("../directory-listing");
 async function listing(path: string, hidden?: boolean): Promise<object[]> {
   return await callback(get_listing, path, hidden);
-}
-
-import { run_prettier } from "../prettier";
-async function prettier(
-  client: any,
-  path: string,
-  options: any,
-  logger: any
-): Promise<any> {
-  return await run_prettier(client, path, options, logger);
 }
 
 import { handle_request as jupyter } from "../jupyter/websocket-api";
@@ -95,3 +104,5 @@ async function exec(opts: any): Promise<ExecuteOutput> {
 }
 
 import { terminal } from "../terminal/server";
+
+import { lean, lean_channel } from "../lean/server";

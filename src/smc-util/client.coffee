@@ -232,7 +232,12 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
-        @_redux = undefined # set this if you want to be able to use mark_file
+
+        # Browser client should set @_redux, since this
+        # is used in a few ways:
+        #   - to be able to use mark_file
+        #   - raising an error on attempt to get project_websocket for non-collab
+        @_redux = undefined
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -1442,6 +1447,9 @@ class exports.Connection extends EventEmitter
     # File Management
     #################################################
     project_websocket: (project_id) =>
+        group = @_redux?.getStore('projects')?.get_my_group(project_id)
+        if not group? or group == 'public'
+            throw Error("no access to project websocket")
         return await require('smc-webapp/project/websocket/connect').connection_to_project(project_id)
 
     project_directory_listing: (opts) =>
@@ -1787,6 +1795,12 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
+    # this is async
+    symmetric_channel: (name, project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.symmetric_channel(name)
+
     sync_string: (opts) =>
         opts = defaults opts,
             id                 : undefined
@@ -1795,6 +1809,7 @@ class exports.Connection extends EventEmitter
             file_use_interval  : 'default'
             cursors            : false
             patch_interval     : 1000
+            save_interval      : 2000
             before_change_hook : undefined
             after_change_hook  : undefined
         opts.client = @
@@ -1808,8 +1823,8 @@ class exports.Connection extends EventEmitter
             string_cols     : undefined
             cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
-            save_interval   : 2000    # amount to debounce saves (in ms)
             patch_interval  : 1000
+            save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
 
@@ -1837,13 +1852,19 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            standby : false        # if true, use standby server; query must be 100% read only.
             cb      : undefined
         data =
             query   : misc.to_json(opts.query)
             options : if opts.options then misc.to_json(opts.options)
         #tt0 = new Date()
         #console.log '_post_query', data
-        jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)
+        if opts.standby
+            path = 'db_standby'
+            #console.log("doing db_standby query -- ", opts.query)
+        else
+            path = 'user_query'
+        jqXHR = $.post("#{window?.app_base_url ? ''}/#{path}", data, null, 'text')
         if not opts.cb?
             #console.log 'no cb'
             return
@@ -1851,9 +1872,11 @@ class exports.Connection extends EventEmitter
             #console.log 'failed'
             opts.cb("failed")
             return
-        jqXHR.done (resp) ->
+        jqXHR.done (data) ->
             #console.log 'got back ', JSON.stringify(resp)
             #console.log 'TIME: ', new Date() - tt0
+            window.data = data
+            resp = misc.from_json(data)
             if resp.error
                 opts.cb(resp.error)
             else
@@ -1865,6 +1888,7 @@ class exports.Connection extends EventEmitter
             query   : required
             changes : undefined
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
@@ -1875,6 +1899,7 @@ class exports.Connection extends EventEmitter
             @_post_query
                 query   : opts.query
                 options : opts.options
+                standby : opts.standby
                 cb      : opts.cb
             return
 
