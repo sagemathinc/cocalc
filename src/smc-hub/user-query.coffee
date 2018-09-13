@@ -14,7 +14,7 @@ misc = require('smc-util/misc')
 {get_account_id} = require('./user-remember-me')
 
 exports.init = (router, cookie_name, database) ->
-    router.post '/user_query', (req, res) ->
+    handle_request = (req, res) ->
         if not req.body.query?
             res.send({error:'missing query'})
             return
@@ -50,4 +50,9 @@ exports.init = (router, cookie_name, database) ->
             else
                 res.send({result:locals.result})
         )
+
+    router.post '/user_query', handle_request
+
+    # User queries, but via the db-standby server (so 100% read only)
+    router.post '/db_standby', handle_request
 

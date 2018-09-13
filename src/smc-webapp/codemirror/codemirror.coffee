@@ -37,7 +37,6 @@ require('codemirror/addon/hint/html-hint.js')
 require('codemirror/addon/hint/javascript-hint.js')
 
 require('codemirror/addon/hint/show-hint.js')
-require('codemirror/addon/hint/show-hint.css')
 
 require('codemirror/addon/hint/sql-hint.js')
 require('codemirror/addon/hint/xml-hint.js')
@@ -114,3 +113,8 @@ require('codemirror/theme/yeti.css')
 require('codemirror/theme/zenburn.css')
 
 require('./mode/mediawiki/mediawiki.css')
+
+# Have to strengthen this to "fight off" the adverse buggy global
+# impact of some of the above themes... (namely idea and darcula
+# at time of writing).
+require('./addon/show-hint.css')

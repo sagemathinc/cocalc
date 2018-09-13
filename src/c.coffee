@@ -10,6 +10,7 @@ LICENSE   : AGPLv3
 ###
 
 async = require('async')
+require('ts-node').register() # be able to load typescript
 
 global.misc = require('smc-util/misc')
 global.done = misc.done
@@ -22,7 +23,7 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/postgres').db(debug:false)
+        db = require('./smc-hub/postgres').db(debug:true)
         db.connect(cb:cb)
         return db
 # get a connection to the db

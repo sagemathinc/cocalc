@@ -33,7 +33,7 @@ require('./redux_account')
 {UpgradesPage}                           = require('./r_upgrades')
 {SupportPage}                            = require('./support')
 {SSHKeysPage}                            = require('./account_ssh_keys')
-{Icon}                                   = require('./r_misc')
+{Icon, Loading}                                   = require('./r_misc')
 {set_url}                                = require('./history')
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
@@ -175,20 +175,30 @@ exports.AccountPage = rclass
         </Tab>
         return v
 
+    render_loading_view: ->
+        <div style={textAlign: 'center', paddingTop: '15px'}>
+            <Loading theme={"medium"} />
+        </div>
+
+    render_logged_in_view: ->
+        if not @props.account_id
+            return @render_loading_view()
+        <Row>
+            <Col md={12}>
+                <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
+                    <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Preferences</span>}>
+                        {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
+                    </Tab>
+                    {@render_commercial_tabs()}
+                </Tabs>
+            </Col>
+        </Row>
+
     render: ->
         logged_in = @props.is_logged_in
         <div style={overflow:'auto'}>
             <Grid className='constrained'>
                 {@render_landing_page() if not logged_in}
-                {<Row>
-                    <Col md={12}>
-                        <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"} id="account-page-tabs">
-                            <Tab key='account' eventKey="account" title={<span><Icon name='wrench'/> Preferences</span>}>
-                                {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
-                            </Tab>
-                            {@render_commercial_tabs()}
-                        </Tabs>
-                    </Col>
-                </Row> if logged_in}
+                {@render_logged_in_view() if logged_in}
             </Grid>
         </div>

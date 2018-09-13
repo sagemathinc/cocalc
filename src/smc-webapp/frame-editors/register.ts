@@ -17,6 +17,8 @@ import "./pdf-editor/register";
 // Work in progress -- uncomment to use new sagews support.
 // import "./sagews-editor/register";
 
+import "./terminal-editor/register";
+
 import "./lean-editor/register";
 
 import "./generic/test/init";

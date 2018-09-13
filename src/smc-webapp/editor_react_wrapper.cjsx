@@ -43,9 +43,14 @@ WrappedEditor = rclass ({project_name}) ->
         # HACK: I have no idea why setTimeout is necessary. 2017/12/23
         # Removing it results in a bug when switching from modern Jupyter to Classic Jupyter where
         # a Loading span (WITHOUT a spinner and not the Classic Jupyter Loading alert) displays and the
-        # dom element never updates until going to a new tab and returning. Waiting here until the end of the stack fixes this.
-        # Could not replicate in Chrome step through debugger
+        # dom element never updates until going to a new tab and returning.
+        # Waiting here until the end of the stack fixes this.
+        # Could not replicate in Chrome step through debugger.
+
+        @_mounted = true
         window.setTimeout =>
+            if not @_mounted  # this can, of course, happen!
+                return
             span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
             if span.length > 0
                 span.replaceWith(@props.editor.element[0])
@@ -60,6 +65,7 @@ WrappedEditor = rclass ({project_name}) ->
         @refresh()
 
     componentWillUnmount: ->
+        @_mounted = false
         window.removeEventListener('resize', @refresh)
         # These cover all cases for jQuery type overrides.
         @props.editor.save_view_state?()

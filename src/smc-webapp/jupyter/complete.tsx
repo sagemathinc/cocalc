@@ -1,3 +1,5 @@
+declare const $: any;
+
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 
@@ -12,12 +14,8 @@ interface CompleteProps {
 // but seems to work well for now.  Could move.
 export class Complete extends Component<CompleteProps> {
   private node: HTMLElement;
-  select = (item: any) => this.props.actions.select_complete(this.props.id, item);
-
-  close = () => {
-    this.props.actions.clear_complete();
-    this.props.actions.set_mode("edit");
-  };
+  select = (item: any) =>
+    this.props.actions.select_complete(this.props.id, item);
 
   render_item = (item: any) => {
     return (
@@ -29,7 +27,8 @@ export class Complete extends Component<CompleteProps> {
     );
   };
 
-  keypress = (evt: any) => this.props.actions.complete_handle_key(evt.keyCode);
+  keypress = (evt: any) =>
+    this.props.actions.complete_handle_key(this.props.id, evt.keyCode);
 
   componentDidMount() {
     $(window).on("keypress", this.keypress);
@@ -49,6 +48,9 @@ export class Complete extends Component<CompleteProps> {
   }
 
   key = (e: any) => {
+    if (e.keyCode === 27 && this.props.actions.close_complete != null) {
+      this.props.actions.close_complete(this.props.id);
+    }
     if (e.keyCode !== 13) {
       return;
     }
@@ -90,9 +92,6 @@ export class Complete extends Component<CompleteProps> {
           className="dropdown-menu cocalc-complete"
           style={{ maxHeight: "40vh" }}
           onKeyDown={this.key}
-          {
-            ...{} /*onKeyUp={this.key_up} // TODO: WARN: what was this suppose to be?*/
-          }
         >
           {this.get_items()}
         </ul>

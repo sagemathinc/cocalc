@@ -35,7 +35,7 @@ stateTypes:
     category_list0      : rtypes.arrayOf(rtypes.string)  # list of first category entries
     category_list1      : rtypes.arrayOf(rtypes.string)  # list of second level categories
     category_list2      : rtypes.arrayOf(rtypes.string)  # third level are the document titles
-    code                : rtypes.string      # displayed content of selected document
+    code                : rtypes.immutable.List   # displayed content of selected document
     setup_code          : rtypes.string      # optional, common code in the sub-category
     prepend_setup_code  : rtypes.bool        # if true, setup code is prepended to code
     descr               : rtypes.string      # markdown-formatted content of document description

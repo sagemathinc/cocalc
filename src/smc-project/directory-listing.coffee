@@ -70,6 +70,26 @@ exports.get_listing = (path, hidden, cb) ->
         async.mapLimit(files, 20, get_metadata, cb)
 
 
+exports.directory_listing_router = (express) ->
+    base = '/.smc/directory_listing/'
+    router = express.Router()
+    return directory_listing_http_server(base, router)
+
+directory_listing_http_server = (base, router) ->
+
+    router.get base + '*', (req, res) ->
+        # decodeURIComponent because decodeURI(misc.encode_path('asdf/te #1/')) != 'asdf/te #1/'
+        # https://github.com/sagemathinc/cocalc/issues/2400
+        path = decodeURIComponent(req.path.slice(base.length).trim())
+        hidden = req.query.hidden
+        # Fast -- do directly in this process.
+        exports.get_listing path, hidden, (err, info) ->
+            if err
+                res.json({error:err})
+            else
+                res.json({files:info})
+
+    return router
 
 
 
