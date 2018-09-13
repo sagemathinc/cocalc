@@ -472,11 +472,15 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       <div style={{ backgroundColor: "white" }}>
         {" "}
         <p>There is no rendered PDF file available.</p>
-        <p>
-          Instead, you might want to switch to the{" "}
-          {list_alternatives(this.props.derived_file_types)} view by selecting
-          it via the dropdown selector in the button row above.
-        </p>
+        {this.props.derived_file_types.size > 0 ? (
+          <p>
+            Instead, you might want to switch to the{" "}
+            {list_alternatives(this.props.derived_file_types)} view by selecting
+            it via the dropdown selector in the button row above.
+          </p>
+        ) : (
+          ""
+        )}
       </div>
     );
   }
