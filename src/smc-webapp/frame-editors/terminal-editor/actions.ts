@@ -17,13 +17,19 @@ export class Actions extends CodeEditorActions {
 
   set_terminal(id: string, terminal: any): void {
     this.terminals[id] = terminal;
-    connect_to_server(this.project_id, this.path, terminal);
+    try {
+      connect_to_server(this.project_id, this.path, terminal);
+    } catch (err) {
+      this.set_error(
+        `Error connecting to server -- ${err} -- try closing and reopening or restarting project.`
+      );
+    }
     terminal.on("mesg", mesg => this.handle_mesg(id, mesg));
     terminal.on("title", title => this.set_title(id, title));
     this.init_settings(terminal);
   }
 
-  _get_terminal(id:string) : any {
+  _get_terminal(id: string): any {
     return this.terminals[id];
   }
 
@@ -37,7 +43,7 @@ export class Actions extends CodeEditorActions {
 
   set_title(id: string, title: string) {
     console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({id:id, title:title});
+    this.set_frame_tree({ id: id, title: title });
   }
 
   handle_mesg(
@@ -73,8 +79,6 @@ export class Actions extends CodeEditorActions {
     terminal.set_color_scheme(
       settings.color_scheme ? settings.color_scheme : "default"
     );
-    terminal.set_font_family(
-      settings.font ? settings.font : "monospace"
-    );
+    terminal.set_font_family(settings.font ? settings.font : "monospace");
   }
 }

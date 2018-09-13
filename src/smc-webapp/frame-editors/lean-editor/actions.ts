@@ -2,6 +2,8 @@
 Lean Editor Actions
 */
 
+import { debounce } from "underscore";
+
 import { List } from "immutable";
 
 import { Store } from "../../app-framework";
@@ -18,11 +20,12 @@ import { capitalize } from "../generic/misc";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
-import { Task, Message } from "./types";
+import { Task, Message, Completion } from "./types";
 
 import { update_gutters } from "./gutters";
 
 interface LeanEditorState extends CodeEditorState {
+  info: any;
   messages: Message[];
   tasks: Task[];
   sync: { hash: number; time: number }; // hash is the hash of last version sync'd to lean, and time is *when*
@@ -33,54 +36,99 @@ export class Actions extends BaseActions<LeanEditorState> {
   private channel: Channel;
   public store: Store<LeanEditorState>;
   private gutter_last: { synced: boolean; messages: any; tasks: any };
+  private debounced_process_data_queue: Function;
+  private debounced_update_info: Function;
+  private debounced_update_gutters: Function;
+  private debounced_update_status_bar: Function;
+  private data_queue: any[];
 
-  _init2(): void {
+  async _init2(): Promise<void> {
+    this.data_queue = [];
+
+    this.debounced_process_data_queue = debounce(() => {
+      this.process_data_queue();
+    }, 750);
+
+    this.debounced_update_info = debounce(() => {
+      this.update_info();
+    }, 500);
+    this.debounced_update_gutters = debounce(() => {
+      this.update_gutters();
+    }, 500);
+    this.debounced_update_status_bar = debounce(() => {
+      this.update_status_bar();
+    }, 500);
+
     this.setState({
       messages: [],
       tasks: [],
       sync: { hash: 0, time: 0 },
-      syncstring_hash: 0
+      syncstring_hash: 0,
+      info: {}
     });
     this.gutter_last = { synced: false, messages: List(), tasks: List() };
     if (!this.is_public) {
-      this._init_channel();
       this._syncstring.on("change", () => {
         this.setState({
           syncstring_hash: this._syncstring.hash_of_live_version()
         });
-        this.update_gutters();
-        this.update_status_bar();
+        this.debounced_update_gutters();
+        this.debounced_update_status_bar();
+        this.debounced_update_info();
       });
+      try {
+        await this._init_channel();
+      } catch (err) {
+        this.set_error(
+          // TODO: should retry instead (?)
+          err +
+            " -- you might need to refresh your browser or close and open this file."
+        );
+      }
     } else {
       this._init_value();
     }
   }
 
   async _init_channel(): Promise<void> {
-    const channel: any = (this.channel = await (await project_api(
-      this.project_id
-    )).lean(this.path));
+    const api = await project_api(this.project_id);
+    this.channel = await api.lean_channel(this.path);
+    const channel: any = this.channel;
     channel.on("close", () => {
       channel.conn.once("open", () => {
         channel.connect();
       });
     });
     channel.on("data", x => {
-      //console.log(this.path, "channel got: ", JSON.stringify(x).slice(0,70));
       if (typeof x === "object") {
-        if (x.messages !== undefined) {
-          this.setState({ messages: x.messages });
-        }
-        if (x.tasks !== undefined) {
-          this.setState({ tasks: x.tasks });
-        }
-        if (x.sync !== undefined) {
-          this.setState({ sync: x.sync });
-        }
-        this.update_gutters();
-        this.update_status_bar();
+        this.handle_data_from_channel(x);
       }
     });
+  }
+
+  handle_data_from_channel(x: object): void {
+    this.data_queue.push(x);
+    this.debounced_process_data_queue();
+  }
+
+  process_data_queue(): void {
+    if (this.data_queue.length === 0) {
+      return;
+    }
+    for (let x of this.data_queue) {
+      if (x.messages !== undefined) {
+        this.setState({ messages: x.messages });
+      }
+      if (x.tasks !== undefined) {
+        this.setState({ tasks: x.tasks });
+      }
+      if (x.sync !== undefined) {
+        this.setState({ sync: x.sync });
+      }
+    }
+    this.data_queue = [];
+    this.update_gutters();
+    this.update_status_bar();
   }
 
   close(): void {
@@ -123,7 +171,7 @@ export class Actions extends BaseActions<LeanEditorState> {
       return;
     }
     this.gutter_last = { synced, messages, tasks };
-    this.clear_gutter("Codemirror-lean-info");
+    this.clear_gutter("Codemirror-lean-messages");
     const cm = this._get_cm();
     if (cm === undefined) {
       return; // satisfy typescript
@@ -137,7 +185,7 @@ export class Actions extends BaseActions<LeanEditorState> {
         this.set_gutter_marker({
           line,
           component,
-          gutter_id: "Codemirror-lean-info"
+          gutter_id: "Codemirror-lean-messages"
         });
       }
     });
@@ -151,30 +199,110 @@ export class Actions extends BaseActions<LeanEditorState> {
         direction: "col",
         type: "node",
         first: {
-          type: "lean-cm"
+          type: "cm-lean"
         },
         second: {
-          type: "lean-info"
+          direction: "row",
+          type: "node",
+          first: {
+            type: "lean-messages"
+          },
+          second: {
+            type: "lean-info"
+          }
         }
       };
     }
   }
 
-  /*
-  // overload the base class so we can handle symbols.
-  set_syncstring_to_codemirror(id?: string): void {
-    const cm = this._get_cm(id);
-    if (!cm) {
+  // uses API to get running version of LEAN server.
+  // I'm just implementing this now; not needed yet.
+  async version(): Promise<string> {
+    const api = await project_api(this.project_id);
+    return await api.lean({ cmd: "version" });
+  }
+
+  // Use the backend LEAN server via the api to complete
+  // at the given position.
+  async complete(line: number, column: number): Promise<Completion[]> {
+    if (!(await this.ensure_latest_changes_are_saved())) {
+      return [];
+    }
+
+    this.set_status("Completing at line ${line+1}...");
+    try {
+      const api = await project_api(this.project_id);
+      return await api.lean({
+        path: this.path,
+        cmd: "complete",
+        line: line + 1, // codemirror is 0 based but lean is 1-based.
+        column
+      });
+    } catch (err) {
+      err = err.toString();
+      if (err === "timeout") {
+        // user likely doesn't care about error report if this is the reason.
+        return [];
+      }
+      this.set_error(`Error getting completions on line ${line + 1} -- ${err}`);
+      return [];
+    } finally {
+      this.set_status("");
+    }
+  }
+
+  // Use the backend LEAN server via the api to get info
+  // at the given position.
+  async info(line: number, column: number): Promise<any> {
+    if (!(await this.ensure_latest_changes_are_saved())) {
       return;
     }
-    const value : string = cm.getValue();
-    console.log("value=", value);
-    const value2 = substitute_symbols(value);
-    if (value2 !== value) {
-      cm.setValueNoJump(value2);
-    }
-    this.set_syncstring(value2);
-  }
-  */
 
+    this.set_status(`Get info about line ${line + 1}...`);
+    try {
+      const api = await project_api(this.project_id);
+      return await api.lean({
+        path: this.path,
+        cmd: "info",
+        line: line + 1, // codemirror is 0 based but lean is 1-based.
+        column
+      });
+    } catch (err) {
+      err = err.toString();
+      if (
+        err === "timeout" ||
+        err === "Error: interrupted" ||
+        err === "Error: unknown exception"
+      ) {
+        // user likely doesn't care about error report if this is the reason.
+        return;
+      }
+      this.set_error(`Error getting info about line ${line + 1} -- ${err}`);
+      return;
+    } finally {
+      this.set_status("");
+    }
+  }
+
+  async update_info(): Promise<void> {
+    const cm = this._recent_cm();
+    if (cm == null) {
+      // e.g., maybe no editor
+      this.setState({ info: {} });
+      return;
+    }
+    const cur = cm.getDoc().getCursor();
+    if (cur == null) {
+      this.setState({ info: {} });
+      return;
+    }
+    const info = await this.info(cur.line, cur.ch);
+    if (info != null) {
+      this.setState({ info });
+    }
+  }
+
+  handle_cursor_move(_): void {
+    this.debounced_update_info();
+  }
 }
