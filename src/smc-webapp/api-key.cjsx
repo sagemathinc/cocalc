@@ -6,7 +6,7 @@ misc = require('smc-util/misc')
 
 {webapp_client} = require('./webapp_client')
 
-{React, ReactDOM, rtypes, rclass, redux}  = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
 {CloseX, ErrorDisplay, Icon, LabeledRow, Loading} = require('./r_misc')
 
@@ -103,11 +103,11 @@ exports.APIKeySetting = rclass
         if not name?
             switch action
                 when 'get'
-                    name = 'Reveal key'
+                    name = 'Reveal Key'
                 when 'delete'
-                    name = 'Delete key'
+                    name = 'Delete Key'
                 when 'regenerate'
-                    name = 'Regenerate key'
+                    name = 'Regenerate Key'
         if misc.startswith(@state.state, 'confirm-')
             disabled = true
         <Button
@@ -151,6 +151,8 @@ exports.APIKeySetting = rclass
         <div>
             <hr/>
             <span style={color:'#666'}>
+            NOTE: If you do not have a password set, there is <a href="https://github.com/sagemathinc/cocalc/wiki/password" target="_blank">a workaround to generate your API key.</a>
+            <br/><br/>
             See the <a href="#{window.app_base_url}/doc/api.html" target="_blank">CoCalc API documentation</a> to learn about the API.
             </span>
         </div>

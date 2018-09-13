@@ -10,6 +10,7 @@ describe "sanitizing HTML", ->
     sani     = misc_node.sanitize_html
     saniSafe = misc_node.sanitize_html_safe
 
+    @timeout(10000)
     it "works with plain text and knowns some utf8", (done) =>
         sani "foo & BAR &amp; Baz &rarr; &mdash; &ouml;", (ret) ->
             expect(ret).toBe("foo &amp; BAR &amp; Baz → — ö")

@@ -12,3 +12,7 @@ exports.google_analytics_token = ->
         ga = fs.readFileSync(filename).toString().trim()
     console.log("share/util/google_analytics_token: #{ga}")
     return ga
+
+exports.path_to_files = (path, project_id) ->
+    return path.replace('[project_id]', project_id)
+

@@ -7,7 +7,8 @@ PAGE_SIZE            = 100
 
 os_path              = require('path')
 
-{React}              = require('smc-webapp/smc-react')
+{React}              = require('smc-webapp/app-framework')
+
 express              = require('express')
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
@@ -19,15 +20,12 @@ react_support        = require('./react')
 {get_public_paths}   = require('./public_paths')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
-
-# This MUST be loaded last, e.g,. it overwrites some of the jQuery plugins
-# (mathjax from misc_page) that are implicitly loaded by the above requires.
-require('./mathjax-support')
+util                 = require('./util')
 
 # this reads it from disk
 google_analytics     = require('./util').google_analytics_token()
 
-react_viewer = (base_url, path, project_id, notranslate, viewer) ->
+react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
     return (res, component, subtitle) ->
         the_page = <Page
             base_url         = {base_url}
@@ -36,13 +34,13 @@ react_viewer = (base_url, path, project_id, notranslate, viewer) ->
             subtitle         = {subtitle}
             notranslate      = {!!notranslate}
             google_analytics = {google_analytics}
-            viewer           = {viewer}>
-
+            viewer           = {viewer}
+            is_public        = {is_public}
+        >
             {component}
-
         </Page>
         extra = {path:path, project_id:project_id}  # just used for log
-        react_support.react(res, the_page, extra)
+        react_support.react(res, the_page, extra, viewer)
 
 exports.share_router = (opts) ->
     opts = defaults opts,
@@ -67,7 +65,7 @@ exports.share_router = (opts) ->
         throw RuntimeError("opts.path must contain '[project_id]'")
 
     path_to_files = (project_id) ->
-        return opts.path.replace('[project_id]', project_id)
+        return util.path_to_files(opts.path, project_id)
 
     _ready_queue = []
     public_paths = undefined
@@ -118,7 +116,7 @@ exports.share_router = (opts) ->
                 page_size    = {PAGE_SIZE}
                 paths_order  = {public_paths.order()}
                 public_paths = {public_paths.get()} />
-            r = react_viewer(opts.base_url, '/', undefined, true, 'share')
+            r = react_viewer(opts.base_url, '/', undefined, true, 'share', public_paths.is_public)
             r(res, page, "#{page_number} of #{PAGE_SIZE}")
 
     router.get '/:id/*?', (req, res) ->
@@ -129,7 +127,7 @@ exports.share_router = (opts) ->
                 info = undefined
             else
                 info = public_paths.get(req.params.id)
-                if not info?
+                if not info? or info.get('auth')   # TODO: For now, /share server does NOT make vhost visible at all if there is any auth info..
                     res.sendStatus(404)
                     return
                 project_id = info.get('project_id')
@@ -165,7 +163,7 @@ exports.share_router = (opts) ->
                     info   : info
                     dir    : dir
                     path   : path
-                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer)
+                    react  : react_viewer(opts.base_url, "/#{req.params.id}/#{path}", project_id, false, viewer, public_paths.is_public)
                     viewer : viewer
                     hidden : req.query.hidden
                     sort   : req.query.sort ? '-mtime'

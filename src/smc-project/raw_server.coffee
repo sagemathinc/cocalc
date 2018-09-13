@@ -11,9 +11,11 @@ misc_node = require('smc-util-node/misc_node')
 
 {defaults, required} = require('smc-util/misc')
 
-{jupyter_router} = require('./jupyter/jupyter')
+{jupyter_router} = require('./jupyter/http-server')
 
-{directory_listing_router} = require('./directory-listing')
+{init_websocket_server} = require('./browser-websocket/server')
+
+{directory_listing_router} = require('./directory-listing')  # still used by HUB
 
 {upload_endpoint} = require('./upload')
 
@@ -26,6 +28,7 @@ exports.start_raw_server = (opts) ->
         host       : required
         data_path  : required
         home       : required
+        client     : required
         port       : undefined
         logger     : undefined
         cb         : cb
@@ -34,13 +37,19 @@ exports.start_raw_server = (opts) ->
 
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
+    http_server   = require('http').createServer(raw_server);
 
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
     compression = require('compression')
     raw_server.use(compression())
 
     # Needed for POST file to custom path.
+
+    # parse application/x-www-form-urlencoded
     raw_server.use(body_parser.urlencoded({ extended: true }))
+
+    # parse application/json
+    raw_server.use(body_parser.json())
 
     port = opts.port # either undefined or the port number
 
@@ -60,13 +69,16 @@ exports.start_raw_server = (opts) ->
                             opts.logger?.debug("WARNING: error creating root symlink -- #{err}")
                         cb()
         (cb) ->
-            if port  # 0 or undefined
+            if port
                 cb()
             else
+                # 0 or undefined -- so generate one that is available
                 misc_node.free_port (err, _port) ->
-                    port = _port; cb(err)
-        (cb) ->
-            fs.writeFile(raw_port_file, port, cb)
+                    if err
+                        cb(err)
+                        return
+                    port = _port
+                    fs.writeFile(raw_port_file, port, cb) # since not specified, write it
         (cb) ->
             base = "#{base_url}/#{project_id}/raw/"
             opts.logger?.info("raw server: port=#{port}, host='#{host}', base='#{base}'")
@@ -75,12 +87,18 @@ exports.start_raw_server = (opts) ->
                 # Add a /health handler, which is used as a health check for Kubernetes.
                 kucalc.init_health_metrics(raw_server, project_id)
 
-            # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
-            raw_server.use(base, jupyter_router(express))
-
             # Setup the /.smc/directory_listing/... server, which is used to provide directory listings
             # to the hub (at least in KuCalc).
             raw_server.use(base, directory_listing_router(express))
+
+            # Setup the /.smc/jupyter/... server, which is used by our jupyter server for blobs, etc.
+            raw_server.use(base, jupyter_router(express))
+
+
+            # Setup the /.smc/ws websocket server, which is used by clients
+            # for direct websocket connections to the project, and also
+            # servers /.smc/primus.js, which is the relevant client library.
+            raw_server.use(base, init_websocket_server(express, http_server, base, opts.logger, opts.client))
 
             # Setup the upload POST endpoint
             raw_server.use(base, upload_endpoint(express, opts.logger))
@@ -97,13 +115,14 @@ exports.start_raw_server = (opts) ->
             raw_server.use(base, express_index(home,  {hidden:true, icons:true}))
             raw_server.use(base, express.static(home, {hidden:true}))
 
-
             # NOTE: It is critical to only listen on the host interface (not localhost),
-            # since otherwise other users on the same VM could listen in.
+            # since otherwise other users on the same VM could listen in.  Doesn't matter
+            # for the main site now due to Docker/Kubernetes/Firewall...
             # We also firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of
             # auth (?) just in case?
-            raw_server.listen(port, host, cb)
+            http_server.listen(port, host)
+            cb()
     ], (err) ->
         if err
             opts.logger?.debug("error starting raw_server: err = #{misc.to_json(err)}")

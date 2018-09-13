@@ -26,10 +26,12 @@
 
 {debounce} = require('underscore')
 
-{rclass, rtypes, ReactDOM, React} = require('./smc-react')
+{rclass, rtypes, ReactDOM, React} = require('./app-framework')
 {defaults, required, copy} = require('smc-util/misc')
 
 WrappedEditor = rclass ({project_name}) ->
+    displayName: 'NonReactWrapper'
+
     propTypes :
         editor : rtypes.object.isRequired
 
@@ -38,9 +40,21 @@ WrappedEditor = rclass ({project_name}) ->
         #   (Actually, see how editor_pdf and edtor_jupyter done for the right way to do this -- wstein)
         # http://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
         # SMELL: Tasks, Latex and PDF viewer also do this to save scroll position
-        span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
-        if span.length > 0
-            span.replaceWith(@props.editor.element[0])
+        # HACK: I have no idea why setTimeout is necessary. 2017/12/23
+        # Removing it results in a bug when switching from modern Jupyter to Classic Jupyter where
+        # a Loading span (WITHOUT a spinner and not the Classic Jupyter Loading alert) displays and the
+        # dom element never updates until going to a new tab and returning.
+        # Waiting here until the end of the stack fixes this.
+        # Could not replicate in Chrome step through debugger.
+
+        @_mounted = true
+        window.setTimeout =>
+            if not @_mounted  # this can, of course, happen!
+                return
+            span = $(ReactDOM.findDOMNode(@)).find(".smc-editor-react-wrapper")
+            if span.length > 0
+                span.replaceWith(@props.editor.element[0])
+        , 0
 
         @props.editor.show()
         @props.editor.focus?()
@@ -51,6 +65,7 @@ WrappedEditor = rclass ({project_name}) ->
         @refresh()
 
     componentWillUnmount: ->
+        @_mounted = false
         window.removeEventListener('resize', @refresh)
         # These cover all cases for jQuery type overrides.
         @props.editor.save_view_state?()
@@ -87,6 +102,11 @@ exports.register_nonreact_editor = (opts) ->
         icon      : undefined
         is_public : false
 
+    if window?.smc?
+        # make it much clearer which extensions use non-react editors
+        window.smc.nonreact ?= []
+        window.smc.nonreact.push({ext:opts.ext, is_public:opts.is_public})
+
     require('project_file').register_file_editor
         ext       : opts.ext
         is_public : opts.is_public
@@ -103,7 +123,7 @@ exports.register_nonreact_editor = (opts) ->
 
         generator : (path, redux, project_id) ->
             key = get_key(project_id, path)
-            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name=project_name />
+            wrapper_generator = ({project_name}) -> <WrappedEditor editor={editors[key]} project_name={project_name} />
             wrapper_generator.get_editor = -> editors[key]
             return wrapper_generator
 
@@ -116,10 +136,7 @@ exports.register_nonreact_editor = (opts) ->
         save     : (path, redux, project_id) ->
             if opts.is_public
                 return
-            e = editors[get_key(project_id, path)]
-            # click_save_button if defined, otherwise just the save function.
-            if e?
-                (e.click_save_button ? e.save)?()
+            editors[get_key(project_id, path)]?.save?()
 
 
 if DEBUG

@@ -21,7 +21,7 @@
 
 {Button, ButtonGroup} = require('react-bootstrap')
 
-{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./app-framework')
 {webapp_client} = require('./webapp_client')
 {Icon} = require('./r_misc')
 
@@ -61,7 +61,7 @@ PublicPDF = rclass
                 <Button
                     target="_blank"
                     href="#{get_url(@props.project_id, @props.path)}?random=#{Math.random()}">
-                    <Icon name="external-link"/> Open in new window
+                    <Icon name="external-link"/> Open in New Window
                 </Button>
             </ButtonGroup>
             <div
@@ -112,6 +112,8 @@ delete_iframe = (project_id, path) ->
     iframes[k].remove()
     delete iframes[k]
 
+# DIsabled in favor of new frame editor.
+###
 for pub in [true, false]
     require('./project_file').register_file_editor
         ext       : 'pdf'
@@ -125,4 +127,4 @@ for pub in [true, false]
         remove    : (path, redux, project_id) ->
             delete_iframe(project_id, path)
 
-
+###

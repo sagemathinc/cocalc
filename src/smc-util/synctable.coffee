@@ -80,6 +80,7 @@ a laptop, then resume?  The changes may get saved... a month later.  For some th
 this could be fine.  However, on reconnect, the first thing is that complete upstream state of
 table is set on server version of table, so reconnecting user only sends its changes if upstream
 hasn't changed anything in that same record.
+
 ###
 
 # if true, will log to the console a huge amount of info about every get/set
@@ -99,7 +100,7 @@ schema         = require('./schema')
 {defaults, required} = misc
 
 is_fatal = (err) ->
-    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL'
+    return typeof(err) == 'string' and err.slice(0,5) == 'FATAL' and err.indexOf('tracker') == -1  # TODO: tracker part is temporary workaround -- remove
 
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since PostgresQL primary keys can be compound (more than
@@ -146,8 +147,10 @@ class Plug
         @connect()
 
     dbg: (f) =>
-        #return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
-        return =>
+        if @_opts.client.is_project()
+            return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
+        else
+            return =>
 
     # Keep trying until we connect - always succeeds if it terminates
     connect: (cb) =>
@@ -160,8 +163,8 @@ class Plug
         misc.retry_until_success
             f           : @__try_to_connect_once
             log         : dbg
-            start_delay : 4000
-            max_delay   : 20000
+            start_delay : 3000
+            max_delay   : 12000
             cb          : =>
                 delete @_is_connecting
                 dbg("success!")
@@ -178,8 +181,8 @@ class Plug
                 if not @_opts.client.is_signed_in()
                     cb("not signed in but need to be")
                     return
-            if give_up_timer
-                clearInterval(give_up_timer)
+            if give_up_timer?
+                clearTimeout(give_up_timer)
             @_opts.connect (err) =>
                 if err == 'closed'
                     cb()  # success = stop trying.
@@ -203,10 +206,18 @@ class Plug
             give_up = =>
                 @_opts.client.removeListener(event, do_connect)
                 cb("timeout")
-            timer = setTimeout(give_up, 5000+Math.random()*10000)
+            give_up_timer = setTimeout(give_up, 5000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client, @_debounce_interval, @_throttle_changes, @_cache_key) ->
+    constructor: (_query, _options, _client, _debounce_interval, _throttle_changes, _cache_key) ->
+        super()
+        @_query = _query
+        @_options = _options
+        @_client = _client
+        @_debounce_interval = _debounce_interval
+        @_throttle_changes = _throttle_changes
+        @_cache_key = _cache_key
+
         @_init_query()
         # The value of this query locally.
         @_value_local = undefined
@@ -266,9 +277,6 @@ class SyncTable extends EventEmitter
     _connect: (cb) =>
         dbg = @dbg("connect")
         dbg()
-        if @_fatal
-            cb?('fatal')
-            return
         if @_state == 'closed'
             cb?('closed')
             return
@@ -290,27 +298,23 @@ class SyncTable extends EventEmitter
                 # 2. Now actually do the changefeed query.
                 @_reconnect(cb)
         ], (err) =>
-            if is_fatal(err)
-                # This happens, e.g., when a user is no longer a collaborator on a project, or they are signed out
-                # but still have a bunch of tabs open.  It avoids a huge amount of back and forth traffic between
-                # the client and server.   WORRY: when they sign in, things will not just start working again...
-                # but for now we need to defend ourselves.
-                dbg("FATAL error -- #{err}")
-                @_set_fatal(err)
-                cb?("fatal")
-            else
-                cb?()
+            cb?(err)
         )
 
     _reconnect: (cb) =>
-        dbg = @dbg("_run")
-        if @_fatal
-            cb?('fatal')
-            return
+        dbg = @dbg("_reconnect")
         if @_state == 'closed'
             dbg("closed so don't do anything ever again")
             cb?()
             return
+        # console.log("synctable", @_table, @_schema.db_standby)
+        if @_schema.db_standby and not @_client.is_project()
+            @_do_the_query_using_db_standby(cb)
+        else
+            @_do_the_query(cb)
+
+    _do_the_query: (cb) =>
+        dbg = @dbg("_do_the_query")
         first_resp = true
         this_query_id = undefined
         dbg("do the query")
@@ -320,19 +324,14 @@ class SyncTable extends EventEmitter
             timeout : 30
             options : @_options
             cb      : (err, resp) =>
-                if err
-                    cb?(err)
-                    cb = undefined
-                    return
-
                 if @_state == 'closed'
                     # already closed so ignore anything else.
-                    cb?('closed')
-                    cb = undefined
                     return
 
-                if @_fatal
-                    cb?('fatal')
+                if is_fatal(err)
+                    console.warn('setting up changefeed', @_table, err, @_query)
+                    @close(true)
+                    cb?(err)
                     cb = undefined
                     return
 
@@ -341,16 +340,12 @@ class SyncTable extends EventEmitter
                     first_resp = false
                     if @_state == 'closed'
                         cb?("closed")
-                        cb = undefined
                     else if resp?.event == 'query_cancel'
                         cb?("query-cancel")
-                        cb = undefined
                     else if err
                         cb?(err)
-                        cb = undefined
                     else if not resp?.query?[@_table]?
                         cb?("got no data")
-                        cb = undefined
                     else
                         # Successfully completed query
                         this_query_id = @_id = resp.id
@@ -358,10 +353,9 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         @emit("connected", resp.query[@_table])  # ready to use!
                         cb?()
-                        cb = undefined
                         # Do any pending saves
-                        for cb0 in @_connected_save_cbs ? []
-                            @save(cb0)
+                        for cb in @_connected_save_cbs ? []
+                            @save(cb)
                         delete @_connected_save_cbs
                 else
                     if @_state != 'connected'
@@ -375,6 +369,111 @@ class SyncTable extends EventEmitter
                         # Handle the update
                         @_update_change(resp)
 
+    _do_the_query_using_db_standby: (cb) =>
+        dbg = @dbg("_do_the_query_using_db_standby")
+        if @_schema.db_standby == 'unsafe'
+            # do not even require the changefeed to be
+            # working before doing the full query.  This would
+            # for sure miss all changes from when the query
+            # finishes until the changefeed starts.  For some
+            # tables this is fine; for others, not.
+            f = async.parallel
+        else
+            # This still could miss a small amount of data, but only
+            # for a tiny window.
+            f = async.series
+
+        ###
+        # Use this for simulating async/slow loading behavior for a specific table.
+        if @_table == 'accounts'
+            console.log("delaying")
+            await require('awaiting').delay(5000)
+        ###
+
+        f([
+            @_start_changefeed,
+            @_do_initial_read_query,
+        ], (err) =>
+            if err
+                dbg("FAIL", err)
+                cb?(err)
+                return
+            dbg("Success")
+            cb?()
+            # Do any pending saves
+            for c in @_connected_save_cbs ? []
+                @save(c)
+            delete @_connected_save_cbs
+        )
+
+    _do_initial_read_query: (cb) =>
+        dbg = @dbg("_do_initial_read_query")
+        dbg()
+        @_client.query
+            query   : @_query
+            standby : true
+            timeout : 30
+            options : @_options
+            cb      : (err, resp) =>
+                if err
+                    dbg("FAIL", err)
+                    cb?(err)
+                else
+                    dbg("success!")
+                    @_update_all(resp.query[@_table])
+                    @_state = 'connected'
+                    @emit("connected", resp.query[@_table])  # ready to use!
+                    cb?()
+
+    _start_changefeed: (cb) =>
+        dbg = @dbg("start_changefeed")
+        first_resp = true
+        this_query_id = undefined
+        dbg("do the query")
+        @_client.query
+            query   : @_query
+            changes : true
+            timeout : 30
+            options : (@_options ? []).concat({only_changes:true})
+            cb      : (err, resp) =>
+                if @_state == 'closed'
+                    # already closed so ignore anything else.
+                    return
+
+                if is_fatal(err)
+                    console.warn('setting up changefeed', @_table, err, @_query)
+                    @close(true)
+                    cb?(err)
+                    cb = undefined
+                    return
+
+                if first_resp
+                    dbg("query got first resp", err, resp)
+                    first_resp = false
+                    if @_state == 'closed'
+                        cb?("closed")
+                    else if resp?.event == 'query_cancel'
+                        cb?("query-cancel")
+                    else if err
+                        cb?(err)
+                    else
+                        # Successfully completed query to start changefeed.
+                        this_query_id = @_id = resp.id
+                        cb?()
+                else
+                    if @_state != 'connected'
+                        # TODO: save them up and apply...?
+                        dbg("nothing to do -- ignore these, and make sure they stop")
+                        if this_query_id?
+                            @_client.query_cancel(id:this_query_id)
+                        return
+                    if err or resp?.event == 'query_cancel'
+                        @_disconnected("err=#{err}, resp?.event=#{resp?.event}")
+                    else
+                        # Handle the update
+                        @_update_change(resp)
+
+
     _disconnected: (why) =>
         dbg = @dbg("_disconnected")
         dbg("why=#{why}")
@@ -386,15 +485,20 @@ class SyncTable extends EventEmitter
         @_state = 'disconnected'
         @_plug.connect()  # start trying to connect again
 
+    # disconnect, then connect again.
+    reconnect: =>
+        @_disconnected('reconnect called')
+
     # Return string key used in the immutable map in which this table is stored.
     key: (obj) =>
         return @_key(obj)
 
     # Return true if there are changes to this synctable that
     # have NOT been confirmed as saved to the backend database.
+    # Returns undefined if not initialized.
     has_uncommitted_changes: () =>
         if not @_value_server? and not @_value_local?
-            return false
+            return
         if @_value_local? and not @_value_server?
             return true
         return not @_value_server.equals(@_value_local)
@@ -517,9 +621,6 @@ class SyncTable extends EventEmitter
         return changed
 
     _save: (cb) =>
-        if @_fatal
-            cb?()
-            return
         if @_state == 'closed'
             cb?("closed")
             return
@@ -529,16 +630,11 @@ class SyncTable extends EventEmitter
             @__is_saving = true
             @__save (err) =>
                 @__is_saving = false
-                if is_fatal(err)
-                    @_set_fatal(err)
                 cb?(err)
 
     __save: (cb) =>
         if @_state == 'closed'
             cb?("closed")
-            return
-        if @_fatal
-            cb?()
             return
         # console.log("_save('#{@_table}')")
         # Determine which records have changed and what their new values are.
@@ -605,6 +701,13 @@ class SyncTable extends EventEmitter
             timeout : 30
             cb      : (err) =>
                 if err
+                    if is_fatal(err)
+                        console.warn('FATAL doing set', @_table, err)
+                        @close(true)
+                        cb?(err)
+                        cb = undefined
+                        return
+
                     console.warn("_save('#{@_table}') error:", err)
                     if err == 'clock'
                         @_client.alert_message(type:'error', timeout:9999,  message:"Your computer's clock is or was off!  Fix it and **refresh your browser**.")
@@ -640,10 +743,6 @@ class SyncTable extends EventEmitter
         if @_state == 'closed'
             cb?("closed")
             return
-        if @_fatal
-            cb?()
-            return
-
         if @_state != 'connected'
             cb?("not connected")    # do not change this error message; it is assumed elsewhere.
             return
@@ -659,8 +758,8 @@ class SyncTable extends EventEmitter
             f        : (cb) =>
                 misc.retry_until_success
                     f         : @_save
-                    max_delay : 5000
-                    max_time  : 30000
+                    max_delay : 20000
+                    max_time  : 60000
                     cb        : cb
             interval : @_debounce_interval
             state    : @_save_debounce
@@ -949,27 +1048,7 @@ class SyncTable extends EventEmitter
 
         return new_val
 
-    # If we get a fatal error, then we wait a bit.  This could happen due to being signed out,
-    # or thinking we're signed in, but not being signed in (since we *just* are in the process of
-    # being signed out).  It's rare, but there are dozens of tables, so even a 1% chance can
-    # easily happen.
-    _set_fatal: (why) =>
-        if @_fatal
-            return
-        tm = 10000 + Math.random()*20000
-        #console.log("_set_fatal", @_query, tm, why)
-        @_fatal = true
-        @_fatal_interval = setTimeout(@_unset_fatal, tm)
-
-    _unset_fatal: =>
-        #console.log("_unset_fatal", @_query)
-        delete @_fatal
-        delete @_fatal_interval
-
-    close: =>
-        if @_fatal_interval
-            clearTimeout(@_fatal_interval)
-            delete @_fatal_interval
+    close: (fatal) =>
         if @_state == 'closed'
             # already closed
             return
@@ -978,8 +1057,9 @@ class SyncTable extends EventEmitter
             # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
         @_client.removeListener('disconnected', @_disconnected)
-        # do a last attempt at a save (so we don't lose data), then really close.
-        @_save()  # this will synchronously construct the last save and send it
+        if not fatal
+            # do a last attempt at a save (so we don't lose data), then really close.
+            @_save()  # this will synchronously construct the last save and send it
         # The moment the sync part of @_save is done, we remove listeners and clear
         # everything up.  It's critical that as soon as @close is called that there
         # be no possible way any further connect events (etc) can make this SyncTable
@@ -1012,7 +1092,9 @@ class SyncTable extends EventEmitter
             x = opts.until(@)
             if x
                 @removeListener('change', f)
-                if fail_timer? then clearTimeout(fail_timer)
+                if fail_timer?
+                    clearTimeout(fail_timer)
+                    fail_timer = undefined
                 opts.cb(undefined, x)
         @on('change', f)
         if opts.timeout
@@ -1093,4 +1175,5 @@ class exports.TestBrowserClient1 extends EventEmitter
             timeout : 30
             cb      : undefined
         @emit 'query', opts
+
 

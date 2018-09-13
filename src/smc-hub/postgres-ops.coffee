@@ -15,9 +15,7 @@ required   = defaults.required
 
 {SCHEMA}   = require('smc-util/schema')
 
-{PostgreSQL} = require('./postgres')
-
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Backups up the indicated tables.
     # WARNING: This is NOT guaranteed to give a point
     # in time backup of the entire database across tables!

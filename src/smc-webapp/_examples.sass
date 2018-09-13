@@ -1,13 +1,15 @@
-$selector-height: 175px
+$selector-height: 180px
+$code-height: 230px
 
 .webapp-examples
   +disable-user-select
 
   .modal-header
-    white-space : nowrap;
+    white-space : nowrap
     h2,
     .nav-pills,
     .webapp-examples-search
+      display    : flex
       margin-top : 10px
     .btn-close,
     button.close
@@ -17,6 +19,14 @@ $selector-height: 175px
 
   .modal-body
     > div.row:first-child
+
+      > div.webapp-examples-loading
+        height          : $selector-height
+        display         : flex
+        flex-direction  : column
+        justify-content : center
+        text-align      : center
+
       ul
         height   : $selector-height
         overflow : auto
@@ -25,11 +35,24 @@ $selector-height: 175px
           cursor : pointer
           &:not(.active):hover
             background-color : #eee
+          > span > p
+            margin: 0
+
+      > div > ul.list-group
+        border          : 1px solid $COL_GRAY_DDD
+        border-radius   : 5px
+        > li
+          border        : none
+          border-bottom : 1px solid $COL_GRAY_LL
+          margin        : 0
+          border-radius : 0
 
     div.webapp-examples-descr,
-    pre.code
-      height : 200px
-      overflow : auto
+    .webapp-examples-code>div>pre
+      padding           : 0px
+      height            : $code-height
+      overflow          : auto
+      border-color      : $COL_GRAY_DDD
       +enable-user-select
       .attr,
       .attr a
@@ -39,7 +62,10 @@ $selector-height: 175px
         text-align : right
 
   div.modal-footer
-    padding : 10px
+    padding    : 10px
+    text-align : left
+    > .contrib-link
+      color: $COL_GRAY
 
   span.badge
     background-color : #eee

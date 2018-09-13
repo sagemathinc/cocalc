@@ -74,6 +74,7 @@ forums.
 
 ### Additional References
 
+- The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
 - The CoCalc PostgreSQL schema definition
 [src/smc-util/db-schema.coffee](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee)
 has information on tables and fields used with the API `query` request.
@@ -518,9 +519,9 @@ API message2
         id:
             init  : undefined
             desc  : 'A unique UUID for the query'
-        email_address:
+        account_id:
             init  : required
-            desc  : 'email address for account whose password is changed'
+            desc  : 'account id of the account whose password is being changed'
         old_password:
             init  : ""
             desc  : ''
@@ -528,12 +529,12 @@ API message2
             init  : required
             desc  : 'must be between 6 and 64 characters in length'
     desc           : """
-Given email address and old password for an account, set a new password.
+Given account_id and old password for an account, set a new password.
 
 Example:
 ```
   curl -u sk_abcdefQWERTY090900000000: \\
-    -d email_address=... \\
+    -d account_id=... \\
     -d old_password=... \\
     -d new_password=... \\
     https://cocalc.com/api/v1/change_password
@@ -834,6 +835,9 @@ API message2
         timeout:
             init  : 10
             desc  : 'maximum allowed time, in seconds'
+        aggregate:
+            init  : undefined
+            desc  : 'If there are multiple attempts to run the given command with the same time, they are all aggregated and run only one time by the project; if requests comes in with a greater value (time, sequence number, etc.), they all run in  another group after the first one finishes.  Meant for compiling code on save.'
         max_output:
             init  : undefined
             desc  : 'maximum number of characters in the output'
@@ -1113,10 +1117,6 @@ message
     project_id : required
 
 
-# hub --> client(s)
-message
-    event      : 'project_list_updated'
-
 ## search ---------------------------
 
 # client --> hub
@@ -1129,6 +1129,12 @@ API message2
         query:
             init  : required
             desc  : "comma separated list of email addresses or strings such as 'foo bar'"
+        admin:
+            init  : false
+            desc  : "if true and user is an admin, includes email addresses in result, and does more permissive search"
+        active:
+            init  : '6 months'
+            desc  : "only include users active for this interval of time"
         limit:
             init  : 20
             desc  : 'maximum number of results returned'
@@ -1206,7 +1212,7 @@ Email and string search types may be mixed in a single query:
 message
     event   : 'user_search_results'
     id      : undefined
-    results : required  # list of {first_name:, last_name:, account_id:} objects.
+    results : required  # list of {first_name:, last_name:, account_id:, last_active:?, created:?, email_address:?} objects.; email_address only for admin
 
 # hub --> client
 message
@@ -1226,6 +1232,24 @@ API message2
         account_id:
             init  : required
             desc  : 'account_id of invited user'
+        title        :
+            init  : undefined
+            desc  : 'Title of the project'
+        link2proj    :
+            init  : undefined
+            desc  : 'The full URL link to the project'
+        replyto      :
+            init  : undefined
+            desc  : 'Email address of user who is inviting someone'
+        replyto_name :
+            init  : undefined
+            desc  : 'Name of user who is inviting someone'
+        email        :
+            init  : undefined
+            desc  : 'Body of email user is sending (plain text or HTML)'
+        subject      :
+            init  : undefined
+            desc  : 'Subject line of invitiation email'
     desc       : """
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner
@@ -1371,7 +1395,7 @@ message
 # Message sent in response to attempt to save a blob
 # to the database.
 #
-# hub --> local_hub --> sage_server
+# hub --> local_hub [--> sage_server]
 #
 #############################################
 message
@@ -1380,7 +1404,6 @@ message
     sha1      : required     # the sha-1 hash of the blob that we just processed
     ttl       : undefined    # ttl in seconds of the blob if saved; 0=infinite
     error     : undefined    # if not saving, a message explaining why.
-
 
 # remove the ttls from blobs in the blobstore.
 # client --> hub
@@ -1513,6 +1536,11 @@ message
     id           : undefined
     path         : required
 
+###
+Heartbeat message for connection from hub to project.
+###
+message
+    event : 'heartbeat'
 
 ###
 Ping/pong -- used for clock sync, etc.
@@ -1775,6 +1803,7 @@ via the API and is intended for use by CoCalc support only:
 
 message
     event        : 'webapp_error'
+    id           : undefined # ignored
     name         : required  # string
     message      : required  # string
     comment      : undefined # string
@@ -2274,9 +2303,9 @@ if you are only setting the `cpu_shares` attribute because changes are merged in
 ```
 
 Set present user to open Jupyter notebooks in
-"Modern Notebook" as opposed to "Classical Notebook".
+"CoCalc Jupyter Notebook" as opposed to "Classical Notebook".
 This change not usually needed, because accounts
-default to "Modern Notebook".
+default to "CoCalc Jupyter Notebook".
 
 It is not necessary to specify the entire `editor_settings` object
 if you are only setting the `jupyter_classic` attribute because changes are merged in.
@@ -2319,12 +2348,6 @@ Within file 'db-schema.coffee':
 message
     event : 'query_cancel'
     id    : undefined
-
-# used to a get array of currently active change feed id's
-message
-    event          : 'query_get_changefeed_ids'
-    id             : undefined
-    changefeed_ids : undefined
 
 ###
 API Key management for an account
@@ -2426,4 +2449,103 @@ API message2
             desc : 'tells client that it should submit metrics to the hub every interval_s seconds'
 
 
+# Info about available upgrades for a given user
+API message2
+    event : 'get_available_upgrades'
+    fields:
+        id:
+           init  : undefined
+           desc  : 'A unique UUID for the query'
+    desc         : """
+This request returns information on project upgrdes for the user
+whose API key appears in the request.
+Two objects are returned, total upgrades and available upgrades.
 
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
+
+Example:
+```
+  curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/get_available_upgrades
+  ==>
+  {"id":"57fcfd71-b50f-44ef-ba66-1e37cac858ef",
+   "event":"available_upgrades",
+   "total":{
+     "cores":10,
+     "cpu_shares":2048,
+     "disk_quota":200000,
+     "member_host":80,
+     "memory":120000,
+     "memory_request":8000,
+     "mintime":3456000,
+     "network":400},
+     "excess":{},
+   "available":{
+     "cores":6,
+     "cpu_shares":512,
+     "disk_quota":131000,
+     "member_host":51,
+     "memory":94000,
+     "memory_request":8000,
+     "mintime":1733400,
+     "network":372}}
+```
+"""
+
+# client <-- hub
+
+message
+    event      : 'available_upgrades'
+    id         : undefined
+    total      : required  # total upgrades the user has purchased
+    excess     : required  # upgrades where the total allocated exceeds what user has purchased
+    available  : required  # how much of each purchased upgrade is available
+
+# Remove *all* upgrades applied by the signed in user to any projects.
+# client --> hub
+message
+    event      : 'remove_all_upgrades'
+    id         : undefined
+
+
+###
+Sage Worksheet Support, v2
+###
+# client --> project
+message
+    event        : 'sagews_execute_code'
+    id           : undefined
+    path         : required
+    code         : required
+    data         : undefined
+    cell_id      : undefined  # if is a cell, which is being executed (so if client does not ack, output is still recorded)
+    preparse     : true
+
+# project --> client
+message
+    event        : 'sagews_output'
+    id           : required
+    path         : required
+    output       : required     # the actual output message
+
+# client --> project
+message
+    event        : 'sagews_output_ack'
+    id           : required
+
+# client --> project
+message
+    event        : 'sagews_interrupt'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_quit'
+    id           : undefined
+    path         : required
+
+# client --> project
+message
+    event        : 'sagews_start'
+    id           : undefined
+    path         : required

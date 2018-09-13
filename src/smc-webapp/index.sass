@@ -17,7 +17,7 @@
   +user-select(none)
 
 =enable-user-select
-  +user-select(initial)
+  +user-select(text)
 
 // the common class for the cocalc-icons-font, adjusting fontawesome fa class a little bit
 .cc-icons:before
@@ -34,12 +34,13 @@
 @import examples
 @import editor
 @import jupyter
-@import tasks
 @import interact
 @import 3d
 @import d3
 @import jsoninspector
+@import profile
 @import jupyter/jupyter
+@import tasks/tasks
 
 .hide
   display : none
@@ -344,3 +345,26 @@ footer
     color: $COL_GRAY_LL
   a:hover
     color: white
+
+.cocalc-pdfjs-page
+  border-left: 30px solid #525659
+  border-right: 30px solid #525659
+  border-bottom: 5px solid #525659
+  border-top: 5px solid #525659
+
+// issue #2892 -- katex formulas mangled in RTL contexts
+// this here is just a workaround
+span.katex
+  direction: ltr
+
+// the marker looks absurdly tiny otherwise...
+//.CodeMirror-guttermarker-open
+//  cursor: pointer
+
+//.CodeMirror-guttermarker-closed
+//  cursor: pointer
+
+//.CodeMirror-guttermarker-subtle
+//  position: absolute
+//  font-size: 28px
+//  margin-top: -14px

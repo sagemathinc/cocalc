@@ -60,7 +60,7 @@
 ############################################################################
 
 net     = require('net')
-winston = require('winston')            # https://github.com/flatiron/winston
+winston = require('./winston-metrics').get_logger('sage')
 
 message = require("smc-util/message")
 misc    = require('smc-util/misc')

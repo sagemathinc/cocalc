@@ -2,14 +2,12 @@
 Share server top-level landing page.
 ###
 
-{rclass, React, ReactDOM, rtypes} = require('../smc-react')
+{rclass, React, ReactDOM, rtypes} = require('../app-framework')
 misc = require('smc-util/misc')
 {Space, TimeAgoElement} = require('../r_misc')
 
 INDEX_STYLE =
     margin     : '0px 30px 15px 30px'
-    overflow   : 'auto'
-    height     : '100%'
     background : 'white'
 
 exports.PublicPathsBrowser = rclass
@@ -87,7 +85,10 @@ exports.PublicPathsBrowser = rclass
             if not id?
                 continue
             info = @props.public_paths.get(id)
-            if not info?
+            if not info? or info.get('auth')  # TODO: as in router.cjsx, we skip all public_paths with auth info for now, until auth is implemented... (?)
+                continue
+            if info.get('unlisted')
+                # Do NOT list unlisted public paths.
                 continue
             if j % 2 == 0
                 bgcolor = 'rgb(238, 238, 238)'
@@ -97,7 +98,7 @@ exports.PublicPathsBrowser = rclass
             @render_public_path_link(info, bgcolor)
 
     render: ->
-        <div style={display:'flex', flexDirection:'column'}>
+        <div>
             <div key='top' style={paddingLeft: '30px', background: '#dfdfdf'}>
                 {@render_overview()}
                 <Space />

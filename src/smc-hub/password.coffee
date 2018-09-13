@@ -186,33 +186,25 @@ exports.reset_forgot_password = (opts) ->
 exports.change_password = (opts) ->
     opts = defaults opts,
         mesg       : required
-        account_id : required
+        account_id : required   # user they are auth'd as
         database   : required
         ip_address : required
         cb         : required
     account = null
-    opts.mesg.email_address = misc.lower_email_address(opts.mesg.email_address)
     async.series([
         (cb) ->
-            if not opts.mesg.email_address?
-                # There are no guarantees about incoming messages
-                cb("email_address must be specified")
-                return
-            # get account and validate the password
+            # get account and validate the password (if they have one)
             opts.database.get_account
-              email_address : opts.mesg.email_address
-              columns       : ['password_hash', 'account_id']
+              account_id : opts.account_id
+              columns    : ['password_hash']
               cb : (error, result) ->
                 if error
                     cb({other:error})
                     return
-                if result.account_id != opts.account_id
-                    cb({other:'invalid account_id'})
-                    return
                 account = result
                 auth.is_password_correct
                     database             : opts.database
-                    account_id           : result.account_id
+                    account_id           : opts.account_id
                     password             : opts.mesg.old_password
                     password_hash        : account.password_hash
                     allow_empty_password : true
@@ -242,12 +234,12 @@ exports.change_password = (opts) ->
             opts.database.log
                 event : "change_password"
                 value :
-                    account_id             : account.account_id
+                    account_id             : opts.account_id
                     client_ip_address      : opts.ip_address
                     previous_password_hash : account.password_hash
 
             opts.database.change_password
-                account_id    : account.account_id
+                account_id    : opts.account_id
                 password_hash : auth.password_hash(opts.mesg.new_password),
                 cb            : cb
     ], opts.cb)

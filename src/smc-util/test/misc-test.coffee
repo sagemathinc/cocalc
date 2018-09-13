@@ -10,6 +10,7 @@ require('coffee-cache')
 
 misc = require('../misc')
 underscore = require('underscore')
+immutable = require('immutable')
 
 # ATTN: the order of these require statements is important,
 # such that should & sinon work well together
@@ -87,6 +88,35 @@ describe "sinon", ->
             #expect(func()).toEqual(42);
 
 # start testing misc.coffee
+
+describe 'seconds2hms', ->
+    s2hms = misc.seconds2hms
+    s2hm  = misc.seconds2hm
+    it 'converts to short form', ->
+        expect(s2hms(0)).toEqual '0s'
+        expect(s2hms(60)).toEqual '1m0s'
+        expect(s2hms(61)).toEqual '1m1s'
+        expect(s2hms(3601)).toEqual '1h0m1s'
+        expect(s2hms(7300)).toEqual '2h1m40s'
+    it 'converts to long form', ->
+        expect(s2hms(0, true)).toEqual '0 seconds'
+        expect(s2hms(61, true)).toEqual '1 minute 1 second'
+        expect(s2hms(3601, true)).toEqual '1 hour'
+        expect(s2hms(7300, true)).toEqual '2 hours 1 minute'
+    it 'converts to short form in minute resolution', ->
+        expect(s2hm(0)).toEqual '0m'
+        expect(s2hm(60)).toEqual '1m'
+        expect(s2hm(61)).toEqual '1m'
+        expect(s2hm(3601)).toEqual '1h0m'
+        expect(s2hm(7300)).toEqual '2h1m'
+        expect(s2hm(36000)).toEqual '10h0m'
+    it 'converts to long form in minute resolution', ->
+        expect(s2hm(0, true)).toEqual '0 minutes'
+        expect(s2hm(60, true)).toEqual '1 minute'
+        expect(s2hm(61, true)).toEqual '1 minute'
+        expect(s2hm(3601, true)).toEqual '1 hour'
+        expect(s2hm(7300, true)).toEqual '2 hours 1 minute'
+        expect(s2hm(36000, true)).toEqual '10 hours'
 
 describe 'startswith', ->
     startswith = misc.startswith
@@ -381,6 +411,16 @@ describe "keys", ->
     it "doesn't choke on empty objects", ->
         k([]).should.be.eql []
         k({}).should.be.eql []
+
+describe "has_key", ->
+    k = misc.has_key
+    obj = {a:1, b:'123', c:null, d:undefined}
+    it "tests existence", ->
+        k(obj, 'a').should.be.ok()
+        k(obj, 'z').should.not.be.ok()
+    it "also works for null/undefined keys", ->
+        k(obj, 'c').should.be.ok()
+        k(obj, 'd').should.be.ok()
 
 describe "pairs_to_obj", ->
     pto = misc.pairs_to_obj
@@ -707,7 +747,7 @@ describe "retry_until_success", ->
 
     it "tests if calling the cb with an error is handled correctly", (done) =>
         # first, calls the cb with something != undefined
-        @fstub.onCall(0).callsArgWithAsync(0, new Error("just a test"))
+        @fstub.onCall(0).callsArgWithAsync(0, "just a test")
         # then calls the cb without anything
         @fstub.onCall(1).callsArgAsync(0)
 
@@ -715,7 +755,7 @@ describe "retry_until_success", ->
             f: @fstub
             cb: () =>
                 sinon.assert.calledTwice(@fstub)
-                @log.getCall(1).args[0].should.match /err=Error: just a test/
+                @log.getCall(1).args[0].should.match /err="just a test"/
                 @log.getCall(2).args[0].should.match /try 2/
                 done()
             start_delay : 1
@@ -723,14 +763,14 @@ describe "retry_until_success", ->
 
     it "fails after `max_retries`", (done) =>
         # always error
-        @fstub.callsArgWithAsync(0, new Error("just a test"))
+        @fstub.callsArgWithAsync(0, "just a test")
 
         misc.retry_until_success
             f: @fstub
             cb: () =>
                 @fstub.should.have.callCount 5
                 @log.should.have.callCount 10
-                @log.getCall(1).args[0].should.match /err=Error: just a test/
+                @log.getCall(1).args[0].should.match /err="just a test"/
                 @log.getCall(8).args[0].should.match /try 5\/5/
                 done()
             start_delay : 1
@@ -1431,3 +1471,16 @@ describe 'misc.transform_get_url mangles some URLs or "understands" what action 
 
 
 
+describe 'test closest kernel matching method', ->
+    octave   = immutable.fromJS {name:"octave", display_name:"Octave", language:"octave"}
+    python2  = immutable.fromJS {name:"python2", display_name:"Python 2", language:"python"}
+    python3  = immutable.fromJS {name:"python3", display_name:"Python 3", language:"python"}
+    sage8_2  = immutable.fromJS {name:"sage8.2", display_name:"Sagemath 8.2", language:"python"}
+    sage8_10 = immutable.fromJS {name:"sage8.10", display_name:"Sagemath 8.10", language:"python"}
+    kernels = immutable.fromJS([octave,python3,python3,sage8_2,sage8_10])
+    it 'thinks python8 should be python3', ->
+        expect(misc.closest_kernel_match("python8",kernels)).toEqual(python3)
+    it 'replaces "matlab" with "octave"', ->
+        expect(misc.closest_kernel_match("matlabe",kernels)).toEqual(octave)
+    it 'suggests sage8.10 over sage8.2', ->
+        expect(misc.closest_kernel_match("sage8",kernels)).toEqual(sage8_10)

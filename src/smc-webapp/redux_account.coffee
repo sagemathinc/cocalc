@@ -5,7 +5,7 @@
 async = require('async')
 immutable = require('immutable')
 
-{Actions, Store, Table, redux}  = require('./smc-react')
+{Actions, Store, Table, redux}  = require('./app-framework')
 
 {alert_message} = require('./alerts')
 
@@ -20,10 +20,43 @@ help = ->
 {webapp_client} = require('./webapp_client')
 remember_me = webapp_client.remember_me_key()
 
+exports.show_announce_start = new Date('2018-08-19T00:00:00.000Z')
+exports.show_announce_end = new Date('2018-08-28T00:00:00.000Z')
+
 # Define account actions
 class AccountActions extends Actions
+    _init: (store) =>
+        store.on("change", @derive_show_global_info)
+
+    derive_show_global_info: (store) =>
+        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
+        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
+        sgi2 = store.getIn(['other_settings', 'show_global_info2'])
+        # unknown state, right after opening the application
+        if sgi2 == 'loading'
+            show = false
+        # value not set means there is no timestamp → show banner
+        else
+            # ... if it is inside the scheduling window
+            start = exports.show_announce_start
+            end = exports.show_announce_end
+            in_window = start < webapp_client.server_time() < end
+
+            if not sgi2?
+                show = in_window
+            # 3rd case: a timestamp is set
+            # show the banner only if its start_dt timetstamp is earlier than now
+            # *and* when the last "dismiss time" by the user is prior to it.
+            else
+                sgi2_dt = new Date(sgi2)
+                dismissed_before_start = sgi2_dt < start
+                show = in_window and dismissed_before_start
+        @setState(show_global_info: show)
+
     set_user_type: (user_type) =>
-        @setState(user_type: user_type)
+        @setState
+            user_type    : user_type
+            is_logged_in : user_type == 'signed_in'
 
     sign_in: (email, password) =>
         @setState(signing_in: true)
@@ -67,7 +100,8 @@ class AccountActions extends Actions
             cb              : (err, mesg) =>
                 @setState(signing_up: false)
                 if err?
-                    @setState('sign_up_error': JSON.stringify(err))
+                    # generic error.
+                    @setState('sign_up_error': {'generic': JSON.stringify(err)})
                     return
                 switch mesg.event
                     when "account_creation_failed"
@@ -176,7 +210,7 @@ class AccountActions extends Actions
                     $(window).off('beforeunload', redux.getActions('page').check_unload)
                     window.location.hash = ''
                     {APP_BASE_URL} = require('./misc_page')
-                    window.location = APP_BASE_URL + '/?signed_out' # redirect to base page
+                    window.location = APP_BASE_URL + '/app?signed_out' # redirect to sign in page
 
     push_state: (url) =>
         {set_url} = require('./history')
@@ -209,9 +243,6 @@ class AccountActions extends Actions
             ssh_keys :
                 "#{fingerprint}" : null   # null is how to tell the backend/synctable to delete this...
 
-# Register account actions
-actions = redux.createActions('account', AccountActions)
-
 # Define account store
 class AccountStore extends Store
     # User type
@@ -223,9 +254,6 @@ class AccountStore extends Store
 
     get_account_id: =>
         return @get('account_id')
-
-    is_logged_in: =>
-        return @get_user_type() == 'signed_in'
 
     is_admin: =>
         return @get('groups').includes('admin')
@@ -254,7 +282,7 @@ class AccountStore extends Store
     get_confirm_close: =>
         return @getIn(['other_settings', 'confirm_close'])
 
-    # Total ugprades this user is paying for (sum of all upgrades from memberships)
+    # Total ugprades this user is paying for (sum of all upgrades from subscriptions)
     get_total_upgrades: =>
         require('upgrades').get_total_upgrades(@getIn(['stripe_customer','subscriptions', 'data'])?.toJS())
 
@@ -266,29 +294,18 @@ class AccountStore extends Store
     get_page_size: =>
         return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
 
-    is_global_info_visible: =>
-        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
-        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
-        sgi2 = @getIn(['other_settings', 'show_global_info2'])
-        if sgi2 == 'loading'   # unknown state, right after opening the application
-            return false
-        if not sgi2?           # not set means there is no timestamp → show banner
-            return false  # true ## change to true, if reimplemnted.
-        sgi2_dt = new Date(sgi2)
-        ## idea behind this: show the banner only if its start_dt timetstamp is earlier than now
-        ## *and* when the last "dismiss time" by the user is prior to it. I.e. also change the
-        ## fallback in case there is no timestamp back to true.
-        # start_dt = new Date('2017-08-25T19:00:00.000Z')
-        # return start_dt < webapp_client.server_time() and sgi2_dt < start_dt
-        return false
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
 # ... except for show_global_info2 (null or a timestamp)
-init.other_settings.show_global_info2 = 'loading' # indicates it is starting up
+init.other_settings.show_global_info2 = 'loading' # indicates there is no data yet
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
-redux.createStore('account', AccountStore, init)
+store = redux.createStore('account', AccountStore, init)
+
+# Register account actions
+actions = redux.createActions('account', AccountActions)
+actions._init(store)
 
 # Create and register account table, which gets automatically
 # synchronized with the server.
@@ -349,5 +366,4 @@ account_store.on 'change', ->
     if last_set_standby_timeout_m != x
         last_set_standby_timeout_m = x
         webapp_client.set_standby_timeout_m(x)
-
 

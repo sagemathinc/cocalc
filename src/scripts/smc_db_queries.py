@@ -43,6 +43,7 @@ from pprint import pprint
 from collections import defaultdict
 from uuid import UUID
 
+
 def secs2hms(secs, as_string=True):
     """
     Convert seconds into hours, minutes, seconds or a human readable string.
@@ -77,6 +78,7 @@ def datetime_serialize(obj):
         return serial
     raise TypeError("Type not serializable")
 
+
 ### DB Setup ###
 SMC_ROOT = os.environ.get("SMC_ROOT", '.')
 
@@ -93,20 +95,23 @@ if 'PGPASSWORD' in os.environ:
 elif os.environ.get("DEVEL", False):
     # DEV mode
     import dev.project.util
-    PORT = dev.project.util.get_ports()["postgres"] # ???
+    PORT = dev.project.util.get_ports()["postgres"]  # ???
     # r.connect(host="localhost", db="smc", port=port, timeout=20).repl()
 else:
     PW = open(join(SMC_ROOT, 'data/secrets/postgres')).read().strip()
     # r.connect(host="db0", db="smc", auth_key=AUTH, timeout=20).repl()
 
-conn = pg.connect("dbname={DB} user={USER} host={HOST} port={PORT} password={PW}".format(**locals()))
+conn = pg.connect(
+    "dbname={DB} user={USER} host={HOST} port={PORT} password={PW}".format(
+        **locals()))
+
 # or proxy on localhost:
 # r.connect(db = "smc", auth_key=AUTH, timeout=20).repl()
 
 # print("Registering tables:", end=" ")
 #for t in r.table_list().run():
 #    globals()[t] = r.table(t)
-    # print(t, end=", ")
+# print(t, end=", ")
 
 # system tables
 #rdb = r.db("rethinkdb")
@@ -114,6 +119,7 @@ conn = pg.connect("dbname={DB} user={USER} host={HOST} port={PORT} password={PW}
 #    globals()['r_%s' % t] = rdb.table(t)
 
 # Library Functions ###
+
 
 def time_past(hours=24, days=0):
     """
@@ -123,8 +129,10 @@ def time_past(hours=24, days=0):
     now = datetime.utcnow().replace(tzinfo=utc)
     return now - timedelta(days=days, hours=hours)
 
+
 def days_ago(days=0):
     return time_past(24 * days)
+
 
 # Functions Querying Postgres Directly ###
 
@@ -133,8 +141,9 @@ def project_host(project_id):
     # q = projects.get(project_id).get_field("host")["host"]
     try:
         with conn.cursor() as c:
-            c.execute("SELECT host ->> 'host' FROM projects WHERE project_id = %(pid)s::uuid",
-                      {'pid': '81753337-f6ff-43b7-9b0d-86b92902ef14'})
+            c.execute(
+                "SELECT host ->> 'host' FROM projects WHERE project_id = %(pid)s::uuid",
+                {'pid': '81753337-f6ff-43b7-9b0d-86b92902ef14'})
             return (c.fetchone()[0])
     except Exception as e:
         conn.rollback()
@@ -146,12 +155,17 @@ def project_collaborators(project_id, only_owner=False):
     try:
         q = None
         with conn.cursor() as c:
-            x = c.mogrify("SELECT users FROM projects WHERE project_id = %(pid)s::uuid", {'pid': project_id})
+            x = c.mogrify(
+                "SELECT users FROM projects WHERE project_id = %(pid)s::uuid",
+                {'pid': project_id})
             c.execute(x)
             q = c.fetchone()[0]
             # print(q)
         # q = q.map(lambda u: r.branch(u[1]["group"] == "owner", u, False)).filter(lambda x: x)
-        collab_ids = [k for (k, v) in q.items() if not only_owner or v.get('group') == 'owner']
+        collab_ids = [
+            k for (k, v) in q.items()
+            if not only_owner or v.get('group') == 'owner'
+        ]
         # print("collab_ids %s" % collab_ids)
 
         #q = q.map(lambda u: (
@@ -159,10 +173,11 @@ def project_collaborators(project_id, only_owner=False):
         #        accounts.get(u[0]).pluck("account_id", "first_name", "last_name", "email_address")))
 
         with conn.cursor() as c:
-            c.execute("""\
+            c.execute(
+                """\
             SELECT account_id::text, first_name, last_name, email_address
             FROM accounts
-            WHERE account_id IN %s""", (tuple(collab_ids),))
+            WHERE account_id IN %s""", (tuple(collab_ids), ))
             collabs = c.fetchall()
 
         #print("collabs %s" % collabs)
@@ -185,7 +200,8 @@ def projects_by_user(account_id):
     # return list(projects.filter(lambda p: p["users"].has_fields(account_id)).run())
     try:
         with conn.cursor() as c:
-            c.execute("SELECT project_id FROM projects WHERE users ? %s::text", (account_id,))
+            c.execute("SELECT project_id FROM projects WHERE users ? %s::text",
+                      (account_id, ))
             return [str(_[0]) for _ in c.fetchall()]
     except Exception as e:
         conn.rollback()
@@ -222,7 +238,8 @@ def export_accounts(outfn):
     import json
     import bz2
 
-    q = accounts.pluck("first_name", "last_name", "email_address", "account_id", "created", "last_active")
+    q = accounts.pluck("first_name", "last_name", "email_address",
+                       "account_id", "created", "last_active")
     with bz2.open(outfn, "wt", encoding="utf8") as out:
         for account in q.run():
             if "email_address" in account:
@@ -238,7 +255,8 @@ def active_courses(days=7, json=False):
     #    .filter(r.row["last_edited"] > days_ago(days))\
     #        .pluck('course')["course"]["project_id"].distinct().run()
     with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
-        x = c.execute("""
+        x = c.execute(
+            """
         SET work_mem='64MB';
         WITH teacher_course_ids AS (
             SELECT DISTINCT((course ->> 'project_id')::uuid)
@@ -264,9 +282,10 @@ def active_courses(days=7, json=False):
 
     courses = defaultdict(list)
     for c in course_data:
-        tc = dict(c) # makes a copy such that we can modify it
+        tc = dict(c)  # makes a copy such that we can modify it
         # some courses do not have a created timestamp :-(
-        tc["created"] = tc.get("created", datetime.fromtimestamp(0).replace(tzinfo=utc))
+        tc["created"] = tc.get(
+            "created", datetime.fromtimestamp(0).replace(tzinfo=utc))
         member = 'member' if tc['on_member_host'] else 'free'
         courses[member].append(tc)
 
@@ -281,16 +300,23 @@ def active_courses(days=7, json=False):
     # sort_collabs = lambda e: (group_order.get(e[1]["group"], np.inf), e[1].get("last_name", "").lower())
 
     print("<DOCTYPE html>")
-    print("<html><head><style>body {font-family: sans-serif; font-size: 85%;}</style></head>")
-    print("<body><h1>Active Courses as of {}</h1>".format(datetime.utcnow().isoformat()))
-    print("<div>Filter: <code>project.last_edited >= '%s days' ago</code></div>" % days)
+    print(
+        "<html><head><style>body {font-family: sans-serif; font-size: 85%;}</style></head>"
+    )
+    print("<body><h1>Active Courses as of {}</h1>".format(
+        datetime.utcnow().isoformat()))
+    print(
+        "<div>Filter: <code>project.last_edited >= '%s days' ago</code></div>"
+        % days)
     # with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as c:
     for hosting, projs in sorted(courses.items()):
         print("<h2>{} Hosting</h2>".format(hosting.title()))
-        for p in reversed(sorted(projs, key=lambda course: course["last_edited"])):
+        for p in reversed(
+                sorted(projs, key=lambda course: course["last_edited"])):
             # pprint(p)
             host = p.get("host", "N/A")
-            h3 = '<a href="https://cocalc.com/projects/{project_id}/">{title}</a>'.format(**p)
+            h3 = '<a href="https://cocalc.com/projects/{project_id}/">{title}</a>'.format(
+                **p)
             edited = p["last_edited"].isoformat()[:16]
             started = p.get("created")
             started = started.isoformat()[:16] if started else 'N/A'
@@ -305,15 +331,18 @@ def active_courses(days=7, json=False):
             for t in p['acc_users']:
                 t = dict(t)
                 t["email_address"] = t.get("email_address", "None")
-                addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(**t)
-                bg = 'yellow' if p["users"][t["account_id"]]['group'] == 'owner' else ''
-                print("<li><span style='background:{bg};'>{addr}</span></li>".format(bg = bg, addr=addr))
+                addr = '<a href="mailto:{email_address}">{first_name} {last_name}</a> &lt;{email_address}&gt'.format(
+                    **t)
+                bg = 'yellow' if p["users"][t["account_id"]].get(
+                    'group', '') == 'owner' else ''
+                print("<li><span style='background:{bg};'>{addr}</span></li>".
+                      format(bg=bg, addr=addr))
             print("</ul></div>")
         print("<hr/>")
     print("</body></html>")
 
 
-def live(table = 'projects', max_time = 15, filter_str = None):
+def live(table='projects', max_time=15, filter_str=None):
     """
     Watch queries in real-time.
     * table: the table of interest (e.g. 'patches', 'projects', 'syncstrings', ...)
@@ -323,7 +352,7 @@ def live(table = 'projects', max_time = 15, filter_str = None):
     """
     raise Exception('NYI')
 
-    q = r_jobs.filter({'type':'query'})
+    q = r_jobs.filter({'type': 'query'})
     q = q.filter(r.row['duration_sec'] < max_time)
     q = q.filter(r.row["info"]["query"].match(r'table\("%s"' % table))
     if filter_str is not None:
@@ -331,11 +360,12 @@ def live(table = 'projects', max_time = 15, filter_str = None):
     for x in q.changes()['new_val']['info'].run():
         print(x['query'])
 
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 2:
         if sys.argv[1] == "courses":
             if len(sys.argv) >= 3 and sys.argv[2] == 'json':
-              active_courses(days = 100, json=True)
+                active_courses(days=100, json=True)
             else:
-              active_courses(days = 100)
+                active_courses(days=100)

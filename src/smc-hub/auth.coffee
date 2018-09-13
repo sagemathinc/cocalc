@@ -69,7 +69,7 @@ express_session = require('express-session')
 api_key_cookie_name = (base_url) ->
     return base_url + 'get_api_key'
 
-remember_me_cookie_name = (base_url) ->
+exports.remember_me_cookie_name = remember_me_cookie_name = (base_url) ->
     return base_url + 'remember_me'
 
 ########################################
@@ -404,11 +404,8 @@ exports.init_passport = (opts) ->
         dbg("handle_get_api_key")
         if req.query.get_api_key
             cookies = new Cookies(req, res)
-            # The maxAge is important -- it has to be long enough for the user to agree to
-            # the oauth.  However, if the user were to not complete the process, then try to
-            # do a normal login and the cookie were still there, it would take them
-            # to the api screen, so it's important that this expire.
-            cookies.set(api_key_cookie_name(base_url), req.query.get_api_key, {maxAge:60*1000})
+            # maxAge: User gets up to 60 minutes to go through the SSO process...
+            cookies.set(api_key_cookie_name(base_url), req.query.get_api_key, {maxAge:30*60*1000})
         next()
 
     # Define user serialization

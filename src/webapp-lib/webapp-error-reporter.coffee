@@ -40,7 +40,11 @@ shouldCatch = true
 
 # set this to true, to enable the webapp error reporter for development
 enable_for_testing = false
-ENABLED = (not DEBUG) or enable_for_testing
+if BACKEND? and BACKEND
+    # never enable on the backend -- used by static react rendering.
+    ENABLED = false
+else
+    ENABLED = (not DEBUG) or enable_for_testing
 
 # this is the MAIN function of this module
 # it's exported publicly and also used in various spots where exceptions are already
@@ -263,9 +267,14 @@ if ENABLED and window.setImmediate
 # console terminal
 
 sendLogLine = (severity, args) ->
+    misc = require('smc-util/misc')
+    if typeof(args) == 'object'
+        message = misc.trunc_middle(misc.to_json(args), 1000)
+    else
+        message = Array.prototype.slice.call(args).join(", ")
     sendError(
         name        : 'Console Output'
-        message     : Array.prototype.slice.call(args).join(", ")
+        message     : message
         file        : ''
         path        : window.location.href
         lineNumber  : -1
@@ -284,6 +293,9 @@ wrapFunction = (object, property, newFunction) ->
 if ENABLED and window.console?
     wrapFunction(console, "warn",  (-> sendLogLine("warn", arguments)))
     wrapFunction(console, "error", (-> sendLogLine("error", arguments)))
+
+if ENABLED
+    window.addEventListener("unhandledrejection",(e) -> reportException(e.reason,"unhandledrejection"))
 
 # public API
 

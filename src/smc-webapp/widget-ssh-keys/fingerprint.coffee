@@ -6,7 +6,7 @@ exports.compute_fingerprint = (pub, alg='md5') ->
     pubbuffer = new Buffer(pub, 'base64')
     key = hash(pubbuffer, alg)
 
-    return colons(key);
+    return colons(key)
 
 # hash a string with the given alg
 hash = (s, alg) ->

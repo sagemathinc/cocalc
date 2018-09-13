@@ -2,7 +2,7 @@
 Rendering output part of a Sage worksheet cell
 ###
 
-{rclass, React, rtypes} = require('../smc-react')
+{rclass, React, rtypes} = require('../app-framework')
 
 misc = require('smc-util/misc')
 
@@ -14,12 +14,19 @@ misc = require('smc-util/misc')
 
 {fromJS} = require('immutable')
 
+{CodeMirrorStatic} = require('../jupyter/codemirror-static')
+
 exports.CellOutput = rclass
     displayName: "SageCell-Output"
 
     propTypes :
         output : rtypes.object.isRequired
         flags  : rtypes.string
+
+    render_auto: ->
+        # This is deprecated, but can be in some older worksheets.
+        # It should do nothing for static rendering.
+        return <span/>
 
     render_stdout: (value, key) ->
         <Stdout key={key} message={fromJS(text:value)} />
@@ -31,7 +38,7 @@ exports.CellOutput = rclass
         <Markdown key={key} value={value} />
 
     render_html: (value, key) ->
-        <HTML key={key} value={value} />
+        <HTML key={key} value={value} auto_render_math={true} />
 
     render_interact: (value, key) ->
         <div key={key}>
@@ -56,9 +63,7 @@ exports.CellOutput = rclass
             when 'svg', 'png', 'gif', 'jpg', 'jpeg'
                 return <img key={key} src={target} />
             when 'sage3d'
-                return <div key={key}>
-                    3D renderer not yet implemented
-                </div>
+                return @render_3d(value.filename, key)
             when 'webm'
                 return <video key={key} src={target} controls></video>
             else
@@ -68,21 +73,40 @@ exports.CellOutput = rclass
                     text = value.filename
                 return <a key={key} href={target} target='_blank'>{text}</a>
 
-    render_code: (value, key) ->
-        <div key={key}>
-            code render not yet implemented
+    render_3d: (filename, key) ->
+        return <div key={key}>
+            3D rendering not yet implemented
         </div>
 
+    render_code: (value, key) ->
+        options = fromJS({mode:{name:value.mode}})
+        <CodeMirrorStatic
+            key     = {key}
+            value   = {value.source ? ''}
+            options = {options}
+            style   = {background:'white', padding:'10px'}
+        />
+
     render_tex: (value, key) ->
+        html = "$#{value.tex}$"
+        if value.display
+            html = "$#{html}$"
         <div key={key}>
-            tex render not yet implemented
+            <HTML value={html} auto_render_math={true} />
         </div>
 
     render_raw_input: (value, key) ->
+        {prompt, value} = value
         <div key={key}>
-            raw input render not yet implemented
+            <b>{prompt}</b>
+            <input
+                style       = {padding: '0em 0.25em', margin: '0em 0.25em'}
+                type        = 'text'
+                size        = {Math.max(47, value.length + 10)}
+                readOnly    = {true}
+                value       = {value}
+            />
         </div>
-
 
     render_output_mesg: (elts, mesg) ->
         for type, value of mesg

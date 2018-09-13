@@ -2,9 +2,9 @@
 React Component for displaying the entire page on a mobile device.
 ###
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 {Button, Navbar, Nav, NavItem, MenuItem} = require('react-bootstrap')
-{Loading, Icon, Tip} = require('./r_misc')
+{ErrorBoundary, Loading, Icon, Tip} = require('./r_misc')
 
 # SMC Pages
 # SMELL: Page UI's are mixed with their store/state.
@@ -15,6 +15,7 @@ React Component for displaying the entire page on a mobile device.
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
 {FileUsePage}  = require('./file_use')
 {Support}      = require('./support')
+{Avatar}       = require('./other-users')
 
 # SMC Libraries
 misc = require('smc-util/misc')
@@ -22,29 +23,33 @@ misc = require('smc-util/misc')
 {ProjectsNav} = require('./projects_nav')
 {ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
 
+PAGE_REDUX_PROPS =
+    page :
+        active_top_tab    : rtypes.string    # key of the active tab
+        show_connection   : rtypes.bool
+        ping              : rtypes.number
+        avgping           : rtypes.number
+        connection_status : rtypes.string
+        new_version       : rtypes.immutable.Map
+        fullscreen        : rtypes.oneOf(['default', 'kiosk'])
+        cookie_warning    : rtypes.bool
+        local_storage_warning : rtypes.bool
+        show_file_use     : rtypes.bool
+    file_use :
+        notify_count      : rtypes.number
+    account :
+        account_id        : rtypes.string
+        is_logged_in      : rtypes.bool
+    support :
+        show : rtypes.bool
+
+PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
+
 # Project tabs's names are their project id
 Page = rclass
     displayName : "Mobile-App"
 
-    reduxProps :
-        page :
-            active_top_tab    : rtypes.string    # key of the active tab
-            show_connection   : rtypes.bool
-            ping              : rtypes.number
-            avgping           : rtypes.number
-            connection_status : rtypes.string
-            new_version       : rtypes.object
-            fullscreen        : rtypes.oneOf(['default', 'kiosk'])
-            cookie_warning    : rtypes.bool
-            local_storage_warning : rtypes.bool
-            show_file_use     : rtypes.bool
-        file_use :
-            get_notify_count : rtypes.func
-        account :
-            get_fullname : rtypes.func
-            is_logged_in : rtypes.func
-        support :
-            show : rtypes.bool
+    reduxProps : PAGE_REDUX_PROPS
 
     propTypes :
         redux : rtypes.object
@@ -52,16 +57,12 @@ Page = rclass
     getInitialState: ->
         show_menu : false
 
+    shouldComponentUpdate: (props, state) ->
+        return @state.show_menu != state.show_menu or \
+               misc.is_different(@props, props, PAGE_REDUX_FIELDS)
+
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()
-
-    account_name: ->
-        name = ''
-        if @props.get_fullname?
-            name = misc.trunc_middle(@props.get_fullname(), 32)
-        if not name.trim()
-            name = "Account"
-        return name
 
     render_projects_button: ->
         <Nav style={margin:'0', padding:'5px 5px 0px 5px'}>
@@ -87,39 +88,51 @@ Page = rclass
         @setState(show_menu:false)
 
     render_menu: ->
+        if @props.account_id
+            a = <Avatar
+                    size       = {20}
+                    account_id = {@props.account_id}
+                    no_tooltip = {true}
+                    no_loading = {true}
+                    />
+        else
+            a = 'cog'
         <div style={width:'100vw', backgroundColor:'white'}>
             <Nav stacked>
                 <NavTab
                     on_click       = {@close_menu}
-                    name           = 'account'
-                    label          = {@account_name()}
-                    icon           = 'cog'
+                    name           = {'account'}
+                    label          = {'Account'}
+                    icon           = {a}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}
+                    inner_style    = {padding: '10px', display: 'flex', alignItems: 'center'}
                 />
                 <NavTab
                     on_click       = {@close_menu}
-                    name           = 'about'
-                    label          = 'CoCalc'
-                    icon           = 'info-circle'
+                    name           = {'about'}
+                    label          = {'CoCalc'}
+                    icon           = {'info-circle'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     style          = {width:'100%'}
+                    inner_style    = {padding: '10px', display: 'flex', alignItems: 'center'}
                 />
                 <NavTab
-                    label          = 'Help'
-                    icon           = 'medkit'
+                    label          = {'Help'}
+                    icon           = {'medkit'}
                     actions        = {@actions('page')}
                     active_top_tab = {@props.active_top_tab}
                     on_click       = {=>@close_menu(); @actions('support').show(true)}
                     style          = {width:'100%'}
+                    inner_style    = {padding: '10px', display: 'flex', alignItems: 'center'}
                 />
                 {<NotificationBell
                     on_click = {=>@close_menu(); @actions('page').set_active_tab('file-use')}
-                    count    = {@props.get_notify_count()}
+                    count    = {@props.notify_count}
                     active   = {@props.show_file_use}
-                /> if @props.is_logged_in()}
+                /> if @props.is_logged_in}
                 <ConnectionIndicator
                     on_click = {@close_menu}
                     actions  = {@actions('page')}
@@ -170,13 +183,17 @@ Page = rclass
                 {@render_menu_button()}
             </Navbar> if not @props.fullscreen}
             {@render_menu() if (@state.show_menu and (@props.fullscreen != 'kiosk'))}
-            {# Children must define their own padding from navbar and screen borders}
-            <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+            {### Children must define their own padding from navbar and screen borders ###}
+            <ErrorBoundary>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} render_small={true}/>
+            </ErrorBoundary>
         </div>
 
 page =
     <Redux redux={redux}>
-        <Page />
+        <ErrorBoundary>
+            <Page />
+        </ErrorBoundary>
     </Redux>
 
 exports.render = () =>

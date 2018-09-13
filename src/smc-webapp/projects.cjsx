@@ -35,11 +35,10 @@ markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
-{redux_name} = require('project_store')
 
 ###
 TODO:  This entire file should be broken into many small files/components,
@@ -216,10 +215,10 @@ class ProjectsActions extends Actions
     # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
-            project_id : required  # string  id of the project to open
-            target     : undefined # string  The file path to open
-            switch_to  : true      # bool    Whether or not to foreground it
-        require('./project_store') # registers the project store with redux...
+            project_id   : required  # string  id of the project to open
+            target       : undefined # string  The file path to open
+            switch_to    : true      # bool    Whether or not to foreground it
+            ignore_kiosk : false     # bool    Ignore ?fullscreen=kiosk
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -229,9 +228,12 @@ class ProjectsActions extends Actions
         redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to)
-        redux.getActions('page').save_session()
-        project_actions.check_library()
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk)
+        redux.getActions('page').restore_session(opts.project_id)
+        # init the library after project started.
+        # TODO write a generalized store function that does this in a more robust way
+        project_actions.init_library()
+        project_actions.init_library_index()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
@@ -249,7 +251,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').save_session()
 
     # should not be in projects...?
-    load_target: (target, switch_to) =>
+    load_target: (target, switch_to, ignore_kiosk=false) =>
         #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
@@ -259,9 +261,10 @@ class ProjectsActions extends Actions
             t = segments.slice(1).join('/')
             project_id = segments[0]
             @open_project
-                project_id: project_id
-                target    : t
-                switch_to : switch_to
+                project_id   : project_id
+                target       : t
+                switch_to    : switch_to
+                ignore_kiosk : ignore_kiosk
 
     # Put the given project in the foreground
     foreground_project: (project_id) =>
@@ -341,22 +344,46 @@ class ProjectsActions extends Actions
                     err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
 
-    invite_collaborator: (project_id, account_id) =>
+    # this is for inviting existing users, the email is only known by the back-end
+    invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event    : 'invite_user'
             invitee_account_id : account_id
-        webapp_client.project_invite_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
-                    alert_message(type:'error', message:err)
 
+        # TODO dedup code with what's in invite_collaborators_by_email below
+        title = @redux.getStore('projects').get_title(project_id)
+        #if not body?
+        #    name  = @redux.getStore('account').get_fullname()
+        #    body  = "Please collaborate with me using CoCalc on '#{title}'.\n\n\n--\n#{name}"
+
+        link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
+
+        # convert body from markdown to html, which is what the backend expects
+        if body?
+            body = markdown.markdown_to_html(body)
+
+        webapp_client.project_invite_collaborator
+            project_id   : project_id
+            account_id   : account_id
+            title        : title
+            link2proj    : link2proj
+            replyto      : replyto
+            replyto_name : replyto_name
+            email        : body         # no body? no email will be sent
+            subject      : subject
+            cb         : (err, resp) =>
+                if not silent
+                    if err # TODO: -- set error in store for this project...
+                        err = "Error inviting collaborator #{account_id} from #{project_id} -- #{err}"
+                        alert_message(type:'error', message:err)
+
+    # this is for inviting non-existing users, email is set via the UI
     invite_collaborators_by_email: (project_id, to, body, subject, silent, replyto, replyto_name) =>
         @redux.getProjectActions(project_id).log
             event         : 'invite_nonuser'
             invitee_email : to
+
+        # TODO dedup code with what's in invite_collaborator above
         title = @redux.getStore('projects').get_title(project_id)
         if not body?
             name  = @redux.getStore('account').get_fullname()
@@ -365,7 +392,7 @@ class ProjectsActions extends Actions
         link2proj = "https://#{window.location.hostname}/projects/#{project_id}/"
 
         # convert body from markdown to html, which is what the backend expects
-        body = markdown.markdown_to_html(body).s
+        body = markdown.markdown_to_html(body)
 
         webapp_client.invite_noncloud_collaborators
             project_id   : project_id
@@ -424,6 +451,8 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
+        @redux.getProjectActions(project_id).log
+            event : 'project_stop_requested'
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
         @redux.getTable('projects').set
@@ -434,6 +463,8 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
+        @redux.getProjectActions(project_id).log
+            event : 'project_restart_requested'
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>
@@ -466,13 +497,6 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id : project_id
             deleted    : not is_deleted
-
-# Register projects actions
-actions = redux.createActions('projects', ProjectsActions)
-
-# This require defines a jQuery plugin that depends on the above actions being defined.
-# This will go away when we get rid of use of jQuery and instead 100% use react.
-require('./process-links')
 
 # Define projects store
 class ProjectsStore extends Store
@@ -524,6 +548,10 @@ class ProjectsStore extends Store
 
     # If a course payment is required for this project from the signed in user, returns time when
     # it will be required; otherwise, returns undefined.
+    # POLICY: payment is required from the the time set in the .course file until 3 months later.
+    # After the course is (nearly) over, payment is then **no longer** required, and this function
+    # again returns undefined.  This is so students have access to their work even after their
+    # subscription has expired.
     date_when_course_payment_required: (project_id) =>
         account = @redux.getStore('account')
         if not account?
@@ -594,8 +622,11 @@ class ProjectsStore extends Store
             # Not logged in -- so not in group.
             return 'public'
         if not @get('project_map')? # or @get('project_map').size == 0
-        # signed in but waiting for projects store to load
-        # If user is part of no projects, doesn't matter anyways
+            # signed in but waiting for projects store to load
+            # If user is part of no projects, doesn't matter anyways
+            return
+        if not account_store.get('account_id')?
+            # signed in but table with full account info has not been initialized.
             return
         project = @getIn(['project_map', project_id])
         if not project?
@@ -660,9 +691,14 @@ class ProjectsStore extends Store
         return @getIn(['project_map', project_id, 'users', webapp_client.account_id, 'upgrades'])?.toJS()
 
     # Get the individual users contributions to the project's upgrades
+    # mapping (or undefined) =
+    #     memory  :
+    #         account_id         : 1000
+    #         another_account_id : 2000
+    #     network :
+    #         account_id : 1
+    # etc. with other upgrades and maps of account ids to upgrade amount
     get_upgrades_to_project: (project_id) =>
-        # mapping (or undefined)
-        #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
@@ -675,9 +711,10 @@ class ProjectsStore extends Store
         return upgrades
 
     # Get the sum of all the upgrades given to the project by all users
+    # mapping (or undefined) =
+    #    memory  : 3000
+    #    network : 2
     get_total_project_upgrades: (project_id) =>
-        # mapping (or undefined)
-        #    {memory:3000, network:2, ...}
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
@@ -741,6 +778,13 @@ init_store =
     public_project_titles : immutable.Map()
 
 store = redux.createStore('projects', ProjectsStore, init_store)
+
+# Register projects actions
+actions = redux.createActions('projects', ProjectsActions)
+
+# This require defines a jQuery plugin that depends on the above actions being defined.
+# This will go away when we get rid of use of jQuery and instead 100% use react.
+require('./process-links')
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -992,7 +1036,7 @@ ProjectsListingDescription = rclass
 
                 <ButtonToolbar style={marginTop:'15px'}>
                     <Button bsStyle='danger' onClick={@do_remove_from_all}  >
-                        <Icon name='user-times'/> Remove myself from {v.length} {misc.plural(v.length, 'project')}
+                        <Icon name='user-times'/> Remove Myself From {v.length} {misc.plural(v.length, 'Project')}
                     </Button>
                     <Button onClick={=>@setState(show_alert:'none')} >
                         Cancel
@@ -1033,7 +1077,7 @@ ProjectsListingDescription = rclass
 
             <ButtonToolbar style={marginTop:'15px'}>
                 <Button bsStyle='danger' onClick={@do_delete_all}  >
-                    <Icon name='trash'/> Delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
+                    <Icon name='trash'/> Yes, please delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
                 </Button>
                 <Button onClick={=>@setState(show_alert:'none')} >
                     Cancel
@@ -1076,7 +1120,7 @@ ProjectList = rclass
                 onClick={@show_all_projects}
                 bsStyle='info'
                 bsSize='large'>
-                Show {if @props.show_all then "#{more} less" else "#{more} more"} matching projects...
+                Show {if @props.show_all then "#{more} Less" else "#{more} More"} Matching Projects...
             </Button>
 
     render_list: ->
@@ -1315,31 +1359,30 @@ exports.ProjectsPage = ProjectsPage = rclass
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
-
         visible_projects = @visible_projects()
-        <div className='container-content' style={overflow:'auto'}>
+        <div className='container-content' style={flex: '1', overflow:'auto'}>
             <Grid fluid className='constrained' style={minHeight:"75vh"}>
                 <Well style={marginTop:'1em',overflow:'hidden'}>
                     <Row>
-                        <Col sm=4>
+                        <Col sm={4}>
                             {@render_projects_title()}
                         </Col>
-                        <Col sm=4>
+                        <Col sm={4}>
                             <ProjectsFilterButtons
                                 hidden  = {@props.hidden}
                                 deleted = {@props.deleted}
                                 show_hidden_button = {@has_hidden_projects() or @props.hidden}
                                 show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                         </Col>
-                        <Col sm=4>
+                        <Col sm={4}>
                             <UsersViewing style={width:'100%'}/>
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=4>
+                        <Col sm={4}>
                             <ProjectsSearch ref="search" search={@props.search} open_first_project={@open_first_project} />
                         </Col>
-                        <Col sm=8>
+                        <Col sm={8}>
                             <HashtagGroup
                                 hashtags          = {@hashtags()}
                                 selected_hashtags = {@props.selected_hashtags[@filter()]}
@@ -1347,14 +1390,14 @@ exports.ProjectsPage = ProjectsPage = rclass
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12 style={marginTop:'1ex'}>
+                        <Col sm={12} style={marginTop:'1ex'}>
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
                                 />
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12>
+                        <Col sm={12}>
                             <ProjectsListingDescription
                                 nb_projects       = {@project_list().length}
                                 visible_projects  = {visible_projects}
@@ -1367,7 +1410,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12>
+                        <Col sm={12}>
                             <ProjectList
                                 projects    = {visible_projects}
                                 show_all    = {@props.show_all}

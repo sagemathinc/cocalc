@@ -13,7 +13,7 @@ class TestP3Mode:
     def test_p3a(self, exec2):
         exec2("p3 = jupyter('python3')")
     def test_p3b(self, exec2):
-        exec2("%p3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
+        exec2("%p3\nimport sys\nprint(sys.version)", pattern=r"^3\.[56]\.\d+ ")
 
 class TestSingularMode:
     def test_singular_version(self, exec2):
@@ -27,10 +27,17 @@ class TestSingularMode:
         exec2(code,
              u'[1]:\n   _[1]=9\n   _[2]=x6-2x3y2-x2y3+y4\n   _[3]=-x5+y2\n[2]:\n   1,1,2\n')
 
+import pytest
+import platform
+
+@pytest.mark.skipif(platform.linux_distribution()[1]=="18.04",
+                    reason="scala jupyter kernel broken in 18.04")
 class TestScalaMode:
     def test_scala_list(self, exec2):
-        exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3")
+        exec2("%scala\nList(1,2,3)", html_pattern="res0.*List.*Int.*List.*1.*2.*3", timeout = 80)
 
+@pytest.mark.skipif(platform.linux_distribution()[1]=="18.04",
+                    reason="scala jupyter kernel broken in 18.04")
 class TestScala211Mode:
     # example from ScalaTour-1.6, p. 31, Pattern Matching
     # http://www.scala-lang.org/docu/files/ScalaTour-1.6.pdf
@@ -46,7 +53,7 @@ class TestScala211Mode:
           println(matchTest(3))
         }
         ''').strip()
-        exec2(code, html_pattern="defined.*object.*MatchTest1")
+        exec2(code, html_pattern="defined.*object.*MatchTest1", timeout = 80)
 
     def test_scala211_pat2(self, exec2):
         exec2("%scala211\nMatchTest1.main(Array())", pattern="many")
@@ -54,12 +61,20 @@ class TestScala211Mode:
     def test_scala_version(self, exec2):
         exec2("%scala211\nutil.Properties.versionString", html_pattern="2.11.11")
 
+class TestAnacondaMode:
+    def test_anaconda_version(self, exec2):
+        exec2("%anaconda\nimport sys\nprint(sys.version)", pattern=r"^3\.6\.\d+ ")
+    def test_anaconda_kernel_name(self, exec2):
+        exec2("anaconda.jupyter_kernel.kernel_name", "anaconda5")
+
 class TestPython3Mode:
     def test_p3_max(self, exec2):
-        exec2("%python3\nmax([],default=9)", "9")
+        exec2("%python3\nmax([],default=9)", "9", timeout=30)
+    def test_p3_kernel_name(self, exec2):
+        exec2("python3.jupyter_kernel.kernel_name", "python3")
 
     def test_p3_version(self, exec2):
-        exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
+        exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.6\.\d+ ")
 
     def test_capture_p3_01(self, exec2):
         exec2("%capture(stdout='output')\n%python3\nimport numpy as np\nnp.arange(9).reshape(3,3).trace()")
@@ -236,7 +251,7 @@ class TestOctaveDefaultMode:
     def test_octave_capture3(self, exec2):
         exec2("%sage\nprint(output)", pattern = "   1   2")
     def test_octave_version(self, exec2):
-        exec2("version()", pattern="4.2.1")
+        exec2("version()", pattern="4.2.2")
 
 class TestAnaconda3Mode:
     def test_start_a3(self, exec2):
@@ -248,11 +263,20 @@ class TestAnaconda3Mode:
     def test_a3_error(self, exec2):
         exec2('%a3\nxyz*', html_pattern = 'span style.*color')
 
+class TestAnaconda5Mode:
+    def test_start_a5(self, exec2):
+        exec2('a5 = jupyter("anaconda5")')
+
+    def test_issue_862(self, exec2):
+        exec2('%a5\nx=1\nprint("x = %s" % x)\nx','x = 1\n')
+
+    def test_a5_error(self, exec2):
+        exec2('%a5\nxyz*', html_pattern = 'span style.*color')
+
 class TestJuliaMode:
     def test_julia_quadratic(self, exec2):
-        exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5')
+        exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5', timeout=40)
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern='"0.6.0"')
-
+        exec2("%julia\nVERSION", pattern='"0.6.3"', timeout=40)
 

@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-require('coffee-cache')
+require('coffee2-cache')
 
 EXPERIMENTAL = false
 
@@ -133,6 +133,9 @@ class ComputeServerClient
             (cb) =>
                 @_init_db(opts, cb)
             (cb) =>
+                if @database.is_standby
+                    cb()
+                    return
                 async.parallel([
                     (cb) =>
                         @_init_storage_servers_feed(cb)
@@ -889,6 +892,7 @@ class ComputeServerClient
 # etc.  Never freed.  Not sure what to do...
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
+        super()
         opts = defaults opts,
             project_id     : required
             compute_server : required
@@ -1824,6 +1828,9 @@ class ProjectClient extends EventEmitter
                                 cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
                                 dbg("status includes info about address...")
+                                if not @host or not status['local_hub.port'] or not status.secret_token
+                                    cb("unknown host, port, or secret_token")
+                                    return
                                 address =
                                     host         : @host
                                     port         : status['local_hub.port']
@@ -1835,6 +1842,8 @@ class ProjectClient extends EventEmitter
 
     # This will keep trying for up to an hour to get the address, with exponential
     # decay backing off up to 15s between attempts.
+    # If/when it works, the returned address object will definitely have the
+    # host, port and secret_token set.
     address: (opts) =>
         opts = defaults opts,
             cb : required

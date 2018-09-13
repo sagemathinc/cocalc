@@ -1,3 +1,20 @@
+UTM:
+
+    select time, event, value -> 'utm', value ->> 'referrer' from central_log where value ->> 'utm' is not null order by time desc limit 100;
+
+Files being edited right now:
+
+
+    select account_id, project_id, right(filename,40), time from file_access_log where time >= now() - interval '1 minute' order by time desc;
+
+    select count(distinct account_id) from file_access_log where time >= now() - interval '1 minute';
+
+    select count(distinct account_id) from file_access_log where time >= now() - interval '1 day';
+    select count(distinct project_id) from file_access_log where time >= now() - interval '1 day';
+
+    select count(distinct account_id) from file_access_log where time >= now() - interval '1 day' - interval '1 year' and time <= now() - interval '1 year';
+
+
 Recently published paths:
 
     select now()-created,project_id,path from public_paths where created >= now() - interval '1 day' and created <= now() order by created desc;
@@ -6,7 +23,7 @@ Recently published paths:
 
     select count(*) from public_paths where created >= now() - interval '1 day' and created <= now() and disabled;  select count(*) from public_paths where created >= now() - interval '2 day' and created <= now() - interval '1 day' and disabled; select count(*) from public_paths where created >= now() - interval '3 day' and created <= now() - interval '2 day' and disabled;
 
-select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+    select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
 
 
 Recently added collaborators:
@@ -14,6 +31,19 @@ Recently added collaborators:
     select now()-time,project_id from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user' order by time desc;
 
     select count(*) from project_log where time >= now() - interval '2 day' and time <= now() - interval '1 day' and event#>>'{event}' = 'invite_user';  select count(*) from project_log where time >= now() - interval '1 day' and time <= now() and event#>>'{event}' = 'invite_user';
+
+Top collaborators (users who have many projects)
+
+    WITH collabs AS (
+        SELECT COUNT(*) AS num, jsonb_object_keys(users) AS account_id
+        FROM projects
+        GROUP BY account_id
+    )
+    SELECT num, first_name, last_name, email_address
+    FROM collabs, accounts
+    WHERE accounts.account_id = collabs.account_id::UUID
+      AND num > 100
+    ORDER BY num DESC
 
 Exclude course projects:
 
@@ -37,7 +67,9 @@ Problems people are having right now:
 
     select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log order by time desc limit 50;
 
-    select NOW() - time as timeago, left(account_id::VARCHAR,6), left(error,80) as error from client_error_log where error like 'Error saving%' order by time desc limit 50;
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%Error saving file%' order by time desc limit 50;
+
+    select NOW() - time as timeago, left(error,300) as error from client_error_log where error like '%has_unsaved_changes%' order by time desc limit 50;
 
 File access for a user with given email address:
 
@@ -156,6 +188,34 @@ Hourly (or 10minute blocks) active users
     FROM file_access_log
     WHERE time >= NOW() - '2 week'::interval
     GROUP BY day, hour -- , min10
+
+Copied library entries .. timestamp is about when the feature was released
+
+    SELECT count(*), event ->> 'title' AS title, event ->> 'docid' AS docid
+    FROM project_log where event ->> 'event' = 'library'
+     AND event ->> 'title' IS NOT NULL
+     AND time >= '2017-12-12'::TIMESTAMP
+    GROUP BY title, docid
+    ORDER BY count DESC;
+
+Usage of Assistant Examples
+
+    WITH stats AS (
+        SELECT COUNT(*) AS cnt
+             , event ->> 'lang' AS lang
+             , event ->> 'entry' as entry
+             , lower(reverse(split_part(reverse(event ->> 'path'), '.', 1))) AS filetype
+         FROM project_log WHERE time >= '2018-04-05'::TIMESTAMP
+          AND event ->> 'event' = 'assistant'
+        GROUP BY lang, entry, filetype
+    )
+    SELECT * FROM stats
+    WHERE cnt > 1
+    ORDER BY cnt DESC;
+
+Jupyter kernel defaults
+
+    SELECT COUNT(*), editor_settings ->> 'jupyter' AS kernel from accounts GROUP BY kernel ORDER BY count DESC;
 
 ## Stripe
 

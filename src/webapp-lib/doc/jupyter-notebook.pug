@@ -1,0 +1,250 @@
+//- jupyter landing page
+
+extends ../_base.pug
+
+block vars
+  - var subtitle = 'Run Jupyter Notebooks Online';
+
+block header
+  meta(name="description" content=NAME + ' - ' + subtitle)
+  script(type="text/javascript")
+    include:coffee-script ../index.coffee
+
+block content
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+            > div
+              margin-bottom : 1rem
+
+  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      div.col-sm-4.col-sm-offset-4.center
+        a(href=PREFIX + "app")
+          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
+        +start_button
+
+    div.row
+      div.col-md-12.center
+        h1 Run Jupyter Notebooks Online
+      div.col-sm-6
+        img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
+      div.col-sm-6
+        p.
+          #{NAME} is an online web service where you can
+          #[strong run #[a(href="http://jupyter.org/") Jupyter notebooks] right inside your browser].
+        p.
+          It handles all the tedious details for you. You no longer have to:
+        ul
+          li install a Python environment
+          li setup additional kernel environments you want to use
+          li install all the libraries you need
+          li maintain everything on your own
+        p.
+          Instead, all you need to do to get started is to
+        ol
+          li create an account
+          li create a project
+          li upload your #[code *.ipynb] files or create a new Jupyter notebook
+        p.
+          #{NAME} supports many kernels right out of the box:
+          several Python environments, #[a(href="http://www.sagemath.org/") SageMath],
+          #[a(href="http://www.r-project.org/") R Statistical Software], #[a(href="http://julialang.org") Julia] and many more.
+          Consult the #[a(href=PREFIX + "doc/software.html") Available Software page] for more information.
+
+
+  a.anchor#a-overview
+  div.space#overview
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 Feature overview
+        div.col-md-6.col-md-offset-3.
+          The following features are specific to Jupyter notebooks.
+          Learn more about the #[a(href=PREFIX) #{NAME} platform here].
+
+    a.anchor#a-realtimesync
+    div.container.space#realtimesync
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] Collaborative editing
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-real-time-jupyter.png")).fit
+        div.col-md-6
+          div.
+            You can share your Jupyter notebooks privately with project collaborators.
+            Modifications are #[strong synchronized in real time].
+            Watch the cursors of others while they edit the document.
+            You are also notified about the presence of watching collaborators.
+          div.
+            Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
+            because it is fully hosted on #{NAME}.
+          div.
+            Together, everyone involved experiences the document in exactly the same way.
+
+    a.anchor#a-timetravel
+    div.container.space#timetravel
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-history] Time-Travel
+        div.col-md-6
+          div
+            +video-player
+              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.webm" type="video/webm; codecs=vp9")
+              source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
+        div.col-md-6
+          div.
+            The #[strong Time-travel] feature is specific to the #{NAME} platform.
+            It records all your changes in the Jupyter notebook in fine detail.
+            You can go back and forth in time across hundreds of changes to recover your previous edits.
+          div.
+            This allows you to easily recover parts of previous versions of your file,
+            by copy/pasting the part you accidentally changed.
+          div.
+            You can also relive the entire process of creating the notebook from the start.
+            This lets you discover how you arrived at a particular solution and see what you (or your student) tried before.
+
+    a.anchor#a-native
+    div.container.space#native
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
+        div.col-md-6
+          div.
+            #{NAME} offers a #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter notebook] interface.
+            It is tightly integrated into #{NAME} and adds real-time collaboration,
+            time-travel history and
+            #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
+          div.
+            This rewrite does not change the underlying Jupyter notebook file format.
+            Therefore, you can download your #[code *.ipynb] file at any time and continue working in another environment.
+          div.
+            Despite that, there is also support for the "Classical notebook".
+            This assures that you can still use all libraries relying on the specifics of that implementation.
+            #{NAME} does add collaborative editing and a chat, too.
+
+    a.anchor#a-chat
+    div.container.space#chat
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-comments-o] Chat panel
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-chat-jupyter-20171120-2.png")).fit
+        div.col-md-6
+          div.
+            A #[strong side-by-side chat] for each Jupyter file
+            gives you the ability to discuss the content with your colleagues or students.
+          div.
+            Collaborators who are not online will be notified about new messages the next time they sign in.
+          div.
+            Chat supports markdown formatting and LaTeX formulas.
+
+    a.anchor#a-kernels
+    div.container.space#kernels
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] Managed kernels
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-jupyter-kernels.png")).fit
+        div.col-md-6
+          div.
+            #{NAME} makes sure that your desired computational environment is available and ready to work with.
+            You just have to select from many pre-installed and #[strong fully managed kernels] to start with your work.
+          div.
+            Look at our #[a(href=PREFIX + "/doc/software.html") list of available software] for more details.
+
+    a.anchor#a-monitoring
+    div.container.space#monitoring
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-thermometer-full] CPU and memory monitoring
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-jupyter2-memory-cpu.png")).fit
+        div.col-md-6
+          div.
+            Long running notebook sessions or intense computations might deplete available CPU or memory resources.
+            This slows down all calculations or even causes an unexpected termination of the current session.
+          div.
+            This indicator helps you to #[strong keep an eye on the notebook's memory and CPU consumption].
+
+    a.anchor#a-backups
+    div.container.space#backups
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-camera-retro] Backups
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-backup-1.png")).fit
+        div.col-md-6
+          div.
+            Every couple of minutes, #[strong all files in your project are saved in consistent read-only snapshots].
+          div.
+            This means you can always recover older versions of your files
+            in case they got corrupted or accidentally deleted.
+
+    a.anchor#a-publishing
+    div.container.space#publishing
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-camera-retro] Publishing
+        div.col-md-6
+          img(src=require("webapp-lib/assets/cocalc-jupyter-share-20171218.png")).fit
+        div.col-md-6
+          div.
+            #{NAME} helps you #[strong sharing your work with the world].
+            It offers its own hosting of shared documents, which includes Jupyter notebooks
+            and any other associated data files.
+          div.
+            Under the hood, #{NAME} uses a novel renderer which generates a static HTML representation on the server side
+            and even includes pre-rendered LaTeX formulas.
+            This approach does not suffer from the same shortcomings as other solutions based on
+            #[a(href="https://nbconvert.readthedocs.io") nbconvert].
+
+  div
+    div.container
+      div.row
+        div.col-sm-12.center(style="margin-top: 6rem")
+          +start_button
+

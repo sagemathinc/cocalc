@@ -1,3 +1,4 @@
+
 ###############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
@@ -20,14 +21,13 @@
 ###############################################################################
 $          = window.$
 underscore = _ = require('underscore')
-{React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./smc-react')
-{Col, Row, Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
+{React, ReactDOM, Actions, Store, rtypes, rclass, redux, COLOR}  = require('./app-framework')
+{Button, FormControl, FormGroup, Well, Alert, Modal, Table} = require('react-bootstrap')
 {Icon, Markdown, Loading, Space, ImmutablePureRenderMixin, Footer} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 feature         = require('./feature')
-{markdown_to_html} = require('./markdown')
 {HelpEmailLink, SiteName, SmcWikiUrl} = require('./customize')
 
 STATE =
@@ -61,6 +61,8 @@ class SupportStore extends Store
 
 class SupportActions extends Actions
 
+    # TODO: the public api of actions is not supposed to return anything.  An action *DOES* stuff.
+    # These get_store and get should be private.
     get_store: =>
         @redux.getStore('support')
 
@@ -184,7 +186,7 @@ class SupportActions extends Actions
         tags = []
 
         # all upgrades the user has available
-        # that's a sum of membership benefits (see schema.coffee)
+        # that's a sum of subscription benefits (see schema.coffee)
         upgrades = account.get_total_upgrades()
         if upgrades? and misc.sum(_.values(upgrades)) > 0
             tags.push('member')
@@ -216,7 +218,6 @@ class SupportActions extends Actions
                 email_address: @get('email')
                 subject      : @get('subject')
                 body         : @get('body')
-                #body         : markdown_to_html(@get('body')).s # html doesn't work
                 tags         : tags
                 location     : @location()
                 account_id   : account_id
@@ -250,8 +251,8 @@ exports.SupportPage = rclass
 
     open: (ticket_id) ->
         url = misc.ticket_id_to_ticket_url(ticket_id)
-        tab = window.open(url, '_blank')
-        tab.focus()
+        {open_new_tab} = require('smc-webapp/misc_page')
+        open_new_tab(url, '_blank')
 
     render_body: ->
         for i, ticket of @props.support_tickets
@@ -298,7 +299,6 @@ exports.SupportPage = rclass
 
         if @props.support_tickets.length > 0
             <Table responsive style={borderCollapse: "separate", borderSpacing: "0 1em"}>
-                {# <thead>{@render_header()}</thead>}
                 <tbody>{@render_body()}</tbody>
             </Table>
         else
@@ -338,12 +338,15 @@ SupportInfo = rclass
         url          : rtypes.string.isRequired
         err          : rtypes.string.isRequired
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['state', 'url', 'err'])
+
     error: () ->
         <Alert bsStyle='danger' style={fontWeight:'bold'}>
             <p>
             Sorry, there has been an error creating the ticket.
             <br/>
-            Please email <HelpEmailLink /> directly!
+            Please email <HelpEmailLink /> directly!  (NOTE: You can click "Help" again to reopen the support ticket form and copy your content to email.)
             </p>
             <p>Error message:</p>
             <pre>{@props.err}</pre>
@@ -363,7 +366,7 @@ SupportInfo = rclass
           <Button
               bsStyle  = 'success'
               style    = {marginTop:'3em'}
-              tabIndex = 4
+              tabIndex = {4}
               onClick  = {@props.actions.new_ticket}>Create New Ticket</Button>
        </div>
 
@@ -450,10 +453,13 @@ SupportFooter = rclass
         show_form: rtypes.bool.isRequired
         valid    : rtypes.bool.isRequired
 
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['show_form', 'valid'])
+
     render: ->
         if @props.show_form
             btn = <Button bsStyle  = 'primary'
-                          tabIndex = 4
+                          tabIndex = {4}
                           onClick  = {@props.submit}
                           disabled = {not @props.valid}>
                        <Icon name='medkit' /> Get Support
@@ -464,7 +470,7 @@ SupportFooter = rclass
         <Modal.Footer>
             {btn}
             <Button
-                tabIndex  = 5
+                tabIndex  = {5}
                 bsStyle   ='default'
                 onClick   = {@props.close}>Close</Button>
         </Modal.Footer>
@@ -509,7 +515,7 @@ SupportForm = rclass
                     label       = 'Your email address'
                     ref         = 'email'
                     type        = 'text'
-                    tabIndex    = 1
+                    tabIndex    = {1}
                     placeholder = 'your_email@address.com'
                     value       = {@props.email}
                     onChange    = {@email_change} />
@@ -521,7 +527,7 @@ SupportForm = rclass
                     ref         = 'subject'
                     autoFocus
                     type        = 'text'
-                    tabIndex    = 2
+                    tabIndex    = {2}
                     label       = 'Message'
                     placeholder = "Subject ..."
                     value       = {@props.subject}
@@ -536,9 +542,9 @@ SupportForm = rclass
                 <FormControl
                     componentClass = "textarea"
                     ref         = 'body'
-                    tabIndex    = 3
+                    tabIndex    = {3}
                     placeholder = 'Describe the problem ...'
-                    rows        = 6
+                    rows        = {6}
                     value       = {@props.body}
                     onChange    = {@data_change} />
             </FormGroup>
@@ -622,9 +628,9 @@ exports.Support = rclass
         </Modal>
 
 init_redux = (redux) ->
-    if not redux.getActions('support')?
-        redux.createActions('support', SupportActions)
+    if not redux.hasActions('support')
         redux.createStore('support', SupportStore, {})
+        redux.createActions('support', SupportActions)
 init_redux(redux)
 
 # project wide public API

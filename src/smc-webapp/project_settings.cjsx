@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -17,23 +17,31 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-###############################################################################
+##############################################################################
+
+###
+ATTENTION!  If you want to refactor this code before working on it (I hope you do!),
+put stuff in the new directory project/
+###
 
 immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
-{webapp_client}      = require('./webapp_client')
-misc                 = require('smc-util/misc')
-{required, defaults} = misc
-{html_to_text}       = require('./misc_page')
-{alert_message}      = require('./alerts')
-{project_tasks}      = require('./project_tasks')
+{webapp_client}         = require('./webapp_client')
+misc                    = require('smc-util/misc')
+{required, defaults}    = misc
+{html_to_text}          = require('./misc_page')
+{alert_message}         = require('./alerts')
+{project_tasks}         = require('./project_tasks')
+{COLORS}                = require('smc-util/theme')
+{COMPUTE_IMAGES, DEFAULT_COMPUTE_IMAGE} = require('smc-util/compute-images')
+COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all the ui code was written.
 
-{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
+{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
+{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {User} = require('./users')
 
 {HelpEmailLink}   = require('./customize')
@@ -42,7 +50,10 @@ misc                 = require('smc-util/misc')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{AddCollaborators} = require('./collaborators/add-to-project')
+{ProjectSettingsPanel} = require('./project/project-settings-support')
+{JupyterServerPanel}   = require('./project/plain-jupyter-server')
+
+{AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -54,21 +65,6 @@ URLBox = rclass
             url = url.slice(0,i)
         # note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
         <pre style={fontSize:'11px'}>{url}</pre>
-
-ProjectSettingsPanel = rclass
-    displayName : 'ProjectSettingsPanel'
-
-    propTypes :
-        icon  : rtypes.string.isRequired
-        title : rtypes.string.isRequired
-
-    render_header: ->
-        <h3><Icon name={@props.icon} /> {@props.title}</h3>
-
-    render: ->
-        <Panel header={@render_header()}>
-            {@props.children}
-        </Panel>
 
 TitleDescriptionPanel = rclass
     displayName : 'ProjectSettings-TitleDescriptionPanel'
@@ -90,7 +86,7 @@ TitleDescriptionPanel = rclass
             <LabeledRow label='Description'>
                 <TextInput
                     type      = 'textarea'
-                    rows      = 2
+                    rows      = {2}
                     text      = {@props.description}
                     on_change = {(desc)=>@props.actions.set_project_description(@props.project_id, desc)}
                 />
@@ -136,24 +132,30 @@ QuotaConsole = rclass
                     new_state[name] = misc.round2(settings.get(name) * data.display_factor)
                 @setState(new_state)
 
-    render_quota_row: (quota, base_value=0, upgrades, params_data) ->
+    render_quota_row: (name, quota, base_value=0, upgrades, params_data) ->
         factor = params_data.display_factor
         unit   = params_data.display_unit
+
+        text = (val) ->
+            amount = misc.round2(val * factor)
+            if name == 'mintime'
+                return misc.seconds2hm(val)
+            else
+                return "#{amount} #{misc.plural(amount, unit)}"
 
         upgrade_list = []
         if upgrades?
             for id, val of upgrades
-                amount = misc.round2(val * factor)
                 li =
                     <li key={id}>
-                        {amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} />
+                        {text(val)} given by <User account_id={id} user_map={@props.user_map} />
                     </li>
                 upgrade_list.push(li)
 
         amount = misc.round2(base_value * factor)
-        if amount
+        if base_value
             # amount given by free project
-            upgrade_list.unshift(<li key='free'>{amount} {misc.plural(amount, unit)} given by free project</li>)
+            upgrade_list.unshift(<li key='free'>{text(base_value)} given by free project</li>)
 
         <LabeledRow
             label = {<Tip title={params_data.display}
@@ -226,7 +228,7 @@ QuotaConsole = rclass
         if 'admin' in @props.account_groups
             if @state.editing
                 <Row>
-                    <Col sm=6 smOffset=6>
+                    <Col sm={6} smOffset={6}>
                         <ButtonToolbar style={float:'right'}>
                             <Button onClick={@save_admin_editing} bsStyle='warning' disabled={not @valid_admin_inputs()}>
                                 <Icon name='thumbs-up' /> Done
@@ -239,9 +241,9 @@ QuotaConsole = rclass
                 </Row>
             else
                 <Row>
-                    <Col sm=6 smOffset=6>
+                    <Col sm={6} smOffset={6}>
                         <Button onClick={@start_admin_editing} bsStyle='warning' style={float:'right'}>
-                            <Icon name='pencil' /> Admin edit...
+                            <Icon name='pencil' /> Admin Edit...
                         </Button>
                     </Col>
                 </Row>
@@ -266,7 +268,7 @@ QuotaConsole = rclass
         else
             # not using react component so the input stays inline
             <input
-                size     = 5
+                size     = {5}
                 type     = 'text'
                 ref      = {label}
                 value    = {@state[label]}
@@ -330,7 +332,8 @@ QuotaConsole = rclass
                 view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'core')}</b>
             mintime     :
-                view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                # no display factor multiplication, because mintime is in seconds
+                view : <span><b>{misc.seconds2hm(total_quotas['mintime'], true)}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
             network     :
                 view : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
@@ -343,7 +346,7 @@ QuotaConsole = rclass
 
         <div>
             {@render_admin_edit_buttons()}
-            {@render_quota_row(quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
+            {@render_quota_row(name, quotas[name], settings.get(name), upgrades[name], quota_params[name]) for name in PROJECT_UPGRADES.field_order}
         </div>
 
 UsagePanel = rclass
@@ -370,9 +373,9 @@ UsagePanel = rclass
 
     render_upgrades_button: ->
         <Row>
-            <Col sm=12>
+            <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust your quotas...
+                    <Icon name='arrow-circle-up' /> Adjust Quotas...
                 </Button>
             </Col>
         </Row>
@@ -436,7 +439,7 @@ HideDeletePanel = rclass
     # account_id : String
     # project    : immutable.Map
     user_has_applied_upgrades: (account_id, project) ->
-         project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
+        project.getIn(['users', account_id, 'upgrades'])?.some (val) => val > 0
 
     delete_message: ->
         if @props.project.get('deleted')
@@ -486,7 +489,7 @@ HideDeletePanel = rclass
             </div> if not has_upgrades}
             <ButtonToolbar >
                 <Button bsStyle='danger' onClick={@toggle_delete_project}>
-                    Delete Project
+                    Yes, please delete this project
                 </Button>
                 <Button onClick={@hide_delete_conf}>
                     Cancel
@@ -501,10 +504,10 @@ HideDeletePanel = rclass
         hidden = user.get('hide')
         <ProjectSettingsPanel title='Hide or delete project' icon='warning'>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     {@hide_message()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <Button bsStyle='warning' onClick={@toggle_hide_project} style={float: 'right'}>
                         <Icon name='eye-slash' /> {if hidden then 'Unhide' else 'Hide'} Project
                     </Button>
@@ -512,18 +515,25 @@ HideDeletePanel = rclass
             </Row>
             <hr />
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     {@delete_message()}
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     {@render_delete_undelete_button(@props.project.get('deleted'), @state.show_delete_conf)}
                 </Col>
             </Row>
             {<Row style={marginTop:'10px'} >
-                <Col sm=12>
+                <Col sm={12}>
                     {@render_expanded_delete_info()}
                 </Col>
             </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
+            <hr/>
+            <Row style={color: '#666'}>
+                <Col sm={12}>
+                    If you do need to permanently delete some sensitive information
+                    that you accidentally copied into a project, contact <HelpEmailLink/>.
+                </Col>
+            </Row>
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
@@ -564,7 +574,7 @@ SageWorksheetPanel = rclass
     render: ->
         <ProjectSettingsPanel title='Sage worksheet server' icon='refresh'>
             <Row>
-                <Col sm=8>
+                <Col sm={8}>
                     Restart this Sage Worksheet server. <br />
                     <span style={color: '#666'}>
                         Existing worksheet sessions are unaffected; restart this
@@ -572,7 +582,7 @@ SageWorksheetPanel = rclass
                         will use the new version of Sage.
                     </span>
                 </Col>
-                <Col sm=4>
+                <Col sm={4}>
                     <Button bsStyle='warning' disabled={@state.loading} onClick={@restart_worksheet}>
                         <Icon name='refresh' spin={@state.loading} /> Restart Sage Worksheet Server
                     </Button>
@@ -581,46 +591,33 @@ SageWorksheetPanel = rclass
             {@render_message()}
         </ProjectSettingsPanel>
 
-JupyterServerPanel = rclass
-    displayName : 'ProjectSettings-JupyterServer'
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    render_jupyter_link: ->
-        <a href="/#{@props.project_id}/port/jupyter/" target='_blank'>
-            Plain Jupyter Server
-        </a>
-
-    render: ->
-        <ProjectSettingsPanel title='Jupyter notebook server' icon='list-alt'>
-            <span style={color: '#666'}>
-                The Jupyter notebook server is a Python process that runs in your
-                project that provides backed support for Jupyter notebooks with
-                synchronized editing and TimeTravel.   You can also just
-                use your Jupyter notebook directly via the link below.
-                This does not support multiple users or TimeTravel.
-            </span>
-            <div style={textAlign:'center', fontSize:'14pt', margin: '15px'}>
-                {@render_jupyter_link()}
-            </div>
-            <span style={color: '#666'}>
-                <b>
-                (The first time you click the above link it <i>will probably fail</i>; refresh and try again.)
-                </b>
-            </span>
-        </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState: ->
-        restart  : false
-        show_ssh : false
+        restart                : false
+        show_ssh               : false
+        compute_image          : @props.project.get('compute_image')
+        compute_image_changing : false
+        compute_image_focused  : false
 
     propTypes :
         project           : rtypes.object.isRequired
         allow_ssh         : rtypes.bool
+
+    reduxProps :
+        customize :
+            kucalc : rtypes.string
+
+    componentWillReceiveProps: (props) ->
+        return if @state.compute_image_focused
+        new_image = props.project.get('compute_image')
+        if new_image != @state.compute_image
+            @setState(
+                compute_image:new_image
+                compute_image_changing:false
+            )
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -637,30 +634,10 @@ ProjectControlPanel = rclass
                 cb()
         ])
 
-    ssh_notice: ->
-        project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
-        if host?
-            if @state.show_ssh
-                <div>
-                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {# WARNING: previous use of <FormControl> here completely breaks copy on Firefox.}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
-                    <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
-                    <Icon name='life-ring'/> How to create SSH keys</a>
-                </div>
-            else
-                <Row>
-                    <Col sm=12>
-                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
-                            <Icon name='terminal' /> SSH into your project...
-                        </Button>
-                    </Col>
-                </Row>
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
-            <ProjectState show_desc={true} state={@props.project.get('state')?.get('state')} />
+            <ProjectState show_desc={true} state={@props.project.get('state')} />
         </span>
 
     render_idle_timeout: ->
@@ -688,9 +665,28 @@ ProjectControlPanel = rclass
                     <hr />
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(restart:false); @restart_project()}>
-                            <Icon name='refresh' /> Restart project server
+                            <Icon name='refresh' /> Restart Project Server
                         </Button>
                         <Button onClick={(e)=>e.preventDefault(); @setState(restart:false)}>
+                             Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Well>
+            </LabeledRow>
+
+    render_confirm_stop: ->
+        if @state.show_stop_confirmation
+            <LabeledRow key='stop' label=''>
+                <Well>
+                    Stopping the project server will kill all processes.
+                    After stopping a project, it will not start until a
+                    collaborator restarts the project.
+                    <hr />
+                    <ButtonToolbar>
+                        <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false); @stop_project()}>
+                            <Icon name='stop' /> Stop Project Server
+                        </Button>
+                        <Button onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false)}>
                              Cancel
                         </Button>
                     </ButtonToolbar>
@@ -702,20 +698,13 @@ ProjectControlPanel = rclass
         state = @props.project.get('state')?.get('state')
         commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
         <ButtonToolbar style={marginTop:'10px', marginBottom:'10px'}>
-            <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(restart:true)}>
-                <Icon name={COMPUTE_STATES.starting.icon} /> Restart project...
+            <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false,restart:true)}>
+                <Icon name='refresh' /> Restart Project...
             </Button>
-            <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @stop_project()}>
-                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop
+            <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:true,restart:false)}>
+                <Icon name='stop' /> Stop Project...
             </Button>
         </ButtonToolbar>
-
-    show_host: ->
-        host = @props.project.get('host')?.get('host')
-        if host
-            <LabeledRow key='host' label='Host'>
-                <pre>{host}.sagemath.com</pre>
-            </LabeledRow>
 
     render_idle_timeout_row: ->
         if @props.project.getIn(['state', 'state']) != 'running'
@@ -733,7 +722,7 @@ ProjectControlPanel = rclass
         uptime_str = misc.seconds2hms(delta_s, true)
         <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
             <span style={color:'#666'}>
-                 <Icon name='clock-o' /> <b>{uptime_str}</b> total runtime of this session
+                 <Icon name='clock-o' /> project started <b>{uptime_str}</b> ago
             </span>
         </LabeledRow>
 
@@ -744,9 +733,115 @@ ProjectControlPanel = rclass
         cpu_str = misc.seconds2hms(cpu, true)
         <LabeledRow key='cpu-usage' label='CPU Usage' style={@rowstyle(true)}>
             <span style={color:'#666'}>
-                <Icon name='calculator' /> <b>{cpu_str}</b> of CPU time used during this session
+                <Icon name='calculator' /> used <b>{cpu_str}</b> of CPU time since project started
             </span>
         </LabeledRow>
+
+    cancel_compute_image: (current_image) ->
+        @setState(
+            compute_image: current_image
+            compute_image_changing : false
+            compute_image_focused : false
+        )
+
+
+    save_compute_image: (current_image) ->
+        # image is reset to the previous name and componentWillReceiveProps will set it when new
+        @setState(
+            compute_image: current_image
+            compute_image_changing : true
+            compute_image_focused : false
+        )
+        new_image = @state.compute_image
+        actions = redux.getProjectActions(@props.project.get('project_id'))
+        try
+            await actions.set_compute_image(new_image)
+            @restart_project()
+        catch err
+            alert_message(type:'error', message:err)
+            @setState(compute_image_changing: false)
+
+    set_compute_image: (name) ->
+        @setState(compute_image: name)
+
+    compute_image_info: (name, type) ->
+         COMPUTE_IMAGES.getIn([name, type])
+
+    render_compute_image_items: ->
+        COMPUTE_IMAGES.entrySeq().map (entry) =>
+            [name, data] = entry
+            <MenuItem key={name} eventKey={name} onSelect={@set_compute_image}>
+                {data.get('title')}
+            </MenuItem>
+
+    render_select_compute_image_row: ->
+        if @props.kucalc != 'yes'
+            return
+        <div>
+            <LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
+                {@render_select_compute_image()}
+            </LabeledRow>
+        </div>
+
+    render_select_compute_image_error: ->
+        err = COMPUTE_IMAGES.get('error')
+        <Alert bsStyle='warning' style={margin:'10px'}>
+            <h4>Problem loading compute images</h4>
+            <code>{err}</code>
+        </Alert>
+
+    render_select_compute_image: ->
+        no_value = not @state.compute_image?
+        return <Loading/> if no_value or @state.compute_image_changing
+        return @render_select_compute_image_error() if COMPUTE_IMAGES.has('error')
+        # this will at least return a suitable default value
+        selected_image = @state.compute_image
+        current_image = @props.project.get('compute_image')
+        default_title = @compute_image_info(DEFAULT_COMPUTE_IMAGE, 'title')
+
+        <div style={color:'#666'}>
+            <div style={fontSize : '12pt'}>
+                <Icon name={'hdd'} />
+                <Space/>
+                Selected image
+                <Space/>
+                <DropdownButton
+                    title={@compute_image_info(selected_image, 'title')}
+                    id={selected_image}
+                    onToggle={(open)=>@setState(compute_image_focused:open)}
+                    onBlur={=>@setState(compute_image_focused:false)}
+                >
+                    {this.render_compute_image_items()}
+                </DropdownButton>
+                <Space/>
+                {
+                    if selected_image != DEFAULT_COMPUTE_IMAGE
+                        <span style={color:COLORS.GRAY, fontSize : '11pt'}>
+                            <br/> (If in doubt, select "{default_title}".)
+                        </span>
+                }
+            </div>
+            <div style={marginTop:'10px'}>
+                <span>
+                    <i>{@compute_image_info(selected_image, 'descr')}</i>
+                </span>
+            </div>
+            {
+                if selected_image != current_image
+                    <div style={marginTop:'10px'}>
+                        <Button
+                            onClick={=>@save_compute_image(current_image)}
+                            bsStyle='warning'
+                        >
+                            Save and Restart
+                        </Button>
+                        <Space />
+                        <Button onClick={=>@cancel_compute_image(current_image)}>
+                            Cancel
+                        </Button>
+                    </div>
+            }
+        </div>
 
     rowstyle: (delim) ->
         style =
@@ -754,6 +849,7 @@ ProjectControlPanel = rclass
             paddingBottom: '10px'
         if delim
             style.borderBottom = '1px solid #ccc'
+            style.borderTop = '1px solid #ccc'
         return style
 
     render: ->
@@ -768,112 +864,12 @@ ProjectControlPanel = rclass
                 {@render_action_buttons()}
             </LabeledRow>
             {@render_confirm_restart()}
+            {@render_confirm_stop()}
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            {@show_host() if @props.allow_ssh}
-            If your project is not working, please create a <ShowSupportLink />.
-            {<hr /> if @props.allow_ssh}
-            {@ssh_notice() if @props.allow_ssh}
-        </ProjectSettingsPanel>
-
-exports.CollaboratorsList = CollaboratorsList = rclass
-    displayName : 'ProjectSettings-CollaboratorsList'
-
-    propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-
-    reduxProps :
-        account :
-            get_account_id : rtypes.func
-        projects :
-            sort_by_activity : rtypes.func
-
-    getInitialState: ->
-        removing : undefined  # id's of account that we are currently confirming to remove
-
-    remove_collaborator: (account_id) ->
-        project_id = @props.project.get('project_id')
-        @actions('projects').remove_collaborator(project_id, account_id)
-        @setState(removing:undefined)
-        if account_id == @props.get_account_id()
-            @actions('page').close_project_tab(project_id)
-
-    render_user_remove_confirm: (account_id) ->
-        if account_id == @props.get_account_id()
-            <Well style={background:'white'}>
-                Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
-                to this project and cannot add yourself back.
-                <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>
-                        Remove Myself</Button>
-                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-        else
-            <Well style={background:'white'}>
-                Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from
-                this project?  They will no longer have access to this project.
-                <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>Remove</Button>
-                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-
-    user_remove_button: (account_id, group) ->
-        <Button
-            disabled = {group is 'owner'}
-            style    = {marginBottom: '6px', float: 'right'}
-            onClick  = {=>@setState(removing:account_id)}
-        >
-            <Icon name='user-times' /> Remove...
-        </Button>
-
-    render_user: (user) ->
-        <div key={user.account_id}>
-            <Row>
-                <Col sm=8>
-                    <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
-                    <span><Space/>({user.group})</span>
-                </Col>
-                <Col sm=4>
-                    {@user_remove_button(user.account_id, user.group)}
-                </Col>
-            </Row>
-            {@render_user_remove_confirm(user.account_id) if @state.removing == user.account_id}
-        </div>
-
-    render_users: ->
-        u = @props.project.get('users')
-        if u
-            users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
-            for user in @props.sort_by_activity(users, @props.project.get('project_id'))
-                @render_user(user)
-
-    render: ->
-        <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
-            {@render_users()}
-        </Well>
-
-CollaboratorsPanel = rclass
-    displayName : 'ProjectSettings-CollaboratorsPanel'
-
-    propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-
-    render: ->
-        <ProjectSettingsPanel title='Add people to project' icon='user'>
-            <div key='mesg'>
-                <span style={color:'#333', fontSize:'12pt'}>
-                    Who would you like to work with on this project?
-                </span>
-            </div>
-            <hr />
-            <AddCollaborators key='search' project={@props.project} />
-            {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
+            {<hr /> if @props.kucalc != 'yes'}
+            {@render_select_compute_image_row()}
         </ProjectSettingsPanel>
 
 SSHPanel = rclass
@@ -947,13 +943,11 @@ ProjectSettingsBody = rclass ({name}) ->
             get_upgrades_you_applied_to_project : rtypes.func
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
-        "#{name}" :
-            free_compute_slowdown    : rtypes.number
+            compute_images : rtypes.immutable.Map
 
-    shouldComponentUpdate: (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
-                (nextProps.customer? and not nextProps.customer.equals(@props.customer)) or \
-                @props.project_map != nextProps.project_map
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images']) or \
+                (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
         # get the description of the share, in case the project is being shared
@@ -970,12 +964,11 @@ ProjectSettingsBody = rclass ({name}) ->
         {commercial} = require('./customize')
 
         <div>
-            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} free_compute_slowdown={@props.free_compute_slowdown}/>}
+            {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}
             {if commercial and total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrade_type='network' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
-            {if @props.project.get('deleted') then <DeletedProjectWarning />}
-            <h1 style={marginTop:"0px"}><Icon name='wrench' /> Settings and configuration</h1>
+            <h1 style={marginTop:"0px"}><Icon name='wrench' /> Project Settings</h1>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     <TitleDescriptionPanel
                         project_id    = {id}
                         project_title = {@props.project.get('title') ? ''}
@@ -997,8 +990,9 @@ ProjectSettingsBody = rclass ({name}) ->
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
 
                 </Col>
-                <Col sm=6>
-                    <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
+                <Col sm={6}>
+                    <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />

@@ -38,6 +38,8 @@ http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
 
+winston      = require('./winston-metrics').get_logger('hub_http_server')
+
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
@@ -45,11 +47,8 @@ misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
 auth         = require('./auth')
 access       = require('./access')
-hub_proxy    = require('./proxy')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
-
-conf         = require('./conf')
 
 
 {http_message_api_v1} = require('./api/handler')
@@ -66,31 +65,54 @@ exports.init_express_http_server = (opts) ->
         dev            : false       # if true, serve additional dev stuff, e.g., a proxyserver.
         database       : required
         compute_server : required
+        cookie_options : undefined
     winston.debug("initializing express http server")
     winston.debug("MATHJAX_URL = ", misc_node.MATHJAX_URL)
+
+    if opts.database.is_standby
+        server_settings = undefined
+    else
+        server_settings = require('./server-settings')(opts.database)
 
     # Create an express application
     router = express.Router()
     app    = express()
+    http_server = http.createServer(app)
     app.use(cookieParser())
 
-    router.use(body_parser.json())
-    router.use(body_parser.urlencoded({ extended: true }))
+    # Enable compression, as
+    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
+    # NOTE "Express runs everything in order" -- https://github.com/expressjs/compression/issues/35#issuecomment-77076170
+    compression = require('compression')
+    app.use(compression())
+
+    # Very large limit, since can be used to send, e.g., large single patches, and
+    # the default is only 100kb!  https://github.com/expressjs/body-parser#limit-2
+    router.use(body_parser.json({limit: '3mb'}))
+    router.use(body_parser.urlencoded({extended: true, limit: '3mb'}))
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.001, 0.01, 0.1, 1, 2, 10, 20]
+                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
-
     # response time metrics
     router.use (req, res, next) ->
         res_finished_h = response_time_histogram.startTimer()
         original_end = res.end
         res.end = ->
             original_end.apply(res, arguments)
-            {dirname} = require('path')
-            dir_path = dirname(req.path).split('/')[1] # for two levels: split('/')[1..2].join('/')
+            {dirname}   = require('path')
+            path_split  = req.path.split('/')
+            # for API paths, we want to have data for each endpoint
+            path_tail   = path_split[path_split.length-3 ..]
+            is_api      = path_tail[0] == 'api' and path_tail[1] == 'v1'
+            if is_api
+                dir_path = path_tail.join('/')
+            else
+                # for regular paths, we ignore the file
+                dir_path = dirname(req.path).split('/')[..1].join('/')
+            #winston.debug('response timing/path_split:', path_tail, is_api, dir_path)
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
@@ -166,7 +188,7 @@ exports.init_express_http_server = (opts) ->
         # looks for the has_remember_me value (set by the client in accounts).
         # This could be done in different ways, it's not clear what works best.
         #remember_me = req.cookies[opts.base_url + 'remember_me']
-        has_remember_me = req.cookies[opts.base_url + 'has_remember_me']
+        has_remember_me = req.cookies[auth.remember_me_cookie_name(opts.base_url)]
         if has_remember_me == 'true' # and remember_me?.split('$').length == 4 and not req.query.signed_out?
             res.redirect(opts.base_url + '/app')
         else
@@ -206,12 +228,16 @@ exports.init_express_http_server = (opts) ->
     # returns 404 error, meaning hub may be unhealthy.  Kubernetes will try a few times before
     # killing the container.  Will also return 404 if there is no working database connection.
     router.get '/concurrent-warn', (req, res) ->
-        c = opts.database.concurrent()
-        if not hub_register.database_is_working() or c >= opts.database._concurrent_warn
-            winston.debug("/concurrent: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+        if not hub_register.database_is_working()
+            winston.debug("/concurrent-warn: not healthy, since database connection not working")
             res.status(404).end()
-        else
-            res.send("#{c}")
+            return
+        c = opts.database.concurrent()
+        if c >= opts.database._concurrent_warn
+            winston.debug("/concurrent-warn: not healthy, since concurrent >= #{opts.database._concurrent_warn}")
+            res.status(404).end()
+            return
+        res.send("#{c}")
 
     # Return number of concurrent connections (could be useful)
     router.get '/concurrent', (req, res) ->
@@ -246,6 +272,17 @@ exports.init_express_http_server = (opts) ->
                     res.status(400).send(error:err)  # Bad Request
                 else
                     res.send(resp)
+
+    # HTTP-POST-based user queries
+    require('./user-query').init(router, auth.remember_me_cookie_name(opts.base_url), opts.database)
+
+    # HTTP-POST-based user API
+    require('./user-api').init
+        router         : router
+        cookie_name    : auth.remember_me_cookie_name(opts.base_url)
+        database       : opts.database
+        compute_server : opts.compute_server
+        logger         : winston
 
     # stripe invoices:  /invoice/[invoice_id].pdf
     stripe_connections = require('./stripe/connect').get_stripe()
@@ -299,37 +336,25 @@ exports.init_express_http_server = (opts) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
             maxAge = 1000*24*3600*30*6  # 6 months -- long is fine now since we support "sign out everywhere" ?
-            cookies = new Cookies(req, res)
+            cookies = new Cookies(req, res, opts.cookie_options)
             cookies.set(req.query.set, req.query.value, {maxAge:maxAge})
         res.end()
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
-    router.get '/registration', (req, res) ->
-        if not hub_register.database_is_working()
-            res.json({error:"not connected to database"})
-            return
-        opts.database.get_server_setting
-            name : 'account_creation_token'
-            cb   : (err, token) ->
-                if err or not token
-                    res.json({})
-                else
-                    res.json({token:true})
+    if server_settings?
+        router.get '/registration', (req, res) ->
+            if server_settings.all.account_creation_token
+                res.json({token:true})
+            else
+                res.json({})
 
-    router.get '/customize', (req, res) ->
-        if not hub_register.database_is_working()
-            res.json({error:"not connected to database"})
-            return
-        opts.database.get_site_settings
-            cb : (err, settings) ->
-                if err or not settings
-                    res.json({})
-                else
-                    res.json(settings)
+    if server_settings?
+        router.get '/customize', (req, res) ->
+            res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
-    router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
+    router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*'], (req, res) ->
         url = require('url')
         q = url.parse(req.url, true).search # gives exactly "?key=value,key=..."
         res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)
@@ -367,126 +392,10 @@ exports.init_express_http_server = (opts) ->
         app.use(router)
 
     if opts.dev
-        # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
-        # serving (from this process) on another port.  However, for development, we handle everything
-        # directly in the hub server (there is no separate proxy server), so have to handle these routes
-        # directly here.
+        dev = require('./dev/hub-http-server')
+        dev.init_http_proxy(app, opts.database, opts.base_url, opts.compute_server, winston)
+        dev.init_websocket_proxy(http_server, opts.database, opts.base_url, opts.compute_server, winston)
+        dev.init_share_server(app, opts.database, opts.base_url, winston);
 
-        # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
-        # This is fine in dev mode, since all as the same user anyways.
-        proxy_cache = {}
-
-        # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter Classical won't work: (1) the client connects to the wrong URL (no base_url),
-        # (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.
-        # Jupyter2 works fine though.
-        dev_proxy_port = (req, res) ->
-            req_url = req.url.slice(opts.base_url.length)
-            {key, port_number, project_id} = hub_proxy.target_parse_req('', req_url)
-            proxy = proxy_cache[key]
-            if proxy?
-                proxy.web(req, res)
-                return
-            winston.debug("proxy port: req_url='#{req_url}', port='#{port_number}'")
-            get_port = (cb) ->
-                if port_number == 'jupyter'
-                    hub_proxy.jupyter_server_port
-                        project_id     : project_id
-                        compute_server : opts.compute_server
-                        database       : opts.database
-                        cb             : cb
-                else
-                    cb(undefined, port_number)
-            get_port (err, port) ->
-                winston.debug("get_port: port='#{port}'")
-                if err
-                    res.status(500).send("internal error: #{err}")
-                else
-                    target = "http://localhost:#{port}"
-                    proxy = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
-                    proxy_cache[key] = proxy
-                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
-                    # also delete after a few seconds  - caching is only to optimize many requests near each other
-                    setTimeout((-> delete proxy_cache[key]), 10000)
-                    proxy.web(req, res)
-
-        port_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
-
-        app.get( port_regexp, dev_proxy_port)
-        app.post(port_regexp, dev_proxy_port)
-
-        # Also, ensure the raw server works
-        dev_proxy_raw = (req, res) ->
-            # avoid XSS...
-            req.headers['cookie'] = hub_proxy.strip_remember_me_cookie(req.headers['cookie']).cookie
-
-            #winston.debug("cookie=#{req.headers['cookie']}")
-            req_url = req.url.slice(opts.base_url.length)
-            {key, project_id} = hub_proxy.target_parse_req('', req_url)
-            winston.debug("dev_proxy_raw", project_id)
-            proxy = proxy_cache[key]
-            if proxy?
-                proxy.web(req, res)
-                return
-            opts.compute_server.project
-                project_id : project_id
-                cb         : (err, project) ->
-                    if err
-                        res.status(500).send("internal error: #{err}")
-                    else
-                        project.status
-                            cb : (err, status) ->
-                                if err
-                                    res.status(500).send("internal error: #{err}")
-                                else if not status['raw.port']
-                                    res.status(500).send("no raw server listening")
-                                else
-                                    port   = status['raw.port']
-                                    target = "http://localhost:#{port}"
-                                    proxy  = http_proxy.createProxyServer(ws:false, target:target, timeout:0)
-                                    proxy_cache[key] = proxy
-                                    # when connection dies, clear from cache
-                                    proxy.on("error", -> delete proxy_cache[key])
-                                    proxy.web(req, res)
-                                    # also delete eventually (1 hour)
-                                    setTimeout((-> delete proxy_cache[key]), 1000*60*60)
-
-        raw_regexp = '^' + opts.base_url + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*'
-        app.get( raw_regexp, dev_proxy_raw)
-        app.post(raw_regexp, dev_proxy_raw)
-
-        # Also create and expose the share server
-        PROJECT_PATH = conf.project_path()
-        share_server = require('./share/server')
-        share_router = share_server.share_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            base_url : opts.base_url
-            logger   : winston
-        app.use(opts.base_url + '/share', share_router)
-        ### -- delete
-        raw_router = share_server.raw_router
-            database : opts.database
-            path     : "#{PROJECT_PATH}/[project_id]"
-            logger   : winston
-        app.use(opts.base_url + '/raw',   raw_router)
-        ###
-
-
-    app.on 'upgrade', (req, socket, head) ->
-        winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
-        req_url = req.url.slice(opts.base_url.length)
-        # TODO: THIS IS NOT DONE and does not work.  I still don't know how to
-        # proxy wss:// from the *main* site to here in the first place; i.e.,
-        # this upgrade is never hit, since the main site (that is
-        # proxying to this server) is already trying to do something.
-        # I don't know if this sort of multi-level proxying is even possible.
-
-    # Enable compression, as
-    # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
-    compression = require('compression')
-    app.use(compression())
-
-    http_server = http.createServer(app)
     return {http_server:http_server, express_router:router}
 

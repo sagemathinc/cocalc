@@ -2,13 +2,15 @@
 Add collaborators to a project
 ###
 
-{React, ReactDOM, redux, rtypes, rclass}  = require('../smc-react')
+{React, ReactDOM, redux, rtypes, rclass}  = require('../app-framework')
 
 {Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 
-{Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay} = require('../r_misc')
+{Icon, LabeledRow, Loading, MarkdownInput, SearchInput, ErrorDisplay, TimeAgoElement} = require('../r_misc')
 
 {webapp_client}      = require('../webapp_client')
+
+{SITE_NAME} = require('smc-util/theme')
 
 exports.AddCollaborators = rclass
     displayName : 'ProjectSettings-AddCollaborators'
@@ -20,6 +22,8 @@ exports.AddCollaborators = rclass
     reduxProps :
         account :
             get_fullname : rtypes.func
+        users :
+            user_map    : rtypes.immutable
 
     getInitialState: ->
         search           : ''          # search that user has typed in so far
@@ -47,15 +51,58 @@ exports.AddCollaborators = rclass
             query : search
             limit : 50
             cb    : (err, select) =>
-                @setState(searching:false, err:err, select:select)
+                @write_email_invite(false)
+                @setState(searching:false, err:err, select:select, email_to:undefined)
 
     render_options: (select) ->
+        if @props.user_map?
+            x = []; y = []
+            for r in select
+                if @props.user_map.get(r.account_id)
+                    x.push(r)
+                else
+                    y.push(r)
+            select = x.concat(y)
+
         for r in select
             name = r.first_name + ' ' + r.last_name
+
+            # Extra display is a bit ugly, but we need to do it for now.  Need to make
+            # react rendered version of this that is much nicer (with pictures!) someday.
+            extra = []
+            if @props.user_map?.get(r.account_id)
+                extra.push("Collaborator")
+            if r.last_active
+                extra.push("Last active: #{new Date(r.last_active).toLocaleDateString()}")
+            if r.created
+                extra.push("Created: #{new Date(r.created).toLocaleDateString()}")
+            if r.email_address
+                if r.email_address_verified?[r.email_address]
+                    extra.push("Email verified: YES")
+                else
+                    extra.push("Email verified: NO")
+            if extra.length > 0
+                name += "  (#{extra.join(', ')})"
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
     invite_collaborator: (account_id) ->
-        @actions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+        # project_id, account_id, body, subject, silent, replyto,  replyto_name
+        replyto      = redux.getStore('account').get_email_address()
+        replyto_name = redux.getStore('account').get_fullname()
+        SiteName     = redux.getStore('customize').get("site_name") ? SITE_NAME
+        if replyto_name?
+            subject = "#{replyto_name} added you to #{SiteName} project #{@props.project.get('title')}"
+        else
+            subject = "You've been added to #{SiteName} project #{@props.project.get('title')}"
+        @actions('projects').invite_collaborator(
+            @props.project.get('project_id'),
+            account_id,
+            @state.email_body,
+            subject,
+            false,
+            replyto,
+            replyto_name
+        )
 
     add_selected: (select) ->
         @reset()
@@ -76,13 +123,18 @@ exports.AddCollaborators = rclass
         title      = @props.project.get('title')
         host       = window.location.hostname
         target     = "[project '#{title}'](https://#{host}/projects/#{project_id})"
-        body       = "Hello!\n\nPlease collaborate with me using [CoCalc](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
+        SiteName   = redux.getStore('customize').get("site_name") ? SITE_NAME
+        body       = "Hello!\n\nPlease collaborate with me using [#{SiteName}](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
-        subject      = "CoCalc Invitation to #{@props.project.get('title')}"
         replyto      = redux.getStore('account').get_email_address()
         replyto_name = redux.getStore('account').get_fullname()
+        SiteName     = redux.getStore('customize').get("site_name") ? SITE_NAME
+        if replyto_name?
+            subject = "#{replyto_name} added you to project #{@props.project.get('title')}"
+        else
+            subject = "#{SiteName} Invitation to project #{@props.project.get('title')}"
         @actions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
                                                                          @state.email_body,
@@ -112,7 +164,7 @@ exports.AddCollaborators = rclass
                 <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
                     <MarkdownInput
                         default_value = {@state.email_body}
-                        rows          = 8
+                        rows          = {8}
                         on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
                         on_cancel     = {(value)=>@setState(email_body_editing:false)}
                         on_edit       = {=>@setState(email_body_editing:true)}
@@ -126,6 +178,19 @@ exports.AddCollaborators = rclass
         </div>
 
     render_search: ->
+        # TODO: we should not say 'search for "h"' when someone
+        # has already searched for "h".
+        # Instead it should be:
+        # 
+        # - Search [...]
+        # - if results.length > 0:
+        #   - Select names from below to add
+        #   - list of users
+        #   - add button 
+        # - else
+        #   - no results found
+        #   - send invitation
+        #
         if @state.search and (@state.searching or @state.select)
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
@@ -145,10 +210,15 @@ exports.AddCollaborators = rclass
                 select.push(r)
         if select.length == 0
             if existing.length == 0
-                <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
-                    <Icon name='envelope' /> No matches. Send email invitation...
-                </Button>
-            else # no hit, but at least one existing collaborator
+                <>
+                    Sorry, no accounts found.
+                    <br/>
+                    <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
+                        <Icon name='envelope' />  Send Email Invitation...
+                    </Button>
+                </>
+            else
+                # no hit, but at least one existing collaborator
                 collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')
                 <Alert bsStyle='info'>
                     Existing collaborator(s): {collabs}
@@ -156,10 +226,24 @@ exports.AddCollaborators = rclass
         else
             <div style={marginBottom:'10px'}>
                 <FormGroup>
-                    <FormControl componentClass='select' multiple ref='select' onClick={@select_list_clicked}>
+                    <FormControl
+                        componentClass = {'select'}
+                        multiple       = {true}
+                        ref            = {'select'}
+                        onClick        = {@select_list_clicked}
+                    >
                         {@render_options(select)}
                     </FormControl>
                 </FormGroup>
+                <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    <MarkdownInput
+                        default_value = {@state.email_body}
+                        rows          = {8}
+                        on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
+                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_edit       = {=>@setState(email_body_editing:true)}
+                        />
+                </div>
                 {@render_select_list_button(select)}
             </div>
 
@@ -167,14 +251,22 @@ exports.AddCollaborators = rclass
     render_select_list_button: (select) ->
         nb_selected = @state.selected_entries?.length ? 0
         btn_text = switch select.length
-            when 0 then "No user found"
-            when 1 then "Invite user"
+            when 0 then "No User Found"
+            when 1 then "Add User"
             else switch nb_selected
-                when 0 then "Select a name above"
-                when 1 then "Invite selected user"
-                else "Invite #{nb_selected} users"
+                when 0 then undefined
+                when 1 then "Add Selected User"
+                else "Add #{nb_selected} Users"
         disabled = select.length == 0 or (select.length >= 2 and nb_selected == 0)
-        <Button onClick={=>@add_selected(select)} disabled={disabled}><Icon name='user-plus' /> {btn_text}</Button>
+        if btn_text == undefined
+            return
+        <Button
+            onClick  = {=>@add_selected(select)}
+            disabled = {disabled}
+            bsStyle  = 'primary'
+        >
+            <Icon name='user-plus' /> {btn_text}
+        </Button>
 
     render_input_row: ->
         input =
@@ -202,4 +294,3 @@ exports.AddCollaborators = rclass
             {@render_select_list()}
             {@render_send_email()}
         </div>
-

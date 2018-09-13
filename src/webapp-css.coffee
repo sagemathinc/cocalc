@@ -3,8 +3,18 @@
 
 require("jquery/jquery-ui/css/humanity/jquery-ui.css")
 require("bootstrap-3.3.0/css/bootstrap.min.css")
-require("font-awesome/css/font-awesome.min.css")
-require("bootstrap-switch/bootstrap-switch.css")
+
+# Font Awesome
+# This would be the new CSS version.
+#require("@fortawesome/fontawesome-free/css/all.css")
+# Instead we use the evidently way better (?) js/svg new approach:
+require("@fortawesome/fontawesome-free/js/all.js")
+require("@fortawesome/fontawesome-free/js/brands.js")
+# Shim is needed until we manually/automatically rename ALL icons as
+# explained here: https://fontawesome.com/how-to-use/upgrading-from-4#upgrade-steps
+require("@fortawesome/fontawesome-free/js/v4-shims.js")
+
+
 require("jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css")
 require("pnotify/jquery.pnotify.default.css")
 require("pnotify/jquery.pnotify.default.icons.css")

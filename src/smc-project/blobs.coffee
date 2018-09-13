@@ -5,8 +5,8 @@ CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
 Copyright 2015, SageMath, Inc., GPL v3.
 ###
 
-misc      = require('smc-util/misc')
-message   = require('smc-util/message')
+misc    = require('smc-util/misc')
+message = require('smc-util/message')
 winston = require('winston')
 
 {defaults, required} = misc
@@ -57,3 +57,9 @@ exports.handle_save_blob_message = (mesg) ->
         for x in v
             x[0](mesg)
         delete _save_blob_callbacks[mesg.sha1]
+
+
+
+
+
+

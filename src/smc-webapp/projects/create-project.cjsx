@@ -2,7 +2,7 @@
 Create a new project
 ###
 
-{React, ReactDOM, redux, rtypes, rclass}  = require('../smc-react')
+{React, ReactDOM, redux, rtypes, rclass}  = require('../app-framework')
 
 {Row, Col, Well, Button, ButtonToolbar, FormControl, FormGroup, Alert, ErrorDisplay} = require('react-bootstrap')
 
@@ -86,7 +86,7 @@ exports.NewProjectCreator = rclass
 
     render_new_project_button: ->
         <Row>
-            <Col sm=4>
+            <Col sm={4}>
                 <Button
                     bsStyle  = 'success'
                     active   = {@state.state != 'view'}
@@ -94,7 +94,7 @@ exports.NewProjectCreator = rclass
                     block
                     type     = 'submit'
                     onClick  = {@toggle_editing}>
-                    <Icon name='plus-circle' /> Create new project...
+                    <Icon name='plus-circle' /> Create New Project...
                 </Button>
             </Col>
         </Row>
@@ -102,7 +102,7 @@ exports.NewProjectCreator = rclass
     render_input_section: ->
         <Well style={backgroundColor: '#FFF'}>
             <Row>
-                <Col sm=6>
+                <Col sm={6}>
                     <FormGroup>
                         <FormControl
                             ref         = 'new_project_title'
@@ -119,7 +119,7 @@ exports.NewProjectCreator = rclass
                             disabled  = {@state.title_text == '' or @state.state == 'saving'}
                             onClick   = {=>@create_project(false)}
                             bsStyle  = 'success' >
-                            Create project
+                            Create Project
                         </Button>
                         <Button
                             disabled = {@state.state is 'saving'}
@@ -128,7 +128,7 @@ exports.NewProjectCreator = rclass
                         </Button>
                     </ButtonToolbar>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <div style={color:'#666'}>
                         A <b>project</b> is your own computational workspace that you can share with others.
                         You can easily change the project title later.
@@ -136,7 +136,7 @@ exports.NewProjectCreator = rclass
                 </Col>
             </Row>
             <Row>
-                <Col sm=12>
+                <Col sm={12}>
                     {@render_error()}
                     {@render_info_alert()}
                 </Col>
@@ -145,7 +145,7 @@ exports.NewProjectCreator = rclass
 
     render_project_creation: ->
         <Row>
-            <Col sm=12>
+            <Col sm={12}>
                 <Space/>
                 {@render_input_section()}
             </Col>

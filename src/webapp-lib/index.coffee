@@ -119,6 +119,7 @@ init_magic_anchors = ->
             header.appendChild(marker)
 
 document.addEventListener "DOMContentLoaded", ->
-    get_stats()
+    if document.getElementById('statstable')?
+        get_stats()
     init_video()
     init_magic_anchors()

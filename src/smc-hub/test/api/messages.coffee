@@ -41,4 +41,6 @@ describe 'checking message2 documentation', ->
         expect(messages.documentation.events.create_support_ticket.fields.body).toMatch('required')
     it "get_support_tickets", ->
         expect(messages.documentation.events.get_support_tickets.description).toInclude("/api/v1/get_support_tickets")
+    it "get_available_upgrades", ->
+        expect(messages.documentation.events.get_available_upgrades.description).toInclude("/api/v1/get_available_upgrades")
 

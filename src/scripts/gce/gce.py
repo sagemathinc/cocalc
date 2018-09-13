@@ -605,26 +605,31 @@ class GCE(object):
         return {'lower':cost_lower, 'upper':cost_upper}
 
     def network_costs(self):
+        costs = 200
+        log("NETWORK      : %8s/month -- approx", money(costs))
+        return costs
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
-        us = 700; aus = 150; china = 20
-        costs = 700 * PRICING['egress'] + 150*PRICING['egress-australia'] + 20*PRICING['egress-china']
-        log("NETWORK      : %8s/month -- approx. %sGB Americas, %sGB EUR, %sGB CHINA", money(costs), us, aus, china)
-        return costs
+        #us = 700; aus = 150; china = 20
+        #costs = 700 * PRICING['egress'] + 150*PRICING['egress-australia'] + 20*PRICING['egress-china']
+        #log("NETWORK      : %8s/month -- approx. %sGB Americas, %sGB EUR, %sGB CHINA", money(costs), us, aus, china)
+        #return costs
 
     def gcs_costs(self):
+        costs = 250  # based on looking at a recent bill
+        log("CLOUD STORAGE: %8s/month (approx)", money(costs))
+        return costs
         # usage based on running "time gsutil du -sch" every once in a while, since it takes
         # quite a while to run.
-        smc_db_backup = 50
-        smc_projects_backup = 1300
+        #smc_db_backup = 50
+        #smc_projects_backup = 1300
         # This takes about 15 minutes and gives the usage above
         #     time gsutil du -sch gs://smc-projects-bup
         #     time gsutil du -sch gs://smc-db-backup
-
-        usage = (smc_db_backup + smc_projects_backup)
-        costs = usage * PRICING['gcs-nearline']
-        log("CLOUD STORAGE: %8s/month -- approx. %sGB nearline", money(costs), usage)
-        return costs
+        #usage = (smc_db_backup + smc_projects_backup)
+        #costs = usage * PRICING['gcs-nearline']
+        #log("CLOUD STORAGE: %8s/month -- approx. %sGB nearline", money(costs), usage)
+        #return costs
 
     def costs(self):
         costs = {}
@@ -638,7 +643,7 @@ class GCE(object):
             else:
                 total_lower += costs[t]
                 total_upper += costs[t]
-        log("SILVER SUPPORT : %8s/month ", money(150))
+        log("SILVER SUPPORT:%8s/month ", money(150))
         total_lower += 150
         total_upper += 150
         log("SALES TAX    : %8s/month -- 10.1%% WA+Seattle sales tax", money(total_lower*0.101))

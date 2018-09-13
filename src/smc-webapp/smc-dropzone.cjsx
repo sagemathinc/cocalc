@@ -8,9 +8,9 @@ Dropzone            = require('dropzone')
 
 misc           = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes} = require('./smc-react')
+{React, ReactDOM, rclass, rtypes} = require('./app-framework')
 
-{Tip} = require('./r_misc')
+{Icon, Tip} = require('./r_misc')
 
 Dropzone.autoDiscover = false
 
@@ -49,8 +49,8 @@ exports.SMC_Dropzone = rclass
                 <img data-dz-thumbnail />
             </div>
             <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
+            <div className='dz-success-mark'><span><Icon name='check'/></span></div>
+            <div className='dz-error-mark'><span><Icon name='times'/></span></div>
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 
@@ -171,8 +171,8 @@ exports.SMC_Dropwrapper = rclass
                 <img data-dz-thumbnail />
             </div>
             <div className='dz-progress'><span className='dz-upload' data-dz-uploadprogress></span></div>
-            <div className='dz-success-mark'><span><Icon name='check'></span></div>
-            <div className='dz-error-mark'><span><Icon name='times'></span></div>
+            <div className='dz-success-mark'><span><Icon name='check'/></span></div>
+            <div className='dz-error-mark'><span><Icon name='times'/></span></div>
             <div className='dz-error-message'><span data-dz-errormessage></span></div>
         </div>
 

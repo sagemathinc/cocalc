@@ -7,10 +7,14 @@ Copyright (C) 2017, Sagemath Inc.
 AGPLv3
 ###
 
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
+# require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee/cache")
 
+require('ts-node').register()
+require('node-cjsx').transform()
+
+require('smc-hub/share/jsdom-support')
 misc = require('smc-util/misc')
-smc_react = require('../../smc-react')
+smc_react = require('../../app-framework')
 require('../../project_store')  # needed so that project store is available.
 
 project_id = '197cebae-6410-469a-8299-54498e438f51'
@@ -19,7 +23,7 @@ redux_name = smc_react.redux_name(project_id, path)
 
 exports.setup = (cb) ->
     # ensure project store is initialized, so can test file menu.
-    smc_react.redux.constructor()  # this instantly resets the state of all redux
+    smc_react.redux.__reset()
     smc_react.redux.getProjectStore(project_id)
 
     # Initialize/reset the testing client that the synctables connect to.
@@ -67,6 +71,6 @@ exports.setup = (cb) ->
 exports.teardown = (cb) ->
     smc_react.redux.getActions(redux_name)?.close()
     smc_react.redux.removeProjectReferences(project_id)
-    smc_react.redux.constructor()  # this instantly resets the state of all redux
+    smc_react.redux.__reset()
     webapp_client.reset()
     cb()

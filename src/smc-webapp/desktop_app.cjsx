@@ -21,10 +21,10 @@
 
 {isMobile} = require('./feature')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{Loading, Icon, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
 # CoCalc Pages
@@ -42,9 +42,11 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning} = require('./app_shared')
+{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
 
 nav_class = 'hidden-xs'
+
+HIDE_LABEL_THOLD = 6
 
 FileUsePageWrapper = (props) ->
     styles =
@@ -68,54 +70,59 @@ FileUsePageWrapper = (props) ->
         {<FileUsePage redux={redux} />}
     </div>
 
+# TODO: important to nail down the data below as immutable and add shouldComponentUpdate, since
+# this Page component gets massive not-needed rendering all the time!!!!
+
+PAGE_REDUX_PROPS =
+    projects :
+        open_projects          : rtypes.immutable.List
+    page :
+        active_top_tab         : rtypes.string    # key of the active tab
+        show_connection        : rtypes.bool
+        ping                   : rtypes.number
+        avgping                : rtypes.number
+        connection_status      : rtypes.string
+        new_version            : rtypes.immutable.Map
+        fullscreen             : rtypes.oneOf(['default', 'kiosk'])
+        cookie_warning         : rtypes.bool
+        local_storage_warning  : rtypes.bool
+        show_file_use          : rtypes.bool
+    file_use :
+        notify_count           : rtypes.number
+    account :
+        account_id             : rtypes.string
+        is_logged_in           : rtypes.bool
+        show_global_info       : rtypes.bool
+        groups                 : rtypes.immutable.List
+    support :
+        show                   : rtypes.bool
+
+PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
+
 Page = rclass
     displayName : "Page"
 
-    reduxProps :
-        projects :
-            open_projects     : rtypes.immutable.List
-        page :
-            active_top_tab    : rtypes.string    # key of the active tab
-            show_connection   : rtypes.bool
-            ping              : rtypes.number
-            avgping           : rtypes.number
-            connection_status : rtypes.string
-            new_version       : rtypes.object
-            fullscreen        : rtypes.oneOf(['default', 'kiosk'])
-            cookie_warning    : rtypes.bool
-            local_storage_warning : rtypes.bool
-            show_file_use     : rtypes.bool
-        file_use :
-            file_use         : rtypes.immutable.Map
-            get_notify_count : rtypes.func
-        account :
-            account_id   : rtypes.string
-            first_name   : rtypes.string # Necessary for get_fullname
-            last_name    : rtypes.string # Necessary for get_fullname
-            get_fullname : rtypes.func
-            user_type    : rtypes.string # Necessary for is_logged_in
-            is_logged_in : rtypes.func
-            other_settings : rtypes.object
-            is_global_info_visible : rtypes.func
-        support :
-            show : rtypes.bool
+    reduxProps : PAGE_REDUX_PROPS
 
     propTypes :
         redux : rtypes.object
 
+    shouldComponentUpdate: (props, state) ->
+        state_changed = misc.is_different(@state, state, ['show_label'])
+        redux_changed = misc.is_different(@props, props, PAGE_REDUX_FIELDS)
+        return redux_changed or state_changed
+
+    getInitialState: ->
+        show_label : true
+
+    componentWillReceiveProps: (next) ->
+        @setState(show_label : next.open_projects.size <= HIDE_LABEL_THOLD)
+
     componentWillUnmount: ->
         @actions('page').clear_all_handlers()
 
-    account_name: ->
-        name = ''
-        if @props.get_fullname?
-            name = misc.trunc_middle(@props.get_fullname(), 32)
-        if not name.trim()
-            name = "Account"
-        return name
-
     render_account_tab: ->
-        if false and @props.account_id
+        if @props.account_id
             a = <Avatar
                     size       = {20}
                     account_id = {@props.account_id}
@@ -127,10 +134,24 @@ Page = rclass
 
         <NavTab
             name           = 'account'
-            label          = {<span className={nav_class}>Account</span>}
+            label          = {'Account'}
+            label_class    = {nav_class}
             icon           = {a}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
+            show_label     = {@state.show_label}
+        />
+
+    render_admin_tab: ->
+        <NavTab
+            name           = 'admin'
+            label          = {'Admin'}
+            label_class    = {nav_class}
+            icon           = {'users'}
+            inner_style    = {padding: '10px', display: 'flex'}
+            actions        = {@actions('page')}
+            active_top_tab = {@props.active_top_tab}
+            show_label     = {@state.show_label}
         />
 
     sign_in_tab_clicked: ->
@@ -141,43 +162,54 @@ Page = rclass
         <NavTab
             name            = 'account'
             label           = 'Sign in'
+            label_class     = {nav_class}
             icon            = 'sign-in'
+            inner_style     = {padding: '10px', display: 'flex'}
             on_click        = {@sign_in_tab_clicked}
             actions         = {@actions('page')}
             active_top_tab  = {@props.active_top_tab}
             style           = {backgroundColor:COLORS.TOP_BAR.SIGN_IN_BG}
             add_inner_style = {color: 'black'}
+            show_label     = {@state.show_label}
         />
 
     render_support: ->
         if not require('./customize').commercial
             return
         <NavTab
-            label          = {<span className={nav_class}>Help</span>}
-            icon           = 'medkit'
+            label          = {'Help'}
+            label_class    = {nav_class}
+            icon           = {'medkit'}
+            inner_style    = {padding: '10px', display: 'flex'}
             actions        = {@actions('page')}
             active_top_tab = {@props.active_top_tab}
             on_click       = {=>redux.getActions('support').show(true)}
+            show_label     = {@state.show_label}
         />
 
     render_bell: ->
-        if not @props.is_logged_in()
+        if not @props.is_logged_in
             return
         <NotificationBell
-            count  = {@props.get_notify_count()}
+            count  = {@props.notify_count}
             active = {@props.show_file_use} />
 
     render_right_nav: ->
-        logged_in = @props.is_logged_in()
+        logged_in = @props.is_logged_in
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_account_tab() if logged_in}
+            {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
-                name           = 'about'
-                label          = {<span className={nav_class}>CoCalc</span>}
-                icon           = 'info-circle'
+                name           = {'about'}
+                label          = {'CoCalc'}
+                label_class    = {nav_class}
+                icon           = {'info-circle'}
+                inner_style    = {padding: '10px', display: 'flex'}
                 actions        = {@actions('page')}
-                active_top_tab = {@props.active_top_tab} />
+                active_top_tab = {@props.active_top_tab}
+                show_label     = {@state.show_label}
+            />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
             {@render_bell()}
@@ -193,15 +225,15 @@ Page = rclass
 
         <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
             <NavTab
-                name           = 'projects'
+                name           = {'projects'}
                 inner_style    = {padding:'0px'}
                 actions        = {@actions('page')}
                 active_top_tab = {@props.active_top_tab}
 
             >
-                <div style={projects_styles} className={nav_class}>
+                {<div style={projects_styles} className={nav_class}>
                     Projects
-                </div>
+                </div> if @state.show_label}
                 <AppLogo />
             </NavTab>
         </Nav>
@@ -229,7 +261,7 @@ Page = rclass
             width         : '100vw'
             overflow      : 'hidden'
 
-        show_global_info = @props.is_global_info_visible() and (not @props.fullscreen) and @props.is_logged_in()
+        top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 
         style_top_bar =
             display       : 'flex'
@@ -240,32 +272,38 @@ Page = rclass
             right         : 0
             zIndex        : '100'
             borderRadius  : 0
-            top           : if show_global_info then '40px' else 0
+            top           : top
 
-        positionHackHeight = (40 + if show_global_info then 40 else 0) + 'px'
+        positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
+        positionHackHeight = (40 + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
-            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} /> if @props.show_connection}
+            {<ConnectionInfo ping={@props.ping} status={@props.connection_status} avgping={@props.avgping} actions={@actions('page')} show_pingtime = {@state.show_label}/> if @props.show_connection}
             {<Support actions={@actions('support')} /> if @props.show}
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
-            {<GlobalInformationMessage /> if show_global_info}
+            {<GlobalInformationMessage /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
-                {@render_project_nav_button() if @props.is_logged_in()}
+                {@render_project_nav_button() if @props.is_logged_in}
                 <ProjectsNav dropdown={false} />
                 {@render_right_nav()}
             </Navbar> if not @props.fullscreen}
             {<div className="smc-sticky-position-hack" style={minHeight:positionHackHeight}> </div>if not @props.fullscreen}
             {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
-            {# Children must define their own padding from navbar and screen borders}
-            {# Note that the parent is a flex container}
-            <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            {### Children must define their own padding from navbar and screen borders ###}
+            {### Note that the parent is a flex container ###}
+            <ErrorBoundary>
+                <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+            </ErrorBoundary>
         </div>
 
-page = <Redux redux={redux}>
-    <Page redux={redux}/>
-</Redux>
+page =
+    <Redux redux={redux}>
+        <ErrorBoundary>
+            <Page redux={redux}/>
+        </ErrorBoundary>
+    </Redux>
 
 exports.render = () => ReactDOM.render(page, document.getElementById('smc-react-container'))

@@ -419,24 +419,6 @@
 
 // .sagews-output-interact!
 
-.webapp-editor-image
-  padding    : 0px
-  overflow-y : auto
-  left       : 0px
-
-.webapp-editor-image-container
-  overflow         : auto
-  background-color : #fff
-  border           : 1px solid #aaa
-  box-shadow       : 5px 5px 5px 5px #888
-
-.webapp-editor-image-title
-  margin-left  : 3em
-  margin-right : 5em
-  font-size    : 10pt
-  font-weight  : bold
-  color        : #555
-
 
 .webapp-editor-static-html-content
   overflow-y : auto
@@ -642,15 +624,12 @@ h6 { font-size: 110% }
   background-color : inherit !important
 
 
+/* The overflow:hidden is needed for Firefox. */
 .smc-vfill
   flex           : 1
   display        : flex
   flex-direction : column
   overflow       : hidden
-
-.smc-vflex
-  display        : flex
-  flex-direction : column
 
 .smc-btn-group-nobreak
   display     : flex
@@ -681,3 +660,8 @@ h6 { font-size: 110% }
    background          : url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=)
    background-position : right
    background-repeat   : no-repeat
+
+// For some weird reason, the default codemirror theme doesn't set his, which
+// makes code hard to read!  Very odd.
+.cm-property
+    color: darkblue

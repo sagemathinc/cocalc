@@ -23,7 +23,7 @@
 
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./smc-react')
+{React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./app-framework')
 {Icon, Tip, Loading, Space} = require('./r_misc')
 
 {UsersViewing} = require('./other-users')
@@ -114,7 +114,8 @@ exports.ChatIndicator = rclass
                 title     = {title}
                 tip       = {CHAT_INDICATOR_TIP}
                 placement = 'left'
-                delayShow = 2500
+                delayShow = {2500}
+                stable    = {false}
                 >
                 <span onClick={@toggle_chat}>
                     <Icon name="caret-#{dir}" />

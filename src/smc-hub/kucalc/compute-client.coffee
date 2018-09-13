@@ -96,7 +96,7 @@ class Client
     dbg: (f) =>
         if not @logger?
             return ->
-        else
+        else
             # still need @logger? since it can get cleaned
             # up when Project is being freed.
             return (args...) => @logger?.debug("kucalc.Client.#{f}", args...)
@@ -124,7 +124,12 @@ class Client
 # NOTE: I think (and am assuming) that EventEmitter aspect of Project is NOT used in KuCalc by any
 # client code.
 class Project extends EventEmitter
-    constructor: (@client, @project_id, @logger, @database) ->
+    constructor: (client, project_id, logger, database) ->
+        super()
+        @client     = client
+        @project_id = project_id
+        @logger     = logger
+        @database   = database
         dbg = @dbg('constructor')
         dbg("initializing")
 
@@ -178,7 +183,7 @@ class Project extends EventEmitter
     dbg: (f) =>
         if not @logger?
             return ->
-        else
+        else
             # still need @logger? since it can get cleaned
             # up when Project is being freed.
             return (args...) => @logger?.debug("kucalc.Project('#{@project_id}').#{f}", args...)
@@ -230,8 +235,8 @@ class Project extends EventEmitter
     _action: (opts) =>
         opts = defaults opts,
             action    : required    # action to do
-            goal      : required    # wait until goal(project) is true, where project is immutable js obj
-            timeout_s : 300         # timeout in seconds (only used for wait)
+            goal      : required    # wait until goal(project) is true, where project is immutable js obj
+            timeout_s : 300         # timeout in seconds (only used for wait)
             cb        : undefined
         dbg = @dbg("_action('#{opts.action}')")
         if opts.goal(@get())
@@ -382,8 +387,8 @@ class Project extends EventEmitter
             delete_missing    : undefined # if true, delete files in dest path not in source, **including** newer files
             backup            : undefined # make backup files
             exclude_history   : undefined
-            timeout           : 5*60
-            bwlimit           : '5MB'
+            timeout           : undefined
+            bwlimit           : undefined
             cb                : undefined
         if not opts.target_project_id
             opts.target_project_id = @project_id
@@ -542,7 +547,7 @@ class Project extends EventEmitter
         # 1. Get data about project from the database, namely:
         #     - is project currently running (if not, nothing to do)
         #     - if running, what quotas it was started with and what its quotas are now
-        # 2. If quotas differ, restarts project.
+        # 2. If quotas differ *AND* project is running, restarts project.
         @active()
         @database.get_project
             project_id : @project_id

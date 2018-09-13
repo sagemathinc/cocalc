@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
@@ -31,6 +31,7 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
+{Library} = require('./library')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -128,7 +129,7 @@ NewFileDropdown = rclass
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
-        <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
+        <MenuItem eventKey={i} key={i} onSelect={=>@props.create_file(ext)}>
             <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
@@ -150,15 +151,15 @@ exports.FileTypeSelector = FileTypeSelector = rclass
             marginBottom:'8px'
         <div>
             <Row style={row_style}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip icon='file-code-o' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='file-code-o' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
                     <Tip icon='file-code-o' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
-                        <NewFileButton icon='file-code-o' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'}} />
+                        <NewFileButton icon='file-code-o' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
                     </Tip>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
                         <NewFileDropdown create_file={@props.create_file} />
                     </Tip>
@@ -173,7 +174,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                 </Col>
             </Row>
             <Row style={row_style}>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title='Markdown File'   icon='cc-icon-markdown'
                         tip='Create a Markdown formatted document with real-time preview.'>
                         <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
@@ -190,12 +191,12 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
                         <NewFileButton icon='tasks' name='Task list' on_click={@props.create_file} ext='tasks' />
                     </Tip>
-                    <Tip title='Stopwatch'   icon='clock-o'
+                    <Tip title='Stopwatch'   icon='stopwatch'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
-                        <NewFileButton icon='clock-o' name='Stopwatch' on_click={@props.create_file} ext='time' />
+                        <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
                     </Tip>
                 </Col>
-                <Col sm=6>
+                <Col sm={6}>
                     <Tip title='Manage a course'  placement='left'  icon='graduation-cap'
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
                         <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
@@ -293,12 +294,12 @@ ProjectNewForm = rclass ({name}) ->
 
     render_no_extension_alert: ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
-            <p>Warning: Create a file with no extension?  Instead click a button below to create the corresponding type of file.</p>
+            <p>Warning: Are you sure you want to create a file with no extension? This will use a plain text editor. If you do not want this, click a button below to create the corresponding type of file.</p>
             <ButtonToolbar style={marginTop:'10px'}>
-                <Button onClick={=>@create_file()} bsStyle='default'>
-                    Create file with no extension
+                <Button onClick={=>@create_file()} bsStyle='success'>
+                    Yes, please create this file with no extension
                 </Button>
-                <Button onClick={=>@setState(extension_warning : false)} bsStyle='success'>
+                <Button onClick={=>@setState(extension_warning : false)} bsStyle='default'>
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -307,20 +308,20 @@ ProjectNewForm = rclass ({name}) ->
     render: ->
         <div>
             {@render_header()}
-            <Row key={@props.default_filename} >  {#  key is so autofocus works below}
-                <Col sm=3>
+            <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
+                <Col sm={3}>
                     <h4><Icon name='plus' /> Create a new file or directory</h4>
                 </Col>
-                <Col sm=9>
+                <Col sm={9}>
                     <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
                     <form onSubmit={@submit_via_enter}>
                         <FormGroup>
                             <FormControl
                                 autoFocus
                                 ref         = 'project_new_filename'
-                                value       = @state.filename
+                                value       = {@state.filename}
                                 type        = 'text'
-                                disabled    = @state.extension_warning
+                                disabled    = {@state.extension_warning}
                                 placeholder = 'Name your file, folder, or paste in a link...'
                                 onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
                         </FormGroup>
@@ -330,7 +331,7 @@ ProjectNewForm = rclass ({name}) ->
                     <h4 style={color:"#666"}>Select the type</h4>
                     <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
                         <Row>
-                            <Col sm=6>
+                            <Col sm={6}>
                                 <Tip title='Download files from the Internet'  icon = 'cloud'
                                     tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
                                     <NewFileButton
@@ -340,7 +341,7 @@ ProjectNewForm = rclass ({name}) ->
                                         loading  = {@state.downloading} />
                                 </Tip>
                             </Col>
-                            <Col sm=6>
+                            <Col sm={6}>
                                 <Tip title='Create a chatroom'  placement='left'  icon='comment'
                                     tip='Create a chatroom for chatting with other collaborators on this project.'>
                                     <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
@@ -388,14 +389,14 @@ FileUpload = rclass ({name}) ->
         {SMC_Dropzone} = require('./smc-dropzone')
 
         <Row>
-            <Col sm=3>
+            <Col sm={3}>
                 <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
             </Col>
-            <Col sm=8>
+            <Col sm={9}>
                 <SMC_Dropzone
                     dropzone_handler     = {{}}
-                    project_id           = @props.project_id
-                    current_path         = @props.current_path />
+                    project_id           = {@props.project_id}
+                    current_path         = {@props.current_path} />
             </Col>
         </Row>
 
@@ -407,6 +408,15 @@ exports.ProjectNew = rclass ({name}) ->
     render: ->
         <div style={padding:'15px'}>
             <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+            <hr />
+            <Row>
+                <Col sm={3}>
+                    <h4><Icon name='book' /> Library</h4>
+                </Col>
+                <Col sm={9}>
+                    <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
+                </Col>
+            </Row>
             <hr />
             <FileUpload project_id={@props.project_id} name={@props.name} />
         </div>

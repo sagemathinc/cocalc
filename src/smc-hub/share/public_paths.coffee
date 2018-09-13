@@ -14,32 +14,61 @@ immutable = require('immutable')
 
 misc = require('smc-util/misc')
 
+the_public_paths = undefined
 exports.get_public_paths = (database, cb) ->
-    p = new PublicPaths(database)
-    p.on 'ready', ->
-        cb(undefined, p)
+    if the_public_paths?
+        if the_public_paths._is_ready
+            cb(undefined, the_public_paths)
+            return
+    else
+        the_public_paths = new PublicPaths(database)
+
+    the_public_paths.on 'ready', ->
+        cb(undefined, the_public_paths)
 
 class PublicPaths extends EventEmitter
-    constructor: (@database) ->
+    constructor: (database) ->
+        super()
+        @database = database
         @_do_init()
 
     _do_init: =>
         misc.retry_until_success
             f  : @_init
-            cb : => @emit('ready')
+            cb : =>
+                @_is_ready = true
+                @emit('ready')
         return
 
     get: (id) =>
         return @_synctable.get(id)
 
+    _add_vhost: (info) =>
+        t = info.get('vhost')
+        if t
+            for host in t.split(',')
+                @_vhosts[host] = info
+
+    _delete_vhost: (info) =>
+        t = info.get('vhost')
+        if t
+            for host in t.split(',')
+                delete @_vhosts[host]
+
+    # returns immutable.js public path with given vhost or undefined.
+    get_vhost: (vhost) =>
+        return @_vhosts[vhost]
+
     _update_public_paths: (id) =>
         if not id?
             # initialize
             v = @_public_paths_in_project = {}
+            @_vhosts = {}
             @_last_public_paths = @_synctable.get()   # have to track in order to deal with deletes
             @_last_public_paths.forEach (info, id) =>
                 x = v[info.get('project_id')] ?= {}
                 x[info.get('path')] = true
+                @_add_vhost(info)
                 return
         else
             # update
@@ -48,11 +77,12 @@ class PublicPaths extends EventEmitter
             if not info?
                 info = @_last_public_paths.get(id)
                 delete v[info.get('project_id')]?[info.get('path')]
+                @_delete_vhost(info)
             else
                 x = v[info.get('project_id')] ?= {}
                 x[info.get('path')] = true
+                @_add_vhost(info)
             @_last_public_paths = @_synctable.get()
-
 
     is_public: (project_id, path) =>
         paths = @_public_paths_in_project?[project_id]
@@ -74,8 +104,8 @@ class PublicPaths extends EventEmitter
 
     _init: (cb) =>
         @database.synctable
-            table    : 'public_paths'
-            columns  : ['id', 'project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter']
+            table    : 'public_paths',
+            columns  : ['id', 'project_id', 'path', 'description', 'created', 'last_edited', 'last_saved', 'counter', 'vhost', 'auth', 'unlisted']
             where    : "disabled IS NOT TRUE"
             cb       : (err, synctable) =>
                 if err

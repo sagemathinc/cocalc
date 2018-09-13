@@ -296,6 +296,14 @@ exports.commands =
             wrap :
                 left  : "\n\\begin{quote}\n"
                 right : "\n\\end{quote}\n"
+        quote :
+            wrap :
+                left  : "\n\\begin{quote}\n"
+                right : "\n\\end{quote}\n"
+        table:
+            wrap :
+                left  : "\n\\begin{center}\\begin{tabular}{|c|c|}\n\\hline\ncell1 & cell2 \\\\\ncell3 & cell4 \\\\\n\\hline"
+                right : "\n\\end{tabular}\\end{center}\n"
         subscript :
             wrap :
                 left  : '_{'
@@ -315,6 +323,18 @@ exports.commands =
                 left  : "\\hrulefill"
                 #left  : "\n\\noindent\\makebox[\\linewidth]{\\rule{\\paperwidth}{0.4pt}}\n"
                 right : ""
+        justifyleft :
+            wrap :
+                left  : '\n\\begin{flushleft}\n'
+                right : '\n\\end{flushleft}\n'
+        justifyright :
+            wrap :
+                left  : '\n\\begin{flushright}\n'
+                right : '\n\\end{flushright}\n'
+        justifycenter :
+            wrap :
+                left  : '\n\\begin{center}\n'
+                right : '\n\\end{center}\n'
 
     md :
         bold :
@@ -349,26 +369,6 @@ exports.commands =
                 space   : false
                 newline : true
                 trim    : false
-        format_heading_1 :  # FUTURE -- define via for loop below
-            strip : ['format_heading_2','format_heading_3','format_heading_4']
-            wrap :
-                left  : "\n# "
-                right : ""
-        format_heading_2 :
-            strip : ['format_heading_1','format_heading_3','format_heading_4']
-            wrap :
-                left  : "\n## "
-                right : ""
-        format_heading_3 :
-            strip : ['format_heading_1','format_heading_2','format_heading_4']
-            wrap :
-                left  : "\n### "
-                right : ""
-        format_heading_4 :
-            strip : ['format_heading_1','format_heading_2','format_heading_3']
-            wrap :
-                left  : "\n#### "
-                right : ""
         format_code :
             wrap :
                 left    : '    '
@@ -385,9 +385,17 @@ exports.commands =
                 space   : false
                 newline : true
                 trim    : false
+        quote :
+            wrap :
+                left    : '> '
+                right   : ''
+                multi   : true
+                space   : false
+                newline : true
+                trim    : false
         horizontalRule:
             wrap:
-                left  : "\n------------------\n"
+                left  : "\n---\n"
                 right : ""
         table :
             wrap:
@@ -845,7 +853,7 @@ exports.commands =
 
                     print(MyClass(5))
                     """
-        class_inheritence :
+        class_inheritance :
             insert: """
                     class A(object):
                         def __repr__(self):
@@ -861,7 +869,7 @@ exports.commands =
 
                     class C(A, B):
                         \"\"\"
-                        This is a class that inerits from classes A and B.
+                        This is a class that inherits from classes A and B.
                         \"\"\"
                         def __repr__(self):
                             return "instance of C"
@@ -1108,9 +1116,9 @@ exports.commands =
             insert : "%javascript\n/* Use print(...) for output */"
         mode_jupyter_bridge:
             insert : """
-                     a3 = jupyter("anaconda3")
-                     # start new cells with %a3
-                     # or set %default_mode a3
+                     a5 = jupyter("anaconda5")
+                     # start new cells with %a5
+                     # or set %default_mode a5
                      """
         mode_md:
             insert : "%md\n"
@@ -1118,6 +1126,10 @@ exports.commands =
             insert : "%octave\n"
         mode_python:
             insert : "%python\n"
+        mode_python3:
+            insert : "%python3\n"
+        mode_anaconda:
+            insert : "%anaconda\n"
         mode_r:
             insert : "%r\n"
         mode_scilab:
@@ -1405,9 +1417,23 @@ exports.commands =
                     """
 ###
 
-#
-# programmatically creating the menu entries and buttons
-#
+###
+Programmatically adding to above data structure
+###
+
+# 6 markdown heading levels:
+for i in [1..6]
+    strip = ("format_heading_#{j}" for j in [1..6] when j != i)
+    left  = '\n' + ("#" for j in [1..i]).join('') + ' '
+    exports.commands.md["format_heading_#{i}"] =
+        strip : strip
+        wrap  :
+            left  : left
+            right : ""
+
+###
+Programmatically creating the menu entries and buttons
+###
 
 #
 # helper functions
@@ -1574,6 +1600,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Benchmark code repeatedly", "#mode_timeit"],
             ["Time code once", "#mode_time"],
             ["Language modes"],
+            ["Anaconda", "#mode_anaconda"],
             ["Cython", "#mode_cython"],
             ["Gap", "#mode_gap"],
             ["PARI/GP", "#mode_gp"],
@@ -1584,6 +1611,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Markdown", "#mode_md"],
             ["Octave", "#mode_octave"],
             ["Python", "#mode_python"],
+            ["Python 3", "#mode_python3"],
             ["R", "#mode_r"],
             ["Shell", "#mode_sh"],
         ]]
@@ -1634,7 +1662,7 @@ initialize_sage_python_r_toolbar = () ->
 
     # -- python specific --
     pybar    = make_bar("webapp-editor-codeedit-buttonbar-python")
-    add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+    add_icon(pybar, "#", "#comment", "Comment selected text")
 
     py_control = ["Data", "Basic Data Types",
            [["Construction"],
@@ -1673,7 +1701,7 @@ initialize_sage_python_r_toolbar = () ->
             ["Lambda", "#lambda", "A Python lambda function"]
             ["Classes"],
             ["Class", "#simple_class", "Define a simple class"],
-            ["Class with inheritence", "#class_inheritence", "A class that inherits from other classes"]
+            ["Class with inheritance", "#class_inheritance", "A class that inherits from other classes"]
         ]]
 
     add_menu(pybar, py_func)

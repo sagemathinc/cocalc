@@ -20,7 +20,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
 """
 Copyright (c) 2014 -- 2016   SageMath, Inc..
 
@@ -55,11 +54,16 @@ CONTRIBUTORS:
 
 """
 
-MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+MARKERS = {'cell': u"\uFE20", 'output': u"\uFE21"}
 
 # ATTN styles have to start with a newline
 STYLES = {
-'classic': r"""
+    'classic':
+    r"""
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage[utf8x]{inputenc}
@@ -67,8 +71,8 @@ STYLES = {
 \usepackage{amsmath}
 \usepackage{amssymb}
 """,
-
-'modern': r"""
+    'modern':
+    r"""
 \documentclass[
     paper=A4,
     pagesize,
@@ -230,33 +234,32 @@ BASE_URL = 'https://proxy'
 import argparse, base64, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile, urllib
 from uuid import uuid4
 
+
 def escape_path(s):
     # see http://stackoverflow.com/questions/946170/equivalent-javascript-functions-for-pythons-urllib-quote-and-urllib-unquote
     s = urllib.quote(unicode(s).encode('utf-8'), safe='~@#$&()*!+=:;,.?/\'')
-    return s.replace('#','%23').replace("?",'%3F')
+    return s.replace('#', '%23').replace("?", '%3F')
+
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
 
+
 # used in texifyHTML and then again, in tex_escape
 # they're mapped to macros, defined in the latex preamble
-relational_signs = [
-    ('gt', 'gt'),
-    ('lt', 'lt'),
-    ('ge', 'gequal'),
-    ('le', 'lequal'),
-    ('ne', 'notequal')
-]
+relational_signs = [('gt', 'gt'), ('lt', 'lt'), ('ge', 'gequal'),
+                    ('le', 'lequal'), ('ne', 'notequal')]
+
 
 def tex_escape(s):
     replacements = [
-        ('\\',                 '{\\textbackslash}'),
-        ('_',                  r'\_'),
-        ('^',                  r'\^'),
-        (r'{\textbackslash}$', r'\$' ),
-        ('%',                  r'\%'),
-        ('#',                  r'\#'),
-        ('&',                  r'\&'),
+        ('\\', '{\\textbackslash}'),
+        ('_', r'\_'),
+        ('^', r'\^'),
+        (r'{\textbackslash}$', r'\$'),
+        ('%', r'\%'),
+        ('#', r'\#'),
+        ('&', r'\&'),
     ]
     for rep in replacements:
         s = s.replace(*rep)
@@ -267,7 +270,7 @@ def tex_escape(s):
 
 
 # Parallel computing can be useful for IO bound tasks.
-def thread_map(callable, inputs, nb_threads = 1):
+def thread_map(callable, inputs, nb_threads=1):
     """
     Computing [callable(args) for args in inputs]
     in parallel using `nb_threads` separate *threads* (default: 2).
@@ -278,15 +281,17 @@ def thread_map(callable, inputs, nb_threads = 1):
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
-    print "Doing the following in parallel:\n%s"%('\n'.join(inputs))
+    print "Doing the following in parallel:\n%s" % ('\n'.join(inputs))
     from multiprocessing.pool import ThreadPool
     tp = ThreadPool(nb_threads)
     exceptions = []
+
     def callable_wrap(x):
         try:
             return callable(x)
         except Exception, msg:
             exceptions.append(msg)
+
     results = tp.map(callable_wrap, inputs)
     if len(exceptions) > 0:
         raise RuntimeError(exceptions[0])
@@ -294,6 +299,7 @@ def thread_map(callable, inputs, nb_threads = 1):
 
 
 # create a subclass and override the handler methods
+
 
 class Parser(HTMLParser.HTMLParser):
     def __init__(self, cmds):
@@ -355,11 +361,13 @@ class Parser(HTMLParser.HTMLParser):
 
                 # NOTE --no-check-certificate is needed since this query is done inside
                 # the cluster, where the cert won't match the local service name.
-                c = "rm -f '%s'; wget --no-check-certificate '%s' --output-document='%s'"%(filename, href_download, filename)
+                c = "rm -f '%s'; wget --no-check-certificate '%s' --output-document='%s'" % (
+                    filename, href_download, filename)
                 if ext == '.svg':
                     # convert to pdf
-                    c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
-                    filename = base+'.pdf'
+                    c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (
+                        base + '.pdf', base + '.pdf', filename)
+                    filename = base + '.pdf'
                 self._commands.append(c)
                 # the choice of 120 is "informed" but also arbitrary
                 # besides that, if we scale it in sagews, we also have to scale it here
@@ -371,7 +379,8 @@ class Parser(HTMLParser.HTMLParser):
                     except:
                         pass
                 resolution = int(120. / scaling)
-                self.result += '\\includegraphics[resolution=%s]{%s}'%(resolution, filename)
+                self.result += '\\includegraphics[resolution=%s]{%s}' % (
+                    resolution, filename)
                 # alternatively, implicit scaling by adjbox and textwidth
                 # self.result += '\\includegraphics{%s}'%(filename)
             else:
@@ -398,38 +407,45 @@ class Parser(HTMLParser.HTMLParser):
         # print "handle_data:", data
         self.result += tex_escape(data)
 
+
 def sanitize_math_input(s):
     from markdown2Mathjax import sanitizeInput
     # it's critical that $$ be first!
-    delims = [('$$','$$'), ('\\(','\\)'), ('\\[','\\]'),
-              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
-              ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
-              ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
-              ('\\begin{math}', '\\end{math}'),
-              ('\\begin{displaymath}', '\\end{displaymath}')
-              ]
+    delims = [('$$', '$$'), ('\\(', '\\)'), ('\\[', '\\]'),
+              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}',
+                                                         '\\end{equation*}'),
+              ('\\begin{align}',
+               '\\end{align}'), ('\\begin{align*}',
+                                 '\\end{align*}'), ('\\begin{eqnarray}',
+                                                    '\\end{eqnarray}'),
+              ('\\begin{eqnarray*}',
+               '\\end{eqnarray*}'), ('\\begin{math}',
+                                     '\\end{math}'), ('\\begin{displaymath}',
+                                                      '\\end{displaymath}')]
 
-    tmp = [((s,None),None)]
+    tmp = [((s, None), None)]
     for d in delims:
         tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
 
     return tmp
 
+
 def reconstruct_math(s, tmp):
-    print "s ='%r'"%s
-    print "tmp = '%r'"%tmp
+    print "s ='%r'" % s
+    print "tmp = '%r'" % tmp
     from markdown2Mathjax import reconstructMath
     while len(tmp) > 1:
         s = reconstructMath(s, tmp[-1][0][1], equation_delims=tmp[-1][1])
         del tmp[-1]
     return s
 
+
 def texifyHTML(s):
     replacements = [
-        ('&#8220;',            '``'),
-        ('&#8221;',            "''"),
-        ('&#8217;',            "'"),
-        ('&amp;',              "&"),
+        ('&#8220;', '``'),
+        ('&#8221;', "''"),
+        ('&#8217;', "'"),
+        ('&amp;', "&"),
     ]
     for rep in replacements:
         s = s.replace(*rep)
@@ -437,6 +453,7 @@ def texifyHTML(s):
         a, b = '&%s;' % rel[0], r'\%s' % rel[1]
         s = s.replace(a, b)
     return s
+
 
 def html2tex(doc, cmds):
     doc = texifyHTML(doc)
@@ -452,11 +469,15 @@ def html2tex(doc, cmds):
 
 def md2html(s):
     from markdown2 import markdown
-    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables', 'fenced-code-blocks']
+    extras = [
+        'code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables',
+        'fenced-code-blocks'
+    ]
 
     tmp = sanitize_math_input(s)
     markedDownText = markdown(tmp[-1][0][0], extras=extras)
     return reconstruct_math(markedDownText, tmp)
+
 
 def md2tex(doc, cmds):
     x = md2html(doc)
@@ -468,12 +489,13 @@ def md2tex(doc, cmds):
     #print "-" * 100
     return y
 
+
 class Cell(object):
     def __init__(self, s):
         self.raw = s
         v = s.split('\n' + MARKERS['output'])
         if len(v) > 0:
-            w = v[0].split(MARKERS['cell']+'\n')
+            w = v[0].split(MARKERS['cell'] + '\n')
             n = w[0].lstrip(MARKERS['cell'])
             self.input_uuid = n[:36]
             self.input_codes = n[36:]
@@ -493,12 +515,11 @@ class Cell(object):
                         self.output.append(json.loads(x))
                     except ValueError:
                         try:
-                            print "**WARNING:** Unable to de-json '%s'"%x
+                            print "**WARNING:** Unable to de-json '%s'" % x
                         except:
                             print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
-
 
     def latex(self):
         """
@@ -510,10 +531,10 @@ class Cell(object):
         return self.latex_input() + self.latex_output(), self._commands
 
     def latex_input(self):
-        if 'i' in self.input_codes:   # hide input
+        if 'i' in self.input_codes:  # hide input
             return "\\begin{lstlisting}\n\\end{lstlisting}"
         if self.input.strip():
-            return "\\begin{lstlisting}\n%s\n\\end{lstlisting}"%self.input
+            return "\\begin{lstlisting}\n%s\n\\end{lstlisting}" % self.input
         else:
             return ""
 
@@ -524,9 +545,11 @@ class Cell(object):
             return s
         for x in self.output:
             if 'stdout' in x:
-                s += "\\begin{verbatim}" + wrap(x['stdout']) + "\\end{verbatim}"
+                s += "\\begin{verbatim}" + wrap(
+                    x['stdout']) + "\\end{verbatim}"
             if 'stderr' in x:
-                s += "{\\color{dredcolor}\\begin{verbatim}" + wrap(x['stderr']) + "\\end{verbatim}}"
+                s += "{\\color{dredcolor}\\begin{verbatim}" + wrap(
+                    x['stderr']) + "\\end{verbatim}}"
             if 'code' in x:
                 # TODO: for now ignoring that not all code is Python...
                 s += "\\begin{lstlisting}" + x['code']['source'] + "\\end{lstlisting}"
@@ -539,9 +562,9 @@ class Cell(object):
             if 'tex' in x:
                 val = x['tex']
                 if 'display' in val:
-                    s += "$$%s$$"%val['tex']
+                    s += "$$%s$$" % val['tex']
                 else:
-                    s += "$%s$"%val['tex']
+                    s += "$%s$" % val['tex']
             if 'file' in x:
                 val = x['file']
                 if 'url' in val:
@@ -549,7 +572,8 @@ class Cell(object):
                     filename = os.path.split(target)[-1]
                 else:
                     filename = os.path.split(val['filename'])[-1]
-                    target = "%s/blobs/%s?uuid=%s"%(BASE_URL, escape_path(filename), val['uuid'])
+                    target = "%s/blobs/%s?uuid=%s" % (
+                        BASE_URL, escape_path(filename), val['uuid'])
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
@@ -558,7 +582,7 @@ class Cell(object):
                     img = ''
                     i = target.find("/raw/")
                     if i != -1:
-                        src = os.path.join(os.environ['HOME'], target[i+5:])
+                        src = os.path.join(os.environ['HOME'], target[i + 5:])
                         if os.path.abspath(src) != os.path.abspath(filename):
                             try:
                                 shutil.copyfile(src, filename)
@@ -567,7 +591,8 @@ class Cell(object):
                         img = filename
                     else:
                         # Get the file from remote server
-                        c = "rm -f '%s'; wget --no-check-certificate '%s' --output-document='%s'"%(filename, target, filename)
+                        c = "rm -f '%s'; wget --no-check-certificate '%s' --output-document='%s'" % (
+                            filename, target, filename)
                         # If we succeeded, convert it to a png, which is what we can easily embed
                         # in a latex document (svg's don't work...)
                         self._commands.append(c)
@@ -577,13 +602,14 @@ class Cell(object):
                             # Now we live in a perfect world, and proudly introduce inkscape as a dependency for SMC :-)
                             #c += ' && rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
                             # converts the svg file into pdf
-                            c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
+                            c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (
+                                base + '.pdf', base + '.pdf', filename)
                             self._commands.append(c)
-                            filename = base+'.pdf'
+                            filename = base + '.pdf'
                         img = filename
                     # omitting [width=\\textwidth] allows figsize to set displayed size
                     # see https://github.com/sagemathinc/cocalc/issues/114
-                    s += '{\\centering\n\\includegraphics{%s}\n\\par\n}\n'%img
+                    s += '{\\centering\n\\includegraphics{%s}\n\\par\n}\n' % img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']
@@ -592,27 +618,31 @@ class Cell(object):
                     if uuid in v:
                         #print "TARGET acquired!"
                         data = v[uuid].pop()
-                        width = min(1, 1.2*data.get('width',0.5))
+                        width = min(1, 1.2 * data.get('width', 0.5))
                         #print "width = ", width
                         if 'data-url' in data:
-                            data_url = data['data-url']  # 'data:image/png;base64,iVBOR...'
+                            data_url = data[
+                                'data-url']  # 'data:image/png;base64,iVBOR...'
                             i = data_url.find('/')
                             j = data_url.find(";")
                             k = data_url.find(',')
-                            image_ext  = data_url[i+1:j]
-                            image_data = data_url[k+1:]
-                            assert data_url[j+1:k] == 'base64'
+                            image_ext = data_url[i + 1:j]
+                            image_data = data_url[k + 1:]
+                            assert data_url[j + 1:k] == 'base64'
                             filename = str(uuid4()) + "." + image_ext
-                            open(filename, 'w').write(base64.b64decode(image_data))
-                            s += '\\includegraphics[width=%s\\textwidth]{%s}\n'%(width, filename)
+                            open(filename, 'w').write(
+                                base64.b64decode(image_data))
+                            s += '\\includegraphics[width=%s\\textwidth]{%s}\n' % (
+                                width, filename)
 
                 else:
                     if target.startswith('http'):
-                        s += '\\url{%s}'%target
+                        s += '\\url{%s}' % target
                     else:
-                        s += '\\begin{verbatim}['+target+']\\end{verbatim}'
+                        s += '\\begin{verbatim}[' + target + ']\\end{verbatim}'
 
         return s
+
 
 class Worksheet(object):
     def __init__(self, filename=None, s=None):
@@ -633,7 +663,7 @@ class Worksheet(object):
             raise ValueError("filename or s must be defined")
 
     def _init_from(self, s):
-        self._cells = [Cell(x) for x in s.split('\n'+MARKERS['cell'])]
+        self._cells = [Cell(x) for x in s.split('\n' + MARKERS['cell'])]
 
     def __getitem__(self, i):
         return self._cells[i]
@@ -641,28 +671,38 @@ class Worksheet(object):
     def __len__(self):
         return len(self._cells)
 
-    def latex_preamble(self, title='',author='', date='', style='modern', contents=True):
+    def latex_preamble(self,
+                       title='',
+                       author='',
+                       date='',
+                       style='modern',
+                       contents=True):
         # The utf8x instead of utf8 below is because of http://tex.stackexchange.com/questions/83440/inputenc-error-unicode-char-u8-not-set-up-for-use-with-latex, which I needed due to approx symbols, etc. causing trouble.
         #\usepackage{attachfile}
         from datetime import datetime
-        top = '% generated by smc-sagews2pdf -- {timestamp}'
+        top = u'% generated by smc-sagews2pdf -- {timestamp}'
         top = top.format(timestamp=str(datetime.utcnow()))
         s = top + STYLES[style]
         s += COMMON
-        s += r"\title{%s}"%tex_escape(title) + "\n"
-        s += r"\author{%s}"%tex_escape(author) + "\n"
+        s += ur"\title{%s}" % tex_escape(title) + u"\n"
+        s += ur"\author{%s}" % tex_escape(author) + u"\n"
         if date:
-            s += r"\date{%s}"%tex_escape(date) + "\n"
-        s += "\\begin{document}\n"
-        s += "\\maketitle\n"
+            s += ur"\date{%s}" % tex_escape(date) + u"\n"
+        s += u"\\begin{document}\n"
+        s += u"\\maketitle\n"
         #if self._filename:
         #    s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
 
         if contents:
-            s += "\\tableofcontents\n"
+            s += u"\\tableofcontents\n"
         return s
 
-    def latex(self, title='', author='', date='', style='modern', contents=True):
+    def latex(self,
+              title='',
+              author='',
+              date='',
+              style='modern',
+              contents=True):
         if not title:
             title = self._default_title
         commands = []
@@ -684,13 +724,21 @@ class Worksheet(object):
                + FOOTER
 
 
-def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True, work_dir=None, style='modern'):
+def sagews_to_pdf(filename,
+                  title='',
+                  author='',
+                  date='',
+                  outfile='',
+                  contents=True,
+                  remove_tmpdir=True,
+                  work_dir=None,
+                  style='modern'):
     base = os.path.splitext(filename)[0]
     if not outfile:
         pdf = base + ".pdf"
     else:
         pdf = outfile
-    print "converting: %s --> %s"%(filename, pdf)
+    print "converting: %s --> %s" % (filename, pdf)
     W = Worksheet(filename)
     try:
         if work_dir is None:
@@ -704,42 +752,100 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
         os.chdir(work_dir)
         from codecs import open
         open('tmp.tex', 'w', 'utf8').write(
-            W.latex(title=title,
-                    author=author,
-                    date=date,
-                    contents=contents,
-                    style=style)
-        )#.encode('utf8'))
+            W.latex(
+                title=title,
+                author=author,
+                date=date,
+                contents=contents,
+                style=style))  #.encode('utf8'))
         from subprocess import check_call
-        check_call('latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex', shell=True)
+        check_call(
+            'latexmk -pdf -xelatex -f -interaction=nonstopmode tmp.tex',
+            shell=True)
         if os.path.exists('tmp.pdf'):
-            shutil.move('tmp.pdf',os.path.join(cur, pdf))
+            shutil.move('tmp.pdf', os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
     finally:
         if work_dir and remove_tmpdir:
             shutil.rmtree(work_dir)
         else:
-            print "Leaving latex files in '%s'"%work_dir
+            print "Leaving latex files in '%s'" % work_dir
+
 
 def main():
     global extra_data, BASE_URL
 
     parser = argparse.ArgumentParser(
         description="convert a sagews worksheet to a pdf file via latex",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "filename", nargs='+', help="name of sagews file (required)", type=str)
+    parser.add_argument(
+        "--author",
+        dest="author",
+        help="author name for printout",
+        type=str,
+        default="")
+    parser.add_argument(
+        "--title",
+        dest="title",
+        help="title for printout",
+        type=str,
+        default="")
+    parser.add_argument(
+        "--date", dest="date", help="date for printout", type=str, default="")
+    parser.add_argument(
+        "--contents",
+        dest="contents",
+        help="include a table of contents 'true' or 'false'",
+        type=str,
+        default='true')
+    parser.add_argument(
+        "--outfile",
+        dest="outfile",
+        help=
+        "output filename (defaults to input file with sagews replaced by pdf)",
+        type=str,
+        default="")
+    parser.add_argument(
+        "--remove_tmpdir",
+        dest="remove_tmpdir",
+        help=
+        "if 'false' do not delete the temporary LaTeX files and print name of temporary directory",
+        type=str,
+        default='true')
+    parser.add_argument(
+        "--work_dir",
+        dest="work_dir",
+        help=
+        "if set, then this is used as the working directory where the tex files are generated and it won't be deleted like the temp dir."
     )
-    parser.add_argument("filename", nargs='+', help="name of sagews file (required)", type=str)
-    parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
-    parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
-    parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
-    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false'", type=str, default='true')
-    parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
-    parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory", type=str, default='true')
-    parser.add_argument("--work_dir", dest="work_dir", help="if set, then this is used as the working directory where the tex files are generated and it won't be deleted like the temp dir.")
-    parser.add_argument('--subdir', dest="subdir", help="if set, the work_dir will be set (or overwritten) to be pointing to a subdirectory named after the file to be converted.", default='false')
-    parser.add_argument("--extra_data_file", dest="extra_data_file", help="JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots", type=str, default='')
-    parser.add_argument("--style", dest="style", help="Styling of the LaTeX document", type=str, choices=['classic', 'modern'], default="modern")
-    parser.add_argument("--base_url", dest="base_url", help="The 'BASE_URL' from where blobs and other files are being downloaded from", default=BASE_URL)
+    parser.add_argument(
+        '--subdir',
+        dest="subdir",
+        help=
+        "if set, the work_dir will be set (or overwritten) to be pointing to a subdirectory named after the file to be converted.",
+        default='false')
+    parser.add_argument(
+        "--extra_data_file",
+        dest="extra_data_file",
+        help=
+        "JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots",
+        type=str,
+        default='')
+    parser.add_argument(
+        "--style",
+        dest="style",
+        help="Styling of the LaTeX document",
+        type=str,
+        choices=['classic', 'modern'],
+        default="modern")
+    parser.add_argument(
+        "--base_url",
+        dest="base_url",
+        help=
+        "The 'BASE_URL' from where blobs and other files are being downloaded from",
+        default=BASE_URL)
 
     args = parser.parse_args()
     args.contents = args.contents == 'true'
@@ -754,7 +860,7 @@ def main():
 
     BASE_URL = args.base_url
 
-    remove_tmpdir=args.remove_tmpdir
+    remove_tmpdir = args.remove_tmpdir
 
     curdir = os.path.abspath('.')
     for filename in args.filename:
@@ -762,32 +868,33 @@ def main():
 
         if args.subdir:
             from os.path import dirname, basename, splitext, join
-            dir           = dirname(filename)
-            subdir        = '%s-sagews2pdf' % splitext(basename(filename))[0]
-            work_dir      = join(dir, subdir)
+            dir = dirname(filename)
+            subdir = '%s-sagews2pdf' % splitext(basename(filename))[0]
+            work_dir = join(dir, subdir)
             remove_tmpdir = False
         elif args.work_dir is not None:
-            work_dir      = os.path.abspath(os.path.expanduser(args.work_dir))
+            work_dir = os.path.abspath(os.path.expanduser(args.work_dir))
             remove_tmpdir = False
         else:
             work_dir = None
 
         from subprocess import CalledProcessError
         try:
-            sagews_to_pdf(filename,
-                          title         = args.title.decode('utf8'),
-                          author        = args.author.decode('utf8'),
-                          date          = args.date,
-                          outfile       = args.outfile,
-                          contents      = args.contents,
-                          remove_tmpdir = remove_tmpdir,
-                          work_dir      = work_dir,
-                          style         = args.style
-                         )
+            sagews_to_pdf(
+                filename,
+                title=args.title.decode('utf8'),
+                author=args.author.decode('utf8'),
+                date=args.date,
+                outfile=args.outfile,
+                contents=args.contents,
+                remove_tmpdir=remove_tmpdir,
+                work_dir=work_dir,
+                style=args.style)
         # subprocess.check_call might throw
         except CalledProcessError as e:
             sys.stderr.write('CalledProcessError: %s\n' % e)
             exit(1)
+
 
 if __name__ == "__main__":
     main()

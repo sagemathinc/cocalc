@@ -4,11 +4,7 @@ Create rolling snapshots of a given ZFS volume
 
 fs          = require('fs')
 async       = require('async')
-winston     = require('winston')
-
-# Set the log level
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+winston     = require('./winston-metrics').get_logger('rolling_snapshots')
 
 misc_node = require('smc-util-node/misc_node')
 misc      = require('smc-util/misc')

@@ -33,7 +33,7 @@ misc_page = require('./misc_page')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
+{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
 {Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
@@ -243,7 +243,7 @@ Message = rclass
             <FormGroup>
                 <FormControl
                     autoFocus      = {true}
-                    rows           = 4
+                    rows           = {4}
                     componentClass = 'textarea'
                     ref            = 'editedMessage'
                     onKeyDown      = {@on_keydown}
@@ -481,6 +481,11 @@ ChatRoom = rclass ({name}) ->
             {@render_add_collab()}
         </div>
 
+    on_focus: ->
+        # Remove any active key handler that is next to this side chat.
+        # E.g, this is critical for taks lists...
+        @props.redux.getActions('page').erase_active_key_handler()
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
@@ -490,7 +495,9 @@ ChatRoom = rclass ({name}) ->
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
         <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
-             onMouseMove = {mark_as_read}>
+             onMouseMove = {mark_as_read}
+             onFocus     = {@on_focus}
+             >
             {@render_project_users()}
             <div style   = {log_container_style}
                  ref     = 'log_container'

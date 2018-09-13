@@ -2,11 +2,11 @@
 {Alert} = require('react-bootstrap')
 
 # Internal & React Libraries
-{React} = require('./smc-react')
+{React} = require('./app-framework')
 
 # Sibling Libraries
 
 exports.UpgradeRestartWarning = ({style}) ->
     <Alert style={style}>
-        Adjustments to any project upgrades (except idle timeout) will restart the project. Running computations may be terminated.
+        WARNING: Adjusting upgrades may restart running projects, which would terminate computations.
     </Alert>

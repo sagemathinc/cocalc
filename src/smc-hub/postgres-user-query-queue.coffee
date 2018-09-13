@@ -1,4 +1,4 @@
-"""
+###
 User query queue.
 
 The point of this is to make it so:
@@ -7,7 +7,7 @@ The point of this is to make it so:
  (2) when the client disconnects, any outstanding (not started) queries are cancelled, and
  (3) queries that don't even start until a certain amount of time after they were made are
      automatically considered to have failed (so the client retries).
-"""
+###
 
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
@@ -15,7 +15,7 @@ required = defaults.required
 # We do at most this many user queries **at once** to the database on behalf
 # of each connected client.  This only applies when the global limit has
 # been exceeded.
-USER_QUERY_LIMIT = 1
+USER_QUERY_LIMIT = 10
 
 # If we don't even start query by this long after we receive query, then we consider it failed
 USER_QUERY_TIMEOUT_MS = 15000
@@ -25,11 +25,14 @@ USER_QUERY_TIMEOUT_MS = 15000
 TIME_HISTORY_LENGTH = 100
 
 # Do not throttle queries at all unless there are at least this
-# many global outstanding concurent **user queries**.  The point is that
+# many global outstanding concurrent **user queries**.  The point is that
 # if there's very little load, we should get queries done as fast
 # as possible for users.
-GLOBAL_LIMIT = 100
-#GLOBAL_LIMIT = 4
+GLOBAL_LIMIT = 250
+
+# Maximum queue size -- if user tries to do more queries than this
+# at once, then all old ones return an error.  They could then retry.
+MAX_QUEUE_SIZE = 150  # client isn't supposed to send more than around 25-50 at once.
 
 # setup metrics
 metrics_recorder = require('./metrics-recorder')
@@ -51,12 +54,14 @@ class exports.UserQueryQueue
             limit        : USER_QUERY_LIMIT
             timeout_ms   : USER_QUERY_TIMEOUT_MS
             global_limit : GLOBAL_LIMIT
+            concurrent   : required
         @_do_query     = opts.do_query
         @_limit        = opts.limit
         @_dbg          = opts.dbg
         @_timeout_ms   = opts.timeout_ms
         @_global_limit = opts.global_limit
         @_state        = {}
+        @_concurrent   = opts.concurrent
 
     destroy: =>
         delete @_do_query
@@ -111,7 +116,10 @@ class exports.UserQueryQueue
             query_queue_exec.labels('timeout').inc()
             return
 
-        @_dbg("_do_one_query(client_id='#{opts.client_id}') -- doing the query")
+        id = misc.uuid().slice(0,6)
+        tm = new Date()
+        client_id = opts.client_id
+        @_dbg("_do_one_query(client_id='#{client_id}', query_id='#{id}') -- doing the query")
         # Actually do the query
         orig_cb = opts.cb
         # Remove the two properties from opts that @_do_query doesn't take
@@ -124,6 +132,7 @@ class exports.UserQueryQueue
         # it receives to the orig_cb, if there is one.
         opts.cb = (err, result) =>
             if cb?
+                @_dbg("_do_one_query(client_id='#{client_id}', query_id='#{id}') -- done; time=#{new Date() - tm}ms")
                 cb()
                 cb = undefined
             if result?.action == 'close' or err
@@ -132,18 +141,32 @@ class exports.UserQueryQueue
                 delete opts.cb
             orig_cb?(err, result)
 
-        # Finally, do the query.
+        # Increment counter
         query_queue_exec.labels('sent').inc()
+        # Finally, do the query.
         @_do_query(opts)
 
     _update: (state) =>
-        while state.queue? and state.queue.length > 0 and (global_count < @_global_limit or state.count < @_limit)
+        if not state.queue? or state.queue.length == 0
+            return
+        # Discard all additional messages beyond outstanding and in queue.  The client is
+        # assumed to be smart enough to try again.
+        while state.queue.length + state.count > MAX_QUEUE_SIZE
+            @_discard_next_call(state)
+        # Now handle the remaining messages up to the limit.
+        while state.queue.length > 0 and (@_concurrent() < @_global_limit or state.count < @_limit)
             @_process_next_call(state)
 
-    _process_next_call: (state) =>
-        if not state.queue?
+    _discard_next_call: (state) =>
+        if not state.queue? or state.queue.length == 0
             return
-        if state.queue.length == 0
+        @_dbg("_discard_next_call -- discarding (queue size=#{state.queue.length})")
+        opts = state.queue.shift()
+        opts.cb("discarded")
+        @_info(state)
+
+    _process_next_call: (state) =>
+        if not state.queue? or state.queue.length == 0
             return
         state.count += 1
         global_count += 1

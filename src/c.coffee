@@ -10,9 +10,7 @@ LICENSE   : AGPLv3
 ###
 
 async = require('async')
-
-# disable incredibly verbose DB debugging, which makes interactive use hard
-require('smc-hub/postgres-base').DEBUG = false
+require('ts-node').register() # be able to load typescript
 
 global.misc = require('smc-util/misc')
 global.done = misc.done
@@ -25,15 +23,13 @@ get_db = (cb) ->
         cb?(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/postgres').db()
+        db = require('./smc-hub/postgres').db(debug:true)
         db.connect(cb:cb)
         return db
-
 # get a connection to the db
-global.db = (cb) ->
-    global.db = get_db(cb)
-    return
-console.log("db() -- sets global variable db to a database")
+global.db = get_db()
+
+console.log("db -- database")
 
 global.gcloud = ->
     global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:get_db())

@@ -1,9 +1,9 @@
-###
+"""
 User (and project) client queries
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
-###
+"""
 
 MAX_CHANGEFEEDS_PER_CLIENT = 2000
 
@@ -14,8 +14,7 @@ EventEmitter = require('events')
 async        = require('async')
 underscore   = require('underscore')
 
-{PostgreSQL, one_result, all_results, count_result, pg_type} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
 {UserQueryQueue} = require('./postgres-user-query-queue')
 
@@ -24,7 +23,7 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA} = require('smc-util/schema')
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
         opts = defaults opts,
@@ -42,6 +41,27 @@ class exports.PostgreSQL extends PostgreSQL
             changes    : undefined
             cb         : undefined
 
+        if opts.account_id?
+            # Check for "sudo" by admin to query as a different user, which is done by specifying
+            #    options = [..., {account_id:'uuid'}, ...].
+            for x in opts.options
+                if x.account_id?
+                    # Check user is an admin, then change opts.account_id
+                    @get_account
+                        columns    : ['groups']
+                        account_id : opts.account_id
+                        cb         : (err, r) =>
+                            if err
+                                opts.cb?(err)
+                            else if r['groups']? and 'admin' in r['groups']
+                                opts.account_id = x.account_id
+                                opts.options = (y for y in opts.options when not y['account_id']?)
+                                # now do query with new opts and options not including account_id sudo.
+                                @user_query(opts)
+                            else
+                                opts.cb?('user must be admin to sudo')
+                    return
+
         if not opts.client_id?
             # No client_id given, so do not use query queue.
             delete opts.priority
@@ -49,10 +69,11 @@ class exports.PostgreSQL extends PostgreSQL
             @_user_query(opts)
             return
 
-        if not @_user_query_queue?
+        if not @_user_query_queue?
             o =
                 do_query   : @_user_query
                 dbg        : @_dbg('user_query_queue')
+                concurrent : @concurrent
             @_user_query_queue ?= new UserQueryQueue(o)
 
         @_user_query_queue.user_query(opts)
@@ -69,8 +90,11 @@ class exports.PostgreSQL extends PostgreSQL
                                     #    for the table to explicitly allow deleting.
             changes    : undefined  # id of change feed
             cb         : undefined  # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
-        dbg = @_dbg("user_query(...)")
+        id = misc.uuid().slice(0,6)
+        dbg = @_dbg("_user_query(id=#{id})")
+        dbg(misc.to_json(opts.query))
         if misc.is_array(opts.query)
+            dbg('array query instead')
             @_user_query_array(opts)
             return
 
@@ -86,12 +110,14 @@ class exports.PostgreSQL extends PostgreSQL
 
         v = misc.keys(opts.query)
         if v.length > 1
+            dbg('FATAL no key')
             opts.cb?('FATAL: must specify exactly one key in the query')
             return
         table = v[0]
         query = opts.query[table]
         if misc.is_array(query)
             if query.length > 1
+                dbg("FATAL not implemented")
                 opts.cb?("FATAL: array of length > 1 not yet implemented")
                 return
             multi = true
@@ -101,6 +127,7 @@ class exports.PostgreSQL extends PostgreSQL
         is_set_query = undefined
         if opts.options?
             if not misc.is_array(opts.options)
+                dbg("FATAL options")
                 opts.cb?("FATAL: options (=#{misc.to_json(opts.options)}) must be an array")
                 return
             for x in opts.options
@@ -116,13 +143,16 @@ class exports.PostgreSQL extends PostgreSQL
             if not is_set_query?
                 is_set_query = not misc.has_null_leaf(query)
             if is_set_query
-                # do a set query
+                dbg("do a set query")
                 if changes
+                    dbg("FATAL: changefeed")
                     opts.cb?("FATAL: changefeeds only for read queries")
                     return
                 if not opts.account_id? and not opts.project_id?
+                    dbg("FATAL: anon set")
                     opts.cb?("FATAL: no anonymous set queries")
                     return
+                dbg("user_set_query")
                 @user_set_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -130,20 +160,23 @@ class exports.PostgreSQL extends PostgreSQL
                     query      : query
                     options    : opts.options
                     cb         : (err, x) =>
+                        dbg("returned #{err}")
                         opts.cb?(err, {"#{table}":x})
             else
                 # do a get query
                 if changes and not multi
+                    dbg("FATAL: changefeed multi")
                     opts.cb?("FATAL: changefeeds only implemented for multi-document queries")
                     return
 
                 if changes
-                    try
-                        @_inc_changefeed_count(opts.account_id, opts.project_id, table, changes.id)
-                    catch err
+                    err = @_inc_changefeed_count(opts.account_id, opts.project_id, table, changes.id)
+                    if err
+                        dbg("err changefeed count -- #{err}")
                         opts.cb?(err)
                         return
 
+                dbg("user_get_query")
                 @user_get_query
                     account_id : opts.account_id
                     project_id : opts.project_id
@@ -153,34 +186,44 @@ class exports.PostgreSQL extends PostgreSQL
                     multi      : multi
                     changes    : changes
                     cb         : (err, x) =>
+                        dbg("returned #{err}")
                         if err and changes
                             # didn't actually make the changefeed, so don't count it.
                             @_dec_changefeed_count(changes.id, table)
                         opts.cb?(err, if not err then {"#{table}":x})
         else
+            dbg("FATAL - invalid table")
             opts.cb?("FATAL: invalid user_query of '#{table}' -- query must be an object")
 
     ###
     TRACK CHANGEFEED COUNTS
+
+    _inc and dec below are evidently broken, in that it's CRITICAL that they match up exactly, or users will be
+    locked out until they just happen to switch to another hub with different tracking, which is silly.
+
+    TODO: DISABLED FOR NOW!
     ###
 
     # Increment a count of the number of changefeeds by a given client so we can cap it.
     _inc_changefeed_count: (account_id, project_id, table, changefeed_id) =>
+        return
         client_name = "#{account_id}-#{project_id}"
         cnt = @_user_get_changefeed_counts ?= {}
         ids = @_user_get_changefeed_id_to_user ?= {}
         if not cnt[client_name]?
             cnt[client_name] = 1
         else if cnt[client_name] >= MAX_CHANGEFEEDS_PER_CLIENT
-            throw Error("user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project")
+            return "user may create at most #{MAX_CHANGEFEEDS_PER_CLIENT} changefeeds; please close files, refresh browser, restart project"
         else
             # increment before successfully making get_query to prevent huge bursts causing trouble!
             cnt[client_name] += 1
         @_dbg("_inc_changefeed_count(table='#{table}')")("{#{client_name}:#{cnt[client_name]} ...}")
         ids[changefeed_id] = client_name
+        return false
 
     # Corresonding decrement of count of the number of changefeeds by a given client.
     _dec_changefeed_count: (id, table) =>
+        return
         client_name = @_user_get_changefeed_id_to_user[id]
         if client_name?
             @_user_get_changefeed_counts?[client_name] -= 1
@@ -195,7 +238,7 @@ class exports.PostgreSQL extends PostgreSQL
     # Handle user_query when opts.query is an array.  opts below are as for user_query.
     _user_query_array: (opts) =>
         if opts.changes and opts.query.length > 1
-            opts.cb("FATAL: changefeeds only implemented for single table")
+            opts.cb?("FATAL: changefeeds only implemented for single table")
             return
         result = []
         f = (query, cb) =>
@@ -282,6 +325,8 @@ class exports.PostgreSQL extends PostgreSQL
         for x in options
             for name, value of x
                 switch name
+                    when 'only_changes'
+                        r.only_changes = !!value
                     when 'limit'
                         r.limit = value
                     when 'slice'
@@ -596,6 +641,9 @@ class exports.PostgreSQL extends PostgreSQL
             query      : required
             options    : undefined     # {delete:true} is the only supported option
             cb         : required   # cb(err)
+        if @is_standby
+            opts.cb("set queries against standby not allowed")
+            return
         r = @_parse_set_query_opts(opts)
         #r.dbg("parsed query opts = #{misc.to_json(r)}")
         if not r?  # nothing to do
@@ -1084,10 +1132,12 @@ class exports.PostgreSQL extends PostgreSQL
             options = options.concat(schema_options)
 
         # Parse option part of the query
-        {limit, order_by, slice, err} = @_query_parse_options(options)
+        {limit, order_by, slice, only_changes, err} = @_query_parse_options(options)
 
         if err
             return {err: err}
+        if only_changes
+            r.only_changes = true
         if limit?
             r.limit = limit
         else if not multi
@@ -1311,7 +1361,7 @@ class exports.PostgreSQL extends PostgreSQL
                         # Any tracker error means this changefeed is now broken and
                         # has to be recreated.
                         tracker?.on 'error', (err) ->
-                            changes.cb("FATAL: tracker error - #{err}")
+                            changes.cb("tracker error - #{err}")
                         cb()
         ], cb)
 
@@ -1341,16 +1391,20 @@ class exports.PostgreSQL extends PostgreSQL
         If no error in query, and changes is a given uuid, set up a change
         feed that calls opts.cb on changes as well.
         ###
-        dbg = @_dbg("user_get_query(table='#{opts.table}')")
+        id = misc.uuid().slice(0,6)
+        #dbg = @_dbg("user_get_query(id=#{id})")
+        dbg = -> # Logging below is just too verbose, and turns out to not be useful...
         dbg("account_id='#{opts.account_id}', project_id='#{opts.project_id}', query=#{misc.to_json(opts.query)}, multi=#{opts.multi}, options=#{misc.to_json(opts.options)}, changes=#{misc.to_json(opts.changes)}")
         {err, table, client_query, require_admin, delete_option, primary_keys, json_fields} = @_parse_get_query_opts(opts)
 
         if err
+            dbg("error parsing query opts -- #{err}")
             opts.cb(err)
             return
         if client_query.get.instead_of_query?
             # Custom version: instead of doing a full query, we instead
             # call a function and that's it.
+            dbg("do instead_of_query instead")
             client_query.get.instead_of_query(@, opts.query, opts.account_id, opts.cb)
             return
 
@@ -1361,11 +1415,13 @@ class exports.PostgreSQL extends PostgreSQL
         async.series([
             (cb) =>
                 if client_query.get.check_hook?
+                    dbg("do check hook")
                     client_query.get.check_hook(@, opts.query, opts.account_id, opts.project_id, cb)
                 else
                     cb()
             (cb) =>
                 if require_admin
+                    dbg('require admin')
                     @_require_is_admin(opts.account_id, cb)
                 else
                     cb()
@@ -1373,6 +1429,7 @@ class exports.PostgreSQL extends PostgreSQL
                 # NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
                 # so it is important that this is called before @_user_get_query_query below.
                 # See the TODO in @_user_get_query_filter.
+                dbg("get_query_where")
                 @_user_get_query_where client_query, opts.account_id, opts.project_id, opts.query, opts.table, (err, where) =>
                     _query_opts.where = where
                     cb(err)
@@ -1380,6 +1437,7 @@ class exports.PostgreSQL extends PostgreSQL
                 _query_opts.query = @_user_get_query_query(delete_option, table, opts.query)
                 x = @_user_get_query_options(delete_option, opts.options, opts.multi, client_query.options)
                 if x.err
+                    dbg("error in get_query_options, #{x.err}")
                     cb(x.err)
                     return
                 misc.merge(_query_opts, x)
@@ -1390,24 +1448,34 @@ class exports.PostgreSQL extends PostgreSQL
                     # see note about why we do the following at the bottom of this file
                     opts.changes.cb = (err, obj) ->
                         locals.changes_queue.push({err:err, obj:obj})
+                    dbg("getting changefeed")
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
                                                 opts.account_id, client_query, cb)
                 else
                     cb()
             (cb) =>
-                @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
-                    if err
-                        cb(err)
-                        return
-                    locals.result = result
+                if _query_opts.only_changes
+                    dbg("skipping query")
+                    locals.result = undefined
                     cb()
+                else
+                    dbg("finally doing query")
+                    @_user_get_query_do_query _query_opts, client_query, opts.query, opts.multi, json_fields, (err, result) =>
+                        if err
+                            cb(err)
+                            return
+                        locals.result = result
+                        cb()
         ], (err) =>
             if err
+                dbg("series failed -- err=#{err}")
                 opts.cb(err)
                 return
+            dbg("series succeeded")
             opts.cb(undefined, locals.result)
             if opts.changes?
+                dbg("sending change queue")
                 opts.changes.cb = locals.changes_cb
                 ##dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
                 for {err, obj} in locals.changes_queue
@@ -1466,7 +1534,7 @@ class exports.PostgreSQL extends PostgreSQL
         # Check that string_id is the id of a syncstring the given account_id or
         # project_id is allowed to write to.  NOTE: We do not concern ourselves (for now at least)
         # with proof of identity (i.e., one user with full read/write access to a project
-        # claiming they are another users of that project), since our security model
+        # claiming they are another users of that SAME project), since our security model
         # is that any user of a project can edit anything there.  In particular, the
         # synctable lets any user with write access to the project edit the users field.
         if string_id?.length != 40
@@ -1475,7 +1543,7 @@ class exports.PostgreSQL extends PostgreSQL
         @_query
             query : "SELECT project_id FROM syncstrings"
             where : "string_id = $::CHAR(40)" : string_id
-            cache : true
+            cache : false  # unfortunately, if this returns no, due to FATAL below this will break opening the file forever
             cb    : one_result 'project_id', (err, x) =>
                 if err
                     cb(err)
@@ -1514,7 +1582,7 @@ class exports.PostgreSQL extends PostgreSQL
             cb("FATAL: only users and projects can access syncstrings")
 
 _last_awaken_time = {}
-awaken_project = (db, project_id) ->
+awaken_project = (db, project_id, cb) ->
     # throttle so that this gets called *for a given project* at most once every 30s.
     now = new Date()
     if _last_awaken_time[project_id]? and now - _last_awaken_time[project_id] < 30000
@@ -1525,23 +1593,39 @@ awaken_project = (db, project_id) ->
         dbg("skipping since no compute_server defined")
         return
     dbg("doing it...")
-    db.compute_server.project
-        project_id : project_id
-        cb         : (err, project) =>
-            if err
-                dbg("err = #{err}")
-            else
-                dbg("requesting whole-project save")
-                project.save()  # this causes saves of all files to storage machines to happen periodically
-                project.ensure_running
-                    cb : (err) =>
-                        if err
-                            dbg("failed to ensure running")
-                        else
-                            dbg("also make sure there is a connection from hub to project")
-                            # This is so the project can find out that the user wants to save a file (etc.)
-                            db.ensure_connection_to_project?(project_id)
-
+    locals =
+        project : undefined
+    async.series([
+        (cb) ->
+            db.compute_server.project
+                project_id : project_id
+                cb         : (err, project) =>
+                    if err
+                        cb("error getting project = #{err}")
+                    else
+                        locals.project = project
+                        cb()
+        (cb) ->
+            locals.project.ensure_running
+                cb : (err) =>
+                    if err
+                        cb("failed to ensure project running -- #{err}")
+                    else
+                        cb()
+        (cb) ->
+            if not db.ensure_connection_to_project?
+                cb()
+                return
+            dbg("also make sure there is a connection from hub to project")
+            # This is so the project can find out that the user wants to save a file (etc.)
+            db.ensure_connection_to_project(project_id, cb)
+    ], (err) ->
+        if err
+            dbg("awaken project error -- #{err}")
+        else
+            dbg("success awakening project")
+        cb?(err)
+    )
 ###
 Note about opts.changes.cb:
 

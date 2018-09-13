@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-require('coffee-cache')
+require('coffee2-cache')
 
 ###
 
@@ -1178,7 +1178,9 @@ start_fake_server = (cb) ->
 {EventEmitter} = require('events')
 
 class FakeDevSocketFromCompute extends EventEmitter
-    constructor: (@socket_from_hub) ->
+    constructor: (socket_from_hub) ->
+        super()
+        @socket_from_hub = socket_from_hub
         @callbacks = {}
 
     write_mesg: (type, resp, cb) =>
@@ -1200,6 +1202,7 @@ class FakeDevSocketFromCompute extends EventEmitter
 
 class FakeDevSocketFromHub extends EventEmitter
     constructor: ->
+        super()
         @_socket = new FakeDevSocketFromCompute(@)
 
     write_mesg: (type, mesg, cb) =>

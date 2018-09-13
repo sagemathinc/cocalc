@@ -26,8 +26,8 @@ class TestUnicode:
         test for cell with input u"äöüß"
         """
         ustr = 'u"äöüß"'
-        uout = ustr[2:-1].decode('utf8').__repr__().decode('utf8')
-        exec2(ustr, uout)
+        x = r'\xe4\xf6\xfc\xdf'
+        exec2(ustr, x)
     def test_unicode_2(self, exec2):
         r"""
         Test for cell with input u"ááá".
@@ -40,9 +40,8 @@ class TestUnicode:
           "stdout": "u\'\\\\xe1\\\\xe1\\\\xe1\'\\n"
         """
         ustr = 'u"ááá"'
-        # same as below: uout = u"u'\\xe1\\xe1\\xe1'\n"
-        uout = ustr[2:-1].decode('utf8').__repr__().decode('utf8')
-        exec2(ustr, uout)
+        x = r'\xe1\xe1\xe1'
+        exec2(ustr, x)
     def test_unicode_3(self, exec2):
         r"""
         Test for cell with input "ááá".
@@ -54,15 +53,15 @@ class TestUnicode:
           "stdout": "\'\\\\xc3\\\\xa1\\\\xc3\\\\xa1\\\\xc3\\\\xa1\'\\n"
         """
         ustr = '"ááá"'
-        uout = ustr[1:-1].decode('utf8').encode('utf8').__repr__().decode('utf8')
-        exec2(ustr, uout)
+        x = r'\xc3\xa1\xc3\xa1\xc3\xa1'
+        exec2(ustr, x)
     def test_unicode_4(self, exec2):
         r"""
         test for cell with input "öäß"
         """
         ustr = '"öäß"'
-        uout = ustr[1:-1].decode('utf8').encode('utf8').__repr__().decode('utf8')
-        exec2(ustr, uout)
+        x = r'\xc3\xb6\xc3\xa4\xc3\x9f'
+        exec2(ustr, x)
 
 class TestOutputReplace:
     def test_1865(self,exec2):
@@ -72,8 +71,8 @@ class TestOutputReplace:
 
 class TestErr:
     def test_non_ascii(self, test_id, sagews):
-        # assign x to hbar to trigger non-ascii warning
-        code = ("x = " + unichr(295) + "\nx").encode('utf-8')
+        # assign to hbar to trigger non-ascii warning
+        code = "ħ = 9"
         m = conftest.message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
         # expect 2 messages from worksheet client
@@ -84,11 +83,10 @@ class TestErr:
         assert 'stderr' in mesg
         assert 'Error in lines 1-1' in mesg['stderr']
         assert 'should be replaced by < " >' not in mesg['stderr']
-        # 2 done
         conftest.recv_til_done(sagews, test_id)
     def test_bad_quote(self, test_id, sagews):
-        # assign x to one of U+201C or U+201D to trigger bad quote warning
-        code = ("x = " + unichr(8220) + "\nx").encode('utf-8')
+        # assign x to U+201C (could use U+201D) to trigger bad quote warning
+        code = "“"
         m = conftest.message.execute_code(code = code, id = test_id)
         sagews.send_json(m)
         # expect 2 messages from worksheet client
@@ -97,9 +95,13 @@ class TestErr:
         assert typ == 'json'
         assert mesg['id'] == test_id
         assert 'stderr' in mesg
-        assert 'Error in lines 1-1' in mesg['stderr']
-        assert 'should be replaced by < " >' in mesg['stderr']
-        # 2 done
+        assert 'non-ascii' in mesg['stderr']
+        if 'should be replaced by < " >' not in mesg['stderr']:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stderr' in mesg
+            assert 'should be replaced by < " >' in mesg['stderr']
         conftest.recv_til_done(sagews, test_id)
     def test_bad_mult(self, test_id, sagews):
         # warn about possible missing '*' with patterns like 3x^2 and 5(1+x)

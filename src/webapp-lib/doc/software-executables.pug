@@ -29,15 +29,21 @@ block content
         The output of running the executable with #[code --version] or equivalent is shown below.
         This offers some information about the utility and version number.
       div.
+        To run the software executable, you need to either open a "Terminal" (create a file with the extension #[code .term])
+        or run it indirectly via an interactive worksheet.
+      div.
         On #{NAME}, you can also install and/or compile your own executable binaries.
-        You have a lot of control about the environment in a project.
+        You have a lot of control about your own project, which is essentially a containerized Linux environment.
 
   div.container
     div.row
       each idx in exec_keys
+        - var ref = info[idx].name.replace(/ /g, '-')
+        a.anchor(name=ref)
         h3
           = info[idx].name
           code.software= idx
+          a(href="#" + ref, class="marker") ¶
         //- this also escapes the output, which is necessary because there are some strings that could be interpreted as html
         pre.stdout= execs[idx]
 

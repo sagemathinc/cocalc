@@ -25,30 +25,72 @@ Compute related schema stuff (see compute.coffee)
 
 Here's a picture of the finite state machine defined below:
 
-   ----------[closing] ------- --------- [stopping] <--------
-  \|/                        \|/                           |
-[closed] --> [opening] --> [opened] --> [starting] --> [running]
-                             /|\                          /|\
-                              |                            |
-                             \|/                          \|/
-                      [saving]  [pending]               [saving]
+                    ----------[closing] ------- --------- [stopping] <--------
+                   \|/                        \|/                           |
+[archived] <-->  [closed] --> [opening] --> [opened] --> [starting] --> [running]
+                                             /|\                          /|\
+       [unarchiving]                          |                            |
+       [archiving]                           \|/                          \|/
+                                      [saving]  [pending]               [saving]
 
 The icon names below refer to font-awesome, and are used in the UI.
 
 ###
 
 exports.COMPUTE_STATES =
-    closed:
-        desc     : 'Project is in cold storage, and will take longer than normal to start.'
-        icon     : 'stop'     # font awesome icon
-        display  : 'Offline'  # displayed name for users
+    archived:
+        desc     : 'Project is stored in longterm storage, and will take even longer to start.'
+        icon     : 'archive'     # font awesome icon
+        display  : 'Archived'  # displayed name for users
         stable   : true
         to       :
-            open : 'opening'
-        commands : ['open', 'move', 'status', 'destroy', 'mintime']
+            closed : 'unarchiving'
+        commands : ['unarchive']
+
+    unarchiving:
+        desc     : 'Project is being copied from longterm storage; this may take several minutes depending on how many files you have.'
+        icon     : 'globe'
+        display  : 'Unarchiving'
+        to       : {}
+        timeout  : 30*60
+        commands : ['status', 'mintime']
+
+    archiving:
+        desc     : 'Project is being moved to longterm storage.'
+        icon     : 'globe'
+        display  : 'Archiving'
+        to       : {}
+        timeout  : 5*60
+        commands : ['status', 'mintime']
+
+    closed:
+        desc     : 'Project is stored only as ZFS streams, which must be imported, so it will take longer to start.'
+        icon     : 'file-archive'     # font awesome icon
+        display  : 'Closed'  # displayed name for users
+        stable   : true
+        to       :
+            open     : 'opening'
+            archived : 'archiving'
+        commands : ['open', 'move', 'status', 'destroy', 'mintime', 'archive']
+
+    opening:
+        desc     : 'Project is being imported from ZFS streams; this may take several minutes depending on size and history.'
+        icon     : 'gears'
+        display  : 'Opening'
+        to       : {}
+        timeout  : 30*60
+        commands : ['status', 'mintime']
+
+    closing:
+        desc     : 'Project is in the process of being closed.'
+        icon     : 'close'
+        display  : 'Closing'
+        to       : {}
+        timeout  : 5*60
+        commands : ['status', 'mintime']
 
     opened:
-        desc     : 'Project is available and ready to start.'
+        desc     : 'Project is available and ready to try to run.'
         icon     : 'stop'
         display  : 'Stopped'
         stable   : true
@@ -66,6 +108,24 @@ exports.COMPUTE_STATES =
         to       :
             stop : 'stopping'
         command : ['stop']
+
+    starting:
+        desc     : 'Project is starting up.'
+        icon     : 'flash'
+        display  : 'Starting'
+        to       :
+            save : 'saving'
+        timeout  : 60
+        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+
+    stopping:
+        desc     : 'Project is stopping.'
+        icon     : 'hand-stop-o'
+        display  : 'Stopping'
+        to       :
+            save : 'saving'
+        timeout  : 60
+        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     running:
         desc     : 'Project is running.'
@@ -85,36 +145,4 @@ exports.COMPUTE_STATES =
         timeout  : 30*60
         commands : ['address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
-    closing:
-        desc     : 'Project is in the process of being closed.'
-        icon     : 'close'
-        display  : 'Closing'
-        to       : {}
-        timeout  : 5*60
-        commands : ['status', 'mintime']
 
-    opening:
-        desc     : 'Project is being copied from cold storage, which may take several minutes depending on how many files you have.'
-        icon     : 'gears'
-        display  : 'Opening'
-        to       : {}
-        timeout  : 30*60
-        commands : ['status', 'mintime']
-
-    starting:
-        desc     : 'Project is starting up.'
-        icon     : 'flash'
-        display  : 'Starting'
-        to       :
-            save : 'saving'
-        timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-    stopping:
-        desc     : 'Project is stopping.'
-        icon     : 'hand-stop-o'
-        display  : 'Stopping'
-        to       :
-            save : 'saving'
-        timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']

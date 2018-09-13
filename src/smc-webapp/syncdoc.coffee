@@ -37,7 +37,7 @@ templates = $("#webapp-editor-templates")
 
 account = require('./account')
 
-{redux} = require('./smc-react')
+{redux} = require('./app-framework')
 
 {EventEmitter} = require('events')
 
@@ -79,6 +79,7 @@ underscore = require('underscore')
 
 class SynchronizedString extends AbstractSynchronizedDoc
     constructor: (opts) ->
+        super()
         @opts = defaults opts,
             project_id        : required
             filename          : required
@@ -173,10 +174,18 @@ class SynchronizedString extends AbstractSynchronizedDoc
         return @_syncstring.exit_undo_mode()
 
 class SynchronizedDocument2 extends SynchronizedDocument
-    constructor: (@editor, opts, cb) ->
+    constructor: (editor, opts) ->
+        super()
+        @editor = editor
         @opts = defaults opts,
             cursor_interval : 1000   # ignored below right now
             sync_interval   : 2000   # never send sync messages upstream more often than this
+            cm_foldOptions  : undefined
+            static_viewer   : undefined # must be considered now due to es6 classes
+            allow_javascript_eval : true   # used only by sage worksheets, which derive from this -- but we have to put this here due to super being called.
+
+        if @opts.static_viewer?
+            return
 
         @project_id  = @editor.project_id
         @filename    = @editor.filename
@@ -186,7 +195,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
 
-        # window.w = @
+        if @opts.cm_foldOptions?
+            for cm in @codemirrors()
+                cm.setOption('foldOptions', @opts.foldOptions)
+
         # replace undo/redo by sync-aware versions
         for cm in [@codemirror, @codemirror1]
             cm.undo = @undo
@@ -207,10 +219,16 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = webapp_client.sync_string
-            id         : id
-            project_id : @project_id
-            path       : @filename
-            cursors    : true
+            id                 : id
+            project_id         : @project_id
+            path               : @filename
+            cursors            : true
+            before_change_hook : @_set_syncstring_to_codemirror
+            after_change_hook  : @_set_codemirror_to_syncstring
+
+        @_syncstring.once 'load-time-estimate', (est) ->
+            # TODO: do something with this.
+            #console.log 'load time estimate', est
 
         # This is important to debounce since above hash/getValue grows linearly in size of
         # document; also, we debounce instead of throttle, since we don't want to have this
@@ -256,7 +274,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     if @_closed
                         return
                     #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.to_str(),400)}'")
-                    @_set_codemirror_to_syncstring()
+                    #@_set_codemirror_to_syncstring()
                     @emit('sync')
 
                 @_syncstring.on 'metadata-change', =>
@@ -265,27 +283,21 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     update_unsaved_uncommitted_changes()
                     @_update_read_only()
 
-                @_syncstring.on 'before-change', =>
-                    if @_closed
-                        return
-                    #console.log("syncstring before change")
-                    @_set_syncstring_to_codemirror()
-
                 @_syncstring.on 'deleted', =>
                     if @_closed
                         return
                     redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
                 save_state = () => @_sync()
-                # We debounce instead of throttle, because we want a single "diff/commit" to correspond
-                # a burst of activity, not a bunch of little pieces of that burst.  This is more
-                # consistent with how undo stacks work.
-                @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
+                @save_state_throttle = underscore.throttle(save_state, @opts.sync_interval, {leading:false})
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     if @_closed
                         return
-                    #console.log("change event when live='#{@live().string()}'")
+                    if not @_setting_from_syncstring
+                        # console.log 'user_action = true'
+                        @_user_action = true
+                    # console.log("change event - origin=", changeObj.origin)
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
                             @on_undo?(instance, changeObj)
@@ -293,33 +305,43 @@ class SynchronizedDocument2 extends SynchronizedDocument
                             @on_redo?(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @_last_change_time = new Date()
-                            @save_state_debounce?()
+                            @save_state_throttle?()
                             @_syncstring.exit_undo_mode()
                     update_unsaved_uncommitted_changes()
 
                 @emit('connect')   # successful connection
-                cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
+                @_init_cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
+    _debug_sync_state: (info) =>
+        console.log "--- #{info}"
+        console.log "codemirror='#{@codemirror.getValue()}'"
+        console.log "syncstring='#{@_syncstring.to_str()}'"
+        if info == 'after' and @codemirror.getValue() != @_syncstring.to_str()
+            console.warn("BUG -- values are different!")
+
+    # Set value of the syncstring to equal current value of the codemirror editor
     _set_syncstring_to_codemirror: =>
+        #console.log '_set_syncstring_to_codemirror'
+        #@_debug_sync_state('before')
+        if not @_user_action
+            #console.log "not setting due to no user action"
+            # user has not explicitly done anything, so there should be no changes.
+            return
+        #console.log 'user action so setting'
+        @_user_action = false
         @_last_val = val = @codemirror.getValue()
         @_syncstring.from_str(val)
+        #@_debug_sync_state('after')
 
+    # Set value of the codemirror editor to equal current value of the syncstring
     _set_codemirror_to_syncstring: =>
-        val     = @_syncstring.to_str()
-        cur_val = @codemirror.getValue()
-
-        if @_last_val? and cur_val != @_last_val
-            # We *MERGE* the changes in since, we made changes between when we last set
-            # the syncstrind and now.  This can perhaps sometimes happen in rare cases
-            # due to async save debouncing.  (Honestly, I don't know how this case could
-            # possibly happen.)
-            patch = syncstring.dmp.patch_make(@_last_val, cur_val)
-            val = syncstring.dmp.patch_apply(patch, val)[0]
-        else
-            patch = undefined
+        #console.log '_set_codemirror_to_syncstring'
+        #@_debug_sync_state('before')
+        @_setting_from_syncstring = true
+        @_last_set = val = @_syncstring.to_str()
         @codemirror.setValueNoJump(val)
-        if patch?
-            @_set_syncstring_to_codemirror()
+        @_setting_from_syncstring = false
+        #@_debug_sync_state('after')
 
     has_unsaved_changes: =>
         if not @codemirror?
@@ -363,7 +385,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_set_syncstring_to_codemirror()
         value = @_syncstring.undo().to_str()
         cm.setValueNoJump(value, true)
-        @save_state_debounce?()
+        @save_state_throttle?()
         @_last_change_time = new Date()
 
     # per-session sync-aware redo
@@ -381,7 +403,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             throw Error("doc must have a to_str method, but is doc='#{doc}', typeof(doc)='#{typeof(doc)}'")
         value = doc.to_str()
         @focused_codemirror().setValueNoJump(value, true)
-        @save_state_debounce?()
+        @save_state_throttle?()
         @_last_change_time = new Date()
 
     _connect: (cb) =>
@@ -393,13 +415,26 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cb() # nothing to do -- not initialized/loaded yet...
             return
         @_set_syncstring_to_codemirror()
-        async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
+        # Do save_to_disk immediately, then -- if any unsaved to backend changes, save those.  Finally, save to disk again.
+        # We do this so we succeed at saving to disk, in case file is being **immediately** closed right when saving to disk,
+        # which happens on tab close.
+        async.series [@_syncstring.save_to_disk, @_syncstring.save, @_syncstring.save_to_disk], (err) =>
             @_update_unsaved_uncommitted_changes()
             if err
                 cb(err)
             else
                 @_post_save_success?()  # hook so that derived classes can do things, e.g., make blobs permanent
                 cb()
+
+    delete_trailing_whitespace: =>
+        cm = @focused_codemirror()
+        omit_lines = {}
+        @_syncstring.get_cursors()?.map (x, _) =>
+            x.get('locs')?.map (loc) =>
+                y = loc.get('y')
+                if y?
+                    omit_lines[y] = true
+        cm.delete_trailing_whitespace(omit_lines:omit_lines)
 
     save: (cb) =>
         if @_closed
@@ -410,15 +445,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
         # We then simply ensure the save state is valid 5s later (in case save fails, say).
         setTimeout(@_update_unsaved_uncommitted_changes, 5000)
 
-        cm = @focused_codemirror()
-        if @editor.opts.delete_trailing_whitespace
-            omit_lines = {}
-            @_syncstring.get_cursors()?.map (x, _) =>
-                x.get('locs')?.map (loc) =>
-                    y = loc.get('y')
-                    if y?
-                        omit_lines[y] = true
-            cm.delete_trailing_whitespace(omit_lines:omit_lines)
         misc.retry_until_success
             f           : @_save
             start_delay : 3000
@@ -517,6 +543,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @_syncstring?.close()
         # TODO -- this doesn't work...
         for cm in [@codemirror, @codemirror1]
+            continue if not cm?
             cm.setOption("mode", "text/x-csrc")
             cmElem = cm.getWrapperElement()
             cmElem.parentNode.removeChild(cmElem)

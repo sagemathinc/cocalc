@@ -1,5 +1,10 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
 
+mixin start_button
+  p
+    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
+  p or #[a(href=PREFIX + "app") sign in] with your account
+
 mixin video-player
   div.video-player.fit
     div.video-overlay.

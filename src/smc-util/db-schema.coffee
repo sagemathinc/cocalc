@@ -97,6 +97,9 @@ misc = require('./misc')
 
 {DEFAULT_QUOTAS} = require('./upgrade-spec')
 
+# better make sure the storage server has something available under "default"
+exports.DEFAULT_COMPUTE_IMAGE = 'default'
+
 schema = exports.SCHEMA = {}
 
 schema.account_creation_actions =
@@ -116,9 +119,12 @@ schema.account_creation_actions =
             desc : 'When this action should be expired.'
     pg_indexes : ['email_address']
 
+exports.DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE = 14
+
 schema.accounts =
     desc : 'All user accounts.'
     primary_key : 'account_id'
+    db_standby : 'unsafe'
     fields :
         account_id      :
             type : 'uuid',
@@ -154,6 +160,9 @@ schema.accounts =
         email_address_challenge :
             type : 'map'
             desc : 'Contains random token for verification of an address: {"email": "...", "token": <random>, "time" : <timestamp for timeout>}'
+        email_address_problem :
+            type : 'map'
+            desc : 'Describes a problem with a given email address. example: { "wrong@email.address" : { "type": "bounce", "time": "2018-...", "mesg": "554 5.7.1 <....>: Recipient address rejected: Access denied, user does not exist", "status": <status code>}}'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -216,7 +225,8 @@ schema.accounts =
         '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
-        'api_key'
+        'api_key',
+        'last_active DESC NULLS LAST'
         ]
     user_query :
         get :
@@ -226,6 +236,7 @@ schema.accounts =
                 account_id             : null
                 email_address          : null
                 email_address_verified : null
+                email_address_problem  : null
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true
@@ -238,10 +249,12 @@ schema.accounts =
                     code_folding              : true
                     match_xml_tags            : true
                     auto_close_xml_tags       : true
+                    auto_close_latex          : true
                     spaces_instead_of_tabs    : true
                     multiple_cursors          : true
                     track_revisions           : true
                     extra_button_bar          : true
+                    build_on_save             : true
                     first_line_number         : 1
                     indent_unit               : 4
                     tab_size                  : 4
@@ -251,6 +264,7 @@ schema.accounts =
                     jupyter_classic           : false
                     show_exec_warning         : true
                 other_settings  :
+                    katex             : true
                     confirm_close     : false
                     mask_files        : true
                     page_size         : 50
@@ -258,17 +272,18 @@ schema.accounts =
                     default_file_sort : 'time'
                     show_global_info2 : null
                     first_steps       : true
-                    newsletter        : true
+                    newsletter        : false
                     time_ago_absolute : false
+                    no_free_warnings  : false   # if true, do not show warning when using non-member projects
                 first_name      : ''
                 last_name       : ''
                 terminal        :
-                    font_size    : 14
+                    font_size    : DEFAULT_FONT_SIZE
                     color_scheme : 'default'
                     font         : 'monospace'
                 autosave        : 45
                 evaluate_key    : 'Shift-Enter'
-                font_size       : 14
+                font_size       : DEFAULT_FONT_SIZE
                 passports       : {}
                 groups          : []
                 last_active     : null
@@ -298,6 +313,22 @@ schema.accounts =
                     if obj[field]?
                         obj[field] = obj[field].slice(0,254)
                 cb()
+
+
+schema.account_profiles =
+    desc : '(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.'
+    virtual : 'accounts'
+    anonymous : false
+    user_query :
+        get :
+            pg_where : []
+            options : [{limit : 1}] # in case user queries for [{account_id:null, profile:null}] they should not get the whole database.
+            fields :
+                account_id      : null
+                profile :
+                    image       : undefined
+                    color       : undefined
+
 
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
@@ -432,6 +463,7 @@ schema.webapp_errors =
 
 schema.collaborators =
     primary_key : 'account_id'
+    db_standby : 'unsafe'
     anonymous   : false
     virtual     : 'accounts'
     user_query:
@@ -482,6 +514,27 @@ schema.file_access_log =
             type : 'timestamp'
     pg_indexes : ['project_id', 'account_id', 'filename', 'time']
 
+# This table is derived from file_access_log.  It's the image of the set file_access_log under
+# the non-injective function
+#
+#    (id,project_id,account_id,filename,time) |--> (project_id, account_id, date),
+#
+# where date is the day of the time. For reference, this query computes/update this table:
+#
+#   insert into usage_by_date (account_id, project_id, date) (select distinct account_id, project_id, time::date from file_access_log) ON CONFLICT DO NOTHING;
+#
+schema.usage_by_date =
+    primary_key : ['date', 'account_id', 'project_id']
+    durability : 'soft' # loss of some log data not serious, since used only for analytics
+    fields:
+        project_id :
+            type : 'uuid'
+        account_id :
+            type : 'uuid'
+        date     :
+            type : 'date'
+    pg_indexes : ['date', 'account_id', 'project_id']
+
 # TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 # the id field, use project_id, path as a compound primary key, and maybe put users in
 # another table with a relation.  There is also expert discussion about this table in the
@@ -490,6 +543,7 @@ schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
+    db_standby : 'safer' # allow doing the initial read part of the query from a standby node.
     fields:
         id          :
             type : 'string'
@@ -624,6 +678,7 @@ schema.password_reset_attempts =
 
 schema.project_log =
     primary_key: 'id'
+    db_standby : 'unsafe'
     durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
     fields :
         id          :
@@ -667,6 +722,10 @@ schema.project_log =
 
 schema.projects =
     primary_key: 'project_id'
+    ## A lot depends on this being right at all times, e.g., restart state,
+    ## so do not use db_standby yet.
+    ## It is simply not robust enough.
+    ## db_standby : 'safer'
     fields :
         project_id  :
             type : 'uuid',
@@ -700,10 +759,10 @@ schema.projects =
             desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
         status      :
             type : 'map'
-            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version number of local_hub code]}'
+            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES in the compute-states file], version: [version number of local_hub code]}'
         state       :
             type : 'map'
-            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
+            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file.'
             date : ['time']
         last_edited :
             type : 'timestamp'
@@ -758,6 +817,12 @@ schema.projects =
         run_quota :
             type : 'map'
             desc : 'If project is running, this is the quota that it is running with.'
+        compute_image :
+            type : 'string'
+            desc : "Specify the name of the underlying (kucalc) compute image (default: '#{exports.DEFAULT_COMPUTE_IMAGE}')"
+        addons :
+            type : 'map'
+            desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
 
     pg_indexes : [
         'last_edited',
@@ -786,6 +851,8 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
+                compute_image  : exports.DEFAULT_COMPUTE_IMAGE
+                addons         : null
         set :
             fields :
                 project_id     : 'project_write'
@@ -795,6 +862,7 @@ schema.projects =
                 invite_requests: true   # project collabs can modify this (e.g., to remove from it once user added or rejected)
                 users          : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
                 action_request : true   # used to request that an action be performed, e.g., "save"; handled by before_change
+                compute_image  : true
 
             before_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_before(old_val, new_val, account_id, cb)
@@ -893,6 +961,7 @@ schema.public_projects =
 
 schema.public_paths =
     primary_key : 'id'
+    db_standby : 'unsafe'
     anonymous   : true   # allow user *read* access, even if not signed in
     fields:
         id          :
@@ -908,6 +977,9 @@ schema.public_paths =
         disabled    :
             type : 'boolean'
             desc : 'if true then disabled'
+        unlisted :
+            type : 'boolean'
+            desc : 'if true then unlisted, so does not appear in /share listing page.'
         created :
             type : 'timestamp'
             desc : 'when this path was created'
@@ -920,6 +992,20 @@ schema.public_paths =
         counter :
             type : 'number'
             desc : 'the number of times this public path has been accessed'
+        vhost :  # For now, this will only be used *manually* for now; at some point users will be able to specify this,
+                 # though maybe they have to prove they own it.
+                 # For now we will only serve the vhost files statically with no special support, except we do support
+                 # basic http auth.   However, we will add
+                 # special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
+                 # so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
+                 # This could be a non-default option.
+                 # IMPORTANT: right now if vhost is set, then the share is not visible at all to the normal share server.
+            type : 'string'
+            desc : 'Request for the given host (which must not container "cocalc") will be served by this public share. Only one public path can have a given vhost.  The vhost field can be a comma-separated string for multiple vhosts.'
+            unique : true
+        auth :
+            type : 'map'
+            desc : 'Map from relative path inside the share to array of {path:[{name:[string], pass:[password-hash]}, ...], ...}.  Used both by vhost and share server, but not user editable yet.  Later it will be user editable.  The password hash is from smc-hub/auth.password_hash (so 1000 iterations of sha512)'
 
     pg_indexes : ['project_id', '(substring(project_id::text from 1 for 1))', '(substring(project_id::text from 1 for 2))']
 
@@ -933,6 +1019,7 @@ schema.public_paths =
                 path        : null
                 description : null
                 disabled    : null   # if true then disabled
+                unlisted    : null   # if true then do not show in main listing (so doesn't get google indexed)
                 last_edited : null
                 created     : null
                 last_saved  : null
@@ -944,6 +1031,7 @@ schema.public_paths =
                 path        : true
                 description : true
                 disabled    : true
+                unlisted    : true
                 last_edited : true
                 created     : true
             required_fields :
@@ -1056,32 +1144,44 @@ schema.server_settings =
 exports.site_settings_conf =
     site_name:
         name    : "Site name"
-        desc    : "The heading name of your site."
+        desc    : "The heading name of your CoCalc site."
         default : "CoCalc"
     site_description:
         name    : "Site description"
-        desc    : "The description of your site."
+        desc    : "The description of your CoCalc site."
         default : ""
     terms_of_service:
-        name    : "Terms of service link text"
+        name    : "Terms of service"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
-        default : 'By signing up you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
+        default : 'Click to agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
-        name    : 'Account creation instructions'
+        name    : 'Account creation'
         desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
         default : 'Create an Account'
     help_email:
-        name    : "Help email address"
+        name    : "Help email"
         desc    : "Email address that user is directed to use for support requests"
         default : "help@sagemath.com"
     commercial:
-        name    : "Commercial UI elements ('yes' or 'no')"
+        name    : "Commercial ('yes' or 'no')"
         desc    : "Whether or not to include user interface elements related to for-pay upgrades and features.  Set to 'yes' to include these elements."
         default : "no"
     kucalc:
-        name    : "KuCalc UI elements ('yes' or 'no')"
+        name    : "KuCalc UI ('yes' or 'no')"
         desc    : "Whether to show UI elements adapted to what the KuCalc backend provides"
         default : "no"  # TODO -- this will *default* to yes when run from kucalc; but site admin can set it either way anywhere for testing.
+    version_min_project :
+        name    : "Required project version"
+        desc    : "Minimal version *required* by projects (if project older, will be force restarted)."
+        default : "0"
+    version_min_browser :
+        name    : "Required browser version"
+        desc    : "Minimal version *retuired* for browser clients (if older, forced disconnect)."
+        default : "0"
+    version_recommended_browser :
+        name    : "Recommended version"
+        desc    : "Older clients receive an upgrade warning."
+        default : "0"
 
 
 site_settings_fields = misc.keys(exports.site_settings_conf)
@@ -1109,7 +1209,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : false     # allow user read access, even if not signed in
+    anonymous   : false     # if true, this would allow user read access, even if not signed in -- we used to do this but decided to use polling instead, since update interval is predictable.
     fields:
         id                  :
             type : 'uuid'
@@ -1145,6 +1245,7 @@ schema.storage_servers =
 
 schema.system_notifications =
     primary_key : 'id'
+    db_standby : 'unsafe'
     anonymous   : true     # allow users read access, even if not signed in
     fields :
         id :
@@ -1191,7 +1292,11 @@ class ClientDB
         @r = {}
 
     sha1: (args...) =>
-        v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        try
+            v = ((if typeof(x) == 'string' then x else JSON.stringify(x)) for x in args).join('')
+        catch err
+            console?.warn?("args=", args)
+            throw err
         return sha1(v)
 
     _user_set_query_project_users: (obj) =>

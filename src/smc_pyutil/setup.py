@@ -8,11 +8,13 @@
 import os
 from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
-os.system("chmod a+r -R %s"%join(path, "smc_pyutil", "templates"))
+os.system("chmod a+r -R %s" % join(path, "smc_pyutil", "templates"))
+
 
 def readme():
     with open('README.md') as f:
         return f.read()
+
 
 # from https://github.com/ninjaaron/fast-entry_points/ issue https://github.com/sagemathinc/cocalc/issues/2259
 import fastentrypoints
@@ -41,25 +43,25 @@ if 'user' not in d.command_options.get("install", {}).keys():
         sys.executable = python2_nosite
 
 setup(
-    name             = 'smc_pyutil',
-    version          = '1.1',
-    description      = 'CoCalc Python Utilities',
-    long_description = readme(),
-    url              = 'https://github.com/sagemathinc/cocalc',
-    author           = 'SageMath, Inc.',
-    author_email     = 'office@sagemath.com',
-    license          = 'GPLv3+',
-    packages         = find_packages(),
-    install_requires = ['markdown2', 'psutil', 'PyYAML', 'ansi2html'],
-    zip_safe         = False,
-    classifiers      = [
+    name='smc_pyutil',
+    version='1.1',
+    description='CoCalc Python Utilities',
+    long_description=readme(),
+    url='https://github.com/sagemathinc/cocalc',
+    author='SageMath, Inc.',
+    author_email='office@sagemath.com',
+    license='GPLv3+',
+    packages=find_packages(),
+    install_requires=['markdown2', 'psutil', 'PyYAML', 'ansi2html'],
+    zip_safe=False,
+    classifiers=[
         'License :: OSI Approved :: GPLv3',
         'Programming Language :: Python :: 2.7',
         'Topic :: Mathematics :: Server',
     ],
-    keywords         = 'server mathematics cloud',
-    scripts          = ['smc_pyutil/bin/smc-sage-server'],
-    entry_points     = {
+    keywords='server mathematics cloud',
+    scripts=['smc_pyutil/bin/smc-sage-server'],
+    entry_points={
         'console_scripts': [
             'open                 = smc_pyutil.smc_open:main',
             # START deprecated smc-*
@@ -109,5 +111,4 @@ setup(
             'cc-sagews2ipynb     = smc_pyutil.sagews2ipynb:main'
         ]
     },
-    include_package_data = True
-)
+    include_package_data=True)

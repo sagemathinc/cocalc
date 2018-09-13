@@ -10,16 +10,20 @@ meta(name="date"        content=htmlWebpackPlugin.options.date)
 meta(name="version"     content=htmlWebpackPlugin.options.version)
 
 //- http://realfavicongenerator.net
+link(rel="apple-touch-icon", sizes="180x180", href=require("!file-loader!apple-touch-icon.png"))
+link(rel="icon", type="image/png", href=require("!file-loader!favicon-32x32.png"), sizes="32x32")
+link(rel="icon", type="image/png", href=require("!file-loader!favicon-16x16.png"), sizes="16x16")
+link(rel="manifest", href=require("manifest.json"))
+link(rel="mask-icon", href=require("!file-loader!safari-pinned-tab.svg"), color="#fbb635")
 
-link(rel="apple-touch-icon", sizes="180x180", href=require("!file!apple-touch-icon.png"))
-link(rel="icon", type="image/png", href=require("!file!favicon-32x32.png"), sizes="32x32")
-link(rel="icon", type="image/png", href=require("!file!favicon-16x16.png"), sizes="16x16")
-link(rel="manifest", href=require("!file!manifest.json"))
-link(rel="mask-icon", href=require("!file!safari-pinned-tab.svg"), color="#fbb635")
 meta(name="apple-mobile-web-app-title", content="CoCalc")
 meta(name="application-name", content="CoCalc")
 meta(name="theme-color", content="#fbb635")
 // - I'm putting this here as a hack to minize the embarassing style flicker as -- I guess (?) -- react-bootstrap loads.
 // This is meant to be "better than nothing", but not much better!
 // See https://github.com/sagemathinc/cocalc/issues/2510
-link(rel="stylesheet", href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css", integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u",crossOrigin="anonymous")
+link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css", integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=", crossorigin="anonymous")
+
+link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css", integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei", crossorigin="anonymous")
+
+link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/mocha/5.1.1/mocha.min.css", crossorigin="anonymous")

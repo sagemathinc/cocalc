@@ -29,10 +29,7 @@ BANNED_DOMAINS = {'qq.com':true}
 fs           = require('fs')
 os_path      = require('path')
 async        = require('async')
-winston      = require('winston') # logging -- https://github.com/flatiron/winston
-
-winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+winston      = require('./winston-metrics').get_logger('email')
 
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 sendgrid     = require("sendgrid")
@@ -40,7 +37,7 @@ sendgrid     = require("sendgrid")
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 
-{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME, DNS, HELP_EMAIL} = require('smc-util/theme')
+{SENDGRID_TEMPLATE_ID, SENDGRID_ASM_NEWSLETTER, COMPANY_NAME, COMPANY_EMAIL, DOMAIN_NAME, SITE_NAME, DNS, HELP_EMAIL, LIVE_DEMO_REQUEST} = require('smc-util/theme')
 
 email_server = undefined
 
@@ -53,7 +50,7 @@ exports.is_banned = is_banned = (address) ->
 
 # here's how I test this function:
 #    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
-exports.send_email = send_email = (opts={}) ->
+exports.send_email = (opts={}) ->
     opts = defaults opts,
         subject      : required
         body         : required
@@ -73,7 +70,7 @@ exports.send_email = send_email = (opts={}) ->
         dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
     else
         dbg = (m) ->
-    dbg(opts.body)
+    dbg("#{opts.body[..200]}...")
 
     if is_banned(opts.to) or is_banned(opts.from)
         dbg("WARNING: attempt to send banned email")
@@ -142,6 +139,8 @@ exports.send_email = send_email = (opts={}) ->
 
             mail.addPersonalization(personalization)
 
+            # dbg("sending email to #{opts.to} data -- #{misc.to_json(mail.toJSON())}")
+
             # Sendgrid V3 API
             request = email_server.emptyRequest
                                         method  : 'POST'
@@ -206,7 +205,7 @@ exports.mass_email = (opts) ->
                 if n % 100 == 0
                     dbg("#{n}/#{recipients.length-1}")
                 n += 1
-                send_email
+                exports.send_email
                     subject  : opts.subject
                     body     : opts.body
                     from     : opts.from
@@ -247,7 +246,7 @@ welcome_email_html = (token_url) -> """
 <h1>Welcome to #{SITE_NAME}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
-<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is sophisticated web service for collaborative computation.
+<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is a sophisticated web service for collaborative computation.
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
@@ -259,11 +258,11 @@ This was either initiated by you, a friend or colleague invited you, or you're a
 
 <hr size="1"/>
 
-<h3>Explore #{SITE_NAME}</h3>
+<h3>Exploring #{SITE_NAME}</h3>
 <p style="margin-top:0;margin-bottom:10px;">
-Your work on #{SITE_NAME} happens inside <strong>private projects</strong>.
-They form your personal workspaces containing your files, computational worksheets, and data.
-You run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
+In #{SITE_NAME} your work happens inside <strong>private projects</strong>.
+These are personal workspaces which contain your files, computational worksheets, and data.
+You can run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
 #{SITE_NAME} supports online editing of
     <a href="http://jupyter.org/">Jupyter Notebooks</a>,
     <a href="http://www.sagemath.org/">Sage Worksheets</a>,
@@ -276,7 +275,7 @@ You run your computations through the web interface, via interactive worksheets 
     <a href="http://www.sagemath.org/">SageMath</a>,
     <a href="https://www.sympy.org/">SymPy</a>, etc.
 </li>
-<li style="margin-top:0;margin-bottom:10px;">Statistical analysis:
+<li style="margin-top:0;margin-bottom:10px;">Statistics and Data Science:
     <a href="https://www.r-project.org/">R project</a>,
     <a href="http://pandas.pydata.org/">Pandas</a>,
     <a href="http://www.statsmodels.org/">statsmodels</a>,
@@ -325,8 +324,13 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
 </li>
 </ul>
 
-<p style="margin-top:10px;margin-bottom:20px;">
+<p style="margin-top:20px;margin-bottom:10px;">
 <strong>Questions?</strong>
+</p>
+<p style="margin-top:0;margin-bottom:10px;">
+Schedule a Live Demo with a specialist from CoCalc: <a href="#{LIVE_DEMO_REQUEST}">request form</a>.
+</p>
+<p style="margin-top:0;margin-bottom:20px;">
 In case of problems, concerns why you received this email, or other questions please contact:
 <a href="mailto:#{HELP_EMAIL}">#{HELP_EMAIL}</a>.
 </p>
@@ -346,20 +350,23 @@ exports.welcome_email = (opts) ->
     token_url   = "#{DOMAIN_NAME}#{endpoint}?#{token_query}"
 
     if opts.only_verify
-        subject = "Verify your email address on #{SITE_NAME} (#{DNS})"
-        body    = verify_email_html(token_url)
+        subject  = "Verify your email address on #{SITE_NAME} (#{DNS})"
+        body     = verify_email_html(token_url)
+        category = 'verify'
     else
-        subject = "Welcome to #{SITE_NAME} - #{DNS}"
-        body    = welcome_email_html(token_url)
+        subject  = "Welcome to #{SITE_NAME} - #{DNS}"
+        body     = welcome_email_html(token_url)
+        category = 'welcome'
 
-    send_email
+    # exports... because otherwise stubbing in the test suite of send_email would not work
+    exports.send_email
         subject      : subject
         body         : body
         fromname     : COMPANY_NAME
         from         : COMPANY_EMAIL
         to           : opts.to
         cb           : opts.cb
-        category     : 'welcome'
+        category     : category
         asm_group    : 147985     # https://app.sendgrid.com/suppressions/advanced_suppression_manager
 
 

@@ -58,12 +58,19 @@ editor = require('./editor')
 sha1 = require('smc-util/schema').client_db.sha1
 
 # react in smc-specific modules
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./smc-react')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
 
 class FileUseActions extends Actions
+    _init: =>
+        store = redux.getStore('file_use')
+        store.on 'change', =>
+            # Ensure derived immutable state is updated right after clearing the cache; this of course
+            # initializes the cache.
+            @setState(notify_count : store.get_notify_count())
+
     record_error: (err) =>
         # Record in the store that an error occured as a result of some action
         # This should get displayed to the user...
@@ -94,6 +101,11 @@ class FileUseActions extends Actions
         account_id = @redux.getStore('account').get_account_id()
         if not account_id?
             # nothing to do -- non-logged in users shouldn't be marking files
+            return
+        project_is_known = @redux.getStore('projects').get('project_map')?.has(project_id)
+        if not project_is_known
+            # user is not currently a collaborator on this project, so definitely shouldn't
+            # mark file use.
             return
         if ttl
             if ttl == 'default'
@@ -275,8 +287,8 @@ class FileUseStore extends Store
         v = w0.concat(w1.concat(w2))
         @_cache =
             sorted_file_use_list           : v
-            sorted_file_use_immutable_list : immutable.fromJS(v)
             file_use_map                   : file_use_map
+            sorted_file_use_immutable_list : immutable.fromJS(v)
             notify_count                   : (x for x in v when x.notify).length
         require('browser').set_window_title()
         return v
@@ -352,8 +364,6 @@ open_file_use_entry = (info, redux) ->
     redux.getActions('page').toggle_show_file_use()
     # open the file
     require.ensure [], =>
-        # ensure that we can get the actions for a specific project.
-        require('./project_store')
         redux.getProjectActions(info.project_id).open_file
             path               : info.path
             foreground         : true
@@ -444,13 +454,13 @@ FileUse = rclass
             misc.merge(style, {background: "#08c", color : 'white'})
         <div style={style} onClick={@open}>
             <Row>
-                <Col key='action' sm=1 style={fontSize:'14pt'}>
+                <Col key='action' sm={1} style={fontSize:'14pt'}>
                     {@render_action_icon()}
                 </Col>
-                <Col key='desc' sm=10>
+                <Col key='desc' sm={10}>
                     {@render_path()} in {@render_project()} {@render_what_is_happening()} {@render_users()}
                 </Col>
-                <Col key='type' sm=1 style={fontSize:'14pt'}>
+                <Col key='type' sm={1} style={fontSize:'14pt'}>
                     {@render_type_icon()}
                 </Col>
             </Row>
@@ -490,9 +500,9 @@ FileUseViewer = rclass
         @actions('page').toggle_show_file_use()
 
     render_mark_all_read_button: ->
-        <Button key='mark_all_read_button' bsStyle='warning'
+        <Button key='mark_all_read_button'
             onClick={@click_mark_all_read}>
-            <Icon name='check-square'/> Mark all Read
+            <Icon name='check-square'/> Mark All Read
         </Button>
 
     open_selected: ->
@@ -517,14 +527,14 @@ FileUseViewer = rclass
     render_show_all: ->
         if @_num_missing
             <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true)}>
-                Show {@_num_missing} more
+                Show {@_num_missing} More
             </Button>
 
     render_show_less: ->
         n = @_visible_list.length - SHORTLIST_LENGTH
         if n > 0
             <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false)}>
-                Show {n} less
+                Show {n} Less
             </Button>
 
     render_toggle_all: ->
@@ -535,10 +545,10 @@ FileUseViewer = rclass
     render: ->
         <div className={"smc-file-use-viewer"}>
             <Row key='top'>
-                <Col sm=8>
+                <Col sm={7}>
                     {@render_search_box()}
                 </Col>
-                <Col sm=4>
+                <Col sm={5}>
                     <div style={float:'right'}>
                         {@render_mark_all_read_button()}
                     </div>
@@ -557,7 +567,7 @@ FileIcon = rclass
 
     render: ->
         ext = misc.filename_extension_notilde(@props.filename)
-        <Icon name={editor.file_icon_class(ext).slice(3)} />
+        <Icon name={editor.file_icon_class(ext)} />
 
 
 exports.FileUsePage = FileUseController = rclass
@@ -602,11 +612,12 @@ notification_list_click_handler = (e) ->
 
 init_redux = (redux) ->
     if not redux.getActions('file_use')?
-        redux.createActions('file_use', FileUseActions)
-        store = redux.createStore('file_use', FileUseStore, {})
+        store   = redux.createStore('file_use', FileUseStore, {})
+        actions = redux.createActions('file_use', FileUseActions)
         redux.createTable('file_use', FileUseTable)
+        actions._init()  # must be after making store
 
 init_redux(redux)
 
-# Updates the browser's awareness of a notifcation
+# Updates the browser's awareness of a notification
 require('./browser').set_notify_count_function(-> redux.getStore('file_use').get_notify_count())

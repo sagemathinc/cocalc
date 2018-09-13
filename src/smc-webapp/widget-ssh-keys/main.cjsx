@@ -5,7 +5,7 @@ immutable = require('immutable')
 # Internal & React Libraries
 misc = require('smc-util/misc')
 {defaults, types, required} = misc
-{React, ReactDOM, rclass, rtypes} = require('../smc-react')
+{React, ReactDOM, rclass, rtypes} = require('../app-framework')
 {Icon, HelpIcon, Space, TimeAgo} = require('../r_misc')
 {User} = require('../users')
 
@@ -97,7 +97,7 @@ exports.SSHKeyAdder = rclass
 
     render_panel: ->
         <Panel header={<h2> <Icon name='plus-circle' /> Add an SSH key</h2>} style={@props.style}>
-            {# TODO: Make a style mapper to the components if necessary}
+            {### TODO: Make a style mapper to the components if necessary ###}
             <form onSubmit={@submit_form}>
                 <FormGroup>
                     Title
@@ -138,7 +138,7 @@ exports.SSHKeyAdder = rclass
 
     render_open_button: ->
         <Button bsStyle='success' onClick={=>@setState(show_panel : true)} style={@props.style}>
-            <Icon name='terminal' /> Add an SSH Key...
+            <Icon name='terminal' /> Add SSH Key...
         </Button>
 
     render: ->
@@ -168,9 +168,9 @@ DeleteConfirmation = rclass
             <hr />
             <ButtonToolbar>
                 <Button bsStyle='danger' onClick={@props.confirm}>
-                    Yes, delete this key.
+                    Yes, please delete this SSH key
                 </Button>
-                <Button bsStyle='primary' onClick={@props.cancel}>
+                <Button onClick={@props.cancel}>
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -203,19 +203,19 @@ OneSSHKey = rclass
             key_style.color = '#1e7e34'
         <ListGroupItem>
             <Row>
-                <Col md=1>
+                <Col md={1}>
                     <Icon
                         style = {key_style}
                         name='key'
                     />
                 </Col>
-                <Col md=8>
+                <Col md={8}>
                     <div style={fontWeight:600}>{@props.ssh_key.get('title')}</div>
                     <span style={fontWeight:600}>Fingerprint: </span><code>{@props.ssh_key.get('fingerprint')}</code><br/>
                     Added on {new Date(@props.ssh_key.get('creation_date')).toLocaleDateString()}
                     {@render_last_use()}
                 </Col>
-                <Col md=3>
+                <Col md={3}>
                     <Button
                         bsStyle  = 'warning'
                         bsSize   = 'small'

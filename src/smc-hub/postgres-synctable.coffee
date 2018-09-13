@@ -34,13 +34,12 @@ underscore   = require('underscore')
 required = defaults.required
 misc_node = require('smc-util-node/misc_node')
 
-{PostgreSQL, pg_type, one_result, all_results} = require('./postgres')
-{quote_field} = require('./postgres-base')
+{pg_type, one_result, all_results, quote_field} = require('./postgres-base')
 
 {SCHEMA} = require('smc-util/schema')
 
 
-class exports.PostgreSQL extends PostgreSQL
+exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     _ensure_trigger_exists: (table, select, watch, cb) =>
         dbg = @_dbg("_ensure_trigger_exists(#{table})")
@@ -150,9 +149,11 @@ class exports.PostgreSQL extends PostgreSQL
             order_by : undefined
             where_function : undefined # if given; a function of the *primary* key that returns true if and only if it matches the changefeed
             idle_timeout_s : undefined   # TODO: currently ignored
-            cb       : required
-        new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
-        return
+            cb       : undefined
+        if @is_standby
+            opts.cb?("synctable against standby database not allowed")
+            return
+        return new SyncTable(@, opts.table, opts.columns, opts.where, opts.where_function, opts.limit, opts.order_by, opts.cb)
 
     changefeed: (opts) =>
         opts = defaults opts,
@@ -162,6 +163,9 @@ class exports.PostgreSQL extends PostgreSQL
             watch  : required   # Array of field names we watch for changes
             where  : required   # Condition involving only the fields in select; or function taking obj with select and returning true or false
             cb     : required
+        if @is_standby
+            opts.cb?("changefeed against standby database not allowed")
+            return
         new Changes(@, opts.table, opts.select, opts.watch, opts.where, opts.cb)
         return
 
@@ -188,7 +192,9 @@ class exports.PostgreSQL extends PostgreSQL
 
 
 class ProjectAndUserTracker extends EventEmitter
-    constructor: (@_db, cb) ->
+    constructor: (_db, cb) ->
+        super()
+        @_db = _db
         dbg = @_dbg('constructor')
         dbg("Initializing Project and user tracker...")
         @setMaxListeners(10000)  # every changefeed might result in a listener on this one object.
@@ -445,7 +451,13 @@ Changes object will close and not work any further!
 You must recreate it.
 ###
 class Changes extends EventEmitter
-    constructor: (@_db, @_table, @_select, @_watch, @_where, cb) ->
+    constructor: (_db, _table, _select, _watch, _where, cb) ->
+        super()
+        @_db     = _db
+        @_table  = _table
+        @_select = _select
+        @_watch  = _watch
+        @_where  = _where
         @dbg = @_dbg("constructor")
         @dbg("select=#{misc.to_json(@_select)}, watch=#{misc.to_json(@_watch)}, @_where=#{misc.to_json(@_where)}")
         try
@@ -673,17 +685,25 @@ class Changes extends EventEmitter
             return true
 
 class SyncTable extends EventEmitter
-    constructor: (@_db, @_table, @_columns, @_where, @_where_function, @_limit, @_order_by, cb) ->
+    constructor: (_db, _table, _columns, _where, _where_function, _limit, _order_by, cb) ->
+        super()
+        @_db             = _db
+        @_table          = _table
+        @_columns        = _columns
+        @_where          = _where
+        @_where_function = _where_function
+        @_limit          = _limit
+        @_order_by       = _order_by
         t = SCHEMA[@_table]
         if not t?
             @_state = 'error'
-            cb("unknown table #{@_table}")
+            cb?("unknown table #{@_table}")
             return
 
         try
             @_primary_key = @_db._primary_key(@_table)
         catch e
-            cb(e)
+            cb?(e)
             return
 
         @_listen_columns = {"#{@_primary_key}" : pg_type(t.fields[@_primary_key], @_primary_key)}
@@ -703,7 +723,12 @@ class SyncTable extends EventEmitter
 
         #@_update = underscore.throttle(@_update, 500)
 
-        @_init (err) => cb(err, @)
+        @_init (err) =>
+            if err and not cb?
+                @emit("error", err)
+                return
+            @emit('init')
+            cb?(err, @)
 
     _dbg: (f) =>
         return @_db._dbg("SyncTable(table='#{@_table}').#{f}")

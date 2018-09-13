@@ -56,14 +56,14 @@ describe 'use of eval_inputs table --', ->
         db.user_query
             query : {eval_inputs:{string_id:string_id, time:t0, user_id:0, input:input}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it 'verifies anonymous get queries are not allowed', (done) ->
         db.user_query
             query : {eval_inputs:[{string_id:string_id, time:null, user_id:null, input:null}]}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'eval_inputs'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'eval_inputs'")
                 done()
 
     it 'verifies set query by user not on syncstring is not allowed', (done) ->
@@ -71,7 +71,7 @@ describe 'use of eval_inputs table --', ->
             account_id : accounts[2]
             query : {eval_inputs:{string_id:string_id, time:t0, user_id:0, input:input}}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'verifies get query by user not on project not allowed', (done) ->
@@ -79,7 +79,7 @@ describe 'use of eval_inputs table --', ->
             account_id : accounts[2]
             query : {eval_inputs:[{string_id:string_id, time:null, user_id:null, input:null}]}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'make that user an admin', (done) ->
@@ -115,7 +115,7 @@ describe 'use of eval_inputs table --', ->
 
     it 'verifies set/get FAILS by user who is listed on syncstring, but is actually not on project', (done) ->
         test_write_and_read accounts[1], undefined, (err) ->
-            expect(err).toEqual('user must be an admin')
+            expect(err).toEqual('FATAL: user must be an admin')
             done()
 
     it 'adds other user to project', (done) ->
@@ -126,7 +126,7 @@ describe 'use of eval_inputs table --', ->
 
     it 'verifies set/get by other project fails', (done) ->
         test_write_and_read undefined, projects[1], (err) ->
-            expect(err).toEqual('project not allowed to write to syncstring in different project')
+            expect(err).toEqual('FATAL: project not allowed to write to syncstring in different project')
             done()
 
     # one that succeeds should be done last, since this is used below.
@@ -161,7 +161,7 @@ describe 'use of eval_inputs table --', ->
             account_id : accounts[0]
             query : {eval_inputs:[{string_id:null, time:null, user_id:null, input:null}]}
             cb    : (err, x) ->
-                expect(err).toEqual("string_id (='null') must be a string of length 40")
+                expect(err).toEqual("FATAL: string_id (='null') must be a string of length 40")
                 done()
 
     it 'verifies that user_id must be nonnegative', (done) ->
@@ -260,14 +260,14 @@ describe 'use of eval_outputs table --', ->
         db.user_query
             query : {eval_outputs:{string_id:string_id, time:t0, number:0, output:output}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it 'verifies anonymous get queries are not allowed', (done) ->
         db.user_query
             query : {eval_outputs:[{string_id:string_id, time:null, number:null, output:null}]}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'eval_outputs'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'eval_outputs'")
                 done()
 
     it 'verifies set query by user not on syncstring is not allowed', (done) ->
@@ -275,7 +275,7 @@ describe 'use of eval_outputs table --', ->
             account_id : accounts[2]
             query : {eval_outputs:{string_id:string_id, time:t0, number:0, output:output}}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'verifies get query by user not on project not allowed', (done) ->
@@ -283,7 +283,7 @@ describe 'use of eval_outputs table --', ->
             account_id : accounts[2]
             query : {eval_outputs:[{string_id:string_id, time:null, number:null, output:null}]}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'make that user an admin', (done) ->
@@ -319,7 +319,7 @@ describe 'use of eval_outputs table --', ->
 
     it 'verifies set/get FAILS by user who is listed on syncstring, but is actually not on project', (done) ->
         test_write_and_read accounts[1], undefined, (err) ->
-            expect(err).toEqual('user must be an admin')
+            expect(err).toEqual('FATAL: user must be an admin')
             done()
 
     it 'adds other user to project', (done) ->
@@ -330,7 +330,7 @@ describe 'use of eval_outputs table --', ->
 
     it 'verifies set/get by other project fails', (done) ->
         test_write_and_read undefined, projects[1], (err) ->
-            expect(err).toEqual('project not allowed to write to syncstring in different project')
+            expect(err).toEqual('FATAL: project not allowed to write to syncstring in different project')
             done()
 
     # one that succeeds should be done last, since this is used below.
@@ -365,7 +365,7 @@ describe 'use of eval_outputs table --', ->
             account_id : accounts[0]
             query : {eval_outputs:[{string_id:null, time:null, number:null, output:null}]}
             cb    : (err, x) ->
-                expect(err).toEqual("string_id (='null') must be a string of length 40")
+                expect(err).toEqual("FATAL: string_id (='null') must be a string of length 40")
                 done()
 
     it 'verifies that number must be nonnegative', (done) ->

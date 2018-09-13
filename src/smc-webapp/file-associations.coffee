@@ -42,27 +42,30 @@ codemirror_associations =
     js     : 'javascript'
     jsx    : 'jsx'
     json   : 'javascript'
+    lean   : 'lean'   # obviously nowhere close...
+    ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm2'
+    md     : 'gfm'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
     gp     : 'text/pari'
     go     : 'text/x-go'
     pari   : 'text/pari'
+    pegjs  : 'pegjs'
     php    : 'php'
     pl     : 'text/x-perl'
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rmd    : 'gfm2'
+    rmd    : 'gfm'
     rnw    : 'stex2'
+    rtex   : 'stex2'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
     sage   : 'python'
-    sagews : 'sagews'
     scala  : 'text/x-scala'
     scm    : 'text/x-scheme'
     sh     : 'shell'
@@ -73,6 +76,7 @@ codemirror_associations =
     txt    : 'text'
     tex    : 'stex2'
     ts     : 'application/typescript'
+    tsx    : 'text/typescript-jsx'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
@@ -92,6 +96,14 @@ for ext, mode of codemirror_associations
             'cc-icon-python'
         when 'coffeescript'
             'fa-coffee'
+        when 'javascript'
+            'fab fa-js-square'
+        when 'jsx'
+            'fab fa-node-js'
+        when 'application/typescript' # it would be nice to have proper TS icons...
+            'fab fa-js-square'
+        when 'text/typescript-jsx'    # would be nice to have proper TS...
+            'fab fa-node-js'
         else
             'fa-file-code-o'
     if ext in ['r', 'rmd']
@@ -104,7 +116,7 @@ for ext, mode of codemirror_associations
         name   : name
 
 # noext = means file with no extension but the given name.
-file_associations['noext-Dockerfile'] =
+file_associations['noext-dockerfile'] =
     editor : 'codemirror'
     binary : false
     icon   : 'fa-ship'
@@ -114,48 +126,46 @@ file_associations['noext-Dockerfile'] =
 file_associations['tex'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:2, tab_size:2}
     name   : "LaTeX"
-#file_associations['tex'] =  # WARNING: only for TESTING!!!
-#    editor : 'html-md'
-#    icon   : 'fa-file-code-o'
-#    opts   : {indent_unit:4, tab_size:4, mode:'stex2'}
 
 file_associations['rnw'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
     opts   : {mode:'stex2', indent_unit:4, tab_size:4}
-    name   : "R/knitr LaTeX"
+    name   : "R Knitr Rnw"
+
+file_associations['rtex'] =
+    editor : 'latex'
+    icon   : 'cc-icon-tex-file'
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    name   : "R Knitr Rtex"
 
 file_associations['html'] =
-    editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'htmlmixed'}
     name   : "html"
 
 file_associations['md'] =
-    editor : 'html-md'
     icon   : 'cc-icon-markdown'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
     name   : "markdown"
 
 file_associations['rmd'] =
-    editor : 'html-md'
     icon   : 'cc-icon-r'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm2'}
+    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
     name   : "Rmd"
 
-file_associations['java'] =
-    editor : 'html-md'
-    icon   : 'fa-file-code-o'
-    opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
-    name   : "Java"
-
 file_associations['rst'] =
-    editor : 'html-md'
     icon   : 'fa-file-code-o'
     opts   : {indent_unit:4, tab_size:4, mode:'rst'}
     name   : "ReST"
+
+file_associations['java'] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {indent_unit:4, tab_size:4, mode:'text/x-java'}
+    name   : "Java"
 
 file_associations['mediawiki'] = file_associations['wiki'] =
     editor : 'html-md'
@@ -187,7 +197,7 @@ file_associations['css'] =
     opts   : {mode:'css', indent_unit:4, tab_size:4}
     name   : "CSS"
 
-for m in ['noext-makefile', 'noext-Makefile', 'noext-GNUmakefile', 'make', 'build']
+for m in ['noext-makefile', 'noext-gnumakefile', 'make', 'build']
     file_associations[m] =
         editor : 'codemirror'
         icon   : 'fa-cogs'
@@ -206,7 +216,7 @@ file_associations['ipynb'] =
     opts   : {}
     name   : "Jupyter Notebook"
 
-for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
+for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp']
     file_associations[ext] =
         editor : 'media'
         icon   : 'fa-file-image-o'
@@ -215,15 +225,10 @@ for ext in ['png', 'jpg', 'jpeg', 'gif', 'svg']
         binary : true
         exclude_from_menu : true
 
-exports.VIDEO_EXTS = VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv', 'ogv', 'ogm']
-for ext in VIDEO_EXTS
-    file_associations[ext] =
-        editor : 'media'
-        icon   : 'fa-file-video-o'
-        opts   : {}
-        name   : ext
-        binary : true
-        exclude_from_menu : true
+# See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
+exports.IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'apng', 'svg', 'ico']
+
+exports.VIDEO_EXTS = ['webm', 'mp4', 'avi', 'mkv', 'ogv', 'ogm', '3gp']
 
 file_associations['pdf'] =
     editor : 'pdf'
@@ -277,12 +282,23 @@ archive_association =
     opts   : {}
     name   : 'archive'
 
+# Fallback for any type not otherwise explicitly specified
+file_associations[''] =
+    editor : 'codemirror'
+    icon   : 'fa-file-code-o'
+    opts   : {mode:'text', indent_unit:4, tab_size:4}
+    name   : ''
+
 for ext in 'zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip'.split(' ')
     file_associations[ext] = archive_association
 
 file_associations['sage'].name = "sage code"
 file_associations['sage'].icon = 'cc-icon-sagemath-bold'
 
-file_associations['sagews'].name = "sage worksheet"
-file_associations['sagews'].exclude_from_menu = true
-file_associations['sagews'].icon = 'cc-icon-sagemath-file'
+file_associations['sagews'] =
+    editor            : 'sagews'
+    binary            : false
+    icon              : 'cc-icon-sagemath-file'
+    opts              : {mode:'sagews'}
+    name              : 'sagews'
+    exclude_from_menu : true

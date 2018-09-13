@@ -1,4 +1,3 @@
-
 # No matter what, every project gets SOME possibly tiny amount of guaranteed cpu.
 # This is important since otherwise projects will NOT start at all, e.g., if a paying
 # customer is using 100% of the cpu on the node (this will happen if their limits are
@@ -13,7 +12,8 @@ MIN_POSSIBLE_MEMORY =
     member    : 300
     nonmember : 200
 
-misc = require('smc-util/misc')
+{DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
+
 
 exports.quota = (settings, users) ->
     # so can assume defined below
@@ -29,6 +29,7 @@ exports.quota = (settings, users) ->
         cpu_limit      : 1           # upper bound on vCPU's
         cpu_request    : 0           # will hold guaranteed min number of vCPU's as a float from 0 to infinity.
         privileged     : false       # for elevated docker privileges (FUSE mounting, later more)
+        idle_timeout   : DEFAULT_QUOTAS.mintime
 
     # network access
     if settings.network  # free admin-set
@@ -70,6 +71,12 @@ exports.quota = (settings, users) ->
     for _, val of users
         quota.memory_limit += to_int(val?.upgrades?.memory)
 
+    # idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
+    if settings.mintime
+        quota.idle_timeout = to_int(settings.mintime)
+    for _, val of users
+        quota.idle_timeout += to_int(val?.upgrades?.mintime)
+
     # memory request
     if settings.memory_request
         quota.memory_request = to_int(settings.memory_request)
@@ -91,7 +98,7 @@ exports.quota = (settings, users) ->
     for _, val of users
         quota.cpu_request += to_int(val?.upgrades?.cpu_shares) / 1024
 
-    # ensure minimums are met
+    # ensure minimums cpu are met
     if quota.member_host
         if quota.cpu_request < MIN_POSSIBLE_CPU.member
             quota.cpu_request = MIN_POSSIBLE_CPU.member
@@ -99,7 +106,7 @@ exports.quota = (settings, users) ->
         if quota.cpu_request < MIN_POSSIBLE_CPU.nonmember
             quota.cpu_request = MIN_POSSIBLE_CPU.nonmember
 
-    # ensure minimums are met
+    # ensure minimum memory met
     if quota.member_host
         if quota.memory_request < MIN_POSSIBLE_MEMORY.member
             quota.memory_request = MIN_POSSIBLE_MEMORY.member

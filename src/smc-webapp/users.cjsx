@@ -21,7 +21,7 @@
 
 misc = require('smc-util/misc')
 
-{React, Actions, Store, Table, redux, rtypes, rclass}  = require('./smc-react')
+{React, Actions, Store, Table, redux, rtypes, rclass}  = require('./app-framework')
 
 {TimeAgo, Tip} = require('./r_misc')
 
@@ -34,22 +34,19 @@ class UsersActions extends Actions
     fetch_non_collaborator: (account_id) =>
         if not account_id
             return
-        webapp_client.get_usernames
-            account_ids : [account_id]
-            use_cache   : false
-            cb          : (err, x) =>
+        webapp_client.get_username
+            account_id : account_id
+            cb         : (err, x) =>
                 if err
                     console.warn("WARNING: unable to get username for account with id '#{account_id}'")
                 else
                     obj = x[account_id]
-                    if obj?
+                    if typeof(obj) == 'object'  # see https://github.com/sagemathinc/cocalc/issues/2828
                         obj.account_id = account_id
                         user_map = store.get('user_map')
                         if user_map? and not user_map.get(account_id)?
                             user_map = user_map.set(account_id, immutable.fromJS(obj))
                             @setState(user_map : user_map)
-
-actions = redux.createActions('users', UsersActions)
 
 # Define user store: all the users you collaborate with
 class UsersStore extends Store
@@ -99,6 +96,9 @@ class UsersStore extends Store
 
 # Register user store
 store = redux.createStore('users', UsersStore)
+
+# Register user actions
+actions = redux.createActions('users', UsersActions)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.

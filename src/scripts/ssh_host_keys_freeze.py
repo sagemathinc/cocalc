@@ -2,7 +2,6 @@
 # coding: utf8
 # Author: Harald Schilly <hsy@sagemath.com>
 # Copyright: GPL3
-
 """
 When a server in the GCE environment is started with a new IP and a new instance ID,
 the host SSH keys in /etc/ssh are recreated.
@@ -42,14 +41,22 @@ out_fn = '/etc/cloud/cloud.cfg.d/99-smc.cfg'
 try:
     import yaml
 except:
-    print("ERROR: I need yaml for python3, i.e. sudo apt-get install -y python3-yaml")
+    print(
+        "ERROR: I need yaml for python3, i.e. sudo apt-get install -y python3-yaml"
+    )
     sys.exit(1)
 
-class literal(str): pass
+
+class literal(str):
+    pass
+
 
 def literal_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+
+
 yaml.add_representer(literal, literal_presenter)
+
 
 def main():
     # hold key data, dict for key_type_public/key_type_private for each key_type
@@ -63,11 +70,13 @@ def main():
         keys[key_type + '_private'] = literal(priv)
         keys[key_type + '_public'] = publ
 
-    out = yaml.dump({"ssh_keys" : keys}, default_flow_style = False, width=10000)
+    out = yaml.dump({"ssh_keys": keys}, default_flow_style=False, width=10000)
     # print(out)
 
     if not exists(dirname(out_fn)):
-        raise Exception("Directory for {} does not exist. Are the clout-init utils installed?".format(out_fn))
+        raise Exception(
+            "Directory for {} does not exist. Are the clout-init utils installed?".
+            format(out_fn))
 
     open(out_fn, 'w').write(out)
     root = getpwnam("root")

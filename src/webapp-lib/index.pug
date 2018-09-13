@@ -4,12 +4,11 @@
 //- h1 or h2 -> signal **where** and then a div#name element in the parent signals the **name**.
 //- the corresponding anchor link is then a.anchor#a-name
 
-extends _base.pug
+//- development:
+//- webpack-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors
+//- webpack-watch-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors --watch
 
-mixin start_button
-  p
-    a.btn.btn-success.btn-lg.cc-create-account-btn(href="app") Create Your Free #{NAME} Account!
-  p or #[a(href="app") sign in] with your account
+extends _base.pug
 
 block vars
   - var subtitle = htmlWebpackPlugin.options.description;
@@ -38,7 +37,7 @@ block content
       //-   #[a(href="app") Sign in] with your existing account and you're ready to go.
       div.col-sm-4.col-sm-offset-4.center
         a(href="app")
-          img(src=require('!url?mimetype=image/svg+xml!cocalc-logo.svg'))
+          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
       div.col-sm-12.center.descr.
         #{htmlWebpackPlugin.options.description}
       div.col-sm-12.center
@@ -54,25 +53,44 @@ block content
         div.youtube-video-container
           iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
-        p #{NAME} is a #[strong sophisticated web service] for online computation:
+        p #{NAME} is a #[strong sophisticated online environment] for
         ul
           li.
             #[strong Mathematical calculation]:
-            #[a(href="http://www.sagemath.org/") SageMath], #[a(href="https://www.sympy.org/") SymPy], #[a(href="http://maxima.sourceforge.net/") Maxima];
+            #[a(href="http://www.sagemath.org/") SageMath],
+            #[a(href="https://www.gap-system.org/") GAP],
+            #[a(href="https://www.sympy.org/") SymPy],
+            #[a(href="http://maxima.sourceforge.net/") Maxima],
+            …;
           li.
-            #[strong Statistical analysis]:
-            #[a(href="https://www.r-project.org/") R project], #[a(href="http://pandas.pydata.org/") Pandas], #[a(href="http://www.statsmodels.org/") statsmodels],
-            #[a(href="http://scikit-learn.org/") scikit-learn], #[a(href="https://www.tensorflow.org/") Tensorflow], #[a(href="http://www.nltk.org/") NLTK];
+            #[strong Statistics and Data Science]:
+            #[a(href="https://www.r-project.org/") R Project],
+            #[a(href="http://pandas.pydata.org/") Pandas],
+            #[a(href="http://www.statsmodels.org/") Statsmodels],
+            #[a(href="http://scikit-learn.org/") Scikit-Learn],
+            #[a(href="https://www.tensorflow.org/") TensorFlow],
+            #[a(href="http://www.nltk.org/") NLTK],
+            …;
           li.
-            #[strong Various other computation]:
-            #[a(href="https://www.gnu.org/software/octave/") Octave], #[a(href="https://julialang.org/") Julia], etc.
+            #[strong Document authoring]:
+            #[a(href="https://www.latex-project.org/") LaTeX],
+            #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown/HTML],
+            ...
+          li.
+            #[strong General purpose computing]:
+            #[a(href="https://www.python.org/") Python],
+            #[a(href="https://www.gnu.org/software/octave/") Octave],
+            #[a(href="https://julialang.org/") Julia],
+            #[a(href="https://www.scala-lang.org/") Scala],
+            …
         p #[strong Zero Setup:] getting started does not require any software setup.
           ol
             li First, create your personal #[strong account].
             li Then, create a #[strong project] to instantiate your own private workspace.
             li.
               Finally, create a #[strong worksheet] or upload your own files:
-              #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets, Latex files, etc.
+              #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets,
+              #[a(href="./doc/latex-editor.html") LaTeX files], etc.
         p #[strong Collaborative Environment]
         p
           ul
@@ -117,7 +135,7 @@ block content
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-file-text-o] Authoring
           div.
-            Write scientific documents online in a #[strong LaTeX editor].
+            Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]].
             It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
             also supports advanced features like
             #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
@@ -141,7 +159,7 @@ block content
             li Create a course file on #{NAME}
             li Add your students
             li Distribute assignments and handouts
-            li Jump into student's files right where they are working
+            li Jump into a student's files right where they are working
             li Collect and grade assignments
           p.
             Combined with #{NAME}'s other unique features you can check, guide and retrace all steps a student takes.
@@ -151,9 +169,13 @@ block content
             li #[strong Integrated Chat] allows your to guide students directly where they work or discuss collected files with your teaching assistents.
             li The project's #[strong Activity Log] records exactly when a file is accessed and by which user.
           p More information
-          ul
-            li #[a(href="https://tutorial.cocalc.com/" target="_blank") Tutorial for Teaching]
-            li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
+          div.row
+            div.col-md-6
+              ul
+                li #[a(href="https://tutorial.cocalc.com/" target="_blank") Tutorial for Teaching]
+                li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
+            div.col-md-6
+              a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
 
   a.anchor#a-testimonials
   div#testimonials
@@ -223,7 +245,7 @@ block content
         div.col-md-6
           h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
           div.
-            This is a fully compatible #[strong complete rewrite] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
+            This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
             It is tightly integrated into #{NAME} and adds real-time collaboration,
             time-travel history and
             #[a(href="http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html") much more].
@@ -240,13 +262,13 @@ block content
         div.col-md-6
           h2 #[i.fa.cc-icon-tex-file] LaTeX Editor
           div.
-            #{NAME} includes a full #[strong LaTeX editor] with
+            #{NAME} includes a full #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]] with
             #[strong side-by-side] preview and forward/inverse search.
             This allows you to not only do computations online,
             but also create scientific documents for their dissemination.
           br/
           div
-            img(src="https://storage.googleapis.com/cocalc-extra/smc-latex-20170516.png").fit
+            img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
         div.col-md-6
           h2 #[i.fa.cc-icon-markdown] Markdown/HTML
           div.
@@ -294,6 +316,11 @@ block content
       div.row
         div.col-sm-12.center(style="margin-top: 6rem")
           +start_button
+      div.row
+        div.col-sm-12.center(style="margin-top: 6rem")
+          p Do you have any further questions or want to see how #{NAME} helps you with teaching?
+          p
+            a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
 
   //- CSS comes at the bottom: overwrites styles defined in the header
   style
@@ -343,3 +370,8 @@ block content
           white-space    : nowrap
       #included > div
         padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block

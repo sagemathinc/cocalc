@@ -28,9 +28,10 @@
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 account_page    = require('./account_page')
+misc_page = require('./misc_page')
 
 misc     = require("misc")
-{redux}   = require('./smc-react')
+{redux}   = require('./app-framework')
 
 {reset_password_key} = require('./password-reset')
 
@@ -49,7 +50,9 @@ load_app = (cb) ->
         cb()
 
 webapp_client.on 'mesg_info', (info) ->
-    redux.getActions('account')?.setState(mesg_info: info)
+    f = -> redux.getActions('account')?.setState(mesg_info: info)
+    # must be scheduled separately, since this notification can be triggered during rendering
+    setTimeout(f, 1)
 
 signed_in = (mesg) ->
     {analytics_event} = require('./misc_page')
@@ -62,7 +65,8 @@ signed_in = (mesg) ->
     document.cookie = "#{APP_BASE_URL}has_remember_me=true; expires=#{exp} ;path=/"
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
-    load_file = window.smc_target and window.smc_target != 'login'
+    console.log("Signed into #{mesg.hub} at #{new Date()}")
+    load_file = window.smc_target and window.smc_target != 'login' and not misc_page.get_query_param('test')
     if first_login
         first_login = false
         if not load_file
@@ -75,7 +79,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         redux.getTable('account')._table.once 'connected', ->
             load_app ->
-                require('./history').load_target(window.smc_target)
+                #if DEBUG then console.log("account/signed_in/load_file -> #{window.smc_target}")
+                require('./history').load_target(window.smc_target, true)
                 window.smc_target = ''
 
 
@@ -101,21 +106,16 @@ if misc.get_local_storage(remember_me)
     ), 45000
 webapp_client.on "remember_me_failed", () ->
     redux.getActions('account').setState(remember_me: false)
-    if redux.getStore('account')?.is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
+    if redux.getStore('account')?.get('is_logged_in')  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
             if not misc.get_local_storage(remember_me)
                 alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  SMELL: confused about what is going on here...
 
-# check if user has a has_remember_me cookie (regardless if it is valid or not)
-# the "remember_me" is set to be http-only and hence not accessible from javascript (security)
+# Check if user has a has_remember_me cookie (regardless if it is valid or not)
+# the real "remember_me" is set to be http-only and hence not accessible from javascript (security).
 {get_cookie, APP_BASE_URL} = require('./misc_page')
-# for the initial month after the rebranding, we always set this to true to emphasize the sign in bar at the top
-# TODO the following is disabled -- https://github.com/sagemathinc/cocalc/issues/2051
-if false # misc.server_weeks_ago(4) > new Date("2017-05-20")
-    redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
-else
-    redux.getActions('account').setState(has_remember_me : true)
+redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # FUTURE: make this configurable with different schemas.

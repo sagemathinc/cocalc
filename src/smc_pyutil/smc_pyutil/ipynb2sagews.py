@@ -19,7 +19,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-
 """
 This script converts an .ipynb jupyter notebook file to an SMC sagews file.
 It relies on the sagews command `jupyter()` to instantiate the communication bridge
@@ -40,8 +39,8 @@ import nbformat
 
 from smc_pyutil.lib import SagewsCell
 
-class Ipynb2SageWS(object):
 
+class Ipynb2SageWS(object):
     def __init__(self, filename, overwrite=True):
         """
         Convert a Jupyter Notebook .ipynb file to a CoCalc .sagews file.
@@ -57,7 +56,8 @@ class Ipynb2SageWS(object):
         self.outfile = base + '.sagews'
         if not overwrite and os.path.exists(self.outfile):
             raise Exception(
-                "%s: Warning --CoCalc worksheet '%s' already exists.  Not overwriting.\n" % (sys.argv[0], self.outfile))
+                "%s: Warning --CoCalc worksheet '%s' already exists.  Not overwriting.\n"
+                % (sys.argv[0], self.outfile))
 
         self.nb = None  # holds the notebook data
         self.output = None  # use self.write([line]) to write to output
@@ -93,6 +93,7 @@ class Ipynb2SageWS(object):
                     if cell is None:
                         break
                     fout.write(cell)
+
         self.output = output()
         self.output.next()
 
@@ -103,12 +104,17 @@ class Ipynb2SageWS(object):
         """
         spec = self.nb['metadata']
         name = spec['kernelspec']['name']
-        cell = '''\
-        %auto
-        # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
-        # Here, it initializes the Jupyter kernel with the specified name and sets it as the default mode for this worksheet.
-        jupyter_kernel = jupyter("{}")  # run "jupyter?" for more information.
-        %default_mode jupyter_kernel'''.format(name)
+        if name.startswith('sage'):
+            cell = '''\
+            # This worksheet was converted from a notebook running Jupyter kernel
+            # version {}.'''.format(name)
+        else:
+            cell = '''\
+            %auto
+            # This cell automatically evaluates on startup -- or run it manually if it didn't evaluate.
+            # Here, it initializes the Jupyter kernel with the specified name and sets it as the default mode for this worksheet.
+            jupyter_kernel = jupyter("{}")  # run "jupyter?" for more information.
+            %default_mode jupyter_kernel'''.format(name)
         self.write(SagewsCell(input=textwrap.dedent(cell)).convert())
 
     def body(self):
@@ -150,6 +156,7 @@ Creates corresponding file path/to/filename.sagews, if it doesn't exist.
 
     for path in sys.argv[1:]:
         Ipynb2SageWS(path).convert()
+
 
 if __name__ == "__main__":
     main()

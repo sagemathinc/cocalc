@@ -2,7 +2,7 @@ misc = require('smc-util/misc')
 
 {defaults, required} = misc
 
-{React} = require('./smc-react')
+{React} = require('./app-framework')
 
 # Map of extensions to the appropriate structures below
 file_editors =
@@ -44,7 +44,10 @@ exports.register_file_editor = (opts) ->
 
     # Assign to the extension(s)
     for ext in opts.ext
-        file_editors[!!opts.is_public][ext] =
+        pub = !!opts.is_public
+        if DEBUG and file_editors[pub][ext]?
+            console.warn("duplicate registered extension '#{pub}/#{ext}' in register_file_editor")
+        file_editors[pub][ext] =
             icon      : opts.icon
             component : opts.component
             generator : opts.generator
@@ -52,26 +55,32 @@ exports.register_file_editor = (opts) ->
             remove    : opts.remove
             save      : opts.save
 
+
+get_ed = (path, is_public) ->
+    is_public = !!is_public
+    noext = "noext-#{misc.path_split(path).tail}".toLowerCase()
+    e = file_editors[is_public][noext]  # special case: exact filename match
+    if e?
+        return e
+    ext = misc.filename_extension_notilde(path).toLowerCase()
+    # either use the one given by ext, or if there isn't one, use the '' fallback.
+    return file_editors[is_public][ext] ? file_editors[is_public]['']
+
 # Performs things that need to happen before render
 # Calls file_editors[ext].init()
 # Examples of things that go here:
 # - Initializing store state
 # - Initializing Actions
 exports.initialize = (path, redux, project_id, is_public, content) ->
-    is_public = !!is_public
-    ext = misc.filename_extension(path).toLowerCase()
-    e = file_editors[is_public][ext] ? file_editors[is_public]['']
-    return e?.init?(path, redux, project_id, content)
+    return get_ed(path, is_public).init?(path, redux, project_id, content)
 
 # Returns an editor instance for the path
 exports.generate = (path, redux, project_id, is_public) ->
-    is_public = !!is_public
-    ext = misc.filename_extension(path).toLowerCase()
-    e = file_editors[is_public][ext] ? file_editors[is_public]['']
-    generator = e?.generator
+    e = get_ed(path, is_public)
+    generator = e.generator
     if generator?
         return generator(path, redux, project_id)
-    component = e?.component
+    component = e.component
     if not component?
         return () -> React.createElement("div", "No editor for #{path} or fallback editor yet")
     return component
@@ -84,15 +93,17 @@ exports.remove = (path, redux, project_id, is_public) ->
         console.warn("BUG -- remove called on path of type '#{typeof(path)}'", path, project_id)
         # see https://github.com/sagemathinc/cocalc/issues/1275
         return
-    is_public = !!is_public
-    ext = misc.filename_extension(path).toLowerCase()
-    # Use specific one for the given extension, or a fallback.
-    remove = (file_editors[is_public][ext]?.remove) ? (file_editors[is_public]['']?.remove)
-    remove?(path, redux, project_id)
+
+    if not is_public
+        # always fire off a save to disk when closing.
+        exports.save(path, redux, project_id, is_public)
+
+    e = get_ed(path, is_public)
+    e.remove?(path, redux, project_id)
 
     if not is_public
         # Also free the corresponding side chat, if it was created.
-        require('./chat/register').remove(misc.meta_file(path, 'chat'), redux, project_id)
+        require('./chat/register').remove?(misc.meta_file(path, 'chat'), redux, project_id)
 
 # The save function may be called to request to save contents to disk.
 # It does not take a callback.  It's a non-op if no save function is registered
@@ -101,8 +112,4 @@ exports.save = (path, redux, project_id, is_public) ->
     if not path?
         console.warn("WARNING: save(undefined path)")
         return
-    is_public = !!is_public
-    ext       = misc.filename_extension(path).toLowerCase()
-    # either use the one given by ext, or if there isn't one, use the '' fallback.
-    save = (file_editors[is_public][ext]?.save) ? (file_editors[is_public]['']?.save)
-    save?(path, redux, project_id)
+    get_ed(path, is_public).save?(path, redux, project_id)

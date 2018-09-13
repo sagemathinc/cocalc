@@ -50,7 +50,7 @@ class TestOctavePlot:
 
 class TestRPlot:
     def test_r_smallplot(self,execblob):
-        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'png')
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'svg')
     def test_r_bigplot(self,execblob):
         "lots of points, do not overrun blob size limit"
         code = """%r
@@ -58,7 +58,7 @@ N <- 100000
 xx <- rnorm(N, 5) + 3
 yy <- rnorm(N, 3) - 1
 plot(xx, yy, cex=.1)"""
-        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'png')
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'svg')
 
 class TestShowGraphs:
     def test_issue594(self, test_id, sagews):
@@ -108,7 +108,7 @@ for i in range(2):
                     continue
             else:
                 blob_wanted -= 1
-                file_uuid = mesg[:SHA_LEN]
+                file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == conftest.uuidsha1(mesg[SHA_LEN:])
                 m = conftest.message.save_blob(sha1 = file_uuid)
                 sagews.send_json(m)

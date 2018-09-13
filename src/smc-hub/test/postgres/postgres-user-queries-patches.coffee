@@ -122,14 +122,14 @@ describe 'access control tests on patches table -- ', ->
         db.user_query
             query : {patches:{string_id:null, time:null, user_id:null, patch:null}}
             cb    : (err) ->
-                expect(err).toEqual("anonymous get queries not allowed for table 'patches'")
+                expect(err).toEqual("FATAL: anonymous get queries not allowed for table 'patches'")
                 done()
 
     it 'tries to write as anon to patches table and fails', (done) ->
         db.user_query
             query : {patches:{string_id:string_id, time:new Date(), user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual("no anonymous set queries")
+                expect(err).toEqual("FATAL: no anonymous set queries")
                 done()
 
     it 'tries to write as user not on the project and fails', (done) ->
@@ -137,7 +137,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query : {patches:{string_id:string_id, time:new Date(), user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual("user must be an admin")
+                expect(err).toEqual("FATAL: user must be an admin")
                 done()
 
     it 'tries to write as different project and fails', (done) ->
@@ -145,7 +145,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[1]
             query : {patches:{string_id:string_id, time:new Date(), user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual("project not allowed to write to syncstring in different project")
+                expect(err).toEqual("FATAL: project not allowed to write to syncstring in different project")
                 done()
 
     it 'makes account1 an admin', (done) ->
@@ -199,7 +199,7 @@ describe 'access control tests on patches table -- ', ->
             project_id : projects[0]
             query : {patches:{string_id:'sage', time:misc.minutes_ago(4), user_id:0, patch:patch0}}
             cb    : (err) ->
-                expect(err).toEqual("string_id (='sage') must be a string of length 40")
+                expect(err).toEqual("FATAL: string_id (='sage') must be a string of length 40")
                 done()
 
     it 'tries to write invalid time and fails', (done) ->
@@ -239,7 +239,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query      : {patches:{string_id:string_id, user_id:1, patch:patch0}}
             cb         : (err) ->
-                expect("#{err}").toEqual("query must specify (primary) key 'time'")
+                expect("#{err}").toEqual("FATAL: query must specify (primary) key 'time'")
                 done()
 
     it 'tries to write without including string field at all (and fails)', (done) ->
@@ -247,7 +247,7 @@ describe 'access control tests on patches table -- ', ->
             account_id : accounts[1]
             query      : {patches:{time:t0, user_id:1, patch:patch0}}
             cb         : (err) ->
-                expect(err).toEqual("string_id (='undefined') must be a string of length 40")
+                expect(err).toEqual("FATAL: string_id (='undefined') must be a string of length 40")
                 done()
 
 

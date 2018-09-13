@@ -1,8 +1,19 @@
 \documentclass{article}
 
-% set font encoding for PDFLaTeX or XeLaTeX
-\usepackage{ifxetex}
+% set font encoding for PDFLaTeX, XeLaTeX, or LuaTeX
+\usepackage{ifxetex,ifluatex}
+\newif\ifxetexorluatex
 \ifxetex
+  \xetexorluatextrue
+\else
+  \ifluatex
+    \xetexorluatextrue
+  \else
+    \xetexorluatexfalse
+  \fi
+\fi
+
+\ifxetexorluatex
   \usepackage{fontspec}
 \else
   \usepackage[T1]{fontenc}
@@ -10,12 +21,13 @@
   \usepackage{lmodern}
 \fi
 
-% used in maketitle
+\usepackage{hyperref}
+
 \title{Title of Document}
 \author{Name of Author}
 
 % Enable SageTeX to run SageMath code right inside this LaTeX file.
-% documentation: http://mirrors.ctan.org/macros/latex/contrib/sagetex/sagetexpackage.pdf
+% http://mirrors.ctan.org/macros/latex/contrib/sagetex/sagetexpackage.pdf
 % \usepackage{sagetex}
 
 \begin{document}

@@ -21,8 +21,10 @@ as a result.
 # not active for this long (should be at least 5 minutes).  Longer is better since
 # it reduces how long a user might have to wait for save, etc.,
 # but it slightly increases database work (managing a changefeed).
-SYNCSTRING_MAX_AGE_M = 20
+SYNCSTRING_MAX_AGE_M = 7
 #SYNCSTRING_MAX_AGE_M = 1 # TESTING
+
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
 
 # CRITICAL: The above SYNCSTRING_MAX_AGE_M idle timeout does *NOT* apply to Sage worksheet
 # syncstrings, since they also maintain the sage session, put output into the
@@ -42,7 +44,7 @@ winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
@@ -50,16 +52,20 @@ misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
 db_doc     = require('smc-util/db-doc')
+schema     = require('smc-util/schema')
 
 sage_session = require('./sage_session')
 
 jupyter = require('./jupyter/jupyter')
+{get_kernel_data} = require('./jupyter/kernel-data')
 
 {json} = require('./common')
 
 kucalc = require('./kucalc')
 
 {Watcher} = require('./watcher')
+
+blobs = require('./blobs')
 
 {defaults, required} = misc
 
@@ -74,9 +80,14 @@ if fs.existsSync(DEBUG_FILE)
 else
     winston.debug("'#{DEBUG_FILE}' does not exist; minimal logging")
 
-
+ALREADY_CREATED = false
 class exports.Client extends EventEmitter
-    constructor: (@project_id) ->
+    constructor: (project_id) ->
+        super()
+        if ALREADY_CREATED
+            throw Error("BUG: Client already created!")
+        ALREADY_CREATED = true
+        @project_id = project_id
         @dbg('constructor')()
         @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         # initialize two caches
@@ -323,13 +334,19 @@ class exports.Client extends EventEmitter
     # Declare that the given socket is active right now and can be used for
     # communication with some hub (the one the socket is connected to).
     active_socket: (socket) =>
-        dbg = @dbg("active_socket(id=#{socket.id})")
+        dbg = @dbg("active_socket(id=#{socket.id},ip='#{socket.remoteAddress}')")
         x = @_hub_client_sockets[socket.id]
         if not x?
             dbg()
             x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
-            socket.on 'end', =>
-                dbg("end")
+            locals =
+                heartbeat_interval : undefined
+            socket_end = =>
+                if not locals.heartbeat_interval?
+                    return
+                dbg("ending socket")
+                clearInterval(locals.heartbeat_interval)
+                locals.heartbeat_interval = undefined
                 if x.callbacks?
                     for id, cb of x.callbacks
                         cb?('socket closed')
@@ -340,6 +357,20 @@ class exports.Client extends EventEmitter
                     @_connected = false
                     dbg("lost all active sockets")
                     @emit('disconnected')
+                socket.end()
+
+            socket.on('end', socket_end)
+            socket.on('error', socket_end)
+
+            check_heartbeat = =>
+                if not socket.heartbeat? or new Date() - socket.heartbeat >= 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000
+                    dbg("heartbeat failed")
+                    socket_end()
+                else
+                    dbg("heartbeat -- socket is working")
+
+            locals.heartbeat_interval = setInterval(check_heartbeat, 1.5*PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000)
+
             if misc.len(@_hub_client_sockets) >= 1
                 dbg("CONNECTED!")
                 @_connected = true
@@ -351,7 +382,7 @@ class exports.Client extends EventEmitter
     # for the given message, then return true. Otherwise, return
     # false, meaning something else should try to handle this message.
     handle_mesg: (mesg, socket) =>
-        dbg = @dbg("handle_mesg(#{json(mesg)})")
+        dbg = @dbg("handle_mesg(#{misc.trunc_middle(json(mesg),512)})")
         f = @_hub_callbacks[mesg.id]
         if f?
             dbg("calling callback")
@@ -364,21 +395,16 @@ class exports.Client extends EventEmitter
             dbg("no callback")
             return false
 
-    # Get a socket connection to the hub from one in our cache; choose the
-    # connection that most recently sent us a message.  There is no guarantee
-    # to get the same hub if you call this twice!  Returns undefined if there
-    # are currently no connections from any hub to us (in which case, the project
-    # must wait).
-    get_hub_socket: () =>
-        v = misc.values(@_hub_client_sockets)
-        if v.length == 0
+    # Get a socket connection to the hub from one in our cache; choose one at random.
+    # There is obviously no guarantee to get the same hub if you call this twice!
+    # Returns undefined if there are currently no connections from any hub to us
+    # (in which case, the project must wait).
+    get_hub_socket: =>
+        socket_ids = misc.keys(@_hub_client_sockets)
+        @dbg("get_hub_socket")("there are #{socket_ids.length} sockets -- #{JSON.stringify(socket_ids)}")
+        if socket_ids.length == 0
             return
-        v.sort (a,b) -> misc.cmp(a.activity ? 0, b.activity ? 0)
-        return v[v.length-1].socket
-
-    # Return a list of *all* the socket connections from hubs to this local_hub
-    get_all_hub_sockets = () =>
-        return (x.socket for x in misc.values(@_hub_client_sockets))
+        return @_hub_client_sockets[misc.random_choice(socket_ids)].socket
 
     # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
@@ -424,6 +450,7 @@ class exports.Client extends EventEmitter
             query   : required      # a query (see schema.coffee)
             changes : undefined     # whether or not to create a changefeed
             options : undefined     # options to the query, e.g., [{limit:5}] )
+            standby : false         # **IGNORED**
             timeout : 30            # how long to wait for initial result
             cb      : required
         if opts.options? and not misc.is_array(opts.options)
@@ -478,26 +505,6 @@ class exports.Client extends EventEmitter
                 socket  : socket
                 cb      : opts.cb
 
-    # Get a list of the ids of changefeeds that remote hubs are pushing to this project.
-    # This just does its best and if there is an error/timeout trying to get ids from a hub,
-    # assumes that hub isn't working anymore.
-    query_get_changefeed_ids: (opts) =>
-        opts = defaults opts,
-            timeout : 30
-            cb      : required    # opts.cb(undefined, [ids...])
-        ids = []
-        f = (socket, cb) =>
-            @call  # getting a message back with this id cancels listening
-                message : message.query_get_changefeed_ids()
-                timeout : opts.timeout
-                socket  : socket
-                cb      : (err, resp) =>
-                    if not err
-                        ids = ids.concat(resp.changefeed_ids)
-                    cb()
-        async.map @get_all_hub_sockets(), f, () =>
-            opts.cb(undefined, ids)
-
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
@@ -508,12 +515,22 @@ class exports.Client extends EventEmitter
         #    debounce_interval : 2000
         #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
 
+    # WARNING: making two of the exact same sync_string or sync_db will definitely
+    # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
+    # right now, so we are OK.  Will need to improve this in the longrun!
+
     # Get the synchronized string with the given path.
     sync_string: (opts) =>
         opts = defaults opts,
             path            : required
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            @dbg("sync_string")("string_id='#{string_id}', keys=#{JSON.stringify(misc.keys(@_open_syncstrings))}")
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_string(path='#{opts.path}')")()
@@ -527,10 +544,18 @@ class exports.Client extends EventEmitter
             change_throttle : 0      # amount to throttle change events (in ms)
             save_interval   : 500    # amount to debounce saves (in ms)
             patch_interval  : 500    # debouncing of incoming patches
+            reference_only  : false  # if true returns undefined if syncstring is not already opened -- do NOT close what is returned
+        if opts.reference_only
+            string_id = schema.client_db.sha1(@project_id, opts.path)
+            return @_open_syncstrings[string_id]
+        delete opts.reference_only
         opts.client = @
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()
         return new db_doc.SyncDB(opts)
+
+    symmetric_channel: (name) =>
+        return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
     # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
@@ -670,10 +695,8 @@ class exports.Client extends EventEmitter
         opts.client = @
         return jupyter.kernel(opts)
 
-    jupyter_kernel_info: (opts) =>
-        opts = defaults opts,
-            cb : required
-        jupyter.get_kernel_data(opts.cb)
+    jupyter_kernel_info: =>
+        return await get_kernel_data()
 
     # See the file watcher.coffee for docs
     watch_file: (opts) =>
@@ -686,5 +709,44 @@ class exports.Client extends EventEmitter
         dbg("watching file '#{path}'")
         return new Watcher(path, opts.interval, opts.debounce)
 
+    # Save a blob to the central db blobstore.
+    # The sha1 is optional.
+    save_blob: (opts) =>
+        opts = defaults opts,
+            blob : required   # Buffer of data
+            sha1 : undefined
+            uuid : undefined  # if given is uuid derived from sha1
+            cb   : undefined  # (err, resp)
+        if opts.uuid?
+            uuid = opts.uuid
+        else
+            uuid = misc_node.uuidsha1(opts.blob, opts.sha1)
+        dbg = @dbg("save_blob(uuid='#{uuid}')")
+        hub = @get_hub_socket()
+        if not hub?
+            dbg("fail -- no global hubs")
+            opts.cb?('no global hubs are connected to the local hub, so nowhere to send file')
+            return
+        dbg("sending blob mesg")
+        hub.write_mesg('blob', {uuid:uuid, blob:opts.blob})
+        dbg("waiting for response")
+        blobs.receive_save_blob_message
+            sha1 : uuid
+            cb   : (resp) =>
+                if resp?.error
+                    dbg("fail -- '#{resp.error}'")
+                    opts.cb?(resp.error, resp)
+                else
+                    dbg("success")
+                    opts.cb?(undefined, resp)
 
+    get_blob: (opts) =>
+        opts = defaults opts,
+            blob : required   # Buffer of data
+            sha1 : undefined
+            uuid : undefined  # if given is uuid derived from sha1
+            cb   : undefined  # (err, resp)
+        dbg = @dbg("get_blob")
+        dbg(opts.sha1)
+        opts.cb?('get_blob: not implemented')
 

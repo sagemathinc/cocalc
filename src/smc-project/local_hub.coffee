@@ -13,9 +13,16 @@ that it simultaneously manages numerous sessions, since simultaneously
 doing a lot of IO-based things is what Node.JS is good at.
 ###
 
-
-require('coffee-cache').setCacheDir("#{process.env.HOME}/.coffee")
-
+require('ts-node').register(project:"#{__dirname}/tsconfig.json")
+path    = require('path')
+async   = require('async')
+fs      = require('fs')
+os      = require('os')
+net     = require('net')
+uuid    = require('uuid')
+winston = require('winston')
+request = require('request')
+program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 
 BUG_COUNTER = 0
 
@@ -31,26 +38,19 @@ process.addListener "uncaughtException", (err) ->
 exports.get_bugs_total = ->
     return BUG_COUNTER
 
-path    = require('path')
-async   = require('async')
-fs      = require('fs')
-os      = require('os')
-net     = require('net')
-uuid    = require('uuid')
-winston = require('winston')
-request = require('request')
-program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
-
 # Set the log level
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-require('coffee-script/register')
+require('coffeescript/register')
 
 message     = require('smc-util/message')
 misc        = require('smc-util/misc')
 smc_version = require('smc-util/smc-version')
 misc_node   = require('smc-util-node/misc_node')
+
+memory      = require('smc-util-node/memory')
+memory.init(winston.debug)
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -122,8 +122,8 @@ json = common.json
 
 INFO = undefined
 hub_client = undefined
-init_info_json = (cb) ->
-    winston.debug("Writing 'info.json'")
+init_info_json = (cb) ->  # NOTE: cb should only be required to guarantee info.json file written, not that INFO var is initialized.
+    winston.debug("initializing INFO")
     filename = "#{SMC}/info.json"
     if kucalc.IN_KUCALC and process.env.COCALC_PROJECT_ID? and process.env.COCALC_USERNAME?
         project_id = process.env.COCALC_PROJECT_ID
@@ -150,7 +150,12 @@ init_info_json = (cb) ->
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
     exports.client = hub_client = new Client(INFO.project_id)
-    fs.writeFile(filename, misc.to_json(INFO), cb)
+    fs.writeFile filename, misc.to_json(INFO), (err) ->
+        if err
+            winston.debug("Writing 'info.json' -- #{err}")
+        else
+            winston.debug("Wrote 'info.json'")
+        cb?(err)
 
 # Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
@@ -175,7 +180,7 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
-# Handle a message from the client (=hub)
+# Handle a message from the hub
 handle_mesg = (socket, mesg, handler) ->
     #dbg = (m) -> winston.debug("handle_mesg: #{m}")
     #dbg("mesg=#{json(mesg)}")
@@ -184,6 +189,9 @@ handle_mesg = (socket, mesg, handler) ->
         return
 
     switch mesg.event
+        when 'heartbeat'
+            winston.debug("received heartbeat on socket '#{socket.id}'")
+            socket.heartbeat = new Date()
         when 'connect_to_session', 'start_session'
             # These sessions completely take over this connection, so we stop listening
             # for further control messages on this connection.
@@ -193,6 +201,7 @@ handle_mesg = (socket, mesg, handler) ->
             # start jupyter server if necessary and send back a message with the port it is serving on
             jupyter_manager.jupyter_port(socket, mesg)
         when 'project_exec'
+            # this is no longer used by web browser clients; however it could be used by the HTTP api.
             exec_shell_code(socket, mesg)
         when 'read_file_from_project'
             read_write_files.read_file_from_project(socket, mesg)
@@ -255,15 +264,16 @@ start_tcp_server = (secret_token, port, cb) ->
 
     winston.info("starting tcp server: project <--> hub...")
     server = net.createServer (socket) ->
-        winston.debug("received new connection")
+        winston.debug("received new connection from #{socket.remoteAddress}")
         socket.on 'error', (err) ->
-            winston.debug("socket error - #{err}")
+            winston.debug("socket '#{socket.remoteAddress}' error - #{err}")
 
         misc_node.unlock_socket socket, secret_token, (err) ->
             if err
                 winston.debug(err)
             else
                 socket.id = uuid.v4()
+                socket.heartbeat = new Date()  # obviously working now
                 misc_node.enable_mesg(socket)
 
                 handler = (type, mesg) ->
@@ -291,10 +301,13 @@ start_server = (tcp_port, raw_port, cb) ->
     the_secret_token = undefined
     if program.console_port
         console_sessions.set_port(program.console_port)
+    # We run init_info_json to determine the INFO variable.
+    # However, we do NOT wait for the cb of init_info_json to be called, since we don't care in this process that the file info.json was written.
+    init_info_json()
+
     async.series([
         (cb) ->
-            init_info_json(cb)
-        (cb) ->
+            winston.debug("starting raw server...")
             raw_server.start_raw_server
                 project_id : INFO.project_id
                 base_url   : INFO.base_url
@@ -303,12 +316,18 @@ start_server = (tcp_port, raw_port, cb) ->
                 home       : process.env.HOME
                 port       : raw_port
                 logger     : winston
+                client     : exports.client
                 cb         : cb
         (cb) ->
+            if program.kucalc
+                # not needed, since in kucalc supervisord manages processes.
+                cb()
+                return
             # This is also written by forever; however, by writing it directly it's also possible
             # to run the local_hub server in a console, which is useful for debugging and development.
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
         (cb) ->
+            winston.debug("initializing secret token...")
             secret_token.init_secret_token (err, token) ->
                 if err
                     cb(err)
@@ -317,6 +336,7 @@ start_server = (tcp_port, raw_port, cb) ->
                     console_sessions.set_secret_token(token)
                     cb()
         (cb) ->
+            winston.debug("starting tcp server...")
             start_tcp_server(the_secret_token, tcp_port, cb)
     ], (err) ->
         if err

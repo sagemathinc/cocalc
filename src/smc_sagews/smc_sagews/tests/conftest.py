@@ -9,6 +9,9 @@ import hashlib
 import time
 from datetime import datetime
 
+# timeout for socket to sage_server in seconds
+default_timeout = 20
+
 ###
 # much of the code here is copied from sage_server.py
 # cut and paste was done because it takes over 30 sec to import sage_server
@@ -56,7 +59,7 @@ class ConnectionJSON(object):
 
     def _send(self, s):
         length_header = struct.pack(">L", len(s))
-        self._conn.send(length_header + s)
+        self._conn.send(length_header + s.encode())
 
     def send_json(self, m):
         m = json.dumps(m)
@@ -112,16 +115,20 @@ class ConnectionJSON(object):
                 raise EOFError
             s += t
 
-        if s[0] == 'j':
+        mtyp = s[0]
+        if mtyp == 'j':
             try:
-                return 'json', json.loads(s[1:])
+                return 'json', json.loads(s[1:].decode())
             except Exception as msg:
                 log("Unable to parse JSON '%s'"%s[1:])
                 raise
 
-        elif s[0] == 'b':
+        elif mtyp == 'b':
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
+    def set_timeout(self, timeout):
+        "set socket timeout in seconds"
+        self._conn.settimeout(timeout)
 
 def truncate_text(s, max_size):
     if len(s) > max_size:
@@ -132,7 +139,7 @@ def truncate_text(s, max_size):
 class Message(object):
     def _new(self, event, props={}):
         m = {'event':event}
-        for key, val in props.iteritems():
+        for key, val in props.items():
             if key != 'self':
                 m[key] = val
         return m
@@ -276,7 +283,7 @@ def get_sage_server_info(log_file = default_log_file):
                 break
         except IOError:
             print("starting new sage_server")
-            os.system("smc-sage-server start")
+            os.system(start_cmd())
             time.sleep(5.0)
     else:
         pytest.fail("Unable to open log file %s\nThere is probably no sage server running. You either have to open a sage worksheet or run smc-sage-server start"%log_file)
@@ -294,7 +301,7 @@ else:
 
 def client_unlock_connection(sock):
     secret_token = open(secret_token_path).read().strip()
-    sock.sendall(secret_token)
+    sock.sendall(secret_token.encode())
 
 def path_info():
     file = __file__
@@ -317,6 +324,25 @@ def recv_til_done(conn, test_id):
             break
     else:
         pytest.fail("too many responses for message id %s"%test_id)
+
+def my_sage_startup():
+    """
+    name of pytest SAGE_STARTUP_FILE
+    used in other test files so we export it
+    """
+    return "a-init.sage"
+
+def start_cmd(action='start'):
+    """
+    launch sage-server with env setting for startup file
+
+    - `` action `` -- string "start" | "restart"
+
+    """
+    pssf = os.path.join(os.path.dirname(__file__), my_sage_startup())
+    cmd = "export SAGE_STARTUP_FILE={};smc-sage-server {}".format(pssf, action)
+    return cmd
+
 ###
 # Start of fixtures
 ###
@@ -326,15 +352,7 @@ def sage_server_setup(pid_file = default_pid_file, log_file = default_log_file):
     r"""
     make sure sage_server pid file exists and process running at given pid
     """
-    print("initial fixture")
-    try:
-        pid = int(open(pid_file).read())
-        os.kill(pid, 0)
-    except:
-        assert os.geteuid() != 0, "Do not run as root."
-        os.system("pkill -f sage_server_command_line")
-        os.system("rm -f %s"%pid_file)
-        os.system("smc-sage-server start")
+    os.system(start_cmd('restart'))
     for loop_count in range(20):
         time.sleep(0.5)
         if not os.path.exists(log_file):
@@ -414,6 +432,9 @@ def exec2(request, sagews, test_id):
     If output & patterns are omitted, the cell is not expected to produce a
     stdout result. All arguments after 'code' are optional.
 
+    If argument `timeout` is provided, the default socket timeout
+    for connection to sage_server will be overridden to the value of `timeout` in seconds.
+
     - `` code `` -- string of code to run
 
     - `` output `` -- string or list of strings of output to be matched up to leading & trailing whitespace
@@ -421,6 +442,10 @@ def exec2(request, sagews, test_id):
     - `` pattern `` -- regex to match with expected stdout output
 
     - `` html_pattern `` -- regex to match with expected html output
+
+    - `` timeout `` -- socket timeout in seconds
+
+    - `` errout `` -- stderr substring to be matched. stderr may come as several messages
 
     EXAMPLES:
 
@@ -447,9 +472,15 @@ def exec2(request, sagews, test_id):
         If `output` is a list of strings, `pattern` and `html_pattern` are ignored
 
     """
-    def execfn(code, output = None, pattern = None, html_pattern = None):
+    def execfn(code, output = None, pattern = None, html_pattern = None, timeout = default_timeout,
+              errout = None):
         m = message.execute_code(code = code, id = test_id)
         m['preparse'] = True
+
+        if timeout is not None:
+            print('overriding socket timeout to {}'.format(timeout))
+            sagews.set_timeout(timeout)
+
         # send block of code to be executed
         sagews.send_json(m)
 
@@ -477,7 +508,52 @@ def exec2(request, sagews, test_id):
             assert mesg['id'] == test_id
             assert 'html' in mesg
             assert re.search(html_pattern, mesg['html']) is not None
+        elif errout:
+            mout = ""
+            while True:
+                typ, mesg = sagews.recv()
+                assert typ == 'json'
+                assert mesg['id'] == test_id
+                assert 'stderr' in mesg
+                mout += mesg['stderr']
+                if errout.strip() in mout:
+                    break
+    def fin():
+        recv_til_done(sagews, test_id)
 
+    request.addfinalizer(fin)
+    return execfn
+
+@pytest.fixture()
+def execbuf(request, sagews, test_id):
+    r"""
+    Fixture function execbuf.
+    Inner function will execute code, then append messages received
+    from sage_server.
+    As messages are appended, the result is checked for either
+    an exact match, if `output` string is specified, or
+    pattern match, if `pattern` string is given.
+    Test fails if non-`stdout` message is received before
+    match or receive times out.
+    """
+    def execfn(code, output = None, pattern = None):
+        m = message.execute_code(code = code, id = test_id)
+        m['preparse'] = True
+        # send block of code to be executed
+        sagews.send_json(m)
+        outbuf = ''
+        while True:
+            typ, mesg = sagews.recv()
+            assert typ == 'json'
+            assert mesg['id'] == test_id
+            assert 'stdout' in mesg
+            outbuf += mesg['stdout']
+            if output is not None:
+                if output in outbuf:
+                    break
+            elif pattern is not None:
+                if re.search(pattern, outbuf) is not None:
+                    break
     def fin():
         recv_til_done(sagews, test_id)
 
@@ -523,7 +599,7 @@ def execblob(request, sagews, test_id):
                 want_blob = False
                 # when a blob is sent, the first 36 bytes are the sha1 uuid
                 print("blob len %s"%len(mesg))
-                file_uuid = mesg[:SHA_LEN]
+                file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == uuidsha1(mesg[SHA_LEN:])
 
                 # sage_server expects an ack with the right uuid
@@ -583,15 +659,14 @@ def sagews(request):
     print("host %s  port %s"%(host, port))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, port))
-    # scala jupyter kernel can take over 45 seconds to start
-    sock.settimeout(50)
+    sock.settimeout(default_timeout)
     print("connected to socket")
 
     # unlock
     client_unlock_connection(sock)
     print("socket unlocked")
     conn = ConnectionJSON(sock)
-    c_ack = conn._recv(1)
+    c_ack = conn._recv(1).decode()
     assert c_ack == 'y',"expect ack for token, got %s"%c_ack
 
     # open connection with sage_server and run tests
@@ -631,9 +706,8 @@ import time
 @pytest.fixture(scope = "class")
 def own_sage_server(request):
     assert os.geteuid() != 0, "Do not run as root, will kill all sage_servers."
-    #os.system("pkill -f sage_server_command_line")
-    print("starting new sage_server")
-    os.system("smc-sage-server start")
+    print("starting sage_server class fixture")
+    os.system(start_cmd())
     time.sleep(0.5)
     def fin():
         print("killing all sage_server processes")

@@ -118,6 +118,31 @@ exports.scroll_top = () ->
 #############################################
 {required, defaults} = require('smc-util/misc')
 
+# These should all get moved to this subdir and be in typescript.  For now there is one:
+require('./jquery-plugins/katex')
+
+# Force reload all images by appending random query param to their src URL.
+# But not for base64 data images -- https://github.com/sagemathinc/cocalc/issues/3141
+$.fn.reload_images = (opts) ->
+    @each ->
+        for img in $(this).find('img')
+            src = $(img).attr('src')
+            if misc.startswith(src, 'data:')
+                continue
+            $(img).attr('src', src + '?' + Math.random())
+
+# Highlight all code blocks that have CSS class language-r, language-python.
+# TODO: I just put in r and python for now, since this is mainly
+# motivated by rmd files.
+$.fn.highlight_code = (opts) ->
+    @each ->
+        for mode in ['r', 'python']
+            for elt in $(this).find("code.language-#{mode}")
+                code = $(elt)
+                CodeMirror.runMode(code.text(), mode, elt)
+                code.addClass('cm-s-default')
+                code.removeClass('language-#{mode}')  # done
+
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->
     @each ->
@@ -190,8 +215,6 @@ mathjax_enqueue = (x) ->
 exports.mathjax_finish_startup = ->
     for x in mathjax_queue
         mathjax_enqueue(x)
-    if DEBUG
-        console.log 'finishing mathjax startup'
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!
@@ -203,7 +226,7 @@ $.fn.extend
             tex                 : undefined
             display             : false
             inline              : false
-            hide_when_rendering : false  # if true, entire element will get hidden until mathjax is rendered
+            hide_when_rendering : false         # if true, entire element will get hidden until mathjax is rendered
             cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)
@@ -723,6 +746,8 @@ exports.define_codemirror_extensions = () ->
 
     # Set the value of the buffer to something new by replacing just the ranges
     # that changed, so that the view/history/etc. doesn't get messed up.
+    # Setting scroll_last to ture sets cursor to last changed position and puts cursors
+    # there; this is used for undo/redo.
     CodeMirror.defineExtension 'setValueNoJump', (value, scroll_last) ->
         if not value?
             # Special case -- trying to set to value=undefined.  This is the sort of thing
@@ -762,6 +787,15 @@ exports.define_codemirror_extensions = () ->
                 @setCursor(last_pos)
 
         delete @_setValueNoJump
+
+        # Just do an expensive double check that the above worked.  I have no reason
+        # to believe the above could ever fail... but maybe it does in some very rare
+        # cases, and if it did, the results would be PAINFUL.  So... we just brutally
+        # do the set if it fails.  This will mess up cursors, etc., but that's a reasonable
+        # price to pay for correctness.
+        if value != @getValue()
+            console.warn("setValueNoJump failed -- just setting value directly")
+            @setValue(value)
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## OPTIMIZATION: this is a very stupid/inefficient way to turn
@@ -937,7 +971,7 @@ exports.define_codemirror_extensions = () ->
 
     # $.get '/static/codemirror-extra/data/latex-completions.txt', (data) ->
     require.ensure [], =>
-        data = require('raw!codemirror-extra/data/latex-completions.txt')
+        data = require('raw-loader!codemirror-extra/data/latex-completions.txt')
         s = data.split('\n')
         tex_hint = (editor) ->
             cur   = editor.getCursor()
@@ -994,6 +1028,7 @@ exports.define_codemirror_extensions = () ->
             cmd  : required
             args : undefined
             mode : undefined
+            cb   : undefined  # called after done; if there is a dialog, this could be a while.
         cm = @
         default_mode = opts.mode
         if not default_mode?
@@ -1008,7 +1043,7 @@ exports.define_codemirror_extensions = () ->
         #console.log("edit_selection '#{misc.to_json(opts)}', mode='#{default_mode}'")
 
         # FUTURE: will have to make this more sophisticated, so it can
-        # deal with nesting.
+        # deal with nesting, spans, etc.
         strip = (src, left, right) ->
             #console.log("strip:'#{src}','#{left}','#{right}'")
             left  = left.toLowerCase()
@@ -1019,6 +1054,7 @@ exports.define_codemirror_extensions = () ->
                 j = src0.lastIndexOf(right)
                 if j != -1
                     #console.log('strip match')
+                    opts.cb?()
                     return src.slice(0,i) + src.slice(i+left.length,j) + src.slice(j+right.length)
 
         selections = cm.listSelections()
@@ -1036,6 +1072,7 @@ exports.define_codemirror_extensions = () ->
             data_for_mode = EDIT_COMMANDS[mode1]
             if not data_for_mode?
                 console.warn("mode '#{mode1}' is not defined!")
+                opts.cb?()
                 return
             how = data_for_mode[cmd]
             if not how?
@@ -1046,9 +1083,6 @@ exports.define_codemirror_extensions = () ->
                     # Sage fallback in python mode. FUTURE: There should be a Sage mode.
                     mode1 = "sage"
                 how = EDIT_COMMANDS[mode1][cmd]
-
-            if DEBUG and not how?
-                console.warn("CodeMirror/edit_selection: unknown 'how' for mode1='#{mode1}' and cmd='#{cmd}'")
 
             # trim whitespace
             i = 0
@@ -1121,63 +1155,113 @@ exports.define_codemirror_extensions = () ->
                     src = "#{src}\n#{how.insert}"
                 done = true
 
-            if cmd == 'font_size'
-                if mode in ['html', 'md', 'mediawiki']
-                    for i in [1..7]
-                        src1 = strip(src, "<font size=#{i}>", '</font>')
-                        if src1
-                            src = src1
-                    if args != '3'
-                        src = "<font size=#{args}>#{src}</font>"
-                else if mode == 'tex'
-                    # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
-                    latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
-                    i = parseInt(args)
-                    if i in [1..7]
-                        size = latex_sizes[i - 1]
-                        src = "{\\#{size} #{src}}"
+            switch cmd
+                when 'link'
+                    cm.insert_link(cb:opts.cb)
+                    return
+                when 'image'
+                    cm.insert_image(cb:opts.cb)
+                    return
+                when 'SpecialChar'
+                    cm.insert_special_char(cb:opts.cb)
+                    return
+                when 'font_size'
+                    if mode in ['html', 'md', 'mediawiki']
+                        for i in [1..7]
+                            src1 = strip(src, "<font size=#{i}>", '</font>')
+                            if src1
+                                src = src1
+                        if args != '3'
+                            src = "<font size=#{args}>#{src}</font>"
+                        done = true
+                    else if mode == 'tex'
+                        # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                        latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                        i = parseInt(args)
+                        if i in [1..7]
+                            size = latex_sizes[i - 1]
+                            src = "{\\#{size} #{src}}"
+                        done = true
 
-            if cmd == 'color'
-                if mode in ['html', 'md', 'mediawiki']
-                    src0 = src.toLowerCase().trim()
-                    if src0.slice(0,12) == "<font color="
-                        i = src.indexOf('>')
-                        j = src.lastIndexOf('<')
-                        src = src.slice(i+1,j)
-                    src = "<font color=#{args}>#{src}</font>"
+                when 'font_size_new'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='font-size")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        if args != 'medium'
+                            src = "<span style='font-size:#{args}'>#{src}</span>"
+                        done = true
+                    else if mode == 'tex'
+                        # we need 6 latex sizes, for size 1 to 7 (default 3, at index 2)
+                        latex_sizes = ['tiny', 'footnotesize', 'normalsize', 'large', 'LARGE', 'huge', 'Huge']
+                        i = parseInt(args)
+                        if i in [1..7]
+                            size = latex_sizes[i - 1]
+                            src = "{\\#{size} #{src}}"
+                        done = true
 
-            if cmd == 'background-color'
-                if mode in ['html', 'md', 'mediawiki']
-                    src0 = src.toLowerCase().trim()
-                    if src0.slice(0,23) == "<span style='background"
-                        i = src.indexOf('>')
-                        j = src.lastIndexOf('<')
-                        src = src.slice(i+1,j)
-                    src = "<span style='background-color:#{args}'>#{src}</span>"
+                when 'color'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='color")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        src = "<span style='color:#{args}'>#{src}</span>"
+                        done = true
 
-            if cmd == 'font_face'
-                if mode in ['html', 'md', 'mediawiki']
-                    for face in FONT_FACES
-                        src1 = strip(src, "<font face='#{face}'>", '</font>')
-                        if src1
-                            src = src1
-                    src = "<font face='#{args}'>#{src}</font>"
+                when 'background-color'
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='background")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        src = "<span style='background-color:#{args}'>#{src}</span>"
+                        done = true
 
-            if cmd == 'clean'
-                if mode == 'html'
-                    src = html_beautify($("<div>").html(src).html())
-                    done = true
+                when 'font_face'  # old -- still used in some old non-react editors
+                    if mode in ['html', 'md', 'mediawiki']
+                        for face in FONT_FACES
+                            src1 = strip(src, "<font face='#{face}'>", '</font>')
+                            if src1
+                                src = src1
+                        src = "<font face='#{args}'>#{src}</font>"
+                        done = true
 
-            if cmd == 'unformat'
-                if mode == 'html'
-                    src = $("<div>").html(src).text()
-                    done = true
-                else if mode == 'md'
-                    src = $("<div>").html(markdown.markdown_to_html(src).s).text()
-                    done = true
+                when 'font_family'  # new -- html5 style
+                    if mode in ['html', 'md', 'mediawiki']
+                        src0 = src.toLowerCase().trim()
+                        if misc.startswith(src0, "<span style='font-family")
+                            i = src.indexOf('>')
+                            j = src.lastIndexOf('<')
+                            src = src.slice(i+1,j)
+                        if not src
+                            src = '    '
+                        src = "<span style='font-family:#{args}'>#{src}</span>"
+                        done = true
+
+                when 'clean'
+                    if mode == 'html'
+                        src = html_beautify($("<div>").html(src).html())
+                        done = true
+
+                when 'unformat'
+                    if mode == 'html'
+                        src = $("<div>").html(src).text()
+                        done = true
+                    else if mode == 'md'
+                        src = $("<div>").html(markdown.markdown_to_html(src)).text()
+                        done = true
 
             if not done?
+                if DEBUG and not how?
+                    console.warn("CodeMirror/edit_selection: unknown for mode1='#{mode1}' and cmd='#{cmd}'")
+
                 #console.log("not implemented")
+                opts.cb?()
                 return "not implemented"
 
             if src == src0
@@ -1198,6 +1282,7 @@ exports.define_codemirror_extensions = () ->
                     # now select the new range
                     delta = src.length - src0.length
                     cm.extendSelection(from, {line:to.line, ch:to.ch+delta})
+            opts.cb?()
 
 
     CodeMirror.defineExtension 'insert_link', (opts={}) ->
@@ -1633,7 +1718,7 @@ exports.load_coffeescript_compiler = (cb) ->
     else
         require.ensure [], =>
             # this should define window.CoffeeScript as the compiler instance.
-            require("script!coffeescript/coffee-script.js")
+            require("script-loader!coffeescript/lib/coffeescript/index.js")
             console.log("loaded CoffeeScript via require.ensure")
             cb?()
 
@@ -1772,23 +1857,37 @@ exports.drag_start_iframe_disable = ->
 exports.drag_stop_iframe_enable = ->
     $("iframe:visible").css('pointer-events', 'auto')
 
-exports.open_popup_window = (url) ->
-    exports.open_new_tab(url, popup=true)
+exports.open_popup_window = (url, opts) ->
+    exports.open_new_tab(url, true, opts)
 
 # open new tab and check if user allows popups. if yes, return the tab -- otherwise show an alert and return null
-exports.open_new_tab = (url, popup=false) ->
-    # if popup=true, it opens a small overlay window instead of a new tab
+exports.open_new_tab = (url, popup=false, opts) ->
+    # if popup=true, it opens a smaller overlay window instead of a new tab (though depends on browser)
+
+    opts = misc.defaults opts,
+        menubar    : 'yes'
+        toolbar    : 'no'
+        resizable  : 'yes'
+        scrollbars : 'yes'
+        width      : '800'
+        height     : '640'
+
     if popup
-        tab = window.open(url, '', 'menubar=no,toolbar=no,resizable=yes,scrollbars=yes,height=400,width=600')
+        popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
+        tab = window.open(url, '_blank', popup_opts)
     else
-        tab = window.open(url)
-    if(!tab || tab.closed || typeof tab.closed=='undefined')
+        tab = window.open(url, '_blank')
+    if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
+        if url
+            message = "Either enable popups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+        else
+            message = "Enable popups for this website and try again."
         alert_message
-            title   : "Pop-ups blocked."
-            message : "Either enable pop-ups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
-            type    : 'error'
-            timeout : 10
+            title   : "Popups blocked."
+            message : message
+            type    : 'info'
+            timeout : 15
         return null
     return tab
 

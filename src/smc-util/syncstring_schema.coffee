@@ -55,7 +55,7 @@ schema.syncstrings =
             date : ['time']
         save :
             type : 'map'
-            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
+            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), expected_hash:?, error:['' or 'error message']}"
         read_only :
             type : 'boolean'
             desc : 'true or false, depending on whether this syncstring is readonly or can be edited'
@@ -75,8 +75,11 @@ schema.syncstrings =
         doctype :
             type : 'string'
             desc : "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}"
+        settings :
+            type : 'map'
+            desc : 'Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).'
 
-    pg_indexes : ['last_active']
+    pg_indexes : ['last_active', 'archived']
 
     user_query:
         get :
@@ -94,13 +97,16 @@ schema.syncstrings =
                 read_only         : null
                 last_file_change  : null
                 doctype           : null
+                archived          : null
+                settings          : null
             required_fields :
                 path              : true
                 project_id        : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 db._syncstrings_check obj, account_id, project_id, (err) ->
                     if not err
-                        db.unarchive_patches(string_id: obj.string_id, cb:cb)
+                        db.unarchive_patches(string_id: obj.string_id)  # do NOT block on this - archived field changes when done, which notifies clients.
+                        cb()
                     else
                         cb(err)
 
@@ -121,6 +127,7 @@ schema.syncstrings =
                 read_only         : true
                 last_file_change  : true
                 doctype           : true
+                settings          : true
             required_fields :
                 path              : true
                 project_id        : true

@@ -19,8 +19,10 @@
 #
 ###############################################################################
 
+{PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
+
 ###
-LocalHub
+Connection to a Project (="local hub", for historical reasons only.)
 ###
 
 async   = require('async')
@@ -79,9 +81,14 @@ exports.new_local_hub = (project_id, database, compute_server) ->
         _local_hub_cache[project_id] = H
     return H
 
-exports.connect_to_project = (project_id, database, compute_server) ->
+exports.connect_to_project = (project_id, database, compute_server, cb) ->
     hub = exports.new_local_hub(project_id, database, compute_server)
-    hub.local_hub_socket(()->)
+    hub.local_hub_socket (err) ->
+        if err
+            winston.debug("connect_to_project: error ensuring connection to #{project_id} -- #{err}")
+        else
+            winston.debug("connect_to_project: successfully ensured connection to #{project_id}")
+        cb?(err)
 
 exports.all_local_hubs = () ->
     v = []
@@ -90,24 +97,40 @@ exports.all_local_hubs = () ->
             v.push(h)
     return v
 
-smc_version = undefined
-init_smc_version = () ->
-    smc_version = require('./hub-version')
-    smc_version.on 'change', () ->
-        winston.debug("local_hub_connection (smc_version changed) -- checking on clients")
+server_settings = undefined
+init_server_settings = (database) ->
+    server_settings = require('./server-settings')(database)
+    server_settings.table.on 'change', () ->
+        winston.debug("local_hub_connection (version might have changed) -- checking on clients")
         for x in exports.all_local_hubs()
             x.restart_if_version_too_old()
 
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
-        if not smc_version?  # module being used -- make sure smc_version is initialized
-            init_smc_version()
+        if not server_settings?  # module being used -- make sure server_settings is initialized
+            init_server_settings(@database)
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
         @call_callbacks = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
+
+    init_heartbeat: =>
+        @dbg("init_heartbeat")
+        if @_heartbeat_interval?  # already running
+            @dbg("init_heartbeat -- already running")
+            return
+        send_heartbeat = =>
+            @dbg("init_heartbeat -- send")
+            @_socket?.write_mesg('json', message.heartbeat())
+        @_heartbeat_interval = setInterval(send_heartbeat, PROJECT_HUB_HEARTBEAT_INTERVAL_S*1000)
+
+    delete_heartbeat: =>
+        if @_heartbeat_interval?
+            @dbg("delete_heartbeat")
+            clearInterval(@_heartbeat_interval)
+            delete @_heartbeat_interval
 
     project: (cb) =>
         @compute_server.project
@@ -117,7 +140,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     dbg: (m) =>
         ## only enable when debugging
         if DEBUG
-            winston.debug("local_hub(#{@project_id}: #{misc.to_json(m)}")
+            winston.debug("local_hub('#{@project_id}'): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
@@ -174,6 +197,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     free_resources: () =>
         @dbg("free_resources")
         @query_cancel_all_changefeeds()
+        @delete_heartbeat()
         delete @address  # so we don't continue trying to use old address
         delete @_status
         delete @smc_version  # so when client next connects we ignore version checks until they tell us their version
@@ -263,14 +287,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         write_mesg(mesg)
                         delete @_query_changefeeds?[mesg.id]
 
-    mesg_query_get_changefeed_ids: (mesg, write_mesg) =>
-        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
-        write_mesg(mesg)
-
     query_cancel_all_changefeeds: (cb) =>
         if not @_query_changefeeds? or @_query_changefeeds.length == 0
             cb?(); return
-        dbg = (m)-> winston.debug("query_cancel_all_changefeeds(project_id='#{@project_id}'): #{m}")
+        dbg = (m) => winston.debug("query_cancel_all_changefeeds(project_id='#{@project_id}'): #{m}")
         v = @_query_changefeeds
         dbg("canceling #{v.length} changefeeds")
         delete @_query_changefeeds
@@ -297,7 +317,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @restart_if_version_too_old()
 
     # If our known version of the project is too old compared to the
-    # current min_project_version in smcu-util/smc-version, then
+    # current version_min_project in smcu-util/smc-version, then
     # we restart the project, which updates the code to the latest
     # version.  Only restarts the project if we have an open control
     # socket to it.
@@ -311,10 +331,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         if not @smc_version?
             # client hasn't told us their version yet
             return
-        if smc_version.min_project_version <= @smc_version
+        if server_settings.version.version_min_project <= @smc_version
             # the project is up to date
             return
-        if @_restart_goal_version == smc_version.min_project_version
+        if @_restart_goal_version == server_settings.version.version_min_project
             # We already restarted the project in an attempt to update it to this version
             # and it didn't get updated.  Don't try again until @_restart_version is cleared, since
             # we don't want to lock a user out of their project due to somebody forgetting
@@ -322,15 +342,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # didn't finish restarting.
             return
 
-        winston.debug("restart_if_version_too_old(#{@project_id}): #{@smc_version}, #{smc_version.min_project_version}")
+        winston.debug("restart_if_version_too_old(#{@project_id}): #{@smc_version}, #{server_settings.version.version_min_project}")
         # record some stuff so that we don't keep trying to restart the project constantly
-        ver = @_restart_goal_version = smc_version.min_project_version # version which we tried to get to
+        ver = @_restart_goal_version = server_settings.version.version_min_project # version which we tried to get to
         f = () =>
             if @_restart_goal_version == ver
                 delete @_restart_goal_version
         setTimeout(f, 15*60*1000)  # don't try again for at least 15 minutes.
 
-        @dbg("restart_if_version_too_old -- restarting since #{smc_version.min_project_version} > #{@smc_version}")
+        @dbg("restart_if_version_too_old -- restarting since #{server_settings.version.version_min_project} > #{@smc_version}")
         @restart (err) =>
             @dbg("restart_if_version_too_old -- done #{err}")
 
@@ -366,8 +386,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @mesg_query(mesg, write_mesg)
                     when 'query_cancel'
                         @mesg_query_cancel(mesg, write_mesg)
-                    when 'query_get_changefeed_ids'
-                        @mesg_query_get_changefeed_ids(mesg, write_mesg)
                     when 'file_written_to_project'
                         # ignore -- don't care; this is going away
                         return
@@ -452,7 +470,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         when 'json'
                             @handle_mesg(mesg, socket)
 
-                socket.on('end', @free_resources)
+                socket.on('end',   @free_resources)
                 socket.on('close', @free_resources)
                 socket.on('error', @free_resources)
 
@@ -465,6 +483,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 delete @_local_hub_socket_queue
 
                 @_socket = socket
+                @init_heartbeat()  # start sending heartbeat over this socket
 
                 # Finally, we wait a bit to see if the version gets sent from
                 # the client.  If not, we set it to 0, which will cause a restart,
@@ -486,6 +505,15 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         f = (cb) =>
             if not @address?
                 cb("no address")
+                return
+            if not @address.port?
+                cb("no port")
+                return
+            if not @address.host?
+                cb("no host")
+                return
+            if not @address.secret_token?
+                cb("no secret_token")
                 return
             connect_to_a_local_hub
                 port         : @address.port
