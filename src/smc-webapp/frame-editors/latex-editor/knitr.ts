@@ -1,5 +1,5 @@
 /*
-Run Rweave on rnw files
+Run Knitr on rnw/rtex files
 */
 
 import { exec, ExecOutput } from "../generic/client";
@@ -8,22 +8,30 @@ import { ProcessedLatexLog, Error } from "./latex-log-parser";
 import { BuildLog } from "./actions";
 
 // this still respects the environment variables and init files
-const R_CMD = "R --no-save --no-restore --quiet --no-readline";
+const R_CMD = "R";
+const R_ARGS: ReadonlyArray<string> = [
+  "--no-save",
+  "--no-restore",
+  "--quiet",
+  "--no-readline",
+  "-e"
+];
 
 export async function knitr(
   project_id: string,
-  path: string, // pass in this.filename_rnw
+  path: string, // pass in this.filename_knitr
   time: number | undefined,
   status: Function
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
-  const cmd: string = `echo 'require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")' | ${R_CMD}`;
-  status(`running ${cmd}`);
+  const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
+  status(`${expr}`);
   return exec({
     allow_post: false, // definitely could take a long time to fully run Knitr
     timeout: 360,
-    command: cmd,
-    bash: true,
+    command: R_CMD,
+    args: [...R_ARGS, expr],
+    bash: true,   // so timeout is enforced by ulimit
     project_id: project_id,
     path: directory,
     err_on_exit: false,
@@ -106,13 +114,14 @@ export async function patch_synctex(
   status: Function
 ) {
   const { directory, filename } = parse_path(path);
-  const cmd = `echo 'require(patchSynctex); patchSynctex("${filename}");' | ${R_CMD}`;
-  status(`running ${cmd}`);
+  const expr = `require(patchSynctex); patchSynctex("${filename}")`;
+  status(`${expr}`);
   return exec({
     allow_post: true,
     timeout: 10,
-    command: cmd,
-    bash: true,
+    command: R_CMD,
+    args: [...R_ARGS, expr],
+    bash: false,
     project_id: project_id,
     path: directory,
     err_on_exit: false,

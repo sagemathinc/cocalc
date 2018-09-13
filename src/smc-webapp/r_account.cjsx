@@ -21,7 +21,7 @@
 
 {React, ReactDOM, rtypes, rclass, redux}  = require('./app-framework')
 
-{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
+{Button, ButtonToolbar, Checkbox, Panel, Grid, Row, Col, FormControl, FormGroup, Well, Modal, ProgressBar, Alert, Radio} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip, Footer, Space} = require('./r_misc')
 
@@ -29,6 +29,7 @@
 
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
+{ProfileImageSelector} = require('./r_profile_image')
 
 md5 = require('md5')
 
@@ -41,6 +42,7 @@ smc_version = require('smc-util/smc-version')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
 {APIKeySetting} = require('./api-key')
+
 
 # Define a component for working with the user's basic
 # account information.
@@ -101,7 +103,7 @@ EmailVerification = rclass
 
     test : ->
         if not @props.email_address?
-            <span>Unkown</span>
+            <span>Unknown</span>
         else
             if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
@@ -116,14 +118,17 @@ EmailVerification = rclass
                     >
                         {
                             if @state.disabled_button
-                                'Email sent'
+                                'Email Sent'
                             else
-                                'Send verification email'
+                                'Send Verification Email'
                         }
                     </Button>
                 ]
 
     render : ->
+        # disabled since it is very confusing and not used at all yet:
+        #   see https://github.com/sagemathinc/cocalc/issues/3147 and https://github.com/sagemathinc/cocalc/issues/3148
+        return <span></span>
         <LabeledRow label='Email verification' style={marginBottom: '15px'}>
             <div>
                 Status: {@test()}
@@ -178,9 +183,9 @@ EmailAddressSetting = rclass
 
     change_button: ->
         if @is_submittable()
-            <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
+            <Button onClick={@save_editing} bsStyle='success'>Change Email Address</Button>
         else
-            <Button disabled bsStyle='success'>Change email address</Button>
+            <Button disabled bsStyle='success'>Change Email Address</Button>
 
     render_error: ->
         if @state.error
@@ -228,7 +233,7 @@ EmailAddressSetting = rclass
         <LabeledRow label='Email address'  style={marginBottom: '15px'}>
             <div>
                 {@props.email_address}
-                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change email...</Button>
+                <Button className='pull-right'  disabled={@state.state != 'view'} onClick={@start_editing}>Change Email...</Button>
             </div>
             {@render_edit() if @state.state != 'view'}
         </LabeledRow>
@@ -330,10 +335,10 @@ PasswordSetting = rclass
     change_button: ->
         if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
-                Change password
+                Change Password
             </Button>
         else
-            <Button disabled bsStyle='success'>Change password</Button>
+            <Button disabled bsStyle='success'>Change Password</Button>
 
     render_error: ->
         if @state.error
@@ -390,7 +395,7 @@ PasswordSetting = rclass
         <LabeledRow label='Password' style={marginBottom: '15px'}>
             <div style={height:'30px'}>
                 <Button className='pull-right' disabled={@state.state != 'view'} onClick={@change_password}>
-                    Change password...
+                    Change Password...
                 </Button>
             </div>
             {@render_edit() if @state.state != 'view'}
@@ -445,7 +450,7 @@ AccountSettings = rclass
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"#{window.app_base_url}/auth/#{@state.add_strategy_link}"} target="_blank"
                     onClick={=>@setState(add_strategy_link:undefined)}>
-                    <Icon name="external-link" /> Link my {name} account
+                    <Icon name="external-link" /> Link My {name} Account
                 </Button>
                 <Button onClick={=>@setState(add_strategy_link:undefined)} >
                     Cancel
@@ -491,7 +496,7 @@ AccountSettings = rclass
                 <br /> <br />
                 <ButtonToolbar style={textAlign: 'center'}>
                     <Button bsStyle='danger' onClick={@remove_strategy_click} >
-                        <Icon name="unlink" /> Delink my {name} account
+                        <Icon name="unlink" /> Delink My {name} Account
                     </Button>
                     <Button onClick={=>@setState(remove_strategy_button:undefined)} >
                         Cancel
@@ -520,7 +525,7 @@ AccountSettings = rclass
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button bsStyle="primary" onClick={=>@actions('account').sign_out(@props.everywhere)}>
-                    <Icon name="external-link" /> Sign out
+                    <Icon name="external-link" /> Sign Out
                 </Button>
                 <Button onClick={=>@actions('account').setState(show_sign_out : false)}>
                     Cancel
@@ -533,11 +538,11 @@ AccountSettings = rclass
         <ButtonToolbar className='pull-right'>
             <Button bsStyle='warning' disabled={@props.show_sign_out and not @props.everywhere}
                 onClick={=>@actions('account').setState(show_sign_out : true, everywhere : false, sign_out_error:undefined)}>
-                <Icon name='sign-out'/> Sign out...
+                <Icon name='sign-out'/> Sign Out...
             </Button>
             <Button bsStyle='warning' disabled={@props.show_sign_out and @props.everywhere}
                 onClick={=>@actions('account').setState(show_sign_out : true, everywhere : true, sign_out_error:undefined)}>
-                <Icon name='sign-out'/> Sign out everywhere...
+                <Icon name='sign-out'/> Sign Out Everywhere...
             </Button>
         </ButtonToolbar>
 
@@ -691,7 +696,7 @@ DeleteAccountConfirmation = rclass
                     bsStyle  = 'danger'
                     onClick  = {=>@props.confirm_click()}
                 >
-                    <Icon name='trash' /> Confirm Account Deletion
+                    <Icon name='trash' /> Yes, please DELETE MY ACCOUNT
                 </Button>
                 <Button
                     style   = {paddingRight:'8px'}
@@ -739,52 +744,6 @@ ProfileSettings = rclass
     onColorChange: (value) ->
         @props.redux.getTable('account').set(profile : {color: value})
 
-    onGravatarSelect: (e) ->
-        if e.target.checked
-            email = @props.email_address
-            gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
-            @props.redux.getTable('account').set(profile : {image: gravatar_url})
-        else
-            @props.redux.getTable('account').set(profile : {image: ""})
-
-    render_gravatar_button: ->
-        <Button bsStyle='info' onClick={=>@setState(show_instructions:true)}>
-            Set Gravatar...
-        </Button>
-
-    render_instruction_well: ->
-        <Well style={marginTop:'10px', marginBottom:'10px'}>
-            Go to the <a href="https://en.gravatar.com" target="_blank"> Wordpress Gravatar site </a> and
-            sign in (or create an account) using {@props.email_address}.
-            <br/><br/>
-            <br/><br/>
-            <Button onClick={=>@setState(show_instructions:false)}>
-                Close
-            </Button>
-        </Well>
-
-    render_gravatar_needs_email: ->
-        <div className="lighten">
-            Gravatar only available if you set an email address in the account settings panel above.
-        </div>
-
-    render_set_gravatar: ->
-        if not @props.email_address
-            return @render_gravatar_needs_email()
-        <Row>
-            <Col md={6} key='checkbox'>
-                <Checkbox
-                    ref      = "checkbox"
-                    checked  = {!!@props.profile.get('image')}
-                    onChange = {@onGravatarSelect}>
-                    Use gravatar
-                </Checkbox>
-            </Col>
-            <Col md={6} key='set'>
-                {@render_gravatar_button() if not @state.show_instructions}
-            </Col>
-        </Row>
-
     render_header: ->
         <h2>
             <Avatar
@@ -804,7 +763,12 @@ ProfileSettings = rclass
                 <ColorPicker color={@props.profile.get('color')} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
             <LabeledRow label='Picture'>
-                {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
+                <ProfileImageSelector
+                    account_id={@props.account_id}
+                    email_address={@props.email_address}
+                    redux={@props.redux}
+                    profile={@props.profile}
+                />
              </LabeledRow>
         </Panel>
 
@@ -974,7 +938,7 @@ EDITOR_COLOR_SCHEMES =
     'gruvbox-dark'            : 'Gruvbox-Dark'
     'hopscotch'               : 'Hopscotch'
     'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'
+    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
     'isotope'                 : 'Isotope'
     'lesser-dark'             : 'Lesser dark'
     'liquibyte'               : 'Liquibyte'
@@ -1155,19 +1119,37 @@ OtherSettings = rclass
     on_change: (name, value) ->
         @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
+    toggle_global_banner: (val) ->
+        if val
+            # this must be "null", not "undefined" – otherwise the data isn't stored in the DB.
+            @on_change('show_global_info2', null)
+        else
+            @on_change('show_global_info2', webapp_client.server_time())
+
     render_first_steps: ->
         <Checkbox
             checked  = {!!@props.other_settings.get('first_steps')}
             ref      = 'first_steps'
-            onChange = {(e)=>@on_change('first_steps', e.target.checked)}>
+            onChange = {(e)=>@on_change('first_steps', e.target.checked)}
+        >
             Offer to setup the "First Steps" guide (if available).
+        </Checkbox>
+
+    render_global_banner: ->
+        <Checkbox
+            checked  = {!@props.other_settings.get('show_global_info2')}
+            ref      = 'global_banner'
+            onChange = {(e)=>@toggle_global_banner(e.target.checked)}
+        >
+            Show announcement banner (only shows up if there is a message)
         </Checkbox>
 
     render_time_ago_absolute: ->
         <Checkbox
             checked  = {!!@props.other_settings.get('time_ago_absolute')}
             ref      = 'time_ago_absolute'
-            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}>
+            onChange = {(e)=>@on_change('time_ago_absolute', e.target.checked)}
+        >
             Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
@@ -1175,7 +1157,8 @@ OtherSettings = rclass
         <Checkbox
             checked  = {!!@props.other_settings.get('katex')}
             ref      = 'katex'
-            onChange = {(e)=>@on_change('katex', e.target.checked)}>
+            onChange = {(e)=>@on_change('katex', e.target.checked)}
+        >
             KaTeX: render using <a href="https://khan.github.io/KaTeX/" target="_blank">KaTeX</a> when possible, instead of <a href="https://www.mathjax.org/" target="_blank">MathJax</a>
         </Checkbox>
 
@@ -1184,7 +1167,8 @@ OtherSettings = rclass
             <Checkbox
                 checked  = {!!@props.other_settings.get('confirm_close')}
                 ref      = 'confirm_close'
-                onChange = {(e)=>@on_change('confirm_close', e.target.checked)}>
+                onChange = {(e)=>@on_change('confirm_close', e.target.checked)}
+            >
                 Confirm: always ask for confirmation before closing the browser window
             </Checkbox>
 
@@ -1254,6 +1238,7 @@ OtherSettings = rclass
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             {@render_first_steps()}
+            {@render_global_banner()}
             {@render_time_ago_absolute()}
             {### @render_katex() ###}
             {@render_mask_files()}
@@ -1265,18 +1250,6 @@ OtherSettings = rclass
         </Panel>
 
 
-
-AdminSettings = rclass
-    propTypes :
-        groups : rtypes.immutable.List
-
-    render: ->
-        if not @props.groups?.contains('admin')
-            return <span />
-
-        <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            Moved to the new Admin top level page.
-        </Panel>
 
 # Render the entire settings component
 exports.AccountSettingsTop = rclass
@@ -1342,7 +1315,6 @@ exports.AccountSettingsTop = rclass
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />
-                    <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
             <Footer/>

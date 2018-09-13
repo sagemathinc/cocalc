@@ -83,9 +83,12 @@ hub_register = require('./hub_register')
 
 # How frequently to register with the database that this hub is up and running,
 # and also report number of connected clients
-REGISTER_INTERVAL_S = 45   # every 45 seconds
+REGISTER_INTERVAL_S = 20
 
 init_smc_version = (db, cb) ->
+    if db.is_standby
+        cb()
+        return
     server_settings = require('./server-settings')(db)
     server_settings.table.once('init', cb)
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
@@ -314,7 +317,7 @@ connect_to_database = (opts) ->
         opts.cb(); return
     dbg("connecting...")
     database = require('./postgres').db
-        host            : program.database_nodes.split(',')[0]  # postgres has only one master server
+        host            : program.database_nodes
         database        : program.keyspace
         concurrent_warn : program.db_concurrent_warn
     database.connect(cb:opts.cb)
@@ -339,6 +342,9 @@ init_compute_server = (cb) ->
         # the project can respond.
         database.ensure_connection_to_project = (project_id, cb) ->
             winston.debug("ensure_connection_to_project -- project_id=#{project_id}")
+            if database.is_standby
+                cb?("using standby database; cannot connect to project")
+                return
             local_hub_connection.connect_to_project(project_id, database, compute_server, cb)
         cb?()
 
@@ -471,7 +477,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            if program.dev or program.update
+            if not database.is_standby and (program.dev or program.update)
                 winston.debug("updating the database schema...")
                 database.update_schema(cb:cb)
             else
@@ -495,7 +501,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.port
                 cb(); return
-            # proxy server and http server; this working etc. *relies* on compute_server having been created
+            # proxy server and http server; Some of this working etc. *relies* on compute_server having been created.
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
             x = hub_http_server.init_express_http_server
@@ -522,6 +528,8 @@ exports.start_server = start_server = (cb) ->
             winston.debug("starting share express webserver listening on #{program.share_host}:#{program.port}")
             x.http_server.listen(program.share_port, program.host, cb)
         (cb) ->
+            if database.is_standby
+                cb(); return
             if not program.port
                 cb(); return
             async.parallel([
@@ -546,7 +554,7 @@ exports.start_server = start_server = (cb) ->
             # Synchronous initialize of other functionality, now that the database, etc., are working.
             winston.debug("base_url='#{BASE_URL}'")
 
-            if program.port
+            if program.port and not database.is_standby
                 winston.debug("initializing primus websocket server")
                 init_primus_server(http_server)
 
@@ -560,7 +568,7 @@ exports.start_server = start_server = (cb) ->
                     host           : program.host
 
             if program.port or program.share_port or program.proxy_port
-                # Register periodically with the database.
+                winston.debug("Starting registering periodically with the database and updating a health check...")
                 hub_register.start
                     database   : database
                     clients    : clients

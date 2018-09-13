@@ -232,7 +232,12 @@ class exports.Connection extends EventEmitter
         @call_callbacks    = {}
         @_project_title_cache = {}
         @_usernames_cache = {}
-        @_redux = undefined # set this if you want to be able to use mark_file
+
+        # Browser client should set @_redux, since this
+        # is used in a few ways:
+        #   - to be able to use mark_file
+        #   - raising an error on attempt to get project_websocket for non-collab
+        @_redux = undefined
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -1284,14 +1289,9 @@ class exports.Connection extends EventEmitter
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
         start_time = new Date()
-        if not opts.network_timeout?
-            opts.network_timeout = opts.timeout * 1.5
-
-        #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
-        @call
-            allow_post : opts.allow_post
-            message    : message.project_exec
-                project_id  : opts.project_id
+        try
+            ws = await @project_websocket(opts.project_id)
+            exec_opts =
                 path        : opts.path
                 command     : opts.command
                 args        : opts.args
@@ -1300,15 +1300,9 @@ class exports.Connection extends EventEmitter
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
                 aggregate   : opts.aggregate
-            timeout    : opts.network_timeout
-            cb         : (err, mesg) ->
-                #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
-                if err
-                    opts.cb(err, mesg)
-                else if mesg.event == 'error'
-                    opts.cb(mesg.error)
-                else
-                    opts.cb(false, {stdout:mesg.stdout, stderr:mesg.stderr, exit_code:mesg.exit_code, time:new Date() - start_time})
+            opts.cb(undefined, await ws.api.exec(exec_opts))
+        catch err
+            opts.cb(err)
 
     makedirs: (opts) =>
         opts = defaults opts,
@@ -1452,30 +1446,24 @@ class exports.Connection extends EventEmitter
     #################################################
     # File Management
     #################################################
+    project_websocket: (project_id) =>
+        group = @_redux?.getStore('projects')?.get_my_group(project_id)
+        if not group? or group == 'public'
+            throw Error("no access to project websocket")
+        return await require('smc-webapp/project/websocket/connect').connection_to_project(project_id)
+
     project_directory_listing: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : '.'
-            timeout    : 5  # in seconds
+            timeout    : 10  # in seconds
             hidden     : false
             cb         : required
-        base = window?.app_base_url ? '' # will be defined in web browser
-        if opts.path[0] == '/'
-            opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
-        url = misc.encode_path("#{base}/#{opts.project_id}/raw/.smc/directory_listing/#{opts.path}")
-        url += "?random=#{Math.random()}"
-        if opts.hidden
-            url += '&hidden=true'
-        #console.log(url)
-        req = $.ajax
-            dataType : "json"
-            url      : url
-            timeout  : opts.timeout * 1000
-            success  : (data) ->
-                #console.log('success')
-                opts.cb(undefined, data)
-        req.fail (err) ->
-            #console.log('fail')
+        try
+            ws = await @project_websocket(opts.project_id)
+            listing = await ws.api.listing(opts.path, opts.hidden, opts.timeout*1000)
+            opts.cb(undefined, {files:listing})
+        catch err
             opts.cb(err)
 
     #################################################
@@ -1807,6 +1795,12 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
+    # this is async
+    symmetric_channel: (name, project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.symmetric_channel(name)
+
     sync_string: (opts) =>
         opts = defaults opts,
             id                 : undefined
@@ -1815,6 +1809,7 @@ class exports.Connection extends EventEmitter
             file_use_interval  : 'default'
             cursors            : false
             patch_interval     : 1000
+            save_interval      : 2000
             before_change_hook : undefined
             after_change_hook  : undefined
         opts.client = @
@@ -1828,8 +1823,8 @@ class exports.Connection extends EventEmitter
             string_cols     : undefined
             cursors         : false
             change_throttle : 500     # amount to throttle change events (in ms)
-            save_interval   : 2000    # amount to debounce saves (in ms)
             patch_interval  : 1000
+            save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
 
@@ -1857,13 +1852,19 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            standby : false        # if true, use standby server; query must be 100% read only.
             cb      : undefined
         data =
             query   : misc.to_json(opts.query)
             options : if opts.options then misc.to_json(opts.options)
         #tt0 = new Date()
         #console.log '_post_query', data
-        jqXHR = $.post("#{window?.app_base_url ? ''}/user_query", data)
+        if opts.standby
+            path = 'db_standby'
+            #console.log("doing db_standby query -- ", opts.query)
+        else
+            path = 'user_query'
+        jqXHR = $.post("#{window?.app_base_url ? ''}/#{path}", data, null, 'text')
         if not opts.cb?
             #console.log 'no cb'
             return
@@ -1871,9 +1872,11 @@ class exports.Connection extends EventEmitter
             #console.log 'failed'
             opts.cb("failed")
             return
-        jqXHR.done (resp) ->
+        jqXHR.done (data) ->
             #console.log 'got back ', JSON.stringify(resp)
             #console.log 'TIME: ', new Date() - tt0
+            window.data = data
+            resp = misc.from_json(data)
             if resp.error
                 opts.cb(resp.error)
             else
@@ -1885,6 +1888,7 @@ class exports.Connection extends EventEmitter
             query   : required
             changes : undefined
             options : undefined    # if given must be an array of objects, e.g., [{limit:5}]
+            standby : false        # if true and use HTTP post, then will use standby server (so must be read only)
             timeout : 30
             cb      : undefined
         if opts.options? and not misc.is_array(opts.options)
@@ -1895,6 +1899,7 @@ class exports.Connection extends EventEmitter
             @_post_query
                 query   : opts.query
                 options : opts.options
+                standby : opts.standby
                 cb      : opts.cb
             return
 
@@ -1943,21 +1948,12 @@ class exports.Connection extends EventEmitter
             project_id : required
             options    : undefined
             cb         : undefined
-        base = window?.app_base_url ? ''
-        path = opts.path
-        if path[0] == '/'
-            path = '.smc/root' + path
-        url = "#{base}/#{opts.project_id}/raw/.smc/prettier"
-        data =
-            path    : path
-            options : if opts.options then JSON.stringify(opts.options)
-        jqXHR = $.post(url, data)
-
-        jqXHR.fail ->
-            opts.cb?("failed")
-
-        jqXHR.done (resp) ->
-            opts.cb?(undefined, resp)
+        try
+            ws = await @project_websocket(opts.project_id)
+            resp = await ws.api.prettier(opts.path, opts.options ? {})
+            opts.cb(undefined, resp)
+        catch err
+            opts.cb(err)
 
 
 #################################################

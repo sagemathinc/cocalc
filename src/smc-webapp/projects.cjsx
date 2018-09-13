@@ -622,8 +622,11 @@ class ProjectsStore extends Store
             # Not logged in -- so not in group.
             return 'public'
         if not @get('project_map')? # or @get('project_map').size == 0
-        # signed in but waiting for projects store to load
-        # If user is part of no projects, doesn't matter anyways
+            # signed in but waiting for projects store to load
+            # If user is part of no projects, doesn't matter anyways
+            return
+        if not account_store.get('account_id')?
+            # signed in but table with full account info has not been initialized.
             return
         project = @getIn(['project_map', project_id])
         if not project?
@@ -1033,7 +1036,7 @@ ProjectsListingDescription = rclass
 
                 <ButtonToolbar style={marginTop:'15px'}>
                     <Button bsStyle='danger' onClick={@do_remove_from_all}  >
-                        <Icon name='user-times'/> Remove myself from {v.length} {misc.plural(v.length, 'project')}
+                        <Icon name='user-times'/> Remove Myself From {v.length} {misc.plural(v.length, 'Project')}
                     </Button>
                     <Button onClick={=>@setState(show_alert:'none')} >
                         Cancel
@@ -1074,7 +1077,7 @@ ProjectsListingDescription = rclass
 
             <ButtonToolbar style={marginTop:'15px'}>
                 <Button bsStyle='danger' onClick={@do_delete_all}  >
-                    <Icon name='trash'/> Delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
+                    <Icon name='trash'/> Yes, please delete {@props.visible_projects.length} {misc.plural(@props.visible_projects.length, 'project')}
                 </Button>
                 <Button onClick={=>@setState(show_alert:'none')} >
                     Cancel
@@ -1117,7 +1120,7 @@ ProjectList = rclass
                 onClick={@show_all_projects}
                 bsStyle='info'
                 bsSize='large'>
-                Show {if @props.show_all then "#{more} less" else "#{more} more"} matching projects...
+                Show {if @props.show_all then "#{more} Less" else "#{more} More"} Matching Projects...
             </Button>
 
     render_list: ->

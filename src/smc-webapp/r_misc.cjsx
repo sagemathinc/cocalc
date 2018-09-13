@@ -25,6 +25,7 @@ async = require('async')
 {HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
+{reportException} = require('../webapp-lib/webapp-error-reporter')
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -1509,7 +1510,7 @@ exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 
     propTypes :
-        state     : rtypes.string
+        state     : rtypes.immutable.Map     # {state: 'running', time:'timestamp when switched to that state'}
         show_desc : rtypes.bool
 
     getDefaultProps: ->
@@ -1526,11 +1527,17 @@ exports.ProjectState = rclass
             <br/>
             <span style={fontSize:'11pt'}>
                 {desc}
+                {@render_time()}
             </span>
         </span>
 
+    render_time: ->
+        time = @props.state?.get('time')
+        if time
+            return <span><Space/> (<exports.TimeAgo date={time} />)</span>
+
     render: ->
-        s = COMPUTE_STATES[@props.state]
+        s = COMPUTE_STATES[@props.state?.get('state')]
         if not s?
             return <Loading />
         {display, desc, icon, stable} = s
@@ -1920,7 +1927,7 @@ exports.UpgradeAdjustor = rclass
                             onClick = {@max_upgrades}
                             style   = {padding:'0px 5px'}
                         >
-                            Max all upgrades
+                            Max All Upgrades
                         </Button>
                         {' '}
                         <Button
@@ -1928,7 +1935,7 @@ exports.UpgradeAdjustor = rclass
                             onClick = {@clear_upgrades}
                             style   = {padding:'0px 5px'}
                         >
-                            Remove all upgrades
+                            Remove All Upgrades
                         </Button>
                     </Col>
                     <Col md={6}>
@@ -1946,7 +1953,7 @@ exports.UpgradeAdjustor = rclass
                         onClick  = {=>@save_upgrade_quotas(remaining)}
                         disabled = {@props.disable_submit or not @valid_changed_upgrade_inputs(current, limits)}
                     >
-                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save changes"}
+                        <Icon name='arrow-circle-up' /> {if @props.submit_text then @props.submit_text else "Save Changes"}
                     </Button>
                     <Button onClick={@props.cancel_upgrading}>
                         Cancel
@@ -2041,12 +2048,15 @@ exports.ErrorBoundary = rclass
         info  : undefined
 
     componentDidCatch: (error, info) ->
-        # TODO: Report the error to some backend service...
+        reportException(error,"render error",null,info)
         @setState
             error : error
             info  : info
 
     render: ->
+        # This is way worse than nothing, because it surpresses reporting the actual error to the
+        # backend!!!  I'm disabling it completely.
+        return @props.children
         if @state.info?
             <Alert
                 bsStyle = 'warning'

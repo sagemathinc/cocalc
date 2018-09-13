@@ -97,6 +97,9 @@ misc = require('./misc')
 
 {DEFAULT_QUOTAS} = require('./upgrade-spec')
 
+# better make sure the storage server has something available under "default"
+exports.DEFAULT_COMPUTE_IMAGE = 'default'
+
 schema = exports.SCHEMA = {}
 
 schema.account_creation_actions =
@@ -121,6 +124,7 @@ exports.DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE = 14
 schema.accounts =
     desc : 'All user accounts.'
     primary_key : 'account_id'
+    db_standby : 'unsafe'
     fields :
         account_id      :
             type : 'uuid',
@@ -221,7 +225,8 @@ schema.accounts =
         '(lower(last_name)  text_pattern_ops)',
         'created_by',
         'created',
-        'api_key'
+        'api_key',
+        'last_active DESC NULLS LAST'
         ]
     user_query :
         get :
@@ -308,6 +313,22 @@ schema.accounts =
                     if obj[field]?
                         obj[field] = obj[field].slice(0,254)
                 cb()
+
+
+schema.account_profiles =
+    desc : '(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.'
+    virtual : 'accounts'
+    anonymous : false
+    user_query :
+        get :
+            pg_where : []
+            options : [{limit : 1}] # in case user queries for [{account_id:null, profile:null}] they should not get the whole database.
+            fields :
+                account_id      : null
+                profile :
+                    image       : undefined
+                    color       : undefined
+
 
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
@@ -442,6 +463,7 @@ schema.webapp_errors =
 
 schema.collaborators =
     primary_key : 'account_id'
+    db_standby : 'unsafe'
     anonymous   : false
     virtual     : 'accounts'
     user_query:
@@ -521,6 +543,7 @@ schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
+    db_standby : 'safer' # allow doing the initial read part of the query from a standby node.
     fields:
         id          :
             type : 'string'
@@ -655,6 +678,7 @@ schema.password_reset_attempts =
 
 schema.project_log =
     primary_key: 'id'
+    db_standby : 'unsafe'
     durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
     fields :
         id          :
@@ -698,6 +722,10 @@ schema.project_log =
 
 schema.projects =
     primary_key: 'project_id'
+    ## A lot depends on this being right at all times, e.g., restart state,
+    ## so do not use db_standby yet.
+    ## It is simply not robust enough.
+    ## db_standby : 'safer'
     fields :
         project_id  :
             type : 'uuid',
@@ -731,10 +759,10 @@ schema.projects =
             desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
         status      :
             type : 'map'
-            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version number of local_hub code]}'
+            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES in the compute-states file], version: [version number of local_hub code]}'
         state       :
             type : 'map'
-            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
+            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file.'
             date : ['time']
         last_edited :
             type : 'timestamp'
@@ -791,7 +819,10 @@ schema.projects =
             desc : 'If project is running, this is the quota that it is running with.'
         compute_image :
             type : 'string'
-            desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+            desc : "Specify the name of the underlying (kucalc) compute image (default: '#{exports.DEFAULT_COMPUTE_IMAGE}')"
+        addons :
+            type : 'map'
+            desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
 
     pg_indexes : [
         'last_edited',
@@ -820,7 +851,8 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
-                compute_image  : 'latest'
+                compute_image  : exports.DEFAULT_COMPUTE_IMAGE
+                addons         : null
         set :
             fields :
                 project_id     : 'project_write'
@@ -929,6 +961,7 @@ schema.public_projects =
 
 schema.public_paths =
     primary_key : 'id'
+    db_standby : 'unsafe'
     anonymous   : true   # allow user *read* access, even if not signed in
     fields:
         id          :
@@ -1176,7 +1209,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : false     # allow user read access, even if not signed in
+    anonymous   : false     # if true, this would allow user read access, even if not signed in -- we used to do this but decided to use polling instead, since update interval is predictable.
     fields:
         id                  :
             type : 'uuid'
@@ -1212,6 +1245,7 @@ schema.storage_servers =
 
 schema.system_notifications =
     primary_key : 'id'
+    db_standby : 'unsafe'
     anonymous   : true     # allow users read access, even if not signed in
     fields :
         id :

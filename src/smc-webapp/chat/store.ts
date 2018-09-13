@@ -4,7 +4,7 @@ import * as immutable from "immutable";
 // Internal Libraries
 import { Store } from "../app-framework/Store";
 
-interface chatState {
+interface ChatState {
   height: number; // 0 means not rendered; otherwise is the height of the chat editor
   input: string; // content of the input box
   is_preview?: boolean; // currently displaying preview of the main input chat
@@ -19,7 +19,7 @@ interface chatState {
   add_collab: boolean;
 }
 
-class store extends Store<chatState> {
+export class ChatStore extends Store<ChatState> {
   getInitialState = function() {
     return {
       height: 0,
@@ -38,4 +38,3 @@ class store extends Store<chatState> {
   }
 }
 
-export = { store };

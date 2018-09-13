@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 Copyright (c) 2017,  SageMath, Inc..
 
@@ -11,36 +10,38 @@ import argparse, codecs, json, os
 
 import sagews2pdf
 
+
 def ipynb_string_list(s):
     v = s.split('\n')
-    for i in range(len(v)-1):
+    for i in range(len(v) - 1):
         v[i] += '\n'
     return v
+
 
 class Worksheet(sagews2pdf.Worksheet):
     def ipynb(self):
         obj = {
-         "metadata": {
-          "kernelspec": {
-           "display_name": "SageMath",
-           "language": "python",
-           "name": "sagemath"
-          },
-          "language_info": {
-           "codemirror_mode": {
-            "name": "ipython",
-            "version": 2
-           },
-           "file_extension": ".py",
-           "mimetype": "text/x-python",
-           "name": "python",
-           "nbconvert_exporter": "python",
-           "pygments_lexer": "ipython2",
-           "version": "2.7.12+"
-          }
-         },
-         "nbformat": 4,
-         "nbformat_minor": 0
+            "metadata": {
+                "kernelspec": {
+                    "display_name": "SageMath",
+                    "language": "python",
+                    "name": "sagemath"
+                },
+                "language_info": {
+                    "codemirror_mode": {
+                        "name": "ipython",
+                        "version": 2
+                    },
+                    "file_extension": ".py",
+                    "mimetype": "text/x-python",
+                    "name": "python",
+                    "nbconvert_exporter": "python",
+                    "pygments_lexer": "ipython2",
+                    "version": "2.7.12+"
+                }
+            },
+            "nbformat": 4,
+            "nbformat_minor": 0
         }
         obj['cells'] = self.ipynb_cells()
         return obj
@@ -49,7 +50,7 @@ class Worksheet(sagews2pdf.Worksheet):
         return [self.ipynb_cell(cell) for cell in self._cells]
 
     def ipynb_cell(self, cell):
-        x = {"metadata":{"collapsed": False}}
+        x = {"metadata": {"collapsed": False}}
         source = cell.input.strip()
         if source.startswith('%md'):
             x['cell_type'] = 'markdown'
@@ -59,21 +60,29 @@ class Worksheet(sagews2pdf.Worksheet):
         x['source'] = ipynb_string_list(source)
         return x
 
+
 def sagews_to_pdf(filename):
     base = os.path.splitext(filename)[0]
     ipynb = base + ".ipynb"
-    print("converting: %s --> %s"%(filename, ipynb))
+    print("converting: %s --> %s" % (filename, ipynb))
     W = Worksheet(filename)
     codecs.open(ipynb, 'w', 'utf8').write(json.dumps(W.ipynb(), indent=1))
     print("Created", ipynb)
 
+
 def main():
-    parser = argparse.ArgumentParser(description="convert a sagews worksheet to a Jupyter Notebook")
-    parser.add_argument("filename", nargs='+', help="name of sagews files (required)", type=str)
+    parser = argparse.ArgumentParser(
+        description="convert a sagews worksheet to a Jupyter Notebook")
+    parser.add_argument(
+        "filename",
+        nargs='+',
+        help="name of sagews files (required)",
+        type=str)
     args = parser.parse_args()
 
     for filename in args.filename:
         sagews_to_pdf(filename)
+
 
 if __name__ == "__main__":
     main()

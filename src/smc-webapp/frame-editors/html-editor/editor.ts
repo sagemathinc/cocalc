@@ -4,8 +4,8 @@ Top-level react component for editing HTML documents
 
 import { createEditor } from "../frame-tree/editor";
 import { set } from "../generic/misc";
-import { QuickHTMLPreview } from "./rendered-html.tsx";
-import { IFrameHTML } from "./iframe-html.tsx";
+import { QuickHTMLPreview } from "./rendered-html";
+import { IFrameHTML } from "./iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 
@@ -30,7 +30,7 @@ const EDITOR_SPEC = {
       "undo",
       "redo",
       "reload",
-      "auto_indent"
+      "format"
     ])
   },
   iframe: {

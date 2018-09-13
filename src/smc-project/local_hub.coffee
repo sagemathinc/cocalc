@@ -201,6 +201,7 @@ handle_mesg = (socket, mesg, handler) ->
             # start jupyter server if necessary and send back a message with the port it is serving on
             jupyter_manager.jupyter_port(socket, mesg)
         when 'project_exec'
+            # this is no longer used by web browser clients; however it could be used by the HTTP api.
             exec_shell_code(socket, mesg)
         when 'read_file_from_project'
             read_write_files.read_file_from_project(socket, mesg)

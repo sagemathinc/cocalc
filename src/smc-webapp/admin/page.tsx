@@ -3,7 +3,6 @@ import { React, Component } from "../app-framework";
 import { AccountCreationToken } from "./account-creation-token";
 import { SiteSettings } from "./site-settings";
 import { StripeAPIKeys } from "./stripe-api-keys";
-import { StripeUser } from "./stripe-user";
 //import { SubscriptionManager } from "./subscription-manager";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
@@ -27,8 +26,6 @@ export class AdminPage extends Component {
         <SystemNotifications />
         <hr/>
         <StripeAPIKeys />
-        <hr/>
-        <StripeUser />
         <hr/>
         <AccountCreationToken />
       </div>

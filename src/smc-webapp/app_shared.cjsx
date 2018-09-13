@@ -32,9 +32,13 @@ misc = require('smc-util/misc')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
 {AdminPage} = require('admin/page')
+{show_announce_end} = require('./redux_account')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
+
+# same as nav bar height?
+exports.announce_bar_offset = announce_bar_offset = 40
 
 exports.ActiveAppContent = ({active_top_tab, render_small}) ->
     switch active_top_tab
@@ -73,14 +77,18 @@ exports.NavTab = rclass
         style           : rtypes.object
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
+        show_label      : rtypes.bool
+
+    getDefaultProps: ->
+        show_label : true
 
     shouldComponentUpdate: (next) ->
         if @props.children?
             return true
-        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab'])
+        return misc.is_different(@props, next, ['label', 'label_class', 'icon', 'close', 'active_top_tab', 'show_label'])
 
     render_label: ->
-        if @props.label?
+        if @props.show_label and @props.label?
             <span style={marginLeft: 5} className={@props.label_class}>
                 {@props.label}
             </span>
@@ -208,10 +216,11 @@ exports.ConnectionIndicator = rclass
     displayName : 'ConnectionIndicator'
 
     propTypes :
-        actions  : rtypes.object
-        ping     : rtypes.number
-        status   : rtypes.string
-        on_click : rtypes.func
+        actions       : rtypes.object
+        ping          : rtypes.number
+        status        : rtypes.string
+        on_click      : rtypes.func
+        show_pingtime : rtypes.bool
 
     reduxProps :
         page :
@@ -221,7 +230,10 @@ exports.ConnectionIndicator = rclass
             mesg_info         : rtypes.immutable.Map
 
     shouldComponentUpdate: (next) ->
-        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info'])
+        return misc.is_different(@props, next, ['avgping', 'connection_status', 'ping', 'status', 'mesg_info', 'show_pingtime'])
+
+    getDefaultProps: ->
+        show_pingtime : true
 
     render_ping: ->
         if @props.avgping?
@@ -246,7 +258,7 @@ exports.ConnectionIndicator = rclass
                 icon_style.color = 'grey'
             <div>
                 <Icon name='wifi' style={icon_style}/>
-                {@render_ping()}
+                {@render_ping() if @props.show_pingtime}
             </div>
         else if @props.connection_status == 'connecting'
             <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
@@ -263,8 +275,9 @@ exports.ConnectionIndicator = rclass
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
+        width = if @props.show_pingtime then '8.5em' else '5em'
         outer_styles =
-            width      : '8.5em'
+            width      : width
             color      : '#666'
             fontSize   : '10pt'
             lineHeight : '10pt'
@@ -384,9 +397,11 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
+        account :
+            show_global_info       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
-        return @props.fullscreen != next.fullscreen
+        return misc.is_different(@props, next, ['fullscreen', 'show_global_info'])
 
     on_fullscreen: (ev) ->
         if ev.shiftKey
@@ -396,13 +411,14 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
+        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
 
         tip_style =
-            position   : 'fixed'
-            zIndex     : 10000
-            right      : 0
-            top        : '1px'
-            borderRadius: '3px'
+            position     : 'fixed'
+            zIndex       : 10000
+            right        : 0
+            top          : top_px
+            borderRadius : '3px'
 
 
         icon_style =
@@ -541,6 +557,8 @@ exports.LocalStorageWarning = rclass
 # for other global announcements.
 # For now, it just has a simple dismiss button backed by the account → other_settings, though.
 # 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
+# 20180713: enabled again, we need it to announce the K2 switch
+# 20180819: Ubuntu 18.04 project image upgrade
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
@@ -548,7 +566,8 @@ exports.GlobalInformationMessage = rclass
         redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/KubernetesMigration'
+        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Ubuntu-18.04-project-image-upgrade'
+        local_time = show_announce_end.toLocaleString()
         bgcol = COLORS.YELL_L
         style =
             padding         : '5px 0 5px 5px'
@@ -562,12 +581,12 @@ exports.GlobalInformationMessage = rclass
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
-                <p><b>CoCalc <a target='_blank' href={more_url}>migrated to Kubernetes</a></b>.
-                {' '}Please report any issues.
-                {' '}<a target='_blank' href={more_url}>More information...</a></p>
+                <p>
+                    <b>Global announcement: <a target='_blank' href={more_url}>A major software upgrade for all projects</a> is live.</b>
+                </p>
             </Col>
             <Col sm={3}>
-                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'20px'}
+                <Button bsStyle='danger' bsSize="small" className='pull-right' style={marginRight:'10px'}
                     onClick={@dismiss}>Close</Button>
             </Col>
         </Row>

@@ -5,12 +5,13 @@
 import os, sys, subprocess, errno
 from subprocess import PIPE
 
+
 def rmd2html(path):
     if not os.path.exists(path):
         raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
     absp = os.path.abspath(path)
-    (head,tail) = os.path.split(absp)
+    (head, tail) = os.path.split(absp)
     os.chdir(head)
 
     (root, ext) = os.path.splitext(tail)
@@ -29,14 +30,13 @@ def rmd2html(path):
         sys.stderr.write(stderrdata)
         sys.stderr.flush()
 
+
 def main():
     if len(sys.argv) != 2:
         raise ValueError('Usage: {} path/to/file.Rmd'.format(sys.argv[0]))
 
     rmd2html(sys.argv[1])
 
+
 if __name__ == "__main__":
     main()
-
-
-

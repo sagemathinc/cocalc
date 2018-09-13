@@ -55,7 +55,7 @@ schema.syncstrings =
             date : ['time']
         save :
             type : 'map'
-            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
+            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), expected_hash:?, error:['' or 'error message']}"
         read_only :
             type : 'boolean'
             desc : 'true or false, depending on whether this syncstring is readonly or can be edited'
@@ -79,7 +79,7 @@ schema.syncstrings =
             type : 'map'
             desc : 'Shared (by all users) configuration settings for editing this file (e.g., which spellcheck language to use).'
 
-    pg_indexes : ['last_active']
+    pg_indexes : ['last_active', 'archived']
 
     user_query:
         get :

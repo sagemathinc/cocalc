@@ -19,16 +19,18 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux} = require('./app-framework')
+{React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
-SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard} = require('./r_misc')
+SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
+
+STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
@@ -150,7 +152,7 @@ FileRow = rclass
     propTypes :
         name         : rtypes.string.isRequired
         display_name : rtypes.string  # if given, will display this, and will show true filename in popover
-        size         : rtypes.number.isRequired
+        size         : rtypes.number  # sometimes is NOT known!
         time         : rtypes.number
         checked      : rtypes.bool
         bordered     : rtypes.bool
@@ -453,31 +455,44 @@ FirstSteps = rclass
         @props.redux.getTable('account').set(other_settings:{first_steps:false})
 
     render: ->
-        <Row>
-            <Navbar>
-                <Navbar.Header style={marginTop:'10px'}>
-                    <Navbar.Brand>
-                        New to <SiteName/>?
-                    </Navbar.Brand>
-                    <Navbar.Toggle />
-                </Navbar.Header>
-                <Navbar.Collapse>
-                    <Navbar.Text>
-                        <Button
-                            onClick = {@get_first_steps}
-                            bsStyle = {'info'} >
-                                Start the <strong>First Steps</strong> guide!
-                        </Button>
-                    </Navbar.Text>
-                    <Navbar.Text>
-                        <Button
-                            onClick={@dismiss_first_steps}>
-                                Dismiss
-                        </Button>
-                    </Navbar.Text>
-                </Navbar.Collapse>
-            </Navbar>
-        </Row>
+        style =
+            textAlign  : 'center'
+            padding    : '10px'
+            color      : COLORS.GRAY_L
+            position   : 'absolute'
+            bottom     : 0
+            fontSize   : '110%'
+
+        a =
+            cursor     : 'pointer'
+            color      : COLORS.GRAY
+
+        line2 =
+            fontSize   : '80%'
+
+        <Col sm={12} style={style}>
+            <Row>
+                <span>
+                    Are you new to <SiteName/>?
+                </span>
+                <Space/>
+                <span>
+                    <a onClick = {@get_first_steps} style={a}>
+                        Click to start the <strong>First Steps</strong> guide!
+                    </a>
+                </span>
+                <Space/>
+                <span>or</span>
+                <Space/>
+                <span>
+                    <a onClick={@dismiss_first_steps} style={a}>dismiss this message</a>.
+                </span>
+                <br/>
+                <span style={line2}>
+                    You can also load it via "+ Add" → "Library" → "First Steps in <SiteName />"
+                </span>
+            </Row>
+        </Col>
 
 NoFiles = rclass
     propTypes :
@@ -514,7 +529,7 @@ NoFiles = rclass
     # Text for the large create button
     button_text: ->
         if @props.file_search.length == 0
-            "Create or upload files..."
+            "Create or Upload Files..."
         else
             "Create #{@full_path_text()}"
 
@@ -700,10 +715,11 @@ FileListing = rclass
                 create_file   = {@props.create_file} />
 
     render_first_steps: ->
+        return  # See https://github.com/sagemathinc/cocalc/issues/3138
         name = 'first_steps'
+        return if @props.public_view
         return if not @props.library[name]
         return if not (@props.other_settings?.get(name) ? false)
-        return if @props.public_view
         return if @props.current_path isnt '' # only show in $HOME
         return if @props.file_map[name]?.isdir  # don't show if we have it ...
         return if @props.file_search[0] is TERM_MODE_CHAR
@@ -717,17 +733,21 @@ FileListing = rclass
             <TerminalModeDisplay/>
 
     render : ->
-        <Col sm={12}>
-            {@render_terminal_mode() if not @props.public_view}
-            {@render_first_steps()}
-            {<ListingHeader
-                active_file_sort = {@props.active_file_sort}
-                sort_by          = {@props.sort_by}
-                check_all        = {false}
-                /> if @props.listing.length > 0}
-            {@render_rows()}
-            {@render_no_files()}
-        </Col>
+        <Fragment>
+            <Col sm={12} style={zIndex:1}>
+                {@render_terminal_mode() if not @props.public_view}
+                {<ListingHeader
+                    active_file_sort = {@props.active_file_sort}
+                    sort_by          = {@props.sort_by}
+                    check_all        = {false}
+                    /> if @props.listing.length > 0}
+                {@render_rows()}
+                {@render_no_files()}
+            </Col>
+            <VisibleMDLG>
+                {@render_first_steps()}
+            </VisibleMDLG>
+        </Fragment>
 
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
@@ -906,9 +926,9 @@ ProjectFilesActions = rclass
     render_check_all_button: ->
         if @props.checked_files.size is 0
             button_icon = 'square-o'
-            button_text = 'Check all'
+            button_text = 'Check All'
         else
-            button_text = 'Uncheck all'
+            button_text = 'Uncheck All'
 
             if @props.checked_files.size >= @props.listing.length
                 button_icon = 'check-square-o'
@@ -926,11 +946,11 @@ ProjectFilesActions = rclass
         switch @state.select_entire_directory
             when 'check'
                 <Button bsSize='xsmall' onClick={@select_entire_directory}>
-                    Select all {@props.listing.length} items
+                    Select All {@props.listing.length} Items
                 </Button>
             when 'clear'
                 <Button bsSize='xsmall' onClick={@clear_selection}>
-                    Clear entire selection.
+                    Clear Entire Selection
                 </Button>
 
     render_currently_selected: ->
@@ -954,11 +974,13 @@ ProjectFilesActions = rclass
             </div>
 
     render_action_button: (name) ->
+        disabled = (name in ["move","compress","rename","delete","share","duplicate"] and @props.current_path?.startsWith(".snapshots"))
         obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
         <Button
             onClick={=>@props.actions.set_file_action(name, get_basename)}
+            disabled={disabled}
             key={name} >
             <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>
@@ -1125,7 +1147,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={@compress_click}>
-                            <Icon name='compress' /> Compress {size} {misc.plural(size, 'item')}
+                            <Icon name='compress' /> Compress {size} {misc.plural(size, 'Item')}
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1175,7 +1197,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='danger' onClick={@delete_click} disabled={@props.current_path is '.trash'}>
-                            <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'item')}
+                            <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'Item')}
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1261,7 +1283,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='info' onClick={=>@rename_or_duplicate_click()} disabled={not @valid_rename_input(single_item)}>
-                            <Icon name='pencil' /> {action_title} item
+                            <Icon name='pencil' /> {action_title} Item
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1333,7 +1355,7 @@ ProjectFilesActionBox = rclass
                 <Col sm={12}>
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={@move_click} disabled={not @valid_move_input()}>
-                            <Icon name='arrows' /> Move {size} {misc.plural(size, 'item')}
+                            <Icon name='arrows' /> Move {size} {misc.plural(size, 'Item')}
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1387,7 +1409,7 @@ ProjectFilesActionBox = rclass
             onClick = {=>@setState(show_different_project : true)}
             style   = {padding:'0px 5px'}
         >
-            a different project
+            A Different Project
         </Button>
 
     copy_click: ->
@@ -1470,7 +1492,7 @@ ProjectFilesActionBox = rclass
                     <Col sm={12}>
                         <ButtonToolbar>
                             <Button bsStyle='primary' onClick={@copy_click} disabled={not @valid_copy_input()}>
-                                <Icon name='files-o' /> Copy {size} {misc.plural(size, 'item')}
+                                <Icon name='files-o' /> Copy {size} {misc.plural(size, 'Item')}
                             </Button>
                             <Button onClick={@cancel_action}>
                                 Cancel
@@ -1617,7 +1639,7 @@ ProjectFilesActionBox = rclass
                 <Row>
                     <Col sm={12}>
                         <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public} style={marginBottom:"5px"}>
-                            <Icon name='share-square-o' /> Update description
+                            <Icon name='share-square-o' /> Update Description
                         </Button>
                     </Col>
                 </Row>
@@ -2021,7 +2043,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'rtex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
@@ -2245,15 +2267,19 @@ exports.ProjectFiles = rclass ({name}) ->
         cards = @props.customer?.sources?.total_count ? 0
         <Alert bsStyle='danger'>
             <h4 style={padding: '2em'}>
-                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to pay the course fee for this project.
+                <Icon name='exclamation-triangle'/> Error: Your instructor requires that you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this project.
                 {<CourseProjectExtraHelp/> if cards}
             </h4>
             {@render_upgrade_in_place()}
         </Alert>
 
     render_course_payment_warning: (pay) ->
-        <Alert bsStyle='warning'>
-            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the course fee</a> for this project
+        if @state.show_pay
+            link = <span>pay the one-time ${STUDENT_COURSE_PRICE} course fee</span>
+        else
+            link = <a style={cursor:'pointer'} onClick={=>@setState(show_pay: true)}>pay the one-time ${STUDENT_COURSE_PRICE} course fee</a>
+        <Alert bsStyle={'warning'} style={fontSize:'12pt'}>
+            <Icon name='exclamation-triangle'/> Warning: Your instructor requires that you {link} for this project
             within <TimeAgo date={pay}/>.
             {@render_upgrade_in_place() if @state.show_pay}
         </Alert>
@@ -2284,7 +2310,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </div>
 
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
-        if project_state? and project_state not in ['running', 'saving']
+        if project_state?.get('state') and project_state.get('state') not in ['running', 'saving']
             return @render_project_state(project_state)
 
         if error
@@ -2305,6 +2331,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         e = <ErrorDisplay title="Project unavailable" error={"This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n#{error if not quotas?.member_host}"} />
                     else
                         e = <ErrorDisplay title="Directory listing error" error={error} />
+            # TODO: the refresh button text is inconsistant
             return <div>
                 {e}
                 <br />
@@ -2357,7 +2384,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_start_project_button: (project_state) ->
         <Button
-            disabled = {project_state not in ['opened', 'closed']}
+            disabled = {project_state?.get('state') not in ['opened', 'closed', 'archived']}
             bsStyle  = "primary"
             bsSize   = "large"
             onClick  = {@start_project} >
@@ -2385,7 +2412,7 @@ exports.ProjectFiles = rclass ({name}) ->
         public_view = @props.get_my_group(@props.project_id) == 'public'
 
         if not public_view
-            project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+            project_state = @props.project_map?.getIn([@props.project_id, 'state'])
 
         {listing, error, file_map} = @props.displayed_listing
 

@@ -6,6 +6,8 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
+import { query as client_query } from "./frame-editors/generic/client";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -1155,9 +1157,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    let history_path =
-      store.get("history_path") != null ? store.get("history_path") : "";
-    if (!history_path.startsWith(path) || path.length > history_path.length) {
+    let history_path = store.get("history_path") || "";
+    const is_adjacent = !`${history_path}/`.startsWith(`${path}/`);
+    // given is_adjacent is false, this tests if it is a subdirectory
+    const is_nested = path.length > history_path.length;
+    if (is_adjacent || is_nested) {
       history_path = path;
     }
 
@@ -1230,6 +1234,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let the_listing: any;
     return async.series(
       [
+        cb => {
+          // make sure the user type is known;
+          // otherwise, our relationship to project
+          // below can't be determined properly.
+          this.redux.getStore("account").wait({
+            until: s =>
+              (s.get("is_logged_in") && s.get("account_id")) ||
+              !s.get("is_logged_in"),
+            cb: cb
+          });
+        },
+
         cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
@@ -1618,8 +1634,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "zip",
       args,
-      timeout: 50,
-      network_timeout: 60,
+      timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
+      network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id)
@@ -1722,29 +1738,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb("no store");
         return;
       }
-      return $
-        .ajax({
-          url: index_json_url,
-          timeout: 5000,
-          success: data => {
-            //if DEBUG then console.log("init_library/datadata
-            data = immutable.fromJS(data);
+      return $.ajax({
+        url: index_json_url,
+        timeout: 5000,
+        success: data => {
+          //if DEBUG then console.log("init_library/datadata
+          data = immutable.fromJS(data);
 
-            let store = this.get_store();
-            if (store == undefined) {
-              cb("no store");
-              return;
-            }
-            library = store.get("library").set("examples", data);
-            this.setState({ library });
-            _init_library_index_cache[this.project_id] = data;
-            return cb();
+          let store = this.get_store();
+          if (store == undefined) {
+            cb("no store");
+            return;
           }
-        })
-        .fail(err =>
-          //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
-          cb(err.statusText != null ? err.statusText : "error")
-        );
+          library = store.get("library").set("examples", data);
+          this.setState({ library });
+          _init_library_index_cache[this.project_id] = data;
+          return cb();
+        }
+      }).fail(err =>
+        //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
+        cb(err.statusText != null ? err.statusText : "error")
+      );
     };
 
     return misc.retry_until_success({
@@ -2433,12 +2447,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           context = context.slice(i + 2, context.length - 1);
         }
 
+        const m = /^(\d+):/.exec(context);
+        let line_number: number | undefined;
+        if (m != null) {
+          try {
+            line_number = parseInt(m[1]);
+          } catch (e) {}
+        }
+
         search_results.push({
           filename,
-          description: context
+          description: context,
+          line_number
         });
       }
-
       if (num_results >= max_results) {
         break;
       }
@@ -2483,21 +2505,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       } else {
         max_depth = "--max-depth=0";
       }
-      cmd = `git rev-parse --is-inside-work-tree && git grep -I -H ${ins} ${max_depth} ${search_query} || `;
+      cmd = `git rev-parse --is-inside-work-tree && git grep -n -I -H ${ins} ${max_depth} ${search_query} || `;
     } else {
       cmd = "";
     }
     if (store.get("subdirectories")) {
       if (store.get("hidden_files")) {
-        cmd += `rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
+        cmd += `rgrep -n -I -H --exclude-dir=.smc --exclude-dir=.snapshots ${ins} ${search_query} -- *`;
       } else {
-        cmd += `rgrep -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
+        cmd += `rgrep -n -I -H --exclude-dir='.*' --exclude='.*' ${ins} ${search_query} -- *`;
       }
     } else {
       if (store.get("hidden_files")) {
-        cmd += `grep -I -H ${ins} ${search_query} -- .* *`;
+        cmd += `grep -n -I -H ${ins} ${search_query} -- .* *`;
       } else {
-        cmd += `grep -I -H ${ins} ${search_query} -- *`;
+        cmd += `grep -n -I -H ${ins} ${search_query} -- *`;
       }
     }
 
@@ -2638,6 +2660,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   close_free_warning(): void {
     this.setState({ free_warning_closed: true });
+  }
+
+  async set_compute_image(new_image: string): Promise<void> {
+    await client_query({
+      query: {
+        projects: {
+          project_id: this.project_id,
+          compute_image: new_image
+        }
+      }
+    });
   }
 }
 

@@ -32,6 +32,7 @@ The name was coined in fall 2016 and changed around spring 2017.
    * Harald Schilly
    * Hal Snyder
    * William Stein
+   * Travis Scholl
 
 ### Past contributors
 

@@ -5,6 +5,7 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "@types/http-proxy": "^1.16.2",
     "async": "^1.4.2",
     "basic-auth": "^2.0.0",
     "bindings": "^1.3.0",
@@ -56,6 +57,7 @@
     "rimraf": "^2.4.4",
     "sendgrid": "^4.7.1",
     "serve-index": "^1.9.1",
+    "sharp": "^0.20.8",
     "snappy": "^6.0.1",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",
