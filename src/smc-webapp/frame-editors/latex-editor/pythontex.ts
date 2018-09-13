@@ -11,26 +11,37 @@ import { BuildLog } from "./actions";
 //
 // we limit the number of jobs, could be bad for memory usage causing OOM or whatnot
 // -j N, --jobs N        Allow N jobs at once; defaults to cpu_count().
+//
+// --rerun={never,modified,errors,warnings,always}
+// This sets the threshold for re-executing code.
+// By default, PythonTEX will rerun code that has been modified or that produced errors on the last run.
+// "always" executes all code always
 
 export async function pythontex(
   project_id: string,
   path: string,
   time: number,
+  force: boolean,
   status: Function
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
-  const args = ["--jobs", "2", base];
+  const args = ["--jobs", "2"];
+  if (force) {
+    // forced build implies to run all snippets
+    args.concat("--rerun=always");
+  }
   status(`pythontex ${args.join(" ")}`);
+  const aggregate = time && !force ? { value: time } : undefined;
   return exec({
     allow_post: false, // definitely could take a long time to fully run this
     timeout: 360,
     bash: true, // timeout is enforced by ulimit
     command: "pythontex3",
-    args: args,
+    args: args.concat(base),
     project_id: project_id,
     path: directory,
     err_on_exit: false,
-    aggregate: time ? { value: time } : undefined
+    aggregate
   });
 }
 
@@ -51,7 +62,10 @@ This is PythonTeX 0.16
 PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 */
 
-export function pythontex_errors(path: string, output: BuildLog): ProcessedLatexLog {
+export function pythontex_errors(
+  path: string,
+  output: BuildLog
+): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
   let err: Error | undefined = undefined;
@@ -64,7 +78,7 @@ export function pythontex_errors(path: string, output: BuildLog): ProcessedLatex
         line_no = parseInt(hit[1]);
       }
       err = {
-        line : line_no,
+        line: line_no,
         file: path,
         level: "error",
         message: line,

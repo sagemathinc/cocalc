@@ -463,7 +463,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     try {
       // Run PythonTeX
-      output = await pythontex(this.project_id, this.path, time, status);
+      output = await pythontex(this.project_id, this.path, time, force, status);
       // Now run latex again, since we had to run pythontex, which changes
       // the inserted snippets. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
