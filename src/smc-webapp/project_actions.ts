@@ -6,6 +6,8 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
+import { query as client_query } from "./frame-editors/generic/client";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -1155,9 +1157,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    let history_path =
-      store.get("history_path") != null ? store.get("history_path") : "";
-    if (!history_path.startsWith(path) || path.length > history_path.length) {
+    let history_path = store.get("history_path") || "";
+    const is_adjacent = !`${history_path}/`.startsWith(`${path}/`);
+    // given is_adjacent is false, this tests if it is a subdirectory
+    const is_nested = path.length > history_path.length;
+    if (is_adjacent || is_nested) {
       history_path = path;
     }
 
@@ -1230,6 +1234,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     let the_listing: any;
     return async.series(
       [
+        cb => {
+          // make sure the user type is known;
+          // otherwise, our relationship to project
+          // below can't be determined properly.
+          this.redux.getStore("account").wait({
+            until: s =>
+              (s.get("is_logged_in") && s.get("account_id")) ||
+              !s.get("is_logged_in"),
+            cb: cb
+          });
+        },
+
         cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
@@ -1618,8 +1634,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       project_id: this.project_id,
       command: "zip",
       args,
-      timeout: 50,
-      network_timeout: 60,
+      timeout: 10 * 60 /* compressing CAN take a while -- zip is slow! */,
+      network_timeout: 10 * 60,
       err_on_exit: true, // this should fail if exit_code != 0
       path: opts.path,
       cb: opts.cb != null ? opts.cb : this._finish_exec(id)
@@ -2644,6 +2660,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   close_free_warning(): void {
     this.setState({ free_warning_closed: true });
+  }
+
+  async set_compute_image(new_image: string): Promise<void> {
+    await client_query({
+      query: {
+        projects: {
+          project_id: this.project_id,
+          compute_image: new_image
+        }
+      }
+    });
   }
 }
 

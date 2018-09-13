@@ -22,39 +22,41 @@ AUTHORS:
 import os, pexpect, random, string
 
 from uuid import uuid4
+
+
 def uuid():
     return str(uuid4())
+
 
 from sage.interfaces.expect import Expect, ExpectElement, ExpectFunction, FunctionElement, gc_disabled
 from sage.structure.element import RingElement
 
 PROMPT_LENGTH = 16
 
+
 class Julia(Expect):
     def __init__(self,
-                 maxread             = 100000,
-                 script_subdirectory = None,
-                 logfile             = None,
-                 server              = None,
-                 server_tmpdir       = None):
+                 maxread=100000,
+                 script_subdirectory=None,
+                 logfile=None,
+                 server=None,
+                 server_tmpdir=None):
         """
         Pexpect-based interface to Julia
         """
         self._prompt = 'julia>'
-        Expect.__init__(self,
-                        name                = 'Julia',
-                        prompt              = self._prompt,
-                        command             = "julia",
-
-                        maxread             = maxread,
-                        server              = server,
-                        server_tmpdir       = server_tmpdir,
-                        script_subdirectory = script_subdirectory,
-
-                        restart_on_ctrlc    = False,
-                        verbose_start       = False,
-
-                        logfile             = logfile)
+        Expect.__init__(
+            self,
+            name='Julia',
+            prompt=self._prompt,
+            command="julia",
+            maxread=maxread,
+            server=server,
+            server_tmpdir=server_tmpdir,
+            script_subdirectory=script_subdirectory,
+            restart_on_ctrlc=False,
+            verbose_start=False,
+            logfile=logfile)
 
         self.__seq = 0
         self.__in_seq = 1
@@ -63,8 +65,12 @@ class Julia(Expect):
         """
         """
         pexpect_env = dict(os.environ)
-        pexpect_env['TERM'] = 'vt100'  # we *use* the codes. DUH.  I should have thought of this 10 years ago...
-        self._expect = pexpect.spawn(self._Expect__command, logfile=self._Expect__logfile, env=pexpect_env)
+        pexpect_env[
+            'TERM'] = 'vt100'  # we *use* the codes. DUH.  I should have thought of this 10 years ago...
+        self._expect = pexpect.spawn(
+            self._Expect__command,
+            logfile=self._Expect__logfile,
+            env=pexpect_env)
         self._expect.delaybeforesend = 0  # not a good idea for a CAS.
         self._expect.expect("\x1b\[0Kjulia>")
 
@@ -75,13 +81,13 @@ class Julia(Expect):
             code = code.encode('utf8')
 
         START = "\x1b[?2004l\x1b[0m"
-        END   = "\x1b[0G\x1b[0K\x1b[0G\x1b[0Kjulia> "
+        END = "\x1b[0G\x1b[0K\x1b[0G\x1b[0Kjulia> "
         if not self._expect:
             self._start()
         with gc_disabled():
             s = self._expect
             u = uuid()
-            line = code+'\n\n\n\n\n__ans__=ans;println("%s");ans=__ans__;\n'%u
+            line = code + '\n\n\n\n\n__ans__=ans;println("%s");ans=__ans__;\n' % u
             s.send(line)
             s.expect(u)
             result = s.before
@@ -93,13 +99,13 @@ class Julia(Expect):
             i = result.rfind(START)
             if i == -1:
                 return result
-            result = result[len(START)+i:]
+            result = result[len(START) + i:]
             i = result.find(END)
             if i == -1:
                 return result
             result = result[:i].rstrip()
             if result.startswith("ERROR:"):
-                julia_error = result.replace("in anonymous at no file",'')
+                julia_error = result.replace("in anonymous at no file", '')
                 raise RuntimeError(julia_error)
             return result
 
@@ -129,10 +135,12 @@ class Julia(Expect):
             sage: julia.eval('x')
             '2'
         """
-        cmd = '%s=%s;'%(var, value)
+        cmd = '%s=%s;' % (var, value)
         out = self.eval(cmd)
         if '***' in out:  #TODO
-            raise TypeError("Error executing code in Sage\nCODE:\n\t%s\nSAGE ERROR:\n\t%s"%(cmd, out))
+            raise TypeError(
+                "Error executing code in Sage\nCODE:\n\t%s\nSAGE ERROR:\n\t%s"
+                % (cmd, out))
 
     def get(self, var):
         """
@@ -187,7 +195,6 @@ class Julia(Expect):
             sage: julia._read_in_file_command(tmp_filename()) # TODO
         """
 
-
     def trait_names(self):
         """
         EXAMPLES::
@@ -200,7 +207,7 @@ class Julia(Expect):
         for x in s.split('\x1b[')[:-1]:
             i = x.find("G")
             if i != -1:
-                c = x[i+1:].strip()
+                c = x[i + 1:].strip()
                 if c and c.isalnum():
                     v.append(c)
         v.sort()
@@ -297,7 +304,7 @@ class Julia(Expect):
         """
         if '"' in command:
             raise ValueError('quote in command name')
-        return self.eval('help("%s")'%command)
+        return self.eval('help("%s")' % command)
 
     def function_call(self, function, args=None, kwds=None):
         """
@@ -310,7 +317,9 @@ class Julia(Expect):
         """
         args, kwds = self._convert_args_kwds(args, kwds)
         self._check_valid_function_name(function)
-        return self.new("%s(%s)"%(function, ",".join([s.name() for s in args])))
+        return self.new(
+            "%s(%s)" % (function, ",".join([s.name() for s in args])))
+
 
 class JuliaElement(ExpectElement):
     def trait_names(self):
@@ -340,9 +349,11 @@ class JuliaElement(ExpectElement):
         if not hasattr(other, 'parent') or P is not other.parent():
             other = P(other)
 
-        if P.eval('%s == %s'%(self.name(), other.name())) == P._true_symbol():
+        if P.eval(
+                '%s == %s' % (self.name(), other.name())) == P._true_symbol():
             return 0
-        elif P.eval('%s < %s'%(self.name(), other.name())) == P._true_symbol():
+        elif P.eval(
+                '%s < %s' % (self.name(), other.name())) == P._true_symbol():
             return -1
         else:
             return 1
@@ -359,7 +370,7 @@ class JuliaElement(ExpectElement):
             True
         """
         P = self._check_valid()
-        return P.eval("bool(%s)"%self.name()) == P._true_symbol()
+        return P.eval("bool(%s)" % self.name()) == P._true_symbol()
 
     def _add_(self, right):
         """
@@ -370,7 +381,7 @@ class JuliaElement(ExpectElement):
             3
         """
         P = self._check_valid()
-        return P.new('%s + %s'%(self._name, right._name))
+        return P.new('%s + %s' % (self._name, right._name))
 
     def _sub_(self, right):
         """
@@ -381,7 +392,7 @@ class JuliaElement(ExpectElement):
             -1
         """
         P = self._check_valid()
-        return P.new('%s - %s'%(self._name, right._name))
+        return P.new('%s - %s' % (self._name, right._name))
 
     def _mul_(self, right):
         """
@@ -392,7 +403,7 @@ class JuliaElement(ExpectElement):
             2
         """
         P = self._check_valid()
-        return P.new('%s * %s'%(self._name, right._name))
+        return P.new('%s * %s' % (self._name, right._name))
 
     def _div_(self, right):
         """
@@ -403,7 +414,7 @@ class JuliaElement(ExpectElement):
             1/2
         """
         P = self._check_valid()
-        return P.new('%s / %s'%(self._name, right._name))
+        return P.new('%s / %s' % (self._name, right._name))
 
     def __pow__(self, n):
         """
@@ -415,7 +426,8 @@ class JuliaElement(ExpectElement):
         """
         P = self._check_valid()
         right = P(n)
-        return P.new('%s ^ %s'%(self._name, right._name))
+        return P.new('%s ^ %s' % (self._name, right._name))
+
 
 class JuliaFunctionElement(FunctionElement):
     def _sage_doc_(self):
@@ -456,8 +468,10 @@ def is_JuliaElement(x):
     """
     return isinstance(x, JuliaElement)
 
+
 # An instance
 julia = Julia()
+
 
 def reduce_load_Julia():
     """
@@ -469,7 +483,10 @@ def reduce_load_Julia():
     """
     return julia
 
+
 import os
+
+
 def julia_console():
     """
     Spawn a new Julia command-line session.

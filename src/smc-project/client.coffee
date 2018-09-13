@@ -21,7 +21,7 @@ as a result.
 # not active for this long (should be at least 5 minutes).  Longer is better since
 # it reduces how long a user might have to wait for save, etc.,
 # but it slightly increases database work (managing a changefeed).
-SYNCSTRING_MAX_AGE_M = 20
+SYNCSTRING_MAX_AGE_M = 7
 #SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
@@ -57,6 +57,7 @@ schema     = require('smc-util/schema')
 sage_session = require('./sage_session')
 
 jupyter = require('./jupyter/jupyter')
+{get_kernel_data} = require('./jupyter/kernel-data')
 
 {json} = require('./common')
 
@@ -449,6 +450,7 @@ class exports.Client extends EventEmitter
             query   : required      # a query (see schema.coffee)
             changes : undefined     # whether or not to create a changefeed
             options : undefined     # options to the query, e.g., [{limit:5}] )
+            standby : false         # **IGNORED**
             timeout : 30            # how long to wait for initial result
             cb      : required
         if opts.options? and not misc.is_array(opts.options)
@@ -551,6 +553,9 @@ class exports.Client extends EventEmitter
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()
         return new db_doc.SyncDB(opts)
+
+    symmetric_channel: (name) =>
+        return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
 
     # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
     # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
@@ -690,10 +695,8 @@ class exports.Client extends EventEmitter
         opts.client = @
         return jupyter.kernel(opts)
 
-    jupyter_kernel_info: (opts) =>
-        opts = defaults opts,
-            cb : required
-        jupyter.get_kernel_data(opts.cb)
+    jupyter_kernel_info: =>
+        return await get_kernel_data()
 
     # See the file watcher.coffee for docs
     watch_file: (opts) =>

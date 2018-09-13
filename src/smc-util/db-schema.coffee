@@ -97,6 +97,9 @@ misc = require('./misc')
 
 {DEFAULT_QUOTAS} = require('./upgrade-spec')
 
+# better make sure the storage server has something available under "default"
+exports.DEFAULT_COMPUTE_IMAGE = 'default'
+
 schema = exports.SCHEMA = {}
 
 schema.account_creation_actions =
@@ -121,6 +124,7 @@ exports.DEFAULT_FONT_SIZE = DEFAULT_FONT_SIZE = 14
 schema.accounts =
     desc : 'All user accounts.'
     primary_key : 'account_id'
+    db_standby : 'unsafe'
     fields :
         account_id      :
             type : 'uuid',
@@ -310,6 +314,22 @@ schema.accounts =
                         obj[field] = obj[field].slice(0,254)
                 cb()
 
+
+schema.account_profiles =
+    desc : '(Virtual) Table that provides access to the profiles of all users; the profile is their *publicly visible* avatar.'
+    virtual : 'accounts'
+    anonymous : false
+    user_query :
+        get :
+            pg_where : []
+            options : [{limit : 1}] # in case user queries for [{account_id:null, profile:null}] they should not get the whole database.
+            fields :
+                account_id      : null
+                profile :
+                    image       : undefined
+                    color       : undefined
+
+
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
     primary_key : 'id'
@@ -443,6 +463,7 @@ schema.webapp_errors =
 
 schema.collaborators =
     primary_key : 'account_id'
+    db_standby : 'unsafe'
     anonymous   : false
     virtual     : 'accounts'
     user_query:
@@ -522,6 +543,7 @@ schema.file_use =
     primary_key: 'id'
     durability : 'soft' # loss of some log data not serious, since used only for showing notifications
     unique_writes: true   # there is no reason for a user to write the same record twice
+    db_standby : 'safer' # allow doing the initial read part of the query from a standby node.
     fields:
         id          :
             type : 'string'
@@ -656,6 +678,7 @@ schema.password_reset_attempts =
 
 schema.project_log =
     primary_key: 'id'
+    db_standby : 'unsafe'
     durability : 'soft' # dropping a log entry (e.g., "foo opened a file") wouldn't matter much
     fields :
         id          :
@@ -699,6 +722,10 @@ schema.project_log =
 
 schema.projects =
     primary_key: 'project_id'
+    ## A lot depends on this being right at all times, e.g., restart state,
+    ## so do not use db_standby yet.
+    ## It is simply not robust enough.
+    ## db_standby : 'safer'
     fields :
         project_id  :
             type : 'uuid',
@@ -792,7 +819,7 @@ schema.projects =
             desc : 'If project is running, this is the quota that it is running with.'
         compute_image :
             type : 'string'
-            desc : 'Specify the name of the underlying (kucalc) compute image (default: "latest")'
+            desc : "Specify the name of the underlying (kucalc) compute image (default: '#{exports.DEFAULT_COMPUTE_IMAGE}')"
         addons :
             type : 'map'
             desc : 'Configure (kucalc specific) addons for projects. (e.g. academic software, license keys, ...)'
@@ -824,7 +851,7 @@ schema.projects =
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
                 course         : null
-                compute_image  : 'latest'
+                compute_image  : exports.DEFAULT_COMPUTE_IMAGE
                 addons         : null
         set :
             fields :
@@ -934,6 +961,7 @@ schema.public_projects =
 
 schema.public_paths =
     primary_key : 'id'
+    db_standby : 'unsafe'
     anonymous   : true   # allow user *read* access, even if not signed in
     fields:
         id          :
@@ -1181,7 +1209,7 @@ schema.site_settings =
 schema.stats =
     primary_key : 'id'
     durability  : 'soft' # ephemeral stats whose slight loss wouldn't matter much
-    anonymous   : false     # allow user read access, even if not signed in
+    anonymous   : false     # if true, this would allow user read access, even if not signed in -- we used to do this but decided to use polling instead, since update interval is predictable.
     fields:
         id                  :
             type : 'uuid'
@@ -1217,6 +1245,7 @@ schema.storage_servers =
 
 schema.system_notifications =
     primary_key : 'id'
+    db_standby : 'unsafe'
     anonymous   : true     # allow users read access, even if not signed in
     fields :
         id :

@@ -18,8 +18,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
-
 """
 Miscellaneous functions.
 """
@@ -31,6 +29,7 @@ import os, sha
 ##########################################################################
 import socket, urllib, urllib2
 
+
 def get(url, data=None, timeout=10):
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(timeout)
@@ -40,6 +39,7 @@ def get(url, data=None, timeout=10):
         return urllib2.urlopen(url).read()
     finally:
         socket.setdefaulttimeout(old_timeout)
+
 
 def post(url, data=None, timeout=10):
     old_timeout = socket.getdefaulttimeout()
@@ -53,10 +53,11 @@ def post(url, data=None, timeout=10):
     finally:
         socket.setdefaulttimeout(old_timeout)
 
+
 ##########################################################################
 # Misc file/path management functions
 ##########################################################################
-def all_files(path):   # TODO: delete if not used
+def all_files(path):  # TODO: delete if not used
     """
     Return a sorted list of the names of all files in the given path, and in
     all subdirectories.  Empty directories are ignored.
@@ -89,7 +90,7 @@ def all_files(path):   # TODO: delete if not used
     n = len(path)
     for root, dirs, files in os.walk(path):
         for fname in files:
-            all.append(os.path.join(root[n+1:], fname))
+            all.append(os.path.join(root[n + 1:], fname))
     all.sort()
     return all
 
@@ -97,6 +98,8 @@ def all_files(path):   # TODO: delete if not used
 import tempfile
 
 _temp_prefix = None
+
+
 def is_temp_directory(path):  # TODO: delete if not used
     """
     Return True if the given path is likely to have been
@@ -121,10 +124,11 @@ def is_temp_directory(path):  # TODO: delete if not used
 # Misc process functions
 ##########################################################################
 
+
 def is_running(pid):
     """Return True only if the process with given pid is running."""
     try:
-        os.kill(pid,0)
+        os.kill(pid, 0)
         return True
     except:
         return False
@@ -133,6 +137,7 @@ def is_running(pid):
 ##########################################################################
 # Misc misc network stuff
 ##########################################################################
+
 
 def local_ip_address(dest='8.8.8.8'):
     """
@@ -144,14 +149,16 @@ def local_ip_address(dest='8.8.8.8'):
     # Obviously, this requires internet access.
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((dest,80))
+    s.connect((dest, 80))
     return s.getsockname()[0]
+
 
 ##########################################################################
 # Other
 ##########################################################################
 
 import random, time, traceback
+
 
 class call_until_succeed(object):
     """
@@ -163,6 +170,7 @@ class call_until_succeed(object):
     total of totaldelay and totaldelay is not None, then it gives up
     and re-raises the last exception.
     """
+
     def __init__(self, mindelay, maxdelay, totaldelay=None):
         self._mindelay = mindelay
         self._maxdelay = maxdelay
@@ -171,7 +179,7 @@ class call_until_succeed(object):
     def __call__(self, f):
         def g(*args, **kwds):
             attempts = 0
-            delay = (random.random() + 1)*self._mindelay
+            delay = (random.random() + 1) * self._mindelay
             totaldelay = 0
             while True:
                 attempts += 1
@@ -179,15 +187,19 @@ class call_until_succeed(object):
                     return f(*args, **kwds)
                 except:
                     if self._totaldelay and totaldelay >= self._totaldelay:
-                        print("call_until_succeed: exception hit running %s; too long (>=%s)"%(f.__name__, self._totaldelay))
+                        print(
+                            "call_until_succeed: exception hit running %s; too long (>=%s)"
+                            % (f.__name__, self._totaldelay))
                         raise
 
                     # print stack trace and name of function
-                    print("call_until_succeed: exception hit %s times in a row running %s; retrying in %s seconds"%(attempts, f.__name__, delay))
+                    print(
+                        "call_until_succeed: exception hit %s times in a row running %s; retrying in %s seconds"
+                        % (attempts, f.__name__, delay))
                     traceback.print_exc()
                     time.sleep(delay)
                     totaldelay += delay
-                    delay = min(2*delay, self._maxdelay)
+                    delay = min(2 * delay, self._maxdelay)
 
         return g
 
@@ -195,6 +207,7 @@ class call_until_succeed(object):
 ##########################################################################
 # Parallel computing
 ##########################################################################
+
 
 def thread_map(callable, inputs):
     """
@@ -205,11 +218,13 @@ def thread_map(callable, inputs):
     is instead raised.
     """
     from threading import Thread
+
     class F(Thread):
         def __init__(self, x):
             self._x = x
             Thread.__init__(self)
             self.start()
+
         def run(self):
             try:
                 self.result = callable(*self._x[0], **self._x[1])
@@ -217,8 +232,10 @@ def thread_map(callable, inputs):
             except Exception, msg:
                 self.result = msg
                 self.fail = True
+
     results = [F(x) for x in inputs]
-    for f in results: f.join()
+    for f in results:
+        f.join()
     e = [f.result for f in results if f.fail]
     if e: raise RuntimeError(e)
     return [f.result for f in results]

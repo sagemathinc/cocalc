@@ -76,7 +76,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     constructor: (opts) ->
         super()
         opts = defaults opts,
-            host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port'
+            host            : process.env['PGHOST'] ? 'localhost'    # or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
             database        : process.env['SMC_DB'] ? 'smc'
             user            : process.env['PGUSER'] ? 'smc'
             debug           : exports.DEBUG
@@ -128,10 +128,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_state = 'closed'
         @emit('close')
         @removeAllListeners()
-        if @_client?
-            @_client.removeAllListeners()
-            @_client.end()
-            delete @_client
+        if @_clients?
+            for client in @_clients
+                client.removeAllListeners()
+                client.end()
+            delete @_clients
 
     ###
     If @_timeout_ms is set, then we periodically do a simple test query,
@@ -167,7 +168,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.cb?("closed")
             return
         dbg = @_dbg("connect")
-        if @_client?
+        if @_clients?
             dbg("already connected")
             opts.cb?()
             return
@@ -198,17 +199,23 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     @emit('connect')
 
     disconnect: () =>
-        @_client?.end()
-        delete @_client
+        if @_clients?
+            for client in @_clients
+                client.end()
+                client.removeAllListeners()
+        delete @_clients
 
     _connect: (cb) =>
-        dbg = @_dbg("_do_connect"); dbg()
+        dbg = @_dbg("_do_connect")
+        dbg("connect to #{@_host}")
         @_clear_listening_state()   # definitely not listening
-        if @_client?
-            @_client.end()
-            delete @_client
-        client = undefined
+        if @_clients?
+            @disconnect()
+        locals =
+            clients : []
+            hosts   : []
         @_connect_time = 0
+        @_concurrent_queries = 0  # can't be any going on now.
         async.series([
             (cb) =>
                 if @_ensure_exists
@@ -218,31 +225,126 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     dbg("assuming database exists")
                     cb()
             (cb) =>
+                if not @_host   # undefined if @_host=''
+                    locals.hosts = [undefined]
+                    cb()
+                    return
+                if @_host.indexOf('/') != -1
+                    dbg("using a local socket file (not a hostname)")
+                    locals.hosts = [@_host]
+                    cb()
+                    return
+                f = (host, cb) =>
+                    hostname = host.split(':')[0]
+                    winston.debug("Looking up ip addresses of #{hostname}")
+                    require('dns').lookup hostname, {all:true}, (err, ips) =>
+                        if err
+                            winston.debug("Got #{hostname} --> err=#{err}")
+                            # NON-FATAL -- we just don't include these and hope to
+                            # have at least one total working host...
+                            cb()
+                        else
+                            winston.debug("Got #{hostname} --> #{JSON.stringify(ips)}")
+                            # In kubernetes the stateful set service just has
+                            # lots of ip address.  We connect to *all* of them,
+                            # and spread queries across them equally.
+                            for x in ips
+                                locals.hosts.push(x.address)
+                            cb()
+                async.map(@_host.split(','), f, cb)
+            (cb) =>
+                dbg("connecting to #{JSON.stringify(locals.hosts)}...")
+                if locals.hosts.length == 0
+                    dbg("locals.hosts has length 0 -- no available db")
+                    cb("no databases available")
+                    return
+
                 dbg("create client and start connecting...")
-                client = new pg.Client
-                    user     : 'smc'
-                    host     : if @_host then @_host    # undefined if @_host=''
-                    port     : @_port
-                    password : @_password
-                    database : @_database
-                if @_notification?
-                    client.on('notification', @_notification)
-                client.on 'error', (err) =>
-                    @emit('disconnect')
-                    dbg("error -- #{err}")
-                    client?.end()
-                    client?.removeAllListeners()
-                    delete @_client
-                    @connect()  # start trying to reconnect
-                client.connect(cb)
+                locals.clients = []
+
+                # Use a function to initialize the client, to avoid any
+                # issues with scope of "client" below.
+                init_client = (host) =>
+                    client = new pg.Client
+                        user     : 'smc'
+                        host     : host
+                        port     : @_port
+                        password : @_password
+                        database : @_database
+                    if @_notification?
+                        client.on('notification', @_notification)
+                    client.on 'error', (err) =>
+                        if @_state == 'init'
+                            # already started connecting
+                            return
+                        @emit('disconnect')
+                        dbg("error -- #{err}")
+                        @disconnect()
+                        @connect()  # start trying to reconnect
+                    client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
+                    locals.clients.push(client)
+
+                for host in locals.hosts
+                    init_client(host)
+
+                # Connect the clients.  If at least one succeeds, we use this.
+                # If none succeed, we declare failure.
+                # Obviously, this is NOT optimal -- it's just hopefully sufficiently robust/works.
+                # I'm going to redo this with experience.
+                locals.clients_that_worked = []
+                locals.errors = []
+                f = (c) =>
+                    try
+                        await c.connect()
+                        locals.clients_that_worked.push(c)
+                    catch err
+                        locals.errors.push(err)
+
+                await Promise.all((f(c) for c in locals.clients))
+
+                if locals.clients_that_worked.length == 0
+                    dbg("ALL clients failed", locals.errors)
+                    cb("ALL clients failed to connect")
+                else
+                    # take what we got
+                    if locals.clients.length == locals.clients_that_worked.length
+                        dbg("ALL clients worked")
+                    else
+                        dbg("ONLY #{locals.clients_that_worked.length} clients worked")
+                    locals.clients = locals.clients_that_worked
+                    cb()
+
             (cb) =>
                 # CRITICAL!  At scale, this query
                 #    SELECT * FROM file_use WHERE project_id = any(select project_id from projects where users ? '25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb3') ORDER BY last_edited DESC limit 100;
                 # will take forever due to the query planner using a nestloop scan.  We thus
                 # disable doing so!
                 @_connect_time = new Date()
-                dbg("now connected; disabling nestloop query planning.")
-                client.query("SET enable_nestloop TO off", cb)
+                locals.i = 0
+                f = (client, cb) =>
+                    dbg("now connected; disabling nestloop query planning for client #{locals.i}")
+                    locals.i += 1
+                    client.query "SET enable_nestloop TO off", (err) =>
+                        if err
+                            dbg("disabling nestloop failed for client #{locals.i}")
+                        else
+                            dbg("disabling nestloop done for client #{locals.i}")
+                        cb(err)
+                async.map(locals.clients, f, cb)
+            (cb) =>
+                dbg("checking if ANY db server is in recovery, i.e., we are doing standby queries only")
+                @is_standby = false
+                f = (client, cb) =>
+                    # Is this a read/write or read-only connection?
+                    client.query "SELECT pg_is_in_recovery()", (err, resp) =>
+                        if err
+                            cb(err)
+                        else
+                            # True if ANY db connection is read only.
+                            if resp.rows[0].pg_is_in_recovery
+                                @is_standby = true
+                            cb()
+                async.map(locals.clients, f, cb)
         ], (err) =>
             if err
                 mesg = "Failed to connect to database -- #{err}"
@@ -250,12 +352,25 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 console.warn(mesg)  # make it clear for interactive users with debugging off -- common mistake with env not setup right.
                 cb?(err)
             else
-                @_client = client
-                client.concurrent_queries = 0
-                client.setMaxListeners(1000)  # there is one emitter for each concurrent query... (see query_cb)
+                @_clients = locals.clients
+                @_concurrent_queries = 0
                 dbg("connected!")
                 cb?(undefined, @)
         )
+
+    # Return a native pg client connection.  This will
+    # round robbin through all connections.  It returns
+    # undefined if there are no connections.
+    _client: =>
+        if not @_clients?
+            return
+        if @_clients.length <= 1
+            return @_clients[0]
+        @_client_index ?= -1
+        @_client_index = @_client_index + 1
+        if @_client_index >= @_clients.length
+            @_client_index = 0
+        return @_clients[@_client_index]
 
     _dbg: (f) =>
         if @_debug
@@ -317,11 +432,16 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             retry_until_success : undefined  # if given, should be options to misc.retry_until_success
             cb          : undefined
 
+        # quick check for write query against read-only connection
+        if @is_standby and (opts.set? or opts.jsonb_set? or opts.jsonb_merge?)
+            opts.cb("set queries against standby not allowed")
+            return
+
         if opts.retry_until_success
             @_query_retry_until_success(opts)
             return
 
-        if not @_client?
+        if not @_clients?
             dbg = @_dbg("_query")
             dbg("connecting first...")
             @connect
@@ -364,7 +484,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}',id='#{misc.uuid().slice(0,6)}')")
-        if not @_client?
+        if not @_clients?
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
             return
@@ -570,9 +690,13 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         # params can easily be huge, e.g., a blob.  But this may be
         # needed at some point for debugging.
         #dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
-        client = @_client
-        client.concurrent_queries += 1
-        dbg("query='#{opts.query} (concurrent=#{client.concurrent_queries})'")
+        client = @_client()
+        if not client?
+            opts.cb?("not connected")
+            return
+        @_concurrent_queries ?= 0
+        @_concurrent_queries += 1
+        dbg("query='#{opts.query} (concurrent=#{@_concurrent_queries})'")
 
         @concurrent_counter.labels('started').inc(1)
         try
@@ -609,14 +733,14 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if @_timeout_ms
                     clearTimeout(timer)
                 query_time_ms = new Date() - start
-                client.concurrent_queries -= 1
+                @_concurrent_queries -= 1
                 @query_time_histogram.observe({table:opts.table ? ''}, query_time_ms)
                 @concurrent_counter.labels('ended').inc(1)
                 if err
-                    dbg("done (concurrent=#{client.concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
+                    dbg("done (concurrent=#{@_concurrent_queries}), (query_time_ms=#{query_time_ms}) -- error: #{err}")
                     err = 'postgresql ' + err
                 else
-                    dbg("done (concurrent=#{client.concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
+                    dbg("done (concurrent=#{@_concurrent_queries}) (query_time_ms=#{query_time_ms}) -- success")
                 if opts.cache and @_query_cache?
                     @_query_cache.set(full_query_string, [err, result])
                 opts.cb?(err, result)
@@ -628,7 +752,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             # this should never ever happen
             dbg("EXCEPTION in client.query: #{e}")
             opts.cb?(e)
-            client.concurrent_queries -= 1
+            @_concurrent_queries -= 1
             @concurrent_counter.labels('ended').inc(1)
         return
 
@@ -665,7 +789,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _ensure_database_exists: (cb) =>
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
-        args = ['--user', @_user, '--host', @_host, '--port', @_port, '--list', '--tuples-only']
+        args = ['--user', @_user, '--host', @_host.split(',')[0], '--port', @_port, '--list', '--tuples-only']
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
@@ -714,7 +838,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         async.series([
             (cb) =>
                 dbg("disconnect from db")
-                @_client.end(cb)
+                @disconnect()
+                cb()
             (cb) =>
                 misc_node.execute_code
                     command : 'dropdb'
@@ -1056,7 +1181,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     # Return the number of outstanding concurrent queries.
     concurrent: =>
-        return @_client?.concurrent_queries ? 0
+        return @_concurrent_queries ? 0
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.

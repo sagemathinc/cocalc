@@ -101,14 +101,6 @@ class Connection extends client.Connection
         if prom_client.enabled
             @on('start_metrics', prom_client.start_metrics)
 
-        # Wait until load totally done.
-        setTimeout(@_firefox60_bug, 5000)
-
-    _firefox60_bug: =>
-        {name, version} = require('misc/browser').get_browser()
-        if name == 'Firefox' and (version == '59' or version == '60')
-            @alert_message(type:'error', block:'true', timeout:10000, message:"Firefox versions 59 and 60 have a MAJOR bug. You *must* use a different web browser. See https://tinyurl.com/y9hphj39 and https://tinyurl.com/yboeepsf")
-
     _setup_window_smc: () =>
         # if we are in DEBUG mode, inject the client into the global window object
         window.enable_post = =>
@@ -361,3 +353,4 @@ exports.connect = (url) ->
         return connection = new Connection(url)
 
 exports.connect()
+

@@ -1,11 +1,12 @@
 /*
-manager-actions: additional actions that are only available in the
+project-actions: additional actions that are only available in the
 backend/project, which "manages" everything.
- 
+
 This code should not *explicitly* require anything that is only
 available in the project or requires node to run, so that we can
 fully unit test it via mocking of components.
 */
+
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
 const async = require("async");
@@ -95,7 +96,7 @@ export class JupyterActions extends JupyterActions0 {
     //dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
 
     this.setState({
-      // used by jupyter.coffee
+      // used by jupyter.ts
       start_time: this._client.server_time() - 0
     });
     this.syncdb.delete({ type: "nbconvert" }); // clear on init, since can't be running yet
@@ -224,12 +225,18 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     dbg("no kernel; make one");
+
     // No kernel wrapper object setup at all. Make one.
     this._jupyter_kernel = this._client.jupyter_kernel({
       name: kernel,
       path: this.store.get("path"),
       actions: this
     });
+
+    if (this._jupyter_kernel == null) {
+      // mainly to satisfy compiler.
+      throw Error("Jupter kernel must be defined");
+    }
 
     // Since we just made a new kernel connection, clearly no cells are running on the backend.
     delete this._running_cells;
@@ -260,7 +267,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this._jupyter_kernel.on("spawn_error", err => {
       // TODO: need to save so gets reported to frontend...
-      return dbg(`error: ${err}`);
+      dbg(`error: ${err}`);
     });
 
     this._jupyter_kernel.on("usage", this.set_kernel_usage);
@@ -272,24 +279,24 @@ export class JupyterActions extends JupyterActions0 {
     return this.set_backend_kernel_info();
   };
 
-  init_kernel_info = () => {
-    const kernels = this.store.get("kernels");
-    const size = kernels != null ? kernels.size : undefined;
-    const dbg = this.dbg("init_kernel_info");
-    dbg(`kernels.size=${size}`);
-    if (kernels == null) {
-      dbg("getting");
-      return this._client.jupyter_kernel_info({
-        cb: (err, kernels) => {
-          dbg(`got ${err}, ${misc.to_json(kernels)}`);
-          if (!err) {
-            return this.setState({
-              kernels: immutable.fromJS(kernels.jupyter_kernels)
-            });
-          }
-        }
-      });
+  init_kernel_info = async () => {
+    let kernels = this.store.get("kernels");
+    if (kernels != null) {
+      return;
     }
+    const dbg = this.dbg("init_kernel_info");
+    dbg("getting");
+    try {
+      kernels = await this._client.jupyter_kernel_info();
+      dbg("success");
+    } catch (err) {
+      dbg(`FAILED to get kernel info: ${err}`);
+      // TODO: what to do??  Saving will be broken...
+      return;
+    }
+    this.setState({
+      kernels: immutable.fromJS(kernels)
+    });
   };
 
   // _manage_cell_change is called after a cell change has been
@@ -364,7 +371,7 @@ export class JupyterActions extends JupyterActions0 {
   _cancel_run = (id: any) => {
     if (this._running_cells != null ? this._running_cells[id] : undefined) {
       return this._jupyter_kernel != null
-        ? this._jupyter_kernel.cancel_execute({ id })
+        ? this._jupyter_kernel.cancel_execute(id)
         : undefined;
     }
   };
@@ -432,14 +439,15 @@ export class JupyterActions extends JupyterActions0 {
     );
   };
 
-  manager_run_cell = (id: any) => {
+  manager_run_cell = (id: string) => {
     let left;
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
     dbg();
 
+    // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
     if (this._run_again != null) {
       delete this._run_again[id];
-    } // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
+    }
 
     this.ensure_backend_kernel_setup();
 
@@ -504,8 +512,13 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
 
-    const get_password = () => {
+    const get_password = () : string => {
+      if (this._jupyter_kernel == null) {
+        dbg("get_password", id, "no kernel");
+        return "";
+      }
       const password = this._jupyter_kernel.store.get(id);
+        dbg("get_password", id, password);
       this._jupyter_kernel.store.delete(id);
       return password;
     };
@@ -519,55 +532,58 @@ export class JupyterActions extends JupyterActions0 {
     };
     this.store.on("cell_change", cell_change);
 
-    return this._jupyter_kernel.execute_code({
+    const exec = this._jupyter_kernel.execute_code({
       code: input,
       id,
-      stdin: handler.stdin,
-      cb: (err, mesg) => {
-        dbg(`got mesg='${JSON.stringify(mesg)}'`);
-        if (mesg == null && !err) {
-          // can't possibly happen, of course.
-          err = "empty mesg";
-        }
-        if (err) {
-          dbg(`got error='${err}'`);
-          handler.error(err);
-          return;
-        }
-        if (mesg.done) {
-          // done is a special internal cocalc message.
-          handler.done();
-          return;
-        }
-        if (mesg.msg_type === "clear_output") {
-          handler.clear(mesg.content.wait);
-          return;
-        }
-        if (mesg.content.execution_state === "idle") {
-          this.store.removeListener("cell_change", cell_change);
-          return;
-        }
-        if (mesg.content.execution_state === "busy") {
-          handler.start();
-        }
-        if (mesg.content.payload != null) {
-          if (
-            (mesg.content.payload != null
-              ? mesg.content.payload.length
-              : undefined) > 0
-          ) {
-            // payload shell message:
-            // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
-            // ""Payloads are considered deprecated, though their replacement is not yet implemented."
-            // we fully have to implement them, since they are used to implement (crazy, IMHO)
-            // things like %load in the python2 kernel!
-            return mesg.content.payload.map(p => handler.payload(p));
-          }
-        } else {
-          // Normal iopub output message
-          return handler.message(mesg.content);
-        }
+      stdin: handler.stdin
+    });
+
+    exec.on("output", mesg => {
+      dbg(`got mesg='${JSON.stringify(mesg)}'`);
+      if (mesg == null) {
+        // can't possibly happen, of course.
+        let err = "empty mesg";
+        dbg(`got error='${err}'`);
+        handler.error(err);
+        return;
       }
+      if (mesg.done) {
+        // done is a special internal cocalc message.
+        handler.done();
+        return;
+      }
+      if (mesg.msg_type === "clear_output") {
+        handler.clear(mesg.content.wait);
+        return;
+      }
+      if (mesg.content.execution_state === "idle") {
+        this.store.removeListener("cell_change", cell_change);
+        return;
+      }
+      if (mesg.content.execution_state === "busy") {
+        handler.start();
+      }
+      if (mesg.content.payload != null) {
+        if (
+          (mesg.content.payload != null
+            ? mesg.content.payload.length
+            : undefined) > 0
+        ) {
+          // payload shell message:
+          // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
+          // ""Payloads are considered deprecated, though their replacement is not yet implemented."
+          // we fully have to implement them, since they are used to implement (crazy, IMHO)
+          // things like %load in the python2 kernel!
+          return mesg.content.payload.map(p => handler.payload(p));
+        }
+      } else {
+        // Normal iopub output message
+        return handler.message(mesg.content);
+      }
+    });
+    exec.on("error", err => {
+      dbg(`got error='${err}'`);
+      handler.error(err);
     });
   };
 
@@ -979,10 +995,14 @@ Read the ipynb file from disk.
           },
           cb => {
             dbg("now actually running nbconvert");
-            return this._jupyter_kernel.nbconvert({
-              args,
-              cb
-            });
+            if (this._jupyter_kernel == null) {
+              cb("jupyter kernel not defined");
+            } else {
+              this._jupyter_kernel
+                .nbconvert(args)
+                .then(data => cb(undefined, data))
+                .catch(err => cb(err));
+            }
           }
         ],
         err => {
@@ -994,11 +1014,13 @@ Read the ipynb file from disk.
           if (err) {
             dbg("error running");
             if (!misc.is_string(err)) {
-              err = JSON.stringify(err);
+              err = `${err}`;
             }
             if (err.length >= 50) {
               // save in key:value store.
-              this._jupyter_kernel.store.set("nbconvert_error", err);
+              if (this._jupyter_kernel && this._jupyter_kernel.store) {
+                this._jupyter_kernel.store.set("nbconvert_error", err);
+              }
               err = { key: "nbconvert_error" };
             }
           }
@@ -1041,22 +1063,20 @@ Read the ipynb file from disk.
             value: null
           });
           if (this._jupyter_kernel != null) {
-            this._jupyter_kernel.load_attachment({
-              path: x.get("value"),
-              cb: (err, sha1) => {
-                if (err) {
-                  return this.set_cell_attachment(cell.get("id"), name, {
-                    type: "error",
-                    value: err
-                  });
-                } else {
-                  return this.set_cell_attachment(cell.get("id"), name, {
-                    type: "sha1",
-                    value: sha1
-                  });
-                }
-              }
-            });
+            this._jupyter_kernel
+              .load_attachment(x.get("value"))
+              .then(sha1 => {
+                this.set_cell_attachment(cell.get("id"), name, {
+                  type: "sha1",
+                  value: sha1
+                });
+              })
+              .catch(err => {
+                this.set_cell_attachment(cell.get("id"), name, {
+                  type: "error",
+                  value: err
+                });
+              });
           }
         }
       });

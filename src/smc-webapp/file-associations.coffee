@@ -42,7 +42,7 @@ codemirror_associations =
     js     : 'javascript'
     jsx    : 'jsx'
     json   : 'javascript'
-    lean   : 'text/x-sql'   # obviously nowhere close...
+    lean   : 'lean'   # obviously nowhere close...
     ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'

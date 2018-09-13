@@ -20,9 +20,6 @@
 #
 ###############################################################################
 
-
-
-
 import argparse, time
 
 from subprocess import Popen, PIPE
@@ -31,62 +28,67 @@ from subprocess import Popen, PIPE
 def cmd(s, ignore_errors=False):
     print s
     t = time.time()
-    out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
+    out = Popen(
+        s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
     x = out.stdout.read() + out.stderr.read()
-    e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
-    print "(%s seconds): %s"%(time.time()-t, x)
+    e = out.wait(
+    )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+    print "(%s seconds): %s" % (time.time() - t, x)
     if e and not ignore_errors:
         raise RuntimeError(x)
     return x
+
 
 def chown(username, filesystem):
     new_filesystem = filesystem + "-chown"
 
     # get list of snapshots, ordered by creation time
-    s = cmd("zfs list -r -t snapshot -o name -s creation %s"%filesystem)
+    s = cmd("zfs list -r -t snapshot -o name -s creation %s" % filesystem)
     n = len(filesystem)
-    snapshots = [x[n+1:] for x in s.splitlines() if x[n+1:].strip()]
+    snapshots = [x[n + 1:] for x in s.splitlines() if x[n + 1:].strip()]
 
     # get mountpoint
-    mp = cmd("zfs get mountpoint %s"%filesystem).splitlines()[1].split()[2]
+    mp = cmd("zfs get mountpoint %s" % filesystem).splitlines()[1].split()[2]
     if mp == "none":
         mp = '/' + filesystem
 
-    cmd("zfs set mountpoint=%s %s"%(mp, filesystem))
-    cmd("zfs mount %s"%filesystem, ignore_errors=True)
+    cmd("zfs set mountpoint=%s %s" % (mp, filesystem))
+    cmd("zfs mount %s" % filesystem, ignore_errors=True)
 
     # create destination filesystem
-    cmd("zfs destroy -r %s"%new_filesystem, ignore_errors=True)
-    cmd("zfs create %s"%new_filesystem)
+    cmd("zfs destroy -r %s" % new_filesystem, ignore_errors=True)
+    cmd("zfs create %s" % new_filesystem)
 
     # copy over each snapshot, chowning as we go.
     for snapshot in snapshots:
-        cmd("rsync -axH --delete /%s/.zfs/snapshot/%s/ /%s/"%(filesystem, snapshot, new_filesystem))
-        cmd("chown -R %s. /%s/"%(username, new_filesystem))
-        cmd("zfs snapshot %s@%s"%(new_filesystem, snapshot))
+        cmd("rsync -axH --delete /%s/.zfs/snapshot/%s/ /%s/" %
+            (filesystem, snapshot, new_filesystem))
+        cmd("chown -R %s. /%s/" % (username, new_filesystem))
+        cmd("zfs snapshot %s@%s" % (new_filesystem, snapshot))
 
     # copy over live files and chown
-    cmd("rsync -axH --delete /%s/ /%s/"%(filesystem, new_filesystem))
-    cmd("chown -R %s. /%s/"%(username, new_filesystem))
+    cmd("rsync -axH --delete /%s/ /%s/" % (filesystem, new_filesystem))
+    cmd("chown -R %s. /%s/" % (username, new_filesystem))
 
     # unmount
-    cmd("zfs umount %s"%filesystem)
-    cmd("zfs umount %s"%new_filesystem)
+    cmd("zfs umount %s" % filesystem)
+    cmd("zfs umount %s" % new_filesystem)
 
     # move orig out of the way and new to orig
-    cmd("zfs destroy -r %s-chown-TRASH"%filesystem, ignore_errors=True)
-    cmd("zfs rename %s %s-chown-TRASH"%(filesystem, filesystem))
-    cmd("zfs rename %s %s"%(new_filesystem, filesystem))
+    cmd("zfs destroy -r %s-chown-TRASH" % filesystem, ignore_errors=True)
+    cmd("zfs rename %s %s-chown-TRASH" % (filesystem, filesystem))
+    cmd("zfs rename %s %s" % (new_filesystem, filesystem))
 
-    cmd("zfs set mountpoint=%s %s"%(mp,filesystem))
-    cmd("zfs mount %s"%filesystem, ignore_errors=True)
+    cmd("zfs set mountpoint=%s %s" % (mp, filesystem))
+    cmd("zfs mount %s" % filesystem, ignore_errors=True)
 
     print "Done.  You can delete the original filesystem by typing"
-    print "zfs destroy -r %s-chown-TRASH"%filesystem
+    print "zfs destroy -r %s-chown-TRASH" % filesystem
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="create chowned version of a zfs filesystem")
+    parser = argparse.ArgumentParser(
+        description="create chowned version of a zfs filesystem")
 
     parser.add_argument("username", help="a unix username", type=str)
     parser.add_argument("filesystem", help="a ZFS filesystem", type=str)
@@ -94,5 +96,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     chown(username=args.username, filesystem=args.filesystem)
-
-

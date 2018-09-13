@@ -8,15 +8,20 @@ import re
 import requests
 from requests.auth import HTTPBasicAuth
 
+
 def remotes():
     results = os.popen('git remote -v').read().strip('\n').split('\n')
-    results = [row.replace(' ','\t').split('\t')[:2] for row in results]
+    results = [row.replace(' ', '\t').split('\t')[:2] for row in results]
     results = dict(results)
     return json.dumps(results)
 
+
 def current_branch():
-    result = os.popen('git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "master" ').read().strip('\n').split('\n')[-1]
+    result = os.popen(
+        'git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "master" ').read(
+        ).strip('\n').split('\n')[-1]
     return result.strip()
+
 
 def branches():
     results = os.popen('git branch').read().strip('\n').split('\n')
@@ -24,56 +29,75 @@ def branches():
     results = sorted(results)
     return json.dumps(results)
 
+
 def changed_tracked_files():
     results = os.popen('git diff --name-only').read().strip('\n').split('\n')
     return json.dumps(results)
 
+
 def changed_untracked_files():
-    results = os.popen('git ls-files . --exclude-standard --others').read().strip('\n').split('\n')
+    results = os.popen('git ls-files . --exclude-standard --others').read(
+    ).strip('\n').split('\n')
     return json.dumps(results)
 
+
 def compare_current_branch_with_upstream_master():
-    results = os.popen('git diff %s upstream/master' % (current_branch())).read()
+    results = os.popen(
+        'git diff %s upstream/master' % (current_branch())).read()
     return results
+
 
 def create_branch_and_reset_to_upstream_master(branch_name):
     os.system('git checkout -b %s' % (branch_name))
     os.system('git fetch upstream; git reset --hard upstream/master')
     return ''
 
+
 def push_to_origin_same_branch():
     os.system('git push origin %s' % (current_branch()))
     return ''
+
 
 def pull_upstream_master():
     os.system('git pull --no-edit upstream master')
     return ''
 
+
 def set_github_login(data_file, username, access_token):
     with open(data_file, 'w') as f:
-        f.write(json.dumps({'github_username': username, 'github_access_token': access_token}))
+        f.write(
+            json.dumps({
+                'github_username': username,
+                'github_access_token': access_token
+            }))
     return ''
+
 
 def get_data_file_contents(data_file):
     with open(data_file, 'r') as f:
         return f.read()
+
 
 def make_upstream_pr_for_current_branch(data_file):
     issue_number = current_branch().split('_')[-1]
     with open(data_file, 'r') as f:
         data = json.loads(f.read())
     the_remotes = json.loads(remotes())
-    upstream = re.search('/(?P<owner>\w+)/(?P<repo>\w+)\.git', the_remotes['upstream'])
+    upstream = re.search('/(?P<owner>\w+)/(?P<repo>\w+)\.git',
+                         the_remotes['upstream'])
     head = '%s:%s' % (data['github_username'], current_branch())
-    payload = {
-      "issue": issue_number,
-      "head": head,
-      "base": "master"
-    }
-    url = 'https://api.github.com/repos/%s/%s/pulls' % (upstream.group('owner'), upstream.group('repo'))
+    payload = {"issue": issue_number, "head": head, "base": "master"}
+    url = 'https://api.github.com/repos/%s/%s/pulls' % (
+        upstream.group('owner'), upstream.group('repo'))
     headers = {'content-type': 'application/json'}
-    return requests.post(url, data=json.dumps(payload), headers=headers, auth=HTTPBasicAuth(data['github_username'], data['github_access_token'])).json()
-    
+    return requests.post(
+        url,
+        data=json.dumps(payload),
+        headers=headers,
+        auth=HTTPBasicAuth(data['github_username'],
+                           data['github_access_token'])).json()
+
+
 def main():
     import sys
     #import argparse
@@ -91,6 +115,6 @@ def main():
     else:
         print globals()[sys.argv[1]]()
 
+
 if __name__ == "__main__":
     main()
-

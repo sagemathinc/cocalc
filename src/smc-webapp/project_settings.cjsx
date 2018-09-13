@@ -28,14 +28,17 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
-{webapp_client}      = require('./webapp_client')
-misc                 = require('smc-util/misc')
-{required, defaults} = misc
-{html_to_text}       = require('./misc_page')
-{alert_message}      = require('./alerts')
-{project_tasks}      = require('./project_tasks')
+{webapp_client}         = require('./webapp_client')
+misc                    = require('smc-util/misc')
+{required, defaults}    = misc
+{html_to_text}          = require('./misc_page')
+{alert_message}         = require('./alerts')
+{project_tasks}         = require('./project_tasks')
+{COLORS}                = require('smc-util/theme')
+{COMPUTE_IMAGES, DEFAULT_COMPUTE_IMAGE} = require('smc-util/compute-images')
+COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all the ui code was written.
 
-{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
+{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
@@ -47,11 +50,10 @@ misc                 = require('smc-util/misc')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{AddCollaborators} = require('./collaborators/add-to-project')
-
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
 
+{AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -525,6 +527,13 @@ HideDeletePanel = rclass
                     {@render_expanded_delete_info()}
                 </Col>
             </Row> if @state.show_delete_conf and not @props.project.get('deleted')}
+            <hr/>
+            <Row style={color: '#666'}>
+                <Col sm={12}>
+                    If you do need to permanently delete some sensitive information
+                    that you accidentally copied into a project, contact <HelpEmailLink/>.
+                </Col>
+            </Row>
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
@@ -587,12 +596,28 @@ ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState: ->
-        restart  : false
-        show_ssh : false
+        restart                : false
+        show_ssh               : false
+        compute_image          : @props.project.get('compute_image')
+        compute_image_changing : false
+        compute_image_focused  : false
 
     propTypes :
         project           : rtypes.object.isRequired
         allow_ssh         : rtypes.bool
+
+    reduxProps :
+        customize :
+            kucalc : rtypes.string
+
+    componentWillReceiveProps: (props) ->
+        return if @state.compute_image_focused
+        new_image = props.project.get('compute_image')
+        if new_image != @state.compute_image
+            @setState(
+                compute_image:new_image
+                compute_image_changing:false
+            )
 
     open_authorized_keys: (e) ->
         e.preventDefault()
@@ -609,26 +634,6 @@ ProjectControlPanel = rclass
                 cb()
         ])
 
-    ssh_notice: ->
-        project_id = @props.project.get('project_id')
-        host = @props.project.get('host')?.get('host')
-        if host?
-            if @state.show_ssh
-                <div>
-                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    {### WARNING: previous use of <FormControl> here completely breaks copy on Firefox. ###}
-                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.cocalc.com"} </pre>
-                    <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
-                    <Icon name='life-ring'/> How to create SSH keys</a>
-                </div>
-            else
-                <Row>
-                    <Col sm={12}>
-                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
-                            <Icon name='terminal' /> SSH Into Your Project...
-                        </Button>
-                    </Col>
-                </Row>
 
     render_state: ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -679,7 +684,7 @@ ProjectControlPanel = rclass
                     <hr />
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false); @stop_project()}>
-                            <Icon name='refresh' /> Stop Project Server
+                            <Icon name='stop' /> Stop Project Server
                         </Button>
                         <Button onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false)}>
                              Cancel
@@ -694,19 +699,12 @@ ProjectControlPanel = rclass
         commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
         <ButtonToolbar style={marginTop:'10px', marginBottom:'10px'}>
             <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:false,restart:true)}>
-                <Icon name={COMPUTE_STATES.starting.icon} /> Restart Project...
+                <Icon name='refresh' /> Restart Project...
             </Button>
             <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(show_stop_confirmation:true,restart:false)}>
-                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop Project...
+                <Icon name='stop' /> Stop Project...
             </Button>
         </ButtonToolbar>
-
-    show_host: ->
-        host = @props.project.get('host')?.get('host')
-        if host
-            <LabeledRow key='host' label='Host'>
-                <pre>{host}.sagemath.com</pre>
-            </LabeledRow>
 
     render_idle_timeout_row: ->
         if @props.project.getIn(['state', 'state']) != 'running'
@@ -739,12 +737,119 @@ ProjectControlPanel = rclass
             </span>
         </LabeledRow>
 
+    cancel_compute_image: (current_image) ->
+        @setState(
+            compute_image: current_image
+            compute_image_changing : false
+            compute_image_focused : false
+        )
+
+
+    save_compute_image: (current_image) ->
+        # image is reset to the previous name and componentWillReceiveProps will set it when new
+        @setState(
+            compute_image: current_image
+            compute_image_changing : true
+            compute_image_focused : false
+        )
+        new_image = @state.compute_image
+        actions = redux.getProjectActions(@props.project.get('project_id'))
+        try
+            await actions.set_compute_image(new_image)
+            @restart_project()
+        catch err
+            alert_message(type:'error', message:err)
+            @setState(compute_image_changing: false)
+
+    set_compute_image: (name) ->
+        @setState(compute_image: name)
+
+    compute_image_info: (name, type) ->
+         COMPUTE_IMAGES.getIn([name, type])
+
+    render_compute_image_items: ->
+        COMPUTE_IMAGES.entrySeq().map (entry) =>
+            [name, data] = entry
+            <MenuItem key={name} eventKey={name} onSelect={@set_compute_image}>
+                {data.get('title')}
+            </MenuItem>
+
+    render_select_compute_image_row: ->
+        if @props.kucalc != 'yes'
+            return
+        <div>
+            <LabeledRow key='cpu-usage' label='Software Environment' style={@rowstyle(true)}>
+                {@render_select_compute_image()}
+            </LabeledRow>
+        </div>
+
+    render_select_compute_image_error: ->
+        err = COMPUTE_IMAGES.get('error')
+        <Alert bsStyle='warning' style={margin:'10px'}>
+            <h4>Problem loading compute images</h4>
+            <code>{err}</code>
+        </Alert>
+
+    render_select_compute_image: ->
+        no_value = not @state.compute_image?
+        return <Loading/> if no_value or @state.compute_image_changing
+        return @render_select_compute_image_error() if COMPUTE_IMAGES.has('error')
+        # this will at least return a suitable default value
+        selected_image = @state.compute_image
+        current_image = @props.project.get('compute_image')
+        default_title = @compute_image_info(DEFAULT_COMPUTE_IMAGE, 'title')
+
+        <div style={color:'#666'}>
+            <div style={fontSize : '12pt'}>
+                <Icon name={'hdd'} />
+                <Space/>
+                Selected image
+                <Space/>
+                <DropdownButton
+                    title={@compute_image_info(selected_image, 'title')}
+                    id={selected_image}
+                    onToggle={(open)=>@setState(compute_image_focused:open)}
+                    onBlur={=>@setState(compute_image_focused:false)}
+                >
+                    {this.render_compute_image_items()}
+                </DropdownButton>
+                <Space/>
+                {
+                    if selected_image != DEFAULT_COMPUTE_IMAGE
+                        <span style={color:COLORS.GRAY, fontSize : '11pt'}>
+                            <br/> (If in doubt, select "{default_title}".)
+                        </span>
+                }
+            </div>
+            <div style={marginTop:'10px'}>
+                <span>
+                    <i>{@compute_image_info(selected_image, 'descr')}</i>
+                </span>
+            </div>
+            {
+                if selected_image != current_image
+                    <div style={marginTop:'10px'}>
+                        <Button
+                            onClick={=>@save_compute_image(current_image)}
+                            bsStyle='warning'
+                        >
+                            Save and Restart
+                        </Button>
+                        <Space />
+                        <Button onClick={=>@cancel_compute_image(current_image)}>
+                            Cancel
+                        </Button>
+                    </div>
+            }
+        </div>
+
     rowstyle: (delim) ->
         style =
             marginBottom:  '5px'
             paddingBottom: '10px'
         if delim
             style.borderBottom = '1px solid #ccc'
+            style.borderTop = '1px solid #ccc'
         return style
 
     render: ->
@@ -763,110 +868,8 @@ ProjectControlPanel = rclass
             <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
-            {@show_host() if @props.allow_ssh}
-            If your project is not working, please create a <ShowSupportLink />.
-            {<hr /> if @props.allow_ssh}
-            {@ssh_notice() if @props.allow_ssh}
-        </ProjectSettingsPanel>
-
-exports.CollaboratorsList = CollaboratorsList = rclass
-    displayName : 'ProjectSettings-CollaboratorsList'
-
-    propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-
-    reduxProps :
-        account :
-            get_account_id : rtypes.func
-        projects :
-            sort_by_activity : rtypes.func
-
-    getInitialState: ->
-        removing : undefined  # id's of account that we are currently confirming to remove
-
-    remove_collaborator: (account_id) ->
-        project_id = @props.project.get('project_id')
-        @actions('projects').remove_collaborator(project_id, account_id)
-        @setState(removing:undefined)
-        if account_id == @props.get_account_id()
-            @actions('page').close_project_tab(project_id)
-
-    render_user_remove_confirm: (account_id) ->
-        if account_id == @props.get_account_id()
-            <Well style={background:'white'}>
-                Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
-                to this project and cannot add yourself back.
-                <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>
-                        Remove Myself</Button>
-                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-        else
-            <Well style={background:'white'}>
-                Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from
-                this project?  They will no longer have access to this project.
-                <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>Remove</Button>
-                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
-                </ButtonToolbar>
-            </Well>
-
-    user_remove_button: (account_id, group) ->
-        <Button
-            disabled = {group is 'owner'}
-            style    = {marginBottom: '6px', float: 'right'}
-            onClick  = {=>@setState(removing:account_id)}
-        >
-            <Icon name='user-times' /> Remove...
-        </Button>
-
-    render_user: (user) ->
-        <div key={user.account_id}>
-            <Row>
-                <Col sm={8}>
-                    <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
-                    <span><Space/>({user.group})</span>
-                </Col>
-                <Col sm={4}>
-                    {@user_remove_button(user.account_id, user.group)}
-                </Col>
-            </Row>
-            {@render_user_remove_confirm(user.account_id) if @state.removing == user.account_id}
-        </div>
-
-    render_users: ->
-        u = @props.project.get('users')
-        if u
-            users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
-            for user in @props.sort_by_activity(users, @props.project.get('project_id'))
-                @render_user(user)
-
-    render: ->
-        <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
-            {@render_users()}
-        </Well>
-
-CollaboratorsPanel = rclass
-    displayName : 'ProjectSettings-CollaboratorsPanel'
-
-    propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-
-    render: ->
-        <ProjectSettingsPanel title='Add people to project' icon='user'>
-            <div key='mesg'>
-                <span style={color:'#333', fontSize:'12pt'}>
-                    Who would you like to work with on this project?  Anybody listed here can simultaneously work with you
-                    on any notebooks and terminals in this project, and add other people to this project.
-                </span>
-            </div>
-            <hr />
-            <AddCollaborators key='search' project={@props.project} />
-            {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} />
+            {<hr /> if @props.kucalc != 'yes'}
+            {@render_select_compute_image_row()}
         </ProjectSettingsPanel>
 
 SSHPanel = rclass
@@ -940,11 +943,11 @@ ProjectSettingsBody = rclass ({name}) ->
             get_upgrades_you_applied_to_project : rtypes.func
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
+            compute_images : rtypes.immutable.Map
 
-    shouldComponentUpdate: (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
-                (nextProps.customer? and not nextProps.customer.equals(@props.customer)) or \
-                @props.project_map != nextProps.project_map
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images']) or \
+                (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
         # get the description of the share, in case the project is being shared
@@ -988,7 +991,8 @@ ProjectSettingsBody = rclass ({name}) ->
 
                 </Col>
                 <Col sm={6}>
-                    <CollaboratorsPanel  project={@props.project} user_map={@props.user_map} />
+                    <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />

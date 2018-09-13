@@ -622,8 +622,11 @@ class ProjectsStore extends Store
             # Not logged in -- so not in group.
             return 'public'
         if not @get('project_map')? # or @get('project_map').size == 0
-        # signed in but waiting for projects store to load
-        # If user is part of no projects, doesn't matter anyways
+            # signed in but waiting for projects store to load
+            # If user is part of no projects, doesn't matter anyways
+            return
+        if not account_store.get('account_id')?
+            # signed in but table with full account info has not been initialized.
             return
         project = @getIn(['project_map', project_id])
         if not project?

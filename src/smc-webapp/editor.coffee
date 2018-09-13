@@ -1492,6 +1492,7 @@ class CodeMirrorEditor extends FileEditor
         @examples_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
+        # insert : {lang: string, descr: string, code: string[]}
         {code, lang} = insert
         cm = @focused_codemirror()
         line = cm.getCursor().line
@@ -1501,17 +1502,21 @@ class CodeMirrorEditor extends FileEditor
             # insert a "hidden" markdown cell and evaluate it
             cm.replaceRange("%md(hide=True)\n#{insert.descr}\n", {line : line+1, ch:0})
             @action_key(execute: true, advance:false, split:false)
-        line = cm.getCursor().line
-        # next, we insert the code cell and prefix it with a mode change, iff the mode is different from the current one
-        @syncdoc?.insert_new_cell(line)
-        cell = "#{code}\n"
-        if lang != @_current_mode
-            # special case: %sh for bash language
-            if lang == 'bash' then lang = 'sh'
-            cell = "%#{lang}\n#{cell}"
-        cm.replaceRange(cell, {line : line+1, ch:0})
-        # and we evaluate and sync all this, too…
-        @action_key(execute: true, advance:false, split:false)
+
+        # inserting one or more code cells
+        for c in code
+            line = cm.getCursor().line
+            # next, we insert the code cell and prefix it with a mode change,
+            # iff the mode is different from the current one
+            @syncdoc?.insert_new_cell(line)
+            cell = "#{c}\n"
+            if lang != @_current_mode
+                # special case: %sh for bash language
+                if lang == 'bash' then lang = 'sh'
+                cell = "%#{lang}\n#{cell}"
+            cm.replaceRange(cell, {line : line+1, ch:0})
+            # and we evaluate and sync all this, too…
+            @action_key(execute: true, advance:false, split:false)
         @syncdoc?.sync()
 
     # add a textedit toolbar to the editor
@@ -1718,52 +1723,9 @@ class Terminal extends FileEditor
             path       : @filename
             editor     : @
         @console = elt.data("console")
+        @console.is_hidden = true
         @element = @console.element
-        webapp_client.read_text_file_from_project
-            project_id : @project_id
-            path       : @filename
-            cb         : (err, result) =>
-                if err
-                    alert_message(type:"error", message: "Error connecting to console server -- #{misc.to_safe_str(err)}")
-                else
-                    # New session or connect to session
-                    if result.content? and result.content.length < 36
-                        # empty/corrupted -- messed up by bug in early version of SMC...
-                        delete result.content
-                    @opts = defaults opts,
-                        session_uuid : result.content
-                    @connect_to_server()
-
-    connect_to_server: (cb) =>
-        mesg =
-            timeout    : 30  # just for making the connection; not the timeout of the session itself!
-            type       : 'console'
-            project_id : @project_id
-            cb : (err, session) =>
-                if err
-                    alert_message(type:'error', message:err)
-                    cb?(err)
-                else
-                    if @element.is(":visible")
-                        @show()
-                    @console.set_session(session)
-                    @opts.session_uuid = session.session_uuid
-                    webapp_client.write_text_file_to_project
-                        project_id : @project_id
-                        path       : @filename
-                        content    : session.session_uuid
-                        cb         : cb
-
-                    redux.getProjectActions(@project_id)?.log_opened_time(@filename)
-
-        path = misc.path_split(@filename).head
-        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path, filename:@filename}
-        if @opts.session_uuid?
-            mesg.session_uuid = @opts.session_uuid
-            webapp_client.connect_to_session(mesg)
-        else
-            webapp_client.new_session(mesg)
-
+        @console.blur()
 
     _get: =>  # FUTURE ??
         return @opts.session_uuid ? ''
@@ -1776,9 +1738,11 @@ class Terminal extends FileEditor
         cb?()
 
     focus: =>
+        @console?.is_hidden = false
         @console?.focus()
 
     blur: =>
+        @console?.is_hidden = false
         @console?.blur()
 
     terminate_session: () =>
@@ -1788,10 +1752,12 @@ class Terminal extends FileEditor
         super()
 
     hide: =>
+        @console?.is_hidden = true
         @console?.blur()
 
     _show: () =>
-        @console?.resize()
+        @console?.is_hidden = false
+        @console?.resize_terminal()
 
 class PublicHTML extends FileEditor
     constructor: (project_id, filename, content, opts) ->

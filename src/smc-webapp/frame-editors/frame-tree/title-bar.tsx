@@ -32,6 +32,7 @@ const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
 
 const util = require("../frame-tree/util");
+const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
@@ -48,7 +49,7 @@ const path_style: CSS.Properties = {
 };
 
 const TITLE_STYLE: CSS.Properties = {
-  padding: "5px 0 0 5px",
+  padding: "5px 5px 0 5px",
   color: "#333",
   fontSize: "10pt",
   display: "inline-block",
@@ -86,6 +87,7 @@ interface Props {
   type: string;
   editor_spec: any;
   status: string;
+  title?: string;
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
@@ -102,12 +104,17 @@ export class FrameTitleBar extends Component<Props, {}> {
       "is_public",
       "is_saving",
       "type",
-      "status"
+      "status",
+      "title"
     ]);
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
-    const buttons = this.props.editor_spec[this.props.type].buttons;
+    const spec = this.props.editor_spec[this.props.type];
+    if (spec == null) {
+      return false;
+    }
+    const buttons = spec.buttons;
     if (!explicit && buttons == null) {
       return true;
     }
@@ -171,7 +178,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           eventKey={type}
           onSelect={type => this.select_type(type)}
         >
-          <Icon name={spec.icon} style={ICON_STYLE} /> {spec.name}
+          <Icon name={spec.icon ? spec.icon : 'file'} style={ICON_STYLE} /> {spec.name}
         </MenuItem>
       );
       items.push(item);
@@ -759,7 +766,7 @@ export class FrameTitleBar extends Component<Props, {}> {
           "Run Prettier (or some other AST-based service) to canonically format this entire document"
         }
       >
-        <Icon name={"fa-sitemap"} />{" "}
+        <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
       </Button>
     );
@@ -857,7 +864,12 @@ export class FrameTitleBar extends Component<Props, {}> {
       // extra buttons are cleanly not visible when frame is thin.
       style = { maxHeight: "30px", overflow: "hidden", flex: 1 };
     } else {
-      style = { maxHeight: "34px", overflow: "hidden", flex: 1, marginLeft:'2px' };
+      style = {
+        maxHeight: "34px",
+        overflow: "hidden",
+        flex: 1,
+        marginLeft: "2px"
+      };
     }
     const v: Rendered[] = [];
     v.push(this.render_save_timetravel_group());
@@ -916,24 +928,31 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_title(): Rendered {
-    let left, left1;
-    const spec =
-      this.props.editor_spec != null
-        ? this.props.editor_spec[this.props.type]
-        : undefined;
-    if (spec == null) {
-      return;
+    let title: string = "";
+    let icon: string = "";
+    if (this.props.title !== undefined) {
+      title = this.props.title;
+    }
+    if (this.props.editor_spec != null) {
+      const spec = this.props.editor_spec[this.props.type];
+      if (spec != null) {
+        icon = spec.icon;
+        if (!title) {
+          if (spec.title) {
+            title = spec.title;
+          } else if (spec.name) {
+            title = spec.name;
+          } else if (spec.short) {
+            title = spec.short;
+          }
+        }
+      }
     }
     return (
       <span style={TITLE_STYLE}>
-        <Icon name={spec.icon} />
+        {icon ? <Icon name={icon} /> : null}
         <Space />
-        {(left =
-          (left1 = spec.title != null ? spec.title : spec.name) != null
-            ? left1
-            : spec.short) != null
-          ? left
-          : ""}
+        {title}
       </span>
     );
   }
@@ -966,8 +985,9 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <div style={style} id={`titlebar-${this.props.id}`}>
         {this.render_control()}
+        {this.props.title ? this.render_title() : undefined}
         {is_active ? this.render_main_buttons() : undefined}
-        {!is_active ? this.render_title() : undefined}
+        {!is_active && !this.props.title ? this.render_title() : undefined}
       </div>
     );
   }

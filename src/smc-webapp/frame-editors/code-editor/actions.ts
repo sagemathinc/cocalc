@@ -6,7 +6,7 @@ const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/editor"; // TO
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
-const MAX_SAVE_TIME_S = 90; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
+const MAX_SAVE_TIME_S = 45; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
 
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
@@ -33,7 +33,8 @@ import {
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
-  SetMap
+  SetMap,
+  ErrorStyles
 } from "../frame-tree/types";
 import { SettingsObject } from "../settings/types";
 import { misspelled_words } from "./spell-check";
@@ -75,9 +76,11 @@ export interface CodeEditorState {
   value?: string;
   load_time_estimate: number;
   error: any;
+  errorstyle?: ErrorStyles;
   status: any;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
+  complete: Map<string, any>;
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -135,7 +138,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       is_saving: false,
       gutter_markers: Map(),
       cursors: Map(),
-      settings: fromJS(this._default_settings())
+      settings: fromJS(this._default_settings()),
+      complete: Map()
     });
 
     this._save_local_view_state = debounce(
@@ -205,7 +209,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         cursors: true,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
-        fake: fake_syncstring
+        fake: fake_syncstring,
+        save_interval: 500,
+        patch_interval: 500
       });
     } else if (this.doctype == "syncdb") {
       this._syncstring = syncdb({
@@ -615,6 +621,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
+      delete (this._cm[id] as any).cocalc_actions;
       delete this._cm[id];
     }
 
@@ -653,12 +660,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._cm_selections != null) {
       delete this._cm_selections[id];
     }
-    delete this._cm[id];
+    if (this._cm[id] !== undefined) {
+      delete (this._cm[id] as any).cocalc_actions;
+      delete this._cm[id];
+    }
+
+    this.close_frame_hook(id);
 
     // if id is the current active_id, change to most recent one.
     if (id === this.store.getIn(["local_view_state", "active_id"])) {
       this.make_most_recent_frame_active();
     }
+  }
+
+  close_frame_hook(_: string): void {
+    // overload in derived class...
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {
@@ -824,6 +840,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       return;
     }
     this._syncstring.set_cursor_locs(locs);
+    if ((this as any).handle_cursor_move !== undefined) {
+      // give derived classes a chance to handle cursor movement.
+      (this as any).handle_cursor_move(locs);
+    }
   }
 
   // Delete trailing whitespace, avoiding any line that contains
@@ -859,9 +879,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.setState({ is_saving: true });
     try {
       await callback(this._syncstring.save_to_disk);
-    } catch (err) {
-      this.set_error(`${SAVE_ERROR} '${err}'.  ${SAVE_WORKAROUND}`);
-      return;
     } finally {
       this.update_save_status();
       this.setState({ is_saving: false });
@@ -896,7 +913,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         );
       }
       log_error({
-        string_id: this._syncstring._string_id,
+        string_id: this._syncstring ? this._syncstring._string_id : "",
         path: this.path,
         project_id: this.project_id,
         error: "Error saving file -- has_unsaved_changes"
@@ -983,6 +1000,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // restore saved selections (cursor position, selected ranges)
       cm.getDoc().setSelections(sel);
     }
+    // reference to this actions object, so codemirror plugins
+    // can potentially use it.  E.g., see the lean-editor/tab-completions.ts
+    (cm as any).cocalc_actions = this;
 
     if (len(this._cm) > 0) {
       // just making another cm
@@ -1001,6 +1021,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   //   if recent is not given, return some cm
   // 3. If no cm's return undefined.
   _get_cm(id?: string, recent?: boolean): CodeMirror.Editor | undefined {
+    if (this._state === "closed") return;
     if (id) {
       let cm: CodeMirror.Editor | undefined = this._cm[id];
       if (!cm) {
@@ -1025,12 +1046,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _recent_cm(): CodeMirror.Editor | undefined {
+    if (this._state === "closed") return;
     return this._get_cm(undefined, true);
   }
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type") == "cm"
+      node => node.get("type").slice(0,2) == "cm"
     );
   }
 
@@ -1108,6 +1130,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   set_syncstring(value: string): void {
     if (this._state === "closed") return;
+    const cur = this._syncstring.to_str();
+    if (cur === value) { // did not actually change.
+      return;
+    }
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -1119,14 +1145,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // NOTE: we fallback to getting the underling CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
     let cm: any = this._get_cm(undefined, true);
-    if (!cm) {
+    if (cm == null) {
       try {
         cm = this._get_doc();
       } catch (err) {
         return;
       }
     }
-    cm.setValueNoJump(this._syncstring.to_str());
+    if (this._syncstring != null && cm != null) {
+      cm.setValueNoJump(this._syncstring.to_str());
+    }
     this.update_save_status();
   }
 
@@ -1272,7 +1300,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // big scary error shown at top
-  set_error(error?: object | string): void {
+  set_error(error?: object | string, style?: ErrorStyles): void {
     if (error === undefined) {
       this.setState({ error });
     } else {
@@ -1287,6 +1315,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         error = e;
       }
       this.setState({ error });
+    }
+
+    switch (style) {
+      case "monospace":
+        this.setState({ errorstyle: style });
+        break;
+      default:
+        this.setState({ errorstyle: undefined });
     }
   }
 
@@ -1439,9 +1475,36 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
+  async ensure_latest_changes_are_saved(): Promise<boolean> {
+    this.set_status("Ensuring your latest changes are saved...");
+    this.set_syncstring_to_codemirror();
+    try {
+      await retry_until_success({
+        f: async () => {
+          await callback(this._syncstring._save);
+        },
+        max_time: 10000,
+        max_delay: 1500
+      });
+      return true;
+    } catch (err) {
+      this.set_error(`Error saving to server: \n${err}`);
+      return false;
+    } finally {
+      this.set_status("");
+    }
+  }
+
+  // ATTN to enable a formatter, you also have to let it show up in the format bar
+  // e.g. look into frame-editors/code-editor/editor.ts
   async format(id?: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
+
+    if (!(await this.ensure_latest_changes_are_saved())) {
+      return;
+    }
+
     cm.focus();
     let parser;
     switch (filename_extension(this.path)) {
@@ -1468,6 +1531,26 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "py":
         parser = "python";
         break;
+      case "yml":
+      case "yaml":
+        parser = "yaml";
+        break;
+      case "r":
+        parser = "r";
+        break;
+      case "go":
+        parser = "gofmt";
+        break;
+      case "html":
+        parser = "html-tidy";
+        break;
+      case "c":
+      case "c++":
+      case "cc":
+      case "cpp":
+      case "h":
+        parser = "clang-format";
+        break;
       default:
         return;
     }
@@ -1476,23 +1559,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       tabWidth: cm.getOption("tabSize"),
       useTabs: cm.getOption("indentWithTabs")
     };
-    this.set_status("Ensuring your latest changes are saved...");
-    this.set_syncstring_to_codemirror();
-    try {
-      await callback(this._syncstring._save);
-    } catch (err) {
-      this.set_error(`Error saving code: \n${err}`);
-      return;
-    } finally {
-      this.set_status("");
-    }
 
     this.set_status("Running code formatter...");
     try {
       await prettier(this.project_id, this.path, options);
       this.set_error("");
     } catch (err) {
-      this.set_error(`Error formatting code: \n${err}`);
+      this.set_error(`Error formatting code: \n${err}`, "monospace");
     } finally {
       this.set_status("");
     }
@@ -1514,6 +1587,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // that has never been active in this session, will use that
   // in arbitrary order.
   _get_most_recent_active_frame_id(f?: Function): string | undefined {
+    if (this._state === "closed") return;
     let tree = this._get_tree();
     for (let i = this._active_id_history.length - 1; i >= 0; i--) {
       let id = this._active_id_history[i];

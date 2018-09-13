@@ -103,7 +103,7 @@ EmailVerification = rclass
 
     test : ->
         if not @props.email_address?
-            <span>Unkown</span>
+            <span>Unknown</span>
         else
             if @props.email_address_verified?.get(@props.email_address)
                 <span style={color: 'green'}>Verified</span>
@@ -126,6 +126,9 @@ EmailVerification = rclass
                 ]
 
     render : ->
+        # disabled since it is very confusing and not used at all yet:
+        #   see https://github.com/sagemathinc/cocalc/issues/3147 and https://github.com/sagemathinc/cocalc/issues/3148
+        return <span></span>
         <LabeledRow label='Email verification' style={marginBottom: '15px'}>
             <div>
                 Status: {@test()}
@@ -935,7 +938,7 @@ EDITOR_COLOR_SCHEMES =
     'gruvbox-dark'            : 'Gruvbox-Dark'
     'hopscotch'               : 'Hopscotch'
     'icecoder'                : 'Icecoder'
-    'idea'                    : 'Idea'
+    'idea'                    : 'Idea'  # this messes with the global hinter CSS!
     'isotope'                 : 'Isotope'
     'lesser-dark'             : 'Lesser dark'
     'liquibyte'               : 'Liquibyte'
@@ -1248,18 +1251,6 @@ OtherSettings = rclass
 
 
 
-AdminSettings = rclass
-    propTypes :
-        groups : rtypes.immutable.List
-
-    render: ->
-        if not @props.groups?.contains('admin')
-            return <span />
-
-        <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            Moved to the new Admin top level page.
-        </Panel>
-
 # Render the entire settings component
 exports.AccountSettingsTop = rclass
     displayName : 'AccountSettingsTop'
@@ -1324,7 +1315,6 @@ exports.AccountSettingsTop = rclass
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />
-                    <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
             <Footer/>

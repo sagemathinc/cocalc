@@ -133,6 +133,9 @@ class ComputeServerClient
             (cb) =>
                 @_init_db(opts, cb)
             (cb) =>
+                if @database.is_standby
+                    cb()
+                    return
                 async.parallel([
                     (cb) =>
                         @_init_storage_servers_feed(cb)

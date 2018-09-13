@@ -61,12 +61,20 @@ class TestScala211Mode:
     def test_scala_version(self, exec2):
         exec2("%scala211\nutil.Properties.versionString", html_pattern="2.11.11")
 
+class TestAnacondaMode:
+    def test_anaconda_version(self, exec2):
+        exec2("%anaconda\nimport sys\nprint(sys.version)", pattern=r"^3\.6\.\d+ ")
+    def test_anaconda_kernel_name(self, exec2):
+        exec2("anaconda.jupyter_kernel.kernel_name", "anaconda5")
+
 class TestPython3Mode:
     def test_p3_max(self, exec2):
         exec2("%python3\nmax([],default=9)", "9", timeout=30)
+    def test_p3_kernel_name(self, exec2):
+        exec2("python3.jupyter_kernel.kernel_name", "python3")
 
     def test_p3_version(self, exec2):
-        exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.5\.\d+ ")
+        exec2("%python3\nimport sys\nprint(sys.version)", pattern=r"^3\.6\.\d+ ")
 
     def test_capture_p3_01(self, exec2):
         exec2("%capture(stdout='output')\n%python3\nimport numpy as np\nnp.arange(9).reshape(3,3).trace()")
