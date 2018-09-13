@@ -270,22 +270,36 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
+
+    // for knitr related documents, we have to first build the derived tex file ...
     if (this.knitr) {
       await this.run_knitr(time, force);
       if (this.store.get("knitr_error")) return;
     }
-    await this.run_latex(time, force);
+    // update_pdf=false, because it is defered until the end
+    await this.run_latex(time, force, false);
+    // ... and then patch the synctex file to align the source line numberings
     if (this.knitr) {
       await this.run_patch_synctex(time, force);
     }
+
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
+    let update_pdf = true;
     if (typeof s == "string") {
       if (s.indexOf("sagetex.sty") != -1) {
+        update_pdf = false;
         await this.run_sagetex(time, force);
       }
       if (s.indexOf("pythontex.sty") != -1 || s.indexOf("PythonTeX") != -1) {
+        update_pdf = false;
         await this.run_pythontex(time, force);
       }
+    }
+
+    // we suppress a cycle of loading the PDF if sagetex or pythontex runs above
+    // because these two trigger a rebuild and update_pdf on their own at the end
+    if (update_pdf) {
+      this.update_pdf(time, force);
     }
   }
 
@@ -343,10 +357,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_latex(time: number, force: boolean): Promise<void> {
+  async run_latex(
+    time: number,
+    force: boolean,
+    update_pdf: boolean = true
+  ): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
-    let timestamp = force ? undefined : time || this._last_save_time;
+    const timestamp = force ? undefined : time || this._last_save_time;
     let s: string | List<string> = this.store.get("build_command");
     if (!s) {
       return;
@@ -391,6 +409,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     });
 
+    if (update_pdf) {
+      this.update_pdf(time, force);
+    }
+  }
+
+  update_pdf(time: number, force: boolean): void {
+    const timestamp = force ? undefined : time || this._last_save_time;
     // forget currently cached pdf
     this._forget_pdf_document();
     // ... before setting a new one for all the viewers,
@@ -424,11 +449,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       try {
         hash = await sagetex_hash(this.project_id, this.path, time, status);
         if (hash === this._last_sagetex_hash) {
-          // no change - nothing to do.
+          // no change - nothing to do except updating the pdf preview
+          this.update_pdf(time, force);
           return;
         }
       } catch (err) {
         this.set_error(err);
+        this.update_pdf(time, force);
         return;
       } finally {
         this.set_status("");
@@ -471,6 +498,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       this.set_error(err);
       // this.setState({ pythontex_error: true });
+      this.update_pdf(time, force);
       return;
     } finally {
       this.set_status("");

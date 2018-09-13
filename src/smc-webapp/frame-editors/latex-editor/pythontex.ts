@@ -28,7 +28,7 @@ export async function pythontex(
   const args = ["--jobs", "2"];
   if (force) {
     // forced build implies to run all snippets
-    args.concat("--rerun=always");
+    args.push("--rerun=always");
   }
   status(`pythontex ${args.join(" ")}`);
   const aggregate = time && !force ? { value: time } : undefined;
