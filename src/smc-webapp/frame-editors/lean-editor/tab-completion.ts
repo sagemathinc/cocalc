@@ -32,9 +32,17 @@ async function leanHint(
 
   // First start with list of completions coming from
   // the syntax highlighting mode.
-  include((CodeMirror as any).hint.anyword(cm).list);
+  let t = (CodeMirror as any).hint.anyword(cm);
+  if (t != null && t.list != null) {
+    include(t.list);
+  }
+
   // We have to also do this, since the above misses words that haven't already been highlighted!
-  include((CodeMirror as any).hint.fromList(cm, { words: completions }).list);
+  t = (CodeMirror as any).hint.fromList(cm, { words: completions });
+  if (t != null && t.list != null) {
+    include(t.list);
+  }
+
   list.sort();
 
   // completions coming from backend LEAN server.

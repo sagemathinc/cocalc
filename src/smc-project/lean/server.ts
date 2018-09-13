@@ -125,7 +125,9 @@ export async function lean(
       assert_type("path", opts.path, "string");
       assert_type("line", opts.line, "number");
       assert_type("column", opts.column, "number");
-      return await the_lean_server.info(opts.path, opts.line, opts.column);
+      const r = (await the_lean_server.info(opts.path, opts.line, opts.column))
+        .record;
+      return r ? r : {};
 
     // get server version
     case "version":
@@ -146,20 +148,22 @@ export async function lean(
         opts.column,
         opts.skipCompletions
       );
-      if (complete != null && complete.completions != undefined) {
-        // delete the source fields -- they are LARGE and not used at all in the UI.
-        for (let c of complete.completions) {
-          delete (c as any).source; // cast because of mistake in upstream type def.  sigh.
-        }
-        complete.completions.sort(function(a, b): number {
-          if (a.text == null || b.text == null) {
-            // satisfy typescript null checks; shouldn't happen.
-            return 0;
-          }
-          return cmp(a.text.toLowerCase(), b.text.toLowerCase());
-        });
+      if (complete == null || complete.completions == null) {
+        return [];
       }
-      return complete;
+      // delete the source fields -- they are LARGE and not used at all in the UI.
+      for (let c of complete.completions) {
+        delete (c as any).source; // cast because of mistake in upstream type def.  sigh.
+      }
+      complete.completions.sort(function(a, b): number {
+        if (a.text == null || b.text == null) {
+          // satisfy typescript null checks; shouldn't happen.
+          return 0;
+        }
+        return cmp(a.text.toLowerCase(), b.text.toLowerCase());
+      });
+      return complete.completions;
+
     default:
       throw Error(`unknown cmd ${opts.cmd}`);
   }

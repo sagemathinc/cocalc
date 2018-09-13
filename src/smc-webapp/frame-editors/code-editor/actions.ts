@@ -840,6 +840,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       return;
     }
     this._syncstring.set_cursor_locs(locs);
+    if ((this as any).handle_cursor_move !== undefined) {
+      // give derived classes a chance to handle cursor movement.
+      (this as any).handle_cursor_move(locs);
+    }
   }
 
   // Delete trailing whitespace, avoiding any line that contains
@@ -1046,7 +1050,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type") == "cm"
+      node => node.get("type").slice(0,2) == "cm"
     );
   }
 
@@ -1124,6 +1128,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   set_syncstring(value: string): void {
     if (this._state === "closed") return;
+    const cur = this._syncstring.to_str();
+    if (cur === value) { // did not actually change.
+      return;
+    }
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when

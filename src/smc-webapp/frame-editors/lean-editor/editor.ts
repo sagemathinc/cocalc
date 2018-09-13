@@ -5,10 +5,11 @@ Top-level react component for editing markdown documents
 import { set } from "../generic/misc";
 import { createEditor } from "../frame-tree/editor";
 import { LeanCodemirrorEditor } from "./lean-codemirror";
+import { LeanMessages } from "./lean-messages";
 import { LeanInfo } from "./lean-info";
 
 const EDITOR_SPEC = {
-  "lean-cm": {
+  "cm-lean": {
     short: "Input",
     name: "Input",
     icon: "code",
@@ -28,20 +29,20 @@ const EDITOR_SPEC = {
       "undo",
       "redo"
     ]),
-    gutters: ["Codemirror-lean-info"]
+    gutters: ["Codemirror-lean-messages"]
   },
-  /* "lean-goal": {
-    short: "Goal",
-    name: "Display Goal",  // more focused -- usually used in "tactic mode"
-    icon: "eye",
+  "lean-info": {
+    short: "Info",
+    name: "Info at Cursor",  // more focused -- usually used in "tactic mode"
+    icon: "bullseye",
     component: LeanInfo,
     buttons: set(["decrease_font_size", "increase_font_size"])
-  }, */
-  "lean-info": {
+  },
+  "lean-messages": {
     short: "Mesages",
-    name: "Display Messages" /* less focused -- usually used in "term mode" */,
+    name: "All Messages" /* less focused -- usually used in "term mode" */,
     icon: "eye",
-    component: LeanInfo,
+    component: LeanMessages,
     buttons: set(["decrease_font_size", "increase_font_size"])
   }
 };
