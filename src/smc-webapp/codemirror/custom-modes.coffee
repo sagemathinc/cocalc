@@ -103,7 +103,7 @@ CodeMirror.defineMode "rmd", (config) ->
     # all engine modes: names(knitr::knit_engines$get())
     for name in  ['ruby', 'r', 'python', 'octave', 'fortran95', 'fortran',  'octave', 'bash', 'go', 'julia', 'perl']
         mode = modes[name]
-        open = new RegExp("```{#{name}[^}]*?}")
+        open = new RegExp("```\\s*{#{name}[^}]*?}")
         options.push
             open  : open
             close : "```"
@@ -111,7 +111,7 @@ CodeMirror.defineMode "rmd", (config) ->
             mode  : CodeMirror.getMode(config, mode)
 
     # ATTN: this case must come later, it is less specific
-    # inline, just `r ...` exists, no other languages.
+    # inline, just `r ...` exists, not for other languages.
     options.push
         open : '`r'
         close: '`'
