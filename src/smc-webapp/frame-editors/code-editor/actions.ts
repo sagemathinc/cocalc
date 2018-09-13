@@ -1021,6 +1021,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   //   if recent is not given, return some cm
   // 3. If no cm's return undefined.
   _get_cm(id?: string, recent?: boolean): CodeMirror.Editor | undefined {
+    if (this._state === "closed") return;
     if (id) {
       let cm: CodeMirror.Editor | undefined = this._cm[id];
       if (!cm) {
@@ -1045,6 +1046,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _recent_cm(): CodeMirror.Editor | undefined {
+    if (this._state === "closed") return;
     return this._get_cm(undefined, true);
   }
 
@@ -1585,6 +1587,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // that has never been active in this session, will use that
   // in arbitrary order.
   _get_most_recent_active_frame_id(f?: Function): string | undefined {
+    if (this._state === "closed") return;
     let tree = this._get_tree();
     for (let i = this._active_id_history.length - 1; i >= 0; i--) {
       let id = this._active_id_history[i];

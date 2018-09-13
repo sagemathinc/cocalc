@@ -64,7 +64,7 @@ export class Lean extends EventEmitter {
     this._server = new lean_client.Server(
       new lean_client.ProcessTransport(
         "lean",
-        process.env.HOME ? process.env.HOME : ".",  // satisfy typescript.
+        process.env.HOME ? process.env.HOME : ".", // satisfy typescript.
         []
       )
     );
@@ -84,7 +84,22 @@ export class Lean extends EventEmitter {
       }
 
       for (let path in this._state.paths) {
-        if (!isEqual(this._state.paths[path], new_messages[path])) {
+        this.dbg("messages for ", path, new_messages[path]);
+        if (new_messages[path] === undefined) {
+          new_messages[path] = [];
+        }
+        this.dbg(
+          "messages for ",
+          path,
+          new_messages[path],
+          this._state.paths[path]
+        );
+        // length 0 is a special case needed when going from pos number of messages to none.
+        if (
+          new_messages[path].length === 0 ||
+          !isEqual(this._state.paths[path], new_messages[path])
+        ) {
+          this.dbg("messages for ", path, "EMIT!");
           this.emit("messages", path, new_messages[path]);
           this._state.paths[path] = new_messages[path];
         }
