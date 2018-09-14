@@ -25,6 +25,12 @@ export class PDFActions extends Actions<PDFEditorState> {
     return { type: "pdfjs_canvas" };
   }
 
+  _init2(): void {
+    if (!this.is_public) {
+      this.reload("");
+    }
+  }
+
   reload(_: string /* id not used here */): void {
     const now: number = new Date().valueOf();
     let type: string;
