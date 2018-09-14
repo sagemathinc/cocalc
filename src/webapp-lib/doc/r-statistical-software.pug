@@ -76,7 +76,7 @@ block content
           #[strong run #[a(href="https://www.r-project.org/") R code] right inside your browser].
         p.
           It handles all the tedious details for you,
-          regardless of whether you want to work on the command-line, run Jupyter Notebooks, or use Knitr in LaTeX documents.
+          regardless of whether you want to work on the command-line, run Jupyter Notebooks, RMarkdown files, or use Knitr in LaTeX documents.
         p.
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
@@ -124,6 +124,67 @@ block content
             Despite that, there is also support for running the
             #[a(href="https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern") "Classical Jupyter notebook"].
 
+    a.anchor#a-latex
+    div.container.space#latex
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-fw.cc-icon-jupyter] Extensive LaTeX support for R
+        div.col-md-6
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-latex.png").fit
+        div.col-md-6
+          div.
+            The fully integrated #[a(href="./latex-editor.html") #{NAME} latex editor]
+            covers all your basic needs for working with #[code .tex], #[code .Rnw] and #[code .Rtex] files.
+            The document is synchronized with your collaborators in real-time
+            and everyone sees the very same compiled PDF.
+            In particular, this LaTeX editor
+          ul
+            li.
+              manages the entire compilation pipeline for you,
+            li.
+              automatically processes
+              #[strong #[code .Rnw] and #[code .Rtex] files] using
+              #[strong #[a(href="https://yihui.name/knitr/" target="_blank") Knitr]],
+            li.
+              supports #[strong forward and inverse search] to help you navigating in your document,
+            li.
+              captures and shows you #[strong where R errors in LaTeX happen],
+            li.
+              and via "TimeTravel",
+              you can go back in time to see your latest edits
+              in order to
+              #[strong easily recover from a recent mistake].
+          div.
+            Combined, this means you can do #[strong your entire workflow online on #{NAME}]:
+          ol
+            li upload or fetch your datasets,
+            li use Jupyter Notebooks to explore the data and test your hypothesis,
+            li discuss and collaborate with your research team,
+            li write your research paper in an #[code .Rtex] document,
+            li publish the datasets, your research code, and the PDF of your paper online, all hosted on #{NAME}.
+
+    a.anchor#a-rmarkdown
+    div.container.space#rmarkdown
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-users] RMarkdown support
+        div.col-md-6
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
+        div.col-md-6
+          div.
+            You can work on #[a(href="https://rmarkdown.rstudio.com/") RMarkdown files]
+            in #{NAME}'s native code editor.
+          div.
+            The source file is processed according to the YAML-frontmatter configuration
+            and the view of the generated file is automatically updated
+            (in the HTML or PDF panel).
+          div.
+            #{NAME}'s library of documents and files features selected examples
+            for getting started quickly. Namely HTML reports, article templates and
+            beamer presentations.
+          div.
+            Additionally, care is taken to capture errors and display them to you.
+
     a.anchor#a-codeformatting
     div.container.space#codeformatting
       div.row
@@ -135,23 +196,15 @@ block content
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-r-format-cell.webm" type="video/webm; codecs=vp9")
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-r-format-cell.mp4" type="video/mp4")
         div.col-md-6
-          div.
-            #{NAME} helps you format R code.
+          div
+            strong #{NAME} is able to format your R code.
           div.
             By simply clicking one button,
             #[strong your R source code is formatted in a clean and consistent way].
-            This reduces cognitive load reading source code, brings everyone in the team on the same page, and reduces misunderstandings.
-
-    a.anchor#a-rmarkdown
-    div.container.space#rmarkdown
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-users] RMarkdown support
-        div.col-md-6
-          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-jupyter-collaborate.png").fit
-        div.col-md-6
           div.
-            You can work on #[a(href="https://rmarkdown.rstudio.com/") RMarkdown files] in #{NAME}'s native code editor.
+            This reduces cognitive load reading source code,
+            brings everyone in the team on the same page,
+            and reduces misunderstandings.
 
     a.anchor#a-collaboration
     div.container.space#collaboration
@@ -195,44 +248,6 @@ block content
             This gives you the ability to run your code concurrently.
           div.
             For long-running programs, you can even close your browser and check upon the result later.
-
-    a.anchor#a-latex
-    div.container.space#latex
-      div.row
-        div.col-md-12
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Extensive LaTeX support for R
-        div.col-md-6
-          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-r-latex.png").fit
-        div.col-md-6
-          div.
-            The fully integrated #[a(href="./latex-editor.html") #{NAME} latex editor]
-            covers all your basic needs for working with #[code .tex], #[code .Rnw] and #[code .Rtex] files.
-            The document is synchronized with your collaborators in real-time
-            and everyone sees the very same compiled PDF.
-            In particular, this LaTeX editor
-          ul
-            li.
-              manages the entire compilation pipeline for you,
-            li.
-              automatically processes
-              #[strong #[code .Rnw] and #[code .Rtex] files] using
-              #[strong #[a(href="https://yihui.name/knitr/" target="_blank") Knitr]],
-            li.
-              supports #[strong forward and inverse search] to help you navigating in your document,
-            li.
-              captures and shows you where LaTeX errors happen,
-            li.
-              and via "TimeTravel",
-              you can go back in time to see your latest edits
-              in order to recover from a recent mistake.
-          div.
-            Combined, this means you can do #[strong your entire workflow online on #{NAME}]:
-          ol
-            li upload or fetch your datasets,
-            li use Jupyter Notebooks to explore the data and test your hypothesis,
-            li discuss and collaborate with your research team,
-            li write your research paper in an #[code .Rtex] document,
-            li publish the datasets, your research code, and the PDF of your paper online, all hosted on #{NAME}.
 
     a.anchor#a-chat
     div.container.space#chat
