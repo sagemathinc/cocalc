@@ -17,7 +17,8 @@ const EXTENSIONS: string[] = [
   ".sagetex.scmd",
   ".sagetex.sout",
   ".pdfsync",
-  "-concordance.tex"
+  "-concordance.tex",
+  ".pytxcode"
 ];
 
 export async function clean(

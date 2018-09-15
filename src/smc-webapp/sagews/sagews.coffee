@@ -1669,15 +1669,27 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 obj = undefined
             if mesg.javascript.coffeescript
                 if not CoffeeScript?
-                    # DANGER: this is the only async code in process_output_mesg
-                    misc_page.load_coffeescript_compiler () =>
-                        sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
+                     # hotfix to catch problem #2752
+                    if false
+                        # DANGER: this is the only async code in process_output_mesg
+                        misc_page.load_coffeescript_compiler () =>
+                            sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
+                    else
+                        t = $('<div class="sagews-output-stderr">')
+                        t.html('''
+                               <div>
+                               <h4>Error: <code>%coffeescript</code> is currently broken.</h4>
+                               Please convert the block of code above to <code>%javascript</code>.
+                               See <a href="https://github.com/sagemathinc/cocalc/issues/2752">issue #2752</a> for more information.
+                               </div>
+                               ''')
+                        output.append(t)
                 else
                     # DANGER: this is the only async code in process_output_mesg
                     sagews_eval(CoffeeScript?.compile(code), @, opts.element, undefined, obj, redux)
             else
                 # The eval below is an intentional cross-site scripting vulnerability
-                # in the fundamental design of SMC.
+                # in the fundamental design of CoCalc.
                 # Note that there is an allow_javascript document option, which (at some point) users
                 # will be able to set.  There is one more instance of eval below in _receive_broadcast.
                 sagews_eval(code, @, opts.element, undefined, obj, redux)
