@@ -1,3 +1,7 @@
+# R Logo
+
+source and license info: https://commons.wikimedia.org/wiki/File:R_logo.svg
+
 # Video
 
 ## Recording

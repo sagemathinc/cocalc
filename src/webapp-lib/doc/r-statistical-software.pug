@@ -11,9 +11,6 @@ block header
     include:coffee-script ../index.coffee
 
 block content
-  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
-  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
-  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
   //- CSS: overwrites styles defined in the header
   style
@@ -70,10 +67,13 @@ block content
     div.row
       div.col-md-12.center
         h1 #{subtitle}
-      div.col-sm-6.col-sm-offset-3
+      div.col-sm-2.col-sm-offset-2
+        a(href="https://www.r-project.org/")
+          img(src=require("webapp-lib/assets/r-logo.svg")).fit
+      div.col-sm-6
         p.
           #{NAME} is an online web service where you can
-          #[strong run #[a(href="https://www.r-project.org/") R code] right inside your browser].
+          #[strong run #[a(href="https://www.r-project.org/") R code] online via your browser].
         p.
           It handles all the tedious details for you,
           regardless of whether you want to work on the command-line, run Jupyter Notebooks, RMarkdown files, or use Knitr in LaTeX documents.
@@ -140,15 +140,15 @@ block content
             In particular, this LaTeX editor
           ul
             li.
-              manages the entire compilation pipeline for you,
+              Manages the entire compilation pipeline for you,
             li.
-              automatically processes
+              Automatically processes
               #[strong #[code .Rnw] and #[code .Rtex] files] using
               #[strong #[a(href="https://yihui.name/knitr/" target="_blank") Knitr]],
             li.
-              supports #[strong forward and inverse search] to help you navigating in your document,
+              Supports #[strong forward and inverse search] to help you navigating in your document,
             li.
-              captures and shows you #[strong where R errors in LaTeX happen],
+              Captures and shows you #[strong where LaTeX or R error happen],
             li.
               and via "TimeTravel",
               you can go back in time to see your latest edits
@@ -157,11 +157,17 @@ block content
           div.
             Combined, this means you can do #[strong your entire workflow online on #{NAME}]:
           ol
-            li upload or fetch your datasets,
-            li use Jupyter Notebooks to explore the data and test your hypothesis,
-            li discuss and collaborate with your research team,
-            li write your research paper in an #[code .Rtex] document,
-            li publish the datasets, your research code, and the PDF of your paper online, all hosted on #{NAME}.
+            li Upload or fetch your datasets,
+            li.
+              Use #[a(href="#a-jupyternotebook") Jupyter Notebooks]
+              to explore the data and test your hypothesis,
+            li.
+              #[a(href="#a-chat") Discuss] and
+              #[a(href="#a-collaboration") collaborate] with your research team,
+            li Write your research paper in an #[code .Rtex] or #[code .Rnw] document,
+            li.
+              #[a(href="#a-publishing") Publish] the datasets, your research code,
+              and the PDF of your paper online, all hosted on #{NAME}.
 
     a.anchor#a-rmarkdown
     div.container.space#rmarkdown
@@ -245,7 +251,7 @@ block content
             Terminals can be used #[em by multiple users at once].
             This means you can work with your collaborators in the same session at the same time.
             Everyone sees the same output, and via side-chat next to the terminal, the whole team can coordinate what you're doing.
-          dev.
+          div.
             Beyond that, you can simultaneously work with several terminal sessions.
             This gives you the ability to run your code concurrently.
           div.
@@ -340,9 +346,9 @@ block content
           div.
             Example: #[a(href="https://share.cocalc.com/share/20e4a191-73ea-4921-80e9-0a5d792fc511/ir-display.ipynb?viewer=share") Published R notebook].
 
-  div
-    div.container
-      div.row
-        div.col-sm-12.center(style="margin-top: 6rem")
-          +start_button
+  div.container
+    div.row(style="margin-top: 6rem")
+      +start_free
+      div.col-sm-12.center
+        +start_button
 

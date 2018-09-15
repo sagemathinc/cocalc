@@ -79,18 +79,6 @@ block content
         .ff-only
           display: block
 
-  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
-  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
-  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
-
-  mixin start_free
-    div.col-sm-12.center
-      h2 Start free, upgrade later
-    div.col-sm-6.col-sm-offset-3.center
-      p.
-         A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-         Purchasing #[a(href="policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increase its quotas.
-
   a.anchor#a-top
   div.container
     div.row.intro#top
