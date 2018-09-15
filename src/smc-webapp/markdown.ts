@@ -4,7 +4,7 @@ Conversion from Markdown *to* HTML, trying not to horribly mangle math.
 
 import * as MarkdownIt from "markdown-it";
 
-import * as MarkdownItFrontMatter from "markdown-it-front-matter";
+const MarkdownItFrontMatter = require("markdown-it-front-matter");
 
 const misc = require("smc-util/misc");
 
