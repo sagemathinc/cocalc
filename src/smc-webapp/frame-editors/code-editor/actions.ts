@@ -81,6 +81,7 @@ export interface CodeEditorState {
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
+  derived_file_types: Set<string>;
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -1520,6 +1521,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         parser = "typescript";
         break;
       case "md":
+      case "rmd":
         parser = "markdown";
         break;
       case "css":

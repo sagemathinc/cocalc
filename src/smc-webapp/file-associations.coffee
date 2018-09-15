@@ -46,7 +46,7 @@ codemirror_associations =
     ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm'
+    md     : 'yaml-frontmatter'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -59,7 +59,7 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rmd    : 'gfm'
+    rmd    : 'rmd'
     rnw    : 'stex2'
     rtex   : 'stex2'
     rst    : 'rst'
@@ -148,12 +148,12 @@ file_associations['html'] =
 
 file_associations['md'] =
     icon   : 'cc-icon-markdown'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
+    opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['md']}
     name   : "markdown"
 
 file_associations['rmd'] =
     icon   : 'cc-icon-r'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
+    opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['rmd']}
     name   : "Rmd"
 
 file_associations['rst'] =
@@ -302,3 +302,4 @@ file_associations['sagews'] =
     opts              : {mode:'sagews'}
     name              : 'sagews'
     exclude_from_menu : true
+

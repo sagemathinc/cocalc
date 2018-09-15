@@ -63,6 +63,7 @@
     "lodash": "^4.17.4",
     "lru-cache": "^4.1.2",
     "markdown-it": "^8.4.1",
+    "markdown-it-front-matter": "^0.1.2",
     "markdown-it-mathjax": "^2.0.0",
     "mathjax": "2.7.4",
     "md5": "^2",

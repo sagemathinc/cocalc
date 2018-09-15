@@ -39,6 +39,7 @@ export const PRETTIER_SUPPORT = {
   js: true,
   jsx: true,
   md: true,
+  rmd: true,
   css: true,
   ts: true,
   tsx: true,
