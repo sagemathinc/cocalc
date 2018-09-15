@@ -3,13 +3,14 @@ R Markdown Editor Actions
 */
 
 import { Set } from "immutable";
+import { callback } from "awaiting";
 import { debounce } from "lodash";
 import { Actions } from "../markdown-editor/actions";
 import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
-import { change_filename_extension } from "../generic/misc";
+import { change_filename_extension, path_split } from "../generic/misc";
 
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;
@@ -35,9 +36,17 @@ export class RmdActions extends Actions {
     this._syncstring.once("init", () => this._run_rmd_converter());
   }
 
-  _check_produced_files(): void {
+  async _check_produced_files(): Promise<void> {
     const project_actions = redux.getProjectActions(this.project_id);
-    project_actions.fetch_directory_listing();
+    if (project_actions == undefined) {
+      return;
+    }
+    const path = path_split(this.path).head;
+    const update_dir = (path, cb) => {
+      project_actions.fetch_directory_listing({ finish_cb: cb, path: path });
+    };
+    await callback(update_dir, path);
+
     const project_store = project_actions.get_store();
     if (project_store == undefined) {
       return;
@@ -46,17 +55,18 @@ export class RmdActions extends Actions {
     if (dir_listings == undefined) {
       return;
     }
-    const listing = dir_listings.get(project_store.get("current_path"));
+    const listing = dir_listings.get(path);
     if (listing == undefined) {
       return;
     }
 
     let existing = Set();
     for (let ext of ["pdf", "html"]) {
+      // full path
       const expected_fn = change_filename_extension(this.path, ext);
       const fn_exists = listing.some(entry => {
         const name = entry.get("name");
-        return name === expected_fn;
+        return name === path_split(expected_fn).tail;
       });
       if (fn_exists) {
         existing = existing.add(ext);
@@ -93,7 +103,7 @@ export class RmdActions extends Actions {
       );
       this.set_reload("iframe");
       this.set_reload("pdfjs_canvas");
-      this._check_produced_files();
+      await this._check_produced_files();
     } catch (err) {
       this.set_error(err);
       return;
