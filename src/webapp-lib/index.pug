@@ -28,6 +28,14 @@ block content
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
   - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
 
+  mixin start_free
+    div.col-sm-12.center
+      h2 Start free, upgrade later
+    div.col-sm-6.col-sm-offset-3.center
+      p.
+         A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+         Purchasing #[a(href="policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increase its quotas.
+
   a.anchor#a-top
   div.container
     div.row.intro#top
@@ -44,16 +52,15 @@ block content
         +start_button
 
     div.row
-      div.col-md-12.center
+      div.col-sm-12.center
         h1 Online computing environment
       div.col-sm-6
+        h4  Intro to CoCalc by Mark Quinn (University of Sheffield)
         //- img(src=require('!file-loader!sagepreview/01-worksheet.png'))
-        div.
-          Intro to CoCalc (credits: Mark Quinn, University of Sheffield)
         div.youtube-video-container
           iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
-        p #{NAME} is a #[strong sophisticated online environment] for
+        h4 #{NAME} is a sophisticated online workspace
         ul
           li.
             #[strong Mathematical calculation]:
@@ -83,6 +90,12 @@ block content
             #[a(href="https://julialang.org/") Julia],
             #[a(href="https://www.scala-lang.org/") Scala],
             …
+        p #[strong Collaborative Environment]
+        p
+          ul
+            li Share your files #[strong privately] with project collaborators &mdash; all files are synchronized in real-time.
+            li #[strong Time-travel] is a detailed history of all your edits and everything is backed up in #[strong consistent snapshots].
+            li Finally, you can select any document to #[strong publish it online].
         p #[strong Zero Setup:] getting started does not require any software setup.
           ol
             li First, create your personal #[strong account].
@@ -91,15 +104,31 @@ block content
               Finally, create a #[strong worksheet] or upload your own files:
               #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets,
               #[a(href="./doc/latex-editor.html") LaTeX files], etc.
-        p #[strong Collaborative Environment]
-        p
-          ul
-            li Share your files #[em privately] with project collaborators &mdash; all files are synchronized in real-time.
-            li #[em Time-travel] is a detailed history of all your edits and everything is backed up in #[em consistent snapshots].
-            li Finally, you can select any document to #[em publish it online].
-        p.
-          A default project under a free plan has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-          #[a(href="policies/pricing.html") Subscriptions] make hosting more robust and increase quotas.
+
+  a.anchor#a-presentation
+  div.container
+    div.row
+      div.col-sm-6
+        h4  CoCalc talk by William Stein (Harvard, 2018)
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/G5SIwRinEYk?rel=0" frameborder="0" allowfullscreen)
+      div.col-sm-6
+        h4 Presentation outline
+        ul
+          li Background and history of CoCalc
+          li Demonstration of functionality
+          li Architectural overview, underlying tech stack, ...
+          li Synchronization of documents, the backbone of collaboration
+          li Collaboration and chat
+          li Culture, open-source, academic and commercial usage
+
+
+  a.anchor#a-startnow
+  div.container
+    div.row(style="margin-top: 6rem")
+      +start_free
+      div.col-sm-12.center
+        +start_button
 
   a.anchor#a-explore
   div.space#explore
@@ -313,8 +342,9 @@ block content
 
   div
     div.container
-      div.row
-        div.col-sm-12.center(style="margin-top: 6rem")
+      div.row(style="margin-top: 6rem")
+        +start_free
+        div.col-sm-12.center
           +start_button
       div.row
         div.col-sm-12.center(style="margin-top: 6rem")

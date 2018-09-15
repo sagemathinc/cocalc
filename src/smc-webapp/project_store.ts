@@ -55,31 +55,9 @@ const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
-  tex: [
-    "aux",
-    "bbl",
-    "blg",
-    "fdb_latexmk",
-    "fls",
-    "glo",
-    "idx",
-    "ilg",
-    "ind",
-    "lof",
-    "log",
-    "nav",
-    "out",
-    "snm",
-    "synctex.gz",
-    "toc",
-    "xyc",
-    "synctex.gz(busy)",
-    "sagetex.sage",
-    "sagetex.sout",
-    "sagetex.scmd",
-    "sagetex.sage.py",
-    "sage-plots-for-FILENAME"
-  ],
+  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASENAME".split(
+    " "
+  ),
   rnw: ["tex", "NODOT-concordance.tex"],
   rtex: ["tex", "NODOT-concordance.tex"],
   rmd: ["pdf", "html", "md", "NODOT_files"]
@@ -532,6 +510,9 @@ function _compute_file_masks(listing) {
               mask_ext = mask_ext.slice("NODOT".length);
             } else if (mask_ext.indexOf("FILENAME") >= 0) {
               bn = mask_ext.replace("FILENAME", filename);
+              mask_ext = "";
+            } else if (mask_ext.indexOf("BASENAME") >= 0) {
+              bn = mask_ext.replace("BASENAME", basename.slice(0, -1));
               mask_ext = "";
             } else {
               bn = basename;
