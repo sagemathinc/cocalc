@@ -688,7 +688,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               name={this.props.name}
               assignment={this.props.assignment}
             />
-          </Panel>;
+          </Panel>
+          ;
         </Col>
       </Row>
     );
@@ -915,7 +916,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       >
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this homework{" "}
-          {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
+          {step_direction(step)} the {n} student
+          {n > 1 ? "s" : ""}
           {step_ready(step, n)}?
         </div>
         {this.render_skip(step)}
@@ -949,7 +951,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"
             >
               (more details)
-            </a>.
+            </a>
+            .
           </span>
         );
       case "collect":
@@ -1010,7 +1013,8 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       >
         <div style={{ marginBottom: "15px" }}>
           {misc.capitalize(step_verb(step))} this homework{" "}
-          {step_direction(step)}...
+          {step_direction(step)}
+          ...
         </div>
         {this.render_skip(step)}
         <ButtonToolbar>
@@ -1025,10 +1029,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
             }
             disabled={this.state[`copy_confirm_all_${step}`]}
           >
-            {step === "assignment" ? "All" : "The"} {m} students{step_ready(
-              step,
-              m
-            )}...
+            {step === "assignment" ? "All" : "The"} {m} students
+            {step_ready(step, m)}
+            ...
           </Button>
           {n ? (
             <Button
@@ -1036,8 +1039,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
               bsStyle="primary"
               onClick={() => this.copy_assignment(step, true)}
             >
-              The {n} student{n > 1 ? "s" : ""} not already {step_verb(step)}ed{" "}
-              {step_direction(step)}
+              The {n} student
+              {n > 1 ? "s" : ""} not already {step_verb(step)}
+              ed {step_direction(step)}
             </Button>
           ) : (
             undefined
@@ -1608,13 +1612,9 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
   }
 
   render_peer_button() {
-    const icon = (
-      <CheckedIcon
-        checked={__guard__(this.props.assignment.get("peer_grade"), x =>
-          x.get("enabled")
-        )}
-      />
-    );
+    const peer_grade = this.props.assignment.get("peer_grade");
+    const enabled = peer_grade != null ? x.get("enabled") : false;
+    const icon = <CheckedIcon checked={enabled} />;
     return (
       <Button
         disabled={this.props.expand_peer_config}
