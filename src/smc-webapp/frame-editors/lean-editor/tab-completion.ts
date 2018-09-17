@@ -5,27 +5,30 @@ Register a CodeMirror hinter for the mode with name 'lean'.
 
 import * as CodeMirror from "codemirror";
 
-import { startswith } from "../generic/misc";
-
 import { Completion } from "./types";
 
 import { Actions } from "./actions";
 
 import { completions } from "smc-webapp/codemirror/mode/lean";
 
+interface CMCompletion {
+  text: string;
+  displayText: string;
+}
+
 async function leanHint(
   cm: CodeMirror.Editor
-): Promise<{ list: string[]; from: any; to: any } | void> {
+): Promise<{ list: CMCompletion[]; from: any; to: any } | void> {
   var cur = cm.getDoc().getCursor(),
     token = cm.getTokenAt(cur);
 
   const set: any = {};
-  const list: string[] = [];
+  const list: CMCompletion[] = [];
   function include(words: string[]): void {
     for (let word of words) {
       if (!set[word]) {
         set[word] = true;
-        list.push(word);
+        list.push({ text: word, displayText: `◇ ${word}` });
       }
     }
   }
@@ -52,16 +55,10 @@ async function leanHint(
     const resp: Completion[] = await actions.complete(cur.line, cur.ch);
 
     // First show those that match token.string, then show the rest.
-    const second: string[] = [];
     for (let i = 0; i < resp.length; i++) {
-      if (startswith(resp[i].text, token.string)) {
-        list.push(resp[i].text);
-      } else {
-        second.push(resp[i].text);
-      }
-    }
-    for (let i = 0; i < second.length; i++) {
-      list.push(second[i]);
+      const { text, type } = resp[i];
+      const displayText = `▣ ${text} : ${type}`;
+      list.push({ text, displayText });
     }
   }
 

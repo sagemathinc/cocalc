@@ -15,7 +15,7 @@ import { SETTINGS_SPEC } from "../settings/editor";
 
 import { pdf_path } from "./util";
 
-let pdfjs_buttons = set([
+export let pdfjs_buttons = set([
   "print",
   "download",
   "decrease_font_size",
@@ -69,7 +69,7 @@ const EDITOR_SPEC = {
     name: "Errors and Warnings",
     icon: "bug",
     component: ErrorsAndWarnings,
-    buttons: set(['build'])
+    buttons: set(["build"])
   },
 
   build: {
@@ -77,7 +77,7 @@ const EDITOR_SPEC = {
     name: "Build Control and Log",
     icon: "terminal",
     component: Build,
-    buttons: set(['build', 'force_build', 'clean'])
+    buttons: set(["build", "force_build", "clean"])
   },
 
   pdf_embed: {
@@ -132,7 +132,12 @@ const EDITOR_SPEC = {
 
 export const Editor = createEditor({
   format_bar: true,
-  format_bar_exclude: { strikethrough: true, SpecialChar:true, image:true, unformat:true },  // disabled until we can properly implement them!
+  format_bar_exclude: {
+    strikethrough: true,
+    SpecialChar: true,
+    image: true,
+    unformat: true
+  }, // disabled until we can properly implement them!
   editor_spec: EDITOR_SPEC,
   display_name: "LaTeXEditor"
 });
