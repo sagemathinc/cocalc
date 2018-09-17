@@ -44,6 +44,13 @@ li_style = exports.li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
 
+# improve understanding of large numbers
+fmt_large = (num) ->
+    num = parseInt(num)
+    #num += 31 * num + 7890
+    num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+
+
 HelpPageUsageSection = rclass
     reduxProps :
         server_stats :
@@ -93,13 +100,14 @@ HelpPageUsageSection = rclass
             ['Created projects', @props.projects_created],
             ['Created accounts', @props.accounts_created]
         ]
+
         for stat in stats
             <tr key={stat[0]}>
                 <th style={textAlign:'left'}>{stat[0]}</th>
                 {
                     for k in @timespan_keys()
                         <td key={k}>
-                            {stat[1]?[RECENT_TIMES_KEY[k]]}
+                            {fmt_large(stat[1]?[RECENT_TIMES_KEY[k]])}
                         </td>
                 }
             </tr>
@@ -111,7 +119,7 @@ HelpPageUsageSection = rclass
             ['LaTeX Documents',   'tex'],
             ['Markdown Documents','md']
         ]
-        if DEBUG then console.log('@props.files_opened', @props.files_opened)
+        #if DEBUG then console.log('@props.files_opened', @props.files_opened)
         for [name, ext] in stats
             <tr key={name}>
                 <th style={textAlign:'left'}>{name}</th>
@@ -119,9 +127,9 @@ HelpPageUsageSection = rclass
                     for timespan in @timespan_keys()
                         k        = RECENT_TIMES_KEY[timespan]
                         total    = @props.files_opened?.total?[k]?[ext]    ? 0
-                        distinct = @props.files_opened?.distinct?[k]?[ext] ? 0
+                        #distinct = @props.files_opened?.distinct?[k]?[ext] ? 0
                         <td key={k}>
-                            {total} ({distinct})
+                            {fmt_large(total)}
                         </td>
                 }
             </tr>
@@ -141,14 +149,22 @@ HelpPageUsageSection = rclass
             </thead>
             <tbody>
                 {@recent_usage_stats_rows()}
-                <tr><td colSpan=5></td></tr>
+                <tr><td colSpan={5}>&nbsp;</td></tr>
                 <tr>
-                    <th style={textAlign:'left'}>File activity</th>
-                    <td colSpan=4>total (and unique) opened or edited</td>
+                    <th style={textAlign:'left'}>Edited files</th>
+                    <td colSpan={4}>&nbsp;</td>
                 </tr>
                 {@render_filetype_stats_rows()}
             </tbody>
         </Table>
+
+    render_historical_metrics: ->
+        return  # disabled, due to being broken...
+        <li key='usage_metrics' style={li_style}>
+            <a target='_blank' href='https://cocalc.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
+                <Icon name='area-chart' fixedWidth />Historical system metrics
+            </a> &mdash; CPU usage, running projects and software instances, etc
+        </li>
 
     render_when_updated: ->
         if @props.time
@@ -176,6 +192,8 @@ HelpPageUsageSection = rclass
                 <a target='_blank' href='https://share.cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html'>
                 More data...
                 </a>
+                <br/>
+                {@render_historical_metrics()}
             </div>
         </Col>
 
