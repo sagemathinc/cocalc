@@ -59,7 +59,13 @@ export class Lean extends EventEmitter {
   // nothing actually async in here... yet.
   private async server(): Promise<LeanServer> {
     if (this._server != undefined) {
-      return this._server;
+      if (this._server.alive()) {
+        return this._server;
+      }
+      // Kill cleans up any assumptions about stuff
+      // being sync'd.
+      this.kill();
+      // New server will now be created... below.
     }
     this._server = new lean_client.Server(
       new lean_client.ProcessTransport(

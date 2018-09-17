@@ -5,10 +5,23 @@ mixin start_button
     a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
   p or #[a(href=PREFIX + "app") sign in] with your account
 
+mixin start_free
+  -
+    var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+    var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+    var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+  div.col-sm-12.center
+    h2 Start free, upgrade later
+  div.col-sm-6.col-sm-offset-3.center
+    p.
+       A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+       Purchasing #[a(href="policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increase its quotas.
+
+
 mixin video-player
   div.video-player.fit
     div.video-overlay.
-      #[i.fa.fa-play-circle-o(style="font-size: 6rem;")]
+      #[span(style="font-size:300%") &#9654;]
       #[br/]
       click to play
     video(loop).fit
@@ -221,7 +234,7 @@ html.no-js(lang="en")
         .youtube-video-container
           width            : 100%
           height           : 0
-          padding-bottom   : 56.25%
+          padding-bottom   : 45%
           overflow         : hidden
 
           iframe, object, embed

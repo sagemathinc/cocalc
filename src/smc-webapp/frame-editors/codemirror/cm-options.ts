@@ -232,6 +232,7 @@ export function cm_options(
     "tsx",
     "json",
     "md",
+    "rmd",
     "r",
     "html",
     "c",

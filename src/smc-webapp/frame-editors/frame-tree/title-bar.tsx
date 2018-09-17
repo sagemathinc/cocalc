@@ -178,7 +178,8 @@ export class FrameTitleBar extends Component<Props, {}> {
           eventKey={type}
           onSelect={type => this.select_type(type)}
         >
-          <Icon name={spec.icon ? spec.icon : 'file'} style={ICON_STYLE} /> {spec.name}
+          <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
+          {spec.name}
         </MenuItem>
       );
       items.push(item);
@@ -751,10 +752,8 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_format(): Rendered {
-    if (
-      !this.is_visible("format") ||
-      !util.PRETTIER_SUPPORT[misc.filename_extension(this.props.path)]
-    ) {
+    const ext = misc.filename_extension(this.props.path).toLowerCase();
+    if (!this.is_visible("format") || !util.PRETTIER_SUPPORT[ext]) {
       return;
     }
     return (
