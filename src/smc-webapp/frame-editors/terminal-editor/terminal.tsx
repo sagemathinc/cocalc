@@ -2,7 +2,12 @@
 A single terminal frame.
 */
 
-declare const Terminal: any;
+import { Terminal } from 'xterm';
+require('xterm/dist/xterm.css')
+
+console.log("xtermjs", Terminal);
+
+(window as any).xtermjs = Terminal;
 
 import { throttle } from "underscore";
 
@@ -70,7 +75,6 @@ export class TerminalFrame extends Component<Props, {}> {
     const elt = $(this.terminal.element)
     elt.css('width', '100%');
     elt.appendTo($(node));
-    this.terminal.element.className = "webapp-console-terminal";
   }
 
   async restore_scroll(): Promise<void> {

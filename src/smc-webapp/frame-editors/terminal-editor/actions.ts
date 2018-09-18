@@ -75,10 +75,12 @@ export class Actions extends CodeEditorActions {
     if (settings == null) {
       return;
     }
-    terminal.set_font_size(settings.font_size ? settings.font_size : 14);
+    console.log('init_settings', terminal);
+    /* terminal.set_font_size(settings.font_size ? settings.font_size : 14);
     terminal.set_color_scheme(
       settings.color_scheme ? settings.color_scheme : "default"
     );
     terminal.set_font_family(settings.font ? settings.font : "monospace");
+    */
   }
 }

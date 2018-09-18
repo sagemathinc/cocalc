@@ -96,7 +96,8 @@
     "shell-escape": "^0.2.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
-    "underscore": "^1.8"
+    "underscore": "^1.8",
+    "xterm": "^3.7.0"
   },
   "devDependencies": {
     "cjsx-register": "^1.0.5",
