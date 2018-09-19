@@ -2518,12 +2518,14 @@ class exports.Client extends EventEmitter
             if not misc.is_array(metric?.values)
                 # what?
                 return
+            if metric.values.length == 0
+                return
             for v in metric.values
                 if not misc.is_object(v?.labels)
                     # what?
                     return
-                v.labels.client_id  = @id
-                v.labels.account_id = @account_id
+
+            metric.aggregator = 'average'
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
 
