@@ -42,7 +42,7 @@ export class Actions extends CodeEditorActions {
   }
 
   set_title(id: string, title: string) {
-    console.log("set title of term ", id, " to ", title);
+    //console.log("set title of term ", id, " to ", title);
     this.set_frame_tree({ id: id, title: title });
   }
 
@@ -75,7 +75,14 @@ export class Actions extends CodeEditorActions {
     if (settings == null) {
       return;
     }
-    console.log('init_settings', terminal);
+    console.log("init_settings", terminal);
+
+    // TODO:
+    terminal.setOption("theme", {
+      background: "#ffffff",
+      foreground: "#000000",
+      cursor: "#000000"
+    });
     /* terminal.set_font_size(settings.font_size ? settings.font_size : 14);
     terminal.set_color_scheme(
       settings.color_scheme ? settings.color_scheme : "default"
