@@ -47,6 +47,9 @@ import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
+import { connect_to_server } from "../terminal-editor/connect-to-server";
+
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 interface gutterMarkerParams {
@@ -94,6 +97,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   private _syncdb_init: boolean = false; // true once init has happened
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
+
+  // TODO: typing and maybe factor out.
+  protected terminals: { [key: string]: any } = {};
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -666,7 +672,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete (this._cm[id] as any).cocalc_actions;
       delete this._cm[id];
     }
-
+    if (this.terminals[id] !== undefined) {
+      this.terminals[id].destroy();
+      delete this.terminals[id];
+    }
     this.close_frame_hook(id);
 
     // if id is the current active_id, change to most recent one.
@@ -1054,7 +1063,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0,2) == "cm"
+      node => node.get("type").slice(0, 2) == "cm"
     );
   }
 
@@ -1133,7 +1142,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   set_syncstring(value: string): void {
     if (this._state === "closed") return;
     const cur = this._syncstring.to_str();
-    if (cur === value) { // did not actually change.
+    if (cur === value) {
+      // did not actually change.
       return;
     }
     this._syncstring.from_str(value);
@@ -1702,5 +1712,74 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._syncstring.on("settings-change", settings => {
       this.setState({ settings: settings });
     });
+  }
+
+  set_title(id: string, title: string) {
+    //console.log("set title of term ", id, " to ", title);
+    this.set_frame_tree({ id: id, title: title });
+  }
+
+  /* Terminal support -- find a way to factor this out somehow! */
+  set_terminal(id: string, terminal: any): void {
+    this.terminals[id] = terminal;
+    try {
+      connect_to_server(this.project_id, this.path, terminal);
+    } catch (err) {
+      this.set_error(
+        `Error connecting to server -- ${err} -- try closing and reopening or restarting project.`
+      );
+    }
+    terminal.on("mesg", mesg => this.terminal_handle_mesg(id, mesg));
+    terminal.on("title", title => this.set_title(id, title));
+    this.init_terminal_settings(terminal);
+  }
+
+  _get_terminal(id: string): any {
+    return this.terminals[id];
+  }
+
+  terminal_handle_mesg(
+    id: string,
+    mesg: { cmd: string; rows?: number; cols?: number }
+  ): void {
+    console.log("handle_mesg", id, mesg);
+    switch (mesg.cmd) {
+      case "size":
+        //this.handle_resize(mesg.rows, mesg.cols);
+        break;
+      case "burst":
+        break;
+      case "no-burst":
+        break;
+      case "no-ignore":
+        break;
+      case "close":
+        break;
+    }
+  }
+
+  init_terminal_settings(terminal: any): void {
+    const account = this.redux.getStore("account");
+    if (account == null) {
+      return;
+    }
+    const settings = account.get_terminal_settings();
+    if (settings == null) {
+      return;
+    }
+    console.log("init_settings", terminal);
+
+    // TODO:
+    terminal.setOption("theme", {
+      background: "#ffffff",
+      foreground: "#000000",
+      cursor: "#000000"
+    });
+    /* terminal.set_font_size(settings.font_size ? settings.font_size : 14);
+    terminal.set_color_scheme(
+      settings.color_scheme ? settings.color_scheme : "default"
+    );
+    terminal.set_font_family(settings.font ? settings.font : "monospace");
+    */
   }
 }

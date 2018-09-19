@@ -6,21 +6,23 @@ import { createEditor } from "../frame-tree/editor";
 import { TerminalFrame } from "./terminal";
 import { set } from "../generic/misc";
 
+export const terminal = {
+  short: "Terminal",
+  name: "Terminal",
+  icon: "terminal",
+  component: TerminalFrame,
+  buttons: set([
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "find",
+    "paste",
+    "copy"
+  ])
+};
+
 const EDITOR_SPEC = {
-  terminal: {
-    short: "Terminal",
-    name: "Terminal",
-    icon: "terminal",
-    component: TerminalFrame,
-    buttons: set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "find",
-      "paste",
-      "copy"
-    ])
-  }
+  terminal
 };
 
 export const Editor = createEditor({
@@ -28,4 +30,3 @@ export const Editor = createEditor({
   editor_spec: EDITOR_SPEC,
   display_name: "TerminalEditor"
 });
-
