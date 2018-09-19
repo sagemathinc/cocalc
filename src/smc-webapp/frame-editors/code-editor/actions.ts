@@ -116,6 +116,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     is_public: boolean,
     store: any
   ): void {
+    this._save_local_view_state = debounce(
+      () => this.__save_local_view_state(),
+      1500
+    );
+
     this.project_id = project_id;
     this.path = path;
     this.store = store;
@@ -142,11 +147,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       settings: fromJS(this._default_settings()),
       complete: Map()
     });
-
-    this._save_local_view_state = debounce(
-      () => this.__save_local_view_state(),
-      1500
-    );
 
     if ((this as any)._init2) {
       (this as any)._init2();
@@ -358,7 +358,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this._state = "closed";
     this.__save_local_view_state();
-    delete this._save_local_view_state;
+    // switch back to non-debounced version, in case called after this point.
+    this._save_local_view_state = this.__save_local_view_state;
     if (this._key_handler != null) {
       (this.redux.getActions("page") as any).erase_active_key_handler(
         this._key_handler
