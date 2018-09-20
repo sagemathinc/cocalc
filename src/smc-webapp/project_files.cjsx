@@ -2172,8 +2172,6 @@ exports.ProjectFiles = rclass ({name}) ->
             current_path : @props.current_path
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
-        if not switch_over
-            @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
         @props.actions.create_folder

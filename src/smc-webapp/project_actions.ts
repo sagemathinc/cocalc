@@ -2298,6 +2298,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.open_file({
             path: p
           });
+        } else {
+          this.fetch_directory_listing();
         }
       }
     });
