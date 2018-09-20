@@ -2214,6 +2214,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           });
         } else if (switch_over) {
           this.open_directory(p);
+        } else {
+          this.fetch_directory_listing();
         }
       }
     });
