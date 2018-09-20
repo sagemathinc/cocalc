@@ -46,7 +46,7 @@
     "pg": "^6.1.0",
     "pg-native": "^1.10.0",
     "primus": "^4.0.5",
-    "prom-client": "^11.1.1",
+    "prom-client": "^11.1.2",
     "prometheus-gc-stats": "^0.6.0",
     "random-key": "^0.3.2",
     "react": "^16.1.0",
