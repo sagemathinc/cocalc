@@ -2328,7 +2328,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <div>
                 {e}
                 <br />
-                <Button onClick={@update_current_listing}>
+                <Button onClick={() => @props.actions.fetch_directory_listing()}>
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
@@ -2364,13 +2364,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 />
             </SMC_Dropwrapper>
         else
-            @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
             </div>
-
-    update_current_listing: ->
-        setTimeout(@props.actions.fetch_directory_listing, 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)
