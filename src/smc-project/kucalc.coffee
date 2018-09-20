@@ -229,6 +229,9 @@ exports.prometheus_metrics = (project_id) ->
     # HELP cocalc_project_running_processes_total
     # TYPE cocalc_project_running_processes_total gauge
     cocalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
+    # HELP cocalc_project_oom_kills_total
+    # TYPE cocalc_project_oom_kills_total counter
+    cocalc_project_oom_kills_total{#{labels}} #{current_status.oom_kills ? 0}
     """ + '\n'  # makes sure the response ends with a newline!
 
 # called inside raw_server
