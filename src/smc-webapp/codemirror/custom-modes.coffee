@@ -73,7 +73,11 @@ CodeMirror.defineMode "rnw", (config) ->
         open       : /^<<.+?>>=/
         close      : /^@/
         mode       : CodeMirror.getMode(config, 'r')
-    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex2"), block)
+    inline =
+        open  : "\\Sexpr{"
+        close : "}"
+        mode  : CodeMirror.getMode(config, 'r')
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex2"), block, inline)
 
 CodeMirror.defineMode "rtex", (config) ->
     block =
@@ -81,7 +85,11 @@ CodeMirror.defineMode "rtex", (config) ->
         close      : /^%%\s+end\.rcode/
         indent     : '% '
         mode       : CodeMirror.getMode(config, 'r')
-    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex2"), block)
+    inline =
+        open  : "\\rinline{"
+        close : "}"
+        mode  : CodeMirror.getMode(config, 'r')
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex2"), block, inline)
 
 CodeMirror.defineMode "cython", (config) ->
     # FUTURE: need to figure out how to do this so that the name
