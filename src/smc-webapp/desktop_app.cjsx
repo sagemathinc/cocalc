@@ -24,7 +24,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
 # CoCalc Pages
@@ -124,7 +124,7 @@ Page = rclass
     render_account_tab: ->
         if @props.account_id
             a = <Avatar
-                    size       = {20}
+                    size       = {15}
                     account_id = {@props.account_id}
                     no_tooltip = {true}
                     no_loading = {true}

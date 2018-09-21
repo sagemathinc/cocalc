@@ -93,12 +93,12 @@ exports.NavTab = rclass
                 {@props.label}
             </span>
 
-    make_icon: ->
+    render_icon: ->
         if @props.icon?
             if typeof @props.icon == "string"
                 <Icon
                     name  = {@props.icon}
-                    style = {fontSize: 20, paddingRight: 2}
+                    style = {paddingRight: 2}
                 />
             else
                 @props.icon
@@ -139,7 +139,7 @@ exports.NavTab = rclass
             style = {outer_style}
         >
             <div style={inner_style}>
-                {@make_icon()}
+                {@render_icon()}
                 {@render_label()}
                 {@props.children}
             </div>
@@ -275,7 +275,7 @@ exports.ConnectionIndicator = rclass
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
-        width = if @props.show_pingtime then '8.5em' else '5em'
+        width = if @props.show_pingtime then '6em' else '4em'
         outer_styles =
             width      : width
             color      : '#666'
@@ -284,7 +284,7 @@ exports.ConnectionIndicator = rclass
             cursor     : 'pointer'
             float      : 'left'
         inner_styles =
-            padding : '13.5px'
+            paddingTop : '13.5px'
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >

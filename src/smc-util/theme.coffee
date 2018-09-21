@@ -82,8 +82,8 @@ COLORS.TOP_BAR =
     ACTIVE      : 'white'
     TEXT        : COLORS.GRAY
     TEXT_ACTIVE : COLORS.GRAY_D
-    X           : COLORS.GRAY_D
-    X_HOVER     : COLORS.GRAY
+    X           : COLORS.GRAY
+    X_HOVER     : COLORS.GRAY_L
     SIGN_IN_BG  : COLORS.YELL_L
 
 # landing page
