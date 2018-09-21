@@ -65,6 +65,7 @@ require('codemirror/mode/verilog/verilog.js')
 require('codemirror/mode/xml/xml.js')
 require('codemirror/mode/xquery/xquery.js')
 require('codemirror/mode/yaml/yaml.js')
+require('codemirror/mode/yaml-frontmatter/yaml-frontmatter.js')
 require('codemirror/mode/z80/z80.js')
 
 ###
@@ -99,4 +100,4 @@ require('./mode/pari.js')
 
 require('./mode/mediawiki/mediawiki.js')
 
-
+require('./mode/lean')

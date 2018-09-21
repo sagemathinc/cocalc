@@ -36,7 +36,7 @@ export function cm_options(
 
   let opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
-    mode: undefined,
+    mode: "txt",
     show_trailing_whitespace: editor_settings.get(
       "show_trailing_whitespace",
       true
@@ -60,6 +60,10 @@ export function cm_options(
     bindings: editor_settings.get("bindings"),
     theme: editor_settings.get("theme")
   });
+  if (opts.mode == null) {
+    // to satisfy typescript
+    throw Error("mode must be specified");
+  }
 
   const extraKeys = {
     "Ctrl-'": "indentAuto",
@@ -218,11 +222,34 @@ export function cm_options(
     opts.style_active_line = false;
   }
 
-  const ext = filename_extension_notilde(filename);
+  const ext = filename_extension_notilde(filename).toLowerCase();
 
   // Ugly until https://github.com/sagemathinc/cocalc/issues/2847 is implemented:
-  if (["js", "jsx", "ts", "tsx", "json", "md", "r", "html"].includes(ext)) {
+  const tab2exts = [
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "json",
+    "md",
+    "rmd",
+    "r",
+    "html",
+    "c",
+    "c++",
+    "cc",
+    "cpp",
+    "h"
+  ];
+  if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
+  }
+
+  // special case gofmt? yes, the whole go-world use 8-space-tabs instead of normal spaces.
+  // we change it to 4 in the editor, though, because 8 is really wide.
+  if ("go" === ext) {
+    opts.spaces_instead_of_tabs = false;
+    opts.tab_size = opts.indent_unit = 4;
   }
 
   const options: any = {
@@ -239,14 +266,12 @@ export function cm_options(
     matchBrackets: opts.match_brackets,
     autoCloseBrackets: opts.auto_close_brackets && !["hs", "lhs"].includes(ext), //972
     autoCloseTags:
-      (opts.mode != null ? opts.mode.indexOf("xml") : undefined) !== -1 ||
-      (opts.mode != null ? opts.mode.indexOf("html") : undefined) !== -1
+      opts.mode.indexOf("xml") !== -1 || opts.mode.indexOf("html") !== -1
         ? opts.auto_close_xml_tags
         : undefined,
     autoCloseLatex:
-      (opts.mode != null ? opts.mode.indexOf("tex") : undefined) !== -1
-        ? opts.auto_close_latex
-        : undefined,
+      opts.mode.indexOf("tex") !== -1 ? opts.auto_close_latex : undefined,
+    leanSymbols: opts.mode.indexOf("lean") !== -1,
     lineWrapping: opts.line_wrapping,
     readOnly: opts.read_only,
     styleActiveLine: opts.style_active_line,

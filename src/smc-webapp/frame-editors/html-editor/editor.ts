@@ -33,6 +33,7 @@ const EDITOR_SPEC = {
       "format"
     ])
   },
+
   iframe: {
     short: "HTML",
     name: "HTML IFrame",

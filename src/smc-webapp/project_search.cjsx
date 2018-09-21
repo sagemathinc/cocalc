@@ -153,7 +153,7 @@ ProjectSearchOutputHeader = rclass
                 "{@props.most_recent_search}"
                 <Space/>
                 <Button bsStyle='info' onClick={@change_info_visible}>
-                    <Icon name='info-circle' /> How Does This Work?
+                    <Icon name='info-circle' /> How this works...
                 </Button>
             </h4>
 

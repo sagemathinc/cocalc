@@ -378,3 +378,23 @@ export function getIn(x: any, path: string[], default_value?: any): any {
   }
   return x === undefined ? default_value : x;
 }
+
+// see http://stackoverflow.com/questions/1144783/replacing-all-occurrences-of-a-string-in-javascript
+export function replace_all(
+  s: string,
+  search: string,
+  replace: string
+): string {
+  return s.split(search).join(replace);
+}
+
+// names is a Set<string>
+export function list_alternatives(names): string {
+  names = names.map(x => x.toUpperCase()).toJS();
+  if (names.length == 1) {
+    return names[0];
+  } else if (names.length == 2) {
+    return `${names[0]} or ${names[1]}`;
+  }
+  return names.join(", ");
+}

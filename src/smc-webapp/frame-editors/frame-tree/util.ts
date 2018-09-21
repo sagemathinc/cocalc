@@ -34,10 +34,12 @@ export function aux_file(path: string, ext: string): string {
   }
 }
 
+// the list of filename extensions where we do support source formatting
 export const PRETTIER_SUPPORT = {
   js: true,
   jsx: true,
   md: true,
+  rmd: true,
   css: true,
   ts: true,
   tsx: true,
@@ -47,5 +49,11 @@ export const PRETTIER_SUPPORT = {
   py: true, // use external tool
   tex: true, // actually use latexformat
   html: true, // uses old-school "tidy" with some specific parameters
-  r: true // formatR
+  r: true, // formatR
+  go: true, // gofmt
+  c: true, // clang-format
+  cc: true, // --*--
+  "c++": true, // --*--
+  cpp: true, // --*--
+  h: true // --*--
 };

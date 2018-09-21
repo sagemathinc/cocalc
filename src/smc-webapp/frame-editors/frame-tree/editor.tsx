@@ -47,6 +47,8 @@ interface FrameTreeEditorReduxProps {
   is_saving: boolean;
   gutter_markers: Map<string, any>;
   settings: Map<string, any>;
+  complete: Map<string, any>;
+  derived_file_types: Set<string>;
 }
 
 type FrameTreeEditorProps = FrameTreeEditorReactProps &
@@ -97,7 +99,11 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         gutter_markers: rtypes.immutable.Map.isRequired,
 
-        settings: rtypes.immutable.Map.isRequired
+        settings: rtypes.immutable.Map.isRequired,
+
+        complete: rtypes.immutable.Map.isRequired,
+
+        derived_file_types: rtypes.immutable.Set
       }
     };
   }
@@ -134,7 +140,9 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "is_saving",
           "gutter_markers",
           "editor_settings",
-          "settings"
+          "settings",
+          "complete",
+          "derived_file_types"
         ]
       ) ||
       this.props.editor_settings.get("extra_button_bar") !==
@@ -191,6 +199,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           editor_settings={this.props.editor_settings}
           settings={this.props.settings}
           status={this.props.status}
+          complete={this.props.complete}
+          derived_file_types={this.props.derived_file_types}
         />
       </div>
     );

@@ -152,11 +152,11 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         <div>
             <Row style={row_style}>
                 <Col sm={6}>
-                    <Tip icon='file-code-o' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
-                        <NewFileButton icon='file-code-o' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
+                    <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                        <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
-                    <Tip icon='file-code-o' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
-                        <NewFileButton icon='file-code-o' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
+                    <Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
+                        <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
                     </Tip>
                 </Col>
                 <Col sm={6}>

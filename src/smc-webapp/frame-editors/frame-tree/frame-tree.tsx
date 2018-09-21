@@ -94,6 +94,8 @@ interface FrameTreeProps {
   editor_settings: Map<string, any>;
   status: string;
   settings: Map<string, any>;
+  complete: Map<string, any>;
+  derived_file_types: Set<string>;
 }
 
 interface FrameTreeState {
@@ -128,7 +130,9 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "gutter_markers",
         "editor_settings",
         "settings",
-        "status"
+        "status",
+        "complete",
+        "derived_file_types"
       ])
     );
   }
@@ -161,6 +165,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         editor_settings={this.props.editor_settings}
         settings={this.props.settings}
         status={this.props.status}
+        complete={this.props.complete}
+        derived_file_types={this.props.derived_file_types}
       />
     );
   }
@@ -188,6 +194,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
         status={this.props.status}
+        title={desc.get("title")}
       />
     );
   }
@@ -210,6 +217,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           id={id}
           name={this.props.name}
           actions={this.props.actions}
+          mode={spec.mode}
           read_only={desc.get(
             "read_only",
             this.props.read_only || this.props.is_public
@@ -236,6 +244,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           settings={this.props.settings}
           status={this.props.status}
           renderer={spec.renderer}
+          complete={this.props.complete.get(desc.get("id"))}
+          derived_file_types={this.props.derived_file_types}
         />
       </div>
     );
@@ -265,7 +275,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     } else {
       // fix this disaster next time around.
       this.reset_frame_tree();
-      return <div>Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}'.</div>;
+      return (
+        <div>
+          Invalid frame tree {JSON.stringify(desc)}; unknown type '{type}
+          '.
+        </div>
+      );
     }
     return (
       <div

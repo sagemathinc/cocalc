@@ -83,7 +83,7 @@ init_video = ->
     for vplayer in document.getElementsByClassName("video-player")
         vid  = vplayer.getElementsByTagName("video")[0]
         over = vplayer.getElementsByClassName("video-overlay")[0]
-        do (vplayer, vid) ->
+        do (vplayer, vid, over) ->
             vplayer.onclick = (el) ->
                 #console.log vplayer, over, vid
                 vplayer.removeChild(over)
