@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
-set -ev
+set -e
+
+if [[ $# -ne 1 ]] ; then
+    echo "$0 your@email.address"
+    exit 1
+fi
+
 echo "update accounts set groups='{admin}' where email_address='$1'" | psql
