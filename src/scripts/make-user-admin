@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -ev
+echo "update accounts set groups='{admin}' where email_address='$1'" | psql
