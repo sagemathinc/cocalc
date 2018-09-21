@@ -124,7 +124,7 @@ Page = rclass
     render_account_tab: ->
         if @props.account_id
             a = <Avatar
-                    size       = {15}
+                    size       = {20}
                     account_id = {@props.account_id}
                     no_tooltip = {true}
                     no_loading = {true}
@@ -197,7 +197,6 @@ Page = rclass
     render_right_nav: ->
         logged_in = @props.is_logged_in
         <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
-            {@render_account_tab() if logged_in}
             {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
@@ -212,6 +211,7 @@ Page = rclass
             />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
+            {@render_account_tab() if logged_in}
             {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
@@ -221,7 +221,6 @@ Page = rclass
             whiteSpace : 'nowrap'
             float      : 'right'
             padding    : '11px 7px'
-            fontWeight : 'bold'
 
         <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
             <NavTab
