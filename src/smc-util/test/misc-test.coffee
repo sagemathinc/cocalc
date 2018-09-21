@@ -1241,6 +1241,8 @@ describe 'is_valid_email_address is', ->
     valid = misc.is_valid_email_address
     it "true for test@test.com", ->
         valid('test@test.com').should.be.true()
+    it "false for test@test.r", ->
+        valid('test@test.r').should.be.false()
     it "false for blabla", ->
         valid('blabla').should.be.false()
 
