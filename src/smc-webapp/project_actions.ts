@@ -352,7 +352,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  set_active_tab(key: string): void {
+  set_active_tab(key: string, opts: {update_file_listing: boolean} = {update_file_listing: true}): void {
     let store = this.get_store();
     if (store == undefined || store.get("active_project_tab") === key) {
       // nothing to do
@@ -364,7 +364,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_url_to_path(
           store.get("current_path") != null ? store.get("current_path") : ""
         );
-        this.fetch_directory_listing();
+        if (opts.update_file_listing) {
+          this.fetch_directory_listing();
+        }
         break;
       case "new":
         this.setState({ file_creation_error: undefined });
@@ -614,10 +616,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     this._ensure_project_is_open(err => {
       if (err) {
-        return this.set_activity({
+        this.set_activity({
           id: misc.uuid(),
           error: `opening file -- ${err}`
         });
+        return;
       } else {
         let projects_store = this.redux.getStore("projects");
         // We wait here so that the editor gets properly initialized in the
@@ -960,7 +963,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       const current_files = store.get("open_files");
-      return this.setState({
+      this.setState({
         open_files: current_files.setIn([filename, "has_activity"], false)
       });
     };
@@ -990,7 +993,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             const i = filename.length - ext.length;
             const new_filename =
               filename.slice(0, i - 1) + ext.slice(3) + ".sws";
-            return webapp_client.exec({
+            webapp_client.exec({
               project_id: this.project_id,
               command: "cp",
               args: [filename, new_filename],
@@ -1006,7 +1009,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           }
         },
         cb => {
-          return webapp_client.exec({
+          webapp_client.exec({
             project_id: this.project_id,
             command: "smc-sws2sagews",
             args: [filename],
@@ -1030,7 +1033,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   convert_docx_file(filename, cb) {
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "smc-docx2txt",
       args: [filename],
@@ -1130,7 +1133,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store.get("active_project_tab") === "files") {
           this.set_url_to_path(path);
         } else {
-          this.set_active_tab("files");
+          this.set_active_tab("files", {update_file_listing: false});
         }
         this.set_all_files_unchecked();
       }
@@ -1601,7 +1604,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       ) {
         this.set_activity({ id, error: output.error });
       }
-      return this.set_activity({ id, stop: "" });
+      this.set_activity({ id, stop: "" });
     };
   }
 
@@ -1630,7 +1633,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         )}`
       });
     }
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "zip",
       args,
@@ -1680,7 +1683,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       const { src } = v;
       const cmd = `test -e ${src}`;
-      return webapp_client.exec({
+      webapp_client.exec({
         project_id: this.project_id,
         command: cmd,
         bash: true,
@@ -1805,7 +1808,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const start =
       opts.start != null ? opts.start : lib != null ? lib.start : undefined;
 
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "rsync",
       args: ["-rlDx", source, target],
@@ -1898,7 +1901,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     args = args.concat(opts.src);
     args = args.concat([opts.dest]);
 
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
       args,
@@ -1952,7 +1955,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         opts0.target_path,
         misc.path_split(src_path).tail
       );
-      return webapp_client.copy_path_between_projects(opts0);
+      webapp_client.copy_path_between_projects(opts0);
     };
     return async.mapLimit(src, 3, f, this._finish_exec(id));
   }
@@ -1970,7 +1973,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       opts.dest = ".";
     }
 
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "mv",
       args: (opts.mv_args != null ? opts.mv_args : []).concat(
@@ -2075,7 +2078,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         count: opts.src.length > 3 ? opts.src.length : undefined,
         dest: opts.dest
       });
-      return this.set_activity({ id, stop: "" });
+      this.set_activity({ id, stop: "" });
     };
     return this._move_files(opts);
   }
@@ -2098,7 +2101,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       mesg = `${opts.paths.length} files`;
     }
     this.set_activity({ id, status: `Deleting ${mesg}` });
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: "rm",
       timeout: 60,
@@ -2106,17 +2109,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       cb: (err, result) => {
         this.fetch_directory_listing();
         if (err) {
-          return this.set_activity({
+          this.set_activity({
             id,
             error: `Network error while trying to delete ${mesg} -- ${err}`,
             stop: ""
           });
+          return;
         } else if (result.event === "error") {
-          return this.set_activity({
+          this.set_activity({
             id,
             error: `Error deleting ${mesg} -- ${result.error}`,
             stop: ""
           });
+          return
         } else {
           this.set_activity({
             id,
@@ -2216,11 +2221,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path: p,
       cb: err => {
         if (err) {
-          return this.setState({
+          this.setState({
             file_creation_error: `Error creating directory '${p}' -- ${err}`
           });
         } else if (switch_over) {
-          return this.open_directory(p);
+          this.open_directory(p);
+        } else {
+          this.fetch_directory_listing();
         }
       }
     });
@@ -2303,6 +2310,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.open_file({
             path: p
           });
+        } else {
+          this.fetch_directory_listing();
         }
       }
     });
@@ -2314,7 +2323,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       d = "root directory of project";
     }
     const id = misc.uuid();
-    this.set_active_tab("files");
+    this.set_active_tab("files", {update_file_listing: false});
     this.set_activity({
       id,
       status: `Downloading '${url}' to '${d}', which may run for up to ${FROM_WEB_TIMEOUT_S} seconds...`
@@ -2365,11 +2374,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       });
     }
-    return this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
+    this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
   }
 
   disable_public_path(path) {
-    return this.redux.getProjectTable(this.project_id, "public_paths").set({
+    this.redux.getProjectTable(this.project_id, "public_paths").set({
       project_id: this.project_id,
       path,
       disabled: true,
@@ -2394,7 +2403,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    return this.setState({ case_sensitive: !store.get("case_sensitive") });
+    this.setState({ case_sensitive: !store.get("case_sensitive") });
   }
 
   toggle_search_checkbox_hidden_files() {
@@ -2402,7 +2411,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    return this.setState({ hidden_files: !store.get("hidden_files") });
+    this.setState({ hidden_files: !store.get("hidden_files") });
   }
 
   toggle_search_checkbox_git_grep() {
@@ -2410,7 +2419,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
-    return this.setState({ git_grep: !store.get("git_grep") });
+    this.setState({ git_grep: !store.get("git_grep") });
   }
 
   process_results(err, output, max_results, max_output, cmd) {
@@ -2535,7 +2544,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       most_recent_path: store.get("current_path")
     });
 
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.project_id,
       command: cmd + " | cut -c 1-256", // truncate horizontal line length (imagine a binary file that is one very long line)
       timeout: 20, // how long grep runs on client
@@ -2545,7 +2554,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       err_on_exit: true,
       path: store.get("current_path"),
       cb: (err, output) => {
-        return this.process_results(err, output, max_results, max_output, cmd);
+        this.process_results(err, output, max_results, max_output, cmd);
       }
     });
   }
