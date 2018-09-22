@@ -7,14 +7,15 @@ const { webapp_client } = require("smc-webapp/webapp_client");
 export async function connect_to_server(
   project_id: string,
   path: string,
-  terminal: any
+  terminal: any,
+  number: number
 ): Promise<void> {
   const ws = await webapp_client.project_websocket(project_id);
 
-  terminal.conn = await ws.api.terminal(path);
+  terminal.conn = await ws.api.terminal(`.${path}-${number}.term`);
 
   terminal.is_paused = false;
-  terminal.conn.write({ cmd: "size", rows: 25, cols: 140 });
+  terminal.conn.write({ cmd: "size", rows: 15, cols: 80 });
 
   let render_buffer: string = "";
   function render(data: string): void {

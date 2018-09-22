@@ -49,7 +49,6 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
 import { connect_to_server } from "../terminal-editor/connect-to-server";
 
-
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 interface gutterMarkerParams {
@@ -633,6 +632,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm[id];
     }
 
+    if (this.terminals[id] && type != "terminal") {
+      this.close_terminal(id);
+    }
+
     // Reset the font size for the frame based on recent
     // pref for this type.
     let font_size: number = 0;
@@ -673,8 +676,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm[id];
     }
     if (this.terminals[id] !== undefined) {
-      this.terminals[id].destroy();
-      delete this.terminals[id];
+      this.close_terminal(id);
     }
     this.close_frame_hook(id);
 
@@ -1722,8 +1724,44 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   /* Terminal support -- find a way to factor this out somehow! */
   set_terminal(id: string, terminal: any): void {
     this.terminals[id] = terminal;
+
+    /* All this complicated code starting here is just to get
+       a stable number for this frame. Sorry it is so complicated! */
+    let node = this._get_frame_node(id);
+    if (node === undefined) {
+      // just to satisfy typescript
+      return;
+    }
+    let number = node.get("number");
+
+    const numbers = {};
+    for (let id0 in this._get_leaf_ids()) {
+      const node0 = tree_ops.get_node(this._get_tree(), id0);
+      if (node0 == null || node0.get("type") != "terminal") {
+        continue;
+      }
+      let n = node0.get("number");
+      if (n !== undefined) {
+        if(numbers[n] && n === number) {
+          number = undefined;
+        }
+        numbers[n] = true;
+      }
+    }
+    for (let i = 0; i < len(numbers); i++) {
+      if (!numbers[i]) {
+        number = i;
+        break;
+      }
+    }
+    if (number === undefined) {
+      number = len(numbers);
+    }
+    this.set_frame_tree({ id, number });
+    // OK, above got the stable number.  Now connect:
+
     try {
-      connect_to_server(this.project_id, this.path, terminal);
+      connect_to_server(this.project_id, this.path, terminal, number);
     } catch (err) {
       this.set_error(
         `Error connecting to server -- ${err} -- try closing and reopening or restarting project.`
@@ -1732,6 +1770,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     terminal.on("mesg", mesg => this.terminal_handle_mesg(id, mesg));
     terminal.on("title", title => this.set_title(id, title));
     this.init_terminal_settings(terminal);
+  }
+
+  close_terminal(id: string): void {
+    this.terminals[id].destroy();
+    delete this.terminals[id];
   }
 
   _get_terminal(id: string): any {
