@@ -27,6 +27,7 @@ export class TerminalManager {
 
   async set_terminal(id: string, terminal: Terminal): Promise<void> {
     this.terminals[id] = terminal;
+    this.init_settings(terminal);
 
     /* All this complicated code starting here is just to get
        a stable number for this frame. Sorry it is so complicated! */
@@ -82,7 +83,6 @@ export class TerminalManager {
         this.actions.set_title(id, title);
       }
     });
-    this.init_settings(terminal);
   }
 
   close_terminal(id: string): void {

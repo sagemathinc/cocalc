@@ -4,7 +4,11 @@ Terminal server
 
 const { spawn } = require("pty.js");
 
-import { len, merge, path_split } from "../smc-webapp/frame-editors/generic/misc";
+import {
+  len,
+  merge,
+  path_split
+} from "../smc-webapp/frame-editors/generic/misc";
 const { console_init_filename } = require("smc-util/misc");
 
 import { exists } from "../jupyter/async-utils-node";
@@ -36,7 +40,6 @@ export async function terminal(
   async function init_term() {
     const args: string[] = [];
 
-
     const init_filename: string = console_init_filename(path);
     if (await exists(init_filename)) {
       args.push("--init-file");
@@ -44,11 +47,11 @@ export async function terminal(
     }
 
     const s = path_split(path);
-    const env = merge({COCALC_TERMINAL_FILENAME: s.tail}, process.env);
+    const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
     const cwd = s.head;
 
-    const term = spawn("/bin/bash", args, {cwd, env});
-    logger.debug("terminal", "init_term", name, "pid=", term.pid, 'args', args);
+    const term = spawn("/bin/bash", args, { cwd, env });
+    logger.debug("terminal", "init_term", name, "pid=", term.pid, "args", args);
     terminals[name].term = term;
     term.on("data", function(data) {
       //logger.debug("terminal: term --> browsers", name, data);
@@ -70,7 +73,7 @@ export async function terminal(
           }
           terminals[name].truncating += data.length;
           setTimeout(check_if_still_truncating, check_interval_ms);
-          if (terminals[name].truncating >= 5*MAX_HISTORY_LENGTH) {
+          if (terminals[name].truncating >= 5 * MAX_HISTORY_LENGTH) {
             // only start sending control+c if output has been completely stuck
             // being truncated several times in a row -- it has to be a serious non-stop burst...
             term.write("\u0003");
@@ -120,11 +123,23 @@ export async function terminal(
     }
     const sizes = terminals[name].client_sizes;
     if (len(sizes) === 0) return;
-    let rows: number = 10000,
-      cols: number = 10000;
+    const INFINITY = 999999;
+    let rows: number = INFINITY,
+      cols: number = INFINITY;
     for (let id in sizes) {
-      rows = Math.min(rows, sizes[id].rows);
-      cols = Math.min(cols, sizes[id].cols);
+      if (sizes[id].rows) {
+        // if, since 0 rows or 0 columns means *ignore*.
+        rows = Math.min(rows, sizes[id].rows);
+      }
+      if (sizes[id].cols) {
+        cols = Math.min(cols, sizes[id].cols);
+      }
+    }
+    if (rows === INFINITY) {
+      rows = 24;
+    }
+    if (cols === INFINITY) {
+      cols = 80;
     }
     terminals[name].size = { rows, cols };
     //logger.debug("resize", "new size", rows, cols);

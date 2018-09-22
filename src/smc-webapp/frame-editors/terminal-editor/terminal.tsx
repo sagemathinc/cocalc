@@ -8,7 +8,7 @@ require("xterm/dist/xterm.css");
 import { ResizeObserver } from "resize-observer";
 import { proposeGeometry } from "xterm/lib/addons/fit/fit";
 
-import { throttle } from "underscore";
+//import { throttle } from "underscore";
 
 import { is_different } from "../generic/misc";
 
@@ -37,15 +37,6 @@ export class TerminalFrame extends Component<Props, {}> {
     ]);
   }
 
-  on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(this.refs.scroll);
-    if (elt == null) {
-      return;
-    }
-    const scroll = $(elt).scrollTop();
-    this.props.actions.save_editor_state(this.props.id, { scroll });
-  }
-
   componentDidMount(): void {
     this.restore_scroll();
     this.init_terminal();
@@ -53,7 +44,10 @@ export class TerminalFrame extends Component<Props, {}> {
 
   componentWillUnmount(): void {
     if (this.terminal !== undefined) {
-      $(this.terminal.element).remove();
+      this.terminal.element.remove();
+      // Ignore size for this terminal.
+      (this.terminal as any).conn.write({ cmd: "size", rows: 0, cols: 0 });
+      delete this.terminal;
     }
   }
 
@@ -68,6 +62,12 @@ export class TerminalFrame extends Component<Props, {}> {
     } else {
       this.terminal = new Terminal();
       this.terminal.open();
+      $(this.terminal.element)
+        .find(".xterm-text-layer")
+        .css({
+          borderRight: "1px solid lightgrey",
+          borderBottom: "1px solid lightgrey"
+        });
       await this.props.actions.set_terminal(this.props.id, this.terminal);
     }
     node.appendChild(this.terminal.element);
@@ -87,23 +87,10 @@ export class TerminalFrame extends Component<Props, {}> {
     const geom = proposeGeometry(this.terminal);
     if (geom == null) return;
     const { rows, cols } = geom;
-    console.log("geom=", rows, cols);
     (this.terminal as any).conn.write({ cmd: "size", rows, cols });
   }
 
   render(): Rendered {
-    return (
-      <div
-        style={{
-          overflowY: "scroll",
-          width: "100%"
-        }}
-        ref={"scroll"}
-        onScroll={throttle(() => this.on_scroll(), 250)}
-        className={"smc-vfill"}
-      >
-        <div ref={"terminal"} className={"smc-vfill"} />
-      </div>
-    );
+    return <div ref={"terminal"} className={"smc-vfill"} />;
   }
 }
