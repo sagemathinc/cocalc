@@ -17,6 +17,7 @@ import { set } from "../generic/misc";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";
+import { terminal } from "../terminal-editor/editor";
 
 const worksheet_buttons = set([
   "print",
@@ -49,7 +50,9 @@ const EDITOR_SPEC = {
     icon: "file-alt",
     component: DocumentWorksheet,
     buttons: worksheet_buttons
-  }/*,
+  },
+  terminal
+  /*,
   print: {
     short: "Print",
     name: "Printable View",

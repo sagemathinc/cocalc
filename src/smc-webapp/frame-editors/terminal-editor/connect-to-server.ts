@@ -4,6 +4,8 @@ Connect the term.js terminal object to the backend terminal session with the giv
 
 const { webapp_client } = require("smc-webapp/webapp_client");
 
+import { aux_file } from "../frame-tree/util";
+
 export async function connect_to_server(
   project_id: string,
   path: string,
@@ -12,7 +14,8 @@ export async function connect_to_server(
 ): Promise<void> {
   const ws = await webapp_client.project_websocket(project_id);
 
-  terminal.conn = await ws.api.terminal(`.${path}-${number}.term`);
+  path = aux_file(`${path}-${number}`, "term");
+  terminal.conn = await ws.api.terminal(path);
 
   terminal.is_paused = false;
   terminal.conn.write({ cmd: "size", rows: 15, cols: 80 });

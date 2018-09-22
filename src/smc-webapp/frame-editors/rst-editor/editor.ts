@@ -8,6 +8,7 @@ import { set } from "../generic/misc";
 import { createEditor } from "../frame-tree/editor";
 import { aux_file } from "../frame-tree/util";
 import { SETTINGS_SPEC } from "../settings/editor";
+import { terminal } from "../terminal-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -54,6 +55,8 @@ const EDITOR_SPEC = {
       margin: "auto"
     }
   },
+
+  terminal,
 
   settings: SETTINGS_SPEC
 };

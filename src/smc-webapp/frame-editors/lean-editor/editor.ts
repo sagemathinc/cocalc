@@ -7,6 +7,7 @@ import { createEditor } from "../frame-tree/editor";
 import { LeanCodemirrorEditor } from "./lean-codemirror";
 import { LeanMessages } from "./lean-messages";
 import { LeanInfo } from "./lean-info";
+import { terminal } from "../terminal-editor/editor";
 
 const EDITOR_SPEC = {
   "cm-lean": {
@@ -44,7 +45,8 @@ const EDITOR_SPEC = {
     icon: "eye",
     component: LeanMessages,
     buttons: set(["decrease_font_size", "increase_font_size"])
-  }
+  },
+  terminal
 };
 
 export const Editor = createEditor({
