@@ -47,7 +47,7 @@ import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
-import { connect_to_server } from "../terminal-editor/connect-to-server";
+import { TerminalManager } from "../terminal-editor/terminal-manager";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -97,8 +97,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   protected _key_handler: any;
   protected _cm: { [key: string]: CodeMirror.Editor } = {};
 
-  // TODO: typing and maybe factor out.
-  protected terminals: { [key: string]: any } = {};
+  protected terminals: TerminalManager;
 
   protected doctype: string = "syncstring";
   protected primary_keys: string[] = [];
@@ -130,6 +129,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
+    this.terminals = new TerminalManager(this, this.redux);
 
     if (is_public) {
       this._init_value();
@@ -388,6 +388,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     // Remove underlying codemirror doc from cache.
     cm_doc_cache.close(this.project_id, this.path);
+    // Free up any allocated terminals.
+    this.terminals.close();
   }
 
   __save_local_view_state(): void {
@@ -632,8 +634,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm[id];
     }
 
-    if (this.terminals[id] && type != "terminal") {
-      this.close_terminal(id);
+    if (type != "terminal") {
+      this.terminals.close_terminal(id);
     }
 
     // Reset the font size for the frame based on recent
@@ -675,9 +677,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete (this._cm[id] as any).cocalc_actions;
       delete this._cm[id];
     }
-    if (this.terminals[id] !== undefined) {
-      this.close_terminal(id);
-    }
+    this.terminals.close_terminal(id);
     this.close_frame_hook(id);
 
     // if id is the current active_id, change to most recent one.
@@ -1071,6 +1071,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _active_cm(): CodeMirror.Editor | undefined {
     return this._cm[this.store.getIn(["local_view_state", "active_id"])];
+  }
+
+  _get_terminal(id: string) : any {
+    return this.terminals.get_terminal(id);
   }
 
   // Open a code editor, optionally at the given line.
@@ -1723,106 +1727,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   /* Terminal support -- find a way to factor this out somehow! */
   set_terminal(id: string, terminal: any): void {
-    this.terminals[id] = terminal;
-
-    /* All this complicated code starting here is just to get
-       a stable number for this frame. Sorry it is so complicated! */
-    let node = this._get_frame_node(id);
-    if (node === undefined) {
-      // just to satisfy typescript
-      return;
-    }
-    let number = node.get("number");
-
-    const numbers = {};
-    for (let id0 in this._get_leaf_ids()) {
-      const node0 = tree_ops.get_node(this._get_tree(), id0);
-      if (node0 == null || node0.get("type") != "terminal") {
-        continue;
-      }
-      let n = node0.get("number");
-      if (n !== undefined) {
-        if(numbers[n] && n === number) {
-          number = undefined;
-        }
-        numbers[n] = true;
-      }
-    }
-    for (let i = 0; i < len(numbers); i++) {
-      if (!numbers[i]) {
-        number = i;
-        break;
-      }
-    }
-    if (number === undefined) {
-      number = len(numbers);
-    }
-    this.set_frame_tree({ id, number });
-    // OK, above got the stable number.  Now connect:
-
-    try {
-      connect_to_server(this.project_id, this.path, terminal, number);
-    } catch (err) {
-      this.set_error(
-        `Error connecting to server -- ${err} -- try closing and reopening or restarting project.`
-      );
-    }
-    terminal.on("mesg", mesg => this.terminal_handle_mesg(id, mesg));
-    terminal.on("title", title => this.set_title(id, title));
-    this.init_terminal_settings(terminal);
+    this.terminals.set_terminal(id, terminal);
   }
 
-  close_terminal(id: string): void {
-    this.terminals[id].destroy();
-    delete this.terminals[id];
-  }
-
-  _get_terminal(id: string): any {
-    return this.terminals[id];
-  }
-
-  terminal_handle_mesg(
-    id: string,
-    mesg: { cmd: string; rows?: number; cols?: number }
-  ): void {
-    console.log("handle_mesg", id, mesg);
-    switch (mesg.cmd) {
-      case "size":
-        //this.handle_resize(mesg.rows, mesg.cols);
-        break;
-      case "burst":
-        break;
-      case "no-burst":
-        break;
-      case "no-ignore":
-        break;
-      case "close":
-        break;
-    }
-  }
-
-  init_terminal_settings(terminal: any): void {
-    const account = this.redux.getStore("account");
-    if (account == null) {
-      return;
-    }
-    const settings = account.get_terminal_settings();
-    if (settings == null) {
-      return;
-    }
-    console.log("init_settings", terminal);
-
-    // TODO:
-    terminal.setOption("theme", {
-      background: "#ffffff",
-      foreground: "#000000",
-      cursor: "#000000"
-    });
-    /* terminal.set_font_size(settings.font_size ? settings.font_size : 14);
-    terminal.set_color_scheme(
-      settings.color_scheme ? settings.color_scheme : "default"
-    );
-    terminal.set_font_family(settings.font ? settings.font : "monospace");
-    */
-  }
 }
