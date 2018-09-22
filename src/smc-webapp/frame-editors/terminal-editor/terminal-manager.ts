@@ -25,7 +25,7 @@ export class TerminalManager {
     }
   }
 
-  set_terminal(id: string, terminal: Terminal): void {
+  async set_terminal(id: string, terminal: Terminal): Promise<void> {
     this.terminals[id] = terminal;
 
     /* All this complicated code starting here is just to get
@@ -65,7 +65,7 @@ export class TerminalManager {
 
     // OK, above got the stable number.  Now connect:
     try {
-      connect_to_server(
+      await connect_to_server(
         this.actions.project_id,
         this.actions.path,
         terminal,
@@ -105,7 +105,7 @@ export class TerminalManager {
     console.log("handle_mesg", id, mesg);
     switch (mesg.cmd) {
       case "size":
-        if (typeof(mesg.rows) === 'number' && typeof(mesg.cols) === 'number') {
+        if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
           this.resize(id, mesg.rows, mesg.cols);
         }
         break;

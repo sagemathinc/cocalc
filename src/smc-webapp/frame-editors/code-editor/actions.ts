@@ -1728,8 +1728,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   /* Terminal support -- find a way to factor this out somehow! */
-  set_terminal(id: string, terminal: Terminal): void {
-    this.terminals.set_terminal(id, terminal);
+  async set_terminal(id: string, terminal: Terminal): Promise<void> {
+    await this.terminals.set_terminal(id, terminal);
   }
 
 }

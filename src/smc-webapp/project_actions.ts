@@ -618,7 +618,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (err) {
         this.set_activity({
           id: misc.uuid(),
-          error: `opening file -- ${err}`
+          error: `opening file (error ensuring project is open) -- ${err}`
         });
         return;
       } else {
@@ -637,7 +637,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               if (err) {
                 this.set_activity({
                   id: misc.uuid(),
-                  error: `opening file -- ${err}`
+                  error: `opening file (error getting group) -- ${err}`
                 });
                 return;
               }

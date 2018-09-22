@@ -2,12 +2,11 @@
 A single terminal frame.
 */
 
-import { Terminal } from 'xterm';
-require('xterm/dist/xterm.css')
+import { Terminal } from "xterm";
+require("xterm/dist/xterm.css");
 
-console.log("xtermjs", Terminal);
-
-(window as any).xtermjs = Terminal;
+import { ResizeObserver } from "resize-observer";
+import { proposeGeometry } from "xterm/lib/addons/fit/fit";
 
 import { throttle } from "underscore";
 
@@ -58,23 +57,22 @@ export class TerminalFrame extends Component<Props, {}> {
     }
   }
 
-  init_terminal(): void {
+  async init_terminal(): Promise<void> {
     const node: any = ReactDOM.findDOMNode(this.refs.terminal);
     if (node == null) {
       return;
     }
     const terminal = this.props.actions._get_terminal(this.props.id);
-    if(terminal != null) {
+    if (terminal != null) {
       this.terminal = terminal;
     } else {
       this.terminal = new Terminal();
       this.terminal.open();
-      this.terminal.resize(100,25);
-      this.props.actions.set_terminal(this.props.id, this.terminal);
+      await this.props.actions.set_terminal(this.props.id, this.terminal);
     }
-    const elt = $(this.terminal.element)
-    elt.css('width', '100%');
-    elt.appendTo($(node));
+    node.appendChild(this.terminal.element);
+    this.measure_size();
+    new ResizeObserver(() => this.measure_size()).observe(node);
   }
 
   async restore_scroll(): Promise<void> {
@@ -82,6 +80,15 @@ export class TerminalFrame extends Component<Props, {}> {
     const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
     if (elt.length === 0) return;
     elt.scrollTop(scroll);
+  }
+
+  measure_size(): void {
+    if (this.terminal == null) return;
+    const geom = proposeGeometry(this.terminal);
+    if (geom == null) return;
+    const { rows, cols } = geom;
+    console.log("geom=", rows, cols);
+    (this.terminal as any).conn.write({ cmd: "size", rows, cols });
   }
 
   render(): Rendered {
@@ -93,13 +100,9 @@ export class TerminalFrame extends Component<Props, {}> {
         }}
         ref={"scroll"}
         onScroll={throttle(() => this.on_scroll(), 250)}
-        className={
-          "cocalc-editor-div"
-        } /* this cocalc-editor-div class is needed for a safari hack only */
+        className={"smc-vfill"}
       >
-        <div
-          ref={"terminal"}
-        />
+        <div ref={"terminal"} className={"smc-vfill"} />
       </div>
     );
   }
