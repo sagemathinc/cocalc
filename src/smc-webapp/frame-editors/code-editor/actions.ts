@@ -891,6 +891,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   //  If there are still unsaved changes right after save, throws exception.
   //  If worked fine and previous set error was saving, clears that error.
   async _try_to_save_to_disk(): Promise<void> {
+    if (this._syncstring == null) {
+      return;
+    }
     this.setState({ is_saving: true });
     try {
       await callback(this._syncstring.save_to_disk);

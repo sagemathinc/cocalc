@@ -11,7 +11,8 @@ misc = require('smc-util/misc')
 {SORT_INFO, HEADINGS, HEADINGS_DIR} = require('./headings')
 
 # Show tasks for a few seconds, even after marked done:
-DONE_CUTOFF_MS = 5000
+# Set to 0 to disable (since it is actually really annoying, and we have undo.)
+DONE_CUTOFF_MS = 0
 
 exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
     if not tasks?  # not fully initialized.
@@ -27,7 +28,7 @@ exports.update_visible = (tasks, local_tasks, view, counts, current_task_id) ->
         if c?
             return c
         if (not show_deleted and task.get('deleted')) or \
-           (not show_done and task.get('done') and now - (task.get('last_edited') ? 0) > DONE_CUTOFF_MS)
+           (not show_done and task.get('done') and (not DONE_CUTOFF_MS or now - (task.get('last_edited') ? 0) > DONE_CUTOFF_MS))
             _is_visible[id] = false
         else
             _is_visible[id] = true
