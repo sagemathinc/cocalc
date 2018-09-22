@@ -7,9 +7,10 @@ import { AppRedux } from "../../app-framework";
 import { connect_to_server } from "./connect-to-server";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { len } from "../generic/misc";
+import { Terminal } from "xterm";
 
 export class TerminalManager {
-  protected terminals: { [key: string]: any } = {};
+  protected terminals: { [key: string]: Terminal } = {};
   private actions: Actions;
   private redux: AppRedux;
 
@@ -24,7 +25,7 @@ export class TerminalManager {
     }
   }
 
-  set_terminal(id: string, terminal: any): void {
+  set_terminal(id: string, terminal: Terminal): void {
     this.terminals[id] = terminal;
 
     /* All this complicated code starting here is just to get
@@ -76,7 +77,11 @@ export class TerminalManager {
       );
     }
     terminal.on("mesg", mesg => this.handle_mesg(id, mesg));
-    terminal.on("title", title => this.actions.set_title(id, title));
+    terminal.on("title", title => {
+      if (title != null) {
+        this.actions.set_title(id, title);
+      }
+    });
     this.init_settings(terminal);
   }
 
@@ -89,7 +94,7 @@ export class TerminalManager {
     delete this.terminals[id];
   }
 
-  get_terminal(id: string): any {
+  get_terminal(id: string): Terminal | undefined {
     return this.terminals[id];
   }
 
@@ -100,7 +105,9 @@ export class TerminalManager {
     console.log("handle_mesg", id, mesg);
     switch (mesg.cmd) {
       case "size":
-        //this.handle_resize(mesg.rows, mesg.cols);
+        if (typeof(mesg.rows) === 'number' && typeof(mesg.cols) === 'number') {
+          this.resize(id, mesg.rows, mesg.cols);
+        }
         break;
       case "burst":
         break;
@@ -113,7 +120,15 @@ export class TerminalManager {
     }
   }
 
-  init_settings(terminal: any): void {
+  resize(id: string, rows: number, cols: number): void {
+    const terminal: Terminal | undefined = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    terminal.resize(cols, rows);
+  }
+
+  init_settings(terminal: Terminal): void {
     const account = this.redux.getStore("account");
     if (account == null) {
       return;

@@ -47,6 +47,8 @@ import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
+import { Terminal } from 'xterm';
+
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
@@ -1073,7 +1075,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._cm[this.store.getIn(["local_view_state", "active_id"])];
   }
 
-  _get_terminal(id: string) : any {
+  _get_terminal(id: string) : Terminal | undefined {
     return this.terminals.get_terminal(id);
   }
 
@@ -1726,7 +1728,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   /* Terminal support -- find a way to factor this out somehow! */
-  set_terminal(id: string, terminal: any): void {
+  set_terminal(id: string, terminal: Terminal): void {
     this.terminals.set_terminal(id, terminal);
   }
 
