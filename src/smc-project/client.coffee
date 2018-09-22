@@ -389,7 +389,10 @@ class exports.Client extends EventEmitter
             if not mesg.multi_response
                 delete @_hub_callbacks[mesg.id]
                 delete @_hub_client_sockets[socket.id].callbacks[mesg.id]
-            f(mesg)
+            try
+                f(mesg)
+            catch err
+                dbg("WARNING: error handling message from client. -- #{err}")
             return true
         else
             dbg("no callback")

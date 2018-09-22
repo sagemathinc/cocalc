@@ -128,7 +128,10 @@ Message = rclass
 
     editing_status: ->
         other_editors = @props.message.get('editing').remove(@props.account_id).keySeq()
-        current_user = @props.user_map.get(@props.account_id).get('first_name') + ' ' + @props.user_map.get(@props.account_id).get('last_name')
+        user = @props.user_map?.get(@props.account_id)
+        if not user?  # I hit a traceback in the current_user line below in prod.
+            return
+        current_user = user.get('first_name') + ' ' + user.get('last_name')
         if is_editing(@props.message, @props.account_id)
             if other_editors.size == 1
                 # This user and someone else is also editing

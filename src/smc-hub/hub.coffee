@@ -392,7 +392,11 @@ update_stats = (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             database.get_stats(cb:cb)
-    ], cb)
+    ], (err) -> cb?(err))
+
+init_update_stats = (cb) ->
+    setInterval(update_stats, 60000)
+    update_stats(cb)
 
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
@@ -498,6 +502,10 @@ exports.start_server = start_server = (cb) ->
             init_support(cb)
         (cb) ->
             init_compute_server(cb)
+        (cb) ->
+            if not program.dev
+                cb(); return
+            init_update_stats(cb)
         (cb) ->
             if not program.port
                 cb(); return
