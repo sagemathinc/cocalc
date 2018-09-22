@@ -415,7 +415,16 @@ class SortedPatchList extends EventEmitter
                 #console.log("applying patch #{i}")
                 if not x.prev? or @_times[x.prev - 0] or +x.prev <= +prev_cutoff
                     if not without? or (without? and not without_times[+x.time])
-                        value = value.apply_patch(x.patch)
+                        try
+                            value = value.apply_patch(x.patch)
+                        catch err
+                            # See https://github.com/sagemathinc/cocalc/issues/3191
+                            # This apply_patch *can* fail in practice due to
+                            # a horrible massively nested data structure that appears
+                            # due to a bug.  This happened with #3191.  It's better
+                            # just skip the patch than to make the project and all
+                            # files basically be massively broken!
+                            console.warn("WARNING: unable to apply a patch -- skipping it", err)
                 cache_time = x.time
                 cache_start += 1
             if not without? and (not time? or cache_time and cache_start - start >= 10)

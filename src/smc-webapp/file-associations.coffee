@@ -60,8 +60,8 @@ codemirror_associations =
     pyx    : 'python'
     r      : 'r'
     rmd    : 'rmd'
-    rnw    : 'stex2'
-    rtex   : 'stex2'
+    rnw    : 'rnw'
+    rtex   : 'rtex'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -132,13 +132,13 @@ file_associations['tex'] =
 file_associations['rnw'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4, mode:codemirror_associations['rnw']}
     name   : "R Knitr Rnw"
 
 file_associations['rtex'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4, mode:codemirror_associations['rtex']}
     name   : "R Knitr Rtex"
 
 file_associations['html'] =
