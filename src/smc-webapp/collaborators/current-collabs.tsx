@@ -159,7 +159,7 @@ class CurrentCollaboratorsPanel0 extends Component<
   }
   render() {
     return (
-      <ProjectSettingsPanel title="Current Collaborators" icon="user">
+      <ProjectSettingsPanel title="Current collaborators" icon="user">
         {this.render_collaborators_list()}
       </ProjectSettingsPanel>
     );
