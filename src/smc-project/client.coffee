@@ -21,8 +21,8 @@ as a result.
 # not active for this long (should be at least 5 minutes).  Longer is better since
 # it reduces how long a user might have to wait for save, etc.,
 # but it slightly increases database work (managing a changefeed).
-SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = 1 # TESTING
+SYNCSTRING_MAX_AGE_M = 10
+# SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
 
@@ -510,6 +510,7 @@ class exports.Client extends EventEmitter
 
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        #@dbg("sync_table")(JSON.stringify(query))
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
         # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
         #opts = defaults opts,

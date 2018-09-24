@@ -603,6 +603,7 @@ class SyncDoc extends EventEmitter
             before_change_hook : undefined
             after_change_hook : undefined
 
+        @setMaxListeners(100)
         @_before_change_hook = opts.before_change_hook
         @_after_change_hook = opts.after_change_hook
 
