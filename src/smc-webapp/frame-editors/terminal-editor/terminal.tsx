@@ -4,7 +4,7 @@ A single terminal frame.
 
 import { Terminal } from "xterm";
 require("xterm/dist/xterm.css");
-
+import { delay } from "awaiting";
 import { ResizeObserver } from "resize-observer";
 import { proposeGeometry } from "xterm/lib/addons/fit/fit";
 
@@ -27,6 +27,9 @@ export class TerminalFrame extends Component<Props, {}> {
   static displayName = "TerminalFrame";
 
   private terminal: any;
+  private is_mounted: boolean = false;
+  private last_rows: number = 0;
+  private last_cols: number = 0;
 
   shouldComponentUpdate(next): boolean {
     return is_different(this.props, next, [
@@ -37,12 +40,19 @@ export class TerminalFrame extends Component<Props, {}> {
     ]);
   }
 
+  componentWillReceiveProps(next: Props): void {
+    if (this.props.font_size !== next.font_size) {
+      this.set_font_size();
+    }
+  }
+
   componentDidMount(): void {
-    this.restore_scroll();
+    this.is_mounted = true;
     this.init_terminal();
   }
 
   componentWillUnmount(): void {
+    this.is_mounted = false;
     if (this.terminal !== undefined) {
       this.terminal.element.remove();
       // Ignore size for this terminal.
@@ -62,35 +72,65 @@ export class TerminalFrame extends Component<Props, {}> {
     } else {
       this.terminal = new Terminal();
       this.terminal.open();
-      $(this.terminal.element)
-        .find(".xterm-text-layer")
-        .css({
-          borderRight: "1px solid lightgrey",
-          borderBottom: "1px solid lightgrey"
-        });
       await this.props.actions.set_terminal(this.props.id, this.terminal);
     }
+    this.set_font_size();
     node.appendChild(this.terminal.element);
     this.measure_size();
     new ResizeObserver(() => this.measure_size()).observe(node);
+    /* uncomment for grey box around actual terminal size... is kind of annoying.
+    // Wait until in DOM and add a border:
+    await delay(0);
+    $(this.terminal.element)
+      .find(".xterm-viewer") // would use xterm-text-layer if this were canvas renderer
+      .css({
+        borderRight: "1px solid lightgrey",
+        borderBottom: "1px solid lightgrey"
+      });
+    */
+    await delay(0);
+    $(this.terminal.element)
+      .find(".xterm-viewport") // would use xterm-text-layer if this were canvas renderer
+      .css({
+        backgroundColor: "#f8f8f8"
+      });
   }
 
-  async restore_scroll(): Promise<void> {
-    const scroll = this.props.editor_state.get("scroll");
-    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-    if (elt.length === 0) return;
-    elt.scrollTop(scroll);
+  async set_font_size(): Promise<void> {
+    if (this.terminal == null || !this.is_mounted) {
+      return;
+    }
+    if (this.terminal.getOption("fontSize") != this.props.font_size) {
+      this.terminal.setOption("fontSize", this.props.font_size);
+      await delay(0);
+      this.measure_size();
+      await delay(50);
+      this.measure_size();
+    }
   }
 
   measure_size(): void {
-    if (this.terminal == null) return;
+    if (this.terminal == null || !this.is_mounted) {
+      return;
+    }
     const geom = proposeGeometry(this.terminal);
     if (geom == null) return;
+    geom.cols += 2; // it's always wrong by this amount... (for dom renderer, not canvas)
     const { rows, cols } = geom;
-    (this.terminal as any).conn.write({ cmd: "size", rows, cols });
+    if (rows !== this.last_rows || cols !== this.last_cols) {
+      this.last_rows = rows;
+      this.last_cols = cols;
+      (this.terminal as any).conn.write({ cmd: "size", rows, cols });
+    }
   }
 
   render(): Rendered {
-    return <div ref={"terminal"} className={"smc-vfill"} />;
+    return (
+      <div
+        ref={"terminal"}
+        className={"smc-vfill"}
+        style={{ marginTop: "2px", marginLeft: "5px" }}
+      />
+    );
   }
 }

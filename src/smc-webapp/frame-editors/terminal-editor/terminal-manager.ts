@@ -145,11 +145,20 @@ export class TerminalManager {
       foreground: "#000000",
       cursor: "#000000"
     });
-    /* terminal.set_font_size(settings.font_size ? settings.font_size : 14);
+    // Way too many problems with canvas renderer so far, including:
+    //     - very slow to change font size (and requires hacks to know when done)
+    terminal.setOption("rendererType", "dom");
+    terminal.setOption(
+      "fontSize",
+      settings.font_size ? settings.font_size : 14
+    );
+    if (settings.font) {
+      terminal.setOption("fontFamily", settings.font);
+    }
+    /*
     terminal.set_color_scheme(
       settings.color_scheme ? settings.color_scheme : "default"
     );
-    terminal.set_font_family(settings.font ? settings.font : "monospace");
     */
   }
 }
