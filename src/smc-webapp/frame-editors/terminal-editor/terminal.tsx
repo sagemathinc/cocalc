@@ -21,6 +21,7 @@ interface Props {
   project_id: string;
   font_size: number;
   editor_state: any;
+  is_current: boolean;
 }
 
 export class TerminalFrame extends Component<Props, {}> {
@@ -94,6 +95,9 @@ export class TerminalFrame extends Component<Props, {}> {
       .css({
         backgroundColor: "#f8f8f8"
       });
+    if (this.props.is_current) {
+      this.terminal.focus();
+    }
   }
 
   async set_font_size(): Promise<void> {
