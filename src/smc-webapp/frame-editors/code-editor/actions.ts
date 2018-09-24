@@ -47,7 +47,7 @@ import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
-import { Terminal } from 'xterm';
+import { Terminal } from "xterm";
 
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
@@ -1074,11 +1074,17 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
+  _get_most_recent_terminal_id(): string | undefined {
+    return this._get_most_recent_active_frame_id(
+      node => node.get("type").slice(0, 8) == "terminal"
+    );
+  }
+
   _active_cm(): CodeMirror.Editor | undefined {
     return this._cm[this.store.getIn(["local_view_state", "active_id"])];
   }
 
-  _get_terminal(id: string) : Terminal | undefined {
+  _get_terminal(id: string): Terminal | undefined {
     return this.terminals.get_terminal(id);
   }
 
@@ -1121,6 +1127,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   focus(id?: string): void {
+
+    if (id !== undefined && this.terminals.exists(id)) {
+      this.terminals.focus(id);
+      return;
+    }
+
     let cm;
     if (id) {
       cm = this._cm[id];
@@ -1133,6 +1145,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (cm) {
       cm.focus();
     }
+
+    // no cm, so try to focus a terminal if there is one.
+    this.terminals.focus();
   }
 
   syncstring_save(): void {
@@ -1734,5 +1749,4 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   async set_terminal(id: string, terminal: Terminal): Promise<void> {
     await this.terminals.set_terminal(id, terminal);
   }
-
 }

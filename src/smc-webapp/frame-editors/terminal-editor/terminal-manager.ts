@@ -94,6 +94,23 @@ export class TerminalManager {
     delete this.terminals[id];
   }
 
+  exists(id: string): boolean {
+    return this.terminals[id] !== undefined;
+  }
+
+  focus(id?: string): void {
+    if (id === undefined) {
+      id = this.actions._get_most_recent_terminal_id();
+      if (id === undefined) {
+        return; // no terminals
+      }
+    }
+    const t = this.terminals[id];
+    if (t !== undefined) {
+      t.focus();
+    }
+  }
+
   get_terminal(id: string): Terminal | undefined {
     return this.terminals[id];
   }
