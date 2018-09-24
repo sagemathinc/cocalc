@@ -45,6 +45,9 @@ export class TerminalFrame extends Component<Props, {}> {
     if (this.props.font_size !== next.font_size) {
       this.set_font_size();
     }
+    if (!this.props.is_current && next.is_current) {
+      this.terminal.focus();
+    }
   }
 
   componentDidMount(): void {
