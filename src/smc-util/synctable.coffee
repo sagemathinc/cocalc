@@ -1076,18 +1076,13 @@ class SyncTable extends EventEmitter
         return new_val
 
     close: (fatal) =>
-        dbg = @_client.dbg("close #{@_extra_dbg}")
-        dbg()
         if @_state == 'closed'
-            dbg("already closed")
             # already closed
             return
         # decrement the reference to this synctable
         if global_cache_decref(@)
-            dbg("cached still")
             # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
-        dbg("really closing")
         @_plug.close()
         @_client.removeListener('disconnected', @_disconnected)
         if not fatal
