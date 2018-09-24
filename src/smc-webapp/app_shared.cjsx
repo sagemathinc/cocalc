@@ -247,7 +247,7 @@ exports.ConnectionIndicator = rclass
 
     render_connection_status: ->
         if @props.connection_status == 'connected'
-            icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
+            icon_style = {marginRight: '16px', fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
             else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
@@ -256,18 +256,18 @@ exports.ConnectionIndicator = rclass
                 icon_style.color = '#00c'
             else
                 icon_style.color = 'grey'
-            <div>
+            <div style={padding:'9px'}>
                 <Icon name='wifi' style={icon_style}/>
                 {@render_ping() if @props.show_pingtime}
             </div>
         else if @props.connection_status == 'connecting'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
                 connecting...
-            </span>
+            </div>
         else if @props.connection_status == 'disconnected'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
                 disconnected
-            </span>
+            </div>
 
     connection_click: ->
         @props.actions.show_connection(true)
@@ -275,16 +275,14 @@ exports.ConnectionIndicator = rclass
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
-        width = if @props.show_pingtime then '6em' else '4em'
         outer_styles =
-            width      : width
             color      : '#666'
             fontSize   : '10pt'
             lineHeight : '10pt'
             cursor     : 'pointer'
             float      : 'left'
         inner_styles =
-            paddingTop : '13.5px'
+            paddingTop : '3px'
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
