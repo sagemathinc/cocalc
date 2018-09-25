@@ -1900,7 +1900,13 @@ class exports.Connection extends EventEmitter
                 query   : opts.query
                 options : opts.options
                 standby : opts.standby
-                cb      : opts.cb
+                cb      : (err, resp) =>
+                    if not err or not opts.standby
+                        opts.cb?(err, resp)
+                        return
+                    # err and is standby; try again without standby.
+                    opts.standby = false
+                    @query(opts)
             return
 
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
