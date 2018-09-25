@@ -409,7 +409,7 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
+        top_px = '-1px'
 
         tip_style =
             position     : 'fixed'
@@ -418,10 +418,9 @@ exports.FullscreenButton = rclass
             top          : top_px
             borderRadius : '3px'
 
-
         icon_style =
             fontSize   : '13pt'
-            padding    : 4
+            padding    : 2
             color      : COLORS.GRAY
             cursor     : 'pointer'
 
