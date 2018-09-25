@@ -96,11 +96,11 @@ export class TerminalFrame extends Component<Props, {}> {
       });
     */
     await delay(0);
-    $(this.terminal.element)
-      .find(".xterm-viewport") // would use xterm-text-layer if this were canvas renderer
-      .css({
-        backgroundColor: "#f8f8f8"
-      });
+    const elt = $(this.terminal.element);
+    // Hack so doesn't look stupid:
+    const bg = (this.terminal as any)._core.renderer.colorManager.colors
+      .background;
+    elt.find(".xterm-screen").css({ backgroundColor: bg });
     if (this.props.is_current) {
       this.terminal.focus();
     }
@@ -135,12 +135,6 @@ export class TerminalFrame extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    return (
-      <div
-        ref={"terminal"}
-        className={"smc-vfill"}
-        style={{ marginTop: "2px", marginLeft: "5px" }}
-      />
-    );
+    return <div ref={"terminal"} className={"smc-vfill"} />;
   }
 }

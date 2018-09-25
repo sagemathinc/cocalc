@@ -8,6 +8,7 @@ import { connect_to_server } from "./connect-to-server";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { len } from "../generic/misc";
 import { Terminal } from "xterm";
+import { setTheme } from "./themes";
 
 export class TerminalManager {
   protected terminals: { [key: string]: Terminal } = {};
@@ -156,12 +157,10 @@ export class TerminalManager {
     }
     console.log("init_settings", terminal);
 
-    // TODO:
-    terminal.setOption("theme", {
-      background: "#ffffff",
-      foreground: "#000000",
-      cursor: "#000000"
-    });
+    if (settings.color_scheme !== undefined) {
+      setTheme(terminal, settings.color_scheme);
+    }
+
     // Way too many problems with canvas renderer so far, including:
     //     - very slow to change font size (and requires hacks to know when done)
     terminal.setOption("rendererType", "dom");
