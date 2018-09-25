@@ -4,13 +4,12 @@ A single terminal frame.
 
 import { Terminal } from "xterm";
 require("xterm/dist/xterm.css");
-import { delay } from "awaiting";
 import { ResizeObserver } from "resize-observer";
 import { proposeGeometry } from "xterm/lib/addons/fit/fit";
 import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
 webLinks.apply(Terminal);
 
-//import { throttle } from "underscore";
+import { throttle } from "underscore";
 
 import { is_different } from "../generic/misc";
 
@@ -45,7 +44,7 @@ export class TerminalFrame extends Component<Props, {}> {
 
   componentWillReceiveProps(next: Props): void {
     if (this.props.font_size !== next.font_size) {
-      this.set_font_size();
+      this.set_font_size(next.font_size);
     }
     if (!this.props.is_current && next.is_current) {
       this.terminal.focus();
@@ -54,6 +53,7 @@ export class TerminalFrame extends Component<Props, {}> {
 
   componentDidMount(): void {
     this.is_mounted = true;
+    this.set_font_size = throttle(this.set_font_size, 500);
     this.init_terminal();
   }
 
@@ -81,40 +81,21 @@ export class TerminalFrame extends Component<Props, {}> {
       this.terminal.open();
       await this.props.actions.set_terminal(this.props.id, this.terminal);
     }
-    this.set_font_size();
+    this.set_font_size(this.props.font_size);
     node.appendChild(this.terminal.element);
     this.measure_size();
     new ResizeObserver(() => this.measure_size()).observe(node);
-    /* uncomment for grey box around actual terminal size... is kind of annoying.
-    // Wait until in DOM and add a border:
-    await delay(0);
-    $(this.terminal.element)
-      .find(".xterm-viewer") // would use xterm-text-layer if this were canvas renderer
-      .css({
-        borderRight: "1px solid lightgrey",
-        borderBottom: "1px solid lightgrey"
-      });
-    */
-    await delay(0);
-    const elt = $(this.terminal.element);
-    // Hack so doesn't look stupid:
-    const bg = (this.terminal as any)._core.renderer.colorManager.colors
-      .background;
-    elt.find(".xterm-screen").css({ backgroundColor: bg });
     if (this.props.is_current) {
       this.terminal.focus();
     }
   }
 
-  async set_font_size(): Promise<void> {
+  async set_font_size(font_size: number): Promise<void> {
     if (this.terminal == null || !this.is_mounted) {
       return;
     }
-    if (this.terminal.getOption("fontSize") != this.props.font_size) {
-      this.terminal.setOption("fontSize", this.props.font_size);
-      await delay(0);
-      this.measure_size();
-      await delay(50);
+    if (this.terminal.getOption("fontSize") !== font_size) {
+      this.terminal.setOption("fontSize", font_size);
       this.measure_size();
     }
   }
@@ -125,7 +106,6 @@ export class TerminalFrame extends Component<Props, {}> {
     }
     const geom = proposeGeometry(this.terminal);
     if (geom == null) return;
-    geom.cols += 2; // it's always wrong by this amount... (for dom renderer, not canvas)
     const { rows, cols } = geom;
     if (rows !== this.last_rows || cols !== this.last_cols) {
       this.last_rows = rows;

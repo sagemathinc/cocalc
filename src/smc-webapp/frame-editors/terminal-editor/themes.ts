@@ -5,7 +5,6 @@ Our predefined terminal color themes.
 import { ITheme, Terminal } from "xterm";
 
 export function setTheme(terminal: Terminal, theme_name: string): void {
-  console.log("theme_name=", theme_name);
   let t = color_themes[theme_name];
   if (t == null) {
     t = color_themes["default"];
@@ -23,8 +22,8 @@ export function setTheme(terminal: Terminal, theme_name: string): void {
     background: colors[17],
     foreground: colors[16],
     cursor: colors[16],
-    cursorAccent: colors[16],
-    selection: colors[16],
+    cursorAccent: colors[17],
+    selection: "rgba(128, 128, 160, 0.25)",
     black: colors[0],
     red: colors[1],
     green: colors[2],
@@ -42,7 +41,6 @@ export function setTheme(terminal: Terminal, theme_name: string): void {
     brightCyan: colors[14],
     brightWhite: colors[15]
   };
-  console.log("theme=", theme);
   terminal.setOption("theme", theme);
 }
 

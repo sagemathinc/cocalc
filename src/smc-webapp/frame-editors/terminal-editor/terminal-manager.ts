@@ -120,7 +120,7 @@ export class TerminalManager {
     id: string,
     mesg: { cmd: string; rows?: number; cols?: number }
   ): void {
-    console.log("handle_mesg", id, mesg);
+    //console.log("handle_mesg", id, mesg);
     switch (mesg.cmd) {
       case "size":
         if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
@@ -155,26 +155,18 @@ export class TerminalManager {
     if (settings == null) {
       return;
     }
-    console.log("init_settings", terminal);
 
     if (settings.color_scheme !== undefined) {
       setTheme(terminal, settings.color_scheme);
     }
 
-    // Way too many problems with canvas renderer so far, including:
-    //     - very slow to change font size (and requires hacks to know when done)
-    terminal.setOption("rendererType", "dom");
     terminal.setOption(
       "fontSize",
       settings.font_size ? settings.font_size : 14
     );
+
     if (settings.font) {
       terminal.setOption("fontFamily", settings.font);
     }
-    /*
-    terminal.set_color_scheme(
-      settings.color_scheme ? settings.color_scheme : "default"
-    );
-    */
   }
 }
