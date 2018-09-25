@@ -196,7 +196,7 @@ Page = rclass
 
     render_right_nav: ->
         logged_in = @props.is_logged_in
-        <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
+        <Nav id='smc-right-tabs-fixed' style={height:'36px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
@@ -222,7 +222,7 @@ Page = rclass
             float      : 'right'
             padding    : '11px 7px'
 
-        <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
+        <Nav style={height:"36px", margin:'0', overflow:'hidden'}>
             <NavTab
                 name           = {'projects'}
                 inner_style    = {padding:'0px'}
@@ -266,7 +266,7 @@ Page = rclass
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
-            minHeight     : '40px'
+            minHeight     : '36px'
             position      : 'fixed'
             right         : 0
             zIndex        : '100'
@@ -274,7 +274,7 @@ Page = rclass
             top           : top
 
         positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
-        positionHackHeight = (40 + positionHackOffset) + 'px'
+        positionHackHeight = (36 + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}

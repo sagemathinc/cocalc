@@ -454,8 +454,8 @@ exports.AppLogo = rclass
             backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
             backgroundRepeat: 'no-repeat'
-            height          : 36
-            width           : 36
+            height          : "32px"
+            width           : "32px"
             position        : 'relative'
             margin          : '2px'
         <div style={styles}></div>
@@ -574,7 +574,7 @@ exports.GlobalInformationMessage = rclass
             zIndex          : '101'
             right           : 0
             left            : 0
-            height          : '40px'
+            height          : '36px'
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
