@@ -1904,7 +1904,7 @@ class exports.Connection extends EventEmitter
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
-                    # err and is standby; try again without standby.
+                    console.warn("query err and is standby; try again without standby.")
                     opts.standby = false
                     @query(opts)
             return
