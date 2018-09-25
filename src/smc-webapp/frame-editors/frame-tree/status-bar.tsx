@@ -18,7 +18,7 @@ export class StatusBar extends Component<Props, {}> {
 
   render_icon(): Rendered {
     if (this.props.status) {
-      return <Loading text='' />;
+      return <Loading text="" />;
     }
   }
 
@@ -26,11 +26,15 @@ export class StatusBar extends Component<Props, {}> {
     return (
       <div
         style={{
-          border: "1px solid lightgray",
-          color: "#333",
+          position: "fixed",
+          bottom: "0px",
+          minWidth: '30%',
+          zIndex: 100,
+          border: "0.5px solid lightgray",
+          color: "#666",
           padding: "0 5px",
-          fontSize: "10pt",
-          background: "#eee"
+          fontSize: "9pt",
+          background: "#fff"
         }}
       >
         {this.render_icon()}
