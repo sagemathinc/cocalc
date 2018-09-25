@@ -10,6 +10,8 @@ import { len } from "../generic/misc";
 import { Terminal } from "xterm";
 import { setTheme } from "./themes";
 
+class Path {}
+
 export class TerminalManager {
   protected terminals: { [key: string]: Terminal } = {};
   private actions: Actions;
@@ -118,9 +120,9 @@ export class TerminalManager {
 
   handle_mesg(
     id: string,
-    mesg: { cmd: string; rows?: number; cols?: number }
+    mesg: { cmd: string; rows?: number; cols?: number; paths?: Path[] }
   ): void {
-    //console.log("handle_mesg", id, mesg);
+    console.log("handle_mesg", id, mesg);
     switch (mesg.cmd) {
       case "size":
         if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
@@ -128,14 +130,45 @@ export class TerminalManager {
         }
         break;
       case "burst":
+        this.burst_on();
         break;
       case "no-burst":
+        this.burst_off();
         break;
       case "no-ignore":
+        this.ignore_off();
         break;
       case "close":
+        this.close_request();
         break;
+      case "open":
+        if (mesg.paths !== undefined) {
+          this.open_paths(mesg.paths);
+        }
+        break;
+      default:
+        console.log("handle_mesg -- unhandled", id, mesg);
     }
+  }
+
+  burst_on(): void {
+    console.log("burst_on");
+  }
+
+  burst_off(): void {
+    console.log("burst_off");
+  }
+
+  ignore_off(): void {
+    console.log("ignore_off");
+  }
+
+  close_request(): void {
+    console.log("close_request");
+  }
+
+  open_paths(paths: Path[]): void {
+    console.log("open_paths", paths);
   }
 
   resize(id: string, rows: number, cols: number): void {
