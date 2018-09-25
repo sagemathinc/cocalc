@@ -7,6 +7,8 @@ require("xterm/dist/xterm.css");
 import { delay } from "awaiting";
 import { ResizeObserver } from "resize-observer";
 import { proposeGeometry } from "xterm/lib/addons/fit/fit";
+import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
+webLinks.apply(Terminal);
 
 //import { throttle } from "underscore";
 
@@ -75,6 +77,7 @@ export class TerminalFrame extends Component<Props, {}> {
       this.terminal = terminal;
     } else {
       this.terminal = new Terminal();
+      this.terminal.webLinksInit();
       this.terminal.open();
       await this.props.actions.set_terminal(this.props.id, this.terminal);
     }
