@@ -144,17 +144,25 @@ class Plug
                                     # quickly as it can and call it's callback with an error if
                                     # and only if it fails.  It will definitely only be called
                                     # once at a time, so no need to put in any sort of block.
+            extra_dbg  : ''         # used only for debugging
+        @_state = 'run'
         @connect()
+
+    close: =>
+        @_state = 'closed'
 
     dbg: (f) =>
         if @_opts.client.is_project()
-            return @_opts.client.dbg("Plug('#{@_opts.name}').#{f}")
+            return @_opts.client.dbg("Plug('#{@_opts.name}', '#{@_opts.extra_dbg}').#{f}")
         else
             return =>
 
     # Keep trying until we connect - always succeeds if it terminates
     connect: (cb) =>
         dbg = @dbg('connect')
+        if @_state == 'closed'
+            dbg("closed")
+            return
         if @_is_connecting
             dbg("already connecting")
             return
@@ -172,18 +180,29 @@ class Plug
 
     # Try to connect exactly once.  cb gets error if and only if fails to connect.
     __try_to_connect_once: (cb) =>
+        if @_state == 'closed'
+            cb()
+            return
+
         # timer for giving up on waiting to try to connect
         give_up_timer = undefined
 
         # actually try to connect
         do_connect = =>
+            if @_state == 'closed'
+                cb() # not error since we want the retry_until_success to terminate
+                return
             if not @_opts.no_sign_in
                 if not @_opts.client.is_signed_in()
                     cb("not signed in but need to be")
                     return
             if give_up_timer?
+                @_opts.client.removeListener(event, do_connect)
                 clearTimeout(give_up_timer)
             @_opts.connect (err) =>
+                if @_state == 'closed'
+                    cb()
+                    return
                 if err == 'closed'
                     cb()  # success = stop trying.
                 else
@@ -206,11 +225,12 @@ class Plug
             give_up = =>
                 @_opts.client.removeListener(event, do_connect)
                 cb("timeout")
-            give_up_timer = setTimeout(give_up, 5000+Math.random()*10000)
+            give_up_timer = setTimeout(give_up, 30000+Math.random()*10000)
 
 class SyncTable extends EventEmitter
     constructor: (_query, _options, _client, _debounce_interval, _throttle_changes, _cache_key) ->
         super()
+        @setMaxListeners(100)
         @_query = _query
         @_options = _options
         @_client = _client
@@ -233,11 +253,18 @@ class SyncTable extends EventEmitter
         @_state = 'disconnected'   # disconnected <--> connected --> closed
         @_created = new Date()
 
+        extra_dbg = {}
+        if misc.is_object(_query)
+            for k, v of _query
+                if v != null
+                    extra_dbg[k] = v
+        @_extra_dbg = JSON.stringify(extra_dbg)
         @_plug = new Plug
             name       : @_table
             client     : @_client
             connect    : @_connect
             no_sign_in : @_schema.anonymous or @_client.is_project()  # note: projects don't have to authenticate
+            extra_dbg  : @_extra_dbg  # only for debugging
 
         @_client.on 'disconnected', =>
             #console.log("synctable: DISCONNECTED")
@@ -1056,6 +1083,7 @@ class SyncTable extends EventEmitter
         if global_cache_decref(@)
             # close: not zero -- so don't close it yet -- still in use by multiple clients
             return
+        @_plug.close()
         @_client.removeListener('disconnected', @_disconnected)
         if not fatal
             # do a last attempt at a save (so we don't lose data), then really close.

@@ -242,7 +242,7 @@ Page = rclass
     drop: (e) ->
         if DEBUG
             e.persist()
-            console.log "react desktop_app.drop", e
+            #console.log "react desktop_app.drop", e
         e.preventDefault()
         e.stopPropagation()
         if e.dataTransfer.files.length > 0

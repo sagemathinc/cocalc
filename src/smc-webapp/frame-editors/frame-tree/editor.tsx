@@ -230,13 +230,13 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   }
 
   render_status_bar(): Rendered {
-    let status: string;
     if (!this.props.is_loaded) {
-      status = `Waiting for ${this.props.path}...`;
-    } else {
-      status = this.props.status;
+      return;
     }
-    return <StatusBar status={status} />;
+    if (!this.props.status) {
+      return;
+    }
+    return <StatusBar status={this.props.status} />;
   }
 
   render_loading(): Rendered {
