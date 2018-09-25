@@ -130,20 +130,20 @@ export class TerminalManager {
         }
         break;
       case "burst":
-        this.burst_on();
+        this.burst_on(id);
         break;
       case "no-burst":
-        this.burst_off();
+        this.burst_off(id);
         break;
       case "no-ignore":
-        this.ignore_off();
+        this.ignore_off(id);
         break;
       case "close":
-        this.close_request();
+        this.close_request(id);
         break;
       case "open":
         if (mesg.paths !== undefined) {
-          this.open_paths(mesg.paths);
+          this.open_paths(id, mesg.paths);
         }
         break;
       default:
@@ -151,24 +151,28 @@ export class TerminalManager {
     }
   }
 
-  burst_on(): void {
-    console.log("burst_on");
+  burst_on(id: string): void {
+    console.log("burst_on", id);
   }
 
-  burst_off(): void {
-    console.log("burst_off");
+  burst_off(id: string): void {
+    console.log("burst_off", id);
   }
 
-  ignore_off(): void {
-    console.log("ignore_off");
+  ignore_off(id: string): void {
+    console.log("ignore_off", id);
   }
 
-  close_request(): void {
+  close_request(id: string): void {
     console.log("close_request");
+    this.actions.set_error(
+      "Another user closed one of your terminal sessions."
+    );
+    this.actions.close_frame(id);
   }
 
-  open_paths(paths: Path[]): void {
-    console.log("open_paths", paths);
+  open_paths(id : string, paths: Path[]): void {
+    console.log("open_paths", paths, id);
   }
 
   resize(id: string, rows: number, cols: number): void {
@@ -201,5 +205,14 @@ export class TerminalManager {
     if (settings.font) {
       terminal.setOption("fontFamily", settings.font);
     }
+  }
+
+  kick_other_users_out(id: string): void {
+    console.log("terminal kick other users", id);
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    (terminal as any).conn.write({ cmd: "boot" });
   }
 }

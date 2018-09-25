@@ -822,6 +822,22 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_kick_other_users_out(): Rendered {
+    if (!this.is_visible("kick_other_users_out")) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"kick_other_users_out"}
+        onClick={() => this.props.actions.kick_other_users_out(this.props.id)}
+        title={"Kick all other users out"}
+      >
+        <Icon name={"door-open"} />
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -889,6 +905,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       v.push(this.render_format_group());
     }
     v.push(this.render_help());
+    v.push(this.render_kick_other_users_out());
     v.push(this.render_print());
 
     const w: Rendered[] = [];

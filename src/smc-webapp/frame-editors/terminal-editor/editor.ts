@@ -17,7 +17,8 @@ export const terminal = {
     "increase_font_size",
     "find",
     "paste",
-    "copy"
+    "copy",
+    "kick_other_users_out"
   ])
 };
 

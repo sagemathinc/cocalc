@@ -1127,7 +1127,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   focus(id?: string): void {
-
     if (id !== undefined && this.terminals.exists(id)) {
       this.terminals.focus(id);
       return;
@@ -1740,7 +1739,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
-  set_title(id: string, title: string) {
+  set_title(id: string, title: string): void {
     //console.log("set title of term ", id, " to ", title);
     this.set_frame_tree({ id: id, title: title });
   }
@@ -1748,5 +1747,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   /* Terminal support -- find a way to factor this out somehow! */
   async set_terminal(id: string, terminal: Terminal): Promise<void> {
     await this.terminals.set_terminal(id, terminal);
+  }
+
+  /* Kick other uses out of this frame. */
+  kick_other_users_out(id: string): void {
+    console.log("kick_other_users_out", id);
+    if (this.terminals.exists(id)) {
+      this.terminals.kick_other_users_out(id);
+      return;
+    }
+
   }
 }
