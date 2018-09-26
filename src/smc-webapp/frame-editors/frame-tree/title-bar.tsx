@@ -84,6 +84,7 @@ interface Props {
   is_full: boolean;
   is_only: boolean; // is the only frame
   is_public: boolean; // public view of a file
+  is_paused: boolean;
   type: string;
   editor_spec: any;
   status: string;
@@ -103,6 +104,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       "has_uncommitted_changes",
       "is_public",
       "is_saving",
+      "is_paused",
       "type",
       "status",
       "title"
@@ -838,6 +840,38 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_pause(): Rendered {
+    if (!this.is_visible("pause")) {
+      return;
+    }
+    let icon: string, title: string, style: string | undefined;
+    if (this.props.is_paused) {
+      icon = "play";
+      title = "Play";
+      style = "success";
+    } else {
+      icon = "pause";
+      title = "Pause";
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        bsStyle={style}
+        key={"pause"}
+        onClick={() => {
+          if (this.props.is_paused) {
+            this.props.actions.unpause(this.props.id);
+          } else {
+            this.props.actions.pause(this.props.id);
+          }
+        }}
+        title={title}
+      >
+        <Icon name={icon} />
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -905,6 +939,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       v.push(this.render_format_group());
     }
     v.push(this.render_help());
+    v.push(this.render_pause());
     v.push(this.render_kick_other_users_out());
     v.push(this.render_print());
 

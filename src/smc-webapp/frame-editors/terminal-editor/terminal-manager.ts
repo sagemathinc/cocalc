@@ -89,6 +89,15 @@ export class TerminalManager {
         this.actions.set_title(id, title);
       }
     });
+    terminal.on("keypress", () => {
+      if ((terminal as any).is_paused) {
+        this.actions.unpause(id);
+      }
+    });
+    // pause: sync local view state with terminal state
+    if (node != null && node.get("is_paused")) {
+      (terminal as any).pause();
+    }
   }
 
   close_terminal(id: string): void {
@@ -268,11 +277,26 @@ export class TerminalManager {
   }
 
   kick_other_users_out(id: string): void {
-    console.log("terminal kick other users", id);
     const terminal = this.get_terminal(id);
     if (terminal === undefined) {
       return;
     }
     (terminal as any).conn.write({ cmd: "boot" });
+  }
+
+  pause(id: string): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    (terminal as any).pause();
+  }
+
+  unpause(id: string): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    (terminal as any).unpause();
   }
 }

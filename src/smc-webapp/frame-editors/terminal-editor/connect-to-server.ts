@@ -81,14 +81,16 @@ export async function connect_to_server(
     render_buffer = "";
   };
 
+  let first_conn_data: boolean = true;
   terminal.conn.on("data", function(data) {
-    if (typeof data === "string")
-      if (terminal.is_paused) {
+    if (typeof data === "string") {
+      if (terminal.is_paused && !first_conn_data) {
         render_buffer += data;
       } else {
         render(data);
       }
-    else if (typeof data === "object") {
+      first_conn_data = false;
+    } else if (typeof data === "object") {
       terminal.emit("mesg", data);
     }
   });

@@ -1755,9 +1755,26 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   /* Kick other uses out of this frame. */
   kick_other_users_out(id: string): void {
-    console.log("kick_other_users_out", id);
     if (this.terminals.exists(id)) {
       this.terminals.kick_other_users_out(id);
+      return;
+    }
+  }
+
+  pause(id: string): void {
+    this.set_frame_tree({ id: id, is_paused: true });
+    this.focus(id);
+    if (this.terminals.exists(id)) {
+      this.terminals.pause(id);
+      return;
+    }
+  }
+
+  unpause(id: string): void {
+    this.set_frame_tree({ id: id, is_paused: false });
+    this.focus(id);
+    if (this.terminals.exists(id)) {
+      this.terminals.unpause(id);
       return;
     }
   }

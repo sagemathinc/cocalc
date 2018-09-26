@@ -191,6 +191,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         has_uncommitted_changes={this.props.has_uncommitted_changes}
         is_saving={this.props.is_saving}
         is_public={this.props.is_public}
+        is_paused={desc.get("is_paused")}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
         status={this.props.status}

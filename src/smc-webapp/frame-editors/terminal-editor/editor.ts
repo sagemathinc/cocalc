@@ -18,7 +18,8 @@ export const terminal = {
     "find",
     "paste",
     "copy",
-    "kick_other_users_out"
+    "kick_other_users_out",
+    "pause"
   ])
 };
 
