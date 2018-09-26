@@ -963,8 +963,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     await this._do_save();
   }
 
+  _get_project_actions() {
+    return this.redux.getProjectActions(this.project_id);
+  }
+
   time_travel(): void {
-    this.redux.getProjectActions(this.project_id).open_file({
+    this._get_project_actions().open_file({
       path: history_path(this.path),
       foreground: true
     });
@@ -1756,6 +1760,5 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.terminals.kick_other_users_out(id);
       return;
     }
-
   }
 }

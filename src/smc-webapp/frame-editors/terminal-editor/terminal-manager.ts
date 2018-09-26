@@ -10,7 +10,10 @@ import { len } from "../generic/misc";
 import { Terminal } from "xterm";
 import { setTheme } from "./themes";
 
-class Path {}
+interface Path {
+  file?: string;
+  directory?: string;
+}
 
 export class TerminalManager {
   protected terminals: { [key: string]: Terminal } = {};
@@ -120,7 +123,7 @@ export class TerminalManager {
 
   handle_mesg(
     id: string,
-    mesg: { cmd: string; rows?: number; cols?: number; paths?: Path[] }
+    mesg: { cmd: string; rows?: number; cols?: number; payload: any }
   ): void {
     console.log("handle_mesg", id, mesg);
     switch (mesg.cmd) {
@@ -141,9 +144,15 @@ export class TerminalManager {
       case "close":
         this.close_request(id);
         break;
-      case "open":
-        if (mesg.paths !== undefined) {
-          this.open_paths(id, mesg.paths);
+      case "message":
+        const payload = mesg.payload;
+        if (payload == null) {
+          break;
+        }
+        if (payload.event === "open") {
+          if (payload.paths !== undefined) {
+            this.open_paths(id, payload.paths);
+          }
         }
         break;
       default:
@@ -172,6 +181,22 @@ export class TerminalManager {
 
   open_paths(id: string, paths: Path[]): void {
     console.log("open_paths", paths, id);
+    const project_actions = this.actions._get_project_actions();
+    let i = 0;
+    let foreground = false;
+    for (let x of paths) {
+      i += 1;
+      if (i === paths.length) {
+        foreground = true;
+      }
+      if (x.file != null) {
+        const path = x.file;
+        project_actions.open_file({ path, foreground });
+      }
+      if (x.directory != null && foreground) {
+        project_actions.open_directory(x.directory);
+      }
+    }
   }
 
   resize(id: string, rows: number, cols: number): void {

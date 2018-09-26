@@ -53,8 +53,9 @@ export async function terminal(
     const term = spawn("/bin/bash", args, { cwd, env });
     logger.debug("terminal", "init_term", name, "pid=", term.pid, "args", args);
     terminals[name].term = term;
-    term.on("data", function(data) {
+    term.on("data", function(data): void {
       //logger.debug("terminal: term --> browsers", name, data);
+      handle_backend_messages(data);
       terminals[name].history += data;
       const n = terminals[name].history.length;
       if (n >= MAX_HISTORY_LENGTH) {
@@ -88,7 +89,57 @@ export async function terminal(
       }
     });
 
-    function check_if_still_truncating() {
+    let backend_messages_state: "NONE" | "READING" = "NONE";
+    let backend_messages_buffer: string = "";
+    function reset_backend_messages_buffer(): void {
+      backend_messages_buffer = "";
+      backend_messages_state = "NONE";
+    }
+    function handle_backend_messages(data: string): void {
+      /* parse out messages like this:
+            \x1b]49;"valid JSON string here"\x07
+         and format and send them via our json channel.
+         NOTE: such messages also get sent via the
+         normal channel, but ignored by the client.
+      */
+      if (backend_messages_state === "NONE") {
+        const i = data.indexOf("\x1b");
+        if (i === -1) {
+          return; // nothing to worry about
+        }
+        backend_messages_state = "READING";
+        backend_messages_buffer = data.slice(i);
+      } else {
+        backend_messages_buffer += data;
+      }
+      if (
+        backend_messages_buffer.length >= 5 &&
+        backend_messages_buffer.slice(1, 5) != "]49;"
+      ) {
+        reset_backend_messages_buffer();
+        return;
+      }
+      if (backend_messages_buffer.length >= 6) {
+        const i = backend_messages_buffer.indexOf("\x07");
+        if (i === -1) {
+          // continue to wait... unless too long
+          if (backend_messages_buffer.length > 10000) {
+            reset_backend_messages_buffer();
+          }
+          return;
+        }
+        const s = backend_messages_buffer.slice(5, i);
+        reset_backend_messages_buffer();
+        try {
+          const payload = JSON.parse(s);
+          channel.write({ cmd: "message", payload });
+        } catch (err) {
+          // no op -- ignore
+        }
+      }
+    }
+
+    function check_if_still_truncating(): void {
       if (!terminals[name].truncating) return;
       if (
         new Date().valueOf() - terminals[name].last_truncate_time >=
