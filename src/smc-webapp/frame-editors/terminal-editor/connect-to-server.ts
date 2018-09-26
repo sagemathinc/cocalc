@@ -2,6 +2,8 @@
 Connect the term.js terminal object to the backend terminal session with the given path.
 */
 
+import { debounce } from "underscore";
+
 const { webapp_client } = require("smc-webapp/webapp_client");
 
 import { delay } from "awaiting";
@@ -41,24 +43,25 @@ export async function connect_to_server(
   /* To test this full_rerender, do this in a terminal then start resizing it:
          printf "\E[c\n" ; sleep 1 ; echo
   */
-  async function full_rerender(): Promise<void> {
-    try {
-      ignore_terminal_data = true;
-      terminal.reset();
+  const full_rerender = debounce(async () => {
+    console.log('full_rerender');
+    ignore_terminal_data = true;
+    terminal.reset();
+    // This is a horrible hack, since we have to be sure the
+    // reset (and its side effects) are really done before writing
+    // the history again -- otherwise, the scroll is messed up.
+    // The call to requestAnimationFrame is also done in xterm.js.
+    // This really sucks.  It would probably be far better to just
+    // REPLACE the terminal by a new one on resize!
+    await delay(0);
+    requestAnimationFrame(async () => {
+      await delay(1);
       terminal.write(history);
-      terminal.scrollToBottom();
-      const core = (terminal as any)._core;
-      while (core.writeBuffer.length > 0) {
-        await delay(0);
-        terminal.scrollToBottom();
-      }
-      await delay(1); // next render loop
-      terminal.scrollToBottom();
-    } finally {
-      await delay(50); // just to be sure.
+      await delay(50); // wait to make sure no device attribute requests are going out (= corruption!)
+      terminal.scrollToBottom();  // just in case.
       ignore_terminal_data = false;
-    }
-  }
+    });
+  }, 250);
 
   let last_size_rows, last_size_cols;
   terminal.on("resize", function() {

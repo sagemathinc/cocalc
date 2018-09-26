@@ -12,10 +12,10 @@ export const terminal = {
   icon: "terminal",
   component: TerminalFrame,
   buttons: set([
-    "print",
+    /*"print", */
     "decrease_font_size",
     "increase_font_size",
-    "find",
+    /* "find", */
     "paste",
     "copy",
     "kick_other_users_out",
