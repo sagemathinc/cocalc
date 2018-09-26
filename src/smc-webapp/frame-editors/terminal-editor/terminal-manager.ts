@@ -180,6 +180,13 @@ export class TerminalManager {
   }
 
   open_paths(id: string, paths: Path[]): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    if (!(terminal as any).is_mounted) {
+      return;
+    }
     console.log("open_paths", paths, id);
     const project_actions = this.actions._get_project_actions();
     let i = 0;

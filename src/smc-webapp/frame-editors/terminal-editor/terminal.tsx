@@ -55,12 +55,14 @@ export class TerminalFrame extends Component<Props, {}> {
     this.is_mounted = true;
     this.set_font_size = throttle(this.set_font_size, 500);
     this.init_terminal();
+    (this.terminal as any).is_mounted = true;
   }
 
   componentWillUnmount(): void {
     this.is_mounted = false;
     if (this.terminal !== undefined) {
       this.terminal.element.remove();
+      (this.terminal as any).is_mounted = false;
       // Ignore size for this terminal.
       (this.terminal as any).conn.write({ cmd: "size", rows: 0, cols: 0 });
       delete this.terminal;
