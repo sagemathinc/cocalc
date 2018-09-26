@@ -220,7 +220,7 @@ Page = rclass
         projects_styles =
             whiteSpace : 'nowrap'
             float      : 'right'
-            padding    : '11px 7px'
+            padding    : '10px 7px'
 
         <Nav style={height:"36px", margin:'0', overflow:'hidden'}>
             <NavTab
