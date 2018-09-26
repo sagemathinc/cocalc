@@ -164,20 +164,23 @@ export class TerminalManager {
   }
 
   close_request(id: string): void {
-    console.log("close_request");
     this.actions.set_error(
       "Another user closed one of your terminal sessions."
     );
     this.actions.close_frame(id);
   }
 
-  open_paths(id : string, paths: Path[]): void {
+  open_paths(id: string, paths: Path[]): void {
     console.log("open_paths", paths, id);
   }
 
   resize(id: string, rows: number, cols: number): void {
     const terminal: Terminal | undefined = this.get_terminal(id);
     if (terminal === undefined) {
+      return;
+    }
+    if (terminal.cols === cols && terminal.rows === rows) {
+      // no need to resize
       return;
     }
     terminal.resize(cols, rows);
@@ -201,6 +204,8 @@ export class TerminalManager {
       "fontSize",
       settings.font_size ? settings.font_size : 14
     );
+
+    terminal.setOption("scrollback", 5000);
 
     if (settings.font) {
       terminal.setOption("fontFamily", settings.font);

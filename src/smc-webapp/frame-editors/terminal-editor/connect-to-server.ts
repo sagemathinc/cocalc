@@ -4,7 +4,11 @@ Connect the term.js terminal object to the backend terminal session with the giv
 
 const { webapp_client } = require("smc-webapp/webapp_client");
 
+import { delay } from "awaiting";
+
 import { aux_file } from "../frame-tree/util";
+
+const MAX_HISTORY_LENGTH = 100 * 5000;
 
 export async function connect_to_server(
   project_id: string,
@@ -21,9 +25,41 @@ export async function connect_to_server(
   terminal.conn.write({ cmd: "size", rows: 15, cols: 80 });
 
   let render_buffer: string = "";
+  let history: string = "";
   function render(data: string): void {
+    history += data;
+    if (history.length > MAX_HISTORY_LENGTH) {
+      history = history.slice(
+        history.length - Math.round(MAX_HISTORY_LENGTH / 1.5)
+      );
+    }
     terminal.write(data);
   }
+
+  let ignore_terminal_data = false;
+
+  /* To test this full_rerender, do this in a terminal then start resizing it:
+         printf "\E[c\n" ; sleep 1 ; echo
+  */
+  async function full_rerender(): Promise<void> {
+    try {
+      ignore_terminal_data = true;
+      terminal.reset();
+      terminal.write(history);
+      const core = (terminal as any)._core;
+      while (core.writeBuffer.length > 0) {
+        await delay(1);
+      }
+      terminal.scrollToBottom();
+      await delay(0);  // next render loop
+      terminal.scrollToBottom();
+    } finally {
+      await delay(50);  // just to be sure.
+      ignore_terminal_data = false;
+    }
+  }
+
+  terminal.on("resize", full_rerender);
 
   terminal.pause = function(): void {
     terminal.is_paused = true;
@@ -48,6 +84,9 @@ export async function connect_to_server(
   });
 
   terminal.on("data", function(data) {
+    if (ignore_terminal_data) {
+      return;
+    }
     terminal.conn.write(data);
   });
 }
