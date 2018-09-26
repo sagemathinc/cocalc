@@ -46,20 +46,30 @@ export async function connect_to_server(
       ignore_terminal_data = true;
       terminal.reset();
       terminal.write(history);
+      terminal.scrollToBottom();
       const core = (terminal as any)._core;
       while (core.writeBuffer.length > 0) {
-        await delay(1);
+        await delay(0);
+        terminal.scrollToBottom();
       }
-      terminal.scrollToBottom();
-      await delay(0);  // next render loop
+      await delay(1); // next render loop
       terminal.scrollToBottom();
     } finally {
-      await delay(50);  // just to be sure.
+      await delay(50); // just to be sure.
       ignore_terminal_data = false;
     }
   }
 
-  terminal.on("resize", full_rerender);
+  let last_size_rows, last_size_cols;
+  terminal.on("resize", function() {
+    if (terminal.cols === last_size_cols && terminal.rows === last_size_rows) {
+      // no need to re-render
+      return;
+    }
+    last_size_rows = terminal.rows;
+    last_size_cols = terminal.cols;
+    full_rerender();
+  });
 
   terminal.pause = function(): void {
     terminal.is_paused = true;

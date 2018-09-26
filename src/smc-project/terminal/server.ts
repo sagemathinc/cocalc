@@ -135,16 +135,16 @@ export async function terminal(
         cols = Math.min(cols, sizes[id].cols);
       }
     }
-    if (rows === INFINITY) {
-      rows = 24;
+    if (rows === INFINITY || cols === INFINITY) {
+      // no clients currently visible
+      delete terminals[name].size;
+      return;
     }
-    if (cols === INFINITY) {
-      cols = 80;
-    }
-    terminals[name].size = { rows, cols };
     //logger.debug("resize", "new size", rows, cols);
-    terminals[name].term.resize(cols, rows);
-    channel.write({ cmd: "size", rows, cols });
+    if (rows && cols) {
+      terminals[name].term.resize(cols, rows);
+      channel.write({ cmd: "size", rows, cols });
+    }
   }
 
   channel.on("connection", function(spark: any): void {
