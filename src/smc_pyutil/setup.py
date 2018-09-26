@@ -64,6 +64,7 @@ setup(
     entry_points={
         'console_scripts': [
             'open                 = smc_pyutil.smc_open:main',
+            'close                = smc_pyutil.smc_close:main',
             # START deprecated smc-*
             'smc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
             'smc-sws2sagews       = smc_pyutil.sws2sagews:main',
@@ -91,6 +92,7 @@ setup(
             'cc-sws2sagews       = smc_pyutil.sws2sagews:main',
             'cc-docx2txt         = smc_pyutil.docx2txt:main',
             'cc-open             = smc_pyutil.smc_open:main',
+            'cc-close            = smc_pyutil.smc_close:main',
             'cc-new-file         = smc_pyutil.new_file:main',
             'cc-status           = smc_pyutil.status:main',
             'cc-jupyter          = smc_pyutil.jupyter_notebook:main',

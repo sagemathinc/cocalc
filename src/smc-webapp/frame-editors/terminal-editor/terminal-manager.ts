@@ -153,6 +153,13 @@ export class TerminalManager {
           if (payload.paths !== undefined) {
             this.open_paths(id, payload.paths);
           }
+          break;
+        }
+        if (payload.event === "close") {
+          if (payload.paths !== undefined) {
+            this.close_paths(id, payload.paths);
+          }
+          break;
         }
         break;
       default:
@@ -187,7 +194,6 @@ export class TerminalManager {
     if (!(terminal as any).is_mounted) {
       return;
     }
-    console.log("open_paths", paths, id);
     const project_actions = this.actions._get_project_actions();
     let i = 0;
     let foreground = false;
@@ -202,6 +208,23 @@ export class TerminalManager {
       }
       if (x.directory != null && foreground) {
         project_actions.open_directory(x.directory);
+      }
+    }
+  }
+
+  close_paths(id: string, paths: Path[]): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    if (!(terminal as any).is_mounted) {
+      return;
+    }
+    const project_actions = this.actions._get_project_actions();
+    for (let x of paths) {
+      if (x.file != null) {
+        const path = x.file;
+        project_actions.close_tab(path);
       }
     }
   }
