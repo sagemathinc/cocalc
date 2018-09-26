@@ -75,3 +75,43 @@ exports.RamWarning = rclass ({name}) ->
             restart your project or kill some processes.{' '}
             (<a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>more information</a>; memory usage is updated about once per minute.)
         </Alert>
+
+
+exports.OOMWarning = rclass ({name}) ->
+    displayName : 'OOMWarning'
+
+    reduxProps :
+        projects :
+            project_map              : rtypes.immutable.Map
+        "#{name}" :
+            oom_dismissed            : rtypes.number
+
+    propTypes :
+        project_id : rtypes.string
+
+    shouldComponentUpdate: (nextProps) ->
+        return @props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id) \
+            or @props.oom_dismissed != nextProps.oom_dismissed
+
+    click: (oom_kills) ->
+        @actions(name).setState(oom_dismissed: oom_kills)
+
+    render: ->
+        if not require('./customize').commercial
+            return <span />
+        project_status = @props.project_map?.get(@props.project_id)?.get('status')
+        if not project_status?
+            return <span />
+        oom_kills = project_status.get('oom_kills') ? 0
+        oom_dismissed = @props.oom_dismissed ? 0
+
+        if oom_kills <= oom_dismissed
+            return <span />
+
+        <Alert bsStyle='danger' style={alert_style}>
+            <Icon name='exclamation-triangle' /> WARNING: So far there are #{oom_kills} OOM Kills in your project, because your processes are too memory intensive.{' '}
+            You either have to kill some processes, close runnin Jupyter Notebooks via "Halt", or restart your project.{' '}
+            Upgrading "Shared RAM" memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a> could help.{' '}
+            <a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>More information...</a>.
+            <Button onClick={=>@click(oom_kills)}>Dismiss</Button>
+        </Alert>
