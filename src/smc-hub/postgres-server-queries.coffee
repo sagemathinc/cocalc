@@ -982,7 +982,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query += ', email_address'
                 query += ' FROM accounts'
                 query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
-                if opts.active
+                if opts.active and not opts.admin
                     params.push(opts.active)
                     # name search only includes active users
                     query += " AND ((last_active >= NOW() - $#{i}::INTERVAL) OR (created >= NOW() - $#{i}::INTERVAL)) "

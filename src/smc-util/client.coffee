@@ -1369,7 +1369,7 @@ class exports.Connection extends EventEmitter
             query_id : -1     # So we can check that it matches the most recent query
             limit    : 20
             timeout  : DEFAULT_TIMEOUT
-            active   : '6 months'
+            active   : '13 months'
             admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
             cb       : required
 
