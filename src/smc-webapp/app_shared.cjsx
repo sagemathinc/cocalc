@@ -409,7 +409,7 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
+        top_px = '-1px'
 
         tip_style =
             position     : 'fixed'
@@ -418,10 +418,9 @@ exports.FullscreenButton = rclass
             top          : top_px
             borderRadius : '3px'
 
-
         icon_style =
             fontSize   : '13pt'
-            padding    : 4
+            padding    : 2
             color      : COLORS.GRAY
             cursor     : 'pointer'
 
@@ -455,8 +454,8 @@ exports.AppLogo = rclass
             backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
             backgroundRepeat: 'no-repeat'
-            height          : 36
-            width           : 36
+            height          : "32px"
+            width           : "32px"
             position        : 'relative'
             margin          : '2px'
         <div style={styles}></div>
@@ -575,7 +574,7 @@ exports.GlobalInformationMessage = rclass
             zIndex          : '101'
             right           : 0
             left            : 0
-            height          : '40px'
+            height          : '36px'
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
