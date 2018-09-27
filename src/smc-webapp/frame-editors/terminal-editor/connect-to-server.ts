@@ -43,7 +43,7 @@ export async function connect_to_server(
     terminal.write(data);
   }
 
-  let ignore_terminal_data = false;
+  let ignore_terminal_data = true;
 
   /* To test this full_rerender, do this in a terminal then start resizing it:
          printf "\E[c\n" ; sleep 1 ; echo
@@ -61,7 +61,9 @@ export async function connect_to_server(
     requestAnimationFrame(async () => {
       await delay(1);
       terminal.write(history);
-      await delay(50); // wait to make sure no device attribute requests are going out (= corruption!)
+      // NEED to make sure no device attribute requests are going out (= corruption!)
+      // TODO: surely there is a better way.
+      await delay(50);
       terminal.scrollToBottom(); // just in case.
       ignore_terminal_data = false;
     });
@@ -89,14 +91,18 @@ export async function connect_to_server(
   };
 
   let first_conn_data: boolean = true;
-  terminal.conn.on("data", function(data) {
+  terminal.conn.on("data", async function(data) {
     if (typeof data === "string") {
       if (terminal.is_paused && !first_conn_data) {
         render_buffer += data;
       } else {
         render(data);
       }
-      first_conn_data = false;
+      if (first_conn_data) {
+        await delay(50);
+        ignore_terminal_data = false;
+        first_conn_data = false;
+      }
     } else if (typeof data === "object") {
       terminal.emit("mesg", data);
     }

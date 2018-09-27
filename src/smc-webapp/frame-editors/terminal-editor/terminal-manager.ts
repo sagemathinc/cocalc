@@ -129,11 +129,6 @@ export class TerminalManager {
       ) {
         // Return so that the usual OS copy happens
         // instead of interrupt signal.
-        // For some reason the selectin doesn't
-        // get cleared, so manually clear it after the copy.
-        setTimeout(() => {
-          terminal.clearSelection();
-        }, 0);
         return false;
       }
 
@@ -395,7 +390,6 @@ export class TerminalManager {
     }
     const sel: string = terminal.getSelection();
     copypaste.set_buffer(sel);
-    terminal.clearSelection();
     terminal.focus();
   }
 
