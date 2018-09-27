@@ -11,6 +11,8 @@ import { Terminal } from "xterm";
 import { setTheme } from "./themes";
 import { open_init_file } from "./init-file";
 
+const copypaste = require("smc-webapp/copy-paste-buffer");
+
 interface Path {
   file?: string;
   directory?: string;
@@ -384,5 +386,26 @@ export class TerminalManager {
     }
     const path: string = (terminal as any).path;
     this.actions._get_project_actions().open_file({ path, foreground: true });
+  }
+
+  copy(id: string): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    const sel: string = terminal.getSelection();
+    copypaste.set_buffer(sel);
+    terminal.clearSelection();
+    terminal.focus();
+  }
+
+  paste(id: string): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    terminal.clearSelection();
+    (terminal as any)._core.handler(copypaste.get_buffer());
+    terminal.focus();
   }
 }

@@ -1329,18 +1329,28 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   copy(id: string): void {
+    if (this.terminals.exists(id)) {
+      this.terminals.copy(id);
+      return;
+    }
     const cm = this._get_cm(id);
     if (cm != null) {
       copypaste.set_buffer(cm.getDoc().getSelection());
       cm.focus();
+      return;
     }
   }
 
   paste(id: string): void {
+    if (this.terminals.exists(id)) {
+      this.terminals.paste(id);
+      return;
+    }
     const cm = this._get_cm(id);
     if (cm != null) {
       cm.getDoc().replaceSelection(copypaste.get_buffer());
       cm.focus();
+      return;
     }
   }
 
