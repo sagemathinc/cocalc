@@ -142,9 +142,14 @@ export class Actions extends BaseActions<LeanEditorState> {
 
   async restart(): Promise<void> {
     this.set_status("Restarting LEAN ...");
+    // Using hash: -1 as a signal for restarting -- yes, that's ugly
+    this.setState({
+      sync: { hash: -1, time: 0 }
+    });
     const api = await project_api(this.project_id);
     try {
       await api.lean({ cmd: "restart" });
+      await this.update_info();
     } catch (err) {
       this.set_error(`Error restarting LEAN: ${err}`);
     } finally {
