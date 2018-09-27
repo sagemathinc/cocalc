@@ -689,7 +689,7 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   // Button to restart an associated background service process
-  render_restart(labels): Rendered {
+  render_restart(): Rendered {
     if (!this.is_visible("restart", true)) {
       return;
     }
@@ -701,7 +701,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         onClick={() => this.props.actions.restart()}
       >
         <Icon name="recycle" />{" "}
-        <VisibleMDLG>{labels ? "Restart" : undefined}</VisibleMDLG>
+        <VisibleMDLG>Restart</VisibleMDLG>
       </Button>
     );
   }

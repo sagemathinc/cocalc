@@ -138,6 +138,9 @@ export async function lean(
     case "kill":
       return the_lean_server.kill();
 
+    case "restart":
+      return the_lean_server.restart();
+
     case "complete":
       assert_type("path", opts.path, "string");
       assert_type("line", opts.line, "number");
