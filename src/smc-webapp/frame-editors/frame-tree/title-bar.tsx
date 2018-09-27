@@ -874,6 +874,22 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_edit_init_script(): Rendered {
+    if (!this.is_visible("edit_init_script")) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"edit_init_script"}
+        onClick={() => this.props.actions.edit_init_script(this.props.id)}
+        title={"Edit initialization script"}
+      >
+        <Icon name={"rocket"} />{" "}
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -945,6 +961,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     v.push(this.render_help());
     v.push(this.render_pause(labels));
+    v.push(this.render_edit_init_script());
     v.push(this.render_kick_other_users_out(labels));
     v.push(this.render_print());
 

@@ -1790,4 +1790,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       return;
     }
   }
+
+  edit_init_script(id:string) : void {
+    console.log("edit init script", id);
+  }
 }
