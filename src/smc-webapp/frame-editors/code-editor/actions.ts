@@ -1003,6 +1003,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
+    this.set_status(`Set font size to ${font_size}`, 1500);
   }
 
   increase_font_size(id: string): void {
@@ -1370,9 +1371,17 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  // little status message shown at bottom.
-  set_status(status): void {
+  // status - little status message shown at bottom.
+  // timeout -- if status message hasn't changed after
+  // this long, then blank it.
+  async set_status(status: string, timeout?: number): Promise<void> {
     this.setState({ status });
+    if (timeout) {
+      await delay(timeout);
+      if (this.store.get("status") === status) {
+        this.setState({ status: "" });
+      }
+    }
   }
 
   print(id): void {
