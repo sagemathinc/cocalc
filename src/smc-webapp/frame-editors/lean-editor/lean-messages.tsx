@@ -253,7 +253,7 @@ class LeanMessages extends Component<Props, {}> {
       <div
         style={{
           overflowY: "auto",
-          margin: "0px 15px",
+          padding: "0px 15px",
           fontSize: this.props.font_size
         }}
       >
