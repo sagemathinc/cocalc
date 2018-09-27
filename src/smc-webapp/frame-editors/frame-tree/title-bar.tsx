@@ -839,7 +839,6 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Kick all other users out"}
       >
         <Icon name={"door-open"} />
-        <VisibleMDLG>{labels ? " Kick" : undefined}</VisibleMDLG>
       </Button>
     );
   }
