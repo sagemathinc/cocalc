@@ -91,13 +91,13 @@ export class TerminalManager {
     });
 
     terminal.attachCustomKeyEventHandler(event => {
-      console.log("key", event);
-      (window as any).event = event;
+      //console.log("key", event);
       if ((terminal as any).is_paused) {
         this.actions.unpause(id);
       }
 
-      if (event.type === 'keypress') { // ignore this
+      if (event.type === "keypress") {
+        // ignore this
         return true;
       }
 
@@ -116,6 +116,26 @@ export class TerminalManager {
         event.key === ">"
       ) {
         this.actions.increase_font_size(id);
+        return false;
+      }
+
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "c" &&
+        terminal.hasSelection()
+      ) {
+        // Return so that the usual OS copy happens
+        // instead of interrupt signal.
+        // For some reason the selectin doesn't
+        // get cleared, so manually clear it after the copy.
+        setTimeout(() => {
+          terminal.clearSelection();
+        }, 0);
+        return false;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === "v") {
+        // Return so that the usual paste happens.
         return false;
       }
 
