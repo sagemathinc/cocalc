@@ -688,6 +688,24 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  // Button to restart an associated background service process
+  render_restart(labels): Rendered {
+    if (!this.is_visible("restart", true)) {
+      return;
+    }
+    return (
+      <Button
+        key={"restart"}
+        title={"Restart service"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.restart()}
+      >
+        <Icon name="recycle" />{" "}
+        <VisibleMDLG>{labels ? "Restart" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_save(labels: boolean): Rendered {
     let icon, label;
     if (!this.is_visible("save")) {
@@ -881,6 +899,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       v.push(this.render_undo_redo_group());
     }
     v.push(this.render_zoom_group());
+    v.push(this.render_restart());
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
     v.push(this.render_copy_group());
