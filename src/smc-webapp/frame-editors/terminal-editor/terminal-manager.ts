@@ -105,8 +105,12 @@ export class TerminalManager {
       // graceful no-op if no such terminal.
       return;
     }
+    const conn = (this.terminals[id] as any).conn;
     this.terminals[id].destroy();
     delete this.terminals[id];
+    if (conn != null) {
+      conn.end();
+    }
   }
 
   exists(id: string): boolean {
@@ -293,6 +297,14 @@ export class TerminalManager {
   }
 
   unpause(id: string): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    (terminal as any).unpause();
+  }
+
+  reload(id: string): void {
     const terminal = this.get_terminal(id);
     if (terminal === undefined) {
       return;

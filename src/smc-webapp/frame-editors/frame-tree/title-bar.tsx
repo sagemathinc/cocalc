@@ -661,8 +661,8 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsSize={this.button_size()}
         onClick={() => this.props.actions.reload(this.props.id)}
       >
-        <Icon name="repeat" />{" "}
-        <VisibleMDLG>{labels ? "Reload" : undefined}</VisibleMDLG>
+        <Icon name="repeat" />
+        <VisibleMDLG>{labels ? " Reload" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -824,7 +824,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
-  render_kick_other_users_out(): Rendered {
+  render_kick_other_users_out(labels): Rendered {
     if (!this.is_visible("kick_other_users_out")) {
       return;
     }
@@ -836,11 +836,12 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={"Kick all other users out"}
       >
         <Icon name={"door-open"} />
+        <VisibleMDLG>{labels ? " Kick" : undefined}</VisibleMDLG>
       </Button>
     );
   }
 
-  render_pause(): Rendered {
+  render_pause(labels): Rendered {
     if (!this.is_visible("pause")) {
       return;
     }
@@ -868,6 +869,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         title={title}
       >
         <Icon name={icon} />
+        <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -920,6 +922,9 @@ export class FrameTitleBar extends Component<Props, {}> {
         marginLeft: "2px"
       };
     }
+
+    const labels = this.show_labels();
+
     const v: Rendered[] = [];
     v.push(this.render_save_timetravel_group());
     v.push(this.render_build());
@@ -939,8 +944,8 @@ export class FrameTitleBar extends Component<Props, {}> {
       v.push(this.render_format_group());
     }
     v.push(this.render_help());
-    v.push(this.render_pause());
-    v.push(this.render_kick_other_users_out());
+    v.push(this.render_pause(labels));
+    v.push(this.render_kick_other_users_out(labels));
     v.push(this.render_print());
 
     const w: Rendered[] = [];

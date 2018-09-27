@@ -23,6 +23,10 @@ export async function connect_to_server(
   path = aux_file(`${path}-${number}`, "term");
   terminal.conn = await ws.api.terminal(path);
 
+  terminal.conn.on("end", function() {
+    console.log("conn end");
+  });
+
   terminal.is_paused = false;
   terminal.conn.write({ cmd: "size", rows: 15, cols: 80 });
 
@@ -44,7 +48,6 @@ export async function connect_to_server(
          printf "\E[c\n" ; sleep 1 ; echo
   */
   const full_rerender = debounce(async () => {
-    console.log('full_rerender');
     ignore_terminal_data = true;
     terminal.reset();
     // This is a horrible hack, since we have to be sure the

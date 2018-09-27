@@ -19,7 +19,8 @@ export const terminal = {
     "paste",
     "copy",
     "kick_other_users_out",
-    "pause"
+    "pause",
+    /*"reload" */
   ])
 };
 
