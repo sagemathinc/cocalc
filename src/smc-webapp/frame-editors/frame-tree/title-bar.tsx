@@ -34,6 +34,8 @@ const misc = require("smc-util/misc");
 const util = require("../frame-tree/util");
 const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
+import { trunc_middle } from "../generic/misc";
+
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
   border: "1px solid rgb(204,204,204)",
@@ -53,7 +55,8 @@ const TITLE_STYLE: CSS.Properties = {
   color: "#333",
   fontSize: "10pt",
   display: "inline-block",
-  float: "right"
+  float: "right",
+  whiteSpace: "nowrap"
 };
 
 const ICON_STYLE: CSS.Properties = {
@@ -1025,7 +1028,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       <span style={TITLE_STYLE}>
         {icon ? <Icon name={icon} /> : null}
         <Space />
-        {title}
+        {trunc_middle(title, 25)}
       </span>
     );
   }
@@ -1037,6 +1040,9 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (is_active) {
       style = misc.copy(title_bar_style);
       style.background = "#f8f8f8";
+      if (!this.props.is_only && !this.props.is_full) {
+        style.maxHeight = "34px";
+      }
     } else {
       style = title_bar_style;
     }

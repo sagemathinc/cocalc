@@ -161,6 +161,7 @@ export class TerminalManager {
     }
   }
 
+  // TODO: maybe rename to has_terminal ?
   exists(id: string): boolean {
     return this.terminals[id] !== undefined;
   }
@@ -358,5 +359,12 @@ export class TerminalManager {
       return;
     }
     (terminal as any).unpause();
+  }
+
+  edit_init_script(id: string): void {
+    if (!this.exists(id)) {
+      return;
+    }
+    console.log("terminal edit init script", id);
   }
 }
