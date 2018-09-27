@@ -621,7 +621,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (err) {
         this.set_activity({
           id: misc.uuid(),
-          error: `opening file '${opts.path}' (error ensuring project is open) -- ${err}`
+          error: `opening file '${
+            opts.path
+          }' (error ensuring project is open) -- ${err}`
         });
         return;
       } else {
@@ -633,13 +635,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // the React rewrite.
         if (!projects_store) return;
         projects_store.wait({
-          until: s => (s as any).get_my_group(this.project_id),
+          until: s => {
+            return (s as any).get_my_group(this.project_id);
+          },
           timeout: 60,
           cb: (err, group) => {
             if (err) {
               this.set_activity({
                 id: misc.uuid(),
-                error: `opening file '${opts.path}' (error getting group) -- ${err}`
+                error: `opening file '${
+                  opts.path
+                }' (error getting group) -- ${err}`
               });
               return;
             }

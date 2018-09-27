@@ -362,12 +362,19 @@ export class TerminalManager {
     (terminal as any).unpause();
   }
 
-  edit_init_script(id: string): void {
+  async edit_init_script(id: string): Promise<void> {
     const terminal = this.get_terminal(id);
     if (terminal === undefined) {
       return;
     }
-    open_init_file(this.actions._get_project_actions(), (terminal as any).path);
+    try {
+      await open_init_file(
+        this.actions._get_project_actions(),
+        (terminal as any).path
+      );
+    } catch (err) {
+      this.actions.set_error(`Problem opening init file -- ${err}`);
+    }
   }
 
   popout(id: string): void {
