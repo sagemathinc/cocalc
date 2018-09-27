@@ -89,11 +89,39 @@ export class TerminalManager {
         this.actions.set_title(id, title);
       }
     });
-    terminal.on("keypress", () => {
+
+    terminal.attachCustomKeyEventHandler(event => {
+      console.log("key", event);
+      (window as any).event = event;
       if ((terminal as any).is_paused) {
         this.actions.unpause(id);
       }
+
+      if (event.type === 'keypress') { // ignore this
+        return true;
+      }
+
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        event.key === "<"
+      ) {
+        this.actions.decrease_font_size(id);
+        return false;
+      }
+
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.shiftKey &&
+        event.key === ">"
+      ) {
+        this.actions.increase_font_size(id);
+        return false;
+      }
+
+      return true;
     });
+
     // pause: sync local view state with terminal state
     if (node != null && node.get("is_paused")) {
       (terminal as any).pause();
@@ -138,7 +166,7 @@ export class TerminalManager {
     id: string,
     mesg: { cmd: string; rows?: number; cols?: number; payload: any }
   ): void {
-    console.log("handle_mesg", id, mesg);
+    //console.log("handle_mesg", id, mesg);
     switch (mesg.cmd) {
       case "size":
         if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
