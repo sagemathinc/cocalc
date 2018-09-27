@@ -991,6 +991,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 query += " ORDER BY last_active DESC NULLS LAST"
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
+                dbg("query params=#{params}")
                 @_query
                     query  : query
                     params : params
