@@ -9,6 +9,7 @@ import * as tree_ops from "../frame-tree/tree-ops";
 import { len } from "../generic/misc";
 import { Terminal } from "xterm";
 import { setTheme } from "./themes";
+import { open_init_file } from "./init-file";
 
 interface Path {
   file?: string;
@@ -362,9 +363,19 @@ export class TerminalManager {
   }
 
   edit_init_script(id: string): void {
-    if (!this.exists(id)) {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
       return;
     }
-    console.log("terminal edit init script", id);
+    open_init_file(this.actions._get_project_actions(), (terminal as any).path);
+  }
+
+  popout(id: string): void {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    const path: string = (terminal as any).path;
+    this.actions._get_project_actions().open_file({ path, foreground: true });
   }
 }

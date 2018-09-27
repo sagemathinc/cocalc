@@ -1791,10 +1791,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  edit_init_script(id:string) : void {
+  edit_init_script(id: string): void {
     // right now, only terminals have this generically.
     if (this.terminals.exists(id)) {
       this.terminals.edit_init_script(id);
+      return;
+    }
+  }
+
+  popout(id: string): void {
+    // right now, only terminals have this generically.
+    if (this.terminals.exists(id)) {
+      this.terminals.popout(id);
       return;
     }
   }

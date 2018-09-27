@@ -22,6 +22,7 @@ export async function connect_to_server(
 
   path = aux_file(`${path}-${number}`, "term");
   terminal.conn = await ws.api.terminal(path);
+  terminal.path = path;
 
   terminal.conn.on("end", function() {
     console.log("conn end");
@@ -61,7 +62,7 @@ export async function connect_to_server(
       await delay(1);
       terminal.write(history);
       await delay(50); // wait to make sure no device attribute requests are going out (= corruption!)
-      terminal.scrollToBottom();  // just in case.
+      terminal.scrollToBottom(); // just in case.
       ignore_terminal_data = false;
     });
   }, 250);
