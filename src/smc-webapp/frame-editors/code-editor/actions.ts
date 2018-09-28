@@ -1056,7 +1056,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0,2) == "cm"
+      node => node.get("type").slice(0, 2) == "cm"
     );
   }
 
@@ -1135,9 +1135,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   set_syncstring(value: string): void {
     if (this._state === "closed") return;
     const cur = this._syncstring.to_str();
-    if (cur === value) { // did not actually change.
-      return;
-    }
+    // did not actually change.
+    if (cur === value) return;
+
     this._syncstring.from_str(value);
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
@@ -1268,12 +1268,19 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
-    cm.scrollIntoView(pos, info.clientHeight / 2);
-    if (cursor) {
-      cm.getDoc().setCursor(pos);
-    }
-    if (focus) {
-      cm.focus();
+    try {
+      // this could fail, if e.g. you want to scroll to a line which doesn't exist
+      // that in turn could happen when you click on a knitr-latex error report,
+      // which references a line in the generated tex document and wasn't properly reconciled
+      cm.scrollIntoView(pos, info.clientHeight / 2);
+      // if the above fails, do not set the cursor position (obviously)
+      if (cursor) {
+        cm.getDoc().setCursor(pos);
+      }
+    } catch (e) {
+      console.warn(e.message);
+    } finally {
+      if (focus) cm.focus();
     }
   }
 
