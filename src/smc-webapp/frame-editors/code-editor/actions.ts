@@ -1247,7 +1247,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       /* Lines <= 0 cause an exception in codemirror later.
          If the line number is much larger than the number of lines
          in the buffer, codemirror just goes to the last line with
-         no error, which is fine.  If you want a negative or 0 line
+         no error, which is fine (however, scroll into view fails).
+         If you want a negative or 0 line
          the most sensible behavior is line 0.  See
          https://github.com/sagemathinc/cocalc/issues/3219
       */
