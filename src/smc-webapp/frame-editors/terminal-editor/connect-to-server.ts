@@ -18,18 +18,30 @@ export async function connect_to_server(
   terminal: any,
   number: number
 ): Promise<void> {
-  const ws = await webapp_client.project_websocket(project_id);
-
   path = aux_file(`${path}-${number}`, "term");
-  terminal.conn = await ws.api.terminal(path);
+  terminal.is_paused = false;
   terminal.path = path;
 
-  terminal.conn.on("end", function() {
-    console.log("conn end");
-  });
+  let conn; // connection to project -- the primus channel.
 
-  terminal.is_paused = false;
-  terminal.conn.write({ cmd: "size", rows: 15, cols: 80 });
+  let first_conn_data: boolean = true;
+
+  async function handle_data_from_project(data) {
+    if (typeof data === "string") {
+      if (terminal.is_paused && !first_conn_data) {
+        render_buffer += data;
+      } else {
+        render(data);
+      }
+      if (first_conn_data) {
+        await delay(100);
+        ignore_terminal_data = false;
+        first_conn_data = false;
+      }
+    } else if (typeof data === "object") {
+      terminal.emit("mesg", data);
+    }
+  }
 
   let render_buffer: string = "";
   let history: string = "";
@@ -63,7 +75,7 @@ export async function connect_to_server(
       terminal.write(history);
       // NEED to make sure no device attribute requests are going out (= corruption!)
       // TODO: surely there is a better way.
-      await delay(50);
+      await delay(100);
       terminal.scrollToBottom(); // just in case.
       ignore_terminal_data = false;
     });
@@ -90,28 +102,34 @@ export async function connect_to_server(
     render_buffer = "";
   };
 
-  let first_conn_data: boolean = true;
-  terminal.conn.on("data", async function(data) {
-    if (typeof data === "string") {
-      if (terminal.is_paused && !first_conn_data) {
-        render_buffer += data;
-      } else {
-        render(data);
-      }
-      if (first_conn_data) {
-        await delay(50);
-        ignore_terminal_data = false;
-        first_conn_data = false;
-      }
-    } else if (typeof data === "object") {
-      terminal.emit("mesg", data);
-    }
-  });
-
   terminal.on("data", function(data) {
     if (ignore_terminal_data) {
       return;
     }
-    terminal.conn.write(data);
+    terminal.conn_write(data);
   });
+
+  terminal.conn_write = function(data) {
+    if (conn === undefined) {
+      // currently re-connecting.
+      console.log("ignoring write due to not conn", data);
+      return;
+    }
+    conn.write(data);
+  };
+
+  async function reconnect_to_project() {
+    //console.log("reconnect_to_project");
+    if(conn !== undefined) {
+      conn.removeAllListeners();
+    }
+    const ws = await webapp_client.project_websocket(project_id);
+    conn = await ws.api.terminal(path);
+    conn.on("close", reconnect_to_project);  // remove close; not when we end.
+    first_conn_data = true;
+    conn.on("data", handle_data_from_project);
+  }
+
+  terminal.reconnect_to_project = reconnect_to_project;
+  await reconnect_to_project();
 }

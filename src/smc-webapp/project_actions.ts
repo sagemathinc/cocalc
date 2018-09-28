@@ -636,9 +636,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (!projects_store) return;
         projects_store.wait({
           until: s => {
-            return (s as any).get_my_group(this.project_id);
+            console.log("s = ", s, this.project_id);
+            (window as any).s = s;
+            const group = (s as any).get_my_group(this.project_id);
+            console.log("group = ", group);
+            return group;
           },
-          timeout: 60,
+          timeout: 5,
           cb: (err, group) => {
             if (err) {
               this.set_activity({

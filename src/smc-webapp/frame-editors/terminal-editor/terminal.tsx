@@ -68,7 +68,7 @@ export class TerminalFrame extends Component<Props, {}> {
       this.terminal.element.remove();
       (this.terminal as any).is_mounted = false;
       // Ignore size for this terminal.
-      (this.terminal as any).conn.write({ cmd: "size", rows: 0, cols: 0 });
+      (this.terminal as any).conn_write({ cmd: "size", rows: 0, cols: 0 });
       delete this.terminal;
     }
   }
@@ -116,7 +116,7 @@ export class TerminalFrame extends Component<Props, {}> {
     if (rows !== this.last_rows || cols !== this.last_cols) {
       this.last_rows = rows;
       this.last_cols = cols;
-      (this.terminal as any).conn.write({ cmd: "size", rows, cols });
+      (this.terminal as any).conn_write({ cmd: "size", rows, cols });
     }
   }
 
