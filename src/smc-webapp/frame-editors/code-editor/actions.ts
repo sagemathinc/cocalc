@@ -1278,14 +1278,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         return;
       }
     }
-    if (line > cm.lineCount()) {
-      line = cm.lineCount();
+    const doc = cm.getDoc();
+    if (line > doc.lineCount()) {
+      line = doc.lineCount();
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
     if (cursor) {
-      cm.getDoc().setCursor(pos);
+      doc.setCursor(pos);
     }
     if (focus) {
       cm.focus();
