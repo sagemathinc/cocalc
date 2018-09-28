@@ -693,6 +693,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (!this.is_visible("restart", true)) {
       return;
     }
+    let labels = this.show_labels();
     return (
       <Button
         key={"restart"}
@@ -700,8 +701,8 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsSize={this.button_size()}
         onClick={() => this.props.actions.restart()}
       >
-        <Icon name="recycle" />{" "}
-        <VisibleMDLG>Restart</VisibleMDLG>
+        <Icon name="sync" />{" "}
+        {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
       </Button>
     );
   }
