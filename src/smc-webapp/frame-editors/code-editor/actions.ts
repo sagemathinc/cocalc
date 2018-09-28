@@ -664,11 +664,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return tree_ops.get_node(this._get_tree(), id);
   }
 
+  _tree_is_single_leaf() : boolean {
+    return tree_ops.is_leaf(this._get_tree());
+  }
   // Delete the frame with given id.
   // If this is the active frame, then the new active frame becomes whichever
   // frame still exists that was most recently active before this frame.
   close_frame(id: string): void {
-    if (tree_ops.is_leaf(this._get_tree())) {
+    if (this._tree_is_single_leaf()) {
       // closing the only node, so reset to default
       this.reset_local_view_state();
       return;
@@ -1790,7 +1793,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     await this.terminals.set_terminal(id, terminal);
   }
 
-  /* Kick other uses out of this frame. */
+  /* Kick other uses out of this frame (only implemented for terminals right now). */
   kick_other_users_out(id: string): void {
     if (this.terminals.exists(id)) {
       this.terminals.kick_other_users_out(id);

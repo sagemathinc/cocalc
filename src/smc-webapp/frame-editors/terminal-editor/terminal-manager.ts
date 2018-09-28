@@ -243,7 +243,14 @@ export class TerminalManager {
     this.actions.set_error(
       "Another user closed one of your terminal sessions."
     );
-    this.actions.close_frame(id);
+    // If there is only one frame, we close the
+    // entire editor -- otherwise, we close only
+    // this frame.
+    if (this.actions._tree_is_single_leaf()) {
+      this._close_path(this.actions.path);
+    } else {
+      this.actions.close_frame(id);
+    }
   }
 
   open_paths(id: string, paths: Path[]): void {
@@ -272,6 +279,11 @@ export class TerminalManager {
     }
   }
 
+  _close_path(path: string): void {
+    const project_actions = this.actions._get_project_actions();
+    project_actions.close_tab(path);
+  }
+
   close_paths(id: string, paths: Path[]): void {
     const terminal = this.get_terminal(id);
     if (terminal === undefined) {
@@ -280,11 +292,9 @@ export class TerminalManager {
     if (!(terminal as any).is_mounted) {
       return;
     }
-    const project_actions = this.actions._get_project_actions();
     for (let x of paths) {
       if (x.file != null) {
-        const path = x.file;
-        project_actions.close_tab(path);
+        this._close_path(x.file);
       }
     }
   }
@@ -332,7 +342,7 @@ export class TerminalManager {
     if (terminal === undefined) {
       return;
     }
-    (terminal as any).conn.write({ cmd: "boot" });
+    (terminal as any).conn_write({ cmd: "boot" });
   }
 
   pause(id: string): void {

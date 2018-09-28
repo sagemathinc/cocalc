@@ -86,6 +86,9 @@ export class TerminalFrame extends Component<Props, {}> {
       this.terminal.webLinksInit();
       this.terminal.open();
       await this.props.actions.set_terminal(this.props.id, this.terminal);
+      if (!this.is_mounted) {
+        return;
+      }
     }
     this.set_font_size(this.props.font_size);
     node.appendChild(this.terminal.element);
