@@ -827,7 +827,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
-  render_kick_other_users_out(labels): Rendered {
+  render_kick_other_users_out(): Rendered {
     if (!this.is_visible("kick_other_users_out")) {
       return;
     }
@@ -964,7 +964,7 @@ export class FrameTitleBar extends Component<Props, {}> {
     v.push(this.render_help());
     v.push(this.render_pause(labels));
     v.push(this.render_edit_init_script());
-    v.push(this.render_kick_other_users_out(labels));
+    v.push(this.render_kick_other_users_out());
     v.push(this.render_print());
 
     const w: Rendered[] = [];

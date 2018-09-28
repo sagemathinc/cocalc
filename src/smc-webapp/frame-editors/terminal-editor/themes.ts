@@ -4,6 +4,15 @@ Our predefined terminal color themes.
 
 import { ITheme, Terminal } from "xterm";
 
+export function background_color(theme_name: string): string {
+  let t = color_themes[theme_name];
+  if (t == null) {
+    // should never happen
+    return "white";
+  }
+  return t.colors[17];
+}
+
 export function setTheme(terminal: Terminal, theme_name: string): void {
   let t = color_themes[theme_name];
   if (t == null) {

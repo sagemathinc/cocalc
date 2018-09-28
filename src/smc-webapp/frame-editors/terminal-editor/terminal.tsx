@@ -2,6 +2,7 @@
 A single terminal frame.
 */
 
+import { Map } from "immutable";
 import { Terminal } from "xterm";
 require("xterm/dist/xterm.css");
 import { ResizeObserver } from "resize-observer";
@@ -10,6 +11,8 @@ import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
 webLinks.apply(Terminal);
 
 import { throttle } from "underscore";
+
+import { background_color } from "./themes";
 
 import { is_different } from "../generic/misc";
 
@@ -23,6 +26,7 @@ interface Props {
   font_size: number;
   editor_state: any;
   is_current: boolean;
+  terminal: Map<string, any>;
 }
 
 export class TerminalFrame extends Component<Props, {}> {
@@ -117,6 +121,13 @@ export class TerminalFrame extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    return <div ref={"terminal"} className={"smc-vfill"} />;
+    const color = background_color(this.props.terminal.get("color_scheme"));
+    return (
+      <div
+        ref={"terminal"}
+        className={"smc-vfill"}
+        style={{ backgroundColor: color }}
+      />
+    );
   }
 }
