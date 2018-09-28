@@ -10,6 +10,7 @@ import { len } from "../generic/misc";
 import { Terminal } from "xterm";
 import { setTheme } from "./themes";
 import { open_init_file } from "./init-file";
+import { endswith } from "../generic/misc";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -246,7 +247,10 @@ export class TerminalManager {
     // If there is only one frame, we close the
     // entire editor -- otherwise, we close only
     // this frame.
-    if (this.actions._tree_is_single_leaf()) {
+    if (
+      this.actions._tree_is_single_leaf() &&
+      endswith(this.actions.path, ".term")
+    ) {
       this._close_path(this.actions.path);
     } else {
       this.actions.close_frame(id);
