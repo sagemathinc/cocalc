@@ -250,6 +250,16 @@ export class Lean extends EventEmitter {
     }
   }
 
+  async restart(): Promise<void> {
+    this.dbg("restart");
+    if (this._server != undefined) {
+      for (let path in this.paths) {
+        this.unregister(path);
+      }
+      await this._server.restart();
+    }
+  }
+
   async info(
     path: string,
     line: number,

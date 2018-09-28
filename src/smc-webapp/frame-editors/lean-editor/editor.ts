@@ -28,13 +28,14 @@ const EDITOR_SPEC = {
       "paste",
       "copy",
       "undo",
-      "redo"
+      "redo",
+      "restart"
     ]),
     gutters: ["Codemirror-lean-messages"]
   },
   "lean-info": {
     short: "Info",
-    name: "Info at Cursor",  // more focused -- usually used in "tactic mode"
+    name: "Info at Cursor", // more focused -- usually used in "tactic mode"
     icon: "bullseye",
     component: LeanInfo,
     buttons: set(["decrease_font_size", "increase_font_size"])

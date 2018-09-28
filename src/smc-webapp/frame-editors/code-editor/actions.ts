@@ -1283,6 +1283,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cursor?: boolean,
     focus?: boolean
   ): Promise<void> {
+    if (line <= 0) {
+      /* Lines <= 0 cause an exception in codemirror later.
+         If the line number is much larger than the number of lines
+         in the buffer, codemirror just goes to the last line with
+         no error, which is fine.  If you want a negative or 0 line
+         the most sensible behavior is line 0.  See
+         https://github.com/sagemathinc/cocalc/issues/3219
+      */
+      line = 1;
+    }
     const cm_id: string | undefined = this._get_most_recent_cm_id();
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
@@ -1306,6 +1316,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         // still failed -- give up.
         return;
       }
+    }
+    if (line > cm.lineCount()) {
+      line = cm.lineCount();
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
