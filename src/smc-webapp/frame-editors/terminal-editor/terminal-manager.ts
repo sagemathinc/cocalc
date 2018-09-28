@@ -11,6 +11,7 @@ import { Terminal } from "xterm";
 import { setTheme } from "./themes";
 import { open_init_file } from "./init-file";
 import { endswith } from "../generic/misc";
+import { delay } from "awaiting";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -228,16 +229,28 @@ export class TerminalManager {
     }
   }
 
-  burst_on(id: string): void {
-    console.log("burst_on", id);
+  burst_on(_: string): void {
+    // TODO: would be better to make specific to that terminal... but not implemented.
+    this.actions.set_status(
+      "WARNING: Large burst of output! (May try to interrupt.)"
+    );
+    this.actions.set_error(
+      "WARNING: Large burst of output! (May try to interrupt.)"
+    );
   }
 
-  burst_off(id: string): void {
-    console.log("burst_off", id);
+  burst_off(_: string): void {
+    this.actions.set_status("");
+    this.actions.set_error("");
   }
 
-  ignore_off(id: string): void {
-    console.log("ignore_off", id);
+  async ignore_off(id: string): Promise<void> {
+    const terminal = this.get_terminal(id);
+    if (terminal === undefined) {
+      return;
+    }
+    await delay(100);
+    (terminal as any).ignore_terminal_data = false;
   }
 
   close_request(id: string): void {

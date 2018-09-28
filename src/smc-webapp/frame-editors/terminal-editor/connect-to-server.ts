@@ -24,19 +24,14 @@ export async function connect_to_server(
 
   let conn; // connection to project -- the primus channel.
 
-  let first_conn_data: boolean = true;
+  terminal.ignore_terminal_data = true;
 
   async function handle_data_from_project(data) {
     if (typeof data === "string") {
-      if (terminal.is_paused && !first_conn_data) {
+      if (terminal.is_paused && !terminal.ignore_terminal_data) {
         render_buffer += data;
       } else {
         render(data);
-      }
-      if (first_conn_data) {
-        await delay(100);
-        ignore_terminal_data = false;
-        first_conn_data = false;
       }
     } else if (typeof data === "object") {
       terminal.emit("mesg", data);
@@ -55,13 +50,11 @@ export async function connect_to_server(
     terminal.write(data);
   }
 
-  let ignore_terminal_data = true;
-
   /* To test this full_rerender, do this in a terminal then start resizing it:
          printf "\E[c\n" ; sleep 1 ; echo
   */
   const full_rerender = debounce(async () => {
-    ignore_terminal_data = true;
+    terminal.ignore_terminal_data = true;
     terminal.reset();
     // This is a horrible hack, since we have to be sure the
     // reset (and its side effects) are really done before writing
@@ -75,9 +68,9 @@ export async function connect_to_server(
       terminal.write(history);
       // NEED to make sure no device attribute requests are going out (= corruption!)
       // TODO: surely there is a better way.
-      await delay(100);
+      await delay(50);
       terminal.scrollToBottom(); // just in case.
-      ignore_terminal_data = false;
+      terminal.ignore_terminal_data = false;
     });
   }, 250);
 
@@ -103,7 +96,7 @@ export async function connect_to_server(
   };
 
   terminal.on("data", function(data) {
-    if (ignore_terminal_data) {
+    if (terminal.ignore_terminal_data) {
       return;
     }
     terminal.conn_write(data);
@@ -112,7 +105,7 @@ export async function connect_to_server(
   terminal.conn_write = function(data) {
     if (conn === undefined) {
       // currently re-connecting.
-      console.log("ignoring write due to not conn", data);
+      console.warn("ignoring write due to not conn", data);
       return;
     }
     conn.write(data);
@@ -126,7 +119,7 @@ export async function connect_to_server(
     const ws = await webapp_client.project_websocket(project_id);
     conn = await ws.api.terminal(path);
     conn.on("close", reconnect_to_project);  // remove close; not when we end.
-    first_conn_data = true;
+    terminal.ignore_terminal_data = true;
     conn.on("data", handle_data_from_project);
   }
 
