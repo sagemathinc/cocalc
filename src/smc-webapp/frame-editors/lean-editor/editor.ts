@@ -33,7 +33,7 @@ const EDITOR_SPEC = {
   },
   "lean-info": {
     short: "Info",
-    name: "Info at Cursor",  // more focused -- usually used in "tactic mode"
+    name: "Info at Cursor", // more focused -- usually used in "tactic mode"
     icon: "bullseye",
     component: LeanInfo,
     buttons: set(["decrease_font_size", "increase_font_size"])
@@ -43,7 +43,7 @@ const EDITOR_SPEC = {
     name: "All Messages" /* less focused -- usually used in "term mode" */,
     icon: "eye",
     component: LeanMessages,
-    buttons: set(["decrease_font_size", "increase_font_size"])
+    buttons: set(["decrease_font_size", "increase_font_size", "restart"])
   }
 };
 
