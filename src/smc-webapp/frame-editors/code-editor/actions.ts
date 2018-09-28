@@ -1287,7 +1287,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       /* Lines <= 0 cause an exception in codemirror later.
          If the line number is much larger than the number of lines
          in the buffer, codemirror just goes to the last line with
-         no error, which is fine.  If you want a negative or 0 line
+         no error, which is fine (however, scroll into view fails).
+         If you want a negative or 0 line
          the most sensible behavior is line 0.  See
          https://github.com/sagemathinc/cocalc/issues/3219
       */
@@ -1317,14 +1318,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         return;
       }
     }
-    if (line > cm.lineCount()) {
-      line = cm.lineCount();
+    const doc = cm.getDoc();
+    if (line > doc.lineCount()) {
+      line = doc.lineCount();
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
     cm.scrollIntoView(pos, info.clientHeight / 2);
     if (cursor) {
-      cm.getDoc().setCursor(pos);
+      doc.setCursor(pos);
     }
     if (focus) {
       cm.focus();
