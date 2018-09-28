@@ -17,11 +17,7 @@ import "./pdf-editor/register";
 // Work in progress -- uncomment to use new sagews support.
 // import "./sagews-editor/register";
 
-// Overwrite the old term.js html version.
-// For now, on mobile, we stay with old terminal!
-if (!require("smc-webapp/feature").IS_TOUCH) {
-  require("./terminal-editor/register");
-}
+import "./terminal-editor/register";
 
 import "./lean-editor/register";
 
