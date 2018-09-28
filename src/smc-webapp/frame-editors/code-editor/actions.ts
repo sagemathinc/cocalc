@@ -1056,7 +1056,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      node => node.get("type").slice(0,2) == "cm"
+      node => node.get("type").slice(0, 2) == "cm"
     );
   }
 
@@ -1135,7 +1135,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   set_syncstring(value: string): void {
     if (this._state === "closed") return;
     const cur = this._syncstring.to_str();
-    if (cur === value) { // did not actually change.
+    if (cur === value) {
+      // did not actually change.
       return;
     }
     this._syncstring.from_str(value);
@@ -1242,6 +1243,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cursor?: boolean,
     focus?: boolean
   ): Promise<void> {
+    if (line <= 0) {
+      /* Lines <= 0 cause an exception in codemirror later.
+         If the line number is much larger than the number of lines
+         in the buffer, codemirror just goes to the last line with
+         no error, which is fine.  If you want a negative or 0 line
+         the most sensible behavior is line 0.  See
+         https://github.com/sagemathinc/cocalc/issues/3219
+      */
+      line = 1;
+    }
     const cm_id: string | undefined = this._get_most_recent_cm_id();
     const full_id: string | undefined = this.store.getIn([
       "local_view_state",
@@ -1265,6 +1276,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         // still failed -- give up.
         return;
       }
+    }
+    if (line > cm.lineCount()) {
+      line = cm.lineCount();
     }
     const pos = { line: line - 1, ch: 0 };
     const info = cm.getScrollInfo();
