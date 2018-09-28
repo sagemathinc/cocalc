@@ -627,23 +627,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         });
         return;
       } else {
-        let projects_store = this.redux.getStore("projects");
-        // We wait here so that the editor gets properly initialized in the
-        // ProjectPage constructor.  Really this should probably be
-        // something we wait on with _ensure_project_is_open. **TODO** This should
-        // go away when we get rid of the ProjectPage entirely, when finishing
-        // the React rewrite.
-        if (!projects_store) return;
-        projects_store.wait({
-          until: s => {
-            console.log("s = ", s, this.project_id);
-            (window as any).s = s;
-            const group = (s as any).get_my_group(this.project_id);
-            console.log("group = ", group);
-            return group;
+        // Next get the group in this callback hell chain :-(
+        // Can't use wait, since this depends on both the account
+        // and project stores changing...
+        let group: string;
+        misc.retry_until_success({
+          f: cb => {
+            let projects_store = this.redux.getStore("projects");
+            if (!projects_store) {
+              cb("projects store not defined");
+              return;
+            }
+            group = projects_store.get_my_group(this.project_id);
+            if (group) {
+              cb();
+            } else {
+              cb("group not yet known");
+            }
           },
-          timeout: 5,
-          cb: (err, group) => {
+          max_time: 60000,
+          max_delay: 3000,
+          cb: err => {
             if (err) {
               this.set_activity({
                 id: misc.uuid(),
