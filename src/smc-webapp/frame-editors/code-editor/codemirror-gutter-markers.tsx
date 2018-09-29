@@ -29,7 +29,9 @@ export class GutterMarkers extends Component<Props, {}> {
     const handle = info.handle;
     if (handle != null) {
       let lineInfo = this.props.codemirror.lineInfo(handle);
-      if (lineInfo !== undefined) {
+      // lineInfo for unknown line gives null
+      // https://github.com/sagemathinc/cocalc/issues/3222
+      if (lineInfo != null) {
         line = lineInfo.line;
       }
       if (line === undefined) {
