@@ -347,6 +347,13 @@ export class TerminalManager {
       settings.font_size ? settings.font_size : 14
     );
 
+    // The following option possibly makes xterm.js better at
+    // handling huge bursts of data by pausing the backend temporarily.
+    terminal.setOption("useFlowControl", true);
+
+    // Interesting to play with, but breaks copy.
+    //terminal.setOption("rendererType", "dom");
+
     terminal.setOption("scrollback", 5000);
 
     if (settings.font) {
