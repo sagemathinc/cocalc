@@ -217,6 +217,10 @@ export async function terminal(
     spark.write(terminals[name].history);
     // have history, so do not ignore commands now.
     spark.write({ cmd: "no-ignore" });
+    spark.on("close", function() {
+      delete terminals[name].client_sizes[spark.id];
+      resize();
+    });
     spark.on("end", function() {
       delete terminals[name].client_sizes[spark.id];
       resize();
@@ -241,6 +245,20 @@ export async function terminal(
             resize();
             break;
           case "boot":
+            // delete all sizes except this one, so at least kick resets
+            // the sizes no matter what.
+            for (let id in terminals[name].client_sizes) {
+              if (id !== spark.id) {
+                delete terminals[name].client_sizes[id];
+              }
+            }
+            // next tell this client to go fullsize.
+            if (terminals[name].size !== undefined) {
+              const { rows, cols } = terminals[name].size;
+              if (rows && cols) {
+                spark.write({ cmd: "size", rows, cols });
+              }
+            }
             // broadcast message to all other clients telling them to close.
             channel.forEach(function(spark0, id, connections) {
               if (id !== spark.id) {

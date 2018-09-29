@@ -34,8 +34,6 @@ export class TerminalFrame extends Component<Props, {}> {
 
   private terminal: any;
   private is_mounted: boolean = false;
-  private last_rows: number = 0;
-  private last_cols: number = 0;
 
   shouldComponentUpdate(next): boolean {
     return is_different(this.props, next, [
@@ -60,11 +58,14 @@ export class TerminalFrame extends Component<Props, {}> {
     this.set_font_size = throttle(this.set_font_size, 500);
     this.init_terminal();
     (this.terminal as any).is_mounted = true;
+    this.measure_size = this.measure_size.bind(this);
+    this.terminal.on("reconnect", this.measure_size);
   }
 
   componentWillUnmount(): void {
     this.is_mounted = false;
     if (this.terminal !== undefined) {
+      this.terminal.off("reconnect", this.measure_size);
       this.terminal.element.remove();
       (this.terminal as any).is_mounted = false;
       // Ignore size for this terminal.
@@ -116,11 +117,7 @@ export class TerminalFrame extends Component<Props, {}> {
     const geom = proposeGeometry(this.terminal);
     if (geom == null) return;
     const { rows, cols } = geom;
-    if (rows !== this.last_rows || cols !== this.last_cols) {
-      this.last_rows = rows;
-      this.last_cols = cols;
-      (this.terminal as any).conn_write({ cmd: "size", rows, cols });
-    }
+    (this.terminal as any).conn_write({ cmd: "size", rows, cols });
   }
 
   render(): Rendered {

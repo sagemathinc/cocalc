@@ -68,7 +68,7 @@ export async function connect_to_server(
       terminal.write(history);
       // NEED to make sure no device attribute requests are going out (= corruption!)
       // TODO: surely there is a better way.
-      await delay(50);
+      await delay(150);
       terminal.scrollToBottom(); // just in case.
       terminal.ignore_terminal_data = false;
     });
@@ -113,7 +113,9 @@ export async function connect_to_server(
 
   async function reconnect_to_project() {
     //console.log("reconnect_to_project");
+    let is_reconnect : boolean = false;
     if(conn !== undefined) {
+      is_reconnect = true;
       conn.removeAllListeners();
     }
     const ws = await webapp_client.project_websocket(project_id);
@@ -121,6 +123,9 @@ export async function connect_to_server(
     conn.on("close", reconnect_to_project);  // remove close; not when we end.
     terminal.ignore_terminal_data = true;
     conn.on("data", handle_data_from_project);
+    if (is_reconnect) {
+      terminal.emit("reconnect");
+    }
   }
 
   terminal.reconnect_to_project = reconnect_to_project;
