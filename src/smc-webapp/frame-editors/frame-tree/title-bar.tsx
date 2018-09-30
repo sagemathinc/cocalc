@@ -671,11 +671,10 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   // A "Help" info button
-  render_help(): Rendered {
+  render_help(labels : boolean): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
     }
-    let labels = this.show_labels();
     return (
       <Button
         key={"help"}
@@ -976,16 +975,16 @@ export class FrameTitleBar extends Component<Props, {}> {
     v.push(this.render_restart());
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
+    v.push(this.render_pause(labels));
     v.push(this.render_copy_group());
     v.push(this.render_find_replace_group());
     if (!this.props.is_public) {
       v.push(this.render_format_group());
     }
-    v.push(this.render_help());
-    v.push(this.render_pause(labels));
     v.push(this.render_edit_init_script());
     v.push(this.render_kick_other_users_out());
     v.push(this.render_print());
+    v.push(this.render_help(labels));
 
     const w: Rendered[] = [];
     for (let c of v) {

@@ -2,7 +2,7 @@
 Code Editor Actions
 */
 
-const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/editor"; // TODO -- write this
+const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
@@ -985,8 +985,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
-  help(): void {
-    const w = window.open(WIKI_HELP_URL, "_blank");
+  help(type : string): void {
+    const url = WIKI_HELP_URL + type + '-help';
+    const w = window.open(url, "_blank");
     if (w) {
       w.focus();
     }

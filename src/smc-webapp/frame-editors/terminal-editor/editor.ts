@@ -20,7 +20,8 @@ export const terminal = {
     "copy",
     "kick_other_users_out",
     "pause",
-    "edit_init_script"
+    "edit_init_script",
+    "help"
     /*"reload" */
   ])
 };
