@@ -126,7 +126,7 @@ export class TerminalFrame extends Component<Props, {}> {
       <div
         ref={"terminal"}
         className={"smc-vfill"}
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color, padding: "3px" }}
       />
     );
   }
