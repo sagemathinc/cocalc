@@ -2,6 +2,7 @@ import { Map } from "immutable";
 import { AppRedux } from "smc-webapp/app-framework";
 import { Terminal as XTerminal } from "xterm";
 import { setTheme } from "./themes";
+import { project_websocket } from "../generic/client";
 
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
@@ -17,7 +18,7 @@ export class Terminal extends EventEmitter {
   private number: number;
   private terminal: XTerminal;
   private is_paused: boolean = false;
-  private conn: any; // connection to project -- a primus websocket channel.
+  private conn?: any; // connection to project -- a primus websocket channel.
 
   constructor(
     redux: AppRedux,
@@ -25,7 +26,9 @@ export class Terminal extends EventEmitter {
     tab_path: string,
     number: number
   ) {
-    this.update_settings = this.update_settings.bind(this);
+    for (let f of ["update_settings", "connect", "handle_data_from_project"]) {
+      this[f] = this[f].bind(this);
+    }
 
     this.redux = redux;
     this.account = this.redux.getStore("account");
@@ -54,8 +57,14 @@ export class Terminal extends EventEmitter {
     delete this.number;
     this.terminal.destroy();
     if (this.conn != null) {
-      this.conn.end();
+      this.disconnect();
     }
+  }
+
+  disconnect(): void {
+    this.conn.removeAllListeners();
+    this.conn.end();
+    delete this.conn;
   }
 
   update_settings(): void {
@@ -101,5 +110,44 @@ export class Terminal extends EventEmitter {
     }
 
     this.terminal_settings = settings;
+  }
+
+  async connect(): Promise<void> {
+    let is_reconnect: boolean = false;
+    if (this.conn !== undefined) {
+      is_reconnect = true;
+      this.disconnect();
+    }
+    const ws = await project_websocket(this.project_id);
+    this.conn = await ws.api.terminal(this.path);
+    this.ignore_terminal_data = true;
+    this.conn.on("close", this.connect);
+    this.conn.on("data", this.handle_data_from_project);
+    if (is_reconnect) {
+      this.emit("reconnect");
+    }
+  }
+
+  handle_data_from_project(data: any): void {
+    switch (typeof data) {
+      case "string":
+        if (this.is_paused && !this.ignore_terminal_data) {
+          this.render_buffer += data;
+        } else {
+          this.render(data);
+        }
+        break;
+
+      case "object":
+        this.emit("mesg", data);
+        break;
+
+      default:
+        console.warn("TERMINAL: no way to handle data -- ", data);
+    }
+    if (typeof data === "string") {
+    } else if (typeof data === "object") {
+      terminal.emit("mesg", data);
+    }
   }
 }
