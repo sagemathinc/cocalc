@@ -4,11 +4,10 @@ Connect the term.js terminal object to the backend terminal session with the giv
 
 import { debounce } from "underscore";
 
-const { webapp_client } = require("smc-webapp/webapp_client");
-
 import { delay } from "awaiting";
 
 import { aux_file } from "../frame-tree/util";
+import { project_websocket } from "../generic/client";
 
 const MAX_HISTORY_LENGTH = 100 * 5000;
 
@@ -118,7 +117,7 @@ export async function connect_to_server(
       is_reconnect = true;
       conn.removeAllListeners();
     }
-    const ws = await webapp_client.project_websocket(project_id);
+    const ws = await project_websocket(project_id);
     conn = await ws.api.terminal(path);
     conn.on("close", reconnect_to_project);  // remove close; not when we end.
     terminal.ignore_terminal_data = true;

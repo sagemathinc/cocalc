@@ -13,6 +13,8 @@ import { open_init_file } from "./init-file";
 import { endswith } from "../generic/misc";
 import { delay } from "awaiting";
 
+import "./connected-terminal";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 interface Path {

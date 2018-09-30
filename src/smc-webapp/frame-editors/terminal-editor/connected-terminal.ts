@@ -1,3 +1,7 @@
+
+import { EventEmitter } from "events";
+import { aux_file } from "../frame-tree/util";
+
 import { debounce } from "underscore";
 import { Map } from "immutable";
 import { delay } from "awaiting";
@@ -13,7 +17,7 @@ const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 export class Terminal extends EventEmitter {
   private state: string = "ready";
   private redux: AppRedux;
-  private account: AppRedux;
+  private account: any;
   private terminal_settings: Map<string, any>;
   private project_id: string;
   private tab_path: string;
@@ -32,6 +36,7 @@ export class Terminal extends EventEmitter {
     tab_path: string,
     number: number
   ) {
+    super();
     for (let f of ["update_settings", "connect", "_handle_data_from_project"]) {
       this[f] = this[f].bind(this);
     }
@@ -49,7 +54,7 @@ export class Terminal extends EventEmitter {
     this.number = number;
     this.terminal = new XTerminal();
     this.update_settings();
-    account.on("change", this.update_settings);
+    (this.account as any).on("change", this.update_settings);
   }
 
   close(): void {
@@ -90,16 +95,16 @@ export class Terminal extends EventEmitter {
       settings.get("color_scheme") !==
       this.terminal_settings.get("color_scheme")
     ) {
-      setTheme(terminal, settings.get("color_scheme"));
+      setTheme(this.terminal, settings.get("color_scheme"));
     }
 
     if (settings.get("font_size") !== this.terminal_settings.get("font_size")) {
-      terminal.setOption("fontSize", settings.get("font_size"));
+      this.terminal.setOption("fontSize", settings.get("font_size"));
     }
 
     // The following option possibly makes xterm.js better at
     // handling huge bursts of data by pausing the backend temporarily.
-    terminal.setOption("useFlowControl", true);
+    this.terminal.setOption("useFlowControl", true);
 
     // Interesting to play with, but breaks copy/paste and maybe other
     // things right now, probably due to CSS subtlety.
@@ -111,11 +116,11 @@ export class Terminal extends EventEmitter {
       settings.get("scrollback", SCROLLBACK) !==
       this.terminal_settings.get("scrollback", SCROLLBACK)
     ) {
-      terminal.setOption("scrollback", settings.get("scrollback", SCROLLBACK));
+      this.terminal.setOption("scrollback", settings.get("scrollback", SCROLLBACK));
     }
 
     if (settings.get("font") !== this.terminal_settings.get("font")) {
-      terminal.setOption("fontFamily", settings.get("font"));
+      this.terminal.setOption("fontFamily", settings.get("font"));
     }
 
     this.terminal_settings = settings;
@@ -173,7 +178,7 @@ export class Terminal extends EventEmitter {
     is wrong.  It's also good to test `jupyter console --kernel=python3`,
     do something, then exit.
   */
-  async full_rerender(): void {
+  async full_rerender(): Promise<void> {
     this.ignore_terminal_data = true;
     this.terminal.reset();
     // This is a horrible hack, since we have to be sure the
@@ -185,14 +190,14 @@ export class Terminal extends EventEmitter {
     await delay(0);
     requestAnimationFrame(async () => {
       await delay(1);
-      this.terminal.write(history);
+      this.terminal.write(this.history);
       // NEED to make sure no device attribute requests are going out (= corruption!)
       // TODO: surely there is a better way.
       await delay(150);
       // NOTE: this is a BUG -- it scrolls the text to the
       // bottom, but the scrollbar is on top; it's very confusing for users.
       this.terminal.scrollToBottom(); // just in case.
-      this.terminal.ignore_terminal_data = false;
+      this.ignore_terminal_data = false;
     });
   }
 }
