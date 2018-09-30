@@ -2773,7 +2773,7 @@ var get_directory_listing = function(opts) {
           }
           return cb(err);
         } else {
-          if (x != null ? x.error : undefined) {
+          if (x != null && x.error) {
             if (x.error.code === "ENOENT") {
               listing_err = "no_dir";
             } else if (x.error.code === "ENOTDIR") {
@@ -2808,7 +2808,13 @@ var get_directory_listing = function(opts) {
         }
       }
 
-      opts.cb(err != null ? err : listing_err, listing);
+      err = err != null ? err : listing_err;
+      // no `err` error, but `listing` has no value, too
+      // https://github.com/sagemathinc/cocalc/issues/3223
+      if (!err && listing == null) {
+        err = "no_dir";
+      }
+      opts.cb(err, listing);
       if (time0 && state !== "running" && !err) {
         // successfully opened, started, and got directory listing
         return redux.getProjectActions(opts.project_id).log({
