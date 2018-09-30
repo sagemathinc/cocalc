@@ -1,4 +1,7 @@
+import { debounce } from "underscore";
 import { Map } from "immutable";
+import { delay } from "awaiting";
+
 import { AppRedux } from "smc-webapp/app-framework";
 import { Terminal as XTerminal } from "xterm";
 import { setTheme } from "./themes";
@@ -18,6 +21,9 @@ export class Terminal extends EventEmitter {
   private number: number;
   private terminal: XTerminal;
   private is_paused: boolean = false;
+  private ignore_terminal_data: boolean = false;
+  private render_buffer: string = "";
+  private history: string = "";
   private conn?: any; // connection to project -- a primus websocket channel.
 
   constructor(
@@ -26,9 +32,10 @@ export class Terminal extends EventEmitter {
     tab_path: string,
     number: number
   ) {
-    for (let f of ["update_settings", "connect", "handle_data_from_project"]) {
+    for (let f of ["update_settings", "connect", "_handle_data_from_project"]) {
       this[f] = this[f].bind(this);
     }
+    this.full_rerender = debounce(this.full_rerender, 250);
 
     this.redux = redux;
     this.account = this.redux.getStore("account");
@@ -55,6 +62,8 @@ export class Terminal extends EventEmitter {
     delete this.tab_path;
     delete this.path;
     delete this.number;
+    delete this.render_buffer;
+    delete this.history;
     this.terminal.destroy();
     if (this.conn != null) {
       this.disconnect();
@@ -122,13 +131,13 @@ export class Terminal extends EventEmitter {
     this.conn = await ws.api.terminal(this.path);
     this.ignore_terminal_data = true;
     this.conn.on("close", this.connect);
-    this.conn.on("data", this.handle_data_from_project);
+    this.conn.on("data", this._handle_data_from_project);
     if (is_reconnect) {
       this.emit("reconnect");
     }
   }
 
-  handle_data_from_project(data: any): void {
+  _handle_data_from_project(data: any): void {
     switch (typeof data) {
       case "string":
         if (this.is_paused && !this.ignore_terminal_data) {
@@ -145,9 +154,45 @@ export class Terminal extends EventEmitter {
       default:
         console.warn("TERMINAL: no way to handle data -- ", data);
     }
-    if (typeof data === "string") {
-    } else if (typeof data === "object") {
-      terminal.emit("mesg", data);
+  }
+
+  render(data: string): void {
+    this.history += data;
+    if (this.history.length > MAX_HISTORY_LENGTH) {
+      this.history = this.history.slice(
+        this.history.length - Math.round(MAX_HISTORY_LENGTH / 1.5)
+      );
     }
+    this.terminal.write(data);
+  }
+
+  /* To TEST this full_rerender, do this in a terminal then start resizing it:
+         printf "\E[c\n" ; sleep 1 ; echo
+    The above causes the history to have device attribute requests, which
+    will result in spurious control codes in some cases if the code below
+    is wrong.  It's also good to test `jupyter console --kernel=python3`,
+    do something, then exit.
+  */
+  async full_rerender(): void {
+    this.ignore_terminal_data = true;
+    this.terminal.reset();
+    // This is a horrible hack, since we have to be sure the
+    // reset (and its side effects) are really done before writing
+    // the history again -- otherwise, the scroll is messed up.
+    // The call to requestAnimationFrame is also done in xterm.js.
+    // This really sucks.  It would probably be far better to just
+    // REPLACE the terminal by a new one on resize!
+    await delay(0);
+    requestAnimationFrame(async () => {
+      await delay(1);
+      this.terminal.write(history);
+      // NEED to make sure no device attribute requests are going out (= corruption!)
+      // TODO: surely there is a better way.
+      await delay(150);
+      // NOTE: this is a BUG -- it scrolls the text to the
+      // bottom, but the scrollbar is on top; it's very confusing for users.
+      this.terminal.scrollToBottom(); // just in case.
+      this.terminal.ignore_terminal_data = false;
+    });
   }
 }
