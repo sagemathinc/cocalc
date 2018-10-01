@@ -44,7 +44,10 @@ function cell_to_ipynb(id: string, opts: any) {
 
   // Handle any extra metadata (mostly user defined) that we don't handle in a special
   // way for efficiency reasons.
-  process_other_metadata(obj, cell.get("metadata"));
+  const other_metadata = cell.get("metadata");
+  if (other_metadata != null) {
+    process_other_metadata(obj, other_metadata.toJS());
+  }
 
   // consistenty with jupyter -- they explicitly give collapsed true or false state no matter what
   metadata.collapsed = !!cell.get("collapsed");
@@ -133,7 +136,12 @@ function process_attachments(obj: any, attachments: any, blob_store: any) {
   });
 }
 
-function ipynb_outputs(output: any, exec_count: any, more_output: any, blob_store: any) {
+function ipynb_outputs(
+  output: any,
+  exec_count: any,
+  more_output: any,
+  blob_store: any
+) {
   // If the last message has the more_output field, then there may be
   // more output messages stored, which are not in the cells object.
   if (output && output.getIn([`${output.size - 1}`, "more_output"]) != null) {
@@ -144,7 +152,10 @@ function ipynb_outputs(output: any, exec_count: any, more_output: any, blob_stor
       // the more_output message by an error explaining what happened.
       output = output.set(
         `${n}`,
-        immutable.fromJS({ text: "WARNING: Some output was deleted.\n", name: "stderr" })
+        immutable.fromJS({
+          text: "WARNING: Some output was deleted.\n",
+          name: "stderr"
+        })
       );
     } else {
       // Indeed, the last message has the more_output field.
@@ -162,7 +173,8 @@ function ipynb_outputs(output: any, exec_count: any, more_output: any, blob_stor
   const outputs: any[] = [];
   if (output && output.size > 0) {
     for (let i = 0; i < output.size + 1; i++) {
-      const output_n = output.get(`${i}`) != null ? output.get(`${i}`).toJS() : undefined;
+      const output_n =
+        output.get(`${i}`) != null ? output.get(`${i}`).toJS() : undefined;
       if (output_n != null) {
         process_output_n(output_n, exec_count, blob_store);
         outputs.push(output_n);
@@ -188,7 +200,11 @@ function process_output_n(output_n: any, exec_count: any, blob_store: any) {
       if (k.slice(0, 5) === "text/") {
         output_n.data[k] = diff_friendly(output_n.data[k]);
       }
-      if (misc.startswith(k, "image/") || k === "application/pdf" || k === "iframe") {
+      if (
+        misc.startswith(k, "image/") ||
+        k === "application/pdf" ||
+        k === "iframe"
+      ) {
         if (blob_store != null) {
           const value = blob_store.get_ipynb(v);
           if (value == null) {
@@ -225,7 +241,8 @@ function process_output_n(output_n: any, exec_count: any, blob_store: any) {
 function process_stdin_output(output: any) {
   output.cocalc = misc.deep_copy(output);
   output.name = "stdout";
-  output.text = output.opts.prompt + " " + (output.value != null ? output.value : "");
+  output.text =
+    output.opts.prompt + " " + (output.value != null ? output.value : "");
   delete output.opts;
   delete output.value;
 }

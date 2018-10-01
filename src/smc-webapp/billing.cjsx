@@ -1667,7 +1667,7 @@ Subscriptions = rclass
     render_header: ->
         <Row>
             <Col sm={6}>
-                <Icon name='list-alt' /> Subscriptions and Course Packages
+                <Icon name='list-alt' /> Subscriptions and course packages
             </Col>
             <Col sm={6}>
                 {@render_add_subscription_button()}

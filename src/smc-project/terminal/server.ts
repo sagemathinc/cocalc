@@ -4,7 +4,11 @@ Terminal server
 
 const { spawn } = require("pty.js");
 
-import { len, merge, path_split } from "../smc-webapp/frame-editors/generic/misc";
+import {
+  len,
+  merge,
+  path_split
+} from "../smc-webapp/frame-editors/generic/misc";
 const { console_init_filename } = require("smc-util/misc");
 
 import { exists } from "../jupyter/async-utils-node";
@@ -36,7 +40,6 @@ export async function terminal(
   async function init_term() {
     const args: string[] = [];
 
-
     const init_filename: string = console_init_filename(path);
     if (await exists(init_filename)) {
       args.push("--init-file");
@@ -44,14 +47,15 @@ export async function terminal(
     }
 
     const s = path_split(path);
-    const env = merge({COCALC_TERMINAL_FILENAME: s.tail}, process.env);
+    const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
     const cwd = s.head;
 
-    const term = spawn("/bin/bash", args, {cwd, env});
-    logger.debug("terminal", "init_term", name, "pid=", term.pid, 'args', args);
+    const term = spawn("/bin/bash", args, { cwd, env });
+    logger.debug("terminal", "init_term", name, "pid=", term.pid, "args", args);
     terminals[name].term = term;
-    term.on("data", function(data) {
+    term.on("data", function(data): void {
       //logger.debug("terminal: term --> browsers", name, data);
+      handle_backend_messages(data);
       terminals[name].history += data;
       const n = terminals[name].history.length;
       if (n >= MAX_HISTORY_LENGTH) {
@@ -70,7 +74,7 @@ export async function terminal(
           }
           terminals[name].truncating += data.length;
           setTimeout(check_if_still_truncating, check_interval_ms);
-          if (terminals[name].truncating >= 5*MAX_HISTORY_LENGTH) {
+          if (terminals[name].truncating >= 5 * MAX_HISTORY_LENGTH) {
             // only start sending control+c if output has been completely stuck
             // being truncated several times in a row -- it has to be a serious non-stop burst...
             term.write("\u0003");
@@ -85,7 +89,57 @@ export async function terminal(
       }
     });
 
-    function check_if_still_truncating() {
+    let backend_messages_state: "NONE" | "READING" = "NONE";
+    let backend_messages_buffer: string = "";
+    function reset_backend_messages_buffer(): void {
+      backend_messages_buffer = "";
+      backend_messages_state = "NONE";
+    }
+    function handle_backend_messages(data: string): void {
+      /* parse out messages like this:
+            \x1b]49;"valid JSON string here"\x07
+         and format and send them via our json channel.
+         NOTE: such messages also get sent via the
+         normal channel, but ignored by the client.
+      */
+      if (backend_messages_state === "NONE") {
+        const i = data.indexOf("\x1b");
+        if (i === -1) {
+          return; // nothing to worry about
+        }
+        backend_messages_state = "READING";
+        backend_messages_buffer = data.slice(i);
+      } else {
+        backend_messages_buffer += data;
+      }
+      if (
+        backend_messages_buffer.length >= 5 &&
+        backend_messages_buffer.slice(1, 5) != "]49;"
+      ) {
+        reset_backend_messages_buffer();
+        return;
+      }
+      if (backend_messages_buffer.length >= 6) {
+        const i = backend_messages_buffer.indexOf("\x07");
+        if (i === -1) {
+          // continue to wait... unless too long
+          if (backend_messages_buffer.length > 10000) {
+            reset_backend_messages_buffer();
+          }
+          return;
+        }
+        const s = backend_messages_buffer.slice(5, i);
+        reset_backend_messages_buffer();
+        try {
+          const payload = JSON.parse(s);
+          channel.write({ cmd: "message", payload });
+        } catch (err) {
+          // no op -- ignore
+        }
+      }
+    }
+
+    function check_if_still_truncating(): void {
       if (!terminals[name].truncating) return;
       if (
         new Date().valueOf() - terminals[name].last_truncate_time >=
@@ -120,16 +174,28 @@ export async function terminal(
     }
     const sizes = terminals[name].client_sizes;
     if (len(sizes) === 0) return;
-    let rows: number = 10000,
-      cols: number = 10000;
+    const INFINITY = 999999;
+    let rows: number = INFINITY,
+      cols: number = INFINITY;
     for (let id in sizes) {
-      rows = Math.min(rows, sizes[id].rows);
-      cols = Math.min(cols, sizes[id].cols);
+      if (sizes[id].rows) {
+        // if, since 0 rows or 0 columns means *ignore*.
+        rows = Math.min(rows, sizes[id].rows);
+      }
+      if (sizes[id].cols) {
+        cols = Math.min(cols, sizes[id].cols);
+      }
     }
-    terminals[name].size = { rows, cols };
+    if (rows === INFINITY || cols === INFINITY) {
+      // no clients currently visible
+      delete terminals[name].size;
+      return;
+    }
     //logger.debug("resize", "new size", rows, cols);
-    terminals[name].term.resize(cols, rows);
-    channel.write({ cmd: "size", rows, cols });
+    if (rows && cols) {
+      terminals[name].term.resize(cols, rows);
+      channel.write({ cmd: "size", rows, cols });
+    }
   }
 
   channel.on("connection", function(spark: any): void {
@@ -151,6 +217,10 @@ export async function terminal(
     spark.write(terminals[name].history);
     // have history, so do not ignore commands now.
     spark.write({ cmd: "no-ignore" });
+    spark.on("close", function() {
+      delete terminals[name].client_sizes[spark.id];
+      resize();
+    });
     spark.on("end", function() {
       delete terminals[name].client_sizes[spark.id];
       resize();
@@ -175,6 +245,20 @@ export async function terminal(
             resize();
             break;
           case "boot":
+            // delete all sizes except this one, so at least kick resets
+            // the sizes no matter what.
+            for (let id in terminals[name].client_sizes) {
+              if (id !== spark.id) {
+                delete terminals[name].client_sizes[id];
+              }
+            }
+            // next tell this client to go fullsize.
+            if (terminals[name].size !== undefined) {
+              const { rows, cols } = terminals[name].size;
+              if (rows && cols) {
+                spark.write({ cmd: "size", rows, cols });
+              }
+            }
             // broadcast message to all other clients telling them to close.
             channel.forEach(function(spark0, id, connections) {
               if (id !== spark.id) {

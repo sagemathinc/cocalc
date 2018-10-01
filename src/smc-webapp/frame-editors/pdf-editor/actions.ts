@@ -21,6 +21,10 @@ interface PDFEditorState extends CodeEditorState {
 }
 
 export class PDFActions extends Actions<PDFEditorState> {
+  // No need to open any syncstring for pdfs -- they don't use database sync
+  // at all right now; might somebody for annotation though.
+  protected doctype: string = "none";
+
   _raw_default_frame_tree(): FrameTree {
     return { type: "pdfjs_canvas" };
   }

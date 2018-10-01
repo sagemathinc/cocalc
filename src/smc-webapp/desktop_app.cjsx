@@ -24,7 +24,7 @@
 {React, ReactDOM, rclass, redux, rtypes, Redux, redux_fields} = require('./app-framework')
 
 {Navbar, Nav, NavItem} = require('react-bootstrap')
-{ErrorBoundary, Loading, Icon, Tip}   = require('./r_misc')
+{ErrorBoundary, Loading, Tip}   = require('./r_misc')
 {COLORS} = require('smc-util/theme')
 
 # CoCalc Pages
@@ -196,8 +196,7 @@ Page = rclass
 
     render_right_nav: ->
         logged_in = @props.is_logged_in
-        <Nav id='smc-right-tabs-fixed' style={height:'40px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
-            {@render_account_tab() if logged_in}
+        <Nav id='smc-right-tabs-fixed' style={height:'36px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
@@ -212,6 +211,7 @@ Page = rclass
             />
             <NavItem className='divider-vertical hidden-xs' />
             {@render_support()}
+            {@render_account_tab() if logged_in}
             {@render_bell()}
             <ConnectionIndicator actions={@actions('page')} />
         </Nav>
@@ -220,10 +220,9 @@ Page = rclass
         projects_styles =
             whiteSpace : 'nowrap'
             float      : 'right'
-            padding    : '11px 7px'
-            fontWeight : 'bold'
+            padding    : '10px 7px'
 
-        <Nav style={height:'40px', margin:'0', overflow:'hidden'}>
+        <Nav style={height:"36px", margin:'0', overflow:'hidden'}>
             <NavTab
                 name           = {'projects'}
                 inner_style    = {padding:'0px'}
@@ -243,7 +242,7 @@ Page = rclass
     drop: (e) ->
         if DEBUG
             e.persist()
-            console.log "react desktop_app.drop", e
+            #console.log "react desktop_app.drop", e
         e.preventDefault()
         e.stopPropagation()
         if e.dataTransfer.files.length > 0
@@ -267,7 +266,7 @@ Page = rclass
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
-            minHeight     : '40px'
+            minHeight     : '36px'
             position      : 'fixed'
             right         : 0
             zIndex        : '100'
@@ -275,7 +274,7 @@ Page = rclass
             top           : top
 
         positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
-        positionHackHeight = (40 + positionHackOffset) + 'px'
+        positionHackHeight = (36 + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}

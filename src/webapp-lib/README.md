@@ -8,6 +8,13 @@ This sub-directory contains assets (images, code, etc.) for the smc-webapp and s
 
 Here is a description of two optional files describing the content of the computational environment (programming languages, libraries, ...)
 
+Do this if you want to test rendering with the full production data for `compute-*.json`:
+```
+~/cocalc/src/webapp-lib$ curl https://storage.googleapis.com/cocalc-compute-environment/compute-components.json > compute-components.json
+~/cocalc/src/webapp-lib$ curl https://storage.googleapis.com/cocalc-compute-environment/compute-inventory.json > compute-inventory.json
+```
+Do NOT commit this to the repo.
+
 ### `compute-inventory.json`
 
 This is the "ground truth" of what is installed in the environment. Layout:

@@ -92,6 +92,7 @@ interface FrameTreeProps {
   is_saving: boolean;
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  terminal: Map<string, any>;
   status: string;
   settings: Map<string, any>;
   complete: Map<string, any>;
@@ -129,6 +130,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "is_saving",
         "gutter_markers",
         "editor_settings",
+        "terminal",
         "settings",
         "status",
         "complete",
@@ -163,6 +165,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_saving={this.props.is_saving}
         gutter_markers={this.props.gutter_markers}
         editor_settings={this.props.editor_settings}
+        terminal={this.props.terminal}
         settings={this.props.settings}
         status={this.props.status}
         complete={this.props.complete}
@@ -191,6 +194,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         has_uncommitted_changes={this.props.has_uncommitted_changes}
         is_saving={this.props.is_saving}
         is_public={this.props.is_public}
+        is_paused={desc.get("is_paused")}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
         status={this.props.status}
@@ -241,6 +245,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           gutters={spec.gutters != null ? spec.gutters : []}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          terminal={this.props.terminal}
           settings={this.props.settings}
           status={this.props.status}
           renderer={spec.renderer}

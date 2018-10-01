@@ -295,7 +295,10 @@ if ENABLED and window.console?
     wrapFunction(console, "error", (-> sendLogLine("error", arguments)))
 
 if ENABLED
-    window.addEventListener("unhandledrejection",(e) -> reportException(e.reason,"unhandledrejection"))
+    window.addEventListener "unhandledrejection",(e) ->
+        # just to make sure there is a message
+        e.message ?= '<no message>'
+        reportException(e, "unhandledrejection")
 
 # public API
 
