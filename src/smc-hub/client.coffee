@@ -2524,8 +2524,6 @@ class exports.Client extends EventEmitter
                 if not misc.is_object(v?.labels)
                     # what?
                     return
-            dbg('mesg_metrics: ', metric.name)
-            dbg('mesg_metrics: ', metric)
             switch metric.type
                 when 'gauge'
                     metric.aggregator = 'average'
