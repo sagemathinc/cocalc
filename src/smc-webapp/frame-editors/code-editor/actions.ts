@@ -1199,18 +1199,26 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   set_codemirror_to_syncstring(): void {
-    // NOTE: we fallback to getting the underling CM doc, in case all actual
+    if (this._syncstring == null) {
+      // no point in doing anything further.
+      return;
+    }
+    // NOTE: we fallback to getting the underlying CM doc, in case all actual
     // cm code-editor frames have been closed (or just aren't visible).
-    let cm: any = this._get_cm(undefined, true);
-    if (cm == null) {
+    const cm: CodeMirror.Editor | undefined = this._get_cm(undefined, true);
+    if (cm !== undefined) {
+      cm.setValueNoJump(this._syncstring.to_str());
+    } else {
+      let doc: CodeMirror.Doc;
       try {
-        cm = this._get_doc();
+        // _get_doc either returns a Doc or raises an exception if there isn't one.
+        doc = this._get_doc();
       } catch (err) {
         return;
       }
-    }
-    if (this._syncstring != null && cm != null) {
-      cm.setValueNoJump(this._syncstring.to_str());
+      // doc does not have setValueNoJump, and doesn't need it, since
+      // there are no cursors or selections if there are no cm's.
+      doc.setValue(this._syncstring.to_str());
     }
     this.update_save_status();
   }
