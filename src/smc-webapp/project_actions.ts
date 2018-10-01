@@ -1159,7 +1159,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Does not push to URL, browser history, or add to analytics
   // Use internally or for updating current path in background
   set_current_path(path: string = ""): void {
-    if ((path as any) === NaN) {
+    if (Number.isNaN(path as any)) {
       // SMELL: Track from history.coffee
       path = "";
     }
