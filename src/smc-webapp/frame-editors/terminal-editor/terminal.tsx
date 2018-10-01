@@ -82,17 +82,18 @@ export class TerminalFrame extends Component<Props, {}> {
     const terminal = this.props.actions._get_terminal(this.props.id);
     if (terminal != null) {
       this.terminal = terminal;
+      node.appendChild(this.terminal.element);
     } else {
       this.terminal = new Terminal();
-      this.terminal.webLinksInit();
       this.terminal.open();
+      node.appendChild(this.terminal.element);
+      this.terminal.webLinksInit();
       await this.props.actions.set_terminal(this.props.id, this.terminal);
       if (!this.is_mounted) {
         return;
       }
     }
     this.set_font_size(this.props.font_size);
-    node.appendChild(this.terminal.element);
     this.measure_size();
     new ResizeObserver(() => this.measure_size()).observe(node);
     if (this.props.is_current) {
