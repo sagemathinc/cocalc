@@ -204,21 +204,24 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _init_syncstring(): void {
-    if (this.doctype == "syncstring") {
-      let fake_syncstring = false;
-      if (filename_extension(this.path) === "pdf") {
-        // Use a fake syncstring, since we do not directly
-        // edit the PDF file itself.
-        // TODO: make this a more generic mechanism.
-        fake_syncstring = true;
-      }
+    if (this.doctype == "none") {
       this._syncstring = syncstring({
         project_id: this.project_id,
         path: this.path,
         cursors: true,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
-        fake: fake_syncstring,
+        fake: true,
+        save_interval: 500,
+        patch_interval: 500
+      });
+    } else if (this.doctype == "syncstring") {
+      this._syncstring = syncstring({
+        project_id: this.project_id,
+        path: this.path,
+        cursors: true,
+        before_change_hook: () => this.set_syncstring_to_codemirror(),
+        after_change_hook: () => this.set_codemirror_to_syncstring(),
         save_interval: 500,
         patch_interval: 500
       });
@@ -985,8 +988,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
   }
 
-  help(type : string): void {
-    const url = WIKI_HELP_URL + type + '-help';
+  help(type: string): void {
+    const url = WIKI_HELP_URL + type + "-help";
     const w = window.open(url, "_blank");
     if (w) {
       w.focus();
