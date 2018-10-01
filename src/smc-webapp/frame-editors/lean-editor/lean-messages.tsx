@@ -237,15 +237,15 @@ class LeanMessages extends Component<Props, {}> {
   }
 
   render_sync(): Rendered {
-    if (this.props.sync.get("hash") === this.props.syncstring_hash) {
-      return (
-        <div style={{ marginTop: "5px" }}>
-          Synced ({this.render_last_run_time()})
-        </div>
-      );
+    let msg: string | Rendered;
+    if (this.props.sync.get("hash") === -1) {
+      msg = `Restarting…`;
+    } else if (this.props.sync.get("hash") === this.props.syncstring_hash) {
+      msg = <span>Synced ({this.render_last_run_time()})</span>;
     } else {
-      return <div style={{ marginTop: "5px" }}>Syncing...</div>;
+      msg = `Syncing…`;
     }
+    return <div style={{ marginTop: "5px" }}>{msg}</div>;
   }
 
   render(): Rendered {
@@ -253,7 +253,7 @@ class LeanMessages extends Component<Props, {}> {
       <div
         style={{
           overflowY: "auto",
-          margin: "0px 15px",
+          padding: "0px 15px",
           fontSize: this.props.font_size
         }}
       >

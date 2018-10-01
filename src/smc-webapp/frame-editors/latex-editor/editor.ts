@@ -12,6 +12,7 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { Build } from "./build";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
 import { SETTINGS_SPEC } from "../settings/editor";
+import { terminal } from "../terminal-editor/editor";
 
 import { pdf_path } from "./util";
 
@@ -89,6 +90,8 @@ const EDITOR_SPEC = {
     path: pdf_path
   },
 
+  terminal,
+  
   settings: SETTINGS_SPEC
 
   /*

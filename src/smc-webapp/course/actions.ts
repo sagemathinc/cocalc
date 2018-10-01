@@ -510,7 +510,7 @@ export class CourseActions extends Actions<CourseState> {
       }`,
       description:
         store.get("settings").get("description") +
-        "\n---\n This project is shared with all students."
+        "\n\n---\n\nThis project is shared with all students in the course."
     };
     return x;
   }

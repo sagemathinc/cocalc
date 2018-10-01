@@ -34,6 +34,8 @@ const misc = require("smc-util/misc");
 const util = require("../frame-tree/util");
 const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
+import { trunc_middle } from "../generic/misc";
+
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
   border: "1px solid rgb(204,204,204)",
@@ -53,7 +55,8 @@ const TITLE_STYLE: CSS.Properties = {
   color: "#333",
   fontSize: "10pt",
   display: "inline-block",
-  float: "right"
+  float: "right",
+  whiteSpace: "nowrap"
 };
 
 const ICON_STYLE: CSS.Properties = {
@@ -84,6 +87,7 @@ interface Props {
   is_full: boolean;
   is_only: boolean; // is the only frame
   is_public: boolean; // public view of a file
+  is_paused: boolean;
   type: string;
   editor_spec: any;
   status: string;
@@ -103,6 +107,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       "has_uncommitted_changes",
       "is_public",
       "is_saving",
+      "is_paused",
       "type",
       "status",
       "title"
@@ -659,18 +664,17 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsSize={this.button_size()}
         onClick={() => this.props.actions.reload(this.props.id)}
       >
-        <Icon name="repeat" />{" "}
-        <VisibleMDLG>{labels ? "Reload" : undefined}</VisibleMDLG>
+        <Icon name="repeat" />
+        <VisibleMDLG>{labels ? " Reload" : undefined}</VisibleMDLG>
       </Button>
     );
   }
 
   // A "Help" info button
-  render_help(): Rendered {
+  render_help(labels : boolean): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
     }
-    let labels = this.show_labels();
     return (
       <Button
         key={"help"}
@@ -684,6 +688,25 @@ export class FrameTitleBar extends Component<Props, {}> {
       >
         <Icon name="question-circle" />{" "}
         <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  // Button to restart an associated background service process
+  render_restart(): Rendered {
+    if (!this.is_visible("restart", true)) {
+      return;
+    }
+    let labels = this.show_labels();
+    return (
+      <Button
+        key={"restart"}
+        title={"Restart service"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.restart()}
+      >
+        <Icon name="sync" />{" "}
+        {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
       </Button>
     );
   }
@@ -822,6 +845,71 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_kick_other_users_out(): Rendered {
+    if (!this.is_visible("kick_other_users_out")) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"kick_other_users_out"}
+        onClick={() => this.props.actions.kick_other_users_out(this.props.id)}
+        title={"Kick all other users out"}
+      >
+        <Icon name={"door-open"} />
+      </Button>
+    );
+  }
+
+  render_pause(labels): Rendered {
+    if (!this.is_visible("pause")) {
+      return;
+    }
+    let icon: string, title: string, style: string | undefined;
+    if (this.props.is_paused) {
+      icon = "play";
+      title = "Play";
+      style = "success";
+    } else {
+      icon = "pause";
+      title = "Pause";
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        bsStyle={style}
+        key={"pause"}
+        onClick={() => {
+          if (this.props.is_paused) {
+            this.props.actions.unpause(this.props.id);
+          } else {
+            this.props.actions.pause(this.props.id);
+          }
+        }}
+        title={title}
+      >
+        <Icon name={icon} />
+        <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  render_edit_init_script(): Rendered {
+    if (!this.is_visible("edit_init_script")) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"edit_init_script"}
+        onClick={() => this.props.actions.edit_init_script(this.props.id)}
+        title={"Edit initialization script"}
+      >
+        <Icon name={"rocket"} />{" "}
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -870,6 +958,9 @@ export class FrameTitleBar extends Component<Props, {}> {
         marginLeft: "2px"
       };
     }
+
+    const labels = this.show_labels();
+
     const v: Rendered[] = [];
     v.push(this.render_save_timetravel_group());
     v.push(this.render_build());
@@ -881,15 +972,19 @@ export class FrameTitleBar extends Component<Props, {}> {
       v.push(this.render_undo_redo_group());
     }
     v.push(this.render_zoom_group());
+    v.push(this.render_restart());
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
+    v.push(this.render_pause(labels));
     v.push(this.render_copy_group());
     v.push(this.render_find_replace_group());
     if (!this.props.is_public) {
       v.push(this.render_format_group());
     }
-    v.push(this.render_help());
+    v.push(this.render_edit_init_script());
+    v.push(this.render_kick_other_users_out());
     v.push(this.render_print());
+    v.push(this.render_help(labels));
 
     const w: Rendered[] = [];
     for (let c of v) {
@@ -951,7 +1046,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       <span style={TITLE_STYLE}>
         {icon ? <Icon name={icon} /> : null}
         <Space />
-        {title}
+        {trunc_middle(title, 25)}
       </span>
     );
   }
@@ -963,6 +1058,9 @@ export class FrameTitleBar extends Component<Props, {}> {
     if (is_active) {
       style = misc.copy(title_bar_style);
       style.background = "#f8f8f8";
+      if (!this.props.is_only && !this.props.is_full) {
+        style.maxHeight = "34px";
+      }
     } else {
       style = title_bar_style;
     }

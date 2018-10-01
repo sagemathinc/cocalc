@@ -51,6 +51,13 @@ interface ReadTextFileOpts {
   timeout?: number;
 }
 
+/*
+export async function exists_in_project(
+  project_id:string, path:string) : Promise<boolean> {
+
+}
+*/
+
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
 ): Promise<string> {
