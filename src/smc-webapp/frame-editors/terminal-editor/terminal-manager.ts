@@ -392,7 +392,7 @@ export class TerminalManager {
     if (terminal === undefined) {
       return;
     }
-    (terminal as any).unpause();
+    (terminal as any).reconnect_to_project();
   }
 
   async edit_init_script(id: string): Promise<void> {

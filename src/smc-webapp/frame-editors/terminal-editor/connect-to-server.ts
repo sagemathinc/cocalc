@@ -2,12 +2,9 @@
 Connect the term.js terminal object to the backend terminal session with the given path.
 */
 
-import { debounce } from "underscore";
-
-import { delay } from "awaiting";
-
 import { aux_file } from "../frame-tree/util";
 import { project_websocket } from "../generic/client";
+import { reuseInFlight } from "async-await-utils/hof";
 
 const MAX_HISTORY_LENGTH = 100 * 5000;
 
@@ -75,22 +72,22 @@ export async function connect_to_server(
     conn.write(data);
   };
 
-  async function reconnect_to_project() {
-    //console.log("reconnect_to_project");
-    let is_reconnect : boolean = false;
-    if(conn !== undefined) {
+  const reconnect_to_project = reuseInFlight(async function() {
+    let is_reconnect: boolean = false;
+    if (conn !== undefined) {
       is_reconnect = true;
       conn.removeAllListeners();
+      conn.end(); // just to be sure
     }
     const ws = await project_websocket(project_id);
     conn = await ws.api.terminal(path);
-    conn.on("close", reconnect_to_project);  // remove close; not when we end.
+    conn.on("close", reconnect_to_project); // remove close; not when we end.
     terminal.ignore_terminal_data = true;
     conn.on("data", handle_data_from_project);
     if (is_reconnect) {
       terminal.emit("reconnect");
     }
-  }
+  });
 
   terminal.reconnect_to_project = reconnect_to_project;
   await reconnect_to_project();
