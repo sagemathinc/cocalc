@@ -93,12 +93,12 @@ exports.NavTab = rclass
                 {@props.label}
             </span>
 
-    make_icon: ->
+    render_icon: ->
         if @props.icon?
             if typeof @props.icon == "string"
                 <Icon
                     name  = {@props.icon}
-                    style = {fontSize: 20, paddingRight: 2}
+                    style = {paddingRight: 2}
                 />
             else
                 @props.icon
@@ -139,7 +139,7 @@ exports.NavTab = rclass
             style = {outer_style}
         >
             <div style={inner_style}>
-                {@make_icon()}
+                {@render_icon()}
                 {@render_label()}
                 {@props.children}
             </div>
@@ -247,7 +247,7 @@ exports.ConnectionIndicator = rclass
 
     render_connection_status: ->
         if @props.connection_status == 'connected'
-            icon_style = {marginRight: 8, fontSize: '13pt', display: 'inline'}
+            icon_style = {marginRight: '16px', fontSize: '13pt', display: 'inline'}
             if (@props.mesg_info?.get('enqueued') ? 0) > 5  # serious backlog of data!
                 icon_style.color = 'red'
             else if (@props.mesg_info?.get('count') ? 0) > 1 # worrisome amount
@@ -256,18 +256,18 @@ exports.ConnectionIndicator = rclass
                 icon_style.color = '#00c'
             else
                 icon_style.color = 'grey'
-            <div>
+            <div style={padding:'9px'}>
                 <Icon name='wifi' style={icon_style}/>
                 {@render_ping() if @props.show_pingtime}
             </div>
         else if @props.connection_status == 'connecting'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
                 connecting...
-            </span>
+            </div>
         else if @props.connection_status == 'disconnected'
-            <span style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', 'zIndex': 100001}>
+            <div style={backgroundColor : '#FFA500', color : 'white', padding : '1ex', overflow:'hidden'}>
                 disconnected
-            </span>
+            </div>
 
     connection_click: ->
         @props.actions.show_connection(true)
@@ -275,16 +275,14 @@ exports.ConnectionIndicator = rclass
         document.activeElement.blur() # otherwise, it'll be highlighted even when closed again
 
     render: ->
-        width = if @props.show_pingtime then '8.5em' else '5em'
         outer_styles =
-            width      : width
             color      : '#666'
             fontSize   : '10pt'
             lineHeight : '10pt'
             cursor     : 'pointer'
             float      : 'left'
         inner_styles =
-            padding : '13.5px'
+            paddingTop : '3px'
 
         <NavItem style={outer_styles} onClick={@connection_click}>
             <div style={inner_styles} >
@@ -411,7 +409,7 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = if @props.show_global_info then "#{announce_bar_offset + 1}px" else '1px'
+        top_px = '-1px'
 
         tip_style =
             position     : 'fixed'
@@ -420,10 +418,9 @@ exports.FullscreenButton = rclass
             top          : top_px
             borderRadius : '3px'
 
-
         icon_style =
             fontSize   : '13pt'
-            padding    : 4
+            padding    : 2
             color      : COLORS.GRAY
             cursor     : 'pointer'
 
@@ -457,8 +454,8 @@ exports.AppLogo = rclass
             backgroundImage : "url('#{APP_ICON}')"
             backgroundSize  : 'contain'
             backgroundRepeat: 'no-repeat'
-            height          : 36
-            width           : 36
+            height          : "32px"
+            width           : "32px"
             position        : 'relative'
             margin          : '2px'
         <div style={styles}></div>
@@ -577,7 +574,7 @@ exports.GlobalInformationMessage = rclass
             zIndex          : '101'
             right           : 0
             left            : 0
-            height          : '40px'
+            height          : '36px'
 
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>

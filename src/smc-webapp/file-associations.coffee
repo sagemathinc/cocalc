@@ -46,7 +46,7 @@ codemirror_associations =
     ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm'
+    md     : 'yaml-frontmatter'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -59,9 +59,9 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rmd    : 'gfm'
-    rnw    : 'stex2'
-    rtex   : 'stex2'
+    rmd    : 'rmd'
+    rnw    : 'rnw'
+    rtex   : 'rtex'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -132,13 +132,13 @@ file_associations['tex'] =
 file_associations['rnw'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4, mode:codemirror_associations['rnw']}
     name   : "R Knitr Rnw"
 
 file_associations['rtex'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4, mode:codemirror_associations['rtex']}
     name   : "R Knitr Rtex"
 
 file_associations['html'] =
@@ -148,12 +148,12 @@ file_associations['html'] =
 
 file_associations['md'] =
     icon   : 'cc-icon-markdown'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
+    opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['md']}
     name   : "markdown"
 
 file_associations['rmd'] =
     icon   : 'cc-icon-r'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
+    opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['rmd']}
     name   : "Rmd"
 
 file_associations['rst'] =
@@ -302,3 +302,4 @@ file_associations['sagews'] =
     opts              : {mode:'sagews'}
     name              : 'sagews'
     exclude_from_menu : true
+

@@ -38,7 +38,11 @@ export interface ExecOutput {
 
 // async version of the webapp_client exec -- let's you run any code in a project!
 export async function exec(opts: ExecOpts): Promise<ExecOutput> {
-  return callback_opts(webapp_client.exec)(opts);
+  let msg = await callback_opts(webapp_client.exec)(opts);
+  if (msg.status && msg.status == "error") {
+    throw new Error(msg.error);
+  }
+  return msg;
 }
 
 interface ReadTextFileOpts {
@@ -46,6 +50,13 @@ interface ReadTextFileOpts {
   path: string;
   timeout?: number;
 }
+
+/*
+export async function exists_in_project(
+  project_id:string, path:string) : Promise<boolean> {
+
+}
+*/
 
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts
@@ -194,12 +205,12 @@ export async function user_search(opts: {
   return callback_opts(webapp_client.user_search)(opts);
 }
 
-export async function project_websocket(project_id:string) : Promise<any> {
+export async function project_websocket(project_id: string): Promise<any> {
   return await webapp_client.project_websocket(project_id);
 }
 
 import { API } from "smc-webapp/project/websocket/api";
 
-export async function project_api(project_id:string) : Promise<API> {
+export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
 }

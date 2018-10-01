@@ -4,7 +4,7 @@ LEAN server
 
 const lean_files = {};
 
-import { cmp } from "../smc-webapp/frame-editors/generic/misc";
+//import { cmp } from "../smc-webapp/frame-editors/generic/misc";
 
 import { lean_server, Lean } from "./lean";
 import { isEqual } from "underscore";
@@ -138,6 +138,9 @@ export async function lean(
     case "kill":
       return the_lean_server.kill();
 
+    case "restart":
+      return await the_lean_server.restart();
+
     case "complete":
       assert_type("path", opts.path, "string");
       assert_type("line", opts.line, "number");
@@ -155,6 +158,7 @@ export async function lean(
       for (let c of complete.completions) {
         delete (c as any).source; // cast because of mistake in upstream type def.  sigh.
       }
+      /*
       complete.completions.sort(function(a, b): number {
         if (a.text == null || b.text == null) {
           // satisfy typescript null checks; shouldn't happen.
@@ -162,6 +166,7 @@ export async function lean(
         }
         return cmp(a.text.toLowerCase(), b.text.toLowerCase());
       });
+      */
       return complete.completions;
 
     default:

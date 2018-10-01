@@ -94,8 +94,6 @@ exports.FileTab = rclass
         x_button_styles =
             float      : 'right'
             whiteSpace : 'nowrap'
-            fontSize   : '12pt'
-            marginTop  : '-3px'
 
         if @state.x_hovered
             x_button_styles.color = 'lightblue'

@@ -455,7 +455,7 @@ ${name}
 
   render() {
     return (
-      <ProjectSettingsPanel title="Add New Collaborators" icon="plus">
+      <ProjectSettingsPanel title="Add new collaborators" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.

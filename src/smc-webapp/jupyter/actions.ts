@@ -2168,11 +2168,22 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   );
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
-    const data = await this._api_call("kernel_info", {});
-    this.setState({
-      backend_kernel_info: data,
-      // this is when the server for this doc started, not when kernel last started!
-      start_time: data.start_time
+    const f = async () => {
+      if (this._state === "closed") {
+        return;
+      }
+      const data = await this._api_call("kernel_info", {});
+      this.setState({
+        backend_kernel_info: data,
+        // this is when the server for this doc started, not when kernel last started!
+        start_time: data.start_time
+      });
+    };
+    await retry_until_success({
+      max_time: 1000 * 60 * 30,
+      start_delay: 500,
+      max_delay: 3000,
+      f
     });
 
     // Update the codemirror editor options.

@@ -1,6 +1,7 @@
 # Multiplex'd worksheet mode
 
 {MARKERS} = require('smc-util/sagews')
+_ = require('underscore')
 
 exports.sagews_decorator_modes = sagews_decorator_modes = [
     ['cjsx'        , 'text/cjsx'],
@@ -67,6 +68,29 @@ CodeMirror.defineMode "stex2", (config) ->
         mode  : CodeMirror.getMode(config, 'sagews')
     return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex"), options...)
 
+CodeMirror.defineMode "rnw", (config) ->
+    block =
+        open       : /^<<.+?>>=/
+        close      : /^@/
+        mode       : CodeMirror.getMode(config, 'r')
+    inline =
+        open  : "\\Sexpr{"
+        close : "}"
+        mode  : CodeMirror.getMode(config, 'r')
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex2"), block, inline)
+
+CodeMirror.defineMode "rtex", (config) ->
+    block =
+        open       : /^%%\s+begin\.rcode/
+        close      : /^%%\s+end\.rcode/
+        indent     : '% '
+        mode       : CodeMirror.getMode(config, 'r')
+    inline =
+        open  : "\\rinline{"
+        close : "}"
+        mode  : CodeMirror.getMode(config, 'r')
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "stex2"), block, inline)
+
 CodeMirror.defineMode "cython", (config) ->
     # FUTURE: need to figure out how to do this so that the name
     # of the mode is cython
@@ -88,6 +112,35 @@ CodeMirror.defineMode "sagews", (config) ->
             mode  : CodeMirror.getMode(config, x[1])
 
     return CodeMirror.smc_multiplexing_mode(CodeMirror.getMode(config, "python"), options...)
+
+CodeMirror.defineMode "rmd", (config) ->
+    # derived from the sagews modes with some additions
+    modes = _.clone(_.object(sagews_decorator_modes))
+    modes['fortran95'] = modes['fortran']
+    modes['octave'] = 'octave'
+    modes['bash'] = modes['sh']
+
+    options = []
+
+    # blocks (ATTN ruby before r!)
+    # all engine modes: names(knitr::knit_engines$get())
+    for name in  ['ruby', 'r', 'python', 'octave', 'fortran95', 'fortran',  'octave', 'bash', 'go', 'julia', 'perl']
+        mode = modes[name]
+        open = new RegExp("```\\s*{#{name}[^}]*?}")
+        options.push
+            open  : open
+            close : "```"
+            delimStyle : 'gfm'
+            mode  : CodeMirror.getMode(config, mode)
+
+    # ATTN: this case must come later, it is less specific
+    # inline, just `r ...` exists, not for other languages.
+    options.push
+        open : '`r'
+        close: '`'
+        mode  : CodeMirror.getMode(config, 'r')
+
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "yaml-frontmatter"), options...)
 
 ###
 # ATTN: if that's ever going to be re-activated again,

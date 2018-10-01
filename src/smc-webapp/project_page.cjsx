@@ -517,7 +517,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             flex          : 1
             overflow      : 'auto'
         if not @props.fullscreen
-            style.paddingTop = '5px'
+            style.paddingTop = '3px'
         <div className='container-content' style={style}>
             <DiskSpaceWarning project_id={@props.project_id} />
             <RamWarning project_id={@props.project_id} />

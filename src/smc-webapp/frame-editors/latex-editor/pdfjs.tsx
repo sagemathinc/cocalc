@@ -12,10 +12,10 @@ const HIGHLIGHT_TIME_S: number = 3;
 const { Icon, Loading } = require("smc-webapp/r_misc");
 
 import { delay } from "awaiting";
-import { Map } from "immutable";
+import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different, seconds_ago } from "../generic/misc";
+import { is_different, seconds_ago, list_alternatives } from "../generic/misc";
 import { dblclick } from "./mouse-click";
 import {
   Component,
@@ -52,6 +52,8 @@ interface PDFJSProps {
   zoom_page_height?: string;
   sync?: string;
   scroll_pdf_into_view?: { page: number; y: number; id: string };
+  mode: undefined | "rmd";
+  derived_file_types: Set<string>;
 }
 
 interface PDFJSState {
@@ -114,7 +116,8 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
           "sync",
           "scroll_pdf_into_view",
           "is_current",
-          "status"
+          "status",
+          "derived_file_types"
         ]
       ) ||
       is_different(this.state, next_state, [
@@ -464,7 +467,34 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
     return <div style={{ background: "yellow" }} id={"cc-highlight"} />;
   }
 
+  render_no_pdf(): Rendered {
+    return (
+      <div style={{ backgroundColor: "white" }}>
+        {" "}
+        <p>There is no rendered PDF file available.</p>
+        {this.props.derived_file_types.size > 0 ? (
+          <p>
+            Instead, you might want to switch to the{" "}
+            {list_alternatives(this.props.derived_file_types)} view by selecting
+            it via the dropdown selector in the button row above.
+          </p>
+        ) : (
+          ""
+        )}
+      </div>
+    );
+  }
+
   render() {
+    if (
+      this.props.mode == "rmd" &&
+      this.props.derived_file_types != undefined
+    ) {
+      if (!this.props.derived_file_types.contains("pdf")) {
+        return this.render_no_pdf();
+      }
+    }
+
     return (
       <div
         style={{

@@ -361,24 +361,30 @@ export class IPynbImporter {
 
     if (cell.metadata != null) {
       for (let k of ["collapsed", "scrolled"]) {
-        if (cell.metadata != null ? cell.metadata[k] : undefined) {
+        if (cell.metadata[k]) {
           obj[k] = !!(cell.metadata != null ? cell.metadata[k] : undefined);
         }
       }
 
-      if ((cell.metadata != null ? cell.metadata.slideshow : undefined) != null) {
+      if (cell.metadata.slideshow != null) {
         obj.slide = cell.metadata.slideshow.slide_type;
       }
 
-      if ((cell.metadata != null ? cell.metadata.tags : undefined) != null) {
+      if (cell.metadata.tags != null) {
         obj.tags = misc.dict(cell.metadata.tags.map(tag => [tag, true]));
       }
       const other = misc.copy_without(cell.metadata, [
         "collapsed",
         "scrolled",
         "slideshow",
-        "tags"
+        "tags",
+        "_root",
+        "__ownerID",
+        "__hash",
+        "__altered"
       ]);
+      //  See https://github.com/sagemathinc/cocalc/issues/3191 for
+      // why the _'d ones above; this is to fix "corrupted" worksheets.
       if (misc.len(other) > 0) {
         obj.metadata = other;
       }

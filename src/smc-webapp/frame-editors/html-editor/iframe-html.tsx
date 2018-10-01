@@ -3,13 +3,10 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 */
 
 import * as $ from "jquery";
-
-import {is_safari} from "../generic/browser";
-
-import { is_different } from "../generic/misc";
-
+import { Set } from "immutable";
+import { is_safari } from "../generic/browser";
+import { is_different, list_alternatives } from "../generic/misc";
 import { throttle } from "underscore";
-
 import { Component, React, ReactDOM, Rendered } from "../../app-framework";
 
 import * as CSS from "csstype";
@@ -29,12 +26,18 @@ interface PropTypes {
   path: string;
   reload: number;
   font_size: number;
+  mode: "rmd" | undefined;
   style?: any;
+  derived_file_types: Set<string>;
 } // should be static; change does NOT cause update.
 
 export class IFrameHTML extends Component<PropTypes, {}> {
   shouldComponentUpdate(next): boolean {
-    return is_different(this.props, next, ["reload", "font_size"]);
+    return is_different(this.props, next, [
+      "reload",
+      "font_size",
+      "derived_file_types"
+    ]);
   }
 
   componentWillReceiveProps(next): void {
@@ -98,13 +101,24 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   render_iframe() {
+    if (
+      this.props.mode == "rmd" &&
+      this.props.derived_file_types != undefined
+    ) {
+      if (!this.props.derived_file_types.contains("html")) {
+        return this.render_no_html();
+      }
+    }
+
     // param below is just to avoid caching.
+    const src_url = `${window.app_base_url}/${this.props.project_id}/raw/${
+      this.props.path
+    }?param=${this.props.reload}`;
+
     return (
       <iframe
         ref={"iframe"}
-        src={`${window.app_base_url}/${this.props.project_id}/raw/${
-          this.props.path
-        }?param=${this.props.reload}`}
+        src={src_url}
         width={"100%"}
         height={"100%"}
         style={{ border: 0, opacity: 0 }}
@@ -149,6 +163,23 @@ export class IFrameHTML extends Component<PropTypes, {}> {
     if (is_safari) {
       $(ReactDOM.findDOMNode(this)).make_height_defined();
     }
+  }
+
+  render_no_html(): Rendered {
+    return (
+      <div>
+        <p>There is no rendered HTML file available.</p>
+        {this.props.derived_file_types.size > 0 ? (
+          <p>
+            Instead, you might want to switch to the{" "}
+            {list_alternatives(this.props.derived_file_types)} view by selecting
+            it via the dropdown selector in the button row above.
+          </p>
+        ) : (
+          ""
+        )}
+      </div>
+    );
   }
 
   render(): Rendered {
