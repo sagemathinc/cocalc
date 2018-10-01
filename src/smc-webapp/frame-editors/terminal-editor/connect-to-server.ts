@@ -49,41 +49,6 @@ export async function connect_to_server(
     terminal.write(data);
   }
 
-  /* To test this full_rerender, do this in a terminal then start resizing it:
-         printf "\E[c\n" ; sleep 1 ; echo
-  */
-  const full_rerender = debounce(async () => {
-    terminal.ignore_terminal_data = true;
-    terminal.reset();
-    // This is a horrible hack, since we have to be sure the
-    // reset (and its side effects) are really done before writing
-    // the history again -- otherwise, the scroll is messed up.
-    // The call to requestAnimationFrame is also done in xterm.js.
-    // This really sucks.  It would probably be far better to just
-    // REPLACE the terminal by a new one on resize!
-    await delay(0);
-    requestAnimationFrame(async () => {
-      await delay(1);
-      terminal.write(history);
-      // NEED to make sure no device attribute requests are going out (= corruption!)
-      // TODO: surely there is a better way.
-      await delay(150);
-      terminal.scrollToBottom(); // just in case.
-      terminal.ignore_terminal_data = false;
-    });
-  }, 250);
-
-  let last_size_rows, last_size_cols;
-  terminal.on("resize", function() {
-    if (terminal.cols === last_size_cols && terminal.rows === last_size_rows) {
-      // no need to re-render
-      return;
-    }
-    last_size_rows = terminal.rows;
-    last_size_cols = terminal.cols;
-    full_rerender();
-  });
-
   terminal.pause = function(): void {
     terminal.is_paused = true;
   };
