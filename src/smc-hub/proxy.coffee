@@ -93,6 +93,9 @@ exports.init_http_proxy_server = (opts) ->
 
     winston.debug("init_http_proxy_server")
 
+    # Checks for access to project, and in case of write access,
+    # also touch's project thus recording that user is interested
+    # in this project (which sets the last_active time).
     _remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -135,7 +138,10 @@ exports.init_http_proxy_server = (opts) ->
                                 cb("User does not have write access to project.")
                             else
                                 has_access = true
-                                cb()
+                                # Record that user is going to actively access
+                                # this project.  This is important since it resets
+                                # the idle timeout.
+                                database.touch(account_id:account_id, project_id:opts.project_id, cb:cb)
                 else
                     access.user_has_read_access_to_project
                         project_id : opts.project_id
