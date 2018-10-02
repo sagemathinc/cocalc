@@ -45,6 +45,10 @@ export async function exec(opts: ExecOpts): Promise<ExecOutput> {
   return msg;
 }
 
+export async function touch(project_id:string, path:string) : Promise<void> {
+  await exec({project_id, command:'touch', args:[path]})
+}
+
 interface ReadTextFileOpts {
   project_id: string;
   path: string;

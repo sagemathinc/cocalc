@@ -3,7 +3,7 @@ Connect the term.js terminal object to the backend terminal session with the giv
 */
 
 import { aux_file } from "../frame-tree/util";
-import { project_websocket } from "../generic/client";
+import { project_websocket, touch } from "../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
 
 const MAX_HISTORY_LENGTH = 100 * 5000;
@@ -14,6 +14,8 @@ export async function connect_to_server(
   terminal: any,
   number: number
 ): Promise<void> {
+
+  touch_path(project_id, path);
   path = aux_file(`${path}-${number}`, "term");
   terminal.is_paused = false;
   terminal.path = path;
@@ -91,4 +93,17 @@ export async function connect_to_server(
 
   terminal.reconnect_to_project = reconnect_to_project;
   await reconnect_to_project();
+}
+
+
+async function touch_path(project_id:string, path: string) : Promise<void> {
+  // touch the original path file on disk, so it exists and is
+  // modified -- that's the ONLY purpose of this touch.
+  // Also this is in a separate function so we can await it and catch exception.
+  try {
+    await touch(project_id, path);
+  } catch(err) {
+    console.warn(`error touching ${path} -- ${err}`)
+  }
+
 }

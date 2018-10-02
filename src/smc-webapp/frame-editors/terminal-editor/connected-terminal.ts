@@ -1,4 +1,3 @@
-
 import { EventEmitter } from "events";
 import { aux_file } from "../frame-tree/util";
 
@@ -9,7 +8,7 @@ import { delay } from "awaiting";
 import { AppRedux } from "smc-webapp/app-framework";
 import { Terminal as XTerminal } from "xterm";
 import { setTheme } from "./themes";
-import { project_websocket } from "../generic/client";
+import { project_websocket, touch } from "../generic/client";
 
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
@@ -119,7 +118,10 @@ export class Terminal extends EventEmitter {
       settings.get("scrollback", SCROLLBACK) !==
       this.terminal_settings.get("scrollback", SCROLLBACK)
     ) {
-      this.terminal.setOption("scrollback", settings.get("scrollback", SCROLLBACK));
+      this.terminal.setOption(
+        "scrollback",
+        settings.get("scrollback", SCROLLBACK)
+      );
     }
 
     if (settings.get("font") !== this.terminal_settings.get("font")) {
@@ -143,6 +145,7 @@ export class Terminal extends EventEmitter {
     if (is_reconnect) {
       this.emit("reconnect");
     }
+    touch_path(this.project_id, this.path);
   }
 
   _handle_data_from_project(data: any): void {
@@ -202,5 +205,16 @@ export class Terminal extends EventEmitter {
       this.terminal.scrollToBottom(); // just in case.
       this.ignore_terminal_data = false;
     });
+  }
+}
+
+async function touch_path(project_id: string, path: string): Promise<void> {
+  // touch the original path file on disk, so it exists and is
+  // modified -- that's the ONLY purpose of this touch.
+  // Also this is in a separate function so we can await it and catch exception.
+  try {
+    await touch(project_id, path);
+  } catch (err) {
+    console.warn(`error touching ${path} -- ${err}`);
   }
 }
