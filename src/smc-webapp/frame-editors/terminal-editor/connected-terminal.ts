@@ -104,7 +104,10 @@ export class Terminal extends EventEmitter {
 
     // The following option possibly makes xterm.js better at
     // handling huge bursts of data by pausing the backend temporarily.
-    this.terminal.setOption("useFlowControl", true);
+    // DO NOT USE! It directly and "violently" conflicts with Ipython's
+    // naive use of "Ctrl+S" for I-search mode.
+    // https://github.com/sagemathinc/cocalc/issues/3236
+    // this.terminal.setOption("useFlowControl", true);
 
     // Interesting to play with, but breaks copy/paste and maybe other
     // things right now, probably due to CSS subtlety.
