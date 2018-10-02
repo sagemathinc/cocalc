@@ -125,10 +125,11 @@ export class TerminalFrame extends Component<Props, {}> {
     const color = background_color(this.props.terminal.get("color_scheme"));
     return (
       <div
-        ref={"terminal"}
         className={"smc-vfill"}
         style={{ backgroundColor: color, padding: "3px" }}
-      />
+      >
+        <div className={"smc-vfill"} ref={"terminal"} />
+      </div>
     );
   }
 }
