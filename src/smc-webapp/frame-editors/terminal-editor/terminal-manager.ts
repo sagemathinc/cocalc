@@ -351,7 +351,10 @@ export class TerminalManager {
 
     // The following option possibly makes xterm.js better at
     // handling huge bursts of data by pausing the backend temporarily.
-    terminal.setOption("useFlowControl", true);
+    // DO NOT USE! It directly and "violently" conflicts with Ipython's
+    // naive use of "Ctrl+S" for I-search mode.
+    // https://github.com/sagemathinc/cocalc/issues/3236
+    //terminal.setOption("useFlowControl", true);
 
     // Interesting to play with, but breaks copy.
     //terminal.setOption("rendererType", "dom");
