@@ -28,9 +28,9 @@ misc          = require('smc-util/misc')
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
 
+VIDEO_CHAT_SERVER = 'https://meet.jit.si'
 VIDEO_UPDATE_INTERVAL_MS = 30*1000
-VIDEO_CHAT_LIMIT         = 8       # imposed by free appear.in plan
-
+VIDEO_CHAT_LIMIT         = 99999       # jit.si doesn't seem to have a limit...
 # The pop-up window for video chat
 video_window = (title, url, cb_closed) ->
     {open_new_tab} = require('smc-webapp/misc_page')
@@ -101,7 +101,7 @@ class VideoChat
         @_video_interval_id = setInterval(chat_window_is_open, VIDEO_UPDATE_INTERVAL_MS*.8)
 
         title = "CoCalc Video Chat: #{misc.trunc_middle(@path, 30)}"
-        url   = "https://appear.in/#{room_id}"
+        url   = "#{VIDEO_CHAT_SERVER}/#{room_id}"
         w     = video_window(title, url)
         video_windows[room_id] = w
         # disabled -- see https://github.com/sagemathinc/cocalc/issues/1899
