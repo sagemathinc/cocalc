@@ -202,7 +202,7 @@ exports.init_express_http_server = (opts) ->
             res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
 
-    router.get '/signout', (req, res) ->
+    router.get '/cookies/signout', (req, res) ->
         res.clearCookie(auth.remember_me_cookie_name(opts.base_url))
         res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
         res.redirect(opts.base_url + '/app')
