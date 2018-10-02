@@ -197,7 +197,15 @@ exports.init_express_http_server = (opts) ->
 
     router.get '/app', (req, res) ->
         #res.cookie(opts.base_url + 'has_remember_me', 'true', { maxAge: 60*60*1000, httpOnly: false })
+        if req.query.signed_out?
+            res.clearCookie(auth.remember_me_cookie_name(opts.base_url))
+            res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
         res.sendFile(path_module.join(STATIC_PATH, 'app.html'), {maxAge: 0})
+
+    router.get '/signout', (req, res) ->
+        res.clearCookie(auth.remember_me_cookie_name(opts.base_url))
+        res.cookie(opts.base_url + 'has_remember_me', 'false', { maxAge: 60*60*1000, httpOnly: false })
+        res.redirect(opts.base_url + '/app')
 
     # The base_url javascript, which sets the base_url for the client.
     router.get '/base_url.js', (req, res) ->

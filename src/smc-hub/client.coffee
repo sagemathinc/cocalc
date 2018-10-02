@@ -7,7 +7,7 @@ Client = a client that is connected via a persistent connection to the hub
 uuid                 = require('node-uuid')
 async                = require('async')
 
-exports.COOKIE_OPTIONS = COOKIE_OPTIONS = {secure:true}
+exports.COOKIE_OPTIONS = COOKIE_OPTIONS = {secure:true, sameSite:'strict'}
 
 Cookies              = require('cookies')            # https://github.com/jed/cookies
 misc                 = require('smc-util/misc')
