@@ -23,6 +23,7 @@
 {redux, Redux, rclass, rtypes, React, Actions, Store} = require('./app-framework')
 {Loading, Markdown} = require('./r_misc')
 {HelpEmailLink, SiteName} = require('./customize')
+{ Column, Table } = require('react-virtualized')
 
 schema = require('smc-util/schema')
 misc   = require('smc-util/misc')
