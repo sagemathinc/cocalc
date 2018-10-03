@@ -47,8 +47,12 @@ li_style = exports.li_style =
 # improve understanding of large numbers
 fmt_large = (num) ->
     num = parseInt(num)
+    if localStorage.fmt_large
+        return num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    else
+        return num.toLocaleString()
     #num += 31 * num + 7890
-    num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    # num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
 
 
 HelpPageUsageSection = rclass
