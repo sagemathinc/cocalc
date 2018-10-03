@@ -380,7 +380,7 @@ class exports.Client extends EventEmitter
     get_cookie: (opts) ->
         opts = defaults opts,
             name : required
-            cb   : required   # cb(value)
+            cb   : required   # cb(undefined, value)
         if not @conn?.id?
             # no connection or connection died
             return
@@ -453,7 +453,7 @@ class exports.Client extends EventEmitter
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
-        @set_cookie
+        @set_cookie  # same name also hardcoded in the client!
             name  : base_url_lib.base_url() + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
