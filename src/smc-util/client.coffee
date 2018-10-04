@@ -1975,6 +1975,16 @@ class exports.Connection extends EventEmitter
         catch err
             opts.cb(err)
 
+    touch_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @call
+            allow_post  : true
+            message     : message.touch_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
+
 
 #################################################
 # Other account Management functionality shared between client and server

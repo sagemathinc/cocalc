@@ -2573,3 +2573,39 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
+
+    mesg_touch_project: (mesg) =>
+        dbg = @dbg('mesg_touch_project')
+        async.series([
+            (cb) =>
+                dbg("checking conditions")
+                if not @account_id?
+                    cb('you must be signed in to touch a project')
+                    return
+                if not misc.is_valid_uuid_string(mesg.project_id)
+                    cb('project_id must be specified and valid')
+                    return
+                access.user_has_write_access_to_project
+                    database       : @database
+                    project_id     : mesg.project_id
+                    account_groups : @groups
+                    account_id     : @account_id
+                    cb             : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            cb("must have write access")
+                        else
+                            cb()
+            (cb) =>
+                @touch
+                    project_id : mesg.project_id
+                    action     : 'touch'
+                    cb         : cb
+        ], (err) =>
+            if err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"unable to touch project #{mesg.project_id} -- #{err}")
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )
