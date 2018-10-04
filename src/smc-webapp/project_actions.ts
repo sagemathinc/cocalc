@@ -8,6 +8,8 @@ import * as os_path from "path";
 
 import { query as client_query } from "./frame-editors/generic/client";
 
+import { callback_opts } from "./frame-editors/generic/async-utils";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -234,6 +236,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.load_target = this.load_target.bind(this);
     this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
     this.close_free_warning = this.close_free_warning.bind(this);
+
     this._log_open_time = {};
     this._activity_indicator_timers = {};
   }
@@ -244,6 +247,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     for (let table in QUERIES) {
       this.redux.removeTable(project_redux_name(this.project_id, table));
     }
+  };
+
+  // Records in the backend database that we are actively using this project.
+  // This resets the idle timeout, among other things.
+  touch = async (): Promise<void> => {
+    await callback_opts(webapp_client.touch_project)({
+      project_id: this.project_id
+    });
   };
 
   _ensure_project_is_open(cb): void {
@@ -438,12 +449,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store == undefined) {
       return;
     }
+
+    // If there is activity it's also a good opportunity to
+    // express that we are interested in this project.
+    try {
+      this.touch();
+    } catch (err) {}
+
     let x =
       store.get("activity") != null ? store.get("activity").toJS() : undefined;
     if (x == null) {
       x = {};
     }
-    // Actual implementyation of above specified API is VERY minimal for
+    // Actual implementation of above specified API is VERY minimal for
     // now -- just enough to display something to user.
     if (opts.status != null) {
       x[opts.id] = opts.status;

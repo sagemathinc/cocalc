@@ -1979,6 +1979,14 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             cb         : undefined
+        # Throttle -- so if this function is called with the same project_id
+        # twice in 60s, it's ignored (to avoid unnecessary network traffic).
+        @_touch_project_throttle ?= {}
+        last = @_touch_project_throttle[opts.project_id]
+        if last? and new Date().valueOf() - last <= 60000
+            opts.cb?()
+            return
+        @_touch_project_throttle[opts.project_id] = new Date().valueOf()
         @call
             allow_post  : true
             message     : message.touch_project(project_id: opts.project_id)
