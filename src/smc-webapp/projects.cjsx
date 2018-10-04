@@ -336,6 +336,7 @@ class ProjectsActions extends Actions
     # Collaborators
     ###
     remove_collaborator: (project_id, account_id) =>
+        name = redux.getStore('users').get_name(account_id)
         webapp_client.project_remove_collaborator
             project_id : project_id
             account_id : account_id
@@ -343,6 +344,10 @@ class ProjectsActions extends Actions
                 if err # TODO: -- set error in store for this project...
                     err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
+                else
+                    @redux.getProjectActions(project_id).log
+                        event    : 'remove_collaborator'
+                        removed_name : name
 
     # this is for inviting existing users, the email is only known by the back-end
     invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>

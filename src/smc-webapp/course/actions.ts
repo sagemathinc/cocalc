@@ -1031,12 +1031,12 @@ export class CourseActions extends Actions<CourseState> {
     });
     if (!s.get_allow_collabs()) {
       // Remove anybody extra on the student project
-      return users.map((_, account_id) => {
+      users.map((_, account_id) => {
         if (
           target_users.get(account_id) == null &&
           account_id !== student_account_id
         ) {
-          return this.redux
+          this.redux
             .getActions("projects")
             .remove_collaborator(student_project_id, account_id);
         }
