@@ -103,10 +103,11 @@ export class TerminalFrame extends Component<Props, {}> {
 
   render(): Rendered {
     const color = background_color(this.props.terminal.get("color_scheme"));
+    /* 4px padding is consistent with CodeMirror */
     return (
       <div
         className={"smc-vfill"}
-        style={{ backgroundColor: color, padding: "3px" }}
+        style={{ backgroundColor: color, padding: "4px" }}
       >
         <div className={"smc-vfill"} ref={"terminal"} />
       </div>
