@@ -48,8 +48,7 @@ import * as tree_ops from "../frame-tree/tree-ops";
 import { Actions as BaseActions, Store } from "../../app-framework";
 import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 
-import { Terminal } from "xterm";
-
+import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
@@ -132,7 +131,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.path = path;
     this.store = store;
     this.is_public = is_public;
-    this.terminals = new TerminalManager(this, this.redux);
+    this.terminals = new TerminalManager(this);
 
     if (is_public) {
       this._init_value();
@@ -314,8 +313,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Reload the document.  This is used mainly for *public* viewing of
   // a file.
   reload(id: string): void {
-    if (this.terminals.exists(id)) {
-      this.terminals.reload(id);
+    if (this._terminal_command(id, "reload")) {
       return;
     }
     if (!this.store.get("is_loaded")) {
@@ -1104,8 +1102,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._cm[this.store.getIn(["local_view_state", "active_id"])];
   }
 
-  _get_terminal(id: string): Terminal | undefined {
-    return this.terminals.get_terminal(id);
+  _get_terminal(id: string, parent: HTMLElement): Terminal {
+    return this.terminals.get_terminal(id, parent);
   }
 
   // Open a code editor, optionally at the given line.
@@ -1147,11 +1145,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   focus(id?: string): void {
-    if (id !== undefined && this.terminals.exists(id)) {
-      this.terminals.focus(id);
-      return;
-    }
-
     let cm;
     if (id) {
       cm = this._cm[id];
@@ -1364,8 +1357,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   copy(id: string): void {
-    if (this.terminals.exists(id)) {
-      this.terminals.copy(id);
+    if (this._terminal_command(id, "copy")) {
       return;
     }
     const cm = this._get_cm(id);
@@ -1377,8 +1369,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   paste(id: string): void {
-    if (this.terminals.exists(id)) {
-      this.terminals.paste(id);
+    if (this._terminal_command(id, "paste")) {
       return;
     }
     const cm = this._get_cm(id);
@@ -1805,15 +1796,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.set_frame_tree({ id: id, title: title });
   }
 
-  /* Terminal support -- find a way to factor this out somehow! */
-  async set_terminal(id: string, terminal: Terminal): Promise<void> {
-    await this.terminals.set_terminal(id, terminal);
+  /* Kick other uses out of this frame (only implemented for terminals right now). */
+  _terminal_command(id: string, cmd: string): boolean {
+    const terminal = this.terminals.get(id);
+    if (terminal != null) {
+      terminal[cmd]();
+      return true;
+    }
+    return false;
   }
 
-  /* Kick other uses out of this frame (only implemented for terminals right now). */
   kick_other_users_out(id: string): void {
-    if (this.terminals.exists(id)) {
-      this.terminals.kick_other_users_out(id);
+    if (this._terminal_command(id, "kick_other_users_out")) {
       return;
     }
   }
@@ -1821,8 +1815,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   pause(id: string): void {
     this.set_frame_tree({ id: id, is_paused: true });
     this.focus(id);
-    if (this.terminals.exists(id)) {
-      this.terminals.pause(id);
+    if (this._terminal_command(id, "pause")) {
       return;
     }
   }
@@ -1830,24 +1823,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   unpause(id: string): void {
     this.set_frame_tree({ id: id, is_paused: false });
     this.focus(id);
-    if (this.terminals.exists(id)) {
-      this.terminals.unpause(id);
+    if (this._terminal_command(id, "unpause")) {
       return;
     }
   }
 
   edit_init_script(id: string): void {
     // right now, only terminals have this generically.
-    if (this.terminals.exists(id)) {
-      this.terminals.edit_init_script(id);
+    if (this._terminal_command(id, "edit_init_script")) {
       return;
     }
   }
 
   popout(id: string): void {
     // right now, only terminals have this generically.
-    if (this.terminals.exists(id)) {
-      this.terminals.popout(id);
+    if (this._terminal_command(id, "popout")) {
       return;
     }
   }
