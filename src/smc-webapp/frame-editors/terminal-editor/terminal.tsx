@@ -4,7 +4,7 @@ A single terminal frame.
 
 import { Map } from "immutable";
 import { Terminal } from "xterm";
-require("xterm/dist/xterm.css");
+require("xterm/lib/xterm.css");
 import { ResizeObserver } from "resize-observer";
 import { proposeGeometry } from "xterm/lib/addons/fit/fit";
 import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
