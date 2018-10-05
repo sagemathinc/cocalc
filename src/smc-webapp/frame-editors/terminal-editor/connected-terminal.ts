@@ -307,6 +307,7 @@ export class Terminal {
       //console.log("key", event);
       // record that terminal is being actively used.
       this.last_active = new Date().valueOf();
+      this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.actions.unpause(this.id);
@@ -373,8 +374,7 @@ export class Terminal {
       case "no-burst":
         this.burst_off();
         break;
-      case "no-ignore":
-        this.ignore_off();
+      case "no-ignore": // no-op now
         break;
       case "close":
         this.close_request();
@@ -412,14 +412,6 @@ export class Terminal {
   burst_off(): void {
     this.actions.set_status("");
     this.actions.set_error("");
-  }
-
-  async ignore_off(): Promise<void> {
-    await delay(100);
-    if (this.state === "closed") {
-      return;
-    }
-    this.ignore_terminal_data = false;
   }
 
   close_request(): void {
