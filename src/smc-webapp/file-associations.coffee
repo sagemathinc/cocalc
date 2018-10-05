@@ -8,6 +8,7 @@ via the newer registration system.
 ###
 
 codemirror_associations =
+    adb    : 'ada'
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
     cql    : 'text/x-sql'
