@@ -20,7 +20,7 @@ import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
 webLinks.apply(XTerminal);
 
 import { setTheme } from "./themes";
-import { project_websocket, touch } from "../generic/client";
+import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions } from "../code-editor/actions";
 
 import { endswith } from "../generic/misc";
@@ -60,8 +60,11 @@ export class Terminal {
   private conn_write_buffer: any = [];
   private history: string = "";
   private last_geom: { rows: number; cols: number } | undefined;
+  private last_active : number = 0;
   // conn = connection to project -- a primus websocket channel.
   private conn?: any;
+  private touch_interval : number;
+
   public is_mounted: boolean = false;
   public element: HTMLElement;
 
@@ -75,7 +78,8 @@ export class Terminal {
       "handle_mesg",
       "update_settings",
       "connect",
-      "_handle_data_from_project"
+      "_handle_data_from_project",
+      "touch"
     ]);
 
     this.full_rerender = debounce(this.full_rerender, 250);
@@ -100,6 +104,7 @@ export class Terminal {
     this.init_title();
     this.init_terminal_data();
     this.init_settings();
+    this.init_touch();
   }
 
   assert_not_closed(): void {
@@ -111,6 +116,7 @@ export class Terminal {
   close(): void {
     this.assert_not_closed();
     this.state = "closed";
+    clearInterval(this.touch_interval);
     this.account.removeListener("change", this.update_settings);
     delete this.actions;
     delete this.account;
@@ -322,9 +328,22 @@ export class Terminal {
     (this.terminal as any).webLinksInit();
   }
 
+  touch() : void {
+    if ((new Date().valueOf() - this.last_active) < 70000) {
+      touch_project(this.project_id);
+    }
+  }
+
+  init_touch() : void {
+    this.touch_interval = setInterval(this.touch, 60000);
+  }
+
   init_keyhandler(): void {
     this.terminal.attachCustomKeyEventHandler(event => {
       //console.log("key", event);
+      // record that terminal is being actively used.
+      this.last_active = new Date().valueOf();
+
       if (this.is_paused) {
         this.actions.unpause(this.id);
       }
