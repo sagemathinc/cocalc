@@ -1801,10 +1801,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const terminal = this.terminals.get(id);
     if (terminal != null) {
       const f = terminal[cmd];
-      if (typeof(f) !== 'function') {
+      if (typeof f !== "function") {
         console.warn(`terminal command "${cmd}" not implemented`);
       } else {
-        f();
+        terminal[cmd]();
       }
       return true;
     }
