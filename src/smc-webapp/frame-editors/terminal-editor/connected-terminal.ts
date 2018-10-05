@@ -6,7 +6,6 @@ extra support for being connected to:
   - frame-editor (via actions)
 */
 
-import { debounce } from "underscore";
 import { Map } from "immutable";
 import { delay } from "awaiting";
 
@@ -60,10 +59,10 @@ export class Terminal {
   private conn_write_buffer: any = [];
   private history: string = "";
   private last_geom: { rows: number; cols: number } | undefined;
-  private last_active : number = 0;
+  private last_active: number = 0;
   // conn = connection to project -- a primus websocket channel.
   private conn?: any;
-  private touch_interval : number;
+  private touch_interval: number;
 
   public is_mounted: boolean = false;
   public element: HTMLElement;
@@ -81,8 +80,6 @@ export class Terminal {
       "_handle_data_from_project",
       "touch"
     ]);
-
-    this.full_rerender = debounce(this.full_rerender, 250);
 
     this.actions = actions;
     this.account = (this.actions as any).redux.getStore("account");
@@ -217,7 +214,7 @@ export class Terminal {
     }
 
     /* We have to ignore when rendering the initial history.
-    To TEST this full_rerender, do this in a terminal then start resizing it:
+    To TEST this, do this in a terminal, then reconnect:
          printf "\E[c\n" ; sleep 1 ; echo
     The above causes the history to have device attribute requests, which
     will result in spurious control codes in some cases if the code below
@@ -283,39 +280,6 @@ export class Terminal {
     this.terminal.write(data);
   }
 
-  async full_rerender(): Promise<void> {
-    this.assert_not_closed();
-    this.ignore_terminal_data = true;
-    this.terminal.reset();
-    // This is a horrible hack, since we have to be sure the
-    // reset (and its side effects) are really done before writing
-    // the history again -- otherwise, the scroll is messed up.
-    // The call to requestAnimationFrame is also done in xterm.js.
-    // This really sucks.  It would probably be far better to just
-    // REPLACE the terminal by a new one on resize!
-    await delay(0);
-    if (this.state === "closed") {
-      return;
-    }
-    requestAnimationFrame(async () => {
-      await delay(1);
-      if (this.state === "closed") {
-        return;
-      }
-      this.terminal.write(this.history);
-      // NEED to make sure no device attribute requests are going out (= corruption!)
-      // TODO: surely there is a better way.
-      await delay(150);
-      if (this.state === "closed") {
-        return;
-      }
-      // NOTE: this is a BUG -- it scrolls the text to the
-      // bottom, but the scrollbar is on top; it's very confusing for users.
-      this.terminal.scrollToBottom(); // just in case.
-      this.ignore_terminal_data = false;
-    });
-  }
-
   init_title(): void {
     this.terminal.on("title", title => {
       if (title != null) {
@@ -328,13 +292,13 @@ export class Terminal {
     (this.terminal as any).webLinksInit();
   }
 
-  touch() : void {
-    if ((new Date().valueOf() - this.last_active) < 70000) {
+  touch(): void {
+    if (new Date().valueOf() - this.last_active < 70000) {
       touch_project(this.project_id);
     }
   }
 
-  init_touch() : void {
+  init_touch(): void {
     this.touch_interval = setInterval(this.touch, 60000);
   }
 
@@ -602,6 +566,14 @@ export class Terminal {
     this.terminal.clearSelection();
     (this.terminal as any)._core.handler(copypaste.get_buffer());
     this.terminal.focus();
+  }
+
+  scroll_to_bottom(): void {
+    // Upstream bug workaround -- we scroll to top first, then bottom
+    // entirely to workaround a bug. This is NOT fixed by the Oct 2018
+    // term.js release, despite it touching relevant code.
+    this.terminal.scrollToTop();
+    this.terminal.scrollToBottom();
   }
 }
 

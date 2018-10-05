@@ -82,6 +82,8 @@ export class TerminalFrame extends Component<Props, {}> {
     if (this.props.is_current) {
       this.terminal.focus();
     }
+    // TODO: Obviously restoring the exact scroll position would be better...
+    this.terminal.scroll_to_bottom();
   }
 
   async set_font_size(font_size: number): Promise<void> {
