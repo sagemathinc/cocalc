@@ -160,6 +160,9 @@ export async function terminal(
       logger.debug("terminal", name, "EXIT");
       init_term();
     });
+
+    // set the size
+    resize();
   }
   await init_term();
 
