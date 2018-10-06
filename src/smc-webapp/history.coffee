@@ -103,8 +103,6 @@ exports.update_params = ->
         exports.set_url(last_url)
 
 exports.set_url = (url) ->
-    console.log "Setting to url:", url
-    console.trace()
     last_url = url
     full_url = window.app_base_url + url + params()
     window.history.pushState("", "", full_url)

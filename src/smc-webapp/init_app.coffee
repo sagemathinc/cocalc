@@ -375,7 +375,7 @@ webapp_client.on "connecting", () ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
         recent_disconnects = []
         reconnection_warning = +new Date()
-        console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
+        console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt}  attempts and #{num_recent_disconnects()} disconnects")
         if not recent_wakeup_from_standby()
             alert_message(msg)
         webapp_client._fix_connection(true)

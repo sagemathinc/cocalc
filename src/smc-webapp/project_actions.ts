@@ -2630,7 +2630,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
     //if DEBUG then console.log("ProjectStore::load_target args:", segments, full_path, parent_path, last, foreground, ignore_kiosk)
-    console.log("ProjectStore::load_target args:", segments, full_path, parent_path, last, foreground, ignore_kiosk, change_history)
     switch (segments[0]) {
       case "files":
         if (target[target.length - 1] === "/" || full_path === "") {
