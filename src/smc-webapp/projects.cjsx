@@ -215,20 +215,21 @@ class ProjectsActions extends Actions
     # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
-            project_id   : required  # string  id of the project to open
-            target       : undefined # string  The file path to open
-            switch_to    : true      # bool    Whether or not to foreground it
-            ignore_kiosk : false     # bool    Ignore ?fullscreen=kiosk
+            project_id     : required  # string  id of the project to open
+            target         : undefined # string  The file path to open
+            switch_to      : true      # bool    Whether or not to foreground it
+            ignore_kiosk   : false     # bool    Ignore ?fullscreen=kiosk
+            change_history : true      # bool    Whether or not to alter browser history
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
         if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
         project_actions.fetch_directory_listing()
-        redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
+        redux.getActions('page').set_active_tab(opts.project_id, opts.change_history) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
         redux.getActions('page').restore_session(opts.project_id)
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
@@ -251,7 +252,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').save_session()
 
     # should not be in projects...?
-    load_target: (target, switch_to, ignore_kiosk=false) =>
+    load_target: (target, switch_to, ignore_kiosk=false, change_history=true) =>
         #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
@@ -261,10 +262,11 @@ class ProjectsActions extends Actions
             t = segments.slice(1).join('/')
             project_id = segments[0]
             @open_project
-                project_id   : project_id
-                target       : t
-                switch_to    : switch_to
-                ignore_kiosk : ignore_kiosk
+                project_id     : project_id
+                target         : t
+                switch_to      : switch_to
+                ignore_kiosk   : ignore_kiosk
+                change_history : change_history
 
     # Put the given project in the foreground
     foreground_project: (project_id) =>
