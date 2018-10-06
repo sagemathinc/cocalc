@@ -414,6 +414,13 @@ export class Terminal {
     this.actions.set_error("");
   }
 
+  async ignore_off(): Promise<void> {
+    if (this.state === "closed") {
+      return;
+    }
+    this.ignore_terminal_data = false;
+  }
+
   close_request(): void {
     this.actions.set_error(
       "Another user closed one of your terminal sessions."

@@ -110,6 +110,11 @@ export class TerminalFrame extends Component<Props, {}> {
       <div
         className={"smc-vfill"}
         style={{ backgroundColor: color, padding: "4px" }}
+        onClick={() => {
+          /* otherwise, clicking right outside term defocuses,
+             which is confusing */
+          this.terminal.focus();
+        }}
       >
         <div className={"smc-vfill"} ref={"terminal"} />
       </div>
