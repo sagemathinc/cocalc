@@ -375,7 +375,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       // nothing to do
       return;
     }
-    console.log(`Setting active tab to ${key}`)
     this.setState({ active_project_tab: key });
     switch (key) {
       case "files":
@@ -390,7 +389,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         break;
       case "new":
         this.setState({ file_creation_error: undefined });
-
         if (opts.change_history) {
           this.push_state(`new/${store.get("current_path")}`);
         }
@@ -1180,7 +1178,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           path = path.slice(0, -1);
         }
         this.foreground_project(change_history);
-        this.set_current_path(path, change_history);
+        this.set_current_path(path);
         let store = this.get_store();
         if (store == undefined) {
           return;

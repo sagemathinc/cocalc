@@ -129,7 +129,6 @@ class PageActions extends Actions
         # if there happens to be a websocket to this project, get rid of it.  Nothing will be using it when the project is closed.
         require('./project/websocket/connect').disconnect_from_project(project_id)
 
-
     set_active_tab: (key, change_history=true) =>
         @setState(active_top_tab : key)
         switch key
@@ -375,7 +374,7 @@ webapp_client.on "connecting", () ->
         # reset recent disconnects, and hope that after the reconnection the situation will be better
         recent_disconnects = []
         reconnection_warning = +new Date()
-        console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt}  attempts and #{num_recent_disconnects()} disconnects")
+        console.log("ALERT: connection unstable, notification + attempting to fix it -- #{attempt} attempts and #{num_recent_disconnects()} disconnects")
         if not recent_wakeup_from_standby()
             alert_message(msg)
         webapp_client._fix_connection(true)
