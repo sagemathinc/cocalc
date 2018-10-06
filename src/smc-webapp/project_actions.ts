@@ -298,7 +298,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       local_url = this._last_history_state;
     }
     if (local_url == null) {
-      local_url = "";
+      local_url = `files/`;
     }
     this._last_history_state = local_url;
     const { set_url } = require("./history");
@@ -376,7 +376,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     console.log(`Setting active tab to ${key}`)
-    console.trace()
     this.setState({ active_project_tab: key });
     switch (key) {
       case "files":
@@ -894,7 +893,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
 
             if (opts.foreground) {
-              this.foreground_project();
+              this.foreground_project(opts.change_history);
               this.set_active_tab(misc.path_to_tab(opts.path), {
                 change_history: opts.change_history
               });
@@ -1148,7 +1147,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Makes this project the active project tab
-  foreground_project(): void {
+  foreground_project(change_history=true): void {
     this._ensure_project_is_open(err => {
       if (err) {
         // TODO!
@@ -1159,7 +1158,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         );
       } else {
         (this.redux.getActions("projects") as any).foreground_project(
-          this.project_id
+          this.project_id,
+          change_history
         );
       }
     });
@@ -1179,7 +1179,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (path[path.length - 1] === "/") {
           path = path.slice(0, -1);
         }
-        this.foreground_project();
+        this.foreground_project(change_history);
         this.set_current_path(path);
         let store = this.get_store();
         if (store == undefined) {

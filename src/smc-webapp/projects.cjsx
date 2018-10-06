@@ -269,8 +269,8 @@ class ProjectsActions extends Actions
                 change_history : change_history
 
     # Put the given project in the foreground
-    foreground_project: (project_id) =>
-        redux.getActions('page').set_active_tab(project_id)
+    foreground_project: (project_id, change_history=true) =>
+        redux.getActions('page').set_active_tab(project_id, change_history)
 
         redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
