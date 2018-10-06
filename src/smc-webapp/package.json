@@ -98,7 +98,7 @@
     "three": "^0.78.0",
     "timeago": "^1.6.3",
     "underscore": "^1.8",
-    "xterm": "git+https://github.com/cocalc/xterm.js.git"
+    "xterm": "^3.8.0"
   },
   "devDependencies": {
     "cjsx-register": "^1.0.5",
