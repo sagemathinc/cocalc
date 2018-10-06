@@ -110,7 +110,7 @@ exports.set_url = (url) ->
     analytics_pageview(window.location.pathname)
 
 # Now load any specific page/project/previous state
-exports.load_target = load_target = (target, ignore_kiosk=false) ->
+exports.load_target = load_target = (target, ignore_kiosk=false, change_history=true) ->
     misc = require('smc-util/misc')
     #if DEBUG then console.log("history/load_target: #{misc.to_json(arguments)}")
     if not target
@@ -119,18 +119,18 @@ exports.load_target = load_target = (target, ignore_kiosk=false) ->
     segments = target.split('/')
     switch segments[0]
         when 'help'
-            redux.getActions('page').set_active_tab('about')
+            redux.getActions('page').set_active_tab('about', change_history)
         when 'projects'
             require.ensure [], =>
                 if segments.length > 1
                     #if DEBUG then console.log("history/load_target → load_target: #{misc.to_json([segments.slice(1).join('/'), true, ignore_kiosk])}")
                     redux.getActions('projects').load_target(segments.slice(1).join('/'), true, ignore_kiosk)
                 else
-                    redux.getActions('page').set_active_tab('projects')
+                    redux.getActions('page').set_active_tab('projects', change_history)
         when 'settings'
             if not logged_in
                 return
-            redux.getActions('page').set_active_tab('account')
+            redux.getActions('page').set_active_tab('account', change_history)
             if segments[1] == 'account'
                 redux.getActions('account').set_active_tab('account')
             if segments[1] == 'billing'
@@ -145,8 +145,8 @@ exports.load_target = load_target = (target, ignore_kiosk=false) ->
         when 'file-use', 'admin'
             if not logged_in
                 return
-            redux.getActions('page').set_active_tab(segments[0])
+            redux.getActions('page').set_active_tab(segments[0], change_history)
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))
-    load_target(decodeURIComponent(document.location.pathname.slice(window.app_base_url.length + 1)))
+    load_target(decodeURIComponent(document.location.pathname.slice(window.app_base_url.length + 1)), false, false)

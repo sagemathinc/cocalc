@@ -93,10 +93,12 @@
     "redux": "^4.0.0",
     "requirejs": "^2.3.3",
     "reselect": "^3.0.0",
+    "resize-observer": "^1.0.0-alpha.1",
     "shell-escape": "^0.2.0",
     "three": "^0.78.0",
     "timeago": "^1.6.3",
-    "underscore": "^1.8"
+    "underscore": "^1.8",
+    "xterm": "git+https://github.com/cocalc/xterm.js.git"
   },
   "devDependencies": {
     "cjsx-register": "^1.0.5",

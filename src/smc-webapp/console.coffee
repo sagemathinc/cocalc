@@ -210,7 +210,10 @@ class Console extends EventEmitter
     connect: =>
         {webapp_client} = require('./webapp_client')
         ws = await webapp_client.project_websocket(@project_id)
-        @conn = await ws.api.terminal(@path)
+        # aux_path for compat with new frame terminal editor.
+        {aux_file} = require('./frame-editors/frame-tree/util')
+        aux_path = aux_file("#{@path}-0", "term");
+        @conn = await ws.api.terminal(aux_path)
         @conn.on 'end', =>
             if @conn?
                 @connect()

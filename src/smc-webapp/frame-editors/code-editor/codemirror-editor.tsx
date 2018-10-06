@@ -1,3 +1,4 @@
+
 /*
 Single codemirror-based file editor
 
@@ -300,11 +301,6 @@ export class CodemirrorEditor extends Component<Props, State> {
     await delay(0);
     // now in the next render loop
     this.cm_refresh();
-    if (props.is_current && this.cm) {
-      this.cm.focus();
-      await delay(15); // just in case.
-      this.cm.focus();
-    }
   }
 
   init_new_codemirror(): void {

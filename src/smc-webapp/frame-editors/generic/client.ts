@@ -45,11 +45,27 @@ export async function exec(opts: ExecOpts): Promise<ExecOutput> {
   return msg;
 }
 
+export async function touch(project_id: string, path: string): Promise<void> {
+  await exec({ project_id, command: "touch", args: [path] });
+}
+
+// Resets the idle timeout timer and makes it known we are using the project.
+export async function touch_project(project_id: string): Promise<void> {
+  return await callback_opts(webapp_client.touch_project)({ project_id });
+}
+
 interface ReadTextFileOpts {
   project_id: string;
   path: string;
   timeout?: number;
 }
+
+/*
+export async function exists_in_project(
+  project_id:string, path:string) : Promise<boolean> {
+
+}
+*/
 
 export async function read_text_file_from_project(
   opts: ReadTextFileOpts

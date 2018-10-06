@@ -982,7 +982,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query += ', email_address'
                 query += ' FROM accounts'
                 query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
-                if opts.active
+                if opts.active and not opts.admin
                     params.push(opts.active)
                     # name search only includes active users
                     query += " AND ((last_active >= NOW() - $#{i}::INTERVAL) OR (created >= NOW() - $#{i}::INTERVAL)) "
@@ -991,6 +991,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 query += " ORDER BY last_active DESC NULLS LAST"
                 query += " LIMIT $#{i}::INTEGER"; i += 1
                 params.push(opts.limit)
+                dbg("query params=#{params}")
                 @_query
                     query  : query
                     params : params
@@ -2655,3 +2656,59 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cache : true   # cache result (for a few seconds), since this is very unlikely to change.
             cb    : one_result 'member_host', (err, member_host) =>
                 opts.cb(err, !!member_host)
+
+    # Delete all patches, the blobs if archived, and the syncstring object itself
+    # Basically this erases everything from cocalc related to the file edit history
+    # of a given file... except ZFS snapshots.
+    delete_syncstring: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            cb        : required
+        if not opts.string_id or misc.len(opts.string_id) != 40
+            # be extra careful!
+            opts.cb("invalid string_id")
+            return
+
+        locals =
+            syncstring : undefined
+            where : {"string_id = $::CHAR(40)" : opts.string_id}
+
+        async.series([
+            (cb) =>
+                @_query
+                    query : "SELECT * FROM syncstrings"
+                    where : locals.where
+                    cb    : (err, results) =>
+                        if err
+                            cb(err)
+                            return
+                        locals.syncstring = results.rows[0]
+                        cb()
+            (cb) =>
+                if not locals.syncstring?
+                    # no syncstring with this id.
+                    cb(); return
+                # delete the syncstring record (we do this first before deleting what if references,
+                # since having a syncstring record referencing missing data would be a disaster, meaning
+                # the user could never open their file -- with this sequence it just means some wasted
+                # disks pace).
+                @_query
+                    query : "DELETE FROM syncstrings"
+                    where : locals.where
+                    cb    : cb
+            (cb) =>
+                if not locals.syncstring?
+                    # no syncstring with this id.
+                    cb(); return
+                if locals.syncstring.archived
+                    # is archived, so delete the blob
+                    @delete_blob
+                        uuid : locals.syncstring.archived
+                        cb   : cb
+                else
+                    # is not archived, so delete the patches
+                    @_query
+                        query : "DELETE FROM patches"
+                        where : locals.where
+                        cb    : cb
+        ], opts.cb)

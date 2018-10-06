@@ -55,7 +55,7 @@ const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
-  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASENAME".split(
+  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME".split(
     " "
   ),
   rnw: ["tex", "NODOT-concordance.tex"],
@@ -513,6 +513,12 @@ function _compute_file_masks(listing) {
               mask_ext = "";
             } else if (mask_ext.indexOf("BASENAME") >= 0) {
               bn = mask_ext.replace("BASENAME", basename.slice(0, -1));
+              mask_ext = "";
+            } else if (mask_ext.indexOf("BASEDASHNAME") >= 0) {
+              // BASEDASHNAME is like BASENAME, but replaces spaces by dashes
+              // https://github.com/sagemathinc/cocalc/issues/3229
+              const fragment = basename.slice(0, -1).replace(/ /g, "-");
+              bn = mask_ext.replace("BASEDASHNAME", fragment);
               mask_ext = "";
             } else {
               bn = basename;
