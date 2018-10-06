@@ -2,7 +2,7 @@
 Terminal server
 */
 
-const { spawn } = require("pty.js");
+const { spawn } = require("node-pty");
 
 import {
   len,
