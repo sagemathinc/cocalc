@@ -1180,19 +1180,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           path = path.slice(0, -1);
         }
         this.foreground_project(change_history);
-        this.set_current_path(path);
+        this.set_current_path(path, change_history);
         let store = this.get_store();
         if (store == undefined) {
           return;
         }
-        if (store.get("active_project_tab") === "files") {
-          this.set_url_to_path(path);
-        } else {
-          this.set_active_tab("files", {
-            update_file_listing: false,
-            change_history: change_history
-          });
-        }
+        this.set_active_tab("files", {
+          update_file_listing: false,
+          change_history: change_history
+        });
         this.set_all_files_unchecked();
       }
     });
