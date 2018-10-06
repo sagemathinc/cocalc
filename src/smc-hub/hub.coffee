@@ -505,6 +505,19 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             if not program.dev
                 cb(); return
+            # Whenever we start the dev server, we just assume
+            # all projects are stopped, since assuming they are
+            # running when they are not is bad.  Something similar
+            # is done in cocalc-docker.
+            misc_node.execute_code  # in the scripts/ path...
+                command : "cocalc_kill_all_dev_projects.py"
+            database._query
+                safety_check : false
+                query : """update projects set state='{"state":"opened"}'"""
+                cb    : cb
+        (cb) ->
+            if not program.dev
+                cb(); return
             init_update_stats(cb)
         (cb) ->
             if not program.port
