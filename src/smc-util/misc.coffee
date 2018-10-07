@@ -1416,7 +1416,9 @@ exports.date_to_snapshot_format = (d) ->
     return s.slice(0,i)
 
 exports.stripe_date = (d) ->
-    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    # https://github.com/sagemathinc/cocalc/issues/3254
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
+    return new Date(d*1000).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     # fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
     #return new Date(d*1000).toLocaleDateString(
     #    'en-US',
