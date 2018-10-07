@@ -289,7 +289,7 @@ export class Terminal {
   }
 
   init_weblinks(): void {
-    (this.terminal as any).webLinksInit();
+    (this.terminal as any).webLinksInit(handleLink);
   }
 
   touch(): void {
@@ -585,4 +585,19 @@ async function touch_path(project_id: string, path: string): Promise<void> {
   } catch (err) {
     console.warn(`error touching ${path} -- ${err}`);
   }
+}
+
+declare const $: any;
+const { starts_with_cloud_url } = require("smc-webapp/process-links");
+function handleLink(_: MouseEvent, uri: string): void {
+  if (!starts_with_cloud_url(uri)) {
+    window.open(uri, "_blank");
+    return;
+  }
+  // This horrendous code is because process-links is so "badly"
+  // written, that its logic can only be used via jQuery...
+  // and I don't want to rewrite it right now.
+  const e = $(`<div><a href='${uri}'>x</a></div>`);
+  e.process_smc_links();
+  e.find("a").click();
 }
