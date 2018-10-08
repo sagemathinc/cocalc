@@ -25,12 +25,14 @@ misc          = require('smc-util/misc')
 {sha1}        = require('smc-util/schema').client_db
 {server_time} = require('./webapp_client').webapp_client
 
+{alert_message} = require('./alerts')
+
 {React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
 {Icon, Tip, SetIntervalMixin} = require('./r_misc')
 
+VIDEO_CHAT_SERVER = 'https://meet.jit.si'
 VIDEO_UPDATE_INTERVAL_MS = 30*1000
-VIDEO_CHAT_LIMIT         = 8       # imposed by free appear.in plan
-
+VIDEO_CHAT_LIMIT         = 99999       # jit.si doesn't seem to have a limit...
 # The pop-up window for video chat
 video_window = (title, url, cb_closed) ->
     {open_new_tab} = require('smc-webapp/misc_page')
@@ -86,6 +88,8 @@ class VideoChat
     # The canonical secret chatroom id.
     chatroom_id: ->
         secret_token = redux.getStore('projects').getIn(['project_map', @project_id, 'status', 'secret_token'])
+        if not secret_token
+            alert_message(type:'error', message:"You MUST be a project collaborator -- video chat will fail.")
         return sha1(secret_token, @path)
 
     # Open the video chat window, if it isn't already opened
@@ -101,7 +105,7 @@ class VideoChat
         @_video_interval_id = setInterval(chat_window_is_open, VIDEO_UPDATE_INTERVAL_MS*.8)
 
         title = "CoCalc Video Chat: #{misc.trunc_middle(@path, 30)}"
-        url   = "https://appear.in/#{room_id}"
+        url   = "#{VIDEO_CHAT_SERVER}/#{room_id}"
         w     = video_window(title, url)
         video_windows[room_id] = w
         # disabled -- see https://github.com/sagemathinc/cocalc/issues/1899

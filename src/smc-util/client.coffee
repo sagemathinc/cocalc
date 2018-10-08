@@ -884,21 +884,35 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
+    delete_remember_me_cookie: (cb) =>
+        # This actually sets the content of the cookie to empty.
+        # (I just didn't implement a delete action on the backend yet.)
+        base_url = window.app_base_url ? ''
+        mesg =
+            url  : base_url + '/cookies'
+            set  : base_url + 'remember_me'
+        @_cookies(mesg, cb)
+
     sign_out: (opts) ->
         opts = defaults opts,
             everywhere   : false
             cb           : undefined
             timeout      : DEFAULT_TIMEOUT # seconds
 
-        @account_id = undefined
+        @delete_remember_me_cookie (err) =>
+            if err
+                opts.cb?("error deleting remember me cookie")
+                return
 
-        @call
-            allow_post : false
-            message    : message.sign_out(everywhere:opts.everywhere)
-            timeout    : opts.timeout
-            cb         : opts.cb
+            @account_id = undefined
 
-        @emit('signed_out')
+            @call
+                allow_post : false
+                message    : message.sign_out(everywhere:opts.everywhere)
+                timeout    : opts.timeout
+                cb         : opts.cb
+
+            @emit('signed_out')
 
     change_password: (opts) ->
         opts = defaults opts,
@@ -1960,6 +1974,24 @@ class exports.Connection extends EventEmitter
             opts.cb(undefined, resp)
         catch err
             opts.cb(err)
+
+    touch_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        # Throttle -- so if this function is called with the same project_id
+        # twice in 60s, it's ignored (to avoid unnecessary network traffic).
+        @_touch_project_throttle ?= {}
+        last = @_touch_project_throttle[opts.project_id]
+        if last? and new Date().valueOf() - last <= 60000
+            opts.cb?()
+            return
+        @_touch_project_throttle[opts.project_id] = new Date().valueOf()
+        @call
+            allow_post  : true
+            message     : message.touch_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
 
 
 #################################################

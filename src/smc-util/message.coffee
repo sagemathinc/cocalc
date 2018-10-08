@@ -2549,3 +2549,15 @@ message
     event        : 'sagews_start'
     id           : undefined
     path         : required
+
+# client --> hub
+API message2
+    event        : 'touch_project'
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project to touch'
+    desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things."
