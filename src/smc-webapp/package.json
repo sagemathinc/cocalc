@@ -27,7 +27,6 @@
     "async-await-utils": "^2.0.4",
     "awaiting": "^3.0.0",
     "bootbox": "^4.4.0",
-    "bootstrap": "^3.3.6",
     "bootstrap-colorpicker": "^2.3.6",
     "chai": "^4.1.2",
     "codemirror": "^5.39.0",
