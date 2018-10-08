@@ -1017,23 +1017,23 @@ export class CourseActions extends Actions<CourseState> {
       invite(student_account_id);
     }
     // Make sure all collaborators on course project are on the student's project:
-    const target_users = this.redux
+    const course_collaborators = this.redux
       .getStore("projects")
       .get_users(s.get("course_project_id"));
-    if (target_users == null) {
+    if (course_collaborators == null) {
       // console.log("projects store isn't sufficiently initialized yet...");
       return;
     }
-    target_users.map((_, account_id) => {
+    course_collaborators.map((_, account_id) => {
       if (users.get(account_id) == null) {
         invite(account_id);
       }
     });
-    if (!s.get_allow_collabs()) {
+    if (!s.get_allow_collabs() && student_account_id !== undefined) {
       // Remove anybody extra on the student project
       users.map((_, account_id) => {
         if (
-          target_users.get(account_id) == null &&
+          course_collaborators.get(account_id) == null &&
           account_id !== student_account_id
         ) {
           this.redux
