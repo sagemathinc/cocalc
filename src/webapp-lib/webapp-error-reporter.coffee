@@ -297,7 +297,10 @@ if ENABLED and window.console?
 if ENABLED
     window.addEventListener "unhandledrejection",(e) ->
         # just to make sure there is a message
-        e.message = "unhandledrejection: #{e.reason ? '<no reason>'}"
+        reason = e.reason ? '<no reason>'
+        if typeof(reason) == 'object'
+            reason = misc.trunc_middle(misc.to_json(reason), 1000)
+        e.message = "unhandledrejection: #{reason}"
         reportException(e, "unhandledrejection")
 
 # public API
