@@ -299,7 +299,7 @@ if ENABLED
         # just to make sure there is a message
         reason = e.reason ? '<no reason>'
         if typeof(reason) == 'object'
-            reason = misc.trunc_middle(misc.to_json(reason), 1000)
+            reason = "${reason.stack ? reason.message ? ''}"
         e.message = "unhandledrejection: #{reason}"
         reportException(e, "unhandledrejection")
 
