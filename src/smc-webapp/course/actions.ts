@@ -1029,6 +1029,12 @@ export class CourseActions extends Actions<CourseState> {
         invite(account_id);
       }
     });
+    // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
+    // The problem is that student_account_id might not yet be known to the .course, even though
+    // the student has been added and the account_id exists, and is known to the account opening
+    // the .course file.  This is just due to a race condition somewhere else.  For now -- before
+    // just factoring out and rewriting all this code better -- we at least make this one change
+    // so the student isn't "brutally" kicked out of the course.
     if (!s.get_allow_collabs() && student_account_id !== undefined) {
       // Remove anybody extra on the student project
       users.map((_, account_id) => {
