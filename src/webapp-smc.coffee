@@ -44,7 +44,7 @@ require('jquery-caret')
 require("jquery.payment")
 
 # Bootstrap
-require('bootstrap')
+require('react-bootstrap')
 
 # Bootbox: usable dialogs for bootstrap
 require("script-loader!bootbox/bootbox.min.js")  # loads from smc-webapp/node_modules
