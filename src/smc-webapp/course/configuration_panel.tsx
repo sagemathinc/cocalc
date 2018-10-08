@@ -459,6 +459,11 @@ export class ConfigurationPanel extends Component<
     });
   };
 
+  // newlines and duplicated double-quotes
+  _sanitize_csv_entry = (s: string): string => {
+    return s.replace(/\n/g, "\\n").replace(/"/g, '""');
+  };
+
   save_grades_to_csv = () => {
     let assignment;
     const store = this.get_store();
@@ -490,32 +495,27 @@ export class ConfigurationPanel extends Component<
       let grades = (() => {
         const result2: any[] = [];
         for (assignment of assignments) {
-          var left;
-          result2.push(
-            `\"${
-              (left = store.get_grade(assignment, student)) != null ? left : ""
-            }\"`
-          );
+          let grade = store.get_grade(assignment, student);
+          grade = grade != null ? grade : "";
+          grade = this._sanitize_csv_entry(grade);
+          result2.push(`\"${grade}\"`);
         }
         return result2;
       })().join(",");
-      grades = grades.replace(/\n/g, "\\n");
+
       let comments = (() => {
         const result3: any[] = [];
         for (assignment of assignments) {
-          var left1;
-          result3.push(
-            `\"${
-              (left1 = store.get_comments(assignment, student)) != null
-                ? left1
-                : ""
-            }\"`
-          );
+          let comment = store.get_comments(assignment, student);
+          comment = comment != null ? comment : "";
+          comment = this._sanitize_csv_entry(comment);
+          result3.push(`\"${comment}\"`);
         }
         return result3;
       })().join(",");
-      comments = comments.replace(/\n/g, "\\n");
-      const name = `\"${store.get_student_name(student)}\"`;
+      const name = `\"${this._sanitize_csv_entry(
+        store.get_student_name(student)
+      )}\"`;
       const email = `\"${
         (left2 = store.get_student_email(student)) != null ? left2 : ""
       }\"`;
@@ -618,16 +618,16 @@ export class ConfigurationPanel extends Component<
             href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
           >
             import the CSV file
-          </a>.
+          </a>
+          .
         </div>
       </Panel>
     );
   }
 
   /*
-     * Custom invitation email body
-     */
-
+   * Custom invitation email body
+   */
   render_email_invite_body() {
     const template_instr =
       " Also, {title} will be replaced by the title of the course and {name} by your name.";
@@ -678,8 +678,8 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-    Students pay
-    */
+  Students pay
+  */
   get_student_pay_when() {
     const date = this.props.settings.get("pay");
     if (date) {
@@ -699,7 +699,8 @@ export class ConfigurationPanel extends Component<
         <Icon name="arrow-circle-up" />{" "}
         {this.state.students_pay
           ? "Adjust settings"
-          : "Configure how students will pay"}...
+          : "Configure how students will pay"}
+        ...
       </Button>
     );
   }
@@ -860,12 +861,11 @@ export class ConfigurationPanel extends Component<
     } else {
       return (
         <span>
-          Require that all students in the course pay a one-time ${
-            STUDENT_COURSE_PRICE
-          }{" "}
-          fee to move their projects off trial servers and enable full internet
-          access, for four months. This is strongly recommended, and ensures
-          that your students have a better experience, and do not see a large{" "}
+          Require that all students in the course pay a one-time $
+          {STUDENT_COURSE_PRICE} fee to move their projects off trial servers
+          and enable full internet access, for four months. This is strongly
+          recommended, and ensures that your students have a better experience,
+          and do not see a large{" "}
           <span style={{ color: "red" }}>RED warning banner</span> all the time.
           Alternatively, you (or your university) can pay for all students at
           one for a significant discount -- see below.
