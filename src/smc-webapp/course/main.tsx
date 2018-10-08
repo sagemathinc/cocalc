@@ -115,7 +115,7 @@ const init_redux = function(course_filename, redux: AppRedux, course_project_id)
     expanded_skip_gradings: Set(),
     active_student_sort: { column_name: "last_name", is_descending: false },
     active_assignment_sort: { column_name: "due_date", is_descending: false },
-    settings: { allow_collabs: true },
+    settings: { allow_collabs: false },
     action_all_projects_state: "any"
   };
 
