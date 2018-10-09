@@ -713,7 +713,6 @@ DeleteAccountConfirmation = rclass
     # Remove this function and rename the function above to reenable account deletion
     render: ->
         <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
-            Automatic account deletion has been disabled.<br/>
             To delete your account, contact us at <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>{" "}
             or open a support request by clicking "Help" in the top right menu.<br/>
             <Button
