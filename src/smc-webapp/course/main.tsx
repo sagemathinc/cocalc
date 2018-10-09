@@ -87,7 +87,11 @@ const redux_name = (project_id, course_filename) =>
   `editor-${project_id}-${course_filename}`;
 
 const syncdbs = {};
-const init_redux = function(course_filename, redux: AppRedux, course_project_id) {
+const init_redux = function(
+  course_filename,
+  redux: AppRedux,
+  course_project_id
+) {
   const the_redux_name = redux_name(course_project_id, course_filename);
   const get_actions = () => redux.getActions(the_redux_name);
   if (get_actions() != null) {
@@ -95,6 +99,8 @@ const init_redux = function(course_filename, redux: AppRedux, course_project_id)
     return;
   }
 
+  // DO NOT initialize settings here. They are initialized in sync.ts to prevent a
+  // race condition involving automatic course configuration and settings
   const initial_store_state: any = {
     assignments: Map<string, AssignmentRecord>(),
     configure_projects: "",
@@ -115,7 +121,6 @@ const init_redux = function(course_filename, redux: AppRedux, course_project_id)
     expanded_skip_gradings: Set(),
     active_student_sort: { column_name: "last_name", is_descending: false },
     active_assignment_sort: { column_name: "due_date", is_descending: false },
-    settings: { allow_collabs: false },
     action_all_projects_state: "any"
   };
 
