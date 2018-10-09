@@ -1145,21 +1145,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   focus(id?: string): void {
-    let cm;
-    if (id) {
-      cm = this._cm[id];
-      if (cm) {
-        cm.focus();
-      }
-      return;
+    if (id === undefined) {
+      id = this._get_active_id();
     }
-    cm = this._get_cm();
+    const cm = this._cm[id];
     if (cm) {
       cm.focus();
+      return;
     }
-
     // no cm, so try to focus a terminal if there is one.
-    this.terminals.focus();
+    this.terminals.focus(id);
   }
 
   syncstring_save(): void {

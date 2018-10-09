@@ -1,4 +1,3 @@
-
 /*
 Single codemirror-based file editor
 
@@ -91,11 +90,11 @@ export class CodemirrorEditor extends Component<Props, State> {
   }
 
   componentWillReceiveProps(next: Props): void {
-    if (this.props.font_size !== next.font_size) {
-      this.cm_update_font_size();
-    }
     if (this.cm == null) {
       return;
+    }
+    if (this.props.font_size !== next.font_size) {
+      this.cm_update_font_size();
     }
     if (this.props.read_only !== next.read_only) {
       this.cm.setOption("readOnly", next.read_only);
@@ -109,10 +108,7 @@ export class CodemirrorEditor extends Component<Props, State> {
     if (this.props.misspelled_words !== next.misspelled_words) {
       this.cm_highlight_misspelled_words(next.misspelled_words);
     }
-    if (
-      this.props.resize !== next.resize ||
-      this.props.editor_state !== next.editor_state
-    ) {
+    if (this.props.resize !== next.resize) {
       this.cm_refresh();
     }
     if (this.props.editor_settings != next.editor_settings) {
@@ -296,10 +292,6 @@ export class CodemirrorEditor extends Component<Props, State> {
       this.cm.focus();
     }
     this.cm.setOption("readOnly", props.read_only);
-
-    this.cm_refresh();
-    await delay(0);
-    // now in the next render loop
     this.cm_refresh();
   }
 
