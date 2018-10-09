@@ -62,7 +62,8 @@ export let create_sync_db = (redux, actions, store, filename) => {
     const t = {
       settings: {
         title: store.get("course_filename").slice(0, i),
-        description: "No description"
+        description: "No description",
+        allow_collabs: true
       },
       assignments: {},
       students: {},

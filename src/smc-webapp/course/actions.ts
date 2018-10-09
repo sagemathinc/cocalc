@@ -1035,7 +1035,11 @@ export class CourseActions extends Actions<CourseState> {
     // the .course file.  This is just due to a race condition somewhere else.  For now -- before
     // just factoring out and rewriting all this code better -- we at least make this one change
     // so the student isn't "brutally" kicked out of the course.
-    if (!s.get_allow_collabs() && student_account_id !== undefined) {
+    if (
+      s.get("settings") != undefined &&
+      !s.get_allow_collabs() &&
+      student_account_id != undefined
+    ) {
       // Remove anybody extra on the student project
       users.map((_, account_id) => {
         if (
