@@ -299,7 +299,7 @@ if ENABLED
         # just to make sure there is a message
         reason = e.reason ? '<no reason>'
         if typeof(reason) == 'object'
-            reason = "${reason.stack ? reason.message ? ''}"
+            reason = "#{reason.stack ? reason.message ? ''}"
         e.message = "unhandledrejection: #{reason}"
         reportException(e, "unhandledrejection")
 
