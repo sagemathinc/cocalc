@@ -265,8 +265,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed");
     }
+    const path = this.store.get("path");
+    if (!path) throw Error("path unknown");
     return await (await this.init_project_conn()).api.jupyter(
-      this.store.get("path"),
+      path,
       endpoint,
       query,
       timeout_ms
