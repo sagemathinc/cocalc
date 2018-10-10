@@ -425,7 +425,6 @@ export class Terminal {
     const g = async cb => {
       const f = async () => {
         this.terminal.off("refresh", f);
-        this.ignore_terminal_data = false;
         if (this.resize_after_no_ignore !== undefined) {
           this.terminal.resize(
             this.resize_after_no_ignore.cols,
@@ -436,6 +435,9 @@ export class Terminal {
         // cause render to actually appear now.
         await delay(0);
         this.terminal.refresh(0, this.terminal.rows - 1);
+        await delay(150); // this should not be needed, but we do it
+        // just in case the whole refresh thing is not enough.
+        this.ignore_terminal_data = false;
         cb();
       };
       this.terminal.on("refresh", f);
