@@ -75,9 +75,9 @@ def command():
         name = os.environ['COCALC_JUPYTER_LAB_PORT']
         port = int(name)
     else:
-        port = random_port(
-        )  # time consuming!  but needed for things like cocalc-docker.
-        name = 'jupyterhub'
+        # time consuming/less robust; needed for cocalc-docker.
+        port = random_port()
+        name = str(port)
     if project_id:
         b = "{base_url}/{project_id}/port/{name}/".format(
             base_url=base_url, project_id=project_id, name=name)
@@ -161,8 +161,8 @@ def action(mode):
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2> "%s"/jupyter-lab.err 1>"%s"/jupyter-lab.log &' % (
-            cmd, DATA, DATA)
+        c = '%s 2> "%s"/jupyter-lab.err 1>"%s"/jupyter-lab.log &' % (cmd, DATA,
+                                                                     DATA)
         sys.stderr.write(c + '\n')
         sys.stderr.flush()
         os.system(c)
@@ -235,6 +235,7 @@ def action(mode):
 def main():
     server_setup()
     action(mode)
+
 
 if __name__ == "__main__":
     main()

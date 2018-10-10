@@ -52,6 +52,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
+{JupyterLabServerPanel}   = require('./project/jupyterlab-server')
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
@@ -996,6 +997,7 @@ ProjectSettingsBody = rclass ({name}) ->
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
+                    <JupyterLabServerPanel  key='jupyterlab' project_id={@props.project_id} />
                 </Col>
             </Row>
         </div>
