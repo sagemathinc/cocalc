@@ -7,7 +7,7 @@ extra support for being connected to:
 */
 
 import { Map } from "immutable";
-import { delay } from "awaiting";
+import { callback, delay } from "awaiting";
 
 import { aux_file } from "../frame-tree/util";
 
@@ -54,11 +54,21 @@ export class Terminal {
   private id: string;
   private terminal: XTerminal;
   private is_paused: boolean = false;
-  private ignore_terminal_data: boolean = false;
+    /* We initially have to ignore when rendering the initial history.
+    To TEST this, do this in a terminal, then reconnect:
+         printf "\E[c\n" ; sleep 1 ; echo
+    The above causes the history to have device attribute requests, which
+    will result in spurious control codes in some cases if the code below
+    is wrong.  It's also good to test `jupyter console --kernel=python3`,
+    do something, then exit.
+    */
+
+  private ignore_terminal_data: boolean = true;
   private render_buffer: string = "";
   private conn_write_buffer: any = [];
   private history: string = "";
   private last_geom: { rows: number; cols: number } | undefined;
+  private resize_after_no_ignore: { rows: number; cols: number } | undefined;
   private last_active: number = 0;
   // conn = connection to project -- a primus websocket channel.
   private conn?: any;
@@ -213,16 +223,6 @@ export class Terminal {
       return;
     }
 
-    /* We have to ignore when rendering the initial history.
-    To TEST this, do this in a terminal, then reconnect:
-         printf "\E[c\n" ; sleep 1 ; echo
-    The above causes the history to have device attribute requests, which
-    will result in spurious control codes in some cases if the code below
-    is wrong.  It's also good to test `jupyter console --kernel=python3`,
-    do something, then exit.
-    */
-    this.ignore_terminal_data = true;
-
     this.conn.on("close", this.connect);
     this.conn.on("data", this._handle_data_from_project);
     if (endswith(this.path, ".term")) {
@@ -247,6 +247,7 @@ export class Terminal {
   }
 
   _handle_data_from_project(data: any): void {
+    //console.log("data", data);
     this.assert_not_closed();
     if (data == null) {
       return;
@@ -307,7 +308,6 @@ export class Terminal {
       //console.log("key", event);
       // record that terminal is being actively used.
       this.last_active = new Date().valueOf();
-      this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.actions.unpause(this.id);
@@ -374,7 +374,8 @@ export class Terminal {
       case "no-burst":
         this.burst_off();
         break;
-      case "no-ignore": // no-op now
+      case "no-ignore":
+        this.no_ignore();
         break;
       case "close":
         this.close_request();
@@ -414,11 +415,31 @@ export class Terminal {
     this.actions.set_error("");
   }
 
-  async ignore_off(): Promise<void> {
+  // Stop ignoring terminal data... but ONLY once
+  // the render buffer is also empty.
+  async no_ignore(): Promise<void> {
     if (this.state === "closed") {
       return;
     }
-    this.ignore_terminal_data = false;
+    const g = async cb => {
+      const f = async () => {
+        this.terminal.off("refresh", f);
+        this.ignore_terminal_data = false;
+        if (this.resize_after_no_ignore !== undefined) {
+          this.terminal.resize(
+            this.resize_after_no_ignore.cols,
+            this.resize_after_no_ignore.rows
+          );
+          delete this.resize_after_no_ignore;
+        }
+        // cause render to actually appear now.
+        await delay(0);
+        this.terminal.refresh(0, this.terminal.rows - 1);
+        cb();
+      };
+      this.terminal.on("refresh", f);
+    };
+    await callback(g);
   }
 
   close_request(): void {
@@ -479,6 +500,14 @@ export class Terminal {
   resize(rows: number, cols: number): void {
     if (this.terminal.cols === cols && this.terminal.rows === rows) {
       // no need to resize
+      return;
+    }
+    if (this.ignore_terminal_data) {
+      // CRITICAL -- we must wait until after the
+      // next call to no_ignore before doing
+      // the resize; otherwise, the resize causes
+      // no_ignore to trigger prematurely (#3277).
+      this.resize_after_no_ignore = { rows, cols };
       return;
     }
     this.terminal.resize(cols, rows);
@@ -543,8 +572,14 @@ export class Terminal {
 
   measure_size(): void {
     const geom = proposeGeometry(this.terminal);
+    // console.log('measure_size', geom);
     if (geom == null) return;
     const { rows, cols } = geom;
+    if (this.ignore_terminal_data) {
+      // during the initial render
+      //console.log('direct resize')
+      this.terminal.resize(cols, rows);
+    }
     if (
       this.last_geom !== undefined &&
       (this.last_geom.rows === rows && this.last_geom.cols === cols)
