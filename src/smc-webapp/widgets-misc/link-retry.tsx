@@ -5,7 +5,8 @@ const { Loading, Space } = require("../r_misc");
 import { retry_until_success } from "../frame-editors/generic/async-utils";
 
 interface Props {
-  href: string;
+  href?: string;
+  get_href: () => Promise<string>; // optional async function that determines url
 }
 
 interface State {
@@ -17,6 +18,7 @@ interface State {
 export class LinkRetryUntilSuccess extends Component<Props, State> {
   public displayName: string = "LinkRetryUntilSuccess";
   private is_mounted: boolean = false;
+  private url: string = "";
 
   constructor(props) {
     super(props);
@@ -39,20 +41,27 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
   open(): void {
     // open_new_tab takes care of blocked popups -- https://github.com/sagemathinc/cocalc/issues/2599
     const { open_new_tab } = require("smc-webapp/misc_page");
-    open_new_tab(this.props.href);
+    open_new_tab(this.url);
   }
 
   async start(): Promise<void> {
     this.setState({ loading: true, error: false });
-    async function f(): Promise<void> {
-      if (!this.is_mounted) {
-        return;
+    const f = async (): Promise<void> => {
+      let url: string;
+      if (this.url) {
+        url = this.url;
+      } else if (this.props.get_href !== undefined) {
+        url = this.url = await this.props.get_href();
+      } else if (this.props.href !== undefined) {
+        url = this.url = this.props.href;
+      } else {
+        throw Error("href or get_href must be defined");
       }
       await $.ajax({
-        url: this.props.href,
+        url,
         timeout: 3000
       });
-    }
+    };
     try {
       await retry_until_success({
         f,
@@ -66,10 +75,12 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
       this.setState({ error: true, loading: false, working: false });
       return;
     }
+    // Open even if NOT mounted!  E.g., user clicks link then switches tabs.
+    this.open();
     if (!this.is_mounted) {
+      // not mounted, so don't mess with setState.
       return;
     }
-    this.open();
     this.setState({ error: false, loading: false, working: true });
   }
 

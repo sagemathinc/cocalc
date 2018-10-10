@@ -183,7 +183,8 @@ def action(mode):
                 })
                 sys.exit(1)
 
-            c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-lab'"
+            c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-lab' |grep port={port}".format(
+                port=port)   # port is to disambiguate for cc-in-cc dev use...
             for s in os.popen(c).read().splitlines():
                 v = s.split()
                 if len(v) < 2 or not v[1].split('/')[-1].startswith('python'):

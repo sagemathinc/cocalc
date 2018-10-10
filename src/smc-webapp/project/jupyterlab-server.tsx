@@ -17,38 +17,34 @@ interface Props {
   project_id: string;
 }
 
-interface State {
-  url?: string;
-}
-
-export class JupyterLabServerPanel extends Component<Props, State> {
+export class JupyterLabServerPanel extends Component<Props, {}> {
   displayName = "ProjectSettings-JupyterServer";
   private is_mounted: boolean = false;
 
   constructor(props) {
     super(props);
-    this.state = {};
+    this.get_href = this.get_href.bind(this);
   }
 
   async componentDidMount(): Promise<void> {
     this.is_mounted = true;
-    const url: string = await jupyterlab_server_url(this.props.project_id);
-    if (!this.is_mounted) {
-      return;
-    }
-    this.setState({ url: url });
   }
 
   componentWillUnmount(): void {
     this.is_mounted = false;
   }
 
-  render_jupyter_link(): Rendered {
-    if (!this.state.url) {
-      return <div>Starting...</div>;
+  async get_href(): Promise<string> {
+    const url = await jupyterlab_server_url(this.props.project_id);
+    if (!this.is_mounted) {
+      throw Error("unmounted");
     }
+    return url;
+  }
+
+  render_jupyter_link(): Rendered {
     return (
-      <LinkRetryUntilSuccess href={this.state.url}>
+      <LinkRetryUntilSuccess get_href={this.get_href}>
         <Icon name="cc-icon-ipynb" /> JupyterLab Server
       </LinkRetryUntilSuccess>
     );
