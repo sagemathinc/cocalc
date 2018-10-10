@@ -27,7 +27,8 @@ import { open_init_file } from "./init-file";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
-const SCROLLBACK = 3000;
+// NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
+const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
 interface Path {
