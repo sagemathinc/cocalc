@@ -21,6 +21,7 @@ import { pythontex, pythontex_errors } from "./pythontex";
 import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
+import { count_words } from "./count_words";
 import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
@@ -58,6 +59,7 @@ interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
   sync: string;
   scroll_pdf_into_view: ScrollIntoViewMap;
+  word_count: string;
   zoom_page_width: string;
   zoom_page_height: string;
   build_command: string | List<string>;
@@ -671,6 +673,23 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       default:
         this.set_error(`unknown build action '${action}'`);
+    }
+  }
+
+  async word_count(): Promise<void> {
+    this.set_error("");
+    try {
+      await this.save(false);
+      const time = this._last_save_time;
+      const output = await count_words(this.project_id, this.path, time);
+      if (output.stderr) {
+        const err = `Error:\n${output.stderr}`;
+        this.setState({ word_count: err });
+      } else {
+        this.setState({ word_count: output.stdout });
+      }
+    } catch (err) {
+      this.set_error(err);
     }
   }
 
