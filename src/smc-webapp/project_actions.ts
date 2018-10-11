@@ -17,6 +17,16 @@ if (typeof window !== "undefined" && window !== null) {
   wrapped_editors = require("./editor_react_wrapper");
 }
 
+// Normalize path as in node, except '' is the home dir, not '.'.
+function normalize(path:string) : string {
+  path = os_path.normalize(path);
+  if (path === '.') {
+    return '';
+  } else {
+    return path;
+  }
+}
+
 const misc = require("smc-util/misc");
 let { MARKERS } = require("smc-util/sagews");
 let { alert_message } = require("./alerts");
@@ -623,6 +633,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       new_browser_window: false,
       change_history: true
     });
+    opts.path = normalize(opts.path);
     // intercept any requests if in kiosk mode
     if (
       !opts.ignore_kiosk &&
@@ -1125,6 +1136,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Closes the file and removes all references.
   // Does not update tabs
   close_file(path): void {
+    path = normalize(path);
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -1164,6 +1176,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   open_directory(path, change_history = true): void {
+    path = normalize(path);
     this._ensure_project_is_open(err => {
       if (err) {
         // TODO!
@@ -1196,6 +1209,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Does not push to URL, browser history, or add to analytics
   // Use internally or for updating current path in background
   set_current_path(path: string = ""): void {
+    path = normalize(path);
     if (Number.isNaN(path as any)) {
       // SMELL: Track from history.coffee
       path = "";
