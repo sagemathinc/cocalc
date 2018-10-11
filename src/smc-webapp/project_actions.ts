@@ -371,7 +371,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   ): void {
     let store = this.get_store();
-    if (store == undefined || store.get("active_project_tab") === key) {
+    if (store == undefined || (!opts.change_history && store.get("active_project_tab") === key)) {
       // nothing to do
       return;
     }
@@ -1145,7 +1145,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Makes this project the active project tab
-  foreground_project(change_history=true): void {
+  foreground_project(change_history = true): void {
     this._ensure_project_is_open(err => {
       if (err) {
         // TODO!
