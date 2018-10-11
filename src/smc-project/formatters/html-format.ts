@@ -47,7 +47,8 @@ function tidy(input_path) {
 
 export async function html_format(
   input: string,
-  options: ParserOptions
+  options: ParserOptions,
+  logger: any
 ): Promise<string> {
   // create input temp file
   const input_path: string = await callback(tmp.file);
@@ -58,10 +59,18 @@ export async function html_format(
     let html_formatter;
     switch (options.parser) {
       case "html-tidy":
+      case "tidy":
         html_formatter = tidy(input_path);
         break;
       default:
         throw Error(`Unknown HTML formatter utility '${options.parser}'`);
+    }
+    if (!html_formatter) {
+      throw new Error(
+        `HTML formatter broken or not available. Is '${
+          options.parser
+        }' installed?`
+      );
     }
     // stdout/err capture
     let stdout: string = "";
@@ -86,6 +95,7 @@ export async function html_format(
 
     return s;
   } finally {
+    logger.debug(`html formatter done, unlinking ${input_path}`);
     unlink(input_path);
   }
 }
