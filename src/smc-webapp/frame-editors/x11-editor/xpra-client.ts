@@ -2,12 +2,23 @@ import { createClient } from "cocalc-xpra";
 
 const DPI: number = 96;
 
+const KEY_EVENTS = ["keydown", "keyup", "keypress"];
+
+const MOUSE_EVENTS = [
+  "mousemove",
+  "mousedown",
+  "mouseup",
+  "wheel",
+  "mousewheel",
+  "DOMMouseScroll"
+];
+
 interface Options {
   project_id: string;
   port: number;
 }
 
-export class Client {
+export class XpraClient {
   private options: Options;
   private xpra_options: any;
   private client: any;
@@ -18,9 +29,20 @@ export class Client {
     this.scale = window.devicePixelRatio;
     this.options = options;
     this.init_client();
-    this.init_window_events();
     this.init_xpra_events();
     this.connect();
+  }
+
+  close(): void {
+    if (this.client === undefined) {
+      return;
+    }
+    this.blur();
+    this.client.disconnect();
+    delete this.windows;
+    delete this.options;
+    delete this.xpra_options;
+    delete this.client;
   }
 
   connect(): void {
@@ -29,9 +51,9 @@ export class Client {
 
   private init_client(): void {
     // TODO
-    const uri = `wss://cocalc.com/${this.options.project_id}/server/${
-      this.options.port
-    }/`;
+    const uri = `wss://cocalc.com${window.app_base_url}/${
+      this.options.project_id
+    }/server/${this.options.port}/`;
     const dpi = Math.round(DPI * this.scale);
     this.xpra_options = { uri, dpi, sound: false };
     this.client = createClient(this.xpra_options);
@@ -48,35 +70,49 @@ export class Client {
     //this.client.on("ws:data", this.ws_data.bind(this));
   }
 
-  private init_window_events(): void {
-    const names = [
-      "keydown",
-      "keyup",
-      "keypress",
-      "mousemove",
-      "mousedown",
-      "mouseup",
-      "wheel",
-      "mousewheel",
-      "DOMMouseScroll"
-    ];
+  focus(): void {
+    this.enable_window_events();
+  }
 
-    for (let name of names) {
-      window.addEventListener(name, this.client.inject);
+  blur(): void {
+    this.disable_window_events();
+  }
+
+  private enable_window_events(): void {
+    const doc = $(document);
+    for (let name of KEY_EVENTS) {
+      doc.on(name, this.client.key_inject);
     }
+    for (let name of MOUSE_EVENTS) {
+      doc.on(name, this.client.mouse_inject);
+    }
+  }
 
-    window.addEventListener("resize", () =>
-      this.client.screen.resize(window.innerWidth, window.innerHeight)
-    );
+  private disable_window_events(): void {
+    const doc = $(document);
+    for (let name of KEY_EVENTS) {
+      doc.off(name, this.client.key_inject);
+    }
+    for (let name of MOUSE_EVENTS) {
+      doc.off(name, this.client.mouse_inject);
+    }
+  }
+
+  render_window(wid: number, elt: HTMLElement): void {
+    const info = this.windows[wid];
+    if (info === undefined) {
+      return;
+    }
+    const canvas = $(info.canvas);
+    canvas.width("100%").height("100%");
+    const e: JQuery<HTMLElement> = $(elt);
+    e.empty();
+    e.append(canvas);
   }
 
   window_create(info): void {
     console.log("window_create", info);
     this.windows[info.wid] = info;
-    $("#x11").empty();
-    const canvas = $(info.canvas);
-    canvas.width("100%").height("100%");
-    $("#x11").append(canvas);
   }
 
   resize_window(wid: number): void {
@@ -106,6 +142,7 @@ export class Client {
     console.log("window_destroy", info);
     delete this.windows[info.wid];
   }
+
   window_icon(info): void {
     console.log("window_icon", info);
     if (this.windows[info.wid] !== undefined) {
@@ -128,5 +165,3 @@ export class Client {
     console.log("ws_data", packet);
   }
 }
-
-(window as any).xpra = Client;
