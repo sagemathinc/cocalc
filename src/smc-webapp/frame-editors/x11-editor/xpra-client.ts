@@ -70,8 +70,11 @@ export class XpraClient {
     //this.client.on("ws:data", this.ws_data.bind(this));
   }
 
-  focus(): void {
+  focus(wid?:number): void {
     this.enable_window_events();
+    if (wid && this.windows[wid] !== undefined) {
+      this.client.surface.focus(wid);
+    }
   }
 
   blur(): void {
