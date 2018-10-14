@@ -19,6 +19,8 @@ import "./pdf-editor/register";
 
 import "./terminal-editor/register";
 
+import "./xwindow-editor/register";
+
 import "./lean-editor/register";
 
 import "./generic/test/init";
