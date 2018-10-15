@@ -30,6 +30,7 @@
     "bootstrap": "^3.3.6",
     "bootstrap-colorpicker": "^2.3.6",
     "chai": "^4.1.2",
+    "cocalc-xpra": "git+https://git@github.com/sagemathinc/cocalc-xpra.git",
     "codemirror": "^5.39.0",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.6.2",
