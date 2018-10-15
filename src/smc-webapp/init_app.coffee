@@ -129,29 +129,34 @@ class PageActions extends Actions
         # if there happens to be a websocket to this project, get rid of it.  Nothing will be using it when the project is closed.
         require('./project/websocket/connect').disconnect_from_project(project_id)
 
-        
-    set_active_tab: (key) =>
+    set_active_tab: (key, change_history=true) =>
         @setState(active_top_tab : key)
         switch key
             when 'projects'
-                history.set_url('/projects')
+                if change_history
+                    history.set_url('/projects')
                 set_window_title('Projects')
             when 'account'
-                redux.getActions('account').push_state()
+                if change_history
+                    redux.getActions('account').push_state()
                 set_window_title('Account')
             when 'about'
-                history.set_url('/help')
+                if change_history
+                    history.set_url('/help')
                 set_window_title('Help')
             when 'file-use'
-                history.set_url('/file-use')
+                if change_history
+                    history.set_url('/file-use')
                 set_window_title('File Usage')
             when 'admin'
-                history.set_url('/admin')
+                if change_history
+                    history.set_url('/admin')
                 set_window_title('Admin')
             when undefined
                 return
             else
-                redux.getProjectActions(key)?.push_state()
+                if change_history
+                    redux.getProjectActions(key)?.push_state()
                 set_window_title("Loading Project")
                 projects_store = redux.getStore('projects')
 

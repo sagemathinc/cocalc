@@ -99,6 +99,8 @@ const init_redux = function(
     return;
   }
 
+  // DO NOT initialize settings here. They are initialized in sync.ts to prevent a
+  // race condition involving automatic course configuration and settings
   const initial_store_state: any = {
     assignments: Map<string, AssignmentRecord>(),
     configure_projects: "",
@@ -120,7 +122,6 @@ const init_redux = function(
     expanded_grading_configs: Set(), // Set of grading configs (key = assignment_id) which should be expanded on render
     active_student_sort: { column_name: "last_name", is_descending: false },
     active_assignment_sort: { column_name: "due_date", is_descending: false },
-    settings: { allow_collabs: true },
     action_all_projects_state: "any"
   };
 

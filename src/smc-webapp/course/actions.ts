@@ -1087,26 +1087,36 @@ export class CourseActions extends Actions<CourseState> {
       invite(student_account_id);
     }
     // Make sure all collaborators on course project are on the student's project:
-    const target_users = this.redux
+    const course_collaborators = this.redux
       .getStore("projects")
       .get_users(s.get("course_project_id"));
-    if (target_users == null) {
+    if (course_collaborators == null) {
       // console.log("projects store isn't sufficiently initialized yet...");
       return;
     }
-    target_users.map((_, account_id) => {
+    course_collaborators.map((_, account_id) => {
       if (users.get(account_id) == null) {
         invite(account_id);
       }
     });
-    if (!s.get_allow_collabs()) {
+    // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
+    // The problem is that student_account_id might not yet be known to the .course, even though
+    // the student has been added and the account_id exists, and is known to the account opening
+    // the .course file.  This is just due to a race condition somewhere else.  For now -- before
+    // just factoring out and rewriting all this code better -- we at least make this one change
+    // so the student isn't "brutally" kicked out of the course.
+    if (
+      s.get("settings") != undefined &&
+      !s.get_allow_collabs() &&
+      student_account_id != undefined
+    ) {
       // Remove anybody extra on the student project
-      return users.map((_, account_id) => {
+      users.map((_, account_id) => {
         if (
-          target_users.get(account_id) == null &&
+          course_collaborators.get(account_id) == null &&
           account_id !== student_account_id
         ) {
-          return this.redux
+          this.redux
             .getActions("projects")
             .remove_collaborator(student_project_id, account_id);
         }

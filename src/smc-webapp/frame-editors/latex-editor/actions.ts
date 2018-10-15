@@ -202,6 +202,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   check_for_fatal_error(): void {
     const build_logs: BuildLogs = this.store.get("build_logs");
+    if (!build_logs) return;
     const errors = build_logs.getIn(["latex", "parse", "errors"]);
     if (errors === undefined || errors.size < 1) return;
     const last_error = errors.get(errors.size - 1);

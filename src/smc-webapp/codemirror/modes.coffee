@@ -101,3 +101,5 @@ require('./mode/pari.js')
 require('./mode/mediawiki/mediawiki.js')
 
 require('./mode/lean')
+
+require('./mode/ada.ts')

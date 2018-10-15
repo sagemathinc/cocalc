@@ -3,12 +3,9 @@ A single terminal frame.
 */
 
 import { Map } from "immutable";
-import { Terminal } from "xterm";
-require("xterm/dist/xterm.css");
 import { ResizeObserver } from "resize-observer";
-import { proposeGeometry } from "xterm/lib/addons/fit/fit";
-import * as webLinks from "xterm/lib/addons/webLinks/webLinks";
-webLinks.apply(Terminal);
+
+import { Terminal } from "./connected-terminal";
 
 import { throttle } from "underscore";
 
@@ -32,7 +29,7 @@ interface Props {
 export class TerminalFrame extends Component<Props, {}> {
   static displayName = "TerminalFrame";
 
-  private terminal: any;
+  private terminal: Terminal;
   private is_mounted: boolean = false;
 
   shouldComponentUpdate(next): boolean {
@@ -40,7 +37,8 @@ export class TerminalFrame extends Component<Props, {}> {
       "id",
       "project_id",
       "path",
-      "font_size"
+      "font_size",
+      "terminal"
     ]);
   }
 
@@ -57,48 +55,35 @@ export class TerminalFrame extends Component<Props, {}> {
     this.is_mounted = true;
     this.set_font_size = throttle(this.set_font_size, 500);
     this.init_terminal();
-    (this.terminal as any).is_mounted = true;
+    this.terminal.is_mounted = true;
     this.measure_size = this.measure_size.bind(this);
-    this.terminal.on("reconnect", this.measure_size);
   }
 
   componentWillUnmount(): void {
     this.is_mounted = false;
     if (this.terminal !== undefined) {
-      this.terminal.off("reconnect", this.measure_size);
       this.terminal.element.remove();
-      (this.terminal as any).is_mounted = false;
+      this.terminal.is_mounted = false;
       // Ignore size for this terminal.
-      (this.terminal as any).conn_write({ cmd: "size", rows: 0, cols: 0 });
+      this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
       delete this.terminal;
     }
   }
 
-  async init_terminal(): Promise<void> {
+  init_terminal(): void {
     const node: any = ReactDOM.findDOMNode(this.refs.terminal);
     if (node == null) {
-      return;
+      throw Error("refs.terminal MUST be defined");
     }
-    const terminal = this.props.actions._get_terminal(this.props.id);
-    if (terminal != null) {
-      this.terminal = terminal;
-      node.appendChild(this.terminal.element);
-    } else {
-      this.terminal = new Terminal();
-      this.terminal.open();
-      node.appendChild(this.terminal.element);
-      this.terminal.webLinksInit();
-      await this.props.actions.set_terminal(this.props.id, this.terminal);
-      if (!this.is_mounted) {
-        return;
-      }
-    }
+    this.terminal = this.props.actions._get_terminal(this.props.id, node);
     this.set_font_size(this.props.font_size);
     this.measure_size();
     new ResizeObserver(() => this.measure_size()).observe(node);
     if (this.props.is_current) {
       this.terminal.focus();
     }
+    // TODO: Obviously restoring the exact scroll position would be better...
+    this.terminal.scroll_to_bottom();
   }
 
   async set_font_size(font_size: number): Promise<void> {
@@ -106,7 +91,7 @@ export class TerminalFrame extends Component<Props, {}> {
       return;
     }
     if (this.terminal.getOption("fontSize") !== font_size) {
-      this.terminal.setOption("fontSize", font_size);
+      this.terminal.set_font_size(font_size);
       this.measure_size();
     }
   }
@@ -115,20 +100,24 @@ export class TerminalFrame extends Component<Props, {}> {
     if (this.terminal == null || !this.is_mounted) {
       return;
     }
-    const geom = proposeGeometry(this.terminal);
-    if (geom == null) return;
-    const { rows, cols } = geom;
-    (this.terminal as any).conn_write({ cmd: "size", rows, cols });
+    this.terminal.measure_size();
   }
 
   render(): Rendered {
     const color = background_color(this.props.terminal.get("color_scheme"));
+    /* 4px padding is consistent with CodeMirror */
     return (
       <div
-        ref={"terminal"}
         className={"smc-vfill"}
-        style={{ backgroundColor: color, padding: "3px" }}
-      />
+        style={{ backgroundColor: color, padding: "4px" }}
+        onClick={() => {
+          /* otherwise, clicking right outside term defocuses,
+             which is confusing */
+          this.terminal.focus();
+        }}
+      >
+        <div className={"smc-vfill"} ref={"terminal"} />
+      </div>
     );
   }
 }

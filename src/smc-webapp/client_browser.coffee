@@ -337,10 +337,12 @@ class Connection extends client.Connection
         @_conn.end()
         @_conn.open()
 
-    _cookies: (mesg) =>
-        $.ajax
+    _cookies: (mesg, cb) =>
+        j = $.ajax
             url     : mesg.url
             data    : {id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value}
+        j.done(=> cb?())
+        j.fail(=> cb?('failed'))
 
     alert_message: (args...) =>
         require('./alerts').alert_message(args...)

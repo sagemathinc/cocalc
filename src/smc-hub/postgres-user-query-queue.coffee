@@ -42,7 +42,7 @@ query_queue_duration = metrics_recorder.new_counter('query_queue_duration_second
                     'Total time it took to evaluate queries')
 query_queue_done = metrics_recorder.new_counter('query_queue_done_total',
                     'Total number of evaluated queries')
-query_queue_info = metrics_recorder.new_gauge('query_queue_info', 'Information update about outstanding queries in the queue', ['client', 'info'])
+#query_queue_info = metrics_recorder.new_gauge('query_queue_info', 'Information update about outstanding queries in the queue', ['client', 'info'])
 
 global_count = 0
 
@@ -198,7 +198,7 @@ class exports.UserQueryQueue
     _info: (state) =>
         avg = @_avg(state)
         #query_queue_info.labels(state.client_id, 'count').set(state.count)
-        query_queue_info.labels(state.client_id, 'avg').set(avg)
+        #query_queue_info.labels(state.client_id, 'avg').set(avg)
         #query_queue_info.labels(state.client_id, 'length').set(state.queue?.length ? 0)
         #query_queue_info.labels(state.client_id, 'sent').set(state.sent)
         @_dbg("client_id='#{state.client_id}': avg=#{avg}ms, count(local=#{state.count},global=#{global_count}), queued.length=#{state.queue?.length}, sent=#{state.sent}")
