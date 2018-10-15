@@ -20,11 +20,7 @@ import { callback } from "awaiting";
 
 const terminals = {};
 
-//const MAX_HISTORY_LENGTH: number = 500000;
-
-// I'm experimenting with much more history to
-// see how this impacts #3277...
-const MAX_HISTORY_LENGTH: number = 2000000;
+const MAX_HISTORY_LENGTH: number = 500000;
 const truncate_thresh_ms: number = 500;
 const check_interval_ms: number = 3000;
 
