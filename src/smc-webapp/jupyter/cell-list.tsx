@@ -2,6 +2,9 @@
 React component that renders the ordered list of cells
 */
 
+// TODO: import jquery
+declare const $: any;
+
 import * as immutable from "immutable";
 import { React, Component } from "../app-framework"; // TODO: this will move
 const { Loading } = require("../r_misc");
