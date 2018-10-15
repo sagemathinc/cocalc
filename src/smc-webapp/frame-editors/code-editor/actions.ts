@@ -1629,6 +1629,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "html":
         parser = "html-tidy";
         break;
+      case "xml":
+        parser = "xml-tidy";
+        break;
       case "c":
       case "c++":
       case "cc":
