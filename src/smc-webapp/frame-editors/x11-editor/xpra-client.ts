@@ -78,10 +78,19 @@ export class XpraClient extends EventEmitter {
     //this.client.on("ws:data", this.ws_data.bind(this));
   }
 
-  focus(wid?: number): void {
+  focus(): void {
     this.enable_window_events();
+  }
+
+  focus_window(wid:number) : void {
     if (wid && this.windows[wid] !== undefined) {
       this.client.surface.focus(wid);
+    }
+  }
+
+  close_window(wid:number) : void {
+    if (wid && this.windows[wid] !== undefined) {
+      this.client.surface.kill(wid);
     }
   }
 
