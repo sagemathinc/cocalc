@@ -46,18 +46,21 @@ export class Actions extends BaseActions<X11EditorState> {
       project_id: this.project_id,
       path: this.path
     });
-    this.client.on("window:create", (id: string, info) => {
-      let windows = this.store.get("windows").set(id, fromJS(info));
+    
+    this.client.on("window:create", (wid: number, info) => {
+      let windows = this.store.get("windows").set(`${wid}`, fromJS(info));
       this.setState({ windows });
     });
-    this.client.on("window:icon", (id: string, icon: string) => {
+
+    this.client.on("window:icon", (wid: number, icon: string) => {
       let windows = this.store.get("windows");
-      let window = windows.get(id);
+      const s: string = `${wid}`;
+      let window = windows.get(s);
       if (window == null) {
         return;
       }
       window = window.set("icon", icon);
-      windows = windows.set(id, window);
+      windows = windows.set(s, window);
       this.setState({ windows });
     });
   }
@@ -83,5 +86,13 @@ export class Actions extends BaseActions<X11EditorState> {
       return;
     }
     this.client.blur();
+  }
+
+  // Set things so that the X11 window wid is displayed in the frame
+  // with given id.  This is a no-op if wid is already displayed
+  // in another frame.
+  set_window(id: string, wid: number): void {
+    // todo: make it so wid can only be in one leaf...
+    this.set_frame_tree({ id, wid });
   }
 }

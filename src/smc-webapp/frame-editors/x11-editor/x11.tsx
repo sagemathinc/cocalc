@@ -13,6 +13,8 @@ import {
   rtypes
 } from "../../app-framework";
 
+import { is_different } from "../generic/misc";
+
 import { Actions } from "./actions";
 
 import { WindowTab } from "./window-tab";
@@ -20,6 +22,8 @@ import { WindowTab } from "./window-tab";
 interface Props {
   actions: Actions;
   id: string;
+  desc: Map<string, any>;
+  is_current: boolean;
   // reduxProps:
   windows: Map<string, any>;
 }
@@ -35,19 +39,37 @@ export class X11Component extends Component<Props, {}> {
     };
   }
 
+  shouldComponentUpdate(next): boolean {
+    if (this.props.desc.get("wid") != next.desc.get("wid")) {
+      this.update(next);
+      return true;
+    }
+    return is_different(this.props, next, ["id", "windows", "is_current"]);
+  }
+
   componentDidMount(): void {
-    const client = this.props.actions.client;
+    this.update(this.props);
+  }
+
+  update(props): void {
+    const client = props.actions.client;
     if (client == null) {
       return;
     }
-    const node: any = ReactDOM.findDOMNode(this.refs.x11);
-    const wid = 4;
+    const wid = props.desc.get("wid");
+    if (wid == null) {
+      return;
+    }
+    const node: any = ReactDOM.findDOMNode(this.refs.window);
     client.render_window(wid, node);
     client.resize_window(wid);
-    client.focus(wid);
+    if (props.is_current) {
+      client.focus(wid);
+    }
   }
 
   componentWillUnmount(): void {
+    // TODO: not at all right...
     this.props.actions.blur();
   }
 
@@ -56,8 +78,15 @@ export class X11Component extends Component<Props, {}> {
     if (this.props.windows == null) {
       return v;
     }
-    this.props.windows.forEach((info: Map<string, any>, id: string) => {
-      v.push(<WindowTab key={id} id={id} info={info} actions={this.props.actions} />);
+    this.props.windows.forEach((info: Map<string, any>) => {
+      v.push(
+        <WindowTab
+          id={this.props.id}
+          key={info.get("wid")}
+          info={info}
+          actions={this.props.actions}
+        />
+      );
     });
     return v;
   }
@@ -66,7 +95,7 @@ export class X11Component extends Component<Props, {}> {
     return (
       <div>
         <div>{this.render_window_tabs()}</div>
-        <div className="smc-vfill" ref="x11" />
+        <div className="smc-vfill" ref="window" />
       </div>
     );
   }

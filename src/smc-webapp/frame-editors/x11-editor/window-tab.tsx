@@ -24,6 +24,9 @@ export class WindowTab extends Component<Props, {}> {
   render(): Rendered {
     return (
       <a
+        onClick={() => {
+          this.props.actions.set_window(this.props.id, this.props.info.get('wid'));
+        }}
         style={{
           cursor: "pointer",
           padding: "0 5px",

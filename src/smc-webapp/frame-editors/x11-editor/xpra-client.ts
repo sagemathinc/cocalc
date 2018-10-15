@@ -125,6 +125,7 @@ export class XpraClient extends EventEmitter {
     console.log("window_create", info);
     this.windows[info.wid] = info;
     this.emit("window:create", info.wid, {
+      wid: info.wid,
       width: info.w,
       height: info.h,
       title: info.metadata.title
