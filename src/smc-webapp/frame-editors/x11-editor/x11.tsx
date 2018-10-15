@@ -2,15 +2,38 @@
 X11 Window frame.
 */
 
-import { React, Component, ReactDOM, Rendered } from "../../app-framework";
+import { Map } from "immutable";
+
+import {
+  React,
+  Component,
+  ReactDOM,
+  Rendered,
+  rclass,
+  rtypes
+} from "../../app-framework";
+
+import { Actions } from "./actions";
+
+import { WindowTab } from "./window-tab";
 
 interface Props {
-  actions: any;
+  actions: Actions;
   id: string;
+  // reduxProps:
+  windows: Map<string, any>;
 }
 
-export class X11 extends Component<Props, {}> {
+export class X11Component extends Component<Props, {}> {
   static displayName = "X11";
+
+  static reduxProps({ name }) {
+    return {
+      [name]: {
+        windows: rtypes.immutable.Map
+      }
+    };
+  }
 
   componentDidMount(): void {
     const client = this.props.actions.client;
@@ -20,15 +43,34 @@ export class X11 extends Component<Props, {}> {
     const node: any = ReactDOM.findDOMNode(this.refs.x11);
     const wid = 4;
     client.render_window(wid, node);
-    client.resize_window(wid, node);
+    client.resize_window(wid);
     client.focus(wid);
   }
 
-  componentWillUnmount() : void {
+  componentWillUnmount(): void {
     this.props.actions.blur();
   }
 
+  render_window_tabs(): Rendered[] {
+    const v: Rendered[] = [];
+    if (this.props.windows == null) {
+      return v;
+    }
+    this.props.windows.forEach((info: Map<string, any>, id: string) => {
+      v.push(<WindowTab key={id} id={id} info={info} actions={this.props.actions} />);
+    });
+    return v;
+  }
+
   render(): Rendered {
-    return <div className="smc-vfill" ref='x11' id="x11" />;
+    return (
+      <div>
+        <div>{this.render_window_tabs()}</div>
+        <div className="smc-vfill" ref="x11" />
+      </div>
+    );
   }
 }
+
+const X110 = rclass(X11Component);
+export { X110 as X11 };

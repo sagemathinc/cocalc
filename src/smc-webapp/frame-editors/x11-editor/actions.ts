@@ -20,7 +20,7 @@ interface X11EditorState extends CodeEditorState {
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
   protected doctype: string = "none";
-  protected client: XpraClient;
+  /* protected */ client: XpraClient;
   public store: Store<X11EditorState>;
 
   _init2(): void {
