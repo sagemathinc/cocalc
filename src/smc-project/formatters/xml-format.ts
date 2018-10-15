@@ -58,6 +58,15 @@ export async function xml_format(
       default:
         throw Error(`Unknown XML formatter utility '${options.parser}'`);
     }
+
+    if (!xml_formatter) {
+      throw new Error(
+        `XML formatter broken or not available. Is '${
+          options.parser
+        }' installed?`
+      );
+    }
+
     // stdout/err capture
     let stdout: string = "";
     let stderr: string = "";
@@ -82,6 +91,7 @@ export async function xml_format(
 
     return s;
   } finally {
+    logger.debug(`xml formatter done, unlinking ${input_path}`);
     unlink(input_path);
   }
 }
