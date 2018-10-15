@@ -142,6 +142,7 @@ export interface CourseState {
   students: StudentsMap;
   tab: string;
   unsaved?: boolean;
+  _open_discussions: any;
 }
 
 export class CourseStore extends Store<CourseState> {
