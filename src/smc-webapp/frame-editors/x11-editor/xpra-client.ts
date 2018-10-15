@@ -15,10 +15,12 @@ const MOUSE_EVENTS = [
 
 interface Options {
   project_id: string;
-  port: number;
+  path: string;
 }
 
-export class XpraClient {
+import { EventEmitter } from "events";
+
+export class XpraClient extends EventEmitter {
   private options: Options;
   private xpra_options: any;
   private client: any;
@@ -26,9 +28,14 @@ export class XpraClient {
   private scale: number;
 
   constructor(options: Options) {
+    super();
     this.scale = window.devicePixelRatio;
     this.options = options;
-    this.init_client();
+    this.init();
+  }
+
+  async init(): Promise<void> {
+    await this.init_client();
     this.init_xpra_events();
     this.connect();
   }
@@ -49,11 +56,12 @@ export class XpraClient {
     this.client.connect(this.xpra_options);
   }
 
-  private init_client(): void {
+  private async init_client(): Promise<void> {
     // TODO
+    const port = 2000; // will determine this async via api call to backend that starts server.
     const uri = `wss://cocalc.com${window.app_base_url}/${
       this.options.project_id
-    }/server/${this.options.port}/`;
+    }/server/${port}/`;
     const dpi = Math.round(DPI * this.scale);
     this.xpra_options = { uri, dpi, sound: false };
     this.client = createClient(this.xpra_options);
@@ -70,7 +78,7 @@ export class XpraClient {
     //this.client.on("ws:data", this.ws_data.bind(this));
   }
 
-  focus(wid?:number): void {
+  focus(wid?: number): void {
     this.enable_window_events();
     if (wid && this.windows[wid] !== undefined) {
       this.client.surface.focus(wid);
@@ -116,6 +124,11 @@ export class XpraClient {
   window_create(info): void {
     console.log("window_create", info);
     this.windows[info.wid] = info;
+    this.emit("window:create", info.wid, {
+      width: info.w,
+      height: info.h,
+      title: info.metadata.title
+    });
   }
 
   resize_window(wid: number): void {
@@ -148,9 +161,7 @@ export class XpraClient {
 
   window_icon(info): void {
     console.log("window_icon", info);
-    if (this.windows[info.wid] !== undefined) {
-      this.windows[info.wid].icon = info.src;
-    }
+    this.emit("window:icon", info.wid, info.src);
   }
   window_metadata(info): void {
     console.log("window_metadata", info);

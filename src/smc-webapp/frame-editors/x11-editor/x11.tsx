@@ -13,14 +13,19 @@ export class X11 extends Component<Props, {}> {
   static displayName = "X11";
 
   componentDidMount(): void {
+    const client = this.props.actions.client;
+    if (client == null) {
+      return;
+    }
     const node: any = ReactDOM.findDOMNode(this.refs.x11);
-    this.props.actions.client.render_window(4, node);
-    this.props.actions.client.resize_window(4, node);
-    this.props.actions.client.focus(4);
+    const wid = 4;
+    client.render_window(wid, node);
+    client.resize_window(wid, node);
+    client.focus(wid);
   }
 
   componentWillUnmount() : void {
-    this.props.actions.client.blur();
+    this.props.actions.blur();
   }
 
   render(): Rendered {
