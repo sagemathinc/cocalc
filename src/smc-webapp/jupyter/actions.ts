@@ -85,8 +85,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _last_cursors?: any;
   private _last_start?: any;
   private assistant_actions: any;
-  private path: any;
-  private project_id: any;
+  private path: string;
+  private project_id: string;
   private set_save_status: any;
   private update_keyboard_shortcuts: any;
   private project_conn: any;
@@ -115,12 +115,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   _init = (
-    project_id: any,
-    path: any,
+    project_id: string,
+    path: string,
     syncdb: any,
     store: any,
     client: any
   ) => {
+    if (project_id == null || path == null) {  // typescript should ensure this, but just in case.
+      throw Error("type error -- project_id and path can't be null");
+      return;
+    }
     store.dbg = f => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
@@ -280,7 +284,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error("closed");
     }
     return await (await this.init_project_conn()).api.jupyter(
-      this.store.get("path"),
+      this.path,
       endpoint,
       query,
       timeout_ms

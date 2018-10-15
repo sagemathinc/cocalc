@@ -65,7 +65,7 @@ CLIENT_MIN_ACTIVE_S = 45
 
 # How frequently we tell the browser clients to report metrics back to us.
 # Set to 0 to completely disable metrics collection from clients.
-CLIENT_METRICS_INTERVAL_S = 60*2
+CLIENT_METRICS_INTERVAL_S = if DEBUG2 then 15 else 60*2
 
 # recording metrics and statistics
 metrics_recorder = require('./metrics-recorder')
@@ -380,7 +380,7 @@ class exports.Client extends EventEmitter
     get_cookie: (opts) ->
         opts = defaults opts,
             name : required
-            cb   : required   # cb(value)
+            cb   : required   # cb(undefined, value)
         if not @conn?.id?
             # no connection or connection died
             return
@@ -453,7 +453,7 @@ class exports.Client extends EventEmitter
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
-        @set_cookie
+        @set_cookie  # same name also hardcoded in the client!
             name  : base_url_lib.base_url() + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
@@ -2518,12 +2518,18 @@ class exports.Client extends EventEmitter
             if not misc.is_array(metric?.values)
                 # what?
                 return
+            if metric.values.length == 0
+                return
             for v in metric.values
                 if not misc.is_object(v?.labels)
                     # what?
                     return
-                v.labels.client_id  = @id
-                v.labels.account_id = @account_id
+            switch metric.type
+                when 'gauge'
+                    metric.aggregator = 'average'
+                else
+                    metric.aggregator = 'sum'
+
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
 
@@ -2573,3 +2579,39 @@ class exports.Client extends EventEmitter
                     @error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.success(id:mesg.id))
+
+    mesg_touch_project: (mesg) =>
+        dbg = @dbg('mesg_touch_project')
+        async.series([
+            (cb) =>
+                dbg("checking conditions")
+                if not @account_id?
+                    cb('you must be signed in to touch a project')
+                    return
+                if not misc.is_valid_uuid_string(mesg.project_id)
+                    cb('project_id must be specified and valid')
+                    return
+                access.user_has_write_access_to_project
+                    database       : @database
+                    project_id     : mesg.project_id
+                    account_groups : @groups
+                    account_id     : @account_id
+                    cb             : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            cb("must have write access")
+                        else
+                            cb()
+            (cb) =>
+                @touch
+                    project_id : mesg.project_id
+                    action     : 'touch'
+                    cb         : cb
+        ], (err) =>
+            if err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"unable to touch project #{mesg.project_id} -- #{err}")
+            else
+                @push_to_client(message.success(id:mesg.id))
+        )

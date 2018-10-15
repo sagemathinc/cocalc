@@ -114,7 +114,7 @@ class ArchiveActions extends Actions
         ext0 = filename_extension_notilde(path)?.toLowerCase()
         ext = filename_extension(path)?.toLowerCase()
         if ext0 != ext
-            @setState(error: "Please rename the archive file to not end in a tilde.")
+            @setState(error: <span>Please rename the archive file to not end in a tilde.</span>)
             return
 
         if not COMMANDS[ext]?.list?
@@ -130,7 +130,7 @@ class ArchiveActions extends Actions
             err_on_exit: true
             cb         : (err, output) =>
                 @setState
-                    error    : if err then <pre>{err}</pre>
+                    error    : if err then <pre>{err.toString()}</pre>
                     contents : output?.stdout
                     type     : ext
 
@@ -186,10 +186,12 @@ class ArchiveActions extends Actions
                     timeout    : 120
                     cb         : (err, _output) =>
                         output = _output
+                        if err
+                            err = err.toString()  # it's an Exception object otherwise -- see https://github.com/sagemathinc/cocalc/issues/3280
                         cb(err)
         ], (err) =>
             @setState
-                error          : err
+                error          : if err then <pre>"${err}"</pre>
                 extract_output : output?.stdout
                 loading        : false
         )

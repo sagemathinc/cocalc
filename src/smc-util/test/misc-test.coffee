@@ -92,6 +92,9 @@ describe "sinon", ->
 describe 'seconds2hms', ->
     s2hms = misc.seconds2hms
     s2hm  = misc.seconds2hm
+    m = 60 # one minute
+    h = 60 * m # one hour
+    d = 24 * h # one day
     it 'converts to short form', ->
         expect(s2hms(0)).toEqual '0s'
         expect(s2hms(60)).toEqual '1m0s'
@@ -117,6 +120,16 @@ describe 'seconds2hms', ->
         expect(s2hm(3601, true)).toEqual '1 hour'
         expect(s2hm(7300, true)).toEqual '2 hours 1 minute'
         expect(s2hm(36000, true)).toEqual '10 hours'
+    it 'converts to short form in days resolution', ->
+        expect(s2hm(d + 2 * h + 1 * m)).toEqual '1d2h1m'
+        expect(s2hm(21 * d + 19 * h - 1)).toEqual '21d18h59m'
+        expect(s2hm(1 * d)).toEqual '1d'
+        expect(s2hm(1 * d + 3 * m)).toEqual '1d3m'
+    it 'converts to long form in hour days resolution', ->
+        expect(s2hm(1 * d + 2 * h + 1 * m, true)).toEqual '1 day 2 hours 1 minute'
+        expect(s2hm(21 * d + 19 * h - 1, true)).toEqual '21 days 18 hours 59 minutes'
+        expect(s2hm(1 * d, true)).toEqual '1 day'
+        expect(s2hm(1 * d + 3 * m, true)).toEqual '1 day 3 minutes'
 
 describe 'startswith', ->
     startswith = misc.startswith

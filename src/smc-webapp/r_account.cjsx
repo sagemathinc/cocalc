@@ -674,7 +674,8 @@ DeleteAccountConfirmation = rclass
             return
         <ErrorDisplay error={@props.account_deletion_error} />
 
-    render: ->
+    # Change this line to `render: ->` and delete the other render function below to reenable automatic account deletion
+    render_original: ->
         <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
             Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
@@ -707,6 +708,20 @@ DeleteAccountConfirmation = rclass
                 </Button>
             </ButtonToolbar>
             {@render_error()}
+        </Well>
+
+    # Remove this function and rename the function above to reenable account deletion
+    render: ->
+        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
+            To delete your account, contact us at <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>{" "}
+            or open a support request by clicking "Help" in the top right menu.<br/>
+            <Button
+                style = {marginTop:'5px'}
+                bsStyle = 'primary'
+                onClick = {@props.cancel_click}
+            >
+                Cancel
+            </Button>
         </Well>
 
 ###
@@ -790,27 +805,19 @@ TerminalSettings = rclass
     render: ->
         if not @props.terminal?
             return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal settings <span className='lighten'>(applied to newly opened terminals)</span></h2>}>
-            <LabeledRow label='Terminal font size'>
-                <NumberInput
-                    on_change = {(font_size)=>@handleChange(font_size:font_size)}
-                    min       = {3}
-                    max       = {80}
-                    number    = {@props.terminal.get('font_size')}
-                    unit      = "px" />
+        <Panel header={<h2> <Icon name='terminal' /> Terminal settings</h2>}>
+            <LabeledRow label='Terminal color scheme'>
+                <SelectorInput
+                    selected  = {@props.terminal.get('color_scheme')}
+                    options   = {TERMINAL_COLOR_SCHEMES}
+                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+                />
             </LabeledRow>
             <LabeledRow label='Terminal font family'>
                 <SelectorInput
                     selected  = {@props.terminal.get('font')}
                     options   = {TERMINAL_FONT_FAMILIES}
                     on_change = {(font)=>@handleChange(font:font)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Terminal color scheme'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('color_scheme')}
-                    options   = {TERMINAL_COLOR_SCHEMES}
-                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
                 />
             </LabeledRow>
         </Panel>
@@ -1292,20 +1299,6 @@ exports.AccountSettingsTop = rclass
                         everywhere             = {@props.everywhere}
                         other_settings         = {@props.other_settings}
                         redux                  = {@props.redux} />
-                    <TerminalSettings
-                        terminal = {@props.terminal}
-                        redux    = {@props.redux} />
-                    <KeyboardSettings
-                        evaluate_key = {@props.evaluate_key}
-                        redux        = {@props.redux} />
-                </Col>
-                <Col xs={12} md={6}>
-                    <EditorSettings
-                        autosave        = {@props.autosave}
-                        tab_size        = {@props.tab_size}
-                        font_size       = {@props.font_size}
-                        editor_settings = {@props.editor_settings}
-                        redux           = {@props.redux} />
                     <OtherSettings
                         other_settings     = {@props.other_settings}
                         is_stripe_customer = {@props.stripe_customer?}
@@ -1315,6 +1308,20 @@ exports.AccountSettingsTop = rclass
                         first_name    = {@props.first_name}
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />
+                </Col>
+                <Col xs={12} md={6}>
+                    <EditorSettings
+                        autosave        = {@props.autosave}
+                        tab_size        = {@props.tab_size}
+                        font_size       = {@props.font_size}
+                        editor_settings = {@props.editor_settings}
+                        redux           = {@props.redux} />
+                    <TerminalSettings
+                        terminal = {@props.terminal}
+                        redux    = {@props.redux} />
+                    <KeyboardSettings
+                        evaluate_key = {@props.evaluate_key}
+                        redux        = {@props.redux} />
                 </Col>
             </Row>
             <Footer/>

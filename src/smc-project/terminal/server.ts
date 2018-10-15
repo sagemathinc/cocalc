@@ -2,7 +2,8 @@
 Terminal server
 */
 
-const { spawn } = require("pty.js");
+const { spawn } = require("node-pty");
+import { readFile, writeFile } from "fs";
 
 import {
   len,
@@ -13,9 +14,13 @@ const { console_init_filename } = require("smc-util/misc");
 
 import { exists } from "../jupyter/async-utils-node";
 
+import { throttle } from "underscore";
+
+import { callback } from "awaiting";
+
 const terminals = {};
 
-const MAX_HISTORY_LENGTH: number = 200000;
+const MAX_HISTORY_LENGTH: number = 500000;
 const truncate_thresh_ms: number = 500;
 const check_interval_ms: number = 3000;
 
@@ -50,13 +55,28 @@ export async function terminal(
     const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
     const cwd = s.head;
 
+    try {
+      terminals[name].history = (await callback(readFile, path)).toString();
+    } catch (err) {
+      console.log(`failed to load ${path} from disk`);
+    }
     const term = spawn("/bin/bash", args, { cwd, env });
     logger.debug("terminal", "init_term", name, "pid=", term.pid, "args", args);
     terminals[name].term = term;
+
+    const save_history_to_disk = throttle(async () => {
+      try {
+        await callback(writeFile, path, terminals[name].history);
+      } catch (err) {
+        console.log(`failed to save ${path} to disk`);
+      }
+    }, 15000);
+
     term.on("data", function(data): void {
       //logger.debug("terminal: term --> browsers", name, data);
       handle_backend_messages(data);
       terminals[name].history += data;
+      save_history_to_disk();
       const n = terminals[name].history.length;
       if (n >= MAX_HISTORY_LENGTH) {
         logger.debug("terminal data -- truncating");
@@ -160,6 +180,9 @@ export async function terminal(
       logger.debug("terminal", name, "EXIT");
       init_term();
     });
+
+    // set the size
+    resize();
   }
   await init_term();
 

@@ -253,6 +253,9 @@ LogEntry = rclass
     render_invite_nonuser: ->
         <span>invited nonuser {@props.event.invitee_email}</span>
 
+    render_remove_collaborator: ->
+        <span>removed collaborator {@props.event.removed_name}</span>
+
     file_action_icons :
         deleted    : 'delete'
         downloaded : 'download'
@@ -289,6 +292,8 @@ LogEntry = rclass
                 return @render_invite_user()
             when 'invite_nonuser'
                 return @render_invite_nonuser()
+            when 'remove_collaborator'
+                return @render_remove_collaborator()
             when 'open_project'  # not used anymore???
                 return <span>opened this project</span>
             when 'library'

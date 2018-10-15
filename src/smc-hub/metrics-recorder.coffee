@@ -135,6 +135,7 @@ class MetricsRecorder
         it sums them up. `aggregate` is a static method and hence it should be ok to use it directly.
         ###
         metrics = (m for _, m of exports.client_metrics)
+
         registry = prom_client.AggregatorRegistry.aggregate(metrics)
         return registry.metrics()
 

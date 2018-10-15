@@ -1416,7 +1416,9 @@ exports.date_to_snapshot_format = (d) ->
     return s.slice(0,i)
 
 exports.stripe_date = (d) ->
-    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    # https://github.com/sagemathinc/cocalc/issues/3254
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl#Locale_negotiation
+    return new Date(d*1000).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     # fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
     #return new Date(d*1000).toLocaleDateString(
     #    'en-US',
@@ -1532,6 +1534,18 @@ exports.round2 = round2 = (num) ->
     # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
+seconds2hms_days = (d, h, m, longform) ->
+    h = h % 24
+    s = h * 60 * 60 + m * 60
+    if s > 0
+        x = seconds2hms(s, longform, show_seconds=false)
+    else
+        x = ''
+    if longform
+        return "#{d} #{exports.plural(d, 'day')} #{x}".trim()
+    else
+        return "#{d}d#{x}"
+
 # like seconds2hms, but only up to minute-resultion
 exports.seconds2hm = seconds2hm = (secs, longform) ->
     return seconds2hms(secs, longform, false)
@@ -1547,6 +1561,10 @@ exports.seconds2hms = seconds2hms = (secs, longform, show_seconds=true) ->
         s = Math.round(secs % 60)
     m = Math.floor(secs / 60) % 60
     h = Math.floor(secs / 60 / 60)
+    d = Math.floor(secs / 60 / 60 / 24)
+    # for more than one day, special routine (ignoring seconds altogehter)
+    if d > 0
+        return seconds2hms_days(d, h, m, longform)
     if (h == 0 and m == 0) and show_seconds
         if longform
             return "#{s} #{exports.plural(s, 'second')}"

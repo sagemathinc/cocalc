@@ -22,6 +22,8 @@ starts_with_cloud_url = (href) ->
     is_formersmc  = document.location.origin == 'https://cocalc.com' and misc.startswith(href, "https://cloud.sagemath.com")
     return is_samedomain or is_formersmc
 
+exports.starts_with_cloud_url = starts_with_cloud_url
+
 $.fn.process_smc_links = (opts={}) ->
     @each ->
         e = $(this)
