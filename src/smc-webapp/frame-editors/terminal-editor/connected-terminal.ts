@@ -55,6 +55,7 @@ export class Terminal {
   private id: string;
   private terminal: XTerminal;
   private is_paused: boolean = false;
+  private keyhandler_initialized : boolean = false;
     /* We initially have to ignore when rendering the initial history.
     To TEST this, do this in a terminal, then reconnect:
          printf "\E[c\n" ; sleep 1 ; echo
@@ -108,7 +109,6 @@ export class Terminal {
     this.element = this.terminal.element;
     this.update_settings();
     this.init_weblinks();
-    this.init_keyhandler();
     this.init_title();
     this.init_terminal_data();
     this.init_settings();
@@ -305,10 +305,15 @@ export class Terminal {
   }
 
   init_keyhandler(): void {
+    if(this.keyhandler_initialized) {
+      return;
+    }
+    this.keyhandler_initialized = true;
     this.terminal.attachCustomKeyEventHandler(event => {
       //console.log("key", event);
       // record that terminal is being actively used.
       this.last_active = new Date().valueOf();
+      this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.actions.unpause(this.id);
@@ -435,9 +440,8 @@ export class Terminal {
         // cause render to actually appear now.
         await delay(0);
         this.terminal.refresh(0, this.terminal.rows - 1);
-        await delay(150); // this should not be needed, but we do it
-        // just in case the whole refresh thing is not enough.
-        this.ignore_terminal_data = false;
+        // Finally start listening to user input.
+        this.init_keyhandler()
         cb();
       };
       this.terminal.on("refresh", f);
