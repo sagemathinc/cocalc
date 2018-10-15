@@ -83,6 +83,7 @@ export class X11Component extends Component<Props, {}> {
         <WindowTab
           id={this.props.id}
           key={info.get("wid")}
+          is_current={info.get("wid") === this.props.desc.get("wid")}
           info={info}
           actions={this.props.actions}
         />
@@ -91,10 +92,18 @@ export class X11Component extends Component<Props, {}> {
     return v;
   }
 
+  render_tab_bar(): Rendered {
+    return (
+      <div style={{ borderBottom: "1px solid lightgrey", padding: "5px 0 0 0" }}>
+        {this.render_window_tabs()}
+      </div>
+    );
+  }
+
   render(): Rendered {
     return (
       <div>
-        <div>{this.render_window_tabs()}</div>
+        {this.render_tab_bar()}
         <div className="smc-vfill" ref="window" />
       </div>
     );

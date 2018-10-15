@@ -46,9 +46,14 @@ export class Actions extends BaseActions<X11EditorState> {
       project_id: this.project_id,
       path: this.path
     });
-    
+
     this.client.on("window:create", (wid: number, info) => {
       let windows = this.store.get("windows").set(`${wid}`, fromJS(info));
+      this.setState({ windows });
+    });
+
+    this.client.on("window:destroy", (wid: number) => {
+      let windows = this.store.get("windows").delete(`${wid}`);
       this.setState({ windows });
     });
 
@@ -94,5 +99,6 @@ export class Actions extends BaseActions<X11EditorState> {
   set_window(id: string, wid: number): void {
     // todo: make it so wid can only be in one leaf...
     this.set_frame_tree({ id, wid });
+    this.client.focus(wid);
   }
 }
