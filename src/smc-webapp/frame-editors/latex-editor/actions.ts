@@ -111,6 +111,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  set_frame_type(id: string, type: string): void {
+    super.set_frame_type(id, type);
+    if (type === 'word_count') {
+      this.word_count();
+    }
+  }
+
   _init_ext_path(): void {
     if (this.knitr) {
       // changing the path to the (to be generated) tex file makes everyting else

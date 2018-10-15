@@ -854,10 +854,9 @@ export class FrameTitleBar extends Component<Props, {}> {
         bsSize={this.button_size()}
         key={"word_count"}
         onClick={() => this.props.actions.word_count(this.props.id)}
-        title={"Count words"}
+        title={"Runs texcount"}
       >
-        <Icon name={"file-alt"} />{" "}
-        <VisibleMDLG>{this.show_labels() ? "Count" : undefined}</VisibleMDLG>
+        <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
       </Button>
     );
   }
