@@ -671,7 +671,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (node == null) {
       return;
     }
-    return node.get('type');
+    return node.get("type");
   }
 
   _tree_is_single_leaf(): boolean {
@@ -1704,6 +1704,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._get_most_recent_active_frame_id(
       node => node.get("type") == type
     );
+  }
+
+  _has_frame_of_type(type: string): boolean {
+    return this._get_most_recent_active_frame_id_of_type(type) != null;
   }
 
   /* Get current value of the cm editor doc. Returns undefined if no
