@@ -25,11 +25,9 @@ export class XpraClient extends EventEmitter {
   private xpra_options: any;
   private client: any;
   private windows: any = {};
-  private scale: number;
 
   constructor(options: Options) {
     super();
-    this.scale = window.devicePixelRatio;
     this.options = options;
     this.init();
   }
@@ -62,7 +60,7 @@ export class XpraClient extends EventEmitter {
     const uri = `wss://cocalc.com${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
-    const dpi = Math.round(DPI * this.scale);
+    const dpi = Math.round(DPI * window.devicePixelRatio);
     this.xpra_options = { uri, dpi, sound: false };
     this.client = createClient(this.xpra_options);
   }
@@ -75,20 +73,20 @@ export class XpraClient extends EventEmitter {
     this.client.on("overlay:create", this.overlay_create.bind(this));
     this.client.on("overlay:destroy", this.overlay_destroy.bind(this));
     this.client.on("ws:status", this.ws_status.bind(this));
-    //this.client.on("ws:data", this.ws_data.bind(this));
+    //this.client.on("ws:data", this.ws_data.bind(this));  // ridiculously low level.
   }
 
   focus(): void {
     this.enable_window_events();
   }
 
-  focus_window(wid:number) : void {
+  focus_window(wid: number): void {
     if (wid && this.windows[wid] !== undefined) {
       this.client.surface.focus(wid);
     }
   }
 
-  close_window(wid:number) : void {
+  close_window(wid: number): void {
     if (wid && this.windows[wid] !== undefined) {
       this.client.surface.kill(wid);
     }
@@ -125,6 +123,7 @@ export class XpraClient extends EventEmitter {
     }
     const canvas = $(info.canvas);
     canvas.width("100%").height("100%");
+    //canvas.css('border', '1px solid red');  // for dev
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
     e.append(canvas);
@@ -148,19 +147,24 @@ export class XpraClient extends EventEmitter {
       return; // no such window
     }
     const canvas = $(info.canvas);
-    const scale = this.scale;
+    const scale = window.devicePixelRatio;
     const width = canvas.width(),
       height = canvas.height();
     if (!width || !height) {
       return;
     }
+    const swidth = Math.round(width * scale);
+    const sheight = Math.round(height * scale);
+    console.log("resize_window ", wid, width, height, swidth, sheight);
+    this.client.findSurface(wid).updateCSSGeometry(swidth, sheight);
     this.client.send(
       "configure-window",
       wid,
       0,
       0,
-      Math.round(width * scale),
-      Math.round(height * scale)
+      swidth,
+      sheight,
+      info.properties
     );
   }
 
