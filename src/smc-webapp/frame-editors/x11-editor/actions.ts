@@ -99,6 +99,14 @@ export class Actions extends BaseActions<X11EditorState> {
   set_window(id: string, wid: number): void {
     // todo: make it so wid can only be in one leaf...
     this.set_frame_tree({ id, wid });
-    this.client.focus(wid);
+    this.client.focus_window(wid);
+  }
+
+  close_window(id: string, wid: number): void {
+    // todo: make it so wid can only be in one leaf...
+    this.set_frame_tree({ id, wid:undefined });
+    this.client.close_window(wid);
+    // todo: if wid is currently focused, switch focus to
+    // previous window in the list.
   }
 }

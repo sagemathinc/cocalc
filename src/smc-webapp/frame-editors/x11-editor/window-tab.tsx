@@ -2,6 +2,8 @@
 X11 Window frame.
 */
 
+const { Icon } = require("smc-webapp/r_misc");
+
 import { Map } from "immutable";
 
 import { React, Component, Rendered } from "../../app-framework";
@@ -31,6 +33,30 @@ export class WindowTab extends Component<Props, {}> {
     }
   }
 
+  render_close_button(): Rendered {
+    const color = this.props.is_current ? "#fff" : "#458ac9";
+    const backgroundColor = this.props.is_current ? "#458ac9" : "#fff";
+    return (
+      <div
+        style={{
+          float: "right",
+          backgroundColor,
+          color,
+          position: "relative",
+          padding: "0 5px"
+        }}
+        onClick={() => {
+          this.props.actions.close_window(
+            this.props.id,
+            this.props.info.get("wid")
+          );
+        }}
+      >
+        <Icon name="times" />
+      </div>
+    );
+  }
+
   render(): Rendered {
     return (
       <div
@@ -46,12 +72,13 @@ export class WindowTab extends Component<Props, {}> {
           overflow: "hidden",
           whiteSpace: "nowrap",
           cursor: "pointer",
-          padding: "0 5px",
+          padding: "0 0 0 5px",
           borderRight: "1px solid grey",
           background: this.props.is_current ? "#458ac9" : "#fff",
           color: this.props.is_current ? "#fff" : "#458ac9"
         }}
       >
+        {this.render_close_button()}
         {this.render_icon()}
         {this.props.info.get("title")}
       </div>
