@@ -1,4 +1,6 @@
-import { createClient } from "cocalc-xpra";
+// Use Xpra to provide X11 server.
+
+import { createClient } from "./xpra/client";
 
 const DPI: number = 96;
 

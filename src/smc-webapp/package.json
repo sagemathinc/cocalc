@@ -30,7 +30,6 @@
     "bootstrap": "^3.3.6",
     "bootstrap-colorpicker": "^2.3.6",
     "chai": "^4.1.2",
-    "cocalc-xpra": "git+https://git@github.com/sagemathinc/cocalc-xpra.git",
     "codemirror": "^5.39.0",
     "copy-to-clipboard": "^3.0.8",
     "create-react-class": "^15.6.2",
@@ -68,6 +67,7 @@
     "markdown-it-mathjax": "^2.0.0",
     "mathjax": "2.7.4",
     "md5": "^2",
+    "node-forge": "^0.7.6",
     "nodeunit": "^0.9.0",
     "octicons": "^3.5.0",
     "onecolor": "^3.0.4",
@@ -99,7 +99,8 @@
     "three": "^0.78.0",
     "timeago": "^1.6.3",
     "underscore": "^1.8",
-    "xterm": "^3.8.0"
+    "xterm": "^3.8.0",
+    "zlibjs": "^0.3.1"
   },
   "devDependencies": {
     "cjsx-register": "^1.0.5",
