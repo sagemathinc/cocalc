@@ -666,6 +666,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return tree_ops.get_node(this._get_tree(), id);
   }
 
+  _get_frame_type(id: string): string | undefined {
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      return;
+    }
+    return node.get('type');
+  }
+
   _tree_is_single_leaf(): boolean {
     return tree_ops.is_leaf(this._get_tree());
   }
