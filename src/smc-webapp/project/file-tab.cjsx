@@ -67,6 +67,11 @@ exports.FileTab = rclass
         else
             actions.set_active_tab(@props.name)
 
+    # middle mouse click closes
+    onMouseDown: (e) ->
+        if e.button == 1
+            @close_file(e, misc.tab_to_path(@props.name))
+
     render : ->
         styles = {}
 
@@ -112,10 +117,11 @@ exports.FileTab = rclass
             content = <Tip title={@props.tooltip} stable={true} placement={'bottom'} size={'small'}> {content} </Tip>
 
         <NavItem
-            ref     = 'tab'
-            style   = {styles}
-            active  = {@props.is_active}
-            onClick = {@click}
+            ref         = 'tab'
+            style       = {styles}
+            active      = {@props.is_active}
+            onClick     = {@click}
+            onMouseDown = {@onMouseDown}
         >
             <div style={width:'100%', color:text_color, cursor : 'pointer'}>
                 <div style={x_button_styles}>
