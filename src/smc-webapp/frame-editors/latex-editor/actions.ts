@@ -279,7 +279,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_knitr(time, force);
       if (this.store.get("knitr_error")) return;
     }
-    // update word count asynchroneously
+    // update word count asynchronously
     const run_word_count = this.word_count(time, force);
     // update_pdf=false, because it is defered until the end
     await this.run_latex(time, force, false);
@@ -307,7 +307,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.update_pdf(time, force);
     }
 
-    // and finally, work count finsihes -- to make clear the whole operation is done
+    // and finally, wait for word count to finish -- to make clear the whole operation is done
     await run_word_count;
   }
 
@@ -686,7 +686,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async word_count(time: number, force: boolean): Promise<void> {
-    // only run word count if at least one panel is active
+    // only run word count if at least one such panel exists
     if (this._get_most_recent_active_frame_id_of_type("word_count") == null) {
       return;
     }
