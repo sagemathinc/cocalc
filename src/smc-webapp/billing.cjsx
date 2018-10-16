@@ -978,6 +978,7 @@ AddSubscription = rclass
                     {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
+                        on_close = {@props.on_close}
                     /> if @props.selected_plan isnt ''}
                     <Row>
                         <Col sm={5} smOffset={7}>
@@ -997,6 +998,7 @@ ConfirmPaymentMethod = rclass
 
     propTypes :
         is_recurring : rtypes.bool
+        on_close : rtypes.func
 
     render_single_payment_confirmation: ->
         <span>
@@ -1014,7 +1016,7 @@ ConfirmPaymentMethod = rclass
 
     render: ->
         if not @props.customer
-            return <AddPaymentMethod redux={redux} />
+            return <AddPaymentMethod redux={redux} on_close={@props.on_close} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
