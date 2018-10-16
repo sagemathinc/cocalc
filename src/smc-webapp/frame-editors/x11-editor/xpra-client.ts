@@ -153,10 +153,14 @@ export class XpraClient extends EventEmitter {
     if (!width || !height) {
       return;
     }
+    const surface = this.client.findSurface(wid);
+    if (!surface) { // just removed?
+      return;
+    }
     const swidth = Math.round(width * scale);
     const sheight = Math.round(height * scale);
     console.log("resize_window ", wid, width, height, swidth, sheight);
-    this.client.findSurface(wid).updateCSSGeometry(swidth, sheight);
+    surface.updateCSSGeometry(swidth, sheight);
     this.client.send(
       "configure-window",
       wid,
