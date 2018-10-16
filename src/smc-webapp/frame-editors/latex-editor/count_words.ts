@@ -2,7 +2,7 @@ import { exec } from "../generic/client";
 import { path_split } from "../generic/misc";
 
 // and enhancement might be to generate html via $ texcount -htmlcore
-// but that doesn't format it in any substantically better way
+// but that doesn't format it in a substantically better way
 
 export async function count_words(
   project_id: string,

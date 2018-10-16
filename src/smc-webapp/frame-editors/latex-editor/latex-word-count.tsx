@@ -39,6 +39,10 @@ class LatexWordCount extends Component<ILatexWordCount, {}> {
     return is_different(this.props, props, ["word_count"]);
   }
 
+  componentDidMount(): void {
+    this.props.actions.word_count(0, false);
+  }
+
   render(): React.ReactElement<any> {
     return (
       <div

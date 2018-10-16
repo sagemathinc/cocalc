@@ -111,13 +111,6 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  set_frame_type(id: string, type: string): void {
-    super.set_frame_type(id, type);
-    if (type === 'word_count') {
-      this.word_count();
-    }
-  }
-
   _init_ext_path(): void {
     if (this.knitr) {
       // changing the path to the (to be generated) tex file makes everyting else
@@ -286,6 +279,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_knitr(time, force);
       if (this.store.get("knitr_error")) return;
     }
+    // update word count asynchroneously
+    const run_word_count = this.word_count(time, force);
     // update_pdf=false, because it is defered until the end
     await this.run_latex(time, force, false);
     // ... and then patch the synctex file to align the source line numberings
@@ -311,6 +306,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (update_pdf) {
       this.update_pdf(time, force);
     }
+
+    // and finally, work count finsihes -- to make clear the whole operation is done
+    await run_word_count;
   }
 
   async run_knitr(time: number, force: boolean): Promise<void> {
@@ -322,7 +320,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       output = await knitr(
         this.project_id,
         this.filename_knitr,
-        force ? undefined : time || this._last_save_time,
+        this.make_timestamp(time, force),
         status
       );
     } catch (err) {
@@ -356,7 +354,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await patch_synctex(
         this.project_id,
         this.path,
-        force ? undefined : time || this._last_save_time,
+        this.make_timestamp(time, force),
         status
       );
     } catch (err) {
@@ -374,7 +372,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   ): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
-    const timestamp = force ? undefined : time || this._last_save_time;
+    const timestamp = this.make_timestamp(time, force);
     let s: string | List<string> = this.store.get("build_command");
     if (!s) {
       return;
@@ -425,7 +423,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   update_pdf(time: number, force: boolean): void {
-    const timestamp = force ? undefined : time || this._last_save_time;
+    const timestamp = this.make_timestamp(time, force);
     // forget currently cached pdf
     this._forget_pdf_document();
     // ... before setting a new one for all the viewers,
@@ -441,7 +439,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       const output: BuildLog = await bibtex(
         this.project_id,
         this.path,
-        force ? undefined : time || this._last_save_time
+        this.make_timestamp(time, force)
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -683,12 +681,19 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async word_count(): Promise<void> {
-    this.set_error("");
+  make_timestamp(time: number, force: boolean): number | undefined {
+    return force ? undefined : time || this._last_save_time;
+  }
+
+  async word_count(time: number, force: boolean): Promise<void> {
+    // only run word count if at least one panel is active
+    if (this._get_most_recent_active_frame_id_of_type("word_count") == null) {
+      return;
+    }
+
     try {
-      await this.save(false);
-      const time = this._last_save_time;
-      const output = await count_words(this.project_id, this.path, time);
+      const timestamp = this.make_timestamp(time, force);
+      const output = await count_words(this.project_id, this.path, timestamp);
       if (output.stderr) {
         const err = `Error:\n${output.stderr}`;
         this.setState({ word_count: err });
