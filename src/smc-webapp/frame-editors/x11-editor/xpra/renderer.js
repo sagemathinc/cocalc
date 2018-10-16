@@ -87,14 +87,15 @@ export const createRenderer = ({ wid, canvas, context }, send) => {
       const now = timestamp();
       const diff = now - start;
 
-      if (diff > 5000) {
-        console.warn("A frame was very late....");
-
-        /* FIXME
+      /*
+      if (diff > 1000) {
+        // console.warn("A frame was very late....");
+        // try again.
+        // TODO: what should we do?
         window.requestAnimationFrame(render);
         return;
-        */
       }
+      */
 
       let [x, y, w, h, coding, data, sequence, rowstride, options] = packet;
       options = options || {};
@@ -119,6 +120,17 @@ export const createRenderer = ({ wid, canvas, context }, send) => {
           send("damage-sequence", sequence, wid, w, h, diff, "");
         }
 
+        // Update main canvas size if necessary -- we do this here
+        // right when we are copying the drawCanvas over, to avoid
+        // any flicker.
+        if (canvas.width != drawCanvas.width) {
+          canvas.width = drawCanvas.width;
+        }
+        if (canvas.height != drawCanvas.height) {
+          canvas.height = drawCanvas.height;
+        }
+
+        // Now set the main visible canvas equal to the off screen drawCanvas.
         context.drawImage(drawCanvas, 0, 0);
 
         window.requestAnimationFrame(render);

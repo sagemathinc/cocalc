@@ -75,12 +75,8 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   const updateMetadata = meta => Object.assign(metadata, meta);
   const destroy = () => renderer.stop();
   const updateCSSGeometry = (w, h) => {
-    if (canvas.width != w) {
-      canvas.width = w;
-    }
-    if (canvas.height != h) {
-      canvas.height = h;
-    }
+    // The main canvas itself has its size updated *only* when
+    // the render itself happens, so there is no flicker.
     if (renderer.surface.drawCanvas.width != w) {
       renderer.surface.drawCanvas.width = w;
     }
