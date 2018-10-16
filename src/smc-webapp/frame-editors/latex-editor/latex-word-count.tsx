@@ -1,14 +1,6 @@
 import { Map } from "immutable";
-import { is_different /* , capitalize, path_split*/ } from "../generic/misc";
-import {
-  Component,
-  React,
-  rclass,
-  rtypes
-  //,  Rendered
-} from "../../app-framework";
-//import { TypedMap } from "../../app-framework/TypedMap";
-// const { Icon, Loading } = require("smc-webapp/r_misc");
+import { is_different } from "../generic/misc";
+import { Component, React, rclass, rtypes } from "../../app-framework";
 
 interface ILatexWordCount {
   id: string;

@@ -687,7 +687,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async word_count(time: number, force: boolean): Promise<void> {
     // only run word count if at least one such panel exists
-    if (this._get_most_recent_active_frame_id_of_type("word_count") == null) {
+    if (!this._has_frame_of_type("word_count")) {
       return;
     }
 
