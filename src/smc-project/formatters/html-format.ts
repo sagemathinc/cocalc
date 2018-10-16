@@ -1,14 +1,13 @@
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
+const { execute_code } = require("smc-util-node/execute-code");
 const { callback } = require("awaiting");
-const { spawn } = require("child_process");
+const {
+  callback_opts
+} = require("smc-webapp/frame-editors/generic/async-utils");
 
 interface ParserOptions {
   parser: string;
-}
-
-function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
 }
 
 // the long list of options looks scary, but it is based on testing it.
@@ -16,8 +15,8 @@ function close(proc, cb): void {
 // also, the "indent" formatting of codemirror is similar to the indentation here.
 // ref: http://tidy.sourceforge.net/docs/quickref.html
 
-function tidy(input_path) {
-  return spawn("tidy", [
+async function tidy(input_path) {
+  const args = [
     "-modify",
     "--show-body-only",
     "auto",
@@ -42,7 +41,14 @@ function tidy(input_path) {
     "--tidy-mark",
     "no",
     input_path
-  ]);
+  ];
+  return await callback_opts(execute_code)({
+    command: "tidy",
+    args: args,
+    err_on_exit: false,
+    bash: false,
+    timeout: 15
+  });
 }
 
 export async function html_format(
@@ -55,31 +61,28 @@ export async function html_format(
   try {
     await callback(writeFile, input_path, input);
 
-    // spawn the html formatter
+    // run the selected html formatter
     let html_formatter;
-    switch (options.parser) {
-      case "html-tidy":
-      case "tidy":
-        html_formatter = tidy(input_path);
-        break;
-      default:
-        throw Error(`Unknown HTML formatter utility '${options.parser}'`);
-    }
-    if (!html_formatter) {
-      throw new Error(
+    try {
+      switch (options.parser) {
+        case "html-tidy":
+        case "tidy":
+          html_formatter = await tidy(input_path);
+          break;
+        default:
+          throw Error(`Unknown HTML formatter utility '${options.parser}'`);
+      }
+    } catch (e) {
+      logger.log("html_format error:", e);
+       throw new Error(
         `HTML formatter broken or not available. Is '${
           options.parser
-        }' installed?`
+        }' installed?}`
       );
     }
-    // stdout/err capture
-    let stdout: string = "";
-    let stderr: string = "";
-    // read data as it is produced.
-    html_formatter.stdout.on("data", data => (stdout += data.toString()));
-    html_formatter.stderr.on("data", data => (stderr += data.toString()));
-    // wait for subprocess to close.
-    let code = await callback(close, html_formatter);
+
+    const { code, stdout, stderr } = html_formatter;
+    // logger.log("code, stdout, stderr", code, stdout, stderr);
     // TODO exit code 1 is a "warning", which requires show-warnings yes
     if (code >= 2) {
       throw Error(
