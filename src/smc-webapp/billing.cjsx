@@ -224,7 +224,7 @@ AddPaymentMethod = rclass
 
     propTypes :
         redux    : rtypes.object.isRequired
-        on_close : rtypes.func.isRequired  # called when this should be closed
+        on_close : rtypes.func  # optional, called when this should be closed
 
     getInitialState: ->
         new_payment_info :
@@ -243,7 +243,7 @@ AddPaymentMethod = rclass
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
-                @props.on_close()
+                @props.on_close?()
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.address_country != "United States"
@@ -476,7 +476,7 @@ AddPaymentMethod = rclass
                         >
                             Add Credit Card
                         </Button>
-                        <Button onClick={@props.on_close}>Cancel</Button>
+                        { <Button onClick={@props.on_close}>Cancel</Button> if @props.on_close? }
                     </ButtonToolbar>
                 </Col>
             </Row>
