@@ -173,7 +173,7 @@ exports.execute_code = execute_code = aggregate (opts) ->
             r.on 'error', (err) ->
                 if not exit_code?
                     exit_code = 1
-                stderr += to_json(err)
+                stderr += misc.to_json(err)
                 finish()
 
             callback_done = false
