@@ -1073,6 +1073,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // Now saves our custom-format syncdb to disk.
       await awaiting.callback(this.syncdb.save);
     } catch (err) {
+      if (err.toString().indexOf("no kernel with path") != -1) {
+        // This means that the kernel simply hasn't been initialized yet.
+        // User can try to save later, once it has.
+        return;
+      }
       if (err.toString().indexOf("unknown endpoint") != -1) {
         this.set_error(
           "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings."
