@@ -91,10 +91,6 @@ export class JupyterActions extends JupyterActions0 {
       5000
     );
 
-    // WARNING: @_load_from_disk_if_newer must happen before anything that might touch
-    // the syncdb state.  Otherwise, the syncdb state will automatically be
-    // newer than what is on disk, and we'll never load anything from disk.
-
     //dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
 
     this.setState({
@@ -690,7 +686,7 @@ export class JupyterActions extends JupyterActions0 {
         // be inefficient and could lead to corruption.
         return;
       }
-      return this.load_ipynb_file();
+      this.load_ipynb_file();
     });
     //@_sync_file_mode()
 
@@ -819,7 +815,7 @@ Read the ipynb file from disk.
 - If data_only is true, we load the ipynb file *only* to get "more output"
   and base64 encoded (etc.) images, and store them in our in-memory
   key:value store or cache.   We do this, because the file is the only
-  place that has this data (it is NOT in the syncb).\
+  place that has this data (it is NOT in the syncdb).\
 */
     const dbg = this.dbg(`load_ipynb_file(data_only=${data_only})`);
     dbg("reading file");

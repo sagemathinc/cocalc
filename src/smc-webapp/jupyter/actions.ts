@@ -1070,12 +1070,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // *changes* the syncdb by updating the last save time.
     try {
       await this._api_call("save_ipynb_file", {});
-      this.setState({has_unsaved_changes: false});
+      this.setState({ has_unsaved_changes: false });
       // Now saves our custom-format syncdb to disk.
-      await awaiting.callback(this.syncdb.save)
+      await awaiting.callback(this.syncdb.save);
     } catch (err) {
       if (err.toString().indexOf("unknown endpoint") != -1) {
-        this.set_error("You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings.");
+        this.set_error(
+          "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings."
+        );
         return;
       }
       this.set_error(err.toString());
@@ -2620,13 +2622,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
     //dbg("kernel in ipynb: name='#{kernel}'")
 
+    const existing_ids = this.store.get("cell_list", immutable.List()).toJS();
+
     if (data_only) {
       trust = undefined;
       set = function() {};
     } else {
       if (typeof this.reset_more_output === "function") {
         this.reset_more_output();
-      } // clear the more output handler (only on backend)
+        // clear the more output handler (only on backend)
+      }
       this.syncdb.delete(undefined, false); // completely empty database
       // preserve trust state across file updates/loads
       trust = this.store.get("trust");
@@ -2648,7 +2653,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     importer.import({
       ipynb,
-      existing_ids: __guard__(this.store.get("cell_list"), x1 => x1.toJS()),
+      existing_ids,
       new_id: this._new_id,
       process_attachment:
         this._jupyter_kernel != null
