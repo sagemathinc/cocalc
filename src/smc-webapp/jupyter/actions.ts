@@ -114,7 +114,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store: any,
     client: any
   ) => {
-    if (project_id == null || path == null) {  // typescript should ensure this, but just in case.
+    if (project_id == null || path == null) {
+      // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
       return;
     }
@@ -1057,7 +1058,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb.sync();
   };
 
-  save = () => {
+  save = async () => {
     if (this.store.get("read_only")) {
       // can't save when readonly
       return;
@@ -1065,16 +1066,24 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.get("mode") === "edit") {
       this._get_cell_input();
     }
-    // Saves our customer format sync doc-db to disk; the backend will
-    // also save the normal ipynb file to disk right after.
-    this.syncdb.save(() => {
-      return typeof this.set_save_status === "function"
-        ? this.set_save_status()
-        : undefined;
-    });
-    return typeof this.set_save_status === "function"
-      ? this.set_save_status()
-      : undefined;
+    // Save the .ipynb file to disk.  Note that this
+    // *changes* the syncdb by updating the last save time.
+    try {
+      await this._api_call("save_ipynb_file", {});
+      this.setState({has_unsaved_changes: false});
+      // Now saves our custom-format syncdb to disk.
+      await awaiting.callback(this.syncdb.save)
+    } catch (err) {
+      if (err.toString().indexOf("unknown endpoint") != -1) {
+        this.set_error("You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings.");
+        return;
+      }
+      this.set_error(err.toString());
+    }
+    // And update the save status finally.
+    if (typeof this.set_save_status === "function") {
+      this.set_save_status();
+    }
   };
 
   save_asap = (): void => {

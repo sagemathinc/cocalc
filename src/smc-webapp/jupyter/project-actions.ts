@@ -9,6 +9,8 @@ fully unit test it via mocking of components.
 
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
+import { callback_opts } from "../frame-editors/generic/async-utils";
+
 const async = require("async");
 const underscore = require("underscore");
 const misc = require("smc-util/misc");
@@ -118,7 +120,7 @@ export class JupyterActions extends JupyterActions0 {
   _first_load = () => {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
-    return this._load_from_disk_if_newer(err => {
+    this._load_from_disk_if_newer(err => {
       if (!err) {
         dbg("loading worked");
         return this._init_after_first_load();
@@ -147,12 +149,6 @@ export class JupyterActions extends JupyterActions0 {
     this.ensure_backend_kernel_setup(); // this may change the syncdb.
 
     this.init_file_watcher();
-
-    this.syncdb.on("save_to_disk_project", err => {
-      if (!err) {
-        return this.save_ipynb_file();
-      }
-    });
 
     this._state = "ready";
     this.ensure_there_is_a_cell();
@@ -512,13 +508,13 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
 
-    const get_password = () : string => {
+    const get_password = (): string => {
       if (this._jupyter_kernel == null) {
         dbg("get_password", id, "no kernel");
         return "";
       }
       const password = this._jupyter_kernel.store.get(id);
-        dbg("get_password", id, password);
+      dbg("get_password", id, password);
       this._jupyter_kernel.store.delete(id);
       return password;
     };
@@ -751,17 +747,19 @@ export class JupyterActions extends JupyterActions0 {
     */
 
   _load_from_disk_if_newer = (cb: any) => {
-    let last_changed;
+    let last_ipynb_save;
     const dbg = this.dbg("load_from_disk_if_newer");
-    if (this.syncdb.get({ type: "file" }).size === 0) {
+    const file_info = this.syncdb.get_one({type:"file"});
+    if (file_info == null) {
       // never ever loaded from disk before; we have to load at least once
-      last_changed = 0;
+      last_ipynb_save = 0;
     } else {
-      last_changed = this.syncdb.last_changed();
+      // saved, but may or may not have last_ipynb_save set...
+      last_ipynb_save = file_info.get('last_ipynb_save', 0);
     }
 
-    dbg(`syncdb last_changed=${last_changed}`);
-    return this._client.path_stat({
+    dbg(`syncdb last_ipynb_save=${last_ipynb_save}`);
+    this._client.path_stat({
       path: this.store.get("path"),
       cb: (err, stats) => {
         dbg(`stats.ctime = ${stats != null ? stats.ctime : undefined}`);
@@ -773,13 +771,12 @@ export class JupyterActions extends JupyterActions0 {
           this.set_last_load();
           return typeof cb === "function" ? cb() : undefined;
         } else {
-          // we do include "equality", because rsync operations round down to full seconds.
-          // such rounding and strict inequality would make the file appear stale although it isn't.
-          const file_is_newer = stats.ctime >= last_changed;
-          if (file_is_newer) {
-            dbg("disk file changed more recently than edits, so loading");
+          const file_changed = stats.ctime.getTime() !== last_ipynb_save;
+          if (file_changed) {
+            dbg(".ipynb disk file changed since last load, so loading");
             return this.load_ipynb_file(cb);
           } else {
+            dbg(".ipynb disk file NOT changed since last load, so NOT loading");
             return typeof cb === "function" ? cb() : undefined;
           }
         }
@@ -788,10 +785,28 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   set_last_load = () => {
-    return this.syncdb.set({
+    this.syncdb.set({
       type: "file",
       last_load: new Date().getTime()
     });
+  };
+
+  /* Determine timestamp of aux .ipynb file, and record it here,
+     so we know that we do not have to load exactly that file
+     back from disk. */
+  set_last_ipynb_save = async () => {
+    try {
+      const stats = await callback_opts(this._client.path_stat)({
+        path: this.store.get("path")
+      });
+      this.syncdb.set({
+        type: "file",
+        last_ipynb_save: stats.ctime.getTime()
+      });
+    } catch (err) {
+      // no-op -- nothing to do.
+      this.dbg("set_last_ipynb_save")(`error ${err}`);
+    }
   };
 
   load_ipynb_file = (cb?: any, data_only = false) => {
@@ -891,7 +906,7 @@ Read the ipynb file from disk.
       return;
     }
     //dbg("got string version '#{data}'")
-    return this._client.write_file({
+    this._client.write_file({
       path: this.store.get("path"),
       data,
       cb: err => {
@@ -901,6 +916,7 @@ Read the ipynb file from disk.
         } else {
           dbg("succeeded at saving");
           this._last_save_ipynb_file = new Date();
+          this.set_last_ipynb_save();
         }
         return typeof cb === "function" ? cb(err) : undefined;
       }
@@ -991,7 +1007,7 @@ Read the ipynb file from disk.
         [
           cb => {
             dbg("saving file to disk first");
-            return this.save_ipynb_file(cb);
+            this.save_ipynb_file(cb);
           },
           cb => {
             dbg("now actually running nbconvert");
