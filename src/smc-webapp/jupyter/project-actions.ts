@@ -743,16 +743,11 @@ export class JupyterActions extends JupyterActions0 {
     */
 
   _load_from_disk_if_newer = (cb: any) => {
-    let last_ipynb_save;
     const dbg = this.dbg("load_from_disk_if_newer");
-    const file_info = this.syncdb.get_one({type:"file"});
-    if (file_info == null) {
-      // never ever loaded from disk before; we have to load at least once
-      last_ipynb_save = 0;
-    } else {
-      // saved, but may or may not have last_ipynb_save set...
-      last_ipynb_save = file_info.get('last_ipynb_save', 0);
-    }
+    // Get ctime of last .ipynb file we explicitly saved.
+    const last_ipynb_save = this.syncdb._doc._syncstring_table
+      .get_one()
+      .getIn(["save", "last_ipynb_save"], 0);
 
     dbg(`syncdb last_ipynb_save=${last_ipynb_save}`);
     this._client.path_stat({
@@ -770,10 +765,10 @@ export class JupyterActions extends JupyterActions0 {
           const file_changed = stats.ctime.getTime() !== last_ipynb_save;
           if (file_changed) {
             dbg(".ipynb disk file changed since last load, so loading");
-            return this.load_ipynb_file(cb);
+            this.load_ipynb_file(cb);
           } else {
             dbg(".ipynb disk file NOT changed since last load, so NOT loading");
-            return typeof cb === "function" ? cb() : undefined;
+            typeof cb === "function" ? cb() : undefined;
           }
         }
       }
@@ -795,10 +790,10 @@ export class JupyterActions extends JupyterActions0 {
       const stats = await callback_opts(this._client.path_stat)({
         path: this.store.get("path")
       });
-      this.syncdb.set({
-        type: "file",
-        last_ipynb_save: stats.ctime.getTime()
-      });
+
+      // This is ugly (i.e., how we get access), but I need to get this done.
+      // This is the RIGHT place to save the info though.
+      this.syncdb._doc._set_save({ last_ipynb_save: stats.ctime.getTime() });
     } catch (err) {
       // no-op -- nothing to do.
       this.dbg("set_last_ipynb_save")(`error ${err}`);

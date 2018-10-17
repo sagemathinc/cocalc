@@ -1070,7 +1070,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // *changes* the syncdb by updating the last save time.
     try {
       await this._api_call("save_ipynb_file", {});
-      this.setState({ has_unsaved_changes: false });
       // Now saves our custom-format syncdb to disk.
       await awaiting.callback(this.syncdb.save);
     } catch (err) {
@@ -1081,10 +1080,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return;
       }
       this.set_error(err.toString());
-    }
-    // And update the save status finally.
-    if (typeof this.set_save_status === "function") {
-      this.set_save_status();
+    } finally {
+      // And update the save status finally.
+      if (typeof this.set_save_status === "function") {
+        this.set_save_status();
+      }
     }
   };
 
