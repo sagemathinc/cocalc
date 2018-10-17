@@ -169,15 +169,17 @@ const calculateWheel = (() => {
   };
 })();
 
-const getMouse = (ev, surface) => {
+function getMouse(ev, surface) {
   let relX = 0;
   let relY = 0;
 
+  //console.log('getMouse', ev.clientX, ev.clientY);
   if (surface) {
     const { top, left } = surface.canvas.getBoundingClientRect();
 
-    relX = left - surface.x;
-    relY = top - surface.y;
+    relX = left - surface.x / window.devicePixelRatio;
+    relY = top - surface.y / window.devicePixelRatio;
+    //console.log("getMOuse.surface", left, top, relX, relY);
   }
 
   let x = parseInt(ev.clientX - relX, 10);
@@ -186,9 +188,10 @@ const getMouse = (ev, surface) => {
   const button = getMouseButton(ev);
   x = Math.round(x * window.devicePixelRatio);
   y = Math.round(y * window.devicePixelRatio);
+  //console.log("getMouse, sending ", x,y);
 
   return { x, y, button, buttons };
-};
+}
 
 /**
  * Crates the mouse input handler
@@ -209,13 +212,14 @@ export const createMouse = (send, keyboard) => {
 
     if (ev.type === "mousemove") {
       const { x, y, buttons } = getMouse(ev, surface);
-      console.log("pointer-position", topwindow, [x, y]);
+
+      //console.log("pointer-position", topwindow, [x, y]);
       send("pointer-position", topwindow, [x, y], modifiers, buttons);
     } else if (ev.type === "mousedown" || ev.type === "mouseup") {
       const pressed = ev.type === "mousedown";
       const { x, y, button, buttons } = getMouse(ev, surface);
 
-      console.log("button-action", topwindow, button, pressed, [x, y]);
+      //console.log("button-action", topwindow, button, pressed, [x, y]);
       send(
         "button-action",
         topwindow,

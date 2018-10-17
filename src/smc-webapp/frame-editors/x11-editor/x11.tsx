@@ -111,7 +111,7 @@ export class X11Component extends Component<Props, {}> {
     if (!this.is_mounted) {
       return;
     }
-    client.resize_window(wid);
+    this.measure_size();
     if (props.is_current) {
       client.focus(wid);
     }
@@ -128,7 +128,12 @@ export class X11Component extends Component<Props, {}> {
     if (wid == null) {
       return;
     }
-    client.resize_window(wid);
+    const node = $(ReactDOM.findDOMNode(this.refs.window));
+    const width = node.width(), height = node.height();
+    if (width == null || height == null) {
+      return;
+    }
+    client.resize_window(wid, width, height);
   }
 
   componentWillUnmount(): void {

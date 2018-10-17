@@ -123,11 +123,16 @@ export const createRenderer = ({ wid, canvas, context }, send) => {
         // Update main canvas size if necessary -- we do this here
         // right when we are copying the drawCanvas over, to avoid
         // any flicker.
-        if (canvas.width != drawCanvas.width) {
+        if (
+          canvas.width != drawCanvas.width ||
+          canvas.height != drawCanvas.height
+        ) {
           canvas.width = drawCanvas.width;
-        }
-        if (canvas.height != drawCanvas.height) {
           canvas.height = drawCanvas.height;
+          const scale = window.devicePixelRatio;
+          $(canvas)
+            .width(`${canvas.width / scale}px`)
+            .height(`${canvas.height / scale}px`);
         }
 
         // Now set the main visible canvas equal to the off screen drawCanvas.

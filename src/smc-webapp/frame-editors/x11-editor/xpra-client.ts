@@ -124,8 +124,13 @@ export class XpraClient extends EventEmitter {
       return;
     }
     const canvas = $(info.canvas);
-    canvas.width("100%").height("100%");
-    //canvas.css('border', '1px solid red');  // for dev
+    const scale = window.devicePixelRatio;
+    canvas
+      .width(`${info.canvas.width / scale}px`)
+      .height(`${info.canvas.height / scale}px`)
+      .css({ borderRight: "1px solid grey" })
+      .css({ borderBottom: "1px solid grey" });
+
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
     e.append(canvas);
@@ -150,26 +155,50 @@ export class XpraClient extends EventEmitter {
     });
   }
 
-  resize_window(wid: number): void {
+  // Any new top-level window gets moved to position 0,0 and
+  // resized to fill the screen.
+  resize_window(wid: number, width: number, height: number): void {
     const info = this.windows[wid];
     if (info === undefined) {
       console.warn("no window", wid);
       return; // no such window
     }
-    const canvas = $(info.canvas);
-    const scale = window.devicePixelRatio;
-    const width = canvas.width(),
-      height = canvas.height();
-    if (!width || !height) {
+
+    if (info.metadata["modal"]) {
+      // never resize a modal window...
       return;
     }
+
+    const scale = window.devicePixelRatio;
     const surface = this.client.findSurface(wid);
     if (!surface) {
       // just removed?
       return;
     }
-    const swidth = Math.round(width * scale);
-    const sheight = Math.round(height * scale);
+    let swidth = Math.round(width * scale);
+    let sheight = Math.round(height * scale);
+    // Honor any size constraints
+    const size_constraints = info.metadata["size-constraints"];
+    if (size_constraints != null) {
+      const mn = size_constraints["minimum-size"],
+        mx = size_constraints["maximum-size"];
+      if (mn != null) {
+        if (swidth < mn[0]) {
+          swidth = mn[0];
+        }
+        if (sheight < mn[1]) {
+          sheight = mn[1];
+        }
+      }
+      if (mx != null) {
+        if (swidth > mx[0]) {
+          swidth = mx[0];
+        }
+        if (sheight > mx[1]) {
+          sheight = mx[1];
+        }
+      }
+    }
     console.log("resize_window ", wid, width, height, swidth, sheight);
     surface.updateCSSGeometry(swidth, sheight);
     this.client.send(
