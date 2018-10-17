@@ -164,11 +164,6 @@ export class XpraClient extends EventEmitter {
       return; // no such window
     }
 
-    if (info.metadata["modal"]) {
-      // never resize a modal window...
-      return;
-    }
-
     const scale = window.devicePixelRatio;
     const surface = this.client.findSurface(wid);
     if (!surface) {
@@ -199,6 +194,11 @@ export class XpraClient extends EventEmitter {
         }
       }
     }
+    if (swidth === info.w && sheight === info.h) {
+      // make no change...
+      return;
+    }
+
     console.log("resize_window ", wid, width, height, swidth, sheight);
     surface.updateCSSGeometry(swidth, sheight);
     this.client.send(
