@@ -90,7 +90,9 @@ const normalizeWheel = ev => {
 const getMouseButton = ev => {
   let button = ev.which
     ? Math.max(0, ev.which)
-    : ev.button ? Math.max(0, ev.button) + 1 : 0;
+    : ev.button
+      ? Math.max(0, ev.button) + 1
+      : 0;
 
   if (button === 4) {
     button = 8;
@@ -207,12 +209,13 @@ export const createMouse = (send, keyboard) => {
 
     if (ev.type === "mousemove") {
       const { x, y, buttons } = getMouse(ev, surface);
-
+      console.log("pointer-position", topwindow, [x, y]);
       send("pointer-position", topwindow, [x, y], modifiers, buttons);
     } else if (ev.type === "mousedown" || ev.type === "mouseup") {
       const pressed = ev.type === "mousedown";
       const { x, y, button, buttons } = getMouse(ev, surface);
 
+      console.log("button-action", topwindow, button, pressed, [x, y]);
       send(
         "button-action",
         topwindow,

@@ -35,8 +35,8 @@ interface Props {
 }
 
 export class X11Component extends Component<Props, {}> {
-  private is_mounted : boolean = false;
-  private is_loaded : boolean = false;
+  private is_mounted: boolean = false;
+  private is_loaded: boolean = false;
 
   static displayName = "X11";
 
@@ -72,16 +72,26 @@ export class X11Component extends Component<Props, {}> {
     new ResizeObserver(() => this.measure_size()).observe(node);
   }
 
-  async insert_window_in_div(props): Promise<void> {
-    console.log("try to insert");
+  /*
+  insert_overlay_in_div(props, overlay_id: number) : void {
+    console.log("insert_overlay_in_div", overlay_id);
     const node: any = ReactDOM.findDOMNode(this.refs.window);
-    (window as any).props = props;
-    if (props.windows.get(`${props.desc.get("wid")}`) === undefined) {
-      console.log("no such window");
-      $(node).empty();
-      this.is_loaded = false;
+    const client = props.actions.client;
+    if (client == null) {
+      // to satisfy typescript
       return;
     }
+    const wid = props.desc.get("wid");
+    if (wid == null) {
+      return;
+    }
+    client.render_overlay(wid, overlay_id);
+  }
+  */
+
+  async insert_window_in_div(props): Promise<void> {
+    console.log("insert_window_in_div");
+    const node: any = ReactDOM.findDOMNode(this.refs.window);
     const client = props.actions.client;
     if (client == null) {
       // to satisfy typescript
@@ -160,7 +170,11 @@ export class X11Component extends Component<Props, {}> {
     return (
       <div className="smc-vfill">
         {this.render_tab_bar()}
-        <div className="smc-vfill" ref="window" />
+        <div
+          className="smc-vfill"
+          ref="window"
+          style={{ position: "relative" }}
+        />
       </div>
     );
   }

@@ -129,16 +129,24 @@ export class XpraClient extends EventEmitter {
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
     e.append(canvas);
+
+    // Also append any already known overlays.
+    for (let id in this.windows) {
+      const w = this.windows[id];
+      if (w.parent.wid === wid) {
+        this.place_overlay_in_dom(w);
+      }
+    }
   }
 
-  window_create(info): void {
-    console.log("window_create", info);
-    this.windows[info.wid] = info;
-    this.emit("window:create", info.wid, {
-      wid: info.wid,
-      width: info.w,
-      height: info.h,
-      title: info.metadata.title
+  window_create(window): void {
+    console.log("window_create", window);
+    this.windows[window.wid] = window;
+    this.emit("window:create", window.wid, {
+      wid: window.wid,
+      width: window.w,
+      height: window.h,
+      title: window.metadata.title
     });
   }
 
@@ -156,7 +164,8 @@ export class XpraClient extends EventEmitter {
       return;
     }
     const surface = this.client.findSurface(wid);
-    if (!surface) { // just removed?
+    if (!surface) {
+      // just removed?
       return;
     }
     const swidth = Math.round(width * scale);
@@ -174,25 +183,52 @@ export class XpraClient extends EventEmitter {
     );
   }
 
-  window_destroy(info): void {
-    console.log("window_destroy", info);
-    delete this.windows[info.wid];
-    this.emit("window:destroy", info.wid);
+  window_destroy(window): void {
+    console.log("window_destroy", window);
+    delete this.windows[window.wid];
+    this.emit("window:destroy", window.wid);
   }
 
-  window_icon(info): void {
-    console.log("window_icon", info);
-    this.emit("window:icon", info.wid, info.src);
+  window_icon(icon): void {
+    //console.log("window_icon", icon);
+    this.emit("window:icon", icon.wid, icon.src);
   }
+
   window_metadata(info): void {
     console.log("window_metadata", info);
   }
-  overlay_create(info): void {
-    console.log("overlay_create", info);
+
+  place_overlay_in_dom(overlay): void {
+    const e = $(overlay.canvas);
+    e.css("position", "absolute");
+    const scale = window.devicePixelRatio;
+    console.log(
+      "setting overlay width to ",
+      `${overlay.canvas.width / scale}px`
+    );
+    const width = `${overlay.canvas.width / scale}px`,
+      height = `${overlay.canvas.height / scale}px`,
+      left = `${overlay.x / scale}px`,
+      top = `${overlay.y / scale}px`;
+    e.css({ width, height, left, top });
+    // if parent not in DOM yet, the following is no-op.
+    $(overlay.parent.canvas)
+      .parent()
+      .append(e);
   }
-  overlay_destroy(info): void {
-    console.log("overlay_destroy", info);
+
+  overlay_create(overlay): void {
+    console.log("overlay_create", overlay);
+    this.windows[overlay.wid] = overlay;
+    this.place_overlay_in_dom(overlay);
   }
+
+  overlay_destroy(overlay): void {
+    console.log("overlay_destroy", overlay);
+    delete this.windows[overlay.wid];
+    $(overlay.canvas).remove();
+  }
+
   ws_status(info): void {
     console.log("ws_status", info);
   }

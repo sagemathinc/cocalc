@@ -41,6 +41,25 @@ export class Actions extends BaseActions<X11EditorState> {
     delete this.client;
   }
 
+  _set_window(wid: number, obj: any): void {
+    let windows = this.store.get("windows");
+    const s = `${wid}`;
+    let window = windows.get(s);
+    if (window == null) {
+      console.warn(`_set_window -- no window with id ${wid}`);
+      return;
+    }
+    for (let key in obj) {
+      window = window.set(key, obj[key]);
+    }
+    windows = windows.set(s, window);
+    this.setState({ windows });
+  }
+
+  _get_window(wid: number, key: string, def?: any): any {
+    return this.store.get("windows").getIn([`${wid}`, key], def);
+  }
+
   init_client(): void {
     this.client = new XpraClient({
       project_id: this.project_id,
@@ -58,15 +77,7 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
-      let windows = this.store.get("windows");
-      const s: string = `${wid}`;
-      let window = windows.get(s);
-      if (window == null) {
-        return;
-      }
-      window = window.set("icon", icon);
-      windows = windows.set(s, window);
-      this.setState({ windows });
+      this._set_window(wid, { icon });
     });
   }
 
@@ -104,7 +115,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   close_window(id: string, wid: number): void {
     // todo: make it so wid can only be in one leaf...
-    this.set_frame_tree({ id, wid:undefined });
+    this.set_frame_tree({ id, wid: undefined });
     this.client.close_window(wid);
     // todo: if wid is currently focused, switch focus to
     // previous window in the list.
