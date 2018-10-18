@@ -1010,7 +1010,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!id) {
       return;
     }
-    const node = tree_ops.get_node(this._get_tree(), id);
+    const node = this._get_frame_node(id);
     if (!node) {
       return;
     }

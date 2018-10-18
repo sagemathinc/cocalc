@@ -25,6 +25,10 @@ import { Actions } from "./actions";
 
 import { WindowTab } from "./window-tab";
 
+import { TAB_BAR_GREY } from "./theme";
+
+import { cmp } from "../generic/misc";
+
 interface Props {
   actions: Actions;
   id: string;
@@ -35,8 +39,8 @@ interface Props {
 }
 
 export class X11Component extends Component<Props, {}> {
-  private is_mounted : boolean = false;
-  private is_loaded : boolean = false;
+  private is_mounted: boolean = false;
+  private is_loaded: boolean = false;
 
   static displayName = "X11";
 
@@ -53,7 +57,7 @@ export class X11Component extends Component<Props, {}> {
       this.insert_window_in_div(next);
       return true;
     }
-    if (!this.is_loaded) {
+    if (!this.is_loaded && next.desc.get("wid") != null) {
       // try
       this.insert_window_in_div(next);
     }
@@ -73,15 +77,7 @@ export class X11Component extends Component<Props, {}> {
   }
 
   async insert_window_in_div(props): Promise<void> {
-    console.log("try to insert");
     const node: any = ReactDOM.findDOMNode(this.refs.window);
-    (window as any).props = props;
-    if (props.windows.get(`${props.desc.get("wid")}`) === undefined) {
-      console.log("no such window");
-      $(node).empty();
-      this.is_loaded = false;
-      return;
-    }
     const client = props.actions.client;
     if (client == null) {
       // to satisfy typescript
@@ -94,21 +90,27 @@ export class X11Component extends Component<Props, {}> {
       $(node).empty();
       return;
     }
-    client.render_window(wid, node);
+    try {
+      client.render_window(wid, node);
+    } catch(err) {
+      // window not available right now.
+      this.is_loaded = false;
+      $(node).empty();
+      return;
+    }
     this.is_loaded = true;
 
     await delay(0);
     if (!this.is_mounted) {
       return;
     }
-    client.resize_window(wid);
+    this.measure_size();
     if (props.is_current) {
       client.focus(wid);
     }
   }
 
   measure_size(): void {
-    console.log("measure_size");
     const client = this.props.actions.client;
     if (client == null) {
       // to satisfy typescript
@@ -118,11 +120,18 @@ export class X11Component extends Component<Props, {}> {
     if (wid == null) {
       return;
     }
-    client.resize_window(wid);
+    const node = $(ReactDOM.findDOMNode(this.refs.window));
+    const width = node.width(),
+      height = node.height();
+    if (width == null || height == null) {
+      return;
+    }
+    client.resize_window(wid, width, height);
   }
 
   componentWillUnmount(): void {
     this.is_mounted = false;
+    this.is_loaded = false;
     // TODO: not at all right...
     this.props.actions.blur();
   }
@@ -132,24 +141,30 @@ export class X11Component extends Component<Props, {}> {
     if (this.props.windows == null) {
       return v;
     }
-    this.props.windows.forEach((info: Map<string, any>) => {
+    const wids = this.props.windows.keySeq().toJS();
+    wids.sort((a, b) => cmp(parseInt(a), parseInt(b))); // since they are strings.
+    for (let wid of wids) {
       v.push(
         <WindowTab
           id={this.props.id}
-          key={info.get("wid")}
-          is_current={info.get("wid") === this.props.desc.get("wid")}
-          info={info}
+          key={wid}
+          is_current={parseInt(wid) === this.props.desc.get("wid")}
+          info={this.props.windows.get(wid)}
           actions={this.props.actions}
         />
       );
-    });
+    }
     return v;
   }
 
   render_tab_bar(): Rendered {
     return (
       <div
-        style={{ borderBottom: "1px solid lightgrey", padding: "5px 0 0 0" }}
+        style={{
+          borderBottom: "1px solid lightgrey",
+          background: TAB_BAR_GREY,
+          display: "inline-flex"
+        }}
       >
         {this.render_window_tabs()}
       </div>
@@ -160,7 +175,11 @@ export class X11Component extends Component<Props, {}> {
     return (
       <div className="smc-vfill">
         {this.render_tab_bar()}
-        <div className="smc-vfill" ref="window" />
+        <div
+          className="smc-vfill"
+          ref="window"
+          style={{ position: "relative" }}
+        />
       </div>
     );
   }

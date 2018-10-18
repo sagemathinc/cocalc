@@ -41,6 +41,25 @@ export class Actions extends BaseActions<X11EditorState> {
     delete this.client;
   }
 
+  _set_window(wid: number, obj: any): void {
+    let windows = this.store.get("windows");
+    const s = `${wid}`;
+    let window = windows.get(s);
+    if (window == null) {
+      console.warn(`_set_window -- no window with id ${wid}`);
+      return;
+    }
+    for (let key in obj) {
+      window = window.set(key, obj[key]);
+    }
+    windows = windows.set(s, window);
+    this.setState({ windows });
+  }
+
+  _get_window(wid: number, key: string, def?: any): any {
+    return this.store.get("windows").getIn([`${wid}`, key], def);
+  }
+
   init_client(): void {
     this.client = new XpraClient({
       project_id: this.project_id,
@@ -58,20 +77,12 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
-      let windows = this.store.get("windows");
-      const s: string = `${wid}`;
-      let window = windows.get(s);
-      if (window == null) {
-        return;
-      }
-      window = window.set("icon", icon);
-      windows = windows.set(s, window);
-      this.setState({ windows });
+      this._set_window(wid, { icon });
     });
   }
 
   focus(id?: string): void {
-    console.log("x11 -- focus", id);
+    //console.log("x11 -- focus", id);
     if (this.client == null) {
       return;
     }
@@ -86,7 +97,7 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   blur(): void {
-    console.log("x11 -- blur");
+    //console.log("x11 -- blur");
     if (this.client == null) {
       return;
     }
@@ -97,16 +108,36 @@ export class Actions extends BaseActions<X11EditorState> {
   // with given id.  This is a no-op if wid is already displayed
   // in another frame.
   set_window(id: string, wid: number): void {
-    // todo: make it so wid can only be in one leaf...
+    // todo: make it so wid can only be in one x11 leaf...
     this.set_frame_tree({ id, wid });
     this.client.focus_window(wid);
+    // ensure no other tab has this wid selected.
+    for (let leaf_id in this._get_leaf_ids()) {
+      if (leaf_id === id) {
+        continue;
+      }
+      const leaf = this._get_frame_node(leaf_id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "x11" &&
+        leaf.get("wid") === wid
+      ) {
+        this.set_frame_tree({ id: leaf_id, wid: undefined });
+      }
+    }
   }
 
-  close_window(id: string, wid: number): void {
-    // todo: make it so wid can only be in one leaf...
-    this.set_frame_tree({ id, wid:undefined });
+  close_window(_: string, wid: number): void {
     this.client.close_window(wid);
-    // todo: if wid is currently focused, switch focus to
-    // previous window in the list.
+    for (let leaf_id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(leaf_id);
+      if (
+        leaf != null &&
+        leaf.get("type") === "x11" &&
+        leaf.get("wid") === wid
+      ) {
+        this.set_frame_tree({ id: leaf_id, wid: undefined });
+      }
+    }
   }
 }
