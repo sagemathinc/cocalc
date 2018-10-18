@@ -127,7 +127,7 @@ export class Actions extends BaseActions<X11EditorState> {
     }
   }
 
-  close_window(id: string, wid: number): void {
+  close_window(_: string, wid: number): void {
     this.client.close_window(wid);
     for (let leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
@@ -139,7 +139,5 @@ export class Actions extends BaseActions<X11EditorState> {
         this.set_frame_tree({ id: leaf_id, wid: undefined });
       }
     }
-    // select a different window, if possible.
-    console.log(id);
   }
 }

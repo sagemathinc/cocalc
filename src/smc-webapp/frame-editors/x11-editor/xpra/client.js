@@ -406,7 +406,17 @@ export const createClient = (defaultConfig = {}, env = {}) => {
   });
 
   bus.on("new-override-redirect", (wid, x, y, w, h, metadata, properties) => {
-    const parentWid = metadata["transient-for"];
+    let parentWid = metadata["transient-for"];
+    if (parentWid === undefined) {
+      // Anders's version didn't work on many
+      // test cases (e.g., menus in python idle),
+      // since transient-for wasn't being set.
+      // Maybe there is some backend xpra option.
+      // For now, just using the heuristic that
+      // this menu is probably for the active window
+      // seems sufficient.
+      parentWid = activeWindow;
+    }
 
     const parent = parentWid ? findSurface(parentWid) : false;
     if (parent) {

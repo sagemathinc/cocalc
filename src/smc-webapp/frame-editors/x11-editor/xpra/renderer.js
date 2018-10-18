@@ -35,6 +35,7 @@ const scroll = ({ x, y, w, h, data }) => (
 
 const paint = (surface, callback) => packet => {
   let { w, h, coding, options } = packet;
+  //console.log("PAINT", w, h, coding);;
 
   const newPacket = Object.assign({}, packet, {
     w: options.scaled_size ? options.scaled_size[0] : w,
@@ -87,6 +88,7 @@ export const createRenderer = ({ wid, canvas, context }, send) => {
       const now = timestamp();
       const diff = now - start;
 
+      //console.log("render queue: ", packet);
       /*
       if (diff > 1000) {
         // console.warn("A frame was very late....");
