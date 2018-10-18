@@ -90,7 +90,14 @@ export class X11Component extends Component<Props, {}> {
       $(node).empty();
       return;
     }
-    client.render_window(wid, node);
+    try {
+      client.render_window(wid, node);
+    } catch(err) {
+      // window not available right now.
+      this.is_loaded = false;
+      $(node).empty();
+      return;
+    }
     this.is_loaded = true;
 
     await delay(0);
@@ -124,6 +131,7 @@ export class X11Component extends Component<Props, {}> {
 
   componentWillUnmount(): void {
     this.is_mounted = false;
+    this.is_loaded = false;
     // TODO: not at all right...
     this.props.actions.blur();
   }

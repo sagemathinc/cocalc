@@ -122,7 +122,7 @@ export class XpraClient extends EventEmitter {
   render_window(wid: number, elt: HTMLElement): void {
     const info = this.windows[wid];
     if (info === undefined) {
-      return;
+      throw Error("no such window");
     }
     const canvas = $(info.canvas);
     const scale = window.devicePixelRatio;
