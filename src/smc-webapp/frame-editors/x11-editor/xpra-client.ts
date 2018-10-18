@@ -59,7 +59,7 @@ export class XpraClient extends EventEmitter {
   private async init_client(): Promise<void> {
     // TODO
     const port = 2000; // will determine this async via api call to backend that starts server.
-    const uri = `wss://cocalc.com${window.app_base_url}/${
+    const uri = `wss://${window.location.hostname}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(DPI * window.devicePixelRatio);
