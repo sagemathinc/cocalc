@@ -25,6 +25,10 @@ import { Actions } from "./actions";
 
 import { WindowTab } from "./window-tab";
 
+import { TAB_BAR_GREY } from "./theme";
+
+import { cmp } from "../generic/misc";
+
 interface Props {
   actions: Actions;
   id: string;
@@ -53,7 +57,7 @@ export class X11Component extends Component<Props, {}> {
       this.insert_window_in_div(next);
       return true;
     }
-    if (!this.is_loaded) {
+    if (!this.is_loaded && next.desc.get("wid") != null) {
       // try
       this.insert_window_in_div(next);
     }
@@ -72,25 +76,7 @@ export class X11Component extends Component<Props, {}> {
     new ResizeObserver(() => this.measure_size()).observe(node);
   }
 
-  /*
-  insert_overlay_in_div(props, overlay_id: number) : void {
-    console.log("insert_overlay_in_div", overlay_id);
-    const node: any = ReactDOM.findDOMNode(this.refs.window);
-    const client = props.actions.client;
-    if (client == null) {
-      // to satisfy typescript
-      return;
-    }
-    const wid = props.desc.get("wid");
-    if (wid == null) {
-      return;
-    }
-    client.render_overlay(wid, overlay_id);
-  }
-  */
-
   async insert_window_in_div(props): Promise<void> {
-    console.log("insert_window_in_div");
     const node: any = ReactDOM.findDOMNode(this.refs.window);
     const client = props.actions.client;
     if (client == null) {
@@ -118,7 +104,6 @@ export class X11Component extends Component<Props, {}> {
   }
 
   measure_size(): void {
-    console.log("measure_size");
     const client = this.props.actions.client;
     if (client == null) {
       // to satisfy typescript
@@ -129,7 +114,8 @@ export class X11Component extends Component<Props, {}> {
       return;
     }
     const node = $(ReactDOM.findDOMNode(this.refs.window));
-    const width = node.width(), height = node.height();
+    const width = node.width(),
+      height = node.height();
     if (width == null || height == null) {
       return;
     }
@@ -147,24 +133,30 @@ export class X11Component extends Component<Props, {}> {
     if (this.props.windows == null) {
       return v;
     }
-    this.props.windows.forEach((info: Map<string, any>) => {
+    const wids = this.props.windows.keySeq().toJS();
+    wids.sort((a, b) => cmp(parseInt(a), parseInt(b))); // since they are strings.
+    for (let wid of wids) {
       v.push(
         <WindowTab
           id={this.props.id}
-          key={info.get("wid")}
-          is_current={info.get("wid") === this.props.desc.get("wid")}
-          info={info}
+          key={wid}
+          is_current={parseInt(wid) === this.props.desc.get("wid")}
+          info={this.props.windows.get(wid)}
           actions={this.props.actions}
         />
       );
-    });
+    }
     return v;
   }
 
   render_tab_bar(): Rendered {
     return (
       <div
-        style={{ borderBottom: "1px solid lightgrey", padding: "5px 0 0 0" }}
+        style={{
+          borderBottom: "1px solid lightgrey",
+          background: TAB_BAR_GREY,
+          display: "inline-flex"
+        }}
       >
         {this.render_window_tabs()}
       </div>

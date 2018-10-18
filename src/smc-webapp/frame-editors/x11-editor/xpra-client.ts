@@ -91,6 +91,7 @@ export class XpraClient extends EventEmitter {
   close_window(wid: number): void {
     if (wid && this.windows[wid] !== undefined) {
       this.client.surface.kill(wid);
+      delete this.windows[wid];
     }
   }
 
@@ -127,9 +128,9 @@ export class XpraClient extends EventEmitter {
     const scale = window.devicePixelRatio;
     canvas
       .width(`${info.canvas.width / scale}px`)
-      .height(`${info.canvas.height / scale}px`)
-      .css({ borderRight: "1px solid grey" })
-      .css({ borderBottom: "1px solid grey" });
+      .height(`${info.canvas.height / scale}px`);
+    //.css({ borderRight: "1px solid grey" })
+    //.css({ borderBottom: "1px solid grey" });
 
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
