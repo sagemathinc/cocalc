@@ -42,6 +42,7 @@ async function tidy(input_path) {
     "no",
     input_path
   ];
+
   return await callback_opts(execute_code)({
     command: "tidy",
     args: args,
@@ -60,10 +61,10 @@ export async function html_format(
   const input_path: string = await callback(tmp.file);
   try {
     await callback(writeFile, input_path, input);
-
-    // run the selected html formatter
     let html_formatter;
+
     try {
+      // run the selected html formatter
       switch (options.parser) {
         case "html-tidy":
         case "tidy":
@@ -73,32 +74,32 @@ export async function html_format(
           throw Error(`Unknown HTML formatter utility '${options.parser}'`);
       }
     } catch (e) {
-      logger.log("html_format error:", e);
-       throw new Error(
+      logger.debug(`Calling formatter raised ${e}`);
+      throw new Error(
         `HTML formatter broken or not available. Is '${
           options.parser
-        }' installed?}`
+        }' installed?`
       );
     }
 
-    const { code, stdout, stderr } = html_formatter;
-    // logger.log("code, stdout, stderr", code, stdout, stderr);
+    const { exit_code, stdout, stderr } = html_formatter;
+    const code = exit_code;
+    // logger.debug("html_format: code, stdout, stderr", code, stdout, stderr);
     // TODO exit code 1 is a "warning", which requires show-warnings yes
     if (code >= 2) {
       throw Error(
         `HTML formatter "${
           options.parser
-        }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`
+        }" exited with code ${code}\nOutput:\n${[stdout, stderr].join("\n")}`
       );
     }
 
     // all fine, we read from the temp file
     let output: Buffer = await callback(readFile, input_path);
     let s: string = output.toString("utf-8");
-
     return s;
   } finally {
-    logger.debug(`html formatter done, unlinking ${input_path}`);
+    // logger.debug(`html formatter done, unlinking ${input_path}`);
     unlink(input_path);
   }
 }
