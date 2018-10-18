@@ -224,7 +224,7 @@ AddPaymentMethod = rclass
 
     propTypes :
         redux    : rtypes.object.isRequired
-        on_close : rtypes.func.isRequired  # called when this should be closed
+        on_close : rtypes.func  # optional, called when this should be closed
 
     getInitialState: ->
         new_payment_info :
@@ -243,7 +243,7 @@ AddPaymentMethod = rclass
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
-                @props.on_close()
+                @props.on_close?()
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.address_country != "United States"
@@ -476,7 +476,7 @@ AddPaymentMethod = rclass
                         >
                             Add Credit Card
                         </Button>
-                        <Button onClick={@props.on_close}>Cancel</Button>
+                        { <Button onClick={@props.on_close}>Cancel</Button> if @props.on_close? }
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -978,6 +978,7 @@ AddSubscription = rclass
                     {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
+                        on_close = {@props.on_close}
                     /> if @props.selected_plan isnt ''}
                     <Row>
                         <Col sm={5} smOffset={7}>
@@ -997,6 +998,7 @@ ConfirmPaymentMethod = rclass
 
     propTypes :
         is_recurring : rtypes.bool
+        on_close : rtypes.func
 
     render_single_payment_confirmation: ->
         <span>
@@ -1014,7 +1016,7 @@ ConfirmPaymentMethod = rclass
 
     render: ->
         if not @props.customer
-            return <AddPaymentMethod redux={redux} />
+            return <AddPaymentMethod redux={redux} on_close={@props.on_close} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data

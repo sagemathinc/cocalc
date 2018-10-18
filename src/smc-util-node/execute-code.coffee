@@ -129,6 +129,7 @@ exports.execute_code = execute_code = aggregate (opts) ->
                     return
             catch e
                 # Yes, spawn can cause this error if there is no memory, and there's no event! --  Error: spawn ENOMEM
+                ran_code = false
                 c("error #{misc.to_json(e)}")
                 return
 
@@ -173,7 +174,9 @@ exports.execute_code = execute_code = aggregate (opts) ->
             r.on 'error', (err) ->
                 if not exit_code?
                     exit_code = 1
-                stderr += to_json(err)
+                stderr += misc.to_json(err)
+                # a fundamental issue, we were not running some code
+                ran_code = false
                 finish()
 
             callback_done = false
@@ -183,6 +186,10 @@ exports.execute_code = execute_code = aggregate (opts) ->
                         if not callback_done
                             callback_done = true
                             c("command '#{opts.command}' (args=#{opts.args.join(' ')}) exited with nonzero code #{exit_code} -- stderr='#{stderr}'")
+                    else if not ran_code # regardless of opts.err_on_exit !
+                        if not callback_done
+                            callback_done = true
+                            c("command '#{opts.command}' (args=#{opts.args.join(' ')}) was not able to run -- stderr='#{stderr}'")
                     else
                         if opts.max_output?
                             if stdout.length >= opts.max_output
@@ -225,10 +232,11 @@ exports.execute_code = execute_code = aggregate (opts) ->
         if opts.verbose
             winston.debug("finished exec of #{opts.command} (took #{walltime(start_time)}s)")
             winston.debug("stdout='#{misc.trunc(stdout,512)}', stderr='#{misc.trunc(stderr,512)}', exit_code=#{exit_code}")
-        if not opts.err_on_exit and ran_code
+        if (not opts.err_on_exit) and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})
         else
             opts.cb?(err, {stdout:stdout, stderr:stderr, exit_code:exit_code})
     )
+
 

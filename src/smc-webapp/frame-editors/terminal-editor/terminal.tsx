@@ -109,7 +109,7 @@ export class TerminalFrame extends Component<Props, {}> {
     return (
       <div
         className={"smc-vfill"}
-        style={{ backgroundColor: color, padding: "4px" }}
+        style={{ backgroundColor: color, padding: "0 0 0 4px" }}
         onClick={() => {
           /* otherwise, clicking right outside term defocuses,
              which is confusing */

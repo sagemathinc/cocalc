@@ -224,6 +224,10 @@ export class Terminal {
       return;
     }
 
+    // Delete any data or state in terminal before receiving new data.
+    this.terminal.reset();
+    // Ignore device attr data coming back for initial load.
+    this.ignore_terminal_data = true;
     this.conn.on("close", this.connect);
     this.conn.on("data", this._handle_data_from_project);
     if (endswith(this.path, ".term")) {
