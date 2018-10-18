@@ -93,7 +93,7 @@ exports.init_express_http_server = (opts) ->
 
     # initialize metrics
     response_time_histogram = MetricsRecorder.new_histogram('http_histogram', 'http server'
-                                  buckets : [0.01, 0.1, 1, 2, 10, 20]
+                                  buckets : [0.01, 0.1, 1, 2, 5, 10, 20]
                                   labels: ['path', 'method', 'code']
                               )
     # response time metrics

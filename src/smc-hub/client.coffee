@@ -65,7 +65,7 @@ CLIENT_MIN_ACTIVE_S = 45
 
 # How frequently we tell the browser clients to report metrics back to us.
 # Set to 0 to completely disable metrics collection from clients.
-CLIENT_METRICS_INTERVAL_S = 60*2
+CLIENT_METRICS_INTERVAL_S = if DEBUG2 then 15 else 60*2
 
 # recording metrics and statistics
 metrics_recorder = require('./metrics-recorder')
@@ -2518,12 +2518,18 @@ class exports.Client extends EventEmitter
             if not misc.is_array(metric?.values)
                 # what?
                 return
+            if metric.values.length == 0
+                return
             for v in metric.values
                 if not misc.is_object(v?.labels)
                     # what?
                     return
-                v.labels.client_id  = @id
-                v.labels.account_id = @account_id
+            switch metric.type
+                when 'gauge'
+                    metric.aggregator = 'average'
+                else
+                    metric.aggregator = 'sum'
+
         client_metrics[@id] = metrics
         #dbg('RECORDED: ', misc.to_json(client_metrics[@id]))
 

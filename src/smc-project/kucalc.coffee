@@ -8,6 +8,27 @@ async = require('async')
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 
+path       = require('path')
+{execSync} = require('child_process')
+{defaults} = misc = require('smc-util/misc')
+
+# global variable
+PROJECT_ID = undefined
+PREFIX = 'cocalc_project_'
+
+# Prometheus client setup -- https://github.com/siimon/prom-client
+prom_client = require('prom-client')
+
+# additionally, record GC statistics
+# https://www.npmjs.com/package/prometheus-gc-stats
+require('prometheus-gc-stats')()()
+
+# collect some recommended default metrics every 10 seconds
+prom_client.collectDefaultMetrics(timeout: 10 * 1000)
+
+# --- end prometheus setup
+
+
 # This gets **changed** to true in local_hub.coffee, if a certain
 # command line flag is passed in.
 exports.IN_KUCALC = false
@@ -49,6 +70,7 @@ update_project_status = (client, cb) ->
 
 exports.compute_status = compute_status = (cb) ->
     status =
+        time      : (new Date()).getTime()
         memory    : {rss: 0}
         disk_MB   : 0
         cpu       : {}
@@ -229,20 +251,25 @@ exports.prometheus_metrics = (project_id) ->
     # HELP cocalc_project_running_processes_total
     # TYPE cocalc_project_running_processes_total gauge
     cocalc_project_running_processes_total{#{labels}} #{current_status.processes?.count ? 0}
+    # HELP cocalc_project_oom_kills_total
+    # TYPE cocalc_project_oom_kills_total counter
+    cocalc_project_oom_kills_total{#{labels}} #{current_status.oom_kills ? 0}
     """ + '\n'  # makes sure the response ends with a newline!
 
 # called inside raw_server
 exports.init_health_metrics = (raw_server, project_id) ->
     return if not exports.IN_KUCALC
+    PROJECT_ID = project_id
 
     # Setup health and metrics (no url base prefix needed)
     raw_server.use '/health', (req, res) ->
         res.setHeader("Content-Type", "text/plain")
-        res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
+        res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate')
         res.send('OK')
 
     # prometheus text format -- https://prometheus.io/docs/instrumenting/exposition_formats/#text-format-details
     raw_server.use '/metrics', (req, res) ->
         res.setHeader("Content-Type", "text/plain; version=0.0.4")
-        res.setHeader('Cache-Control', 'private, no-cache, must-revalidate')
-        res.send(exports.prometheus_metrics(project_id))
+        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
+        part1 = exports.prometheus_metrics(project_id)
+        res.send(part1 + '\n' + prom_client.register.metrics() + '\n')

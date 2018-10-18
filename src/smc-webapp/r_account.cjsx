@@ -679,6 +679,8 @@ DeleteAccountConfirmation = rclass
             Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
+            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
+            <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
                 <FormControl
@@ -707,6 +709,20 @@ DeleteAccountConfirmation = rclass
                 </Button>
             </ButtonToolbar>
             {@render_error()}
+        </Well>
+
+    # Make this the render function to disable account deletion
+    xxx_render: ->
+        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
+            To delete your account, contact us at <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>{" "}
+            or open a support request by clicking "Help" in the top right menu.<br/>
+            <Button
+                style = {marginTop:'5px'}
+                bsStyle = 'primary'
+                onClick = {@props.cancel_click}
+            >
+                Cancel
+            </Button>
         </Well>
 
 ###

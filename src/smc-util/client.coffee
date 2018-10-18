@@ -1979,6 +1979,10 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             cb         : undefined
+        if not @account_id?
+            # silently ignore if not signed in
+            opts.cb?()
+            return
         # Throttle -- so if this function is called with the same project_id
         # twice in 60s, it's ignored (to avoid unnecessary network traffic).
         @_touch_project_throttle ?= {}

@@ -23,6 +23,8 @@ export async function handle_request(
     throw Error(`api endpoint ${endpoint}: no kernel with path '${path}'`);
   }
   switch (endpoint) {
+    case "save_ipynb_file":
+      return kernel.save_ipynb_file();
     case "signal":
       kernel.signal(query.signal);
       return {};

@@ -335,7 +335,7 @@ ABOUT_LINKS =
     developers :
         icon : 'keyboard-o'
         text : <span>
-                Core developers: John Jeng,{' '}
+                <a target='_blank' href='http://blog.sagemath.com/cocalc/2018/09/10/where-is-cocalc-from.html'>Core developers</a>: John Jeng,{' '}
                 <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
                 <a target="_blank" href='https://twitter.com/haldroid'>Hal Snyder</a>,{' '}
                 <a target='_blank' href='http://wstein.org'>William Stein</a>

@@ -16,6 +16,7 @@ if (require("smc-webapp/feature").IS_TOUCH) {
 }
 
 register_file_editor({
+  icon: "terminal",
   ext,
   component: Editor,
   Actions

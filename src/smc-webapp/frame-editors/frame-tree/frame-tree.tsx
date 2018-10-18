@@ -251,6 +251,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           renderer={spec.renderer}
           complete={this.props.complete.get(desc.get("id"))}
           derived_file_types={this.props.derived_file_types}
+          desc={desc}
         />
       </div>
     );
@@ -316,26 +317,26 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       }
     };
 
-    const handle_stop = (_, ui) => {
+    const handle_stop = async (_, ui) => {
       misc_page.drag_stop_iframe_enable();
       const clientX = ui.node.offsetLeft + ui.x + drag_offset;
       const elt = ReactDOM.findDOMNode(this.refs.cols_container);
       const pos = (clientX - elt.offsetLeft) / elt.offsetWidth;
       reset();
+      const id = this.props.frame_tree.get("id");
       this.props.actions.set_frame_tree({
-        id: this.props.frame_tree.get("id"),
+        id,
         pos
       });
       this.props.actions.set_resize();
+      this.props.actions.focus();  // see https://github.com/sagemathinc/cocalc/issues/3269
     };
 
-    // the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
     return (
       <Draggable
         ref={"cols_drag_bar"}
         axis={"x"}
         onStop={handle_stop}
-        onMouseDown={e => e.preventDefault()}
         onStart={misc_page.drag_start_iframe_disable}
       >
         <div
@@ -432,6 +433,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         pos
       });
       this.props.actions.set_resize();
+      this.props.actions.focus();
       this.safari_hack();
     };
 
@@ -440,7 +442,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         ref={"rows_drag_bar"}
         axis={"y"}
         onStop={handle_stop}
-        onMouseDown={e => e.preventDefault()}
         onStart={misc_page.drag_start_iframe_disable}
       >
         <div

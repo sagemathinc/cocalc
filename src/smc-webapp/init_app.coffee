@@ -129,7 +129,6 @@ class PageActions extends Actions
         # if there happens to be a websocket to this project, get rid of it.  Nothing will be using it when the project is closed.
         require('./project/websocket/connect').disconnect_from_project(project_id)
 
-        
     set_active_tab: (key, change_history=true) =>
         @setState(active_top_tab : key)
         switch key

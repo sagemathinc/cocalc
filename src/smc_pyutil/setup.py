@@ -96,6 +96,7 @@ setup(
             'cc-new-file         = smc_pyutil.new_file:main',
             'cc-status           = smc_pyutil.status:main',
             'cc-jupyter          = smc_pyutil.jupyter_notebook:main',
+            'cc-jupyterlab       = smc_pyutil.jupyter_lab:main',
             'cc-jupyter-no-output= smc_pyutil.jupyter_delete_output:main',
             'cc-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open',
             'cc-ipynb2sagews     = smc_pyutil.ipynb2sagews:main',

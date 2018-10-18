@@ -17,6 +17,16 @@ if (typeof window !== "undefined" && window !== null) {
   wrapped_editors = require("./editor_react_wrapper");
 }
 
+// Normalize path as in node, except '' is the home dir, not '.'.
+function normalize(path:string) : string {
+  path = os_path.normalize(path);
+  if (path === '.') {
+    return '';
+  } else {
+    return path;
+  }
+}
+
 const misc = require("smc-util/misc");
 let { MARKERS } = require("smc-util/sagews");
 let { alert_message } = require("./alerts");
@@ -298,7 +308,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       local_url = this._last_history_state;
     }
     if (local_url == null) {
-      local_url = "";
+      local_url = `files/`;
     }
     this._last_history_state = local_url;
     const { set_url } = require("./history");
@@ -365,36 +375,49 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Updates the URL
   set_active_tab(
     key: string,
-    opts: { update_file_listing: boolean } = { update_file_listing: true }
+    opts: { update_file_listing?: boolean; change_history?: boolean } = {
+      update_file_listing: true,
+      change_history: true
+    }
   ): void {
     let store = this.get_store();
-    if (store == undefined || store.get("active_project_tab") === key) {
+    if (store == undefined || (!opts.change_history && store.get("active_project_tab") === key)) {
       // nothing to do
       return;
     }
     this.setState({ active_project_tab: key });
     switch (key) {
       case "files":
-        this.set_url_to_path(
-          store.get("current_path") != null ? store.get("current_path") : ""
-        );
+        if (opts.change_history) {
+          this.set_url_to_path(
+            store.get("current_path") != null ? store.get("current_path") : ""
+          );
+        }
         if (opts.update_file_listing) {
           this.fetch_directory_listing();
         }
         break;
       case "new":
         this.setState({ file_creation_error: undefined });
-        this.push_state(`new/${store.get("current_path")}`);
+        if (opts.change_history) {
+          this.push_state(`new/${store.get("current_path")}`);
+        }
         this.set_next_default_filename(require("./account").default_filename());
         break;
       case "log":
-        this.push_state("log");
+        if (opts.change_history) {
+          this.push_state("log");
+        }
         break;
       case "search":
-        this.push_state(`search/${store.get("current_path")}`);
+        if (opts.change_history) {
+          this.push_state(`search/${store.get("current_path")}`);
+        }
         break;
       case "settings":
-        this.push_state("settings");
+        if (opts.change_history) {
+          this.push_state("settings");
+        }
         break;
       default:
         // editor...
@@ -406,7 +429,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             "open"
           );
         }
-        this.push_state(`files/${path}`);
+        if (opts.change_history) {
+          this.push_state(`files/${path}`);
+        }
         this.set_current_path(misc.path_split(path).head);
 
         // Reopen the file if relationship has changed
@@ -596,6 +621,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     chat_width?: number;
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
+    change_history?: boolean;
   }): void {
     opts = defaults(opts, {
       path: required,
@@ -604,8 +630,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       chat: undefined,
       chat_width: undefined,
       ignore_kiosk: false,
-      new_browser_window: false
+      new_browser_window: false,
+      change_history: true
     });
+    opts.path = normalize(opts.path);
     // intercept any requests if in kiosk mode
     if (
       !opts.ignore_kiosk &&
@@ -874,8 +902,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
 
             if (opts.foreground) {
-              this.foreground_project();
-              this.set_active_tab(misc.path_to_tab(opts.path));
+              this.foreground_project(opts.change_history);
+              this.set_active_tab(misc.path_to_tab(opts.path), {
+                change_history: opts.change_history
+              });
             }
           }
         });
@@ -1106,6 +1136,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Closes the file and removes all references.
   // Does not update tabs
   close_file(path): void {
+    path = normalize(path);
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -1126,7 +1157,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Makes this project the active project tab
-  foreground_project(): void {
+  foreground_project(change_history = true): void {
     this._ensure_project_is_open(err => {
       if (err) {
         // TODO!
@@ -1137,13 +1168,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         );
       } else {
         (this.redux.getActions("projects") as any).foreground_project(
-          this.project_id
+          this.project_id,
+          change_history
         );
       }
     });
   }
 
-  open_directory(path): void {
+  open_directory(path, change_history = true): void {
+    path = normalize(path);
     this._ensure_project_is_open(err => {
       if (err) {
         // TODO!
@@ -1157,17 +1190,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (path[path.length - 1] === "/") {
           path = path.slice(0, -1);
         }
-        this.foreground_project();
+        this.foreground_project(change_history);
         this.set_current_path(path);
         let store = this.get_store();
         if (store == undefined) {
           return;
         }
-        if (store.get("active_project_tab") === "files") {
-          this.set_url_to_path(path);
-        } else {
-          this.set_active_tab("files", { update_file_listing: false });
-        }
+        this.set_active_tab("files", {
+          update_file_listing: false,
+          change_history: change_history
+        });
         this.set_all_files_unchecked();
       }
     });
@@ -1177,6 +1209,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Does not push to URL, browser history, or add to analytics
   // Use internally or for updating current path in background
   set_current_path(path: string = ""): void {
+    path = normalize(path);
     if (Number.isNaN(path as any)) {
       // SMELL: Track from history.coffee
       path = "";
@@ -2598,7 +2631,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //  log
   //  settings
   //  search
-  load_target(target, foreground = true, ignore_kiosk = false) {
+  load_target(
+    target,
+    foreground = true,
+    ignore_kiosk = false,
+    change_history = true
+  ) {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
@@ -2608,7 +2646,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "files":
         if (target[target.length - 1] === "/" || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
-          return this.open_directory(parent_path);
+          return this.open_directory(parent_path, change_history);
         } else {
           // TODOJ: Change when directory listing is synchronized. Just have to query client state then.
           // Assume that if it's loaded, it's good enough.
@@ -2669,14 +2707,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                 }
               }
               if (item != null ? item.get("isdir") : undefined) {
-                return this.open_directory(full_path);
+                this.open_directory(full_path, change_history);
               } else {
                 //if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground, ignore_kiosk)
-                return this.open_file({
+                this.open_file({
                   path: full_path,
                   foreground,
                   foreground_project: foreground,
-                  ignore_kiosk
+                  ignore_kiosk,
+                  change_history
                 });
               }
             }
@@ -2685,14 +2724,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "new": // ignore foreground for these and below, since would be nonsense
         this.set_current_path(full_path);
-        this.set_active_tab("new");
+        this.set_active_tab("new", { change_history: change_history });
+        break;
       case "log":
-        this.set_active_tab("log");
+        this.set_active_tab("log", { change_history: change_history });
+        break;
       case "settings":
-        this.set_active_tab("settings");
+        this.set_active_tab("settings", { change_history: change_history });
+        break;
       case "search":
         this.set_current_path(full_path);
-        this.set_active_tab("search");
+        this.set_active_tab("search", { change_history: change_history });
     }
   }
 

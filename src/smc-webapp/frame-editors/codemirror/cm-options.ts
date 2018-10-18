@@ -305,8 +305,12 @@ export function cm_options(
     options.keyMap = opts.bindings;
   }
 
-  if (opts.theme != null && opts.theme !== "standard") {
+  if (opts.theme != null) {
     options.theme = opts.theme;
+  } else {
+    // options.theme MUST be set to something because this code is in CodeMirror
+    //    cm.options.theme.replace...
+    options.theme = 'default';
   }
 
   return options;

@@ -666,6 +666,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return tree_ops.get_node(this._get_tree(), id);
   }
 
+  _get_frame_type(id: string): string | undefined {
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      return;
+    }
+    return node.get("type");
+  }
+
   _tree_is_single_leaf(): boolean {
     return tree_ops.is_leaf(this._get_tree());
   }
@@ -1002,7 +1010,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!id) {
       return;
     }
-    const node = tree_ops.get_node(this._get_tree(), id);
+    const node = this._get_frame_node(id);
     if (!node) {
       return;
     }
@@ -1145,21 +1153,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   focus(id?: string): void {
-    let cm;
-    if (id) {
-      cm = this._cm[id];
-      if (cm) {
-        cm.focus();
-      }
-      return;
+    if (id === undefined) {
+      id = this._get_active_id();
     }
-    cm = this._get_cm();
+    const cm = this._cm[id];
     if (cm) {
       cm.focus();
+      return;
     }
-
     // no cm, so try to focus a terminal if there is one.
-    this.terminals.focus();
+    this.terminals.focus(id);
   }
 
   syncstring_save(): void {
@@ -1701,6 +1704,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this._get_most_recent_active_frame_id(
       node => node.get("type") == type
     );
+  }
+
+  _has_frame_of_type(type: string): boolean {
+    return this._get_most_recent_active_frame_id_of_type(type) != null;
   }
 
   /* Get current value of the cm editor doc. Returns undefined if no
