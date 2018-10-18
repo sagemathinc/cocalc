@@ -173,6 +173,19 @@ export class XpraClient extends EventEmitter {
     }
     let swidth = Math.round(width * scale);
     let sheight = Math.round(height * scale);
+
+    // Is it modal?  If so, we will only potentially SHRINK (so buttons can be seen!),
+    // but not enlarge, which is usually really annoying.
+    const modal = info.metadata["modal"];
+    if (modal) {
+      if (swidth >= info.w) {
+        swidth = info.w;
+      }
+      if (sheight >= info.h) {
+        sheight = info.h;
+      }
+    }
+
     // Honor any size constraints
     const size_constraints = info.metadata["size-constraints"];
     if (size_constraints != null) {
