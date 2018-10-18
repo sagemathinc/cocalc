@@ -68,11 +68,14 @@ export class XpraClient extends EventEmitter {
 
   async connect(): Promise<void> {
     await this.init_xpra_options();
+    if (!this.options) return;  // closed
     this.client.connect(this.xpra_options);
   }
 
   private async init_xpra_options() : Promise<void> {
+    if (!this.options) return;  // closed
     const port = await this.server.start();
+    if (!this.options) return;  // closed
     const uri = `wss://${window.location.hostname}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
@@ -82,6 +85,7 @@ export class XpraClient extends EventEmitter {
 
   private async init_client(): Promise<void> {
     await this.init_xpra_options();
+    if (!this.options) return;  // closed
     this.client = createClient(this.xpra_options);
   }
 

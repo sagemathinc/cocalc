@@ -105,7 +105,6 @@ export class XpraServer {
       return "";
     }
     for (let line of splitlines(stdout)) {
-      console.log(`start :${this.display}`, line);
       if (line.indexOf(`start :${this.display}`) !== -1) {
         return line;
       }
