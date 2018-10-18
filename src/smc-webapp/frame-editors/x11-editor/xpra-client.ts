@@ -126,7 +126,10 @@ export class XpraClient extends EventEmitter {
     }
     const canvas = $(info.canvas);
     const scale = window.devicePixelRatio;
+
+    // margin:auto makes it centered.
     canvas
+      .css("margin", "auto")
       .width(`${info.canvas.width / scale}px`)
       .height(`${info.canvas.height / scale}px`);
     //.css({ borderRight: "1px solid grey" })
@@ -174,10 +177,13 @@ export class XpraClient extends EventEmitter {
     let swidth = Math.round(width * scale);
     let sheight = Math.round(height * scale);
 
-    // Is it modal?  If so, we will only potentially SHRINK (so buttons can be seen!),
+    // In some cases, we will only potentially SHRINK (so buttons can be seen!),
     // but not enlarge, which is usually really annoying.
-    const modal = info.metadata["modal"];
-    if (modal) {
+    //const modal = info.metadata["modal"];
+    if (
+      info.metadata["window-type"] != null &&
+      info.metadata["window-type"][0] === "DIALOG"
+    ) {
       if (swidth >= info.w) {
         swidth = info.w;
       }
