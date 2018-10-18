@@ -1,10 +1,18 @@
 // Use Xpra to provide X11 server.
 
+import { reuseInFlight } from "async-await-utils/hof";
+
 import { createClient } from "./xpra/client";
+
+import { XpraServer } from "./xpra-server";
 
 const DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
+
+// Never resize beyond this (since it's the backend size)
+export const MAX_WIDTH = 4000;
+export const MAX_HEIGHT = 3000;
 
 const MOUSE_EVENTS = [
   "mousemove",
@@ -27,10 +35,16 @@ export class XpraClient extends EventEmitter {
   private xpra_options: any;
   private client: any;
   private windows: any = {};
+  private server: XpraServer;
+  private _ws_status: string = "disconnected";
 
   constructor(options: Options) {
     super();
+    this.connect = reuseInFlight(this.connect);
     this.options = options;
+    this.server = new XpraServer({
+      project_id: this.options.project_id
+    });
     this.init();
   }
 
@@ -52,18 +66,22 @@ export class XpraClient extends EventEmitter {
     delete this.client;
   }
 
-  connect(): void {
+  async connect(): Promise<void> {
+    await this.init_xpra_options();
     this.client.connect(this.xpra_options);
   }
 
-  private async init_client(): Promise<void> {
-    // TODO
-    const port = 2000; // will determine this async via api call to backend that starts server.
+  private async init_xpra_options() : Promise<void> {
+    const port = await this.server.start();
     const uri = `wss://${window.location.hostname}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(DPI * window.devicePixelRatio);
     this.xpra_options = { uri, dpi, sound: false };
+  }
+
+  private async init_client(): Promise<void> {
+    await this.init_xpra_options();
     this.client = createClient(this.xpra_options);
   }
 
@@ -100,6 +118,9 @@ export class XpraClient extends EventEmitter {
   }
 
   private enable_window_events(): void {
+    if (this.client === undefined) {
+      return;
+    }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
       doc.on(name, this.client.key_inject);
@@ -110,6 +131,9 @@ export class XpraClient extends EventEmitter {
   }
 
   private disable_window_events(): void {
+    if (this.client === undefined) {
+      return;
+    }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
       doc.off(name, this.client.key_inject);
@@ -214,6 +238,17 @@ export class XpraClient extends EventEmitter {
         }
       }
     }
+
+    // Never resize beyond the backend compositor size, since bad
+    // things happen when window is slightly off screen. Very frustrating
+    // for users.
+    if (sheight > MAX_HEIGHT) {
+      sheight = MAX_HEIGHT;
+    }
+    if (swidth > MAX_WIDTH) {
+      swidth = MAX_WIDTH;
+    }
+
     if (swidth === info.w && sheight === info.h) {
       // make no change...
       return;
@@ -278,8 +313,18 @@ export class XpraClient extends EventEmitter {
     $(overlay.canvas).remove();
   }
 
-  ws_status(info): void {
-    console.log("ws_status", info);
+  ws_status(status): void {
+    console.log("ws_status", status);
+    if (
+      status === "disconnected" &&
+      this._ws_status !== "disconnected" &&
+      this.client !== undefined
+    ) {
+      this._ws_status = status;
+      this.connect();
+    } else {
+      this._ws_status = status;
+    }
   }
   ws_data(_, packet): void {
     console.log("ws_data", packet);
