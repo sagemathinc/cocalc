@@ -2,19 +2,19 @@ const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
+const { execute_code } = require("smc-util-node/execute-code");
+const {
+  callback_opts
+} = require("smc-webapp/frame-editors/generic/async-utils");
 
 interface ParserOptions {
   parser: string;
 }
 
-function close(proc, cb): void {
-  proc.on("close", code => cb(undefined, code));
-}
-
 // ref: http://tidy.sourceforge.net/docs/quickref.html
 
-function tidy(input_path) {
-  return spawn("tidy", [
+async function tidy(input_path) {
+  const args = [
     "-modify",
     "-xml",
     "--indent",
@@ -36,7 +36,15 @@ function tidy(input_path) {
     "--tidy-mark",
     "no",
     input_path
-  ]);
+  ];
+
+  return await callback_opts(execute_code)({
+    command: "tidy",
+    args: args,
+    err_on_exit: false,
+    bash: false,
+    timeout: 15
+  });
 }
 
 export async function xml_format(
@@ -51,15 +59,16 @@ export async function xml_format(
 
     // spawn the html formatter
     let xml_formatter;
-    switch (options.parser) {
-      case "xml-tidy":
-        xml_formatter = tidy(input_path);
-        break;
-      default:
-        throw Error(`Unknown XML formatter utility '${options.parser}'`);
-    }
-
-    if (!xml_formatter) {
+    try {
+      switch (options.parser) {
+        case "xml-tidy":
+          xml_formatter = await tidy(input_path);
+          break;
+        default:
+          throw Error(`Unknown XML formatter utility '${options.parser}'`);
+      }
+    } catch (e) {
+      logger.debug(`Calling XML formatter raised ${e}`);
       throw new Error(
         `XML formatter broken or not available. Is '${
           options.parser
@@ -67,31 +76,23 @@ export async function xml_format(
       );
     }
 
-    // stdout/err capture
-    let stdout: string = "";
-    let stderr: string = "";
-    // read data as it is produced.
-    xml_formatter.stdout.on("data", data => (stdout += data.toString()));
-    xml_formatter.stderr.on("data", data => (stderr += data.toString()));
-    // wait for subprocess to close.
-    let code = await callback(close, xml_formatter);
-    // TODO exit code 1 is a "warning", which requires show-warnings yes
+    const { exit_code, stdout, stderr } = xml_formatter;
+    const code = exit_code;
+
     const problem = options.parser === "xml-tidy" ? code >= 2 : code >= 1;
     if (problem) {
       const msg = `XML formatter "${
         options.parser
       }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
-      logger.warn(msg);
       throw Error(msg);
     }
 
     // all fine, we read from the temp file
     let output: Buffer = await callback(readFile, input_path);
     let s: string = output.toString("utf-8");
-
     return s;
   } finally {
-    logger.debug(`xml formatter done, unlinking ${input_path}`);
+    // logger.debug(`xml formatter done, unlinking ${input_path}`);
     unlink(input_path);
   }
 }
