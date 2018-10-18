@@ -415,10 +415,20 @@ export const createClient = (defaultConfig = {}, env = {}) => {
       // For now, just using the heuristic that
       // this menu is probably for the active window
       // seems sufficient.
+      // We take the activeWindow, then traverse the tree
+      // up to the root application window below.
       parentWid = activeWindow;
     }
 
-    const parent = parentWid ? findSurface(parentWid) : false;
+    let parent = parentWid ? findSurface(parentWid) : false;
+
+    // Go up to the root; I don't know if this is actually
+    // necessary in practice....
+    while (parent && parent.parent) {
+      parent = parent.parent;
+      parentWid = parent.wid;
+    }
+
     if (parent) {
       const surface = createSurface(
         parent,
