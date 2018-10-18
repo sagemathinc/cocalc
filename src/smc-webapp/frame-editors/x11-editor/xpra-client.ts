@@ -273,6 +273,8 @@ export class XpraClient extends EventEmitter {
 
   window_destroy(window): void {
     console.log("window_destroy", window);
+    window.destroy();
+    window.canvas.remove();
     delete this.windows[window.wid];
     this.emit("window:destroy", window.wid);
   }
