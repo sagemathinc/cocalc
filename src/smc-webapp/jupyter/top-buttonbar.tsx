@@ -182,6 +182,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       { name: "run cell and select next", label: "Run" },
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
+      "confirm restart kernel and run all cells",
       { name: "tab key", label: "Tab" }
     ]);
   }

@@ -165,6 +165,7 @@ export function commands(actions: any) {
 
     "confirm restart kernel and run all cells": {
       m: "Restart and run all...",
+      i: 'forward',
       f() {
         // TODO: async/await?
         actions.confirm_dialog({

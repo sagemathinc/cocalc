@@ -75,11 +75,15 @@ ProjectTab = rclass
     componentDidUpdate: () ->
         @strip_href()
 
-
     close_tab: (e) ->
         e.stopPropagation()
         e.preventDefault()
         @actions('page').close_project_tab(@props.project_id)
+
+    # middle mouse click closes
+    onMouseDown: (e) ->
+        #if e.button == 1
+        #    @close_tab(e)
 
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)
