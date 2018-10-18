@@ -671,7 +671,7 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   // A "Help" info button
-  render_help(labels : boolean): Rendered {
+  render_help(labels: boolean): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
     }
@@ -845,6 +845,22 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_count_words(): Rendered {
+    if (!this.is_visible("word_count", true)) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"word_count"}
+        onClick={() => this.props.actions.word_count(0, true)}
+        title={"Runs texcount"}
+      >
+        <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_kick_other_users_out(): Rendered {
     if (!this.is_visible("kick_other_users_out")) {
       return;
@@ -982,6 +998,7 @@ export class FrameTitleBar extends Component<Props, {}> {
       v.push(this.render_format_group());
     }
     v.push(this.render_edit_init_script());
+    v.push(this.render_count_words());
     v.push(this.render_kick_other_users_out());
     v.push(this.render_print());
     v.push(this.render_help(labels));

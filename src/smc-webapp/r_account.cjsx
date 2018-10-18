@@ -674,11 +674,12 @@ DeleteAccountConfirmation = rclass
             return
         <ErrorDisplay error={@props.account_deletion_error} />
 
-    # Change this line to `render: ->` and delete the other render function below to reenable automatic account deletion
-    render_original: ->
+    render: ->
         <Well style={marginTop: '26px', textAlign:'center', fontSize: '15pt', backgroundColor: 'darkred', color: 'white'}>
             Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
+            <hr style={marginTop:'10px', marginBottom:'10px'}/>
+            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
@@ -710,8 +711,8 @@ DeleteAccountConfirmation = rclass
             {@render_error()}
         </Well>
 
-    # Remove this function and rename the function above to reenable account deletion
-    render: ->
+    # Make this the render function to disable account deletion
+    xxx_render: ->
         <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
             To delete your account, contact us at <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>{" "}
             or open a support request by clicking "Help" in the top right menu.<br/>
