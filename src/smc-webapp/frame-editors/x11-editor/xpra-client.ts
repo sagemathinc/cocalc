@@ -64,6 +64,7 @@ export class XpraClient extends EventEmitter {
     }
     this.blur();
     this.client.disconnect();
+    this.removeAllListeners();
     delete this.windows;
     delete this.options;
     delete this.xpra_options;
@@ -94,6 +95,7 @@ export class XpraClient extends EventEmitter {
   }
 
   private init_xpra_events(): void {
+    this.client.on("window:focus", this.window_focus.bind(this));
     this.client.on("window:create", this.window_create.bind(this));
     this.client.on("window:destroy", this.window_destroy.bind(this));
     this.client.on("window:icon", this.window_icon.bind(this));
@@ -120,8 +122,8 @@ export class XpraClient extends EventEmitter {
 
   close_window(wid: number): void {
     if (wid && this.windows[wid] !== undefined) {
+      // Tells the backend xpra server that we want window to close.
       this.client.surface.kill(wid);
-      delete this.windows[wid];
     }
   }
 
@@ -184,8 +186,13 @@ export class XpraClient extends EventEmitter {
     }
   }
 
+  window_focus(info: { wid: number }): void {
+    console.log("window_focus ", info.wid);
+    this.emit("window:focus", info.wid);
+  }
+
   window_create(window): void {
-    //console.log("window_create", window);
+    console.log("window_create", window);
     this.windows[window.wid] = window;
     const c = $(window.canvas);
     c.css("width", "100%");
@@ -202,7 +209,7 @@ export class XpraClient extends EventEmitter {
   // resized to fill the screen.
   resize_window(wid: number, width: number, height: number): void {
     const info = this.windows[wid];
-    if (info === undefined) {
+    if (info == null) {
       console.warn("no window", wid);
       return; // no such window
     }
@@ -220,6 +227,7 @@ export class XpraClient extends EventEmitter {
     // In some cases, we will only potentially SHRINK (so buttons can be seen!),
     // but not enlarge, which is usually really annoying.
     if (
+      info.metadata != null &&
       info.metadata["window-type"] != null &&
       info.metadata["window-type"][0] === "DIALOG"
     ) {
@@ -349,5 +357,10 @@ export class XpraClient extends EventEmitter {
 
   ws_data(_, packet): void {
     console.log("ws_data", packet);
+  }
+
+  is_root_window(wid: number) : boolean {
+    const w = this.windows[wid];
+    return w != null && !w.parent;
   }
 }

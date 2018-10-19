@@ -49,6 +49,7 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     this.client.close();
     delete this.client;
+    super.close();
   }
 
   _set_window(wid: number, obj: any): void {
@@ -74,6 +75,18 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client = new XpraClient({
       project_id: this.project_id,
       path: this.path
+    });
+
+    this.client.on("window:focus", (wid: number) => {
+      // if it is a full root level window, switch to show it.
+      if (!this.client.is_root_window(wid)) {
+        return;
+      }
+      const id = this._get_most_recent_active_frame_id_of_type("x11");
+      if (id != null) {
+        this.set_frame_tree({ id, wid });
+        this._ensure_only_one_tab_has_wid(id, wid);
+      }
     });
 
     this.client.on("window:create", (wid: number, info) => {
@@ -159,6 +172,10 @@ export class Actions extends BaseActions<X11EditorState> {
     // todo: make it so wid can only be in one x11 leaf...
     this.set_frame_tree({ id, wid });
     this.client.focus_window(wid);
+    this._ensure_only_one_tab_has_wid(id, wid);
+  }
+
+  _ensure_only_one_tab_has_wid(id: string, wid: number): void {
     // ensure no other tab has this wid selected.
     for (let leaf_id in this._get_leaf_ids()) {
       if (leaf_id === id) {
@@ -177,15 +194,5 @@ export class Actions extends BaseActions<X11EditorState> {
 
   close_window(_: string, wid: number): void {
     this.client.close_window(wid);
-    for (let leaf_id in this._get_leaf_ids()) {
-      const leaf = this._get_frame_node(leaf_id);
-      if (
-        leaf != null &&
-        leaf.get("type") === "x11" &&
-        leaf.get("wid") === wid
-      ) {
-        this.set_frame_tree({ id: leaf_id, wid: undefined });
-      }
-    }
   }
 }

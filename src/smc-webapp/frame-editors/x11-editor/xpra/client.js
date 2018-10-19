@@ -69,6 +69,18 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   canvas.width = w;
   canvas.height = h;
 
+  let dialog = false;
+  if (
+    metadata["window-type"] != null &&
+    metadata["window-type"][0] === "DIALOG"
+  ) {
+    dialog = true;
+    $(canvas).css({
+      border: "1px solid lightgrey",
+      boxShadow: "3px 3px 3px lightgrey"
+    });
+  }
+
   const context = canvas.getContext("2d");
   const renderer = createRenderer({ wid, canvas, context }, send);
   const draw = (...args) => renderer.push(...args);
@@ -84,10 +96,10 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
       renderer.surface.drawCanvas.height = h;
     }
 
-    if (full_width) {
+    if (full_width && !dialog) {
       $(canvas).css("width", "100%");
     }
-    if (full_height) {
+    if (full_height  && !dialog) {
       $(canvas).css("height", "100%");
     }
   };
@@ -254,7 +266,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     const surface = findSurface(wid);
     //console.log("mouse_inject", wid);
     mouse.process(ev, surface);
-    return false;  // always ignore mouse...?
+    return false; // always ignore mouse...?
   };
 
   // Kills a window/surface
