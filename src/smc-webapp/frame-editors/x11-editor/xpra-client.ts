@@ -10,6 +10,10 @@ import { createClient } from "./xpra/client";
 
 import { XpraServer } from "./xpra-server";
 
+import { touch, touch_project } from "../generic/client";
+
+import { throttle } from "underscore";
+
 const DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
@@ -41,14 +45,18 @@ export class XpraClient extends EventEmitter {
   private windows: any = {};
   private server: XpraServer;
   public _ws_status: ConnectionStatus = "disconnected";
+  private last_active: number = 0;
+  private touch_interval: number;
 
   constructor(options: Options) {
     super();
+    this.record_active = throttle(this.record_active.bind(this), 30000);
     this.connect = reuseInFlight(this.connect);
     this.options = options;
     this.server = new XpraServer({
       project_id: this.options.project_id
     });
+    this.init_touch(); // so project is alive so long as x11 session is active in some sense.
     this.init();
   }
 
@@ -65,6 +73,7 @@ export class XpraClient extends EventEmitter {
     this.blur();
     this.client.disconnect();
     this.removeAllListeners();
+    clearInterval(this.touch_interval);
     delete this.windows;
     delete this.options;
     delete this.xpra_options;
@@ -103,6 +112,8 @@ export class XpraClient extends EventEmitter {
     this.client.on("overlay:create", this.overlay_create.bind(this));
     this.client.on("overlay:destroy", this.overlay_destroy.bind(this));
     this.client.on("ws:status", this.ws_status.bind(this));
+    this.client.on("key", this.record_active);
+    this.client.on("mouse", this.record_active);
     //this.client.on("ws:data", this.ws_data.bind(this));  // ridiculously low level.
   }
 
@@ -187,12 +198,12 @@ export class XpraClient extends EventEmitter {
   }
 
   window_focus(info: { wid: number }): void {
-    console.log("window_focus ", info.wid);
+    //console.log("window_focus ", info.wid);
     this.emit("window:focus", info.wid);
   }
 
   window_create(window): void {
-    console.log("window_create", window);
+    //console.log("window_create", window);
     this.windows[window.wid] = window;
     const c = $(window.canvas);
     c.css("width", "100%");
@@ -359,8 +370,28 @@ export class XpraClient extends EventEmitter {
     console.log("ws_data", packet);
   }
 
-  is_root_window(wid: number) : boolean {
+  is_root_window(wid: number): boolean {
     const w = this.windows[wid];
     return w != null && !w.parent;
+  }
+
+  // call this when stuff is happening
+  record_active(): void {
+    this.last_active = new Date().valueOf();
+  }
+
+  async touch_if_active(): Promise<void> {
+    if (new Date().valueOf() - this.last_active < 70000) {
+      try {
+        await touch_project(this.options.project_id);
+        await touch(this.options.project_id, this.options.path);
+      } catch (err) {
+        console.warn("x11: issue touching ", err);
+      }
+    }
+  }
+
+  init_touch(): void {
+    this.touch_interval = setInterval(this.touch_if_active.bind(this), 60000);
   }
 }

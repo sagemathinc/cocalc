@@ -250,6 +250,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
 
     const surface = findSurface(wid);
     keyboard.process(ev, surface);
+    bus.emit('key', ev, surface);
     return false;
   };
 
@@ -266,6 +267,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     const surface = findSurface(wid);
     //console.log("mouse_inject", wid);
     mouse.process(ev, surface);
+    bus.emit('mouse', ev, surface);
     return false; // always ignore mouse...?
   };
 
