@@ -36,7 +36,7 @@ interface Props {
 export class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
-  private measure_size : Function;
+  private measure_size: Function;
 
   static displayName = "X11";
 
@@ -64,8 +64,24 @@ export class X11Component extends Component<Props, {}> {
     this.is_mounted = true;
     this.insert_window_in_div(this.props);
     this.init_resize_observer();
-    this.measure_size = throttle(this.measure_size_nothrottle.bind(this), 1000, {
-      leading: false
+    this.disable_browser_context_menu();
+    this.measure_size = throttle(
+      this.measure_size_nothrottle.bind(this),
+      1000,
+      {
+        leading: false
+      }
+    );
+  }
+
+  disable_browser_context_menu(): void {
+    const node: any = ReactDOM.findDOMNode(this.refs.window);
+    // Get rid of browser context menu, which makes no sense on a canvas.
+    // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
+    // NOTE: this would probably make sense in DOM mode instead of canvas mode;
+    // if we switch, disable this...
+    $(node).bind("contextmenu", function() {
+      return false;
     });
   }
 

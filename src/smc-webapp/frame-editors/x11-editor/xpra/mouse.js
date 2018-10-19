@@ -194,7 +194,7 @@ function getMouse(ev, surface) {
 }
 
 /**
- * Crates the mouse input handler
+ * Creates the mouse input handler
  */
 export const createMouse = (send, keyboard) => {
   const scroll = (topwindow, x, y, modifiers, buttons) => pos => {

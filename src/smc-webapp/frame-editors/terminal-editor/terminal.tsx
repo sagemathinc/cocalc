@@ -82,6 +82,14 @@ export class TerminalFrame extends Component<Props, {}> {
     if (this.props.is_current) {
       this.terminal.focus();
     }
+    // Get rid of browser context menu, which makes no sense on a canvas.
+    // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
+    // NOTE: this would probably make sense in DOM mode instead of canvas mode;
+    // if we switch, disable this...
+    $(node).bind("contextmenu", function() {
+      return false;
+    });
+
     // TODO: Obviously restoring the exact scroll position would be better...
     this.terminal.scroll_to_bottom();
   }
