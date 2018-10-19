@@ -81,7 +81,8 @@ export async function run_prettier_string(
       pretty = await r_format(str, options, logger);
       break;
     case "html-tidy":
-      pretty = await html_format(str, options);
+    case "tidy":
+      pretty = await html_format(str, options, logger);
       break;
     case "clang-format":
       const ext = misc.filename_extension(path !== undefined ? path : "");
