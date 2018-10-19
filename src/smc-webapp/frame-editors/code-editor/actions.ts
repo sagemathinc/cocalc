@@ -514,15 +514,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       local_view_state: local.set("active_id", active_id)
     });
     this._save_local_view_state();
-    // If active_id is the id of a codemirror editor,
-    // save that it was focused just now; this is just a quick solution to
-    // "give me last active cm" -- we will switch to something
-    // more generic later -- TODO: switch to use _active_id_history
-    let cm: CodeMirror.Editor | undefined = this._cm[active_id];
-    if (cm) {
-      (cm as any)._last_active = new Date();
-      cm.focus();
-    }
+
+    this.focus(active_id);
   }
 
   // Make whatever frame is defined and was most recently active
@@ -1156,8 +1149,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (id === undefined) {
       id = this._get_active_id();
     }
-    const cm = this._cm[id];
+
+    let cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
+      // Save that it was focused just now; this is just a quick solution to
+      // "give me last active cm" -- we will switch to something
+      // more generic later -- TODO: switch to use _active_id_history
+      (cm as any)._last_active = new Date();
       cm.focus();
       return;
     }

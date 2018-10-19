@@ -77,6 +77,7 @@ export class WindowTab extends Component<Props, {}> {
             this.props.id,
             this.props.info.get("wid")
           );
+          this.props.actions.set_active_id(this.props.id);
           evt.stopPropagation();
         }}
         style={{

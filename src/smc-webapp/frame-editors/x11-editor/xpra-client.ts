@@ -1,5 +1,7 @@
 // Use Xpra to provide X11 server.
 
+import { delay } from "awaiting";
+
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { createClient } from "./xpra/client";
@@ -104,8 +106,12 @@ export class XpraClient extends EventEmitter {
     this.enable_window_events();
   }
 
-  focus_window(wid: number): void {
+  async focus_window(wid: number): Promise<void> {
     if (wid && this.windows[wid] !== undefined) {
+      this.client.surface.focus(wid);
+      // sometimes it annoyingly fails without this,
+      // so we use it for now...
+      await delay(100);
       this.client.surface.focus(wid);
     }
   }
@@ -261,7 +267,7 @@ export class XpraClient extends EventEmitter {
       return;
     }
 
-    console.log("resize_window ", wid, width, height, swidth, sheight);
+    //console.log("resize_window ", wid, width, height, swidth, sheight);
     surface.updateGeometry(
       swidth,
       sheight,

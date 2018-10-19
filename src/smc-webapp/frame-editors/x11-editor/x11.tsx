@@ -18,15 +18,10 @@ import {
 } from "../../app-framework";
 
 import { throttle } from "underscore";
-
 import { is_different } from "../generic/misc";
-
 import { Actions } from "./actions";
-
 import { WindowTab } from "./window-tab";
-
 import { TAB_BAR_GREY } from "./theme";
-
 import { cmp } from "../generic/misc";
 
 interface Props {
@@ -41,6 +36,7 @@ interface Props {
 export class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
+  private measure_size : Function;
 
   static displayName = "X11";
 
@@ -68,7 +64,7 @@ export class X11Component extends Component<Props, {}> {
     this.is_mounted = true;
     this.insert_window_in_div(this.props);
     this.init_resize_observer();
-    this.measure_size = throttle(this.measure_size.bind(this), 1000, {
+    this.measure_size = throttle(this.measure_size_nothrottle.bind(this), 1000, {
       leading: false
     });
   }
@@ -106,13 +102,13 @@ export class X11Component extends Component<Props, {}> {
     if (!this.is_mounted) {
       return;
     }
-    this.measure_size();
+    this.measure_size_nothrottle();
     if (props.is_current) {
       client.focus(wid);
     }
   }
 
-  measure_size(): void {
+  measure_size_nothrottle(): void {
     const client = this.props.actions.client;
     if (client == null) {
       // to satisfy typescript

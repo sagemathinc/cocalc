@@ -82,22 +82,33 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   focus(id?: string): void {
-    //console.log("x11 -- focus", id);
+    // console.log("x11 -- focus", id);
     if (this.client == null) {
       return;
     }
     if (id === undefined) {
       id = this._get_active_id();
     }
-    if (this._get_frame_type(id) === "x11") {
-      this.client.focus();
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get('type') === "x11") {
+      const wid = leaf.get('wid');
+      if (wid) {
+        this.client.focus_window(leaf.get('wid'))
+        this.client.focus();
+      } else {
+        this.client.blur();
+      }
     } else {
+      this.client.blur();
       super.focus(id);
     }
   }
 
   blur(): void {
-    //console.log("x11 -- blur");
+    // console.log("x11 -- blur");
     if (this.client == null) {
       return;
     }
