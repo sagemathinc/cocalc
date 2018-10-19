@@ -19,6 +19,7 @@ const prettier = require("prettier");
 const { latex_format } = require("./latex-format");
 const { python_format } = require("./python-format");
 const { html_format } = require("./html-format");
+const { xml_format } = require("./xml-format");
 const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
 const { gofmt } = require("./gofmt");
@@ -83,6 +84,9 @@ export async function run_prettier_string(
     case "html-tidy":
     case "tidy":
       pretty = await html_format(str, options, logger);
+      break;
+    case "xml-tidy":
+      pretty = await xml_format(str, options, logger);
       break;
     case "clang-format":
       const ext = misc.filename_extension(path !== undefined ? path : "");
