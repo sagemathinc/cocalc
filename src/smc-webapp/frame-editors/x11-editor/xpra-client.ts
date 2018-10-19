@@ -64,6 +64,10 @@ export class XpraClient extends EventEmitter {
     this.init();
   }
 
+  get_display(): number {
+    return this.server.get_display();
+  }
+
   async init(): Promise<void> {
     await this.init_client();
     this.init_xpra_events();

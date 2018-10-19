@@ -7,7 +7,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { MAX_WIDTH, MAX_HEIGHT } from "./xpra-client";
 import { splitlines, split } from "../generic/misc";
 
-// this will break annoying on cocalc-docker
+// This will break annoyingly on cocalc-docker
 // if there are multiple projects using it at once.
 const DEFAULT_DISPLAY = 0;
 const DEFAULT_COMMAND = "gnome-terminal";
@@ -130,5 +130,9 @@ export class XpraServer {
       return;
     }
     return parseInt(line.slice(j + 1, k));
+  }
+
+  get_display() : number {
+    return this.display;
   }
 }

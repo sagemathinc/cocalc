@@ -1883,4 +1883,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       return;
     }
   }
+
+  // Override in derived class to set a special env for
+  // any launched terminals.
+  get_term_env() : any {
+    return undefined;
+  }
 }

@@ -43,6 +43,11 @@ export class Actions extends BaseActions<X11EditorState> {
     });
   }
 
+  get_term_env(): any {
+    const DISPLAY = `:${this.client.get_display()}`;
+    return { DISPLAY };
+  }
+
   close(): void {
     if (this.client == null) {
       return;
