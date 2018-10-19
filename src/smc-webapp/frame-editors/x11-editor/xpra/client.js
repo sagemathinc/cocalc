@@ -74,7 +74,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   const draw = (...args) => renderer.push(...args);
   const updateMetadata = meta => Object.assign(metadata, meta);
   const destroy = () => renderer.stop();
-  const updateCSSGeometry = (w, h) => {
+  const updateGeometry = (w, h, full_width, full_height) => {
     // The main canvas itself has its size updated *only* when
     // the render itself happens, so there is no flicker.
     if (renderer.surface.drawCanvas.width != w) {
@@ -82,6 +82,13 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
     }
     if (renderer.surface.drawCanvas.height != h) {
       renderer.surface.drawCanvas.height = h;
+    }
+
+    if (full_width) {
+      $(canvas).css("width", "100%");
+    }
+    if (full_height) {
+      $(canvas).css("height", "100%");
     }
   };
 
@@ -99,7 +106,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
     properties,
     draw,
     updateMetadata,
-    updateCSSGeometry,
+    updateGeometry,
     destroy
   };
 };

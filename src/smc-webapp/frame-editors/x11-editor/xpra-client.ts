@@ -68,14 +68,14 @@ export class XpraClient extends EventEmitter {
 
   async connect(): Promise<void> {
     await this.init_xpra_options();
-    if (!this.options) return;  // closed
+    if (!this.options) return; // closed
     this.client.connect(this.xpra_options);
   }
 
-  private async init_xpra_options() : Promise<void> {
-    if (!this.options) return;  // closed
+  private async init_xpra_options(): Promise<void> {
+    if (!this.options) return; // closed
     const port = await this.server.start();
-    if (!this.options) return;  // closed
+    if (!this.options) return; // closed
     const uri = `wss://${window.location.hostname}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
@@ -85,7 +85,7 @@ export class XpraClient extends EventEmitter {
 
   private async init_client(): Promise<void> {
     await this.init_xpra_options();
-    if (!this.options) return;  // closed
+    if (!this.options) return; // closed
     this.client = createClient(this.xpra_options);
   }
 
@@ -179,6 +179,9 @@ export class XpraClient extends EventEmitter {
   window_create(window): void {
     console.log("window_create", window);
     this.windows[window.wid] = window;
+    const c = $(window.canvas);
+    c.css("width", "100%");
+    c.css("height", "100%");
     this.emit("window:create", window.wid, {
       wid: window.wid,
       width: window.w,
@@ -202,12 +205,12 @@ export class XpraClient extends EventEmitter {
       // just removed?
       return;
     }
-    let swidth = Math.round(width * scale);
-    let sheight = Math.round(height * scale);
+    let swidth0, sheight0;
+    let swidth = (swidth0 = Math.round(width * scale));
+    let sheight = (sheight0 = Math.round(height * scale));
 
     // In some cases, we will only potentially SHRINK (so buttons can be seen!),
     // but not enlarge, which is usually really annoying.
-    //const modal = info.metadata["modal"];
     if (
       info.metadata["window-type"] != null &&
       info.metadata["window-type"][0] === "DIALOG"
@@ -259,7 +262,12 @@ export class XpraClient extends EventEmitter {
     }
 
     console.log("resize_window ", wid, width, height, swidth, sheight);
-    surface.updateCSSGeometry(swidth, sheight);
+    surface.updateGeometry(
+      swidth,
+      sheight,
+      swidth0 === swidth,
+      sheight0 === sheight
+    );
     this.client.send(
       "configure-window",
       wid,

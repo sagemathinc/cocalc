@@ -17,7 +17,7 @@ import {
   rtypes
 } from "../../app-framework";
 
-import { debounce } from "underscore";
+import { throttle } from "underscore";
 
 import { is_different } from "../generic/misc";
 
@@ -68,7 +68,9 @@ export class X11Component extends Component<Props, {}> {
     this.is_mounted = true;
     this.insert_window_in_div(this.props);
     this.init_resize_observer();
-    this.measure_size = debounce(this.measure_size.bind(this), 500);
+    this.measure_size = throttle(this.measure_size.bind(this), 1000, {
+      leading: false
+    });
   }
 
   init_resize_observer(): void {
@@ -92,7 +94,7 @@ export class X11Component extends Component<Props, {}> {
     }
     try {
       client.render_window(wid, node);
-    } catch(err) {
+    } catch (err) {
       // window not available right now.
       this.is_loaded = false;
       $(node).empty();

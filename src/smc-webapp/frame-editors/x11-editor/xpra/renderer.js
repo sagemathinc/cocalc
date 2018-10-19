@@ -131,10 +131,10 @@ export const createRenderer = ({ wid, canvas, context }, send) => {
         ) {
           canvas.width = drawCanvas.width;
           canvas.height = drawCanvas.height;
-          const scale = window.devicePixelRatio;
-          $(canvas)
+          /*const scale = window.devicePixelRatio;
+            $(canvas)
             .width(`${canvas.width / scale}px`)
-            .height(`${canvas.height / scale}px`);
+            .height(`${canvas.height / scale}px`); */
         }
 
         // Now set the main visible canvas equal to the off screen drawCanvas.
