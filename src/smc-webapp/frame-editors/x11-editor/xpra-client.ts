@@ -334,6 +334,7 @@ export class XpraClient extends EventEmitter {
   }
 
   ws_status(status): void {
+    this.emit("ws:status", status);
     console.log("ws_status", status);
     if (
       status === "disconnected" &&

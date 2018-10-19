@@ -31,6 +31,7 @@ import {
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
+  ConnectionStatus,
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
@@ -627,6 +628,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
 
     this.set_frame_tree({ id, type });
+
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
@@ -1799,6 +1801,17 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   set_title(id: string, title: string): void {
     //console.log("set title of term ", id, " to ", title);
     this.set_frame_tree({ id: id, title: title });
+  }
+
+  set_connection_status(id: string, status?: ConnectionStatus): void {
+    //console.log("set title of term ", id, " to ", title);
+    this.set_frame_tree({ id: id, connection_status: status });
+  }
+
+  connection_status(_: string) : void {
+    // no-op, but needed so connection status shows up.
+    // This is the action that may happen if we make clicking on
+    // the connection status indicator do something (reconnect?  show a dialog?).
   }
 
   /* Kick other uses out of this frame (only implemented for terminals right now). */

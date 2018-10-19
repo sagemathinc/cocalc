@@ -36,6 +36,8 @@ const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 import { trunc_middle } from "../generic/misc";
 
+import { ConnectionStatus } from "./types";
+
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
   border: "1px solid rgb(204,204,204)",
@@ -58,6 +60,25 @@ const TITLE_STYLE: CSS.Properties = {
   float: "right",
   whiteSpace: "nowrap"
 };
+
+const CONNECTION_STATUS_STYLE: CSS.Properties = {
+  padding: "5px 5px 0 5px",
+  fontSize: "10pt",
+  float: "right"
+};
+
+function connection_status_color(status: ConnectionStatus): string {
+  switch (status) {
+    case "disconnected":
+      return "rgb(255, 165, 0)";
+    case "connecting":
+      return "#aaa";
+    case "connected":
+      return "#666";
+    default:
+      return "#888";
+  }
+}
 
 const ICON_STYLE: CSS.Properties = {
   width: "20px",
@@ -92,6 +113,7 @@ interface Props {
   editor_spec: any;
   status: string;
   title?: string;
+  connection_status?: ConnectionStatus;
 }
 
 export class FrameTitleBar extends Component<Props, {}> {
@@ -110,7 +132,8 @@ export class FrameTitleBar extends Component<Props, {}> {
       "is_paused",
       "type",
       "status",
-      "title"
+      "title",
+      "connection_status"
     ]);
   }
 
@@ -1038,6 +1061,25 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_connection_status(): Rendered {
+    if (!this.props.connection_status || !this.is_visible("connection_status", true)) {
+      return;
+    }
+    return (
+      <span
+        style={CONNECTION_STATUS_STYLE}
+        title={this.props.connection_status}
+      >
+        <Icon
+          style={{
+            color: connection_status_color(this.props.connection_status)
+          }}
+          name={"wifi"}
+        />
+      </span>
+    );
+  }
+
   render_title(): Rendered {
     let title: string = "";
     let icon: string = "";
@@ -1099,6 +1141,9 @@ export class FrameTitleBar extends Component<Props, {}> {
     return (
       <div style={style} id={`titlebar-${this.props.id}`}>
         {this.render_control()}
+        {this.props.connection_status
+          ? this.render_connection_status()
+          : undefined}
         {this.props.title ? this.render_title() : undefined}
         {is_active ? this.render_main_buttons() : undefined}
         {!is_active && !this.props.title ? this.render_title() : undefined}

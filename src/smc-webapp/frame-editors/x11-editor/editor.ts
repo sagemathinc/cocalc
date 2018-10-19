@@ -17,7 +17,8 @@ export const x11 = {
     "decrease_font_size",
     "increase_font_size",
     "edit_init_script", */
-    "help"
+    "help",
+    "connection_status"
   ])
 };
 

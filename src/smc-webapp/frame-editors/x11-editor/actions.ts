@@ -9,7 +9,7 @@ import {
   CodeEditorState
 } from "../code-editor/actions";
 
-import { FrameTree } from "../frame-tree/types";
+import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 
@@ -79,6 +79,29 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client.on("window:icon", (wid: number, icon: string) => {
       this._set_window(wid, { icon });
     });
+
+    this.client.on("ws:status", (status: string) => {
+      // Right now all x11 frames are connected to the same remote session,
+      // so we set desc on all of them.  Later we may have multiple sessions,
+      // like with the terminal.
+      if (
+        status === "disconnected" ||
+        status === "connecting" ||
+        status === "connected"
+      ) {
+        // make typescript happy with checking status is an allowed value.
+        this.set_x11_connection_status(status);
+      }
+    });
+  }
+
+  set_x11_connection_status(status: ConnectionStatus): void {
+    for (let leaf_id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(leaf_id);
+      if (leaf != null && leaf.get("type") === "x11") {
+        this.set_frame_tree({ id: leaf_id, connection_status: status });
+      }
+    }
   }
 
   focus(id?: string): void {
@@ -93,10 +116,10 @@ export class Actions extends BaseActions<X11EditorState> {
     if (leaf == null) {
       return;
     }
-    if (leaf.get('type') === "x11") {
-      const wid = leaf.get('wid');
+    if (leaf.get("type") === "x11") {
+      const wid = leaf.get("wid");
       if (wid) {
-        this.client.focus_window(leaf.get('wid'))
+        this.client.focus_window(leaf.get("wid"));
         this.client.focus();
       } else {
         this.client.blur();

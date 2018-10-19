@@ -21,3 +21,5 @@ export interface SetMap {
 }
 
 export type ErrorStyles = undefined | "monospace";
+
+export type ConnectionStatus = "disconnected" | "connected" | "connecting";

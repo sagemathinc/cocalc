@@ -25,6 +25,8 @@ import { Actions } from "../code-editor/actions";
 import { endswith } from "../generic/misc";
 import { open_init_file } from "./init-file";
 
+import { ConnectionStatus } from "../frame-tree/types";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
@@ -113,6 +115,7 @@ export class Terminal {
     this.init_terminal_data();
     this.init_settings();
     this.init_touch();
+    this.set_connection_status('disconnected');
   }
 
   assert_not_closed(): void {
@@ -123,6 +126,7 @@ export class Terminal {
 
   close(): void {
     this.assert_not_closed();
+    this.set_connection_status('disconnected');
     this.state = "closed";
     clearInterval(this.touch_interval);
     this.account.removeListener("change", this.update_settings);
@@ -148,6 +152,7 @@ export class Terminal {
     this.conn.removeAllListeners();
     this.conn.end();
     delete this.conn;
+    this.set_connection_status('disconnected');
   }
 
   update_settings(): void {
@@ -203,6 +208,7 @@ export class Terminal {
       this.disconnect();
     }
     try {
+      this.set_connection_status('connecting');
       const ws = await project_websocket(this.project_id);
       if (this.state === "closed") {
         return;
@@ -215,6 +221,7 @@ export class Terminal {
       if (this.state === "closed") {
         return;
       }
+      this.set_connection_status('disconnected');
       console.log(`terminal connect error -- ${err}; will try again in 2s...`);
       await delay(2000);
       if (this.state === "closed") {
@@ -237,6 +244,7 @@ export class Terminal {
       this.conn.write(data);
     }
     this.conn_write_buffer = [];
+    this.set_connection_status('connected');
   }
 
   async reload(): Promise<void> {
@@ -292,6 +300,12 @@ export class Terminal {
         this.actions.set_title(this.id, title);
       }
     });
+  }
+
+  set_connection_status(status: ConnectionStatus) : void {
+    if (this.actions != null) {
+      this.actions.set_connection_status(this.id, status);
+    }
   }
 
   init_weblinks(): void {

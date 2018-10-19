@@ -21,7 +21,8 @@ export const terminal = {
     "kick_other_users_out",
     "pause",
     "edit_init_script",
-    "help"
+    "help",
+    "connection_status"
     /*"reload" */
   ])
 };
