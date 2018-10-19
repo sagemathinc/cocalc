@@ -72,7 +72,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   let dialog = false;
   if (
     metadata["window-type"] != null &&
-    metadata["window-type"][0] === "DIALOG"
+     metadata["window-type"][0] === "DIALOG"
   ) {
     dialog = true;
     $(canvas).css({
@@ -99,7 +99,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
     if (full_width && !dialog) {
       $(canvas).css("width", "100%");
     }
-    if (full_height  && !dialog) {
+    if (full_height && !dialog) {
       $(canvas).css("height", "100%");
     }
   };
@@ -250,7 +250,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
 
     const surface = findSurface(wid);
     keyboard.process(ev, surface);
-    bus.emit('key', ev, surface);
+    bus.emit("key", ev, surface);
     return false;
   };
 
@@ -267,7 +267,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     const surface = findSurface(wid);
     //console.log("mouse_inject", wid);
     mouse.process(ev, surface);
-    bus.emit('mouse', ev, surface);
+    bus.emit("mouse", ev, surface);
     return false; // always ignore mouse...?
   };
 

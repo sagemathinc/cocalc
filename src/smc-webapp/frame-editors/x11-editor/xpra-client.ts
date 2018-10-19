@@ -20,7 +20,11 @@ const KEY_EVENTS = ["keydown", "keyup", "keypress"];
 
 // Never resize beyond this (since it's the backend size)
 export const MAX_WIDTH = 4000;
-export const MAX_HEIGHT = 3000;
+export const MAX_HEIGHT = 3000
+
+// Also, very bad things happen if a canvas ever has width or height 0.
+export const MIN_WIDTH = 10;
+export const MIN_HEIGHT = 10;
 
 const MOUSE_EVENTS = [
   "mousemove",
@@ -282,6 +286,12 @@ export class XpraClient extends EventEmitter {
     if (swidth > MAX_WIDTH) {
       swidth = MAX_WIDTH;
     }
+    if (sheight < MIN_HEIGHT) {
+      sheight = MIN_HEIGHT;
+    }
+    if (swidth < MIN_WIDTH) {
+      swidth = MIN_WIDTH;
+    }
 
     if (swidth === info.w && sheight === info.h) {
       // make no change...
@@ -327,10 +337,6 @@ export class XpraClient extends EventEmitter {
     const e = $(overlay.canvas);
     e.css("position", "absolute");
     const scale = window.devicePixelRatio;
-    console.log(
-      "setting overlay width to ",
-      `${overlay.canvas.width / scale}px`
-    );
     const width = `${overlay.canvas.width / scale}px`,
       height = `${overlay.canvas.height / scale}px`,
       left = `${overlay.x / scale}px`,

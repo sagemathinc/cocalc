@@ -78,11 +78,19 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("window:focus", (wid: number) => {
+      //console.log("window:focus", wid);
       // if it is a full root level window, switch to show it.
       if (!this.client.is_root_window(wid)) {
         return;
       }
-      const id = this._get_most_recent_active_frame_id_of_type("x11");
+      const active_id = this._get_active_id();
+      const leaf = this._get_frame_node(active_id);
+      let id;
+      if (leaf && leaf.get("type") === "x11") {
+        id = active_id;
+      } else {
+        id = this._get_most_recent_active_frame_id_of_type("x11");
+      }
       if (id != null) {
         this.set_frame_tree({ id, wid });
         this._ensure_only_one_tab_has_wid(id, wid);
@@ -166,9 +174,12 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   // Set things so that the X11 window wid is displayed in the frame
-  // with given id.  This is a no-op if wid is already displayed
-  // in another frame.
-  set_window(id: string, wid: number): void {
+  // with given id.
+  set_focused_window_in_frame(id: string, wid: number): void {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null || leaf.get("type") != "x11") {
+      return;
+    }
     // todo: make it so wid can only be in one x11 leaf...
     this.set_frame_tree({ id, wid });
     this.client.focus_window(wid);
@@ -187,6 +198,7 @@ export class Actions extends BaseActions<X11EditorState> {
         leaf.get("type") === "x11" &&
         leaf.get("wid") === wid
       ) {
+        console.log("clearing", id, wid, leaf.toJS());
         this.set_frame_tree({ id: leaf_id, wid: undefined });
       }
     }

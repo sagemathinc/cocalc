@@ -73,11 +73,13 @@ export class WindowTab extends Component<Props, {}> {
     return (
       <div
         onClick={evt => {
-          this.props.actions.set_window(
+          // FIRST set the active frame to the one we just clicked on!
+          this.props.actions.set_active_id(this.props.id);
+          // SECOND make this particular tab focused.
+          this.props.actions.set_focused_window_in_frame(
             this.props.id,
             this.props.info.get("wid")
           );
-          this.props.actions.set_active_id(this.props.id);
           evt.stopPropagation();
         }}
         style={{
@@ -99,3 +101,4 @@ export class WindowTab extends Component<Props, {}> {
     );
   }
 }
+
