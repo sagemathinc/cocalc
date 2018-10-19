@@ -212,4 +212,15 @@ export class Actions extends BaseActions<X11EditorState> {
   close_window(_: string, wid: number): void {
     this.client.close_window(wid);
   }
+
+  // Start a program running.
+  // I do NOT know how to do this yet
+  // Maybe need to add an option to exec to spawn a subprocess
+  // and detach or something.
+  /*
+  async exec_command(command: string, args: string[] = []): Promise<> {
+    const env = get_term_env();
+    exec({command, args, env});
+  }
+  */
 }
