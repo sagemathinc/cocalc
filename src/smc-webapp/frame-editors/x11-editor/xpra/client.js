@@ -253,7 +253,8 @@ export const createClient = (defaultConfig = {}, env = {}) => {
 
     const surface = findSurface(wid);
     //console.log("mouse_inject", wid);
-    return mouse.process(ev, surface);
+    mouse.process(ev, surface);
+    return false;  // always ignore mouse...?
   };
 
   // Kills a window/surface
@@ -490,7 +491,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
   });
 
   bus.on("window-move-resize", (wid, x, y, w, h) => {
-    console.log("window-move-resize", wid, x, y, w, h);
+    //console.log("window-move-resize", wid, x, y, w, h);
   });
 
   bus.on("startup-complete", () => {

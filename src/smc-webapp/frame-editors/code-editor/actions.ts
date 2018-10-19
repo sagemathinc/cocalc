@@ -653,6 +653,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       font_size = get_default_font_size();
     }
     this.set_font_size(id, font_size);
+
+    this.store.emit("new-frame", { id, type });
   }
 
   // raises an exception if the node does not exist; always
@@ -719,6 +721,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
         this.set_active_id(new_id);
+
+        // Emit new-frame event so other code can handle or initialize
+        // creation of a new frame further.
+        if (type === undefined) {
+          const node = this._get_frame_node(new_id);
+          if (node != null) {
+            type = node.get("type");
+          }
+        }
+        this.store.emit("new-frame", {
+          id: new_id,
+          type
+        });
+
         return;
       }
     }
@@ -1811,7 +1827,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.set_frame_tree({ id: id, connection_status: status });
   }
 
-  connection_status(_: string) : void {
+  connection_status(_: string): void {
     // no-op, but needed so connection status shows up.
     // This is the action that may happen if we make clicking on
     // the connection status indicator do something (reconnect?  show a dialog?).

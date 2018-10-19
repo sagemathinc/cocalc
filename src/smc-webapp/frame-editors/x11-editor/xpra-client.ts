@@ -4,6 +4,8 @@ import { delay } from "awaiting";
 
 import { reuseInFlight } from "async-await-utils/hof";
 
+import { ConnectionStatus } from "../frame-tree/types";
+
 import { createClient } from "./xpra/client";
 
 import { XpraServer } from "./xpra-server";
@@ -38,7 +40,7 @@ export class XpraClient extends EventEmitter {
   private client: any;
   private windows: any = {};
   private server: XpraServer;
-  private _ws_status: string = "disconnected";
+  public _ws_status: ConnectionStatus = "disconnected";
 
   constructor(options: Options) {
     super();
@@ -183,7 +185,7 @@ export class XpraClient extends EventEmitter {
   }
 
   window_create(window): void {
-    console.log("window_create", window);
+    //console.log("window_create", window);
     this.windows[window.wid] = window;
     const c = $(window.canvas);
     c.css("width", "100%");
@@ -286,7 +288,7 @@ export class XpraClient extends EventEmitter {
   }
 
   window_destroy(window): void {
-    console.log("window_destroy", window);
+    //console.log("window_destroy", window);
     window.destroy();
     window.canvas.remove();
     delete this.windows[window.wid];
@@ -322,20 +324,17 @@ export class XpraClient extends EventEmitter {
   }
 
   overlay_create(overlay): void {
-    console.log("overlay_create", overlay);
     this.windows[overlay.wid] = overlay;
     this.place_overlay_in_dom(overlay);
   }
 
   overlay_destroy(overlay): void {
-    console.log("overlay_destroy", overlay);
     delete this.windows[overlay.wid];
     $(overlay.canvas).remove();
   }
 
   ws_status(status): void {
     this.emit("ws:status", status);
-    console.log("ws_status", status);
     if (
       status === "disconnected" &&
       this._ws_status !== "disconnected" &&
@@ -347,6 +346,7 @@ export class XpraClient extends EventEmitter {
       this._ws_status = status;
     }
   }
+
   ws_data(_, packet): void {
     console.log("ws_data", packet);
   }

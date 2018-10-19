@@ -20,20 +20,30 @@ interface X11EditorState extends CodeEditorState {
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
   protected doctype: string = "none";
-  /* protected */ client: XpraClient;
   public store: Store<X11EditorState>;
+  client: XpraClient;
 
   _init2(): void {
     this.setState({ windows: Map() });
     this.init_client();
+    this.init_new_x11_frame();
   }
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "x11" };
   }
 
+  init_new_x11_frame(): void {
+    this.store.on("new-frame", desc => {
+      if (desc.type !== "x11") {
+        return;
+      }
+      // Just update this for all x11 frames for now.
+      this.set_x11_connection_status(this.client._ws_status);
+    });
+  }
+
   close(): void {
-    console.log("Actions.close");
     if (this.client == null) {
       return;
     }
@@ -98,7 +108,11 @@ export class Actions extends BaseActions<X11EditorState> {
   set_x11_connection_status(status: ConnectionStatus): void {
     for (let leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
-      if (leaf != null && leaf.get("type") === "x11") {
+      if (
+        leaf != null &&
+        leaf.get("type") === "x11" &&
+        leaf.get("connection_status") != status
+      ) {
         this.set_frame_tree({ id: leaf_id, connection_status: status });
       }
     }
