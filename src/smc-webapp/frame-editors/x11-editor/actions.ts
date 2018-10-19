@@ -29,8 +29,23 @@ export class Actions extends BaseActions<X11EditorState> {
     this.init_new_x11_frame();
   }
 
+  /*
   _raw_default_frame_tree(): FrameTree {
     return { type: "x11" };
+  }
+  */
+  _raw_default_frame_tree(): FrameTree {
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "terminal"
+      },
+      second: {
+        type: "x11"
+      },
+      pos: 0.25
+    };
   }
 
   init_new_x11_frame(): void {
