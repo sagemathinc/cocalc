@@ -57,8 +57,8 @@ export class XpraServer {
     const args = [
       "start",
       `:${this.display}`,
-      "-d",
-      "all",
+      //"-d",
+      //"all",
       "--pulseaudio=no",
       "--bell=no",
       "--sharing=yes",
