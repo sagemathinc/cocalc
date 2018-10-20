@@ -10,7 +10,6 @@ import { splitlines, split } from "../generic/misc";
 // This will break annoyingly on cocalc-docker
 // if there are multiple projects using it at once.
 const DEFAULT_DISPLAY = 0;
-const DEFAULT_COMMAND = "gnome-terminal";
 
 interface XpraServerOptions {
   project_id: string;
@@ -21,12 +20,10 @@ interface XpraServerOptions {
 export class XpraServer {
   private project_id: string;
   private display: number;
-  private command: string;
 
   constructor(opts: XpraServerOptions) {
     this.project_id = opts.project_id;
     this.display = opts.display ? opts.display : DEFAULT_DISPLAY;
-    this.command = opts.command ? opts.command : DEFAULT_COMMAND;
     this.start = reuseInFlight(this.start);
     this.stop = reuseInFlight(this.stop);
     this.get_port = reuseInFlight(this.get_port);
@@ -68,7 +65,6 @@ export class XpraServer {
       "--terminate-children=yes",
       `--bind-tcp=0.0.0.0:${port}`,
       "--html=/tmp" /* just to make it serve the websocket; path isn't actually used.  Must be absolute */,
-      `--start="${this.command}"`,
       "--daemon=yes",
       `--xvfb=${XVFB}`
     ];
