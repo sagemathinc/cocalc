@@ -408,7 +408,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     });
 
     send("map-window", wid, x, y, w, h, props);
-    send("focus", [], wid);
+    send("focus", wid, []);
 
     const surface = createSurface(
       false,
