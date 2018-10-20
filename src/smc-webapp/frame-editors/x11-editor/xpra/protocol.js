@@ -13,8 +13,8 @@ import { bencode, bdecode } from "./bencode.js";
 import { HEADER_SIZE } from "./constants.js";
 
 const debug = (...args) => {
+  // Comment this return to just log EVERYTHING.
   return;
-  // Uncomment this to just log EVERYTHING.
   console.log(...args); return;
   if (
     args[1].match(/^(ping|pointer|button|cursor|draw|damage|sound-data)/) ===

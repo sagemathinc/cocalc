@@ -29,6 +29,7 @@ interface Props {
   id: string;
   desc: Map<string, any>;
   is_current: boolean;
+  font_size: number;
   // reduxProps:
   windows: Map<string, any>;
 }
@@ -57,6 +58,10 @@ export class X11Component extends Component<Props, {}> {
       // try
       this.insert_window_in_div(next);
     }
+    if (this.props.desc.get("font_size") != next.desc.get("font_size")) {
+      this.measure_size(next);
+      return true;
+    }
     return is_different(this.props, next, ["id", "windows", "is_current"]);
   }
 
@@ -65,13 +70,9 @@ export class X11Component extends Component<Props, {}> {
     this.insert_window_in_div(this.props);
     this.init_resize_observer();
     this.disable_browser_context_menu();
-    this.measure_size = throttle(
-      this.measure_size_nothrottle.bind(this),
-      1000,
-      {
-        leading: false
-      }
-    );
+    this.measure_size = throttle(this.measure_size_nothrottle.bind(this), 500, {
+      leading: false
+    });
   }
 
   disable_browser_context_menu(): void {
@@ -124,13 +125,16 @@ export class X11Component extends Component<Props, {}> {
     }
   }
 
-  measure_size_nothrottle(): void {
-    const client = this.props.actions.client;
+  measure_size_nothrottle(props?: Props): void {
+    if (props == null) {
+      props = this.props;
+    }
+    const client = props.actions.client;
     if (client == null) {
       // to satisfy typescript
       return;
     }
-    const wid = this.props.desc.get("wid");
+    const wid = props.desc.get("wid");
     if (wid == null) {
       return;
     }
@@ -140,7 +144,8 @@ export class X11Component extends Component<Props, {}> {
     if (width == null || height == null) {
       return;
     }
-    client.resize_window(wid, width, height);
+    const frame_scale = props.font_size / 14;
+    client.resize_window(wid, width, height, frame_scale);
   }
 
   componentWillUnmount(): void {

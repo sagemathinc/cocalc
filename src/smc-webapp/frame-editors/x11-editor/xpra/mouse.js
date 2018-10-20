@@ -174,20 +174,25 @@ function getMouse(ev, surface) {
   let relY = 0;
 
   //console.log('getMouse', ev.clientX, ev.clientY);
-  if (surface) {
-    const { top, left } = surface.canvas.getBoundingClientRect();
-
-    relX = left - surface.x / window.devicePixelRatio;
-    relY = top - surface.y / window.devicePixelRatio;
-    //console.log("getMOuse.surface", left, top, relX, relY);
+  const { top, left, bottom, right } = surface.canvas.getBoundingClientRect();
+  //console.log("getMouse", ev.clientX, ev.clientY, top, left, bottom, right);
+  if (
+    ev.clientX < left ||
+    ev.clientX >= right ||
+    ev.clientY < top ||
+    ev.clientY >= bottom
+  ) {
+    // mouse not actually on the surface.
+    return;
   }
 
-  let x = parseInt(ev.clientX - relX, 10);
-  let y = parseInt(ev.clientY - relY, 10);
+  const elt = $(surface.canvas);
+  const scale_x = surface.w / elt.width(),
+    scale_y = surface.h / elt.height();
+  const x = surface.x + Math.round(scale_x * (ev.clientX - left));
+  const y = surface.y + Math.round(scale_y * (ev.clientY - top));
   const buttons = [];
   const button = getMouseButton(ev);
-  x = Math.round(x * window.devicePixelRatio);
-  y = Math.round(y * window.devicePixelRatio);
   //console.log("getMouse, sending ", x,y);
 
   return { x, y, button, buttons };
@@ -204,20 +209,33 @@ export const createMouse = (send, keyboard) => {
 
   const preciseScroll = () => {
     // TODO
+    console.log("preciseScroll: NotImplemented");
   };
 
   const process = (ev, surface) => {
+    if (!surface) {
+      return;
+    }
     const topwindow = surface ? surface.wid : 0;
     const modifiers = keyboard.modifiers(ev);
 
     if (ev.type === "mousemove") {
-      const { x, y, buttons } = getMouse(ev, surface);
+      const mouse = getMouse(ev, surface);
+      //console.log("mousemove", mouse);
+      if (mouse == null) {
+        return;
+      }
+      const { x, y, buttons } = mouse;
 
       //console.log("pointer-position", topwindow, [x, y]);
       send("pointer-position", topwindow, [x, y], modifiers, buttons);
     } else if (ev.type === "mousedown" || ev.type === "mouseup") {
       const pressed = ev.type === "mousedown";
-      const { x, y, button, buttons } = getMouse(ev, surface);
+      const mouse = getMouse(ev, surface);
+      if (mouse == null) {
+        return;
+      }
+      const { x, y, button, buttons } = mouse;
 
       //console.log("button-action", topwindow, button, pressed, [x, y]);
       send(
@@ -230,7 +248,15 @@ export const createMouse = (send, keyboard) => {
         buttons
       );
     } else if (ev.type === wheelEventName) {
-      const { x, y, buttons } = getMouse(ev, surface);
+      const mouse = getMouse(ev, surface);
+      if (mouse == null) {
+        return;
+      }
+      // not implemented yet and the below causes disconnect!
+      return;
+      const { x, y, buttons } = mouse;
+      send(["wheel-motion", topwindow, 5, -10, (x, y), modifiers, buttons], 1);
+
       const s = scroll(topwindow, x, y, modifiers, buttons);
       const ps = preciseScroll();
 

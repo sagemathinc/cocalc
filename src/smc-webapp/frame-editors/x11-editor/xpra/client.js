@@ -86,6 +86,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   const draw = (...args) => renderer.push(...args);
   const updateMetadata = meta => Object.assign(metadata, meta);
   const destroy = () => renderer.stop();
+
   const updateGeometry = (w, h, full_width, full_height) => {
     // The main canvas itself has its size updated *only* when
     // the render itself happens, so there is no flicker.
@@ -196,7 +197,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     const found = findSurface(wid);
     if (found) {
       if (activeWindow !== wid) {
-        send("focus", wid, []);
+        send("focus", wid);
       }
 
       activeWindow = wid;
@@ -408,7 +409,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     });
 
     send("map-window", wid, x, y, w, h, props);
-    send("focus", wid, []);
+    send("focus", wid);
 
     const surface = createSurface(
       false,
@@ -468,8 +469,6 @@ export const createClient = (defaultConfig = {}, env = {}) => {
 
       surfaces.push(surface);
       lastActiveWindow = parentWid;
-
-      focus(wid);
     }
   });
 

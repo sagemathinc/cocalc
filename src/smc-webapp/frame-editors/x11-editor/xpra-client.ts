@@ -14,13 +14,13 @@ import { touch, touch_project } from "../generic/client";
 
 import { throttle } from "underscore";
 
-const DPI: number = 96;
+const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
 
 // Never resize beyond this (since it's the backend size)
 export const MAX_WIDTH = 4000;
-export const MAX_HEIGHT = 3000
+export const MAX_HEIGHT = 3000;
 
 // Also, very bad things happen if a canvas ever has width or height 0.
 export const MIN_WIDTH = 10;
@@ -101,7 +101,7 @@ export class XpraClient extends EventEmitter {
     const uri = `wss://${window.location.hostname}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
-    const dpi = Math.round(DPI * window.devicePixelRatio);
+    const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
     this.xpra_options = { uri, dpi, sound: false };
   }
 
@@ -226,17 +226,25 @@ export class XpraClient extends EventEmitter {
 
   // Any new top-level window gets moved to position 0,0 and
   // resized to fill the screen.
-  resize_window(wid: number, width: number, height: number): void {
+  resize_window(
+    wid: number,
+    width: number,
+    height: number,
+    frame_scale: number = 1
+  ): void {
+    console.log("resize_window", wid, width, height, frame_scale);
     const info = this.windows[wid];
     if (info == null) {
       console.warn("no window", wid);
+      console.log(0);
       return; // no such window
     }
 
-    const scale = window.devicePixelRatio;
+    const scale = window.devicePixelRatio / frame_scale;
     const surface = this.client.findSurface(wid);
     if (!surface) {
       // just removed?
+      console.log(1);
       return;
     }
     let swidth0, sheight0;
@@ -297,11 +305,6 @@ export class XpraClient extends EventEmitter {
       swidth = MIN_WIDTH;
     }
 
-    if (swidth === info.w && sheight === info.h) {
-      // make no change...
-      return;
-    }
-
     //console.log("resize_window ", wid, width, height, swidth, sheight);
     surface.updateGeometry(
       swidth,
@@ -309,6 +312,19 @@ export class XpraClient extends EventEmitter {
       swidth0 === swidth,
       sheight0 === sheight
     );
+
+
+    if (swidth === info.w && sheight === info.h) {
+      // make no change... BUT still important to
+      // update the CSS above.
+      return;
+    }
+
+    // w and h are critically used for scaling/mouse position computation,
+    // so MUST be updated.
+    info.w = swidth;
+    info.h = sheight;
+
     this.client.send(
       "configure-window",
       wid,
