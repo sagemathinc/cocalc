@@ -226,7 +226,32 @@ export class Actions extends BaseActions<X11EditorState> {
     }
   }
 
-  close_window(_: string, wid: number): void {
+  close_window(id: string, wid: number): void {
+    console.log("close_window ", id);
+    // Determine the previous available window.
+    const used_wids = {};
+    for (let leaf_id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(leaf_id);
+      if (leaf != null && leaf.get("wid")) {
+        used_wids[leaf.get("wid")] = true;
+      }
+    }
+    console.log("used_wids = ", used_wids);
+    let wid1 = 0;
+    this.store.get("windows").forEach(function(_, wid0) {
+      if (parseInt(wid0) === wid) {
+        return false;
+      }
+      if (!used_wids[wid0]) {
+        wid1 = parseInt(wid0);
+      }
+    });
+    if (wid1) {
+      this.set_focused_window_in_frame(id, wid1);
+    } else {
+      // nothing available -- at least clear the title.
+      this.set_title(id, "");
+    }
     this.client.close_window(wid);
   }
 
