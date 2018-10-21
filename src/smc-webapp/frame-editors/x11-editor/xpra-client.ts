@@ -231,6 +231,7 @@ export class XpraClient extends EventEmitter {
     }
 
     const scale = window.devicePixelRatio / frame_scale;
+    info.scale = scale;
     const surface = this.client.findSurface(wid);
     if (!surface) {
       // just removed?
@@ -344,7 +345,7 @@ export class XpraClient extends EventEmitter {
   place_overlay_in_dom(overlay): void {
     const e = $(overlay.canvas);
     e.css("position", "absolute");
-    const scale = window.devicePixelRatio;
+    const scale = overlay.parent.scale ? overlay.parent.scale : 1;
     const width = `${overlay.canvas.width / scale}px`,
       height = `${overlay.canvas.height / scale}px`,
       left = `${overlay.x / scale}px`,
