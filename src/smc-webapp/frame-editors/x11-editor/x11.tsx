@@ -30,6 +30,7 @@ interface Props {
   desc: Map<string, any>;
   is_current: boolean;
   font_size: number;
+  reload: string;
   // reduxProps:
   windows: Map<string, any>;
 }
@@ -58,7 +59,10 @@ export class X11Component extends Component<Props, {}> {
       // try
       this.insert_window_in_div(next);
     }
-    if (this.props.desc.get("font_size") != next.desc.get("font_size")) {
+    if (
+      this.props.desc.get("font_size") != next.desc.get("font_size") ||
+      this.props.reload != next.reload
+    ) {
       this.measure_size(next);
       return true;
     }

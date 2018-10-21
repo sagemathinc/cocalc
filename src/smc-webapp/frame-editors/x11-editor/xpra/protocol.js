@@ -15,13 +15,7 @@ import { HEADER_SIZE } from "./constants.js";
 const debug = (...args) => {
   // Comment this return to just log EVERYTHING.
   return;
-  console.log(...args); return;
-  if (
-    args[1].match(/^(ping|pointer|button|cursor|draw|damage|sound-data)/) ===
-    null
-  ) {
-    console.debug(...args);
-  }
+  console.log(...args);
 };
 
 /**

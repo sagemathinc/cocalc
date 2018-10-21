@@ -303,6 +303,7 @@ export class XpraClient extends EventEmitter {
       sheight0 === sheight
     );
 
+
     if (swidth === info.w && sheight === info.h) {
       // make no change... BUT still important to
       // update the CSS above.

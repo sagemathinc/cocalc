@@ -15,6 +15,7 @@ export const x11 = {
   buttons: set([
     "decrease_font_size",
     "increase_font_size",
+    "reload",
     /*"print",
     "edit_init_script", */
     "help",

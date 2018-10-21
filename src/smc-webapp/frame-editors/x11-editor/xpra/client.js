@@ -72,7 +72,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   let dialog = false;
   if (
     metadata["window-type"] != null &&
-     metadata["window-type"][0] === "DIALOG"
+    metadata["window-type"][0] === "DIALOG"
   ) {
     dialog = true;
     $(canvas).css({
@@ -120,7 +120,8 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
     draw,
     updateMetadata,
     updateGeometry,
-    destroy
+    destroy,
+    renderer
   };
 };
 
@@ -398,6 +399,37 @@ export const createClient = (defaultConfig = {}, env = {}) => {
     if (surface) {
       surface.updateMetadata(metadata);
       bus.emit("window:metadata", surface);
+    }
+  });
+
+  bus.on("window-resized", (wid, w, h) => {
+    const surface = findSurface(wid);
+    if (surface) {
+      // Do blank the part of the canvas no longer used, since otherwise it
+      // looks all corrupted.
+      const scale = surface.scale ? surface.scale : 1;
+      const canvases = [
+        surface.renderer.surface.canvas,
+        surface.renderer.surface.drawCanvas
+      ];
+      const rects = [
+        [w / scale, 0, canvases[0].width, canvases[0].height],
+        [0, h / scale, canvases[0].width, canvases[0].height]
+      ];
+      for (let rect of rects) {
+        for (let canvas of canvases) {
+          const context = canvas.getContext("2d");
+          context.clearRect(...rect);
+        }
+      }
+
+      // Save new size (so we know to resize when it changes from this).
+      surface.w = w;
+      surface.h = h;
+      // Do NOT change geometry, or it looks squished and overlays are wrong.
+      //surface.updateGeometry(w, h);
+
+      bus.emit("window:resized", surface);
     }
   });
 

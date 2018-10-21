@@ -186,6 +186,16 @@ export class Actions extends BaseActions<X11EditorState> {
     }
   }
 
+  reload(id: string): void {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null || leaf.get("type") != "x11") {
+      super.reload(id);
+      return;
+    }
+    this.set_reload('x11', new Date().valueOf());
+  }
+
+
   blur(): void {
     // console.log("x11 -- blur");
     if (this.client == null) {
