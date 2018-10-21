@@ -182,15 +182,9 @@ export class XpraClient extends EventEmitter {
       throw Error("no such window");
     }
     const canvas = $(info.canvas);
-    const scale = window.devicePixelRatio;
 
     // margin:auto makes it centered.
-    canvas
-      .css("margin", "auto")
-      .width(`${info.canvas.width / scale}px`)
-      .height(`${info.canvas.height / scale}px`);
-    //.css({ borderRight: "1px solid grey" })
-    //.css({ borderBottom: "1px solid grey" });
+    canvas.css("margin", "auto");
 
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
@@ -213,9 +207,6 @@ export class XpraClient extends EventEmitter {
   window_create(window): void {
     //console.log("window_create", window);
     this.windows[window.wid] = window;
-    const c = $(window.canvas);
-    c.css("width", "100%");
-    c.css("height", "100%");
     this.emit("window:create", window.wid, {
       wid: window.wid,
       width: window.w,
@@ -232,11 +223,10 @@ export class XpraClient extends EventEmitter {
     height: number,
     frame_scale: number = 1
   ): void {
-    console.log("resize_window", wid, width, height, frame_scale);
+    //console.log("resize_window", wid, width, height, frame_scale);
     const info = this.windows[wid];
     if (info == null) {
-      console.warn("no window", wid);
-      console.log(0);
+      //console.warn("no window", wid);
       return; // no such window
     }
 
@@ -244,7 +234,6 @@ export class XpraClient extends EventEmitter {
     const surface = this.client.findSurface(wid);
     if (!surface) {
       // just removed?
-      console.log(1);
       return;
     }
     let swidth0, sheight0;
@@ -313,7 +302,6 @@ export class XpraClient extends EventEmitter {
       sheight0 === sheight
     );
 
-
     if (swidth === info.w && sheight === info.h) {
       // make no change... BUT still important to
       // update the CSS above.
@@ -349,8 +337,8 @@ export class XpraClient extends EventEmitter {
     this.emit("window:icon", icon.wid, icon.src);
   }
 
-  window_metadata(info): void {
-    console.log("window_metadata", info);
+  window_metadata(_): void {
+    //console.log("window_metadata", info);
   }
 
   place_overlay_in_dom(overlay): void {

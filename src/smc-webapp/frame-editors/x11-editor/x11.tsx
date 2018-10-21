@@ -114,7 +114,6 @@ export class X11Component extends Component<Props, {}> {
       return;
     }
     this.is_loaded = true;
-
     await delay(0);
     if (!this.is_mounted) {
       return;
