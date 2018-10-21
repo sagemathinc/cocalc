@@ -349,7 +349,16 @@ export class XpraClient extends EventEmitter {
       height = `${overlay.canvas.height / scale}px`,
       left = `${overlay.x / scale}px`,
       top = `${overlay.y / scale}px`;
-    e.css({ width, height, left, top });
+    e.css({
+      width,
+      height,
+      left,
+      top,
+      border: "1px solid rgba(0,0,0,.15)",
+      borderRadius: "4px",
+      boxShadow: "0 6px 12px rgba(0,0,0,.175)"
+    });
+
     // if parent not in DOM yet, the following is no-op.
     $(overlay.parent.canvas)
       .parent()
