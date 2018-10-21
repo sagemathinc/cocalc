@@ -212,7 +212,11 @@ export const createMouse = (send, keyboard) => {
     console.log("preciseScroll: NotImplemented");
   };
 
-  const process = (ev, surface) => {
+  const process = (ev, surface, findSurface) => {
+    const elt_at = document.elementFromPoint(ev.clientX, ev.clientY);
+    if (elt_at && elt_at.wid) {
+      surface = findSurface(elt_at.wid);
+    }
     if (!surface) {
       return;
     }

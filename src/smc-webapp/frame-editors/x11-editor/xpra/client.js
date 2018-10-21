@@ -267,7 +267,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
 
     const surface = findSurface(wid);
     //console.log("mouse_inject", wid);
-    mouse.process(ev, surface);
+    mouse.process(ev, surface, findSurface);
     bus.emit("mouse", ev, surface);
     return false; // always ignore mouse...?
   };

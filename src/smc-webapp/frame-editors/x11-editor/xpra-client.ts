@@ -367,6 +367,7 @@ export class XpraClient extends EventEmitter {
   }
 
   overlay_create(overlay): void {
+    overlay.canvas.wid = overlay.wid
     this.windows[overlay.wid] = overlay;
     this.place_overlay_in_dom(overlay);
   }
