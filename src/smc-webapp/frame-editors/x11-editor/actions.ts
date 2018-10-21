@@ -112,7 +112,8 @@ export class Actions extends BaseActions<X11EditorState> {
         id = this._get_most_recent_active_frame_id_of_type("x11");
       }
       if (id != null) {
-        this.set_frame_tree({ id, wid });
+        const title = this.store.get("windows").getIn([`${wid}`, "title"]);
+        this.set_frame_tree({ id, wid, title });
         this._ensure_only_one_tab_has_wid(id, wid);
       }
     });
@@ -201,7 +202,8 @@ export class Actions extends BaseActions<X11EditorState> {
       return;
     }
     // todo: make it so wid can only be in one x11 leaf...
-    this.set_frame_tree({ id, wid });
+    const title = this.store.get("windows").getIn([`${wid}`, "title"]);
+    this.set_frame_tree({ id, wid, title });
     this.client.focus_window(wid);
     this._ensure_only_one_tab_has_wid(id, wid);
   }
@@ -218,8 +220,8 @@ export class Actions extends BaseActions<X11EditorState> {
         leaf.get("type") === "x11" &&
         leaf.get("wid") === wid
       ) {
-        console.log("clearing", id, wid, leaf.toJS());
-        this.set_frame_tree({ id: leaf_id, wid: undefined });
+        //console.log("clearing", id, wid, leaf.toJS());
+        this.set_frame_tree({ id: leaf_id, wid: undefined, title: "" });
       }
     }
   }

@@ -88,8 +88,8 @@ export class WindowTab extends Component<Props, {}> {
           overflow: "hidden",
           whiteSpace: "nowrap",
           cursor: "pointer",
-          padding: "5px 0 0 5px",
-          borderRight: "1px solid grey",
+          margin: "5px 0 5px 5px",
+          borderRight: "1px solid #aaa",
           background: this.props.is_current ? TAB_BAR_BLUE : TAB_BAR_GREY,
           color: this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE
         }}
