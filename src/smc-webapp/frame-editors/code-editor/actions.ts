@@ -1032,7 +1032,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    this.set_status(`Set font size to ${font_size}`, 1500);
+    const percent = Math.round((font_size * 100) / 14);
+    this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
   increase_font_size(id: string): void {
@@ -1886,7 +1887,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Override in derived class to set a special env for
   // any launched terminals.
-  get_term_env() : any {
+  get_term_env(): any {
     return undefined;
   }
 }

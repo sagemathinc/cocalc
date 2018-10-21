@@ -227,7 +227,6 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   close_window(id: string, wid: number): void {
-    console.log("close_window ", id);
     // Determine the previous available window.
     const used_wids = {};
     for (let leaf_id in this._get_leaf_ids()) {
@@ -236,7 +235,6 @@ export class Actions extends BaseActions<X11EditorState> {
         used_wids[leaf.get("wid")] = true;
       }
     }
-    console.log("used_wids = ", used_wids);
     let wid1 = 0;
     this.store.get("windows").forEach(function(_, wid0) {
       if (parseInt(wid0) === wid) {
@@ -254,15 +252,4 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     this.client.close_window(wid);
   }
-
-  // Start a program running.
-  // I do NOT know how to do this yet
-  // Maybe need to add an option to exec to spawn a subprocess
-  // and detach or something.
-  /*
-  async exec_command(command: string, args: string[] = []): Promise<> {
-    const env = get_term_env();
-    exec({command, args, env});
-  }
-  */
 }
