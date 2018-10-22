@@ -97,6 +97,10 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
       renderer.surface.drawCanvas.height = h;
     }
 
+    // No matter what, never have part of the window off screen, since
+    // there is no possible way to see it in a tabbed no-drag interface.
+    $(canvas).css({ "max-width": "100%", "max-height": "100%" });
+
     if (full_width && !dialog) {
       $(canvas).css("width", "100%");
     }
