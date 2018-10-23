@@ -7,6 +7,9 @@
  * @author Anders Evenrud <andersevenrud@gmail.com>
  */
 
+
+
+import { arraybufferBase64 } from "./util.js";
 import { EventHandler } from "./eventhandler.js";
 import { getCapabilities } from "./capabilities.js";
 import { Renderer } from "./renderer.ts";
@@ -14,7 +17,6 @@ import { createKeyboard } from "./keyboard.js";
 import { createMouse } from "./mouse.js";
 //import {createSound, enumSoundCodecs} from './sound.js';
 import { Connection } from "./connection/null";
-import { iconRenderer } from "./renderer/icon.js";
 import { PING_FREQUENCY } from "./constants.js";
 import {
   hexUUID,
@@ -412,10 +414,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
       // Do blank the part of the canvas no longer used, since otherwise it
       // looks all corrupted.
       const scale = surface.scale ? surface.scale : 1;
-      const canvases = [
-        surface.renderer.canvas,
-        surface.renderer.drawCanvas
-      ];
+      const canvases = [surface.renderer.canvas, surface.renderer.drawCanvas];
       const rects = [
         [w / scale, 0, canvases[0].width, canvases[0].height],
         [0, h / scale, canvases[0].width, canvases[0].height]
@@ -533,9 +532,15 @@ export const createClient = (defaultConfig = {}, env = {}) => {
   });
 
   bus.on("window-icon", (wid, w, h, coding, data) => {
-    const src = iconRenderer({ coding, data });
+    let src;
+    if (coding === "png") {
+      src = `data:image/${coding};base64,` + arraybufferBase64(data);
+    }
+
     if (src) {
       bus.emit("window:icon", { wid, src });
+    } else {
+      // TODO!
     }
   });
 
