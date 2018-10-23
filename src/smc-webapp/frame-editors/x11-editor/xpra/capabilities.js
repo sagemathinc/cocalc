@@ -14,7 +14,7 @@ import {
   calculateDPI,
   calculateColorGamut,
   calculateScreens
-} from "./util.js";
+} from "./util.ts";
 
 const platformMap = {
   Win: {

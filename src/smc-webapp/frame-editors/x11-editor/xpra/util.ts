@@ -1,58 +1,23 @@
 /**
- * Xpra HTML Client
- *
- * This is a refactored (modernized) version of
- * https://xpra.org/trac/browser/xpra/trunk/src/html5/
- *
- * @author Anders Evenrud <andersevenrud@gmail.com>
+ * CoCalc XPRA HTML Client.
  */
 
 import forge from "node-forge";
 import { CHUNK_SZ, DEFAULT_DPI } from "./constants.ts";
 
-export const ord = s => s.charCodeAt(0);
+export function ord(s: string): number {
+  return s.charCodeAt(0);
+}
 
-export const browserLanguage = (defaultLanguage = "en") => {
-  const properties = [
-    "language",
-    "browserLanguage",
-    "systemLanguage",
-    "userLanguage"
-  ];
-  const found = properties.map(prop => navigator[prop]).filter(str => !!str);
+export function browserLanguage(): string {
+  return window.navigator.language;
+}
 
-  const list = (navigator.languages || [found || defaultLanguage]).map(
-    str => str.split(/-|_/)[0]
-  );
+export function calculateDPI(): number {
+  return Math.round(DEFAULT_DPI * window.devicePixelRatio);
+}
 
-  return list[0];
-};
-
-export const calculateDPI = () => {
-  if ("deviceXDPI" in screen) {
-    return (screen.systemXDPI + screen.systemYDPI) / 2;
-  }
-
-  /* FIXME
-  try {
-    const el = document.createElement('div');
-    el.style.visibility = 'hidden';
-    document.body.appendChild(el);
-
-    if (el.offsetWidth > 0 && el.offsetHeight > 0) {
-      const dpi = Math.round((el.offsetWidth + el.offsetHeight) / 2.0);
-      document.body.removeChild(el);
-      return dpi;
-    }
-  } catch (e) {
-    console.warn(e);
-  }
-  */
-
-  return DEFAULT_DPI;
-};
-
-export const calculateColorGamut = () => {
+export function calculateColorGamut(): string {
   const map = {
     rec2020: "(color-gamut: rec2020)",
     P3: "(color-gamut: p3)",
@@ -65,9 +30,10 @@ export const calculateColorGamut = () => {
   }
 
   return found ? found : "";
-};
+}
 
-export const supportsWebp = () => {
+// Important to check!  https://caniuse.com/#search=webp
+export function supportsWebp(): boolean {
   try {
     const el = document.createElement("canvas");
     const ctx = el.getContext("2d");
@@ -80,14 +46,15 @@ export const supportsWebp = () => {
   }
 
   return false;
-};
+}
 
-export const timestamp = () =>
-  performance ? Math.round(performance.now()) : Date.now();
+export function timestamp(): number {
+  return performance ? Math.round(performance.now()) : Date.now();
+}
 
 // apply in chunks of 10400 to avoid call stack overflow
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
-export const arraybufferBase64 = (uintArray, skip = 10400) => {
+export function arraybufferBase64(uintArray, skip = 10400): string {
   let s = "";
   if (uintArray.subarray) {
     for (let i = 0, len = uintArray.length; i < len; i += skip) {
@@ -106,15 +73,19 @@ export const arraybufferBase64 = (uintArray, skip = 10400) => {
   }
 
   return window.btoa(s);
-};
+}
 
 // python-lz4 inserts the length of the uncompressed data as an int
 // at the start of the stream
-export function lz4decode(data) {
+export function lz4decode(_) {
   throw Error("lz4decode: not implemented");
 }
+
+// TODO: The following doesn't work at all using the lz4js npm module.
+// There is a HUGE 8k lines lz4 implementation in the xpra code,
+// which I might try instead...  This is important for speed!
 /*
-export const lz4decode = data => {
+export function lz4decode = data => {
   const d = data.subarray(0, 4);
 
   // output buffer length is stored as little endian
@@ -128,24 +99,25 @@ export const lz4decode = data => {
 };
 */
 
-export const strToUint8 = str => {
-  let u8a = new Uint8Array(str.length);
+export function strToUint8(str: string): Uint8Array {
+  const u8a = new Uint8Array(str.length);
   for (let i = 0, j = str.length; i < j; ++i) {
     u8a[i] = str.charCodeAt(i);
   }
 
   return u8a;
-};
+}
 
-export const uint8ToStr = u8a => {
-  let c = [];
+export function uint8ToStr(u8a: Uint8Array): string {
+  const c: string[] = [];
   for (let i = 0; i < u8a.length; i += CHUNK_SZ) {
     c.push(String.fromCharCode.apply(null, u8a.subarray(i, i + CHUNK_SZ)));
   }
 
   return c.join("");
-};
-export const xorString = (str1, str2) => {
+}
+
+export function xorString(str1: string, str2: string): string {
   let result = "";
   if (str1.length !== str2.length) {
     throw new Error("strings must be equal length");
@@ -158,10 +130,10 @@ export const xorString = (str1, str2) => {
   }
 
   return result;
-};
+}
 
-export const hexUUID = () => {
-  let s = [];
+export function hexUUID(): string {
+  const s: string[] = [];
   const hexDigits = "0123456789abcdef";
 
   for (let i = 0; i < 36; i++) {
@@ -172,9 +144,9 @@ export const hexUUID = () => {
   }
 
   return s.join("");
-};
+}
 
-export const calculateScreens = (width, height, dpi) => {
+export function calculateScreens(width: number, height: number, dpi: number) {
   const wmm = Math.round((width * 25.4) / dpi);
   const hmm = Math.round((height * 25.4) / dpi);
 
@@ -193,13 +165,13 @@ export const calculateScreens = (width, height, dpi) => {
   ];
 
   return [screen]; // just a single screen
-};
+}
 
-export const generateSalt = (saltDigest, serverSalt) => {
+export function generateSalt(saltDigest: string, serverSalt: string): string {
   const l = saltDigest === "xor" ? serverSalt.length : 32;
 
   if (l < 16 || l > 256) {
-    throw new Error("Invalid salt length of", l);
+    throw Error(`Invalid salt length of ${l}`);
   }
 
   let s = "";
@@ -208,9 +180,13 @@ export const generateSalt = (saltDigest, serverSalt) => {
   }
 
   return s.slice(0, l);
-};
+}
 
-export const generateDigest = (digest, password, salt) => {
+export function generateDigest(
+  digest: string,
+  password: string,
+  salt: string
+): string | null {
   if (digest.startsWith("hmac")) {
     let hash = "md5";
     if (digest.indexOf("+") > 0) {
@@ -229,4 +205,4 @@ export const generateDigest = (digest, password, salt) => {
   }
 
   return null;
-};
+}

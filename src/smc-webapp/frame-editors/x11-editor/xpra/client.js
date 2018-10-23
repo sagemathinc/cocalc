@@ -9,7 +9,6 @@
 
 
 
-import { arraybufferBase64 } from "./util.js";
 import { EventHandler } from "./eventhandler.js";
 import { getCapabilities } from "./capabilities.js";
 import { Renderer } from "./renderer.ts";
@@ -19,13 +18,14 @@ import { createMouse } from "./mouse.js";
 import { Connection } from "./connection/null";
 import { PING_FREQUENCY } from "./constants.ts";
 import {
+  arraybufferBase64,
   hexUUID,
   calculateDPI,
   calculateScreens,
   timestamp,
   generateSalt,
   generateDigest
-} from "./util.js";
+} from "./util.ts";
 
 /**
  * Creates a configuration

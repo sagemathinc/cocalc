@@ -8,7 +8,7 @@
  */
 
 import zlib from "zlibjs";
-import { ord } from "./util.js";
+import { ord } from "./util.ts";
 import { bencode, bdecode } from "./bencode.js";
 import { HEADER_SIZE } from "./constants.ts";
 
