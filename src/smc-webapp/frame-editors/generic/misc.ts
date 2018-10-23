@@ -398,3 +398,29 @@ export function list_alternatives(names): string {
   }
   return names.join(", ");
 }
+
+// convert x to a useful string to show to a user.
+export function to_user_string(x: any): string {
+  switch (typeof x) {
+    case "undefined":
+      return "undefined";
+    case "number":
+    case "symbol":
+    case "boolean":
+      return x.toString();
+    case "function":
+      return x.toString();
+    case "object":
+      if (typeof x.toString !== "function") {
+        return JSON.stringify(x);
+      }
+      const a = x.toString(); // is much better than stringify for exceptions (etc.).
+      if (a === "[object Object]") {
+        return JSON.stringify(x);
+      } else {
+        return a;
+      }
+    default:
+      return JSON.stringify(a);
+  }
+}
