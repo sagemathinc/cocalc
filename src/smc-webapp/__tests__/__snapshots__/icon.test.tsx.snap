@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders a money icon 1`] = `
+<span>
+  <i
+    className="fa fa-money"
+  />
+</span>
+`;
+
+exports[`renders a spinning money icon 1`] = `
+<span>
+  <i
+    className="fa fa-money fa-spin"
+  />
+</span>
+`;
