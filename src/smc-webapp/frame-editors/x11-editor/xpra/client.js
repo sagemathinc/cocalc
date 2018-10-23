@@ -9,7 +9,7 @@
 
 import { EventHandler } from "./eventhandler.js";
 import { getCapabilities } from "./capabilities.js";
-import { createRenderer } from "./renderer.js";
+import { Renderer } from "./renderer.ts";
 import { createKeyboard } from "./keyboard.js";
 import { createMouse } from "./mouse.js";
 //import {createSound, enumSoundCodecs} from './sound.js';
@@ -82,7 +82,7 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   }
 
   const context = canvas.getContext("2d");
-  const renderer = createRenderer({ wid, canvas, context }, send);
+  const renderer = new Renderer({ wid, canvas, context }, send);
   const draw = (...args) => renderer.push(...args);
   const updateMetadata = meta => Object.assign(metadata, meta);
   const destroy = () => renderer.stop();
@@ -90,11 +90,11 @@ const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   const updateGeometry = (w, h, full_width, full_height) => {
     // The main canvas itself has its size updated *only* when
     // the render itself happens, so there is no flicker.
-    if (renderer.surface.drawCanvas.width != w) {
-      renderer.surface.drawCanvas.width = w;
+    if (renderer.drawCanvas.width != w) {
+      renderer.drawCanvas.width = w;
     }
-    if (renderer.surface.drawCanvas.height != h) {
-      renderer.surface.drawCanvas.height = h;
+    if (renderer.drawCanvas.height != h) {
+      renderer.drawCanvas.height = h;
     }
 
     // No matter what, never have part of the window off screen, since
@@ -413,8 +413,8 @@ export const createClient = (defaultConfig = {}, env = {}) => {
       // looks all corrupted.
       const scale = surface.scale ? surface.scale : 1;
       const canvases = [
-        surface.renderer.surface.canvas,
-        surface.renderer.surface.drawCanvas
+        surface.renderer.canvas,
+        surface.renderer.drawCanvas
       ];
       const rects = [
         [w / scale, 0, canvases[0].width, canvases[0].height],
