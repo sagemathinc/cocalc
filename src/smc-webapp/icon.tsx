@@ -13,7 +13,7 @@ interface Props {
   stack?: "1x" | "2x";
   inverse?: boolean;
   Component?: React.Component;
-  style?: React.CSSProperties;
+  style?: any;
   onClick?: () => undefined;
   onMouseOver?: () => undefined;
   onMouseOut?: () => undefined;

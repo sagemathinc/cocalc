@@ -1,6 +1,6 @@
 import { Settings } from "../editor";
 import * as React from "react";
-import * as renderer from "react-test-renderer";
+import { shallow } from 'enzyme';
 import { Map } from "immutable";
 
 test("renders a list of languages", () => {
@@ -9,9 +9,7 @@ test("renders a list of languages", () => {
 
   const settings = Map({ spell: "Value" });
 
-  const tree = renderer
-    .create(<Settings actions={actions} settings={settings} id="unused??" />)
-    .toJSON();
+  const render = shallow(<Settings actions={actions} settings={settings} id="unused??" />);
 
-  expect(tree).toMatchSnapshot();
+  expect(render).toMatchSnapshot();
 });

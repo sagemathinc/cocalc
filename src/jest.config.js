@@ -13,5 +13,9 @@ module.exports = {
     path.resolve(__dirname, "smc-webapp"),
     path.resolve(__dirname, "smc-webapp/node_modules"),
   ],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"]
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+
+  // Setup Enzyme
+  "snapshotSerializers": ["enzyme-to-json/serializer"],
+  "setupTestFrameworkScriptFile": "<rootDir>/setupEnzyme.ts",
 };
