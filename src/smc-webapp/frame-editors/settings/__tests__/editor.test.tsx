@@ -1,6 +1,6 @@
 import { Settings } from "../editor";
 import * as React from "react";
-import { shallow } from 'enzyme';
+import { shallow } from "enzyme";
 import { Map } from "immutable";
 
 test("renders a list of languages", () => {
@@ -9,7 +9,9 @@ test("renders a list of languages", () => {
 
   const settings = Map({ spell: "Value" });
 
-  const render = shallow(<Settings actions={actions} settings={settings} id="unused??" />);
+  const render = shallow(
+    <Settings actions={actions} settings={settings} id="unused??" />
+  );
 
   expect(render).toMatchSnapshot();
 });

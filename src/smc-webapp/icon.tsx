@@ -19,7 +19,6 @@ interface Props {
   onMouseOut?: () => undefined;
 }
 
-// Font Awesome component -- obviously TODO move to own file
 // Converted from https://github.com/andreypopp/react-fa
 export class Icon extends Component<Props> {
   static defaultProps = {
