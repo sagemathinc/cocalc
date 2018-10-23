@@ -13,7 +13,7 @@ import { createRenderer } from "./renderer.js";
 import { createKeyboard } from "./keyboard.js";
 import { createMouse } from "./mouse.js";
 //import {createSound, enumSoundCodecs} from './sound.js';
-import { createConnection } from "./connection/null.js";
+import { Connection } from "./connection/null";
 import { iconRenderer } from "./renderer/icon.js";
 import { PING_FREQUENCY } from "./constants.js";
 import {
@@ -149,7 +149,7 @@ const createConnectionGate = (bus, env) => {
     };
   }
 
-  return createConnection(bus);
+  return new Connection(bus);
 };
 
 /**
@@ -166,7 +166,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
   const bus = new EventHandler("XpraClient");
   // TODO: for now skip using webworker, since need to be clear about where worker.js actually *is*....
   //const connection = createConnectionGate(bus, env);
-  const connection = createConnection(bus);
+  const connection = new Connection(bus);
   const { send } = connection;
 
   const ping = () => send("ping", timestamp());
