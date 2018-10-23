@@ -421,6 +421,6 @@ export function to_user_string(x: any): string {
         return a;
       }
     default:
-      return JSON.stringify(a);
+      return JSON.stringify(x);
   }
 }
