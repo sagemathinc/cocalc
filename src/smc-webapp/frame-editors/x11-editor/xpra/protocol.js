@@ -10,7 +10,7 @@
 import zlib from "zlibjs";
 import { ord } from "./util.js";
 import { bencode, bdecode } from "./bencode.js";
-import { HEADER_SIZE } from "./constants.js";
+import { HEADER_SIZE } from "./constants.ts";
 
 const debug = (...args) => {
   // Comment this return to just log EVERYTHING.

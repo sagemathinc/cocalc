@@ -7,7 +7,7 @@
  * @author Anders Evenrud <andersevenrud@gmail.com>
  */
 
-import { PIXEL_STEP, LINE_HEIGHT, PAGE_HEIGHT } from "./constants.js";
+import { PIXEL_STEP, LINE_HEIGHT, PAGE_HEIGHT } from "./constants.ts";
 
 const wheelEventName = (() => {
   const element = document.createElement("div");

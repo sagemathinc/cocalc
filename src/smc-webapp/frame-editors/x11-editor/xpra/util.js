@@ -8,7 +8,7 @@
  */
 
 import forge from "node-forge";
-import { CHUNK_SZ, DEFAULT_DPI } from "./constants.js";
+import { CHUNK_SZ, DEFAULT_DPI } from "./constants.ts";
 
 export const ord = s => s.charCodeAt(0);
 

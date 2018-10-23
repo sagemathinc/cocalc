@@ -17,7 +17,7 @@ import { createKeyboard } from "./keyboard.js";
 import { createMouse } from "./mouse.js";
 //import {createSound, enumSoundCodecs} from './sound.js';
 import { Connection } from "./connection/null";
-import { PING_FREQUENCY } from "./constants.js";
+import { PING_FREQUENCY } from "./constants.ts";
 import {
   hexUUID,
   calculateDPI,

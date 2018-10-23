@@ -15,7 +15,7 @@ import {
   CHAR_TO_NAME,
   KEYSYM_TO_LAYOUT,
   DOM_KEY_LOCATION_RIGHT
-} from "./constants.js";
+} from "./constants.ts";
 
 const modifierMap = {
   altKey: "alt",

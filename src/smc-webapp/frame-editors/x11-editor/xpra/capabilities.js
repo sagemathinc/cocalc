@@ -7,7 +7,7 @@
  * @author Anders Evenrud <andersevenrud@gmail.com>
  */
 import forge from "node-forge";
-import { CHARCODE_TO_NAME } from "./constants.js";
+import { CHARCODE_TO_NAME } from "./constants.ts";
 import {
   browserLanguage,
   supportsWebp,
