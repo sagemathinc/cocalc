@@ -5,7 +5,7 @@ Websocket connection between browser and backend xpra server.
 Runs in the same process as the main DOM (there is also a
 webworker version, and this is not it).
 */
-import { createReceiveQueue, createSendQueue } from "../protocol.js";
+import { ReceiveQueue, SendQueue } from "../protocol.ts";
 
 function createWebsocket(uri: string, bus: any): WebSocket {
   const socket = new WebSocket(uri, "binary");
@@ -36,10 +36,10 @@ export class Connection {
 
   constructor(bus) {
     this.bus = bus;
-    this.receiveQueue = createReceiveQueue((...args) => {
+    this.receiveQueue = new ReceiveQueue((...args) => {
       this.bus.emit(...args);
     });
-    this.sendQueue = createSendQueue();
+    this.sendQueue = new SendQueue();
 
     this.bus.on("ws:data", (_, packet) => {
       this.receiveQueue.push(packet, this.socket);

@@ -2,7 +2,7 @@
  * CoCalc Xpra HTML Client
  */
 
-import forge from "node-forge";
+import * as forge from "node-forge";
 import { CHARCODE_TO_NAME } from "./constants";
 import {
   browserLanguage,
@@ -43,7 +43,7 @@ function getPlatform(): {
     {
       type: "unknown",
       name: "unknown",
-      processor: oscpu || cpuClass || "unknown",  // unlikely to work with modern browsers
+      processor: oscpu || cpuClass || "unknown", // unlikely to work with modern browsers
       platform: appVersion
     },
     found ? platformMap[found] : {}
