@@ -20,9 +20,9 @@ all copies or substantial portions of the Software. */
  */
 
 // bencode an object
-export function bencode(obj) {
+export function bencode(obj: any): string {
   if (obj === null || obj === undefined) {
-    throw "invalid: cannot encode null";
+    throw Error("invalid: cannot bencode null");
   }
   switch (btypeof(obj)) {
     case "string":
@@ -36,16 +36,16 @@ export function bencode(obj) {
     case "boolean":
       return bint(obj ? 1 : 0);
     default:
-      throw "invalid object type in source: " + btypeof(obj);
+      throw Error(`invalid object type in source: ${btypeof(obj)}`);
   }
 }
 
-function uintToString(uintArray) {
+function uintToString(uintArray): string {
   // apply in chunks of 10400 to avoid call stack overflow
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
   let s = "";
-  let skip = 10400;
-  let slice = uintArray.slice;
+  const skip = 10400;
+  const slice = uintArray.slice;
   for (let i = 0, len = uintArray.length; i < len; i += skip) {
     if (!slice) {
       s += String.fromCharCode.apply(
@@ -63,20 +63,24 @@ function uintToString(uintArray) {
 }
 
 // decode a bencoded string or bytearray into a javascript object
-export function bdecode(buf) {
-  if (!buf.substr) {
+export function bdecode(buf: string | number[]): any {
+  if (typeof buf !== "string") {
     // if we have a byte array as input, its more efficient to convert the whole
     // thing into a string at once
     buf = uintToString(buf);
   }
   let dec = bparse(buf);
-  return dec[0];
+  if (dec == null) {
+    return null;
+  } else {
+    return dec[0];
+  }
 }
 
 // parse a bencoded string; bdecode is really just a wrapper for this one.
 // all bparse* functions return an array in the form
 // [parsed object, remaining buffer to parse]
-function bparse(str) {
+function bparse(str: string): [any, string] | null {
   switch (str.charAt(0)) {
     case "d":
       return bparseDict(str.substr(1));
@@ -90,7 +94,7 @@ function bparse(str) {
 }
 
 // parse a bencoded string
-function bparseString(str) {
+function bparseString(str: string): [any, string] | null {
   let str2 = str.split(":", 1)[0];
   if (isNum(str2)) {
     let len = parseInt(str2, 10);
@@ -103,7 +107,7 @@ function bparseString(str) {
 }
 
 // parse a bencoded integer
-function bparseInt(str) {
+function bparseInt(str: string): [any, string] | null {
   let str2 = str.split("e", 1)[0];
   if (!isNum(str2)) {
     return null;
@@ -112,9 +116,9 @@ function bparseInt(str) {
 }
 
 // parse a bencoded list
-function bparseList(str) {
+function bparseList(str: string): [any, string] | null {
   let p,
-    list = [];
+    list: any[] = [];
   while (str.charAt(0) !== "e" && str.length > 0) {
     p = bparse(str);
     if (null === p) {
@@ -124,13 +128,13 @@ function bparseList(str) {
     str = p[1];
   }
   if (str.length <= 0) {
-    throw "unexpected end of buffer reading list";
+    throw Error("unexpected end of buffer reading list");
   }
   return [list, str.substr(1)];
 }
 
 // parse a bencoded dictionary
-function bparseDict(str) {
+function bparseDict(str: string): [any, string] | null {
   let key,
     val,
     dict = {};
@@ -153,12 +157,12 @@ function bparseDict(str) {
 }
 
 // is the given string numeric?
-function isNum(str) {
-  return !isNaN(str.toString());
+function isNum(str: string): boolean {
+  return !isNaN(Number(str));
 }
 
 // returns the bencoding type of the given object
-function btypeof(obj) {
+function btypeof(obj): string {
   let type = typeof obj;
   if (type === "object") {
     if (typeof obj.length === "undefined") {
@@ -170,17 +174,17 @@ function btypeof(obj) {
 }
 
 // bencode a string
-function bstring(str) {
+function bstring(str: string): string {
   return str.length + ":" + str;
 }
 
 // bencode an integer
-function bint(num) {
+function bint(num: number): string {
   return "i" + num + "e";
 }
 
 // bencode a list
-function blist(list) {
+function blist(list: any[]): string {
   let str;
   str = "l";
   for (let key in list) {
@@ -190,7 +194,7 @@ function blist(list) {
 }
 
 // bencode a dictionary
-function bdict(dict) {
+function bdict(dict: any): string {
   let str;
   str = "d";
   for (let key in dict) {
