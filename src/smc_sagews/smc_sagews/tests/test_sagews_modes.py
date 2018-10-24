@@ -123,7 +123,6 @@ class TestPython3DefaultMode:
     def test_capture_p3d_02(self, exec2):
         exec2("%sage\nprint(output)", "99\n")
 
-#@pytest.mark.skip(reason="bash mode ng for sage-8.4")
 class TestShMode:
     def test_start_sh(self, exec2):
         code = "%sh\ndate +%Y-%m-%d"
@@ -162,7 +161,6 @@ class TestShMode:
     def test_bad_command(self, exec2):
         exec2("%sh xyz", pattern="command not found")
 
-#@pytest.mark.skip(reason="bash mode ng for sage-8.4")
 class TestShDefaultMode:
     def test_start_sh_dflt(self, exec2):
         exec2("%default_mode sh")
