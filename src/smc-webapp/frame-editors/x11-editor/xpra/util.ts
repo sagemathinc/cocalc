@@ -13,6 +13,24 @@ export function browserLanguage(): string {
   return window.navigator.language;
 }
 
+export function keyboardLayout(): string {
+  let v = browserLanguage();
+  if (v == null) {
+    return "us";
+  }
+  //ie: v="en_GB";
+  v = v.split(",")[0];
+  let l = v.split("-", 2);
+  if (l.length === 1) {
+    l = v.split("_", 2);
+  }
+  if (l.length === 1) {
+    return "";
+  }
+  //ie: "gb"
+  return l[1].toLowerCase();
+}
+
 export function calculateDPI(): number {
   return Math.round(DEFAULT_DPI * window.devicePixelRatio);
 }

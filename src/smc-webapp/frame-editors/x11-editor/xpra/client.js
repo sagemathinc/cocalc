@@ -12,7 +12,7 @@
 import { EventHandler } from "./eventhandler.js";
 import { getCapabilities } from "./capabilities.ts";
 import { Renderer } from "./renderer.ts";
-import { createKeyboard } from "./keyboard.js";
+import { Keyboard } from "./keyboard.ts";
 import { createMouse } from "./mouse.js";
 //import {createSound, enumSoundCodecs} from './sound.js';
 import { Connection } from "./connection/null";
@@ -172,7 +172,7 @@ export const createClient = (defaultConfig = {}, env = {}) => {
   const { send } = connection;
 
   const ping = () => send("ping", timestamp());
-  const keyboard = createKeyboard(send);
+  const keyboard = new Keyboard(send);
   const mouse = createMouse(send, keyboard);
   //const sound = createSound(send);
 
