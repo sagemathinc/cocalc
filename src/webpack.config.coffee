@@ -122,6 +122,7 @@ BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
 GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 CC_NOCLEAN    = !! process.env.CC_NOCLEAN
+KUCALC_MODE   = !! process.env.KUCALC_MODE
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
@@ -149,6 +150,7 @@ console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 console.log "CC_NOCLEAN       = #{CC_NOCLEAN}"
+console.log "KUCALC_MODE      = #{KUCALC_MODE}"
 
 
 # mathjax version → symlink with version info from package.json/version
