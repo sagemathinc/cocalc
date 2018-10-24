@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`renders a money icon 1`] = `
+exports[`Icon renders a money icon 1`] = `
 <span>
   <i
     className="fa fa-money"
@@ -8,7 +8,7 @@ exports[`renders a money icon 1`] = `
 </span>
 `;
 
-exports[`renders a spinning money icon 1`] = `
+exports[`Icon renders a spinning money icon 1`] = `
 <span>
   <i
     className="fa fa-money fa-spin"
