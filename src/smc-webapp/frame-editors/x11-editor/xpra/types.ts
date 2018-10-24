@@ -1,3 +1,6 @@
 export interface Surface {
-  wid : number;
+  canvas: HTMLCanvasElement;
+  wid: number;
+  w: number;
+  h: number;
 }

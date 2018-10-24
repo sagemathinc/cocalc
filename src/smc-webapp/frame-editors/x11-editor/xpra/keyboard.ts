@@ -24,7 +24,7 @@ const modifierMap = {
   shiftKey: "shift"
 };
 
-function getEventModifiers(ev): string[] {
+function getEventModifiers(ev: KeyboardEvent | MouseEvent): string[] {
   const modifiers: string[] = [];
   for (let key in modifierMap) {
     if (ev[key]) {
@@ -62,7 +62,7 @@ function translateModifiers(modifiers: string[], swapKeys: boolean): string[] {
 }
 
 function getModifiers(
-  ev: KeyboardEvent,
+  ev: KeyboardEvent | MouseEvent,
   capsLock: boolean,
   numLock: boolean,
   swapKeys: boolean
@@ -116,7 +116,7 @@ export class Keyboard {
     this.send = send;
   }
 
-  modifiers(ev: KeyboardEvent): string[] {
+  modifiers(ev: KeyboardEvent | MouseEvent): string[] {
     return getModifiers(ev, this.capsLock, this.numLock, this.swapKeys);
   }
 
@@ -257,7 +257,7 @@ export class Keyboard {
     if (now < this.browser_language_change_embargo_time) {
       return;
     }
-    let new_layout : string | null = null;
+    let new_layout: string | null = null;
     if (key_layout && this.key_layout != key_layout) {
       console.log(
         "input language changed from",

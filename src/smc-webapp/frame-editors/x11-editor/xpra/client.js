@@ -13,7 +13,7 @@ import { EventHandler } from "./eventhandler.js";
 import { getCapabilities } from "./capabilities.ts";
 import { Renderer } from "./renderer.ts";
 import { Keyboard } from "./keyboard.ts";
-import { createMouse } from "./mouse.js";
+import { Mouse } from "./mouse.ts";
 //import {createSound, enumSoundCodecs} from './sound.js';
 import { Connection } from "./connection/null";
 import { PING_FREQUENCY } from "./constants.ts";
@@ -68,6 +68,7 @@ const createConfiguration = (defaults = {}, append = {}) =>
 const createSurface = (parent, wid, x, y, w, h, metadata, properties, send) => {
   const overlay = !!parent;
   const canvas = document.createElement("canvas");
+  canvas.wid = wid;
   canvas.width = w;
   canvas.height = h;
 
@@ -173,7 +174,6 @@ export const createClient = (defaultConfig = {}, env = {}) => {
 
   const ping = () => send("ping", timestamp());
   const keyboard = new Keyboard(send);
-  const mouse = createMouse(send, keyboard);
   //const sound = createSound(send);
 
   let config;
@@ -199,6 +199,8 @@ export const createClient = (defaultConfig = {}, env = {}) => {
   const emitState = () => bus.emit("ws:status", getState());
 
   const findSurface = wid => surfaces.find(s => s.wid === wid);
+
+  const mouse = new Mouse(send, keyboard, findSurface);
 
   const focus = wid => {
     const found = findSurface(wid);
