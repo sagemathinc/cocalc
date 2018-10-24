@@ -26,6 +26,8 @@ async = require('async')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../webapp-lib/webapp-error-reporter')
+{Icon} = require('./icon')
+exports.Icon = Icon
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -117,115 +119,6 @@ exports.SetIntervalHOC = (Comp) ->
 
 exports.Space = Space = ->
     <span>&nbsp;</span>
-
-# Font Awesome component -- obviously TODO move to own file
-# Converted from https://github.com/andreypopp/react-fa
-exports.Icon = Icon = rclass
-    displayName : 'Icon'
-
-    propTypes :
-        name       : rtypes.string
-        size       : rtypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
-        rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
-        flip       : rtypes.oneOf(['horizontal', 'vertical'])
-        spin       : rtypes.bool
-        pulse      : rtypes.bool
-        fixedWidth : rtypes.bool
-        stack      : rtypes.oneOf(['1x', '2x'])
-        inverse    : rtypes.bool
-        className  : rtypes.string
-        style      : rtypes.object
-        onClick    : rtypes.func
-        onMouseOver: rtypes.func
-        onMouseOut : rtypes.func
-
-    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
-        return @props.children? or \
-               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
-                                          'stack', 'inverse', 'className']) or \
-               not misc.is_equal(@props.style, next.style)
-
-
-    getDefaultProps: ->
-        name    : 'square-o'
-        onClick : ->
-
-    render_icon: ->
-        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className} = @props
-
-        i = name.indexOf('cc-icon')
-
-        if i != -1 and spin
-            # Temporary workaround because cc-icon-cocalc-ring is not a font awesome JS+SVG icon, so
-            # spin, etc., doesn't work on it.  There is a discussion at
-            # https://stackoverflow.com/questions/19364726/issue-making-bootstrap3-icon-spin
-            # about spinning icons, but it's pretty subtle and hard to get right, so I hope
-            # we don't have to implement our own.  Also see
-            # "Icon animation wobble foibles" at https://fontawesome.com/how-to-use/web-fonts-with-css
-            # where they say "witch to the SVG with JavaScript version, it's working a lot better for this".
-            name = 'fa-circle-notch'
-            i = -1
-
-        if i != -1
-            # A custom Cocalc font icon.  Don't even bother with font awesome at all!
-            classNames = name.slice(i)
-        else
-            left = name.slice(0,3)
-            if left == 'fas' or left == 'fab' or left == 'far'
-                # version 5 names are different!  https://fontawesome.com/how-to-use/use-with-node-js
-                # You give something like: 'fas fa-blah'.
-                classNames = name
-            else
-                # temporary until file_associations can be changed
-                if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
-                    classNames = "fab #{name}"
-                    # the cocalc icon font can't do any extra tricks
-                else
-                    # temporary until file_associations can be changed
-                    if name.slice(0, 3) == 'fa-'
-                        classNames = "fa #{name}"
-                    else
-                        classNames = "fa fa-#{name}"
-            # These only make sense for font awesome.
-            if size
-                classNames += " fa-#{size}"
-            if rotate
-                classNames += " fa-rotate-#{rotate}"
-            if flip
-                classNames += " fa-flip-#{flip}"
-            if fixedWidth
-                classNames += ' fa-fw'
-            if spin
-                classNames += ' fa-spin'
-            if pulse
-                classNames += ' fa-pulse'
-            if stack
-                classNames += " fa-stack-#{stack}"
-            if inverse
-                classNames += ' fa-inverse'
-
-        if className
-            classNames += " #{className}"
-        <i className={classNames} />
-
-    render: ->
-        # Wrap in a span for **two** reasons.
-        # 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
-        # the click handlers of the <i> object are just ignored, since it is removed from the DOM!
-        # This is important the close button on tabs.
-        # 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
-        # that React just replaces the whole part of the DOM where the SVG version of the icon is,
-        # and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
-        # notebooks.
-        <span
-            onClick     = {@props.onClick}
-            onMouseOver = {@props.onMouseOver}
-            onMouseOut  = {@props.onMouseOut}
-            key         = {Math.random()}
-            style       = {@props.style}
-        >
-            {@render_icon()}
-        </span>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
