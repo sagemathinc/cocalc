@@ -10,7 +10,7 @@
 
 
 import { EventHandler } from "./eventhandler.js";
-import { getCapabilities } from "./capabilities.js";
+import { getCapabilities } from "./capabilities.ts";
 import { Renderer } from "./renderer.ts";
 import { createKeyboard } from "./keyboard.js";
 import { createMouse } from "./mouse.js";
