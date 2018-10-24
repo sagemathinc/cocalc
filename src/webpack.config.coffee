@@ -275,7 +275,8 @@ pug2app = new HtmlWebpackPlugin(
 # they only depend on the css chunk
 staticPages = []
 # in the root directory (doc/ and policies/ is below)
-for [fn_in, fn_out] in [['index.pug', 'index.html']]
+index_page = if KUCALC_MODE then 'index-kucalc.pug' else 'index-cocalc.pug'
+for [fn_in, fn_out] in [[index_page, 'index.html']]
     staticPages.push(new HtmlWebpackPlugin(
                         date             : BUILD_DATE
                         title            : TITLE
@@ -295,53 +296,55 @@ for [fn_in, fn_out] in [['index.pug', 'index.html']]
                         minify           : htmlMinifyOpts
                         GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
                         SCHEMA           : require('smc-util/schema')
-                        PREFIX           : if fn_in == 'index.pug' then '' else '../'
+                        PREFIX           : if fn_in == index_page then '' else '../'
     ))
 
 # doc pages
-for dp in glob.sync('webapp-lib/doc/*.pug')
-    continue if path.basename(dp)[0] == '_'
-    continue if (path.basename(dp).indexOf('software-') == 0) and (COMP_ENV)
-    output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
-    staticPages.push(new HtmlWebpackPlugin(
-                        filename         : output_fn
-                        date             : BUILD_DATE
-                        title            : TITLE
-                        theme            : theme
-                        COMP_ENV         : COMP_ENV
-                        components       : {}   # no data needed, empty is fine
-                        inventory        : {}   # no data needed, empty is fine
-                        template         : dp
-                        chunks           : ['css']
-                        inject           : 'head'
-                        minify           : htmlMinifyOpts
-                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
-                        SCHEMA           : require('smc-util/schema')
-                        hash             : PRODMODE
-                        BASE_URL         : base_url_html
-                        PREFIX           : '../'
-    ))
+if KUCALC_MODE
+    for dp in glob.sync('webapp-lib/doc/*.pug')
+        continue if path.basename(dp)[0] == '_'
+        continue if (path.basename(dp).indexOf('software-') == 0) and (COMP_ENV)
+        output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
+        staticPages.push(new HtmlWebpackPlugin(
+                            filename         : output_fn
+                            date             : BUILD_DATE
+                            title            : TITLE
+                            theme            : theme
+                            COMP_ENV         : COMP_ENV
+                            components       : {}   # no data needed, empty is fine
+                            inventory        : {}   # no data needed, empty is fine
+                            template         : dp
+                            chunks           : ['css']
+                            inject           : 'head'
+                            minify           : htmlMinifyOpts
+                            GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                            SCHEMA           : require('smc-util/schema')
+                            hash             : PRODMODE
+                            BASE_URL         : base_url_html
+                            PREFIX           : '../'
+        ))
 
 # the following renders the policy pages
-for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(x)[0] != '_')
-    output_fn = "policies/#{misc.change_filename_extension(path.basename(pp), 'html')}"
-    staticPages.push(new HtmlWebpackPlugin(
-                        filename         : output_fn
-                        date             : BUILD_DATE
-                        title            : TITLE
-                        theme            : theme
-                        COMP_ENV         : COMP_ENV
-                        components       : {}   # no data needed, empty is fine
-                        inventory        : {}   # no data needed, empty is fine
-                        template         : pp
-                        chunks           : ['css']
-                        inject           : 'head'
-                        minify           : htmlMinifyOpts
-                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
-                        hash             : PRODMODE
-                        BASE_URL         : base_url_html
-                        PREFIX           : '../'
-    ))
+if KUCALC_MODE
+    for pp in (x for x in glob.sync('webapp-lib/policies/*.pug') when path.basename(x)[0] != '_')
+        output_fn = "policies/#{misc.change_filename_extension(path.basename(pp), 'html')}"
+        staticPages.push(new HtmlWebpackPlugin(
+                            filename         : output_fn
+                            date             : BUILD_DATE
+                            title            : TITLE
+                            theme            : theme
+                            COMP_ENV         : COMP_ENV
+                            components       : {}   # no data needed, empty is fine
+                            inventory        : {}   # no data needed, empty is fine
+                            template         : pp
+                            chunks           : ['css']
+                            inject           : 'head'
+                            minify           : htmlMinifyOpts
+                            GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                            hash             : PRODMODE
+                            BASE_URL         : base_url_html
+                            PREFIX           : '../'
+        ))
 
 # build pages for compute environment
 if COMP_ENV

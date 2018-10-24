@@ -1,0 +1,258 @@
+//- the main html template for the static pages (shares some _inc_* files with app.pug)
+//- this is for the commercial edition of cocalc
+//- Copyright Sagemath, Inc., 2018 -- ALL RIGHTS RESERVERD
+
+mixin start_button
+  p
+    a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
+  p or #[a(href=PREFIX + "app") sign in] with your account
+
+
+mixin video-player
+  div.video-player.fit
+    div.video-overlay.
+      #[span(style="font-size:300%") &#9654;]
+      #[br/]
+      click to play
+    video(loop).fit
+      block
+
+
+mixin start_free
+  -
+    var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+    var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+    var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+  div.col-sm-12.center
+    h2 Start free, upgrade later
+  div.col-sm-6.col-sm-offset-3.center
+    p.
+       A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
+       Purchasing #[a(href=PREFIX + "policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increases its quotas.
+
+
+mixin software-environment-table(lang)
+  -
+    var components = htmlWebpackPlugin.options.components[lang] || {}
+    var inventory  = htmlWebpackPlugin.options.inventory[lang] || {}
+    var envs       = htmlWebpackPlugin.options.inventory['language_exes'] || {}
+
+  div.container
+    div.row#software-env-top
+      ul
+        for env, idx in envs
+          if env.lang == lang
+            li
+              b
+                a(href=env.url)= env.name
+                = ': '
+              = env.doc
+
+    div.row
+      table.table
+        tr
+          th
+          each val, iidx in inventory
+            th.software= envs[iidx].name
+        each cval, cidx in components
+          tr
+            td
+              if cval
+                b
+                  if cval.url
+                    a(href=cval.url)= cval.name
+                  else
+                    = cval.name
+                br/
+                span= cval.summary
+              else
+                b= cidx
+            each ival, iidx in inventory
+              td.version
+                if inventory[iidx][cidx]
+                  = inventory[iidx][cidx]
+                else
+                  = ''
+
+doctype html
+
+-
+  var NAME          = htmlWebpackPlugin.options.title;
+  var URL           = htmlWebpackPlugin.options.theme.DOMAIN_NAME;
+  var COMPANY_NAME  = htmlWebpackPlugin.options.theme.COMPANY_NAME;
+  var COMPANY_EMAIL = htmlWebpackPlugin.options.theme.COMPANY_EMAIL;
+  var PREFIX        = htmlWebpackPlugin.options.PREFIX;
+  var subtitle      = null;
+  var navbar_active = null;
+  function navbar_highlight(what) {
+    if (navbar_active == what) {
+      return 'active';
+    } else {
+      return '';
+    }
+  };
+
+block vars
+
+-
+  var fulltitle = htmlWebpackPlugin.options.title;
+  if (subtitle) {fulltitle += " - " + subtitle};
+
+html.no-js(lang="en")
+  head
+    include _inc_head.pug
+    title= fulltitle
+    block header
+    style
+      :sass
+        html.no-js
+          display : none
+
+  body
+
+    style
+      :sass
+        @import "smc-webapp/_colors.sass"
+        nav.navbar.navbar-default
+          border-bottom    : 2px solid $COL_GRAY
+          background-color : $COL_GRAY_LL
+          .get-started
+            color        : $COL_BS_GREEN_DD
+            font-weight  : bold
+          .navbar-header
+            margin-top     : 5px;
+            img.icon
+              height       : 4rem
+              width        : auto
+              margin-right : 2rem
+            img.name
+              height       : 3rem
+              width        : auto
+              margin-right : 2rem
+          .navbar-nav>li
+            >a
+              font-size      : 2rem
+            &.active>a
+              font-weight  : bold
+        div.jumbotron
+          padding-top      : 10rem
+          background-color : $COL_GRAY_LL
+        .center
+          text-align     : center
+        .right
+          text-align     : right
+        .vertical-expand
+          min-height     : 50vw
+        .uppercase
+          text-transform : uppercase
+        .fit
+          width          : 100%
+          heigh          : auto
+        body
+          div.container
+            > footer
+              margin-top     : 6rem
+            > div.row#top
+              margin         : 5rem 0 0 0
+            > div#software-env-top
+              margin         : 2rem 0 5rem 0
+        /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
+        a.anchor
+          display        : block
+          position       : relative
+          top            : -5rem
+          visibility     : hidden
+        blockquote.blockquote
+          font-size      : inherit
+        th.software
+          white-space      : nowrap
+        td.version
+          font-size        : 120%
+          font-weight      : bold
+        .btn-xlg
+          font-size        : 24px
+          line-height      : 1.5
+          font-weight      : bold
+        .cc-create-account-btn
+          font-weight      : bold
+        .video-player
+          position         : relative
+          > .video-overlay
+            width            : 100%
+            height           : 100%
+            position         : absolute
+            top              : 0
+            left             : 0
+            color            : white
+            background-color : rgba(0, 0, 0, .5)
+            cursor           : pointer
+            z-index          : 2
+            text-align       : center
+            display          : flex
+            justify-content  : center
+            flex-direction   : column
+        a.marker
+          padding-left     : 2rem
+          padding-right    : 1rem
+          text-decoration  : none
+          color            : $COL_GRAY_L
+          top              : -.5rem
+          position         : relative
+          font-size        : 90%
+          visibility       : hidden
+        h1:hover, h2:hover, h3:hover
+          > a.marker
+            visibility     : visible
+            &:hover
+              color        : $COL_GRAY
+        .youtube-video-container
+          width            : 100%
+          height           : 0
+          padding-bottom   : 45%
+          overflow         : hidden
+
+          iframe, object, embed
+            position   : absolute
+            width      : 95%
+            height     : 95%
+
+    nav.navbar.navbar-default.navbar-fixed-top
+      div.container
+        div.navbar-header
+          a(href=PREFIX)
+            img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
+            img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+        div.collapse.navbar-collapse
+          ul.nav.navbar-nav.navbar-right
+            //- li
+            //-   a(href=PREFIX + "#a-explore") Explore
+
+            li(class=navbar_highlight("policies"))
+              a(href=PREFIX + "policies/index.html") Policies
+
+            if htmlWebpackPlugin.options.COMP_ENV
+              li(class=navbar_highlight('software'))
+                a(href=PREFIX + "doc/software.html") Software
+
+            li(class=navbar_highlight('pricing'))
+              a(href=PREFIX + "policies/pricing.html") Pricing
+
+            li(class=navbar_highlight('api'))
+              a(href=PREFIX + "doc/api.html") API
+            li
+              a.get-started(href=PREFIX + "app") Sign In
+
+    block content
+
+    include _footer_kucalc.pug
+
+    script
+      :coffee-script
+        html = document.documentElement
+        window.onload = ->
+          html.className = html.className.replace(/\bno-js\b/, 'js')
+    noscript
+      style.
+        html.no-js { display: block; }
+
+    include _inc_analytics.pug

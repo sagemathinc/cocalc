@@ -1,21 +1,10 @@
 //- the main html template for the static pages (shares some _inc_* files with app.pug)
+//- the parts below are used by the open cocalc edition
 
 mixin start_button
   p
     a.btn.btn-success.btn-lg.cc-create-account-btn(href=PREFIX + "app") Create Account!
   p or #[a(href=PREFIX + "app") sign in] with your account
-
-mixin start_free
-  -
-    var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
-    var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
-    var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
-  div.col-sm-12.center
-    h2 Start free, upgrade later
-  div.col-sm-6.col-sm-offset-3.center
-    p.
-       A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-       Purchasing #[a(href=PREFIX + "policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increases its quotas.
 
 
 mixin video-player
@@ -27,48 +16,7 @@ mixin video-player
     video(loop).fit
       block
 
-mixin software-environment-table(lang)
-  -
-    var components = htmlWebpackPlugin.options.components[lang] || {}
-    var inventory  = htmlWebpackPlugin.options.inventory[lang] || {}
-    var envs       = htmlWebpackPlugin.options.inventory['language_exes'] || {}
 
-  div.container
-    div.row#software-env-top
-      ul
-        for env, idx in envs
-          if env.lang == lang
-            li
-              b
-                a(href=env.url)= env.name
-                = ': '
-              = env.doc
-
-    div.row
-      table.table
-        tr
-          th
-          each val, iidx in inventory
-            th.software= envs[iidx].name
-        each cval, cidx in components
-          tr
-            td
-              if cval
-                b
-                  if cval.url
-                    a(href=cval.url)= cval.name
-                  else
-                    = cval.name
-                br/
-                span= cval.summary
-              else
-                b= cidx
-            each ival, iidx in inventory
-              td.version
-                if inventory[iidx][cidx]
-                  = inventory[iidx][cidx]
-                else
-                  = ''
 
 doctype html
 
@@ -105,37 +53,6 @@ html.no-js(lang="en")
           display : none
 
   body
-
-    nav.navbar.navbar-default.navbar-fixed-top
-      div.container
-        div.navbar-header
-          a(href=PREFIX)
-            img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
-            img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
-        div.collapse.navbar-collapse
-          ul.nav.navbar-nav.navbar-right
-            //- li
-            //-   a(href=PREFIX + "#a-explore") Explore
-
-            li(class=navbar_highlight("policies"))
-              a(href=PREFIX + "policies/index.html") Policies
-
-            if htmlWebpackPlugin.options.COMP_ENV
-              li(class=navbar_highlight('software'))
-                a(href=PREFIX + "doc/software.html") Software
-
-            li(class=navbar_highlight('pricing'))
-              a(href=PREFIX + "policies/pricing.html") Pricing
-
-            li(class=navbar_highlight('api'))
-              a(href=PREFIX + "doc/api.html") API
-            li
-              a.get-started(href=PREFIX + "app") Sign In
-
-    block content
-
-    include _footer.pug
-
     style
       :sass
         @import "smc-webapp/_colors.sass"
@@ -242,13 +159,33 @@ html.no-js(lang="en")
             width      : 95%
             height     : 95%
 
+    nav.navbar.navbar-default.navbar-fixed-top
+      div.container
+        div.navbar-header
+          a(href=PREFIX)
+            img.icon(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-icon.svg'))
+            img.name(alt=htmlWebpackPlugin.options.title src=require('!file-loader?mimetype=image/svg+xml!cocalc-font-dark.svg'))
+        div.collapse.navbar-collapse
+          ul.nav.navbar-nav.navbar-right
+            li(class=navbar_highlight("open-source"))
+              a(href="https://github.com/sagemathinc/cocalc") Open-source
+
+            li(class=navbar_highlight('api'))
+              a(href=PREFIX + "doc/api.html") API
+
+            li
+              a.get-started(href=PREFIX + "app") Sign In
+
+    block content
+
+    include _footer_cocalc.pug
+
     script
       :coffee-script
         html = document.documentElement
         window.onload = ->
           html.className = html.className.replace(/\bno-js\b/, 'js')
+
     noscript
       style.
         html.no-js { display: block; }
-
-    include _inc_analytics.pug

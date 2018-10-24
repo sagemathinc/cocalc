@@ -1,0 +1,88 @@
+//- open cocalc landing page
+//- License: AGPLv3
+//- Copyright: Sagemath, Inc.
+
+extends _base_cocalc.pug
+
+block vars
+  - var subtitle = htmlWebpackPlugin.options.description;
+
+block header
+  meta(name="description" content=htmlWebpackPlugin.options.description)
+
+block content
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      #statstable td,
+      #statstable th
+        text-align       : right
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #statstable td.left
+        text-align     : left
+      #explore,
+      #bottom
+        background-color : $COL_GRAY_LL
+        div > h3
+          white-space    : nowrap
+      #included > div
+        padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      div.col-sm-4.col-sm-offset-4.center
+        a(href="app")
+          img(src=require('!url-loader?mimetype=image/svg+xml!assets/open-cocalc-logo.svg'))
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
+        +start_button
+
+    div.row
+      div.col-sm-12.center
+        h1 Open CoCalc
+      div.col-sm-6.col-sm-offset-3
+        div.
+          This is ...
+
+
+
