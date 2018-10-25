@@ -8,24 +8,9 @@ block vars
     subtitle = NAME + " Software Environments";
 
 block header
-  meta(name="description" content=NAME + " Features")
+  meta(name="description" content=NAME + " Software Environments")
 
 block content
-  a.anchor#a-top
-  div.container
-    div.row#top
-      h1 Available Software
-      div= "These pages contain information about available software on " + NAME + "."
-      ul
-        li
-          a(href='software-executables.html') Executables
-        li
-          a(href='software-python.html') Python Libraries
-        li
-          a(href='software-r.html') R Statistical Software Libraries
-        li
-          a(href='software-julia.html') Julia Libraries
-
 
   style
     :sass
@@ -36,3 +21,26 @@ block content
           li
             margin-top    : 10px
             margin-bottom : 10px
+            a
+              font-weight: bold
+          span
+            padding-left  : 10px
+
+  a.anchor#a-top
+  div.container
+    div.row#top
+      h1 Available Software
+      div= "These pages contain information about available software on " + NAME + "."
+      ul
+        li
+          a(href='software-executables.html') Executables:
+          span (subset) of all available software on #{NAME}
+        li
+          a(href='software-python.html') Python Libraries:
+          span see what libraries in which environments #{NAME} offers and their versions
+        li
+          a(href='software-r.html') R Statistical Software Packages
+          span #{NAME} maintains an extensive set of R packages
+        li
+          a(href='software-julia.html') Julia Libraries
+          span installed libraries for Julia
