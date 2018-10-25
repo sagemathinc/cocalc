@@ -26,6 +26,7 @@ static_react_pages = [
     [require('./r_misc.cjsx').render_static_footer(), '_static_footer.html'],
     #[require('./r_misc.cjsx').render_static_sage_preview(), '_static_sage_preview.html'],
     [require('./r_help.cjsx').render_static_third_party_software(), '_static_third_party_software.html'],
+    [require('./r_cocalc_about.cjsx').render_static_cocalc_about(), '_static_cocalc_about.html'],
 ]
 
 # Code for static server-side rendering of the subscription options.
