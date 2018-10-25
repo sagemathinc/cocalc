@@ -2,16 +2,7 @@
  * CoCalc Xpra Client
  */
 
-//import { Surface } from "./types.ts";
-export interface Surface {
-  canvas: HTMLCanvasElement;
-  wid: number;
-  w: number;
-  h: number;
-  x: number;
-  y: number;
-}
-
+import { Surface } from "./surface";
 import { Keyboard } from "./keyboard";
 
 function get_wheel_event_name(): string {
@@ -168,7 +159,7 @@ export class Mouse {
     this.findSurface = findSurface;
   }
 
-  process(ev: MouseEvent): void {
+  process(ev: MouseEvent): Surface | undefined {
     const elt_at = document.elementFromPoint(ev.clientX, ev.clientY);
     if (!elt_at) {
       // nothing under mouse, so no point. (possible? I don't  know.)
@@ -236,5 +227,6 @@ export class Mouse {
         return;
       }
     }
+    return surface;
   }
 }

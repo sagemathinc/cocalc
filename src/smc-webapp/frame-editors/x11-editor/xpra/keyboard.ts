@@ -2,7 +2,7 @@
  * CoCalc Xpra Client
  */
 
-import { Surface } from "./types";
+import { Surface } from "./surface";
 
 import { browserLanguage, keyboardLayout, timestamp } from "./util";
 

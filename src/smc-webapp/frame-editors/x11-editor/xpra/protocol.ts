@@ -2,7 +2,7 @@
  * CoCalc Xpra HTML Client
  */
 
-const DEBUG = false;
+const DEBUG = true;
 
 import * as zlib from "zlibjs";
 import { ord } from "./util";

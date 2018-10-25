@@ -3,7 +3,7 @@
  */
 
 import forge from "node-forge";
-import { CHUNK_SZ, DEFAULT_DPI } from "./constants.ts";
+import { CHUNK_SZ, DEFAULT_DPI } from "./constants";
 
 export function ord(s: string): number {
   return s.charCodeAt(0);

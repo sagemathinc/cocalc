@@ -5,7 +5,7 @@ Websocket connection between browser and backend xpra server.
 Runs in the same process as the main DOM (there is also a
 webworker version, and this is not it).
 */
-import { ReceiveQueue, SendQueue } from "../protocol.ts";
+import { ReceiveQueue, SendQueue } from "./protocol";
 
 function createWebsocket(uri: string, bus: any): WebSocket {
   const socket = new WebSocket(uri, "binary");

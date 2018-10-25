@@ -4,7 +4,7 @@ Control backend Xpra server daemon
 
 import { exec } from "../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
-import { MAX_WIDTH, MAX_HEIGHT } from "./xpra-client";
+import { MAX_WIDTH, MAX_HEIGHT } from "./xpra/surface";
 import { splitlines, split } from "../generic/misc";
 
 // This will break annoyingly on cocalc-docker
