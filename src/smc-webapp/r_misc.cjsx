@@ -33,6 +33,8 @@ exports.Icon = Icon
 exports.Tip = Tip
 {Loading} = require('./loading')
 exports.Loading = Loading
+{Space} = require('./space')
+exports.Space = Space
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -121,9 +123,6 @@ exports.SetIntervalHOC = (Comp) ->
         render: ->
             Comp.setInterval = @setInterval
             return React.createElement(Comp, @props, @props.children)
-
-exports.Space = Space = ->
-    <span>&nbsp;</span>
 
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
