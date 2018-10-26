@@ -20,23 +20,38 @@ interface XpraServerOptions {
 export class XpraServer {
   private project_id: string;
   private display: number;
+  private state: string = "ready";
+  private hostname: string = "";
 
   constructor(opts: XpraServerOptions) {
     this.project_id = opts.project_id;
+    try {
+      this.get_hostname(); // start trying...
+    } catch (err) {
+      console.warn("xpra: Failed to get hostname.");
+    }
     this.display = opts.display ? opts.display : DEFAULT_DISPLAY;
     this.start = reuseInFlight(this.start);
     this.stop = reuseInFlight(this.stop);
     this.get_port = reuseInFlight(this.get_port);
+    this.get_hostname = reuseInFlight(this.get_hostname);
     this.pgrep = reuseInFlight(this.pgrep);
   }
 
-  // Returns the port it is running on.
+  destroy(): void {
+    this.state = "destroyed";
+  }
+
+  // Returns the port it is running on, or 0 if destroyed before finding one...
   async start(): Promise<number> {
     let port = await this.get_port();
     if (port) {
       return port;
     }
     for (let i = 0; i < 20; i++) {
+      if (this.state === "destroyed") {
+        return 0;
+      }
       port = Math.round(1000 + Math.random() * 64000);
       try {
         await this._start(port);
@@ -56,6 +71,7 @@ export class XpraServer {
       `:${this.display}`,
       //"-d",
       //"all",
+      "--socket-dir=/tmp/xpra",
       "--pulseaudio=no",
       "--bell=no",
       "--sharing=yes",
@@ -68,7 +84,7 @@ export class XpraServer {
       "--daemon=yes",
       `--xvfb=${XVFB}`
     ];
-    await exec({
+    const out = await exec({
       project_id: this.project_id,
       command,
       args,
@@ -130,5 +146,30 @@ export class XpraServer {
 
   get_display(): number {
     return this.display;
+  }
+
+  async get_hostname(): Promise<string> {
+    const { stdout } = await exec({
+      project_id: this.project_id,
+      command: "hostname",
+      err_on_exit: true
+    });
+    return (this.hostname = stdout.trim());
+  }
+
+  get_socket_path(): string {
+    let hostname = this.hostname;
+    if (!hostname) {
+      // this will fail if hostname hasn't been set yet via an async call
+      // and NOT in kucalc (where there hostname is canonical).
+      if ((window as any).app_base_url) {
+        // cocalc-in-cocalc dev
+        hostname = `project-${(window as any).app_base_url.slice(1, 37)}`;
+      } else {
+        // kucalc
+        hostname = `project-${this.project_id}`;
+      } // else -- it won't work.
+    }
+    return `/tmp/xpra/${hostname}-${this.display}`;
   }
 }

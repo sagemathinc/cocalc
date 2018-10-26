@@ -580,7 +580,7 @@ export class Client {
     );
 
     // TODO: figure out args, etc.
-    bus.on("open-url", (...args) => bus.emit("system:url", ...args));
+    bus.on("open-url", (url) => bus.emit("system:url", url));
 
     bus.on("bell", () => bus.emit("system:bell"));
 

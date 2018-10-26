@@ -16,6 +16,8 @@ import { touch, touch_project } from "../generic/client";
 
 import { throttle } from "underscore";
 
+const { open_new_tab } = require("smc-webapp/misc_page");
+
 const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
@@ -62,10 +64,15 @@ export class XpraClient extends EventEmitter {
     return this.server.get_display();
   }
 
+  get_socket_path(): string {
+    return this.server.get_socket_path();
+  }
+
   close(): void {
     if (this.client === undefined) {
       return;
     }
+    this.server.destroy();
     this.blur();
     this.client.disconnect();
     this.removeAllListeners();
@@ -104,6 +111,7 @@ export class XpraClient extends EventEmitter {
     this.client.on("ws:status", this.ws_status.bind(this));
     this.client.on("key", this.record_active);
     this.client.on("mouse", this.record_active);
+    this.client.on("system:url", this.open_url.bind(this));
     //this.client.on("ws:data", this.ws_data.bind(this));  // ridiculously low level.
   }
 
@@ -328,5 +336,9 @@ export class XpraClient extends EventEmitter {
 
   init_touch(): void {
     this.touch_interval = setInterval(this.touch_if_active.bind(this), 60000);
+  }
+
+  open_url(url): void {
+    open_new_tab(url);
   }
 }

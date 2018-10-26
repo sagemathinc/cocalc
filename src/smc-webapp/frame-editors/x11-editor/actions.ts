@@ -60,7 +60,8 @@ export class Actions extends BaseActions<X11EditorState> {
 
   get_term_env(): any {
     const DISPLAY = `:${this.client.get_display()}`;
-    return { DISPLAY };
+    const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();  // this support url forwarding via xdg-open wrapper
+    return { DISPLAY, XPRA_XDG_OPEN_SERVER_SOCKET };
   }
 
   close(): void {
