@@ -195,6 +195,7 @@ export class AppRedux {
 
   getActions(name: "account"): any;
   getActions(name: "projects"): any;
+  getActions(name: "billing"): any;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
