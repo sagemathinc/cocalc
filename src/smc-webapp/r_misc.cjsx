@@ -26,11 +26,13 @@ async = require('async')
 {UpgradeRestartWarning} = require('./upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../webapp-lib/webapp-error-reporter')
+
 {Icon} = require('./icon')
 exports.Icon = Icon
-
 {Tip} = require('./tip')
 exports.Tip = Tip
+{Loading} = require('./loading')
+exports.Loading = Loading
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -144,40 +146,6 @@ exports.Octicon = rclass
         if @props.mega
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
-
-LOADING_THEMES =
-    medium :
-        fontSize   : "24pt"
-        textAlign  : "center"
-        marginTop  : "15px"
-        color      : "#888"
-        background : "white"
-
-exports.Loading = Loading = rclass
-    displayName : 'Misc-Loading'
-
-    propTypes :
-        style    : rtypes.object
-        text     : rtypes.string
-        estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
-        theme    : rtypes.string      # 'medium', see or add to LOADING_THEMES above.
-
-    getDefaultProps : ->
-        text   : 'Loading...'
-
-    render_estimate: ->
-        if @props.estimate?
-            <div>
-                Loading '{@props.estimate.get('type')}' file.
-                <br/>
-                Estimated time: {@props.estimate.get('time')}s
-            </div>
-
-    render: ->
-        <span style={@props.style ? LOADING_THEMES[@props.theme]}>
-            <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
-            {@render_estimate()}
-        </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
