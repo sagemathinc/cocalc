@@ -12,8 +12,8 @@ export class Surface {
   public wid: number;
   public x: number;
   public y: number;
-  public w: number;
-  public h: number;
+  public w: number;   // width of the actual window on the xpra server
+  public h: number;   // height of the actual window on the xpra server
   public parent: Surface | undefined;
   public overlay: boolean = false;
   public is_dialog: boolean = false;
@@ -86,18 +86,18 @@ export class Surface {
   }
 
   updateGeometry(
-    w: number,
-    h: number,
+    swidth: number,
+    sheight: number,
     full_width: boolean,
     full_height: boolean
   ): void {
     // The main canvas itself has its size updated *only* when
     // the render itself happens, so there is no flicker.
-    if (this.renderer.drawCanvas.width != w) {
-      this.renderer.drawCanvas.width = w;
+    if (this.renderer.drawCanvas.width != swidth) {
+      this.renderer.drawCanvas.width = swidth;
     }
-    if (this.renderer.drawCanvas.height != h) {
-      this.renderer.drawCanvas.height = h;
+    if (this.renderer.drawCanvas.height != sheight) {
+      this.renderer.drawCanvas.height = sheight;
     }
 
     // No matter what, never have part of the window off screen, since
@@ -112,20 +112,21 @@ export class Surface {
     }
   }
 
+  //
   rescale(scale: number, width?: number, height?: number):  void {
+
+    const cur_width = Math.round(this.w / this.scale), cur_height =  Math.round(this.h / this.scale);
     if (width === undefined) {
-      width = this.w;
+      width = cur_width;
     }
     if (height === undefined) {
-      height = this.h;
+      height = cur_height;
     }
 
-    if (this.scale === scale && width === this.w && height === this.h) {
+    if (this.scale === scale && width === cur_width && height === this.h) {
       // absolutely no change at all.
       return;
     }
-
-    this.scale = scale;
 
     let swidth0, sheight0;
     let swidth = (swidth0 = Math.round(width * scale));
@@ -138,11 +139,11 @@ export class Surface {
       this.metadata["window-type"] != null &&
       this.metadata["window-type"][0] === "DIALOG"
     ) {
-      if (swidth >= this.w) {
-        swidth = this.w;
+      if (swidth >= cur_width) {
+        swidth = cur_width;
       }
-      if (sheight >= this.h) {
-        sheight = this.h;
+      if (sheight >= cur_height) {
+        sheight = cur_height;
       }
     }
 
@@ -193,8 +194,7 @@ export class Surface {
       sheight0 === sheight
     );
 
-    // w and h are critically used for scaling/mouse position computation,
-    // so MUST be updated.
+    this.scale = scale;
     this.w = swidth;
     this.h = sheight;
   }
