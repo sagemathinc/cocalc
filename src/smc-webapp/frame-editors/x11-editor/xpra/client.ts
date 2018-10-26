@@ -2,7 +2,6 @@
  * CoCalc Xpra Client
  */
 
-import { debounce } from "underscore";
 import { Surface } from "./surface";
 import { getCapabilities } from "./capabilities";
 import { Keyboard } from "./keyboard";
@@ -13,7 +12,6 @@ import {
   arraybufferBase64,
   hexUUID,
   calculateDPI,
-  calculateScreens,
   timestamp
 } from "./util";
 
@@ -80,7 +78,6 @@ export class Client {
   };
 
   constructor(defaultConfig = {}) {
-    this.resize = debounce(this.resize.bind(this), 100);
     this.render = this.render.bind(this);
     this.findSurface = this.findSurface.bind(this);
     this.key_inject = this.key_inject.bind(this);
@@ -208,7 +205,10 @@ export class Client {
       return;
     }
     const surface = this.mouse.process(ev);
-    this.bus.emit("mouse", ev, surface);
+    if (surface !== undefined) {
+      this.bus.emit("mouse", ev, surface);
+      return false;  // no further mouse propagation if actually over a window.
+    }
   }
 
   // Kills a window/surface
@@ -260,10 +260,14 @@ export class Client {
     };
   }
 
+  /*
+  // TODO: could use this to dynamically deal with windows larger than MAX_WIDTH (in surface),
+  // and also use less memory for lower resolution.
   public resize(w: number, h: number): void {
     const sizes = calculateScreens(w, h, this.config.dpi);
     this.send("desktop_size", w, h, sizes);
   }
+  */
 
   public rescale_children(parent : Surface, scale : number) : void {
     for (let wid in this.surfaces) {
