@@ -8,12 +8,7 @@ import { Keyboard } from "./keyboard";
 import { Mouse } from "./mouse";
 import { Connection } from "./connection";
 import { PING_FREQUENCY } from "./constants";
-import {
-  arraybufferBase64,
-  hexUUID,
-  calculateDPI,
-  timestamp
-} from "./util";
+import { arraybufferBase64, hexUUID, calculateDPI, timestamp } from "./util";
 
 import { EventEmitter } from "events";
 
@@ -59,6 +54,7 @@ export class Client {
   private connecting: boolean = false;
   private reconnecting: boolean = false;
   private surfaces: { [wid: string]: Surface } = {};
+  private surfaces_before_disconnect?: { [wid: string]: Surface };
   private config: any;
   private clientCapabilities: any;
   private serverCapabilities: any;
@@ -98,7 +94,7 @@ export class Client {
   }
 
   window_ids(): number[] {
-    const v : number[] = [];
+    const v: number[] = [];
     for (let wid in this.surfaces) {
       v.push(parseInt(wid));
     }
@@ -111,6 +107,8 @@ export class Client {
       delete this.ping_interval;
     }
     this.bus.removeAllListeners();
+    delete this.surfaces;
+    delete this.surfaces_before_disconnect;
   }
 
   // ping server if we are connected.
@@ -205,7 +203,7 @@ export class Client {
     const surface = this.mouse.process(ev);
     if (surface !== undefined) {
       this.bus.emit("mouse", ev, surface);
-      return false;  // no further mouse propagation if actually over a window.
+      return false; // no further mouse propagation if actually over a window.
     }
   }
 
@@ -267,7 +265,7 @@ export class Client {
   }
   */
 
-  public rescale_children(parent : Surface, scale : number) : void {
+  public rescale_children(parent: Surface, scale: number): void {
     for (let wid in this.surfaces) {
       const surface = this.surfaces[wid];
       if (surface.parent !== undefined && surface.parent.wid === parent.wid) {
@@ -292,7 +290,10 @@ export class Client {
     bus.on("ws:close", () => this.disconnect(true));
 
     // Xpra actions
-    bus.on("disconnect", () => this.disconnect(true)); // TODO: Reconnect?
+    bus.on("disconnect", () => {
+      this.surfaces_before_disconnect = this.surfaces;
+      this.disconnect(true);
+    });
 
     bus.on("hello", cap => (this.serverCapabilities = cap));
 
@@ -456,10 +457,18 @@ export class Client {
         delete this.surfaces[wid];
       }
 
-      if (this.activeWindow === wid) {
+      if (this.surfaces[this.activeWindow] === undefined) {
         // TODO: need a stack instead...? Or maybe our
         // client does a good enough job with its own stack...
-        this.activeWindow = this.lastActiveWindow;
+        if (this.surfaces[this.lastActiveWindow] !== undefined) {
+          this.activeWindow = this.lastActiveWindow;
+        } else {
+          this.activeWindow = 0;
+          for (let id in this.surfaces) {
+            this.focus(parseInt(id));
+            return;
+          }
+        }
       }
     });
 
@@ -498,6 +507,18 @@ export class Client {
 
       this.console.info("Xpra Client connected");
       this.emitState();
+
+      if (this.surfaces_before_disconnect !== undefined) {
+        // We just reconnected after being disconnected.
+        // have to tell local browser about any wid's that
+        // are gone, but were there before.
+        for (let wid in this.surfaces_before_disconnect) {
+          if (this.surfaces[wid] === undefined) {
+            this.bus.emit("window:destroy", this.surfaces_before_disconnect[wid]);
+          }
+        }
+        delete this.surfaces_before_disconnect;
+      }
     });
 
     /*
