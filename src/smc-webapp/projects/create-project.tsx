@@ -1,10 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Create a new project
 */
 
@@ -87,7 +81,7 @@ export class NewProjectCreator extends Component<Props, State> {
     redux
       .getStore("projects")
       .wait_until_project_created(token, 30, (err, project_id) => {
-        if (err != null) {
+        if (err != undefined) {
           this.setState({
             state: "edit",
             error: `Error creating project -- ${err}`
