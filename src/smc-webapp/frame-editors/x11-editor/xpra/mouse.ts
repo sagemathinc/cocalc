@@ -127,18 +127,18 @@ function getMouse(
     // mouse not actually on the surface.
     return;
   }
-
-  const elt = $(surface.canvas);
-  const elt_width = elt.width(),
-    elt_height = elt.height();
-  if (!elt_width || !elt_height) {
-    // 0 or undefined width or height
+  if (right === left || top === bottom) {
+    // degenerate size
     return;
   }
-  const scale_x = surface.w / elt_width,
-    scale_y = surface.h / elt_height;
-  const x = surface.x + Math.round(scale_x * (ev.clientX - left));
-  const y = surface.y + Math.round(scale_y * (ev.clientY - top));
+
+  const x = Math.round(
+    surface.canvas.width * ((ev.clientX - left) / (right - left)) + surface.x
+  );
+  const y = Math.round(
+    surface.canvas.height * ((ev.clientY - top) / (bottom - top)) + surface.y
+  );
+
   const buttons = [];
   const button = getMouseButton(ev);
 
