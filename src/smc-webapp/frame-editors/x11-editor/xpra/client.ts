@@ -65,7 +65,6 @@ export class Client {
   private activeWindow: number = 0;
   private lastActiveWindow: number = 0;
   private audioCodecs = { codecs: [] };
-  private defaultConfig;
   private ping_interval: number = 0;
 
   public send: Function;
@@ -77,7 +76,7 @@ export class Client {
     debug: Function;
   };
 
-  constructor(defaultConfig = {}) {
+  constructor() {
     this.render = this.render.bind(this);
     this.findSurface = this.findSurface.bind(this);
     this.key_inject = this.key_inject.bind(this);
@@ -86,7 +85,6 @@ export class Client {
     this.connection = new Connection(this.bus);
     this.send = this.connection.send;
     this.keyboard = new Keyboard(this.send);
-    this.defaultConfig = defaultConfig;
     this.init_bus();
     this.init_ping_interval();
     this.mouse = new Mouse(this.send, this.keyboard, this.findSurface);
@@ -172,7 +170,7 @@ export class Client {
 
   // Opens connection
   public connect(cfg = {}): void {
-    this.config = createConfiguration(this.defaultConfig, cfg);
+    this.config = createConfiguration({}, cfg);
     this.disconnect();
     this.connecting = true;
     this.emitState();

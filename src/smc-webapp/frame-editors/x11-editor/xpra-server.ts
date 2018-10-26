@@ -128,7 +128,7 @@ export class XpraServer {
     return parseInt(line.slice(j + 1, k));
   }
 
-  get_display() : number {
+  get_display(): number {
     return this.display;
   }
 }

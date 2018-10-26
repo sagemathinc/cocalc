@@ -38,7 +38,6 @@ import { EventEmitter } from "events";
 
 export class XpraClient extends EventEmitter {
   private options: Options;
-  private xpra_options: any;
   private client: Client;
   private server: XpraServer;
   public _ws_status: ConnectionStatus = "disconnected";
@@ -50,21 +49,17 @@ export class XpraClient extends EventEmitter {
     this.record_active = throttle(this.record_active.bind(this), 30000);
     this.connect = reuseInFlight(this.connect);
     this.options = options;
+    this.client = new Client();
     this.server = new XpraServer({
       project_id: this.options.project_id
     });
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
-    this.init();
+    this.init_xpra_events();
+    this.connect();
   }
 
   get_display(): number {
     return this.server.get_display();
-  }
-
-  async init(): Promise<void> {
-    await this.init_client();
-    this.init_xpra_events();
-    this.connect();
   }
 
   close(): void {
@@ -76,17 +71,18 @@ export class XpraClient extends EventEmitter {
     this.removeAllListeners();
     clearInterval(this.touch_interval);
     delete this.options;
-    delete this.xpra_options;
     delete this.client;
   }
 
   async connect(): Promise<void> {
-    await this.init_xpra_options();
-    if (!this.options) return; // closed
-    this.client.connect(this.xpra_options);
+    const options = await this.get_xpra_options();
+    if (this.client === undefined) {
+      return; // closed during async operation
+    }
+    this.client.connect(options);
   }
 
-  private async init_xpra_options(): Promise<void> {
+  private async get_xpra_options(): Promise<any> {
     if (!this.options) return; // closed
     const port = await this.server.start();
     if (!this.options) return; // closed
@@ -94,13 +90,7 @@ export class XpraClient extends EventEmitter {
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
-    this.xpra_options = { uri, dpi, sound: false };
-  }
-
-  private async init_client(): Promise<void> {
-    await this.init_xpra_options();
-    if (!this.options) return; // closed
-    this.client = new Client(this.xpra_options);
+    return { uri, dpi, sound: false };
   }
 
   private init_xpra_events(): void {
@@ -219,25 +209,28 @@ export class XpraClient extends EventEmitter {
     frame_scale: number = 1
   ): void {
     //console.log("resize_window", wid, width, height, frame_scale);
-    const surface : Surface | undefined = this.client.findSurface(wid);
+    const surface: Surface | undefined = this.client.findSurface(wid);
     if (surface === undefined) {
       //console.warn("no window", wid);
       return; // no such window
     }
 
     const scale = window.devicePixelRatio / frame_scale;
-    if (scale === surface.scale) { // nothing to do.
+    if (scale === surface.scale) {
+      // nothing to do.
       return;
     }
 
     surface.rescale(scale, width, height);
     this.client.rescale_children(surface, scale);
+    surface.x = 0;
+    surface.y = 0;
 
     this.client.send(
       "configure-window",
       wid,
-      0,
-      0,
+      surface.x,
+      surface.y,
       surface.w,
       surface.h,
       surface.properties
@@ -259,7 +252,7 @@ export class XpraClient extends EventEmitter {
     //console.log("window_metadata", info);
   }
 
-  place_overlay_in_dom(overlay : Surface): void {
+  place_overlay_in_dom(overlay: Surface): void {
     const e = $(overlay.canvas);
     e.css("position", "absolute");
     if (overlay.parent === undefined) {
@@ -286,15 +279,15 @@ export class XpraClient extends EventEmitter {
       .append(e);
   }
 
-  overlay_create(overlay : Surface): void {
+  overlay_create(overlay: Surface): void {
     this.place_overlay_in_dom(overlay);
   }
 
-  overlay_destroy(overlay : Surface): void {
+  overlay_destroy(overlay: Surface): void {
     $(overlay.canvas).remove();
   }
 
-  ws_status(status : ConnectionStatus): void {
+  ws_status(status: ConnectionStatus): void {
     this.emit("ws:status", status);
     if (
       status === "disconnected" &&
