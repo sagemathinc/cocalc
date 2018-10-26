@@ -1,13 +1,9 @@
 import { Component, React } from "./app-framework";
-import {Icon} from "./icon"
+import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
-const feature = require("./feature");
+import * as feature from "./feature";
 
-const {
-  OverlayTrigger,
-  Popover,
-  Tooltip,
-} = require("react-bootstrap");
+const { OverlayTrigger, Popover, Tooltip } = require("react-bootstrap");
 
 interface Props {
   title: string | React.Component; // not checked for update
