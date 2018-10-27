@@ -84,7 +84,7 @@ export class XpraServer {
       "--daemon=yes",
       `--xvfb=${XVFB}`
     ];
-    const out = await exec({
+    await exec({
       project_id: this.project_id,
       command,
       args,
