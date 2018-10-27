@@ -1,5 +1,7 @@
 // Use Xpra to provide X11 server.
 
+import { retry_until_success } from "../generic/async-utils";
+
 import { delay } from "awaiting";
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -81,12 +83,24 @@ export class XpraClient extends EventEmitter {
     delete this.client;
   }
 
-  async connect(): Promise<void> {
+  async _connect(): Promise<void> {
     const options = await this.get_xpra_options();
     if (this.client === undefined) {
       return; // closed during async operation
     }
     this.client.connect(options);
+  }
+
+  async connect(): Promise<void> {
+    // use this is dumb, but will do **for now**.  It's
+    // dumb since instead when we reconnect to the network,
+    // it should trigger attempting, etc.  But this will do.
+    await retry_until_success({
+      f: this._connect.bind(this),
+      start_delay: 1000,
+      max_delay: 6000,
+      factor: 1.4
+    });
   }
 
   private async get_xpra_options(): Promise<any> {
