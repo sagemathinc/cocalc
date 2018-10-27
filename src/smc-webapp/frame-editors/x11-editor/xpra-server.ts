@@ -63,7 +63,35 @@ export class XpraServer {
     throw Error("unable to start xpra server");
   }
 
+  // I've noticed that often Xvfb will get left running, and then
+  // xpra will *never* start unless you manually kill it. It's much
+  // better to just ensure it is dead.
+  private async _kill_Xvfb(): Promise<void> {
+    const { stdout, exit_code } = await exec({
+      project_id: this.project_id,
+      command: "pgrep",
+      args: ["-a", "Xvfb"],
+      err_on_exit: false
+    });
+    if (exit_code !== 0) {
+      return;
+    }
+    for (let line of splitlines(stdout)) {
+      if (line.indexOf(`Xvfb-for-Xpra-:${this.display}`) !== -1) {
+        const pid = line.split(" ")[0];
+        await exec({
+          project_id: this.project_id,
+          command: "kill",
+          args: ["-9", pid],
+          err_on_exit: false
+        });
+        return;
+      }
+    }
+  }
+
   private async _start(port: number): Promise<void> {
+    await this._kill_Xvfb();
     const XVFB = `/usr/bin/Xvfb +extension Composite -screen 0 ${MAX_WIDTH}x${MAX_HEIGHT}x24+32 -nolisten tcp -noreset`;
     const command = "xpra";
     const args = [
@@ -72,6 +100,7 @@ export class XpraServer {
       //"-d",
       //"all",
       "--socket-dir=/tmp/xpra",
+      "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
       "--pulseaudio=no",
       "--bell=no",
       "--sharing=yes",
