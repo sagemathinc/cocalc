@@ -271,6 +271,13 @@ export class Client {
     }
   }
 
+  private process_server_capabilities(cap) : void {
+    this.serverCapabilities = cap;
+    if (cap['modifier_keycodes']) {
+      this.keyboard.process_modifier_keycodes(cap['modifier_keycodes']);
+    }
+  }
+
   // WebSocket actions
   private init_bus(): void {
     const bus = this.bus;
@@ -291,7 +298,7 @@ export class Client {
       this.disconnect(true);
     });
 
-    bus.on("hello", cap => (this.serverCapabilities = cap));
+    bus.on("hello", this.process_server_capabilities.bind(this));
 
     bus.on("ping", (time: number) => this.send("ping_echo", time, 0, 0, 0, 0));
 

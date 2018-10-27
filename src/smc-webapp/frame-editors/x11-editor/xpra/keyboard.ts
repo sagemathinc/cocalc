@@ -24,61 +24,6 @@ const modifierMap = {
   shiftKey: "shift"
 };
 
-function getEventModifiers(ev: KeyboardEvent | MouseEvent): string[] {
-  const modifiers: string[] = [];
-  for (let key in modifierMap) {
-    if (ev[key]) {
-      modifiers.push(modifierMap[key]);
-    }
-  }
-  return modifiers;
-}
-
-function translateModifiers(modifiers: string[], swapKeys: boolean): string[] {
-  /**
-   * We translate "alt" and "meta" into their keymap name.
-   * (usually "mod1")
-   * And also swap keys for macos clients.
-   */
-  //convert generic modifiers "meta" and "alt" into their x11 name:
-  //FIXME: look them up!
-  const alt = "mod1";
-  let meta = "mod1";
-  let control = "control";
-  //swap
-  if (swapKeys) {
-    meta = "control";
-    control = "mod1";
-  }
-  const new_modifiers = modifiers.slice();
-  let index = modifiers.indexOf("alt");
-  if (index >= 0) new_modifiers[index] = alt;
-  index = modifiers.indexOf("meta");
-  if (index >= 0) new_modifiers[index] = meta;
-  index = modifiers.indexOf("control");
-  if (index >= 0) new_modifiers[index] = control;
-  //show("get_modifiers() modifiers="+modifiers.toSource());
-  return new_modifiers;
-}
-
-function getModifiers(
-  ev: KeyboardEvent | MouseEvent,
-  capsLock: boolean,
-  numLock: boolean,
-  swapKeys: boolean
-): string[] {
-  const modifiers = getEventModifiers(ev);
-  if (capsLock) {
-    modifiers.push("lock");
-  }
-
-  if (numLock) {
-    modifiers.push("numlock"); // FIXME
-  }
-
-  return translateModifiers(modifiers, swapKeys);
-}
-
 /**
  * This function is only used for figuring out the caps_lock state!
  * onkeyup and onkeydown give us the raw keycode,
@@ -111,18 +56,98 @@ export class Keyboard {
   private browser_language_change_embargo_time: number = 0;
   private key_layout: string | null = null;
   private browser_language: string = browserLanguage();
+  private alt_modifier: string = "";
+  private meta_modifier: string = "";
+  private altgr_modifier: string = "";
+  private control_modifier: string = "";
 
   constructor(send: Function) {
     this.send = send;
   }
 
+  process_modifier_keycodes(modifier_keycodes): void {
+    // figure out "alt" and "meta" keys and altgr keys.
+    for (let mod in modifier_keycodes) {
+      let keys = modifier_keycodes[mod];
+      for (let i = 0; i < keys.length; i++) {
+        let key = keys[i];
+        //the first value is usually the integer keycode,
+        //the second one is the actual key name,
+        //doesn't hurt to test both:
+        for (let j = 0; j < key.length; j++) {
+          if ("Alt_L" == key[j]) {
+            this.alt_modifier = mod;
+          } else if ("Meta_L" == key[j]) {
+            this.meta_modifier = mod;
+          } else if ("ISO_Level3_Shift" == key[j] || "Mode_switch" == key[j]) {
+            this.altgr_modifier = mod;
+          } else if ("Control_L" == key[j]) {
+            this.control_modifier = mod;
+          }
+        }
+      }
+    }
+    if (this.swapKeys) {
+      [this.meta_modifier, this.control_modifier] = [
+        this.control_modifier,
+        this.meta_modifier
+      ];
+    }
+  }
+
+  translateModifiers(modifiers: string[]): string[] {
+    /**
+     * We translate "alt" and "meta" into their keymap name.
+     * (usually "mod1", but e.g., mod5 for altgr)
+     * And also swap keys for macos clients.
+     */
+    const new_modifiers = modifiers.slice();
+    let index = modifiers.indexOf("alt");
+    if (index >= 0) new_modifiers[index] = this.alt_modifier;
+    index = modifiers.indexOf("meta");
+    if (index >= 0) new_modifiers[index] = this.meta_modifier;
+    index = modifiers.indexOf("control");
+    if (index >= 0) new_modifiers[index] = this.control_modifier;
+    index = modifiers.indexOf("altgr");
+    if (index >= 0) new_modifiers[index] = this.altgr_modifier;
+    //show("get_modifiers() modifiers="+modifiers.toSource());
+    return new_modifiers;
+  }
+
+  getEventModifiers(ev: KeyboardEvent | MouseEvent): string[] {
+    const modifiers: string[] = [];
+    for (let key in modifierMap) {
+      if (ev[key]) {
+        modifiers.push(modifierMap[key]);
+      }
+    }
+    return modifiers;
+  }
+
+  getModifiers(ev: KeyboardEvent | MouseEvent): string[] {
+    const modifiers = this.getEventModifiers(ev);
+    if (this.capsLock) {
+      modifiers.push("lock");
+    }
+
+    if (this.numLock) {
+      modifiers.push("numlock"); // FIXME
+    }
+
+    if (this.altGr) {
+      modifiers.push("altgr");
+    }
+
+    return this.translateModifiers(modifiers);
+  }
+
   modifiers(ev: KeyboardEvent | MouseEvent): string[] {
-    return getModifiers(ev, this.capsLock, this.numLock, this.swapKeys);
+    return this.getModifiers(ev);
   }
 
   process(ev: KeyboardEvent, surface: Surface): boolean {
     const topwindow = surface ? surface.wid : 0;
-    const rawModifiers = getEventModifiers(ev);
+    const rawModifiers = this.getEventModifiers(ev);
     const modifiers = this.modifiers(ev);
     const shift = modifiers.includes("shift");
 
@@ -169,12 +194,17 @@ export class Keyboard {
       }
 
       // AltGr: keep track of pressed state
-      // TODO: this is never used anywhere yet.
-      if (str == "AltGraph" || (keyname === "Alt_R" && IS_WIN32)) {
+      if (str === "AltGraph" || (keyname === "Alt_R" && IS_WIN32)) {
         this.altGr = pressed;
         keyname = "ISO_Level3_Shift";
         str = "AltGraph";
-        console.log("altGr = ", this.altGr);
+      }
+
+      if (str === "Alt" && !pressed) {
+        // Unfortunately when lifting the altgr key up (for me at least),
+        // we get just an alt key.  So we also assume that if the alt
+        // key comes up, then the altgr key did.
+        this.altGr = false;
       }
 
       if ((this.capsLock && shift) || (!this.capsLock && !shift)) {
@@ -215,7 +245,7 @@ export class Keyboard {
         group
       );
 
-      // macos will swallow the key release event if the meta modifier is pressed,
+      // MacOS will swallow the key release event if the meta modifier is pressed,
       // so simulate one immediately:
       if (
         pressed &&

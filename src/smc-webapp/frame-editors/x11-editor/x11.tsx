@@ -96,16 +96,18 @@ export class X11Component extends Component<Props, {}> {
   }
 
   async insert_window_in_div(props): Promise<void> {
+    if (!this.is_mounted) {
+      return;
+    }
     const node: any = ReactDOM.findDOMNode(this.refs.window);
     const client = props.actions.client;
     if (client == null) {
-      // to satisfy typescript
+      // will never happen -- to satisfy typescript
       return;
     }
     const wid = props.desc.get("wid");
     if (wid == null) {
       this.is_loaded = false;
-      // nothing focused...
       $(node).empty();
       return;
     }

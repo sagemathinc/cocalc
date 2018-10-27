@@ -37,6 +37,7 @@ en-US    us
 de       de
 de-AT    de     that's just like germany
 de-CH    ch     they have a special keyboard
+de-LI    ch     Liechtenstein probably like Switzerland
 en-GB    gb     there is a united kingom keyboard in the list
 ja       jp
 hu       hu
