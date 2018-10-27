@@ -220,10 +220,6 @@ export class XpraClient extends EventEmitter {
     }
 
     const scale = window.devicePixelRatio / frame_scale;
-    if (scale === surface.scale) {
-      // nothing to do.
-      return;
-    }
 
     surface.rescale(scale, width, height);
     this.client.rescale_children(surface, scale);
