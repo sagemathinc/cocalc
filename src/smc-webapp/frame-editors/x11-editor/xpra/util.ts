@@ -9,26 +9,58 @@ export function ord(s: string): number {
   return s.charCodeAt(0);
 }
 
+/* possible values of navigator.language:
+
+ ["af", "sq", "ar-SA", "ar-IQ", "ar-EG", "ar-LY", "ar-DZ", "ar-MA", "ar-TN", "ar-OM", "ar-YE", "ar-SY", "ar-JO", "ar-LB", "ar-KW", "ar-AE", "ar-BH", "ar-QA", "eu", "bg", "be", "ca", "zh-TW", "zh-CN", "zh-HK", "zh-SG", "hr", "cs", "da", "nl", "nl-BE", "en", "en-US", "en-EG", "en-AU", "en-GB", "en-CA", "en-NZ", "en-IE", "en-ZA", "en-JM", "en-BZ", "en-TT", "et", "fo", "fa", "fi", "fr", "fr-BE", "fr-CA", "fr-CH", "fr-LU", "gd", "gd-IE", "de", "de-CH", "de-AT", "de-LU", "de-LI", "el", "he", "hi", "hu", "is", "id", "it", "it-CH", "ja", "ko", "lv", "lt", "mk", "mt", "no", "pl", "pt-BR", "pt", "rm", "ro", "ro-MO", "ru", "ru-MI", "sz", "sr", "sk", "sl", "sb", "es", "es-AR", "es-GT", "es-CR", "es-PA", "es-DO", "es-MX", "es-VE", "es-CO", "es-PE", "es-EC", "es-CL", "es-UY", "es-PY", "es-BO", "es-SV", "es-HN", "es-NI", "es-PR", "sx", "sv", "sv-FI", "th", "ts", "tn", "tr", "uk", "ur", "ve", "vi", "xh", "ji", "zu"];
+*/
 export function browserLanguage(): string {
   return window.navigator.language;
 }
 
+/* There's a full list of keyboard layout codes here:
+
+https://unix.stackexchange.com/questions/43976/list-all-valid-kbd-layouts-variants-and-toggle-options-to-use-with-setxkbmap
+
+This answer claims doing this is impossible: https://stackoverflow.com/questions/8892238/detect-keyboard-layout-with-javascript
+
+Table here: https://www.metamodpro.com/browser-language-codes
+
+And this is hopeless naive, e.g., navigator.language for
+japan is `ja` but the code is `jp`.
+
+TODO: So the plan for now is to have this *heuristic*
+for now, but later have a user-configurable preference
+that lets the user further customize things.  Also Dvorak, Neo, etc.
+
+Examples:
+en-US    us
+de       de
+de-AT    de     that's just like germany
+de-CH    ch     they have a special keyboard
+en-GB    gb     there is a united kingom keyboard in the list
+ja       jp
+hu       hu
+
+The heuristic below is of course wrong even on some of the above,
+e.g., on de-AT and ja.  We will do something better later, including
+user choice.
+*/
 export function keyboardLayout(): string {
   let v = browserLanguage();
   if (v == null) {
+    // fallback that will never happen with modern browsers.
     return "us";
   }
-  //ie: v="en_GB";
+  v = v.toLowerCase();
+  //e.g.: v="en-gb";
   v = v.split(",")[0];
   let l = v.split("-", 2);
   if (l.length === 1) {
-    l = v.split("_", 2);
+    // note: upstream, this returns an empty string, but imagine v="de"
+    return l[0];
   }
-  if (l.length === 1) {
-    return "";
-  }
-  //ie: "gb"
-  return l[1].toLowerCase();
+  //e.g.: "gb"
+  return l[1];
 }
 
 export function calculateDPI(): number {
