@@ -2,7 +2,7 @@
  * CoCalc Xpra Client
  */
 
-import { Surface } from "./surface";
+import { Surface, MAX_WIDTH, MAX_HEIGHT } from "./surface";
 import { getCapabilities } from "./capabilities";
 import { Keyboard } from "./keyboard";
 import { Mouse } from "./mouse";
@@ -21,7 +21,7 @@ function createConfiguration(defaults = {}, append = {}) {
       audio_codec_blacklist: [],
       audio_codecs: [],
       image_codecs: [],
-      screen: [window.innerWidth, window.innerHeight],
+      screen: [MAX_WIDTH, MAX_HEIGHT],
       dpi: calculateDPI(),
       compression_level: 1, // TODO: experiment with this.
       reconnect: true,
@@ -256,14 +256,10 @@ export class Client {
     };
   }
 
-  /*
-  // TODO: could use this to dynamically deal with windows larger than MAX_WIDTH (in surface),
-  // and also use less memory for lower resolution.
-  public resize(w: number, h: number): void {
+  /*public resize(w: number, h: number): void {
     const sizes = calculateScreens(w, h, this.config.dpi);
     this.send("desktop_size", w, h, sizes);
-  }
-  */
+  }*/
 
   public rescale_children(parent: Surface, scale: number): void {
     for (let wid in this.surfaces) {
@@ -514,7 +510,10 @@ export class Client {
         // are gone, but were there before.
         for (let wid in this.surfaces_before_disconnect) {
           if (this.surfaces[wid] === undefined) {
-            this.bus.emit("window:destroy", this.surfaces_before_disconnect[wid]);
+            this.bus.emit(
+              "window:destroy",
+              this.surfaces_before_disconnect[wid]
+            );
           }
         }
         delete this.surfaces_before_disconnect;
@@ -580,7 +579,7 @@ export class Client {
     );
 
     // TODO: figure out args, etc.
-    bus.on("open-url", (url) => bus.emit("system:url", url));
+    bus.on("open-url", url => bus.emit("system:url", url));
 
     bus.on("bell", () => bus.emit("system:bell"));
 
