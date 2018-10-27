@@ -169,11 +169,7 @@ export class XpraClient extends EventEmitter {
   render_window(wid: number, elt: HTMLElement): void {
     const surface = this.client.findSurface(wid);
     if (surface === undefined) {
-      // no such window -- tell state system to destroy it.
-      // This happens, e.g., when restart xpra, so state is
-      // out of sync with localStorage.
-      this.emit("window:destroy", wid);
-      return;
+      throw Error(`missing surface ${wid}`);
     }
     const canvas = surface.jq_canvas;
 
