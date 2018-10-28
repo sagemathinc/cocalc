@@ -35,6 +35,22 @@ interface Props {
   windows: Map<string, any>;
 }
 
+/*
+const HIDDEN_TEXTAREA_STYLE = {
+  position: "absolute",
+  opacity: 0,
+  left: "-9999em",
+  top: 0,
+  width: 0,
+  height: 0,
+  zIndex: "-10",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  resize: "none"
+};
+
+*/
+
 export class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
@@ -51,6 +67,9 @@ export class X11Component extends Component<Props, {}> {
   }
 
   shouldComponentUpdate(next): boolean {
+    if (!this.props.is_current && next.is_current) {
+      this.focus_textarea();
+    }
     if (this.props.desc.get("wid") != next.desc.get("wid")) {
       this.insert_window_in_div(next);
       return true;
@@ -77,6 +96,9 @@ export class X11Component extends Component<Props, {}> {
     this.measure_size = throttle(this.measure_size_nothrottle.bind(this), 500, {
       leading: false
     });
+    if (this.props.is_current) {
+      this.focus_textarea();
+    }
   }
 
   disable_browser_context_menu(): void {
@@ -195,15 +217,62 @@ export class X11Component extends Component<Props, {}> {
     );
   }
 
+  render_window_div(): Rendered {
+    return (
+      <div
+        className="smc-vfill"
+        ref="window"
+        style={{ position: "relative" }}
+        onClick={() => this.focus_textarea()}
+      />
+    );
+  }
+
+  focus_textarea(): void {
+    const node: any = ReactDOM.findDOMNode(this.refs.focus);
+    $(node).focus();
+    const client = this.props.actions.client;
+    if (client == null) {
+      return;
+    }
+    client.focus();
+  }
+
+  textarea_blur(): void {
+    const client = this.props.actions.client;
+    if (client == null) {
+      return;
+    }
+    client.blur();
+  }
+
+  render_hidden_textarea(): Rendered {
+    return (
+      <textarea
+        style={{
+          opacity: 0,
+          position: "absolute",
+          height: 0,
+          width: 0,
+          top: 0
+        }}
+        aria-multiline="false"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        tabIndex={0}
+        ref="focus"
+        onBlur={() => this.textarea_blur()}
+      />
+    );
+  }
+
   render(): Rendered {
     return (
       <div className="smc-vfill">
         {this.render_tab_bar()}
-        <div
-          className="smc-vfill"
-          ref="window"
-          style={{ position: "relative" }}
-        />
+        {this.render_hidden_textarea()}
+        {this.render_window_div()}
       </div>
     );
   }
