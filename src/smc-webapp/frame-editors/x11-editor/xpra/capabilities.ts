@@ -203,7 +203,7 @@ function getClientCapabilities(config) {
     ),
     dpi: config.dpi,
 
-    // Clipboard (not handled yet, but we will)
+    // Clipboard
     clipboard_enabled: config.clipboard,
     "clipboard.want_targets": true,
     "clipboard.greedy": true,

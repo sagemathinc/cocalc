@@ -26,7 +26,7 @@ function createConfiguration(defaults = {}, append = {}) {
       compression_level: 1, // TODO: experiment with this.
       reconnect: true,
       notifications: true,
-      clipboard: false,
+      clipboard: true,
       sound: false,
       bell: false,
       printing: false, // TODO: implement?
