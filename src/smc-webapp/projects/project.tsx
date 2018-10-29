@@ -58,15 +58,17 @@ export const ProjectRow = rclass<ReactProps>(
       return <ProjectUsers project={imm} />;
     }
 
-    add_collab(set?): void | boolean {
+    add_collab(): boolean;
+    add_collab(is_displayed: boolean): void;
+    add_collab(is_displayed?): void | boolean {
       const { project_id } = this.props.project;
-      if (set != undefined) {
-        this.props.redux.getActions("projects").set_add_collab(project_id, set);
-      } else {
+      if (is_displayed == undefined) {
         return (
           this.props.add_collab != undefined &&
           this.props.add_collab.has(project_id)
         );
+      } else {
+        this.props.redux.getActions("projects").set_add_collab(project_id, is_displayed);
       }
     }
 
