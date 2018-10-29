@@ -86,23 +86,7 @@ CONNECT_LINKS =
     support_mailing_list :
         icon : 'list-alt'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/cocalc'
-        link : <span>Mailing list</span>
-    sagemath_blog :
-        icon : 'rss'
-        href : 'http://blog.sagemath.com/'
-        link : 'News and updates on our blog'
-    twitter :
-        icon : 'twitter-square'
-        href : "https://twitter.com/#{TWITTER_HANDLE}"
-        link : "Follow @#{TWITTER_HANDLE} on twitter"
-    facebook :
-        icon : 'facebook-square'
-        href : 'https://www.facebook.com/CoCalcOnline/'
-        link : 'Like our facebook page'
-    google_plus :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/117696122667171964473/posts'
-        link : <span>+1 our Google+ page</span>
+        link : <span>Official CoCalc mailing list</span>
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/cocalc'
@@ -136,21 +120,11 @@ THIRD_PARTY =
                     <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a>,{' '}
                     <a href='http://www.nltk.org/' target='_blank'>NLTK</a> and many more
                </span>
-    julia :
-        icon : 'cc-icon-julia'
-        href : 'http://docs.julialang.org/en/stable/manual/introduction/'
-        link : 'Julia'
-        text : 'programming language for numerical computing'
     octave :
         icon : 'cc-icon-octave'
         href : 'https://www.gnu.org/software/octave/'
         link : 'GNU Octave'
         text : 'scientific programming language, largely compatible with MATLAB'
-    tensorflow :
-        icon : 'lightbulb-o'
-        href : 'https://www.tensorflow.org/get_started/get_started'
-        link : 'Tensorflow'
-        text : 'open-source software library for machine intelligence'
     latex :
         icon : 'cc-icon-tex-file'
         href : 'https://en.wikibooks.org/wiki/LaTeX'
@@ -161,17 +135,6 @@ THIRD_PARTY =
         href : 'http://ryanstutorials.net/linuxtutorial/'
         link : 'GNU/Linux'
         text : 'operating system and utility toolbox'
-
-
-ABOUT_LINKS =
-    developers :
-        icon : 'keyboard-o'
-        text : <span>
-                <a target='_blank' href='http://blog.sagemath.com/cocalc/2018/09/10/where-is-cocalc-from.html'>Core developers</a>: John Jeng,{' '}
-                <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
-                <a target="_blank" href='https://twitter.com/haldroid'>Hal Snyder</a>,{' '}
-                <a target='_blank' href='http://wstein.org'>William Stein</a>
-               </span>
 
 
 
@@ -244,7 +207,7 @@ AboutCoCalcPageHeader = rclass
             </h3>
 
             <div style={banner_style}>
-                <strong>This is the open-souce edition of CoCalc!</strong>
+                <strong>Welcome to the open-souce edition of <a href="https://cocalc.com">CoCalc</a>!</strong>
                 <br />
                 For support, please contact your system administration team at <ShowSupportLink />.
             </div>
@@ -253,13 +216,25 @@ AboutCoCalcPageHeader = rclass
 
 AboutCoCalcPageBody = rclass
     displayName : 'Page-AboutCoCalc-Body'
+
+    description: ->
+        <div>
+            Welcome to ...
+        </div>
+
     render: ->
         <Col xs={12} sm={12} md={12}>
             <Row>
-                <LinkList title='Help and support' icon='support' links={SUPPORT_LINKS} />
-                <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
+                {@description()}
+            </Row>
+            <Row>
+                <LinkList title='Software' icon='support' links={THIRD_PARTY} width={12} />
+            </Row>
+            <Row>
+                <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} width={12} />
             </Row>
         </Col>
+
 
 AboutCoCalcPage = rclass
     displayName : 'Page-AboutCoCalc'
@@ -273,8 +248,10 @@ AboutCoCalcPage = rclass
             </Col>
         </Row>
 
+
 exports.render_static_cocalc_about = ->
     <AboutCoCalcPageBody />
+
 
 exports._test =
     HelpPageSupportSection : <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />

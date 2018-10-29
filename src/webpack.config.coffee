@@ -122,7 +122,7 @@ BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
 GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 CC_NOCLEAN    = !! process.env.CC_NOCLEAN
-KUCALC_MODE   = !! process.env.KUCALC_MODE
+KUCALC_MODE   = (!! process.env.KUCALC_MODE) and (process.env.KUCALC_MODE isnt 'false')
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
@@ -300,29 +300,30 @@ for [fn_in, fn_out] in [[index_page, 'index.html']]
     ))
 
 # doc pages
-if KUCALC_MODE
-    for dp in glob.sync('webapp-lib/doc/*.pug')
-        continue if path.basename(dp)[0] == '_'
-        continue if (path.basename(dp).indexOf('software-') == 0) and (COMP_ENV)
-        output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
-        staticPages.push(new HtmlWebpackPlugin(
-                            filename         : output_fn
-                            date             : BUILD_DATE
-                            title            : TITLE
-                            theme            : theme
-                            COMP_ENV         : COMP_ENV
-                            components       : {}   # no data needed, empty is fine
-                            inventory        : {}   # no data needed, empty is fine
-                            template         : dp
-                            chunks           : ['css']
-                            inject           : 'head'
-                            minify           : htmlMinifyOpts
-                            GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
-                            SCHEMA           : require('smc-util/schema')
-                            hash             : PRODMODE
-                            BASE_URL         : base_url_html
-                            PREFIX           : '../'
-        ))
+for dp in glob.sync('webapp-lib/doc/*.pug')
+    continue if path.basename(dp)[0] == '_'
+    continue if (path.basename(dp).indexOf('software-') == 0) and (COMP_ENV)
+    # outside KUCALC_MODE, only build the api page
+    continue if (path.basename(dp).indexOf('api.') != 0) and (not KUCALC_MODE)
+    output_fn = "doc/#{misc.change_filename_extension(path.basename(dp), 'html')}"
+    staticPages.push(new HtmlWebpackPlugin(
+                        filename         : output_fn
+                        date             : BUILD_DATE
+                        title            : TITLE
+                        theme            : theme
+                        COMP_ENV         : COMP_ENV
+                        components       : {}   # no data needed, empty is fine
+                        inventory        : {}   # no data needed, empty is fine
+                        template         : dp
+                        chunks           : ['css']
+                        inject           : 'head'
+                        minify           : htmlMinifyOpts
+                        GOOGLE_ANALYTICS : GOOGLE_ANALYTICS
+                        SCHEMA           : require('smc-util/schema')
+                        hash             : PRODMODE
+                        BASE_URL         : base_url_html
+                        PREFIX           : '../'
+    ))
 
 # the following renders the policy pages
 if KUCALC_MODE
@@ -347,7 +348,7 @@ if KUCALC_MODE
         ))
 
 # build pages for compute environment
-if COMP_ENV
+if COMP_ENV and KUCALC_MODE
     components = JSON.parse(fs.readFileSync('webapp-lib/compute-components.json', 'utf8'))
     #console.log(JSON.stringify(Object.keys(components)))
     inventory  = JSON.parse(fs.readFileSync('webapp-lib/compute-inventory.json', 'utf8'))
