@@ -13,6 +13,8 @@ import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 
+const { alert_message } = require("smc-webapp/alerts");
+
 interface X11EditorState extends CodeEditorState {
   windows: Map<string, any>;
 }
@@ -60,7 +62,9 @@ export class Actions extends BaseActions<X11EditorState> {
 
   get_term_env(): any {
     const DISPLAY = `:${this.client.get_display()}`;
-    return { DISPLAY };
+    // This supports url forwarding via xdg-open wrapper:
+    const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();
+    return { DISPLAY, XPRA_XDG_OPEN_SERVER_SOCKET };
   }
 
   close(): void {
@@ -89,6 +93,11 @@ export class Actions extends BaseActions<X11EditorState> {
 
   _get_window(wid: number, key: string, def?: any): any {
     return this.store.get("windows").getIn([`${wid}`, key], def);
+  }
+
+  delete_window(wid: number): void {
+    let windows = this.store.get("windows").delete(`${wid}`);
+    this.setState({ windows });
   }
 
   init_client(): void {
@@ -124,8 +133,7 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("window:destroy", (wid: number) => {
-      let windows = this.store.get("windows").delete(`${wid}`);
-      this.setState({ windows });
+      this.delete_window(wid);
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
@@ -144,6 +152,14 @@ export class Actions extends BaseActions<X11EditorState> {
         // make typescript happy with checking status is an allowed value.
         this.set_x11_connection_status(status);
       }
+    });
+
+    this.client.on("notification:create", (nid: number, desc) => {
+      this.create_notification(nid, desc);
+    });
+
+    this.client.on("notification:destroy", (nid: number) => {
+      this.delete_notification(nid);
     });
   }
 
@@ -192,9 +208,8 @@ export class Actions extends BaseActions<X11EditorState> {
       super.reload(id);
       return;
     }
-    this.set_reload('x11', new Date().valueOf());
+    this.set_reload("x11", new Date().valueOf());
   }
-
 
   blur(): void {
     // console.log("x11 -- blur");
@@ -261,5 +276,28 @@ export class Actions extends BaseActions<X11EditorState> {
       this.set_title(id, "");
     }
     this.client.close_window(wid);
+  }
+
+  create_notification(_: number, desc: any): void {
+    // use something like this in a terminal to cause a notification:
+    //    xpra control --socket-dir=/tmp/xpra :0 send-notification 0 "foo" "hello" "*"
+    //console.log("create_notification", nid, desc);
+    if (desc.summary.indexOf("Network Performance") !== -1) {
+      // ignore these -- network gets slow frequently due to
+      // browser background throttling... and we haven't implemented
+      // any way for user to "ignore".
+      return;
+    }
+    alert_message({
+      type: "info",
+      title: `X11: ${desc.summary}`,
+      message: desc.body,
+      timeout: 9999
+    });
+  }
+
+  delete_notification(_: number): void {
+    // NO-OP
+    // console.log("delete_notification", nid);
   }
 }

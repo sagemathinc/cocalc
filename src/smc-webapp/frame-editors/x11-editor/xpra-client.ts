@@ -1,12 +1,16 @@
 // Use Xpra to provide X11 server.
 
+import { retry_until_success } from "../generic/async-utils";
+
 import { delay } from "awaiting";
 
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { ConnectionStatus } from "../frame-tree/types";
 
-import { createClient } from "./xpra/client";
+import { Client } from "./xpra/client";
+
+import { Surface } from "./xpra/surface";
 
 import { XpraServer } from "./xpra-server";
 
@@ -14,17 +18,11 @@ import { touch, touch_project } from "../generic/client";
 
 import { throttle } from "underscore";
 
+const { open_new_tab } = require("smc-webapp/misc_page");
+
 const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
-
-// Never resize beyond this (since it's the backend size)
-export const MAX_WIDTH = 4000;
-export const MAX_HEIGHT = 3000;
-
-// Also, very bad things happen if a canvas ever has width or height 0.
-export const MIN_WIDTH = 10;
-export const MIN_HEIGHT = 10;
 
 const MOUSE_EVENTS = [
   "mousemove",
@@ -44,9 +42,7 @@ import { EventEmitter } from "events";
 
 export class XpraClient extends EventEmitter {
   private options: Options;
-  private xpra_options: any;
-  private client: any;
-  private windows: any = {};
+  private client: Client;
   private server: XpraServer;
   public _ws_status: ConnectionStatus = "disconnected";
   private last_active: number = 0;
@@ -57,44 +53,57 @@ export class XpraClient extends EventEmitter {
     this.record_active = throttle(this.record_active.bind(this), 30000);
     this.connect = reuseInFlight(this.connect);
     this.options = options;
+    this.client = new Client();
     this.server = new XpraServer({
       project_id: this.options.project_id
     });
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
-    this.init();
+    this.init_xpra_events();
+    this.connect();
   }
 
   get_display(): number {
     return this.server.get_display();
   }
 
-  async init(): Promise<void> {
-    await this.init_client();
-    this.init_xpra_events();
-    this.connect();
+  get_socket_path(): string {
+    return this.server.get_socket_path();
   }
 
   close(): void {
     if (this.client === undefined) {
       return;
     }
+    this.server.destroy();
     this.blur();
     this.client.disconnect();
     this.removeAllListeners();
     clearInterval(this.touch_interval);
-    delete this.windows;
     delete this.options;
-    delete this.xpra_options;
     delete this.client;
   }
 
-  async connect(): Promise<void> {
-    await this.init_xpra_options();
-    if (!this.options) return; // closed
-    this.client.connect(this.xpra_options);
+  async _connect(): Promise<void> {
+    const options = await this.get_xpra_options();
+    if (this.client === undefined) {
+      return; // closed during async operation
+    }
+    this.client.connect(options);
   }
 
-  private async init_xpra_options(): Promise<void> {
+  async connect(): Promise<void> {
+    // use this is dumb, but will do **for now**.  It's
+    // dumb since instead when we reconnect to the network,
+    // it should trigger attempting, etc.  But this will do.
+    await retry_until_success({
+      f: this._connect.bind(this),
+      start_delay: 1000,
+      max_delay: 6000,
+      factor: 1.4
+    });
+  }
+
+  private async get_xpra_options(): Promise<any> {
     if (!this.options) return; // closed
     const port = await this.server.start();
     if (!this.options) return; // closed
@@ -102,13 +111,7 @@ export class XpraClient extends EventEmitter {
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
-    this.xpra_options = { uri, dpi, sound: false };
-  }
-
-  private async init_client(): Promise<void> {
-    await this.init_xpra_options();
-    if (!this.options) return; // closed
-    this.client = createClient(this.xpra_options);
+    return { uri, dpi, sound: false };
   }
 
   private init_xpra_events(): void {
@@ -119,9 +122,12 @@ export class XpraClient extends EventEmitter {
     this.client.on("window:metadata", this.window_metadata.bind(this));
     this.client.on("overlay:create", this.overlay_create.bind(this));
     this.client.on("overlay:destroy", this.overlay_destroy.bind(this));
+    this.client.on("notification:create", this.handle_notification_create.bind(this));
+    this.client.on("notification:destroy", this.handle_notification_destroy.bind(this));
     this.client.on("ws:status", this.ws_status.bind(this));
     this.client.on("key", this.record_active);
     this.client.on("mouse", this.record_active);
+    this.client.on("system:url", this.open_url.bind(this));
     //this.client.on("ws:data", this.ws_data.bind(this));  // ridiculously low level.
   }
 
@@ -130,19 +136,24 @@ export class XpraClient extends EventEmitter {
   }
 
   async focus_window(wid: number): Promise<void> {
-    if (wid && this.windows[wid] !== undefined) {
-      this.client.surface.focus(wid);
+    if (wid && this.client.findSurface(wid) !== undefined) {
+      this.client.focus(wid);
       // sometimes it annoyingly fails without this,
       // so we use it for now...
       await delay(100);
-      this.client.surface.focus(wid);
+      this.client.focus(wid);
     }
   }
 
   close_window(wid: number): void {
-    if (wid && this.windows[wid] !== undefined) {
+    if (wid && this.client.findSurface(wid) !== undefined) {
       // Tells the backend xpra server that we want window to close.
-      this.client.surface.kill(wid);
+      this.client.kill(wid);
+    } else {
+      // Window is not known but user wants to close it.  Just
+      // close it in our store immediately so it goes away.
+      // This should only happen if things get weirdly out of state...
+      this.emit("window:destroy", wid);
     }
   }
 
@@ -156,10 +167,10 @@ export class XpraClient extends EventEmitter {
     }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
-      doc.on(name, this.client.key_inject);
+      doc.on(name, (this.client as any).key_inject);
     }
     for (let name of MOUSE_EVENTS) {
-      doc.on(name, this.client.mouse_inject);
+      doc.on(name, (this.client as any).mouse_inject);
     }
   }
 
@@ -169,19 +180,19 @@ export class XpraClient extends EventEmitter {
     }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
-      doc.off(name, this.client.key_inject);
+      doc.off(name, (this.client as any).key_inject);
     }
     for (let name of MOUSE_EVENTS) {
-      doc.off(name, this.client.mouse_inject);
+      doc.off(name, (this.client as any).mouse_inject);
     }
   }
 
   render_window(wid: number, elt: HTMLElement): void {
-    const info = this.windows[wid];
-    if (info === undefined) {
-      throw Error("no such window");
+    const surface = this.client.findSurface(wid);
+    if (surface === undefined) {
+      throw Error(`missing surface ${wid}`);
     }
-    const canvas = $(info.canvas);
+    const canvas = surface.jq_canvas;
 
     // margin:auto makes it centered.
     canvas.css("margin", "auto");
@@ -191,27 +202,26 @@ export class XpraClient extends EventEmitter {
     e.append(canvas);
 
     // Also append any already known overlays.
-    for (let id in this.windows) {
-      const w = this.windows[id];
-      if (w.parent.wid === wid) {
+    for (let id of this.client.window_ids()) {
+      const w = this.client.findSurface(id);
+      if (w && w.parent !== undefined && w.parent.wid === wid) {
         this.place_overlay_in_dom(w);
       }
     }
   }
 
-  window_focus(info: { wid: number }): void {
-    //console.log("window_focus ", info.wid);
-    this.emit("window:focus", info.wid);
+  window_focus(wid: number): void {
+    //console.log("window_focus ", wid);
+    this.emit("window:focus", wid);
   }
 
-  window_create(window): void {
+  window_create(surface: Surface): void {
     //console.log("window_create", window);
-    this.windows[window.wid] = window;
-    this.emit("window:create", window.wid, {
-      wid: window.wid,
-      width: window.w,
-      height: window.h,
-      title: window.metadata.title
+    this.emit("window:create", surface.wid, {
+      wid: surface.wid,
+      width: surface.w,
+      height: surface.h,
+      title: surface.metadata.title
     });
   }
 
@@ -224,128 +234,51 @@ export class XpraClient extends EventEmitter {
     frame_scale: number = 1
   ): void {
     //console.log("resize_window", wid, width, height, frame_scale);
-    const info = this.windows[wid];
-    if (info == null) {
+    const surface: Surface | undefined = this.client.findSurface(wid);
+    if (surface === undefined) {
       //console.warn("no window", wid);
       return; // no such window
     }
 
     const scale = window.devicePixelRatio / frame_scale;
-    info.scale = scale;
-    const surface = this.client.findSurface(wid);
-    if (!surface) {
-      // just removed?
-      return;
-    }
-    let swidth0, sheight0;
-    let swidth = (swidth0 = Math.round(width * scale));
-    let sheight = (sheight0 = Math.round(height * scale));
 
-    // In some cases, we will only potentially SHRINK (so buttons can be seen!),
-    // but not enlarge, which is usually really annoying.
-    if (
-      info.metadata != null &&
-      info.metadata["window-type"] != null &&
-      info.metadata["window-type"][0] === "DIALOG"
-    ) {
-      if (swidth >= info.w) {
-        swidth = info.w;
-      }
-      if (sheight >= info.h) {
-        sheight = info.h;
-      }
-    }
-
-    // Honor any size constraints
-    const size_constraints = info.metadata["size-constraints"];
-    if (size_constraints != null) {
-      const mn = size_constraints["minimum-size"],
-        mx = size_constraints["maximum-size"];
-      if (mn != null) {
-        if (swidth < mn[0]) {
-          swidth = mn[0];
-        }
-        if (sheight < mn[1]) {
-          sheight = mn[1];
-        }
-      }
-      if (mx != null) {
-        if (swidth > mx[0]) {
-          swidth = mx[0];
-        }
-        if (sheight > mx[1]) {
-          sheight = mx[1];
-        }
-      }
-    }
-
-    // Never resize beyond the backend compositor size, since bad
-    // things happen when window is slightly off screen. Very frustrating
-    // for users.
-    if (sheight > MAX_HEIGHT) {
-      sheight = MAX_HEIGHT;
-    }
-    if (swidth > MAX_WIDTH) {
-      swidth = MAX_WIDTH;
-    }
-    if (sheight < MIN_HEIGHT) {
-      sheight = MIN_HEIGHT;
-    }
-    if (swidth < MIN_WIDTH) {
-      swidth = MIN_WIDTH;
-    }
-
-    //console.log("resize_window ", wid, width, height, swidth, sheight);
-    surface.updateGeometry(
-      swidth,
-      sheight,
-      swidth0 === swidth,
-      sheight0 === sheight
-    );
-
-
-    if (swidth === info.w && sheight === info.h) {
-      // make no change... BUT still important to
-      // update the CSS above.
-      return;
-    }
-
-    // w and h are critically used for scaling/mouse position computation,
-    // so MUST be updated.
-    info.w = swidth;
-    info.h = sheight;
+    surface.rescale(scale, width, height);
+    this.client.rescale_children(surface, scale);
+    surface.x = 0;
+    surface.y = 0;
 
     this.client.send(
       "configure-window",
       wid,
-      0,
-      0,
-      swidth,
-      sheight,
-      info.properties
+      surface.x,
+      surface.y,
+      surface.w,
+      surface.h,
+      surface.properties
     );
   }
 
-  window_destroy(window): void {
+  window_destroy(surface: Surface): void {
     //console.log("window_destroy", window);
-    window.destroy();
-    window.canvas.remove();
-    delete this.windows[window.wid];
-    this.emit("window:destroy", window.wid);
+    surface.destroy();
+    this.emit("window:destroy", surface.wid);
   }
 
-  window_icon(icon): void {
-    //console.log("window_icon", icon);
-    this.emit("window:icon", icon.wid, icon.src);
+  window_icon({ wid, src, w, h }): void {
+    //console.log("window_icon", wid, src);
+    this.emit("window:icon", wid, src, w, h);
   }
 
   window_metadata(_): void {
     //console.log("window_metadata", info);
   }
 
-  place_overlay_in_dom(overlay): void {
+  place_overlay_in_dom(overlay: Surface): void {
     const e = $(overlay.canvas);
     e.css("position", "absolute");
+    if (overlay.parent === undefined) {
+      throw Error("overlay must defined a parent");
+    }
     const scale = overlay.parent.scale ? overlay.parent.scale : 1;
     const width = `${overlay.canvas.width / scale}px`,
       height = `${overlay.canvas.height / scale}px`,
@@ -367,18 +300,15 @@ export class XpraClient extends EventEmitter {
       .append(e);
   }
 
-  overlay_create(overlay): void {
-    overlay.canvas.wid = overlay.wid
-    this.windows[overlay.wid] = overlay;
+  overlay_create(overlay: Surface): void {
     this.place_overlay_in_dom(overlay);
   }
 
-  overlay_destroy(overlay): void {
-    delete this.windows[overlay.wid];
+  overlay_destroy(overlay: Surface): void {
     $(overlay.canvas).remove();
   }
 
-  ws_status(status): void {
+  ws_status(status: ConnectionStatus): void {
     this.emit("ws:status", status);
     if (
       status === "disconnected" &&
@@ -392,12 +322,12 @@ export class XpraClient extends EventEmitter {
     }
   }
 
-  ws_data(_, packet): void {
+  ws_data(_, packet: any[]): void {
     console.log("ws_data", packet);
   }
 
   is_root_window(wid: number): boolean {
-    const w = this.windows[wid];
+    const w = this.client.findSurface(wid);
     return w != null && !w.parent;
   }
 
@@ -420,4 +350,18 @@ export class XpraClient extends EventEmitter {
   init_touch(): void {
     this.touch_interval = setInterval(this.touch_if_active.bind(this), 60000);
   }
+
+  open_url(url): void {
+    open_new_tab(url);
+  }
+
+  handle_notification_create(nid:number,desc): void {
+    this.emit("notification:create", nid, desc);
+  }
+
+  handle_notification_destroy(nid:number): void {
+    this.emit("notification:destroy", nid);
+  }
+
+
 }

@@ -4,10 +4,11 @@ CoCalc -- Xpra HTML Client
 The Renderer object.   Periodically clears the queue of
 stuff that needs to be rendered.
 */
-import { arraybufferBase64, timestamp } from "./util.js";
+import { arraybufferBase64, timestamp } from "./util";
 
-//import { lz4decode } from "./util.js";
+//import { lz4decode } from "./util";
 import {inflateSync } from "zlibjs";
+
 
 export class Renderer {
   private listening: boolean = true;
