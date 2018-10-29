@@ -1,10 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Render a single project entry, which goes in the list of projects
 */
 
@@ -12,13 +6,7 @@ import * as immutable from "immutable";
 import { AppRedux, React, Component, rclass } from "../app-framework";
 
 const { Row, Col, Well } = require("react-bootstrap");
-const {
-  Icon,
-  Markdown,
-  ProjectState,
-  Space,
-  TimeAgo
-} = require("../r_misc");
+const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
 const { ProjectUsers } = require("./project-users");
 
@@ -39,10 +27,7 @@ interface State {
 export const ProjectRow = rclass<ReactProps>(
   class ProjectRow extends Component<ReactProps & ReduxProps, State> {
     render_status() {
-      const x =
-        this.props.project.state != null
-          ? this.props.project.state
-          : { state: "closed" };
+      const x = this.props.project.state || { state: "closed" };
       return (
         <a>
           <ProjectState state={immutable.fromJS(x)} />
@@ -73,16 +58,15 @@ export const ProjectRow = rclass<ReactProps>(
       return <ProjectUsers project={imm} />;
     }
 
-    add_collab(set?): void {
+    add_collab(set?): void | boolean {
       const { project_id } = this.props.project;
-      if (set != null) {
-        this.props.redux
-          .getActions("projects")
-          .set_add_collab(project_id, set);
+      if (set != undefined) {
+        this.props.redux.getActions("projects").set_add_collab(project_id, set);
       } else {
-        this.props.add_collab != null
-          ? this.props.add_collab.has(project_id)
-          : undefined;
+        return (
+          this.props.add_collab != undefined &&
+          this.props.add_collab.has(project_id)
+        );
       }
     }
 
@@ -153,38 +137,38 @@ export const ProjectRow = rclass<ReactProps>(
       this.setState({
         selection_at_last_mouse_down: window.getSelection().toString()
       });
-    }
+    };
 
-    handle_click = (e) => {
+    handle_click = e => {
       if (
         window.getSelection().toString() ===
         this.state.selection_at_last_mouse_down
       ) {
         this.open_project_from_list(e);
       }
-    }
+    };
 
-    open_project_from_list = (e) => {
+    open_project_from_list = e => {
       this.props.redux.getActions("projects").open_project({
         project_id: this.props.project.project_id,
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
-    }
+    };
 
-    open_project_settings = (e) => {
+    open_project_settings = e => {
       this.props.redux.getActions("projects").open_project({
         project_id: this.props.project.project_id,
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey)),
         target: "settings"
       });
       e.stopPropagation();
-    }
+    };
 
-    toggle_add_collaborators = (e) => {
+    toggle_add_collaborators = e => {
       this.add_collab(!this.add_collab());
       e.stopPropagation();
-    }
+    };
 
     render() {
       const project_row_styles = {
