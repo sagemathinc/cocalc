@@ -147,6 +147,11 @@ export class XpraClient extends EventEmitter {
     if (wid && this.client.findSurface(wid) !== undefined) {
       // Tells the backend xpra server that we want window to close.
       this.client.kill(wid);
+    } else {
+      // Window is not known but user wants to close it.  Just
+      // close it in our store immediately so it goes away.
+      // This should only happen if things get weirdly out of state...
+      this.emit("window:destroy", wid);
     }
   }
 

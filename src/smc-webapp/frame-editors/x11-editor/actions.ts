@@ -60,7 +60,8 @@ export class Actions extends BaseActions<X11EditorState> {
 
   get_term_env(): any {
     const DISPLAY = `:${this.client.get_display()}`;
-    const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();  // this support url forwarding via xdg-open wrapper
+    // This supports url forwarding via xdg-open wrapper:
+    const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();
     return { DISPLAY, XPRA_XDG_OPEN_SERVER_SOCKET };
   }
 
@@ -90,6 +91,11 @@ export class Actions extends BaseActions<X11EditorState> {
 
   _get_window(wid: number, key: string, def?: any): any {
     return this.store.get("windows").getIn([`${wid}`, key], def);
+  }
+
+  delete_window(wid: number): void {
+    let windows = this.store.get("windows").delete(`${wid}`);
+    this.setState({ windows });
   }
 
   init_client(): void {
@@ -125,8 +131,7 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("window:destroy", (wid: number) => {
-      let windows = this.store.get("windows").delete(`${wid}`);
-      this.setState({ windows });
+      this.delete_window(wid);
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
@@ -193,9 +198,8 @@ export class Actions extends BaseActions<X11EditorState> {
       super.reload(id);
       return;
     }
-    this.set_reload('x11', new Date().valueOf());
+    this.set_reload("x11", new Date().valueOf());
   }
-
 
   blur(): void {
     // console.log("x11 -- blur");
