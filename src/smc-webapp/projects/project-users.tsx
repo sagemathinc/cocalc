@@ -42,16 +42,18 @@ export const ProjectUsers = rclass<ReactProps>(
         user_array = [];
       }
 
-      const other: any[] = [];
+      let other: { account_id: string; last_active?: number }[] = [];
       for (const account_id of user_array) {
         if (account_id !== this.props.account_id) {
           other.push({ account_id });
         }
       }
 
-      redux
+      // injects last_active
+      other = redux
         .getStore("projects")
         .sort_by_activity(other, this.props.project.get("project_id"));
+
       const v: any = [];
       for (const user of other) {
         v.push(
