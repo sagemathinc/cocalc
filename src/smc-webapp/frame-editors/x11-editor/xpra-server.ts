@@ -102,6 +102,7 @@ export class XpraServer {
       "--socket-dir=/tmp/xpra",
       "--tray=no",
       "--clipboard=yes",
+      "--notifications=yes",
       "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
       "--pulseaudio=no",
       "--bell=no",

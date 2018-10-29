@@ -122,6 +122,8 @@ export class XpraClient extends EventEmitter {
     this.client.on("window:metadata", this.window_metadata.bind(this));
     this.client.on("overlay:create", this.overlay_create.bind(this));
     this.client.on("overlay:destroy", this.overlay_destroy.bind(this));
+    this.client.on("notification:create", this.handle_notification_create.bind(this));
+    this.client.on("notification:destroy", this.handle_notification_destroy.bind(this));
     this.client.on("ws:status", this.ws_status.bind(this));
     this.client.on("key", this.record_active);
     this.client.on("mouse", this.record_active);
@@ -352,4 +354,14 @@ export class XpraClient extends EventEmitter {
   open_url(url): void {
     open_new_tab(url);
   }
+
+  handle_notification_create(nid:number,desc): void {
+    this.emit("notification:create", nid, desc);
+  }
+
+  handle_notification_destroy(nid:number): void {
+    this.emit("notification:destroy", nid);
+  }
+
+
 }

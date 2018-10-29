@@ -532,26 +532,26 @@ export class Client {
       // this.console.log("x11: ignoring sound data");
     });
     */
-
     bus.on(
       "notify_show",
       (
-        busId,
-        notificationId,
-        replacesId,
+        _0,
+        nid,
+        _1,
+        replaces_nid,
+        _2,
         summary,
         body,
-        timeout,
+        expire_timeout,
         icon,
         actions,
         hints
       ) => {
-        bus.emit("notification:create", notificationId, {
-          busId,
-          replacesId,
+        bus.emit("notification:create", nid, {
+          replaces_nid,
           summary,
           body,
-          timeout,
+          expire_timeout,
           icon,
           actions,
           hints
@@ -559,7 +559,7 @@ export class Client {
       }
     );
 
-    bus.on("notify_show", notificationId => {
+    bus.on("notify_close", notificationId => {
       bus.emit("notification:destroy", notificationId);
     });
 

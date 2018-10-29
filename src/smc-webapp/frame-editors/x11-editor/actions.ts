@@ -13,6 +13,8 @@ import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 
+const { alert_message } = require("smc-webapp/alerts");
+
 interface X11EditorState extends CodeEditorState {
   windows: Map<string, any>;
 }
@@ -151,6 +153,14 @@ export class Actions extends BaseActions<X11EditorState> {
         this.set_x11_connection_status(status);
       }
     });
+
+    this.client.on("notification:create", (nid: number, desc) => {
+      this.create_notification(nid, desc);
+    });
+
+    this.client.on("notification:destroy", (nid: number) => {
+      this.delete_notification(nid);
+    });
   }
 
   set_x11_connection_status(status: ConnectionStatus): void {
@@ -266,5 +276,22 @@ export class Actions extends BaseActions<X11EditorState> {
       this.set_title(id, "");
     }
     this.client.close_window(wid);
+  }
+
+  create_notification(_: number, desc: any): void {
+    // use something like this in a terminal to cause a notification:
+    //    xpra control --socket-dir=/tmp/xpra :0 send-notification 0 "foo" "hello" "*"
+    //console.log("create_notification", nid, desc);
+    alert_message({
+      type: "info",
+      title: `X11: ${desc.summary}`,
+      message: desc.body,
+      timeout: 9999
+    });
+  }
+
+  delete_notification(_: number): void {
+    // NO-OP
+    // console.log("delete_notification", nid);
   }
 }
