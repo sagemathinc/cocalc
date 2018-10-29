@@ -1,7 +1,7 @@
 /*
 Showing list of users of a project
 */
-import { Component, React, redux, rclass } from "../app-framework";
+import { Component, React, redux, rclass, rtypes } from "../app-framework";
 import { UserMap } from "../todo-types";
 
 const { User } = require("../users");
@@ -9,7 +9,7 @@ const { Loading, r_join } = require("../r_misc");
 
 interface ReactProps {
   project: any;
-  none: React.ComponentType<any>;
+  none?: React.ComponentType<any>;
 }
 
 interface ReduxProps {
@@ -19,12 +19,23 @@ interface ReduxProps {
 
 export const ProjectUsers = rclass<ReactProps>(
   class ProjectUsers extends Component<ReactProps & ReduxProps> {
+    static reduxProps = () => {
+      return {
+        users: {
+          user_map: rtypes.immutable
+        },
+        account: {
+          account_id: rtypes.string
+        }
+      };
+    };
+
     render() {
       if (this.props.user_map == undefined) {
         return <Loading />;
       }
-      const users = this.props.project.get("users")
-      let user_array: any[]
+      const users = this.props.project.get("users");
+      let user_array: any[];
       if (users != undefined) {
         user_array = users.keySeq().toArray();
       } else {

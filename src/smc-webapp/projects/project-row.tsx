@@ -3,12 +3,12 @@ Render a single project entry, which goes in the list of projects
 */
 
 import * as immutable from "immutable";
-import { AppRedux, React, Component, rclass } from "../app-framework";
+import { AppRedux, Component, React, rclass, rtypes } from "../app-framework";
+import { ProjectUsers } from "./project-users";
 
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
-const { ProjectUsers } = require("./project-users");
 
 interface ReactProps {
   project: any;
@@ -26,6 +26,14 @@ interface State {
 
 export const ProjectRow = rclass<ReactProps>(
   class ProjectRow extends Component<ReactProps & ReduxProps, State> {
+    static reduxProps = () => {
+      return {
+        project: {
+          add_collab: rtypes.immutable.Set
+        }
+      };
+    };
+
     render_status() {
       const x = this.props.project.state || { state: "closed" };
       return (
@@ -68,7 +76,9 @@ export const ProjectRow = rclass<ReactProps>(
           this.props.add_collab.has(project_id)
         );
       } else {
-        this.props.redux.getActions("projects").set_add_collab(project_id, is_displayed);
+        this.props.redux
+          .getActions("projects")
+          .set_add_collab(project_id, is_displayed);
       }
     }
 
