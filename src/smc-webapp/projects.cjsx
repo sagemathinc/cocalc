@@ -45,7 +45,7 @@ TODO:  This entire file should be broken into many small files/components,
 which are in the projects/ subdirectory.
 ###
 {NewProjectCreator} = require('./projects/create-project')
-{ProjectRow}        = require('./projects/project')
+{ProjectRow}        = require('./projects/project-row')
 {ProjectsFilterButtons} = require('./projects/projects-filter-buttons')
 
 MAX_DEFAULT_PROJECTS = 50
