@@ -282,6 +282,12 @@ export class Actions extends BaseActions<X11EditorState> {
     // use something like this in a terminal to cause a notification:
     //    xpra control --socket-dir=/tmp/xpra :0 send-notification 0 "foo" "hello" "*"
     //console.log("create_notification", nid, desc);
+    if (desc.summary.indexOf("Network Performance") !== -1) {
+      // ignore these -- network gets slow frequently due to
+      // browser background throttling... and we haven't implemented
+      // any way for user to "ignore".
+      return;
+    }
     alert_message({
       type: "info",
       title: `X11: ${desc.summary}`,
