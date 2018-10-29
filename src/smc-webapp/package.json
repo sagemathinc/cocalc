@@ -57,7 +57,7 @@
     "jquery.payment": "^3.0.0",
     "jquery.scrollintoview": "^1.9",
     "json-stable-stringify": "^1.0",
-    "katex": "^0.9.0",
+    "katex": "^0.10.0",
     "langs": "^2.0.0",
     "latex.js": "^0.9.2",
     "lodash": "^4.17.4",
