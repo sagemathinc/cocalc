@@ -38,44 +38,28 @@ misc = require('smc-util/misc')
 {COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
 
 
-SUPPORT_LINKS =
-    email_help :
-        commercial: true
-        bold : true
-        icon : 'envelope'
-        href : 'mailto:' + HELP_EMAIL
-        link : HELP_EMAIL
-        text : 'Please include the URL link to the relevant project or file!'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        bold : true
-        href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
-    teaching :
-        icon : 'graduation-cap'
-        href : 'https://tutorial.cocalc.com/'
-        link : <span>How to teach a course with <SiteName/></span>
-    pricing :
-        icon : 'money'
-        href : PolicyPricingPageUrl
-        link : 'Pricing and subscription options'
-        commercial: true
+ABOUT_LINKS =
+    agpl3:
+        icon : 'cc-icon-section'
+        href : 'https://www.gnu.org/licenses/agpl-3.0.de.html'
+        link : <span>
+                Open CoCalc is licensed under the terms of the{' '}
+                <a href="https://www.gnu.org/licenses/agpl-3.0.de.html">GNU AGPL3 license</a>.{' '}
+                (see <a href="https://github.com/sagemathinc/cocalc/blob/master/LICENSE.md" target="_blank">License.md</a>)
+               </span>
+    trademark:
+        icon : 'cc-icon-section'
+        href : 'http://tsdr.uspto.gov/#caseNumber=87155974&caseType=SERIAL_NO&searchType=statusSearch'
+        link : '"CoCalc" is a registered trademark.'
     docker_image:
         icon : 'window-maximize'
         href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
-        link : <span>Docker image for offline usage</span>
-    courses :
-        icon : 'users'
-        href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'
-        link :  <span>Courses using <SiteName/></span>
+        link : <span>CoCalc Docker image for offline usage</span>
     cocalc_api :
         icon : 'gears'
         href : "#{BASE_URL}/doc/api.html"
         link :  <span><SiteName/> API</span>
-    live_demo :
-        icon : 'comments-o'
-        link : "Request a live demo about how to teach a course"
-        href : LIVE_DEMO_REQUEST
+
 
 CONNECT_LINKS =
     share :
@@ -209,7 +193,7 @@ AboutCoCalcPageHeader = rclass
             <div style={banner_style}>
                 <strong>Welcome to the open-souce edition of <a href="https://cocalc.com">CoCalc</a>!</strong>
                 <br />
-                For support, please contact your system administration team at <ShowSupportLink />.
+                For support, please contact your system administration team at <HelpEmailLink />.
             </div>
         </Row>
 
@@ -228,10 +212,13 @@ AboutCoCalcPageBody = rclass
                 {@description()}
             </Row>
             <Row>
-                <LinkList title='Software' icon='support' links={THIRD_PARTY} width={12} />
+                <LinkList title='About Open CoCalc' icon='plug' links={ABOUT_LINKS} width={12} />
             </Row>
             <Row>
                 <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} width={12} />
+            </Row>
+            <Row>
+                <LinkList title='Software' icon='support' links={THIRD_PARTY} width={12} />
             </Row>
         </Col>
 
@@ -254,8 +241,7 @@ exports.render_static_cocalc_about = ->
 
 
 exports._test =
-    HelpPageSupportSection : <LinkList title='Help & Support' icon='support' links={SUPPORT_LINKS} />
     ConnectSection : <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
-    SUPPORT_LINKS : SUPPORT_LINKS
+    ABOUT_LINKS : ABOUT_LINKS
     CONNECT_LINKS : CONNECT_LINKS
 
