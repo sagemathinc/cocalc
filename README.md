@@ -61,7 +61,7 @@ please contact help@sagemath.com.
 
 ## Trademark
 
-"CoCalc" is a registered trademark.
+"CoCalc" is a [registered trademark](http://tsdr.uspto.gov/#caseNumber=87155974&caseType=SERIAL_NO&searchType=statusSearch).
 
 ## ARCHITECTURE
 
