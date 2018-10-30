@@ -21,6 +21,8 @@ const FORMAT = set([
   "yml",
   "yaml",
   "xml",
+  "cml" /* that's xml */,
+  "kml" /* geodata keyhole markup, also xml */,
   "c",
   "c++",
   "cc",
