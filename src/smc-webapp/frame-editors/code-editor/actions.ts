@@ -1659,6 +1659,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "kml":
         parser = "xml-tidy";
         break;
+      case "bib":
+        parser = "bib-biber";
+        break;
       case "c":
       case "c++":
       case "cc":

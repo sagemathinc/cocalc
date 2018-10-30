@@ -239,7 +239,8 @@ export function cm_options(
     "c++",
     "cc",
     "cpp",
-    "h"
+    "h",
+    "bib"
   ];
   if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;

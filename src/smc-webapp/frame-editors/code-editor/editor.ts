@@ -27,7 +27,8 @@ const FORMAT = set([
   "c++",
   "cc",
   "cpp",
-  "h"
+  "h",
+  "bib"
 ]);
 
 export const cm = {
