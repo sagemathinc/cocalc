@@ -13,11 +13,13 @@ export const x11 = {
   icon: "window-restore",
   component: X11,
   buttons: set([
-    /*"print",
     "decrease_font_size",
     "increase_font_size",
+    "reload",
+    /*"print",
     "edit_init_script", */
-    "help"
+    "help",
+    "connection_status"
   ])
 };
 

@@ -1,34 +1,32 @@
 /**
- * Xpra HTML Client
- *
- * This is a refactored (modernized) version of
- * https://xpra.org/trac/browser/xpra/trunk/src/html5/
- *
- * @author Anders Evenrud <andersevenrud@gmail.com>
+ * CoCalc Xpra HTML Client
  */
 
-import zlib from "zlibjs";
-import { ord } from "./util.js";
-import { bencode, bdecode } from "./bencode.js";
-import { HEADER_SIZE } from "./constants.js";
+const DEBUG = false;
 
-const debug = (...args) => {
-  if (
-    args[1].match(/^(ping|pointer|button|cursor|draw|damage|sound-data)/) ===
-    null
-  ) {
-    console.debug(...args);
-  }
-};
+import * as zlib from "zlibjs";
+import { ord } from "./util";
+import { bencode, bdecode } from "./bencode";
+import { HEADER_SIZE } from "./constants";
 
-/**
- * Inflates compressed data
- */
-const inflate = (level, size, data) => {
+let debug;
+if (DEBUG) {
+  debug = console.log;
+} else {
+  debug = function(..._) {};
+}
+
+// Inflates compressed data
+function inflate(
+  level: number,
+  size: number,
+  data: Uint8Array
+): Uint8Array | null {
   if (level !== 0) {
     if (level & 0x10) {
-      console.error("lz4 compression not supported");
+      console.error("lz4 compression not supported", level, size, data);
       return null;
+      /*
       //const { inflated, uncompressedSize } = lz4decode(data);
 
       // if lz4 errors out at the end of the buffer, ignore it:
@@ -40,20 +38,21 @@ const inflate = (level, size, data) => {
         return null;
       }
 
-      return inflated;
+      return inflated; */
     } else {
       return zlib.inflateSync(data);
     }
   }
 
   return data;
-};
+}
 
-/**
- * Decodes a packet
- */
-const decode = (inflated, rawQueue) => {
+// Decodes a packet
+function decode(inflated: Uint8Array, rawQueue: Uint8Array[]): any[] {
   let packet = bdecode(inflated);
+  if (packet == null) {
+    throw Error("unable to decode packet");
+  }
   for (let index in rawQueue) {
     packet[index] = rawQueue[index];
   }
@@ -66,12 +65,10 @@ const decode = (inflated, rawQueue) => {
   }
 
   return packet;
-};
+}
 
-/**
- * Gets a Uint8 draw data
- */
-const imageData = data => {
+// Gets a Uint8 draw data
+function imageData(data: string | Uint8Array): Uint8Array | null {
   if (typeof data === "string") {
     const uint = new Uint8Array(data.length);
 
@@ -83,14 +80,28 @@ const imageData = data => {
   }
 
   return null; // Already uint
-};
+}
 
-/**
- * Parses an incoming packet
- */
-const parsePacket = (header, queue) => {
+interface Proto {
+  flags: number;
+  padding: number;
+  crypto: number;
+}
+
+// Parses an incoming packet
+function parsePacket(
+  header: number[],
+  queue
+):
+  | false
+  | {
+      index: number;
+      level: number;
+      proto: Proto;
+      packetSize: number;
+    } {
   // check for crypto protocol flag
-  const proto = {
+  const proto: Proto = {
     flags: header[1],
     padding: 0,
     crypto: header[1] & 0x2
@@ -119,13 +130,6 @@ const parsePacket = (header, queue) => {
     packetSize += header[4 + i];
   }
 
-  /* TODO
-  if (proto.crypto) {
-    proto.padding = (this.cipher_in_block_size - packetSize % this.cipher_in_block_size);
-    packetSize += proto.padding;
-  }
-  */
-
   // verify that we have enough data for the full payload:
   let rsize = 0;
   for (let i = 0, j = queue.length; i < j; ++i) {
@@ -138,26 +142,12 @@ const parsePacket = (header, queue) => {
   }
 
   return { index, level, proto, packetSize };
-};
+}
 
-/**
- * Serializes an outgoing packet
- */
-const serializePacket = data => {
+// Serializes an outgoing packet
+function serializePacket(data: string): number[] {
   const level = 0; // TODO: zlib, but does not work
   const proto_flags = 0;
-
-  /* TODO:
-  if(this.cipher_out) {
-    proto_flags = 0x2;
-    var padding_size = this.cipher_out_block_size - (payload_size % this.cipher_out_block_size);
-    for (var i = padding_size - 1; i >= 0; i--) {
-      bdata += String.fromCharCode(padding_size);
-    };
-    this.cipher_out.update(forge.util.createBuffer(bdata));
-    bdata = this.cipher_out.output.getBytes();
-  }
-  */
 
   const size = data.length;
   const send = data.split("").map(ord);
@@ -168,123 +158,121 @@ const serializePacket = data => {
   }
 
   return [...header, ...send];
-};
+}
 
-/**
- * Creates a new receieve queue handler
- */
-export const createReceiveQueue = callback => {
-  let queue = [];
-  let header = [];
-  let rawQueue = [];
+// The receive queue handler
+export class ReceiveQueue {
+  private callback: Function;
+  private queue: Uint8Array[] = [];
+  private header: number[] = [];
+  private rawQueue: Uint8Array[] = [];
 
-  const processHeader = () => {
-    if (header.length < HEADER_SIZE && queue.length > 0) {
+  constructor(callback) {
+    this.callback = callback;
+  }
+
+  private processHeader(): boolean {
+    if (this.header.length < HEADER_SIZE && this.queue.length > 0) {
       // add from receive queue data to header until we get the 8 bytes we need:
-      while (header.length < HEADER_SIZE && queue.length > 0) {
-        const slice = queue[0];
-        const needed = HEADER_SIZE - header.length;
+      while (this.header.length < HEADER_SIZE && this.queue.length > 0) {
+        const slice = this.queue[0];
+        const needed = HEADER_SIZE - this.header.length;
         const num = Math.min(needed, slice.length);
 
         for (let i = 0; i < num; i++) {
-          header.push(slice[i]);
+          this.header.push(slice[i]);
         }
 
         // replace the slice with what is left over:
         if (slice.length > needed) {
-          queue[0] = slice.subarray(num);
+          this.queue[0] = slice.subarray(num);
         } else {
           // this slice has been fully consumed already:
-          queue.shift();
+          this.queue.shift();
         }
 
-        if (header[0] !== ord("P")) {
-          console.error("Invalid packet header format", header, ord("P"));
+        if (this.header[0] !== ord("P")) {
+          console.error("Invalid packet header format", this.header, ord("P"));
           return false;
         }
       }
     }
 
     // The packet has still not been downloaded, we need to wait
-    if (header.length < HEADER_SIZE) {
+    if (this.header.length < HEADER_SIZE) {
       //console.warn('Waiting for rest of packet...');
       return false;
     }
 
     return true;
-  };
+  }
 
-  const processData = (level, proto, packetSize) => {
+  private processData(
+    level: number,
+    _: Proto,
+    packetSize: number
+  ): Uint8Array | null {
     let packetData;
     // exact match: the payload is in a buffer already:
-    if (queue[0].length === packetSize) {
-      packetData = queue.shift();
+    if (this.queue[0].length === packetSize) {
+      packetData = this.queue.shift();
     } else {
       // aggregate all the buffers into "packet_data" until we get exactly "packet_size" bytes:
       packetData = new Uint8Array(packetSize);
 
       let rsize = 0;
       while (rsize < packetSize) {
-        const slice = queue[0];
+        const slice = this.queue[0];
         const needed = packetSize - rsize;
 
         // add part of this slice
         if (slice.length > needed) {
           packetData.set(slice.subarray(0, needed), rsize);
           rsize += needed;
-          queue[0] = slice.subarray(needed);
+          this.queue[0] = slice.subarray(needed);
         } else {
           // add this slice in full
           packetData.set(slice, rsize);
           rsize += slice.length;
-          queue.shift();
+          this.queue.shift();
         }
       }
     }
 
-    // TODO: Proto
-    /*
-    if (proto.crypto) {
-      this.cipher_in.update(forge.util.createBuffer(uintToString(packet_data)));
-      const decrypted = this.cipher_in.output.getBytes();
-      packet_data = [];
-      for (i=0; i<decrypted.length; i++)
-        packet_data.push(decrypted[i].charCodeAt(0));
-      packet_data = packet_data.slice(0, -1 * padding);
-    }
-    */
-
     return inflate(level, packetSize, packetData);
-  };
+  }
 
-  const process = () => {
-    if (!processHeader()) {
+  private process(): boolean {
+    if (!this.processHeader()) {
       return false;
     }
 
-    const result = parsePacket(header, queue);
+    const result = parsePacket(this.header, this.queue);
     if (result === false) {
       return false;
     }
 
-    header = [];
+    this.header = [];
 
     const { index, level, proto, packetSize } = result;
-    const inflated = processData(level, proto, packetSize);
+    const inflated = this.processData(level, proto, packetSize);
+    if (inflated === null) {
+      return false;
+    }
 
     // save it for later? (partial raw packet)
     if (index > 0) {
-      rawQueue[index] = inflated;
+      this.rawQueue[index] = inflated;
     } else {
       // decode raw packet string into objects:
       try {
-        const packet = decode(inflated, rawQueue);
+        const packet = decode(inflated, this.rawQueue);
 
         debug("<<<", ...packet);
 
-        callback(...packet);
+        this.callback(...packet);
 
-        rawQueue = [];
+        this.rawQueue = [];
       } catch (e) {
         console.error("error decoding packet", e);
         return false;
@@ -292,29 +280,32 @@ export const createReceiveQueue = callback => {
     }
 
     return true;
-  };
+  }
 
-  return {
-    clear: () => {
-      queue = [];
-    },
+  clear(): void {
+    this.queue = [];
+  }
 
-    push: data => {
-      queue.push(data);
-      process();
-    }
-  };
-};
+  push(data): void {
+    this.queue.push(data);
+    this.process();
+  }
+}
 
-/**
- * Creates a new send queue handler
- */
-export const createSendQueue = () => {
-  let queue = [];
+// It's a string and then a bunch of numbers and
+// other objects (?), e.g.,
+//  ["damage-sequence", 2, 48, 1509, 590, 33874, ""]
+// and
+//  ["pointer-position", 61, Array(2), Array(0), Array(0)]
+type QueueData = any[];
 
-  const process = socket => {
-    while (queue.length !== 0) {
-      const packet = queue.shift();
+// The Send queue handler
+export class SendQueue {
+  private queue: QueueData[] = [];
+
+  private process(socket: WebSocket): void {
+    while (this.queue.length !== 0) {
+      const packet = this.queue.shift();
       if (!packet || !socket) {
         continue;
       }
@@ -327,16 +318,14 @@ export const createSendQueue = () => {
 
       socket.send(out);
     }
-  };
+  }
 
-  return {
-    clear: () => {
-      queue = [];
-    },
+  clear(): void {
+    this.queue = [];
+  }
 
-    push: (data, socket) => {
-      queue.push(data);
-      process(socket);
-    }
-  };
-};
+  push(data: QueueData, socket: WebSocket): void {
+    this.queue.push(data);
+    this.process(socket);
+  }
+}

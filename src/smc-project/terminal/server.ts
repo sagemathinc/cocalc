@@ -16,7 +16,7 @@ import { exists } from "../jupyter/async-utils-node";
 
 import { throttle } from "underscore";
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 
 const terminals = {};
 
@@ -28,7 +28,7 @@ export async function terminal(
   primus: any,
   logger: any,
   path: string,
-  options: object
+  options: any
 ): Promise<string> {
   const name = `terminal:${path}`;
   if (terminals[name] !== undefined) {
@@ -40,19 +40,33 @@ export async function terminal(
     history: "",
     client_sizes: {},
     last_truncate_time: new Date().valueOf(),
-    truncating: 0
+    truncating: 0,
+    last_exit: 0
   };
   async function init_term() {
     const args: string[] = [];
 
-    const init_filename: string = console_init_filename(path);
-    if (await exists(init_filename)) {
-      args.push("--init-file");
-      args.push(path_split(init_filename).tail);
+    if (options.args != null) {
+      for (let arg of options.args) {
+        if (typeof(arg) === 'string') {
+          args.push(arg);
+        }
+      }
+    } else {
+      const init_filename: string = console_init_filename(path);
+      if (await exists(init_filename)) {
+        args.push("--init-file");
+        args.push(path_split(init_filename).tail);
+      }
     }
 
     const s = path_split(path);
     const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
+    if (options.env != null) {
+      merge(env, options.env);
+    }
+
+    const command = options.command ? options.command : "/bin/bash";
     const cwd = s.head;
 
     try {
@@ -60,7 +74,7 @@ export async function terminal(
     } catch (err) {
       console.log(`failed to load ${path} from disk`);
     }
-    const term = spawn("/bin/bash", args, { cwd, env });
+    const term = spawn(command, args, { cwd, env });
     logger.debug("terminal", "init_term", name, "pid=", term.pid, "args", args);
     terminals[name].term = term;
 
@@ -176,8 +190,20 @@ export async function terminal(
     }
 
     // Whenever term ends, we just respawn it.
-    term.on("exit", function() {
-      logger.debug("terminal", name, "EXIT");
+    term.on("exit", async function() {
+      logger.debug("terminal", name, "EXIT -- spawning again");
+      const now = new Date().getTime();
+      if (now - terminals[name].last_exit <= 15000) {
+        // frequent exit; we wait a few seconds, since otherwise
+        // restarting could burn all cpu and break everything.
+        logger.debug(
+          "terminal",
+          name,
+          "EXIT -- waiting a few seconds before trying again..."
+        );
+        await delay(3000);
+      }
+      terminals[name].last_exit = now;
       init_term();
     });
 

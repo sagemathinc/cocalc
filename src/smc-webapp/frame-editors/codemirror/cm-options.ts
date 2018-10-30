@@ -266,7 +266,10 @@ export function cm_options(
     matchBrackets: opts.match_brackets,
     autoCloseBrackets: opts.auto_close_brackets && !["hs", "lhs"].includes(ext), //972
     autoCloseTags:
-      opts.mode.indexOf("xml") !== -1 || opts.mode.indexOf("html") !== -1
+      opts.mode.indexOf("xml") !== -1 ||
+      opts.mode.indexOf("html") !== -1 ||
+      opts.mode.indexOf("cml") !== -1 ||
+      opts.mode.indexOf("kml") !== -1
         ? opts.auto_close_xml_tags
         : undefined,
     autoCloseLatex:
@@ -310,7 +313,7 @@ export function cm_options(
   } else {
     // options.theme MUST be set to something because this code is in CodeMirror
     //    cm.options.theme.replace...
-    options.theme = 'default';
+    options.theme = "default";
   }
 
   return options;

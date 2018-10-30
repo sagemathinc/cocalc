@@ -1,20 +1,15 @@
 /**
- * Xpra HTML Client
- *
- * This is a refactored (modernized) version of
- * https://xpra.org/trac/browser/xpra/trunk/src/html5/
- *
- * @author Anders Evenrud <andersevenrud@gmail.com>
+ * CoCalc Xpra HTML Client
  */
-import forge from "node-forge";
-import { CHARCODE_TO_NAME } from "./constants.js";
+
+import * as forge from "node-forge";
+import { CHARCODE_TO_NAME } from "./constants";
 import {
   browserLanguage,
   supportsWebp,
-  calculateDPI,
   calculateColorGamut,
   calculateScreens
-} from "./util.js";
+} from "./util";
 
 const platformMap = {
   Win: {
@@ -35,29 +30,34 @@ const platformMap = {
   }
 };
 
-const getPlatform = () => {
-  const { appVersion, oscpu, cpuClass } = navigator;
+function getPlatform(): {
+  type: string;
+  name: string;
+  processor: string;
+  platform: string;
+} {
+  const { appVersion, oscpu, cpuClass } = navigator as any;
   const found = Object.keys(platformMap).find(k => appVersion.includes(k));
 
   return Object.assign(
     {
       type: "unknown",
       name: "unknown",
-      processor: oscpu || cpuClass || "unknown",
+      processor: oscpu || cpuClass || "unknown", // unlikely to work with modern browsers
       platform: appVersion
     },
     found ? platformMap[found] : {}
   );
-};
+}
 
-const getBrowser = () => {
+function getBrowser(): { name: string; agent: string } {
   return {
     name: "Chrome", // TODO
     agent: navigator.userAgent
   };
-};
+}
 
-const getEncodingCapabilities = (config, soundCodecs) => {
+function getEncodingCapabilities(config, soundCodecs) {
   const digest = [
     "hmac",
     "hmac+md5",
@@ -126,9 +126,9 @@ const getEncodingCapabilities = (config, soundCodecs) => {
     // 'encoding.min-quality': 50,
     // 'encoding.non-scroll': ['rgb32', 'png', 'jpeg'],
   };
-};
+}
 
-const getClientCapabilities = config => {
+function getClientCapabilities(config) {
   const language = browserLanguage();
 
   const keycodes = Object.keys(CHARCODE_TO_NAME).reduce(
@@ -203,7 +203,7 @@ const getClientCapabilities = config => {
     ),
     dpi: config.dpi,
 
-    // Clipboard (not handled yet, but we will)
+    // Clipboard
     clipboard_enabled: config.clipboard,
     "clipboard.want_targets": true,
     "clipboard.greedy": true,
@@ -214,9 +214,9 @@ const getClientCapabilities = config => {
     "notifications.close": true,
     "notifications.actions": true
   };
-};
+}
 
-export const getCapabilities = (config, soundCodecs) => {
+export function getCapabilities(config, soundCodecs) {
   const platform = getPlatform();
   const browser = getBrowser();
   const client = getClientCapabilities(config);
@@ -271,4 +271,4 @@ export const getCapabilities = (config, soundCodecs) => {
     encoding,
     extras
   );
-};
+}
