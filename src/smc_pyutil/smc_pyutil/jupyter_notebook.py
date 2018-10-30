@@ -176,7 +176,7 @@ def action(mode):
                 })
                 sys.exit(1)
 
-            c = "ps -u`whoami` -o pid,cmd|grep '/usr/local/bin/jupyter-notebook'"
+            c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-notebook'"
             for s in os.popen(c).read().splitlines():
                 v = s.split()
                 if len(v) < 2 or not v[1].split('/')[-1].startswith('python'):
