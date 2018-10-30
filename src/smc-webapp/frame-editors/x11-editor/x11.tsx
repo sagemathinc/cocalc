@@ -246,6 +246,10 @@ export class X11Component extends Component<Props, {}> {
     client.blur();
   }
 
+  on_paste(e): void {
+    console.log("on_paste", e.clipboardData.getData("Text"));
+  }
+
   render_hidden_textarea(): Rendered {
     return (
       <textarea
@@ -263,6 +267,7 @@ export class X11Component extends Component<Props, {}> {
         tabIndex={0}
         ref="focus"
         onBlur={() => this.textarea_blur()}
+        onPaste={e => this.on_paste(e)}
       />
     );
   }

@@ -257,3 +257,8 @@ export function generateDigest(
 
   return null;
 }
+
+export function is_paste(ev: KeyboardEvent): boolean {
+  const keycode = ev.which || ev.keyCode;
+  return keycode === 86 && (ev.ctrlKey || ev.metaKey);
+}

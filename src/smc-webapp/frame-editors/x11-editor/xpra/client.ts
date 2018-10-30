@@ -190,9 +190,9 @@ export class Client {
       return false;
     }
 
-    this.keyboard.process(ev, surface);
+    const r = this.keyboard.process(ev, surface);
     this.bus.emit("key", ev, surface);
-    return false;
+    return r;
   }
 
   // Injects a mouse browser event
