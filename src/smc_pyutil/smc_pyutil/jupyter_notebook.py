@@ -92,7 +92,7 @@ def command():
     #     (msg/sec) Maximum rate at which messages can be sent on iopub before they
     #     are limited.
 
-    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password=''" % (
+    cmd = "jupyter notebook --port-retries=0 --no-browser --NotebookApp.iopub_data_rate_limit=2000000 --NotebookApp.iopub_msg_rate_limit=50 --NotebookApp.mathjax_url=%s %s --ip=%s --port=%s --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_remote_access=True" % (
         mathjax_url, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
