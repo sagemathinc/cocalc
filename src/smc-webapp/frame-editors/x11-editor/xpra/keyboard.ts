@@ -146,7 +146,7 @@ export class Keyboard {
   }
 
   process(ev: KeyboardEvent, surface: Surface): boolean {
-    if (ev.type === "keydown" && is_paste(ev)) {
+    if (is_paste(ev)) {
       // do NOT send the paste keystroke to X -- instead
       // let it propagate, causing the user to paste into
       // our hidden textarea.  If the key went to X, that

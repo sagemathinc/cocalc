@@ -4,6 +4,8 @@ X Window Editor Actions
 
 import { Map, fromJS } from "immutable";
 
+const copypaste = require("smc-webapp/copy-paste-buffer");
+
 import {
   Actions as BaseActions,
   CodeEditorState
@@ -299,5 +301,31 @@ export class Actions extends BaseActions<X11EditorState> {
   delete_notification(_: number): void {
     // NO-OP
     // console.log("delete_notification", nid);
+  }
+
+  async paste(id: string, value?: string | true): Promise<void> {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get("type") === "x11") {
+      if (value === undefined || value === true) {
+        value = copypaste.get_buffer();
+      }
+      if (value === undefined) {
+        // nothing to paste
+        return;
+      }
+      if (typeof(value) === 'boolean') { // make typescript happy
+        return;
+      }
+      //try {
+        await this.client.paste(value);
+      /*} catch (err) {
+        this.set_error(`paste error -- ${err}`);
+      }*/
+    } else {
+      super.paste(id, value);
+    }
   }
 }

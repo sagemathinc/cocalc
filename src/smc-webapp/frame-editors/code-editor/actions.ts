@@ -1388,13 +1388,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  paste(id: string): void {
+  paste(id: string, _value?: string | true): void {
     if (this._terminal_command(id, "paste")) {
+      return;
+    }
+    let value;
+    if (value === true || value == null) {
+      value = copypaste.get_buffer();
+    }
+    if (value === undefined) {
+      // nothing to paste
       return;
     }
     const cm = this._get_cm(id);
     if (cm != null) {
-      cm.getDoc().replaceSelection(copypaste.get_buffer());
+      cm.getDoc().replaceSelection(value);
       cm.focus();
       return;
     }

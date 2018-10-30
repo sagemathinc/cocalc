@@ -246,8 +246,11 @@ export class X11Component extends Component<Props, {}> {
     client.blur();
   }
 
-  on_paste(e): void {
-    console.log("on_paste", e.clipboardData.getData("Text"));
+  on_paste(e): boolean {
+    const value : string= e.clipboardData.getData("Text");
+    console.log("on_paste", value);
+    this.props.actions.paste(this.props.id, value);
+    return false;
   }
 
   render_hidden_textarea(): Rendered {
