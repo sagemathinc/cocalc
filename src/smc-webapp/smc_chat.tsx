@@ -1381,4 +1381,4 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   }
 }
 
-export const ChatRoom = rclass(ChatRoom0);
+export const ChatRoom = rclass<ChatRoomOwnProps>(ChatRoom0);

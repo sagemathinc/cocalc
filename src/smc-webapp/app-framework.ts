@@ -42,12 +42,13 @@ import { Store, StoreConstructorType } from "./app-framework/Store";
 import { Actions } from "./app-framework/Actions";
 import { Table, TableConstructor } from "./app-framework/Table";
 
-import { ProjectStore } from "./project_store";
-import { ProjectActions } from "./project_actions";
-
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 import { keys, is_valid_uuid_string } from "./frame-editors/generic/misc";
+
+// Only import the types
+declare type ProjectStore = import("./project_store").ProjectStore
+declare type ProjectActions = import("./project_actions").ProjectActions
 
 export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
