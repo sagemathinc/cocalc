@@ -247,8 +247,7 @@ export class X11Component extends Component<Props, {}> {
   }
 
   on_paste(e): boolean {
-    const value : string= e.clipboardData.getData("Text");
-    console.log("on_paste", value);
+    const value: string = e.clipboardData.getData("Text");
     this.props.actions.paste(this.props.id, value);
     return false;
   }

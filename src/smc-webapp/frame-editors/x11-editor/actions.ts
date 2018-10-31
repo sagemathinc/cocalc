@@ -2,7 +2,11 @@
 X Window Editor Actions
 */
 
+import { Channel } from "smc-webapp/project/websocket/types";
+
 import { Map, fromJS } from "immutable";
+
+import { project_api } from "../generic/client";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
@@ -23,14 +27,24 @@ interface X11EditorState extends CodeEditorState {
 
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
+  private channel: Channel;
   protected doctype: string = "none";
   public store: Store<X11EditorState>;
   client: XpraClient;
 
-  _init2(): void {
+  async _init2(): Promise<void> {
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
+    try {
+      await this.init_channel();
+    } catch (err) {
+      this.set_error(
+        // TODO: should retry instead (?)
+        err +
+          " -- you might need to refresh your browser or close and open this file."
+      );
+    }
   }
 
   /*
@@ -75,6 +89,10 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     this.client.close();
     delete this.client;
+    if (this.channel !== undefined) {
+      this.channel.end();
+      delete this.channel;
+    }
     super.close();
   }
 
@@ -316,16 +334,31 @@ export class Actions extends BaseActions<X11EditorState> {
         // nothing to paste
         return;
       }
-      if (typeof(value) === 'boolean') { // make typescript happy
-        return;
-      }
-      //try {
-        await this.client.paste(value);
-      /*} catch (err) {
-        this.set_error(`paste error -- ${err}`);
-      }*/
+      this.channel.write({ cmd: "paste", value });
     } else {
       super.paste(id, value);
     }
+  }
+
+  private async init_channel(): Promise<void> {
+    if (this._state === "closed") return;
+    const api = await project_api(this.project_id);
+    this.channel = await api.x11_channel(this.path);
+    const channel: any = this.channel;
+    channel.on("close", () => {
+      channel.removeAllListeners();
+      channel.conn.once("open", async () => {
+        await this.init_channel();
+      });
+    });
+    channel.on("data", x => {
+      if (typeof x === "object") {
+        this.handle_data_from_channel(x);
+      }
+    });
+  }
+
+  private handle_data_from_channel(x: object): void {
+    console.log("handle_data_from_channel", x);
   }
 }

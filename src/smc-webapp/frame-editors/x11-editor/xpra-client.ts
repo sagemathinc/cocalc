@@ -1,7 +1,5 @@
 // Use Xpra to provide X11 server.
 
-import { exec, write_text_file_to_project } from "../generic/client";
-
 import { retry_until_success } from "../generic/async-utils";
 
 import { delay } from "awaiting";
@@ -371,46 +369,4 @@ export class XpraClient extends EventEmitter {
     this.emit("notification:destroy", nid);
   }
 
-  // TODO: do this all in one single **api call**, which
-  // will make it MUCH faster, using the node-clip library mostly.
-  async paste(value: string): Promise<void> {
-    const env = {
-      DISPLAY: `:${this.server.get_display()}`
-    };
-    const project_id = this.options.project_id;
-    const path = `/tmp/paste-${Math.random()}`;
-    try {
-      // write clipboard value to file
-      console.log(0);
-      await write_text_file_to_project({ project_id, path, content: value });
-      console.log(1);
-      await delay(500);
-
-      // read clipboard in from the file
-      const command = "xclip";
-      const args = ["-in", path, "-selection", "clipboard"];
-      await exec({
-        project_id,
-        command,
-        args,
-        env
-      });
-
-      console.log(2);
-      // tell application to paste (obviously will only work for some apps)
-      await exec({
-        project_id,
-        command: "xdotool",
-        args: ["key", "Control_L+v"],
-        env
-      });
-      console.log(3);
-    } finally {
-      await exec({
-        project_id,
-        command: "rm",
-        args: [path]
-      });
-    }
-  }
 }
