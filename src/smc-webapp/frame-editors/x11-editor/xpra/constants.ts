@@ -9,15 +9,16 @@
 
 const { platform, userAgent } = navigator;
 
-export const IS_IE = userAgent.includes("MSIE");
-export const IS_OPERA = userAgent.toLowerCase().includes("opera");
-export const IS_FIREFOX = userAgent.toLowerCase().includes("firefox");
-export const IS_SAFARI =
+export const IS_IE: boolean = userAgent.includes("MSIE");
+export const IS_OPERA: boolean = userAgent.toLowerCase().includes("opera");
+export const IS_FIREFOX: boolean = userAgent.toLowerCase().includes("firefox");
+export const IS_SAFARI: boolean =
   userAgent.toLowerCase().includes("safari") &&
   !userAgent.toLowerCase().includes("chrome");
-export const IS_CHROME = !IS_IE && !IS_OPERA && !IS_FIREFOX && !IS_SAFARI; // FIXME
-export const IS_OSX = platform.includes("Mac");
-export const IS_WIN32 = platform.includes("Win");
+export const IS_CHROME: boolean =
+  !IS_IE && !IS_OPERA && !IS_FIREFOX && !IS_SAFARI; // FIXME
+export const IS_OSX: boolean = platform.includes("Mac");
+export const IS_WIN32: boolean = platform.includes("Win");
 
 export const DEFAULT_DPI = 96;
 export const HEADER_SIZE = 8;

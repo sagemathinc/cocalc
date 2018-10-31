@@ -27,6 +27,7 @@ interface ExecOpts {
   aggregate?: string | number | { value: string | number };
   err_on_exit?: boolean;
   allow_post?: boolean; // set to false if genuinely could take a long time
+  env?: any; // custom environment variables.
 }
 
 export interface ExecOutput {
@@ -74,6 +75,18 @@ export async function read_text_file_from_project(
     opts
   );
   return mesg.content;
+}
+
+interface WriteTextFileOpts {
+  project_id: string;
+  path: string;
+  content: string;
+}
+
+export async function write_text_file_to_project(
+  opts: WriteTextFileOpts
+): Promise<void> {
+  await callback_opts(webapp_client.write_text_file_to_project)(opts);
 }
 
 export async function public_get_text_file(

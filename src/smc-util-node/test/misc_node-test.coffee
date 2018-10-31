@@ -1,10 +1,94 @@
 expect = require('expect')
 
+misc = require('smc-util/misc')
+
 misc_node = require('../misc_node')
 
 describe 'computing a sha1 hash: ', ->
     expect(misc_node.sha1("SageMathCloud")).toBe('31acd8ca91346abcf6a49d2b1d88333f439d57a6')
     expect(misc_node.sha1("CoCalc")).toBe('c898c97dca68742a5a6331f9fa0ca02483cbfd25')
+
+describe "execute code", ->
+    ex = require("smc-util-node/execute-code").execute_code
+
+    it "runs normal code in bash", (done) =>
+        ex
+            command : "echo 'abc' | wc -c"
+            cb      : (err, ret) ->
+                expect(err).toBe(null)
+                expect(ret.stdout).toBe("4\n")
+                done()
+
+    # not sure how to test, at least it does something
+    it "doesn't use bash if told so", (done) =>
+        ex
+            command : "echo"
+            args    : ['abc']
+            bash    : false
+            cb      : (err, ret) ->
+                expect(err).toBe(null)
+                expect(ret.stdout).toBe("abc\n")
+                done()
+
+    it "kills if timeout reached", (done) =>
+        ex
+            command : "sleep 5"
+            timeout : 0.1
+            cb      : (err, ret) ->
+                expect(err).toContain('killed command')
+                done()
+
+    it "kills in non-bash mode if timeout reached", (done) =>
+        ex
+            command : "sh"
+            args    : ['-c', "sleep 5"]
+            bash    : false
+            timeout : 0.1
+            cb      : (err, ret) ->
+                expect(err).toContain('killed command')
+                done()
+
+    it "reports missing executable in non-bash mode", (done) =>
+        ex
+            command : "this_does_not_exist"
+            args    : ['nothing']
+            bash    : false
+            cb      : (err, ret) ->
+                expect(err).toExist()
+                expect(ret).toExist()
+                expect(err).toContain('"errno":"ENOENT"')
+                err_data = misc.from_json(ret.stderr)
+                expect(err_data.code).toBe('ENOENT')
+                expect(err_data.errno).toBe('ENOENT')
+                done()
+
+    it "reports missing executable in non-bash mode and when ignoring error codes on exit", (done) =>
+        ex
+            command     : "this_does_not_exist"
+            args        : ['nothing']
+            bash        : false
+            err_on_exit : false
+            cb          : (err, ret) ->
+                expect(err).toExist()
+                expect(ret).toExist()
+                expect(err).toContain('"errno":"ENOENT"')
+                err_data = misc.from_json(ret.stderr)
+                expect(err_data.code).toBe('ENOENT')
+                expect(err_data.errno).toBe('ENOENT')
+                done()
+
+    it "ignores errors otherwise if err_on_exit is false", (done) =>
+        ex
+            command     : "sh"
+            args        : ['-c', 'echo foo; exit 42']
+            bash        : false
+            err_on_exit : false
+            cb          : (err, ret) ->
+                expect(err).toBe(false)
+                expect(ret.stdout).toBe('foo\n')
+                expect(ret.stderr).toBe('')
+                expect(ret.exit_code).toBe(42)
+                done()
 
 describe "sanitizing HTML", ->
     sani     = misc_node.sanitize_html

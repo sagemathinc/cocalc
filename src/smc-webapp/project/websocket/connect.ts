@@ -5,8 +5,8 @@ Create a singleton websocket connection directly to a particular project.
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
 import { retry_until_success } from "../../frame-editors/generic/async-utils";
-
-import { getScript } from "jquery";
+import { callback } from "awaiting";
+import { /* getScript*/ ajax, globalEval } from "jquery";
 
 const connections = {};
 
@@ -39,8 +39,29 @@ async function connection_to_project0(project_id: string): Promise<any> {
       }
       try {
         READING_PRIMUS_JS = true;
-        //console.log(`reading primus.js from ${project_id}...`);
-        await getScript(url);
+
+        const load_primus = cb => {
+          ajax({
+            type: "GET",
+            url: url,
+            // text, in contrast to "script", doesn't eval it -- we do that!
+            dataType: "text",
+            error: () => {
+              cb("ajax error -- try again");
+            },
+            success: async function(data) {
+              // console.log("success. data:", data.slice(0, 100));
+              if (data.charAt(0) !== "<") {
+                await globalEval(data);
+                cb();
+              } else {
+                cb("wrong data -- try again");
+              }
+            }
+          });
+        };
+        await callback(load_primus);
+
         Primus = window0.Primus;
         window0.Primus = Primus0; // restore global primus
       } finally {
@@ -52,6 +73,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
     start_delay: 250,
     max_delay: 1500,
     factor: 1.2
+    //log: (...x) => {
+    //  console.log("retry primus:", ...x);
+    //}
   });
 
   // This dance is because evaling primus_js sets window.Primus.

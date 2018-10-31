@@ -236,7 +236,8 @@ VISIBLE_STYLE =
 
 const NOT_VISIBLE_STYLE: React.CSSProperties = {
   position: "absolute",
-  fontSize: 0
+  fontSize: 0,
+  zIndex: -100
 };
 
 // TODO: type?
@@ -264,10 +265,10 @@ class Hook0 extends Component<HookReactProps & HookReduxProps> {
     style.top = this.props.mode === "edit" ? this.props.hook_offset : undefined;
     return (
       <div style={style} className="cocalc-jupyter-hook">
-        <Icon name="circle" />
+        &nbsp;
       </div>
     );
-  } 
+  }
 }
 
 const Hook = rclass<HookReactProps>(Hook0);

@@ -25,6 +25,8 @@ import { Actions } from "../code-editor/actions";
 import { endswith } from "../generic/misc";
 import { open_init_file } from "./init-file";
 
+import { ConnectionStatus } from "../frame-tree/types";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
@@ -55,8 +57,8 @@ export class Terminal {
   private id: string;
   private terminal: XTerminal;
   private is_paused: boolean = false;
-  private keyhandler_initialized : boolean = false;
-    /* We initially have to ignore when rendering the initial history.
+  private keyhandler_initialized: boolean = false;
+  /* We initially have to ignore when rendering the initial history.
     To TEST this, do this in a terminal, then reconnect:
          printf "\E[c\n" ; sleep 1 ; echo
     The above causes the history to have device attribute requests, which
@@ -113,6 +115,7 @@ export class Terminal {
     this.init_terminal_data();
     this.init_settings();
     this.init_touch();
+    this.set_connection_status("disconnected");
   }
 
   assert_not_closed(): void {
@@ -123,6 +126,7 @@ export class Terminal {
 
   close(): void {
     this.assert_not_closed();
+    this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
     this.account.removeListener("change", this.update_settings);
@@ -148,6 +152,7 @@ export class Terminal {
     this.conn.removeAllListeners();
     this.conn.end();
     delete this.conn;
+    this.set_connection_status("disconnected");
   }
 
   update_settings(): void {
@@ -203,11 +208,14 @@ export class Terminal {
       this.disconnect();
     }
     try {
+      this.set_connection_status("connecting");
       const ws = await project_websocket(this.project_id);
       if (this.state === "closed") {
         return;
       }
-      this.conn = await ws.api.terminal(this.term_path);
+      const options: any = {};
+      options.env = this.actions.get_term_env();
+      this.conn = await ws.api.terminal(this.term_path, options);
       if (this.state === "closed") {
         return;
       }
@@ -215,6 +223,7 @@ export class Terminal {
       if (this.state === "closed") {
         return;
       }
+      this.set_connection_status("disconnected");
       console.log(`terminal connect error -- ${err}; will try again in 2s...`);
       await delay(2000);
       if (this.state === "closed") {
@@ -224,6 +233,10 @@ export class Terminal {
       return;
     }
 
+    // Delete any data or state in terminal before receiving new data.
+    this.terminal.reset();
+    // Ignore device attr data coming back for initial load.
+    this.ignore_terminal_data = true;
     this.conn.on("close", this.connect);
     this.conn.on("data", this._handle_data_from_project);
     if (endswith(this.path, ".term")) {
@@ -233,6 +246,7 @@ export class Terminal {
       this.conn.write(data);
     }
     this.conn_write_buffer = [];
+    this.set_connection_status("connected");
   }
 
   async reload(): Promise<void> {
@@ -290,6 +304,12 @@ export class Terminal {
     });
   }
 
+  set_connection_status(status: ConnectionStatus): void {
+    if (this.actions != null) {
+      this.actions.set_connection_status(this.id, status);
+    }
+  }
+
   init_weblinks(): void {
     (this.terminal as any).webLinksInit(handleLink);
   }
@@ -305,7 +325,7 @@ export class Terminal {
   }
 
   init_keyhandler(): void {
-    if(this.keyhandler_initialized) {
+    if (this.keyhandler_initialized) {
       return;
     }
     this.keyhandler_initialized = true;
@@ -441,7 +461,7 @@ export class Terminal {
         await delay(0);
         this.terminal.refresh(0, this.terminal.rows - 1);
         // Finally start listening to user input.
-        this.init_keyhandler()
+        this.init_keyhandler();
         cb();
       };
       this.terminal.on("refresh", f);
@@ -548,7 +568,9 @@ export class Terminal {
   }
 
   focus(): void {
-    this.assert_not_closed();
+    if (this.state === "closed") {
+      return;
+    }
     this.terminal.focus();
   }
 

@@ -72,11 +72,8 @@ ProjectTab = rclass
         @refs.tab?.node.children[0].removeAttribute('href')
     componentDidMount: ->
         @strip_href()
-        document.addEventListener('mousedown', @onMouseDown)
     componentDidUpdate: () ->
         @strip_href()
-    componentWillUnmount: () ->
-       document.removeEventListener('mousedown', @onMouseDown)
 
     close_tab: (e) ->
         e.stopPropagation()
@@ -85,8 +82,8 @@ ProjectTab = rclass
 
     # middle mouse click closes
     onMouseDown: (e) ->
-        if e.button == 1
-            @close_tab(e)
+        #if e.button == 1
+        #    @close_tab(e)
 
     render: ->
         title  = @props.project?.get('title') ? @props.public_project_titles?.get(@props.project_id)

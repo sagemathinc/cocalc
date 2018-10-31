@@ -1,7 +1,8 @@
 const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
-const { execute_code } = require("smc-util-node/execute-code");
 const { callback } = require("awaiting");
+const { spawn } = require("child_process");
+const { execute_code } = require("smc-util-node/execute-code");
 const {
   callback_opts
 } = require("smc-webapp/frame-editors/generic/async-utils");
@@ -10,21 +11,15 @@ interface ParserOptions {
   parser: string;
 }
 
-// the long list of options looks scary, but it is based on testing it.
-// e.g. that it doesn't introduce a "full" <html></html> document, as long as there is no <body> tag.
-// also, the "indent" formatting of codemirror is similar to the indentation here.
 // ref: http://tidy.sourceforge.net/docs/quickref.html
 
 async function tidy(input_path) {
   const args = [
     "-modify",
-    "--show-body-only",
-    "auto",
+    "-xml",
     "--indent",
     "yes",
     "--vertical-space",
-    "yes",
-    "--break-before-br",
     "yes",
     "--indent-spaces",
     "2", // tune that if we let users ever choose the indentation
@@ -52,7 +47,7 @@ async function tidy(input_path) {
   });
 }
 
-export async function html_format(
+export async function xml_format(
   input: string,
   options: ParserOptions,
   logger: any
@@ -61,38 +56,35 @@ export async function html_format(
   const input_path: string = await callback(tmp.file);
   try {
     await callback(writeFile, input_path, input);
-    let html_formatter;
 
+    // spawn the html formatter
+    let xml_formatter;
     try {
-      // run the selected html formatter
       switch (options.parser) {
-        case "html-tidy":
-        case "tidy":
-          html_formatter = await tidy(input_path);
+        case "xml-tidy":
+          xml_formatter = await tidy(input_path);
           break;
         default:
-          throw Error(`Unknown HTML formatter utility '${options.parser}'`);
+          throw Error(`Unknown XML formatter utility '${options.parser}'`);
       }
     } catch (e) {
-      logger.debug(`Calling formatter raised ${e}`);
+      logger.debug(`Calling XML formatter raised ${e}`);
       throw new Error(
-        `HTML formatter broken or not available. Is '${
+        `XML formatter broken or not available. Is '${
           options.parser
         }' installed?`
       );
     }
 
-    const { exit_code, stdout, stderr } = html_formatter;
+    const { exit_code, stdout, stderr } = xml_formatter;
     const code = exit_code;
-    // logger.debug("html_format: code, stdout, stderr", code, stdout, stderr);
-    // TODO exit code 1 is a "warning", which requires show-warnings yes
-    const problem = options.parser === "html-tidy" ? code >= 2 : code >= 1;
+
+    const problem = options.parser === "xml-tidy" ? code >= 2 : code >= 1;
     if (problem) {
-      throw Error(
-        `HTML formatter "${
-          options.parser
-        }" exited with code ${code}\nOutput:\n${[stdout, stderr].join("\n")}`
-      );
+      const msg = `XML formatter "${
+        options.parser
+      }" exited with code ${code}\nOutput:\n${stdout}\n${stderr}`;
+      throw Error(msg);
     }
 
     // all fine, we read from the temp file
@@ -100,7 +92,7 @@ export async function html_format(
     let s: string = output.toString("utf-8");
     return s;
   } finally {
-    // logger.debug(`html formatter done, unlinking ${input_path}`);
+    // logger.debug(`xml formatter done, unlinking ${input_path}`);
     unlink(input_path);
   }
 }
