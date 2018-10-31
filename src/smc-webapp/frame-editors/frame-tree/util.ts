@@ -58,5 +58,6 @@ export const PRETTIER_SUPPORT = {
   h: true, // --*--
   xml: true, // tidy
   cml: true, // tidy for xml
-  kml: true // tidy for xml
+  kml: true, // tidy for xml
+  bib: true // via biber --tool
 };
