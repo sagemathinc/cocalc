@@ -45,7 +45,8 @@ TODO:  This entire file should be broken into many small files/components,
 which are in the projects/ subdirectory.
 ###
 {NewProjectCreator} = require('./projects/create-project')
-{ProjectRow}        = require('./projects/project')
+{ProjectRow}        = require('./projects/project-row')
+{ProjectsFilterButtons} = require('./projects/projects-filter-buttons')
 
 MAX_DEFAULT_PROJECTS = 50
 
@@ -505,6 +506,12 @@ class ProjectsActions extends Actions
             project_id : project_id
             deleted    : not is_deleted
 
+    display_hidden_projects: (should_display) =>
+        @setState(hidden: should_display)
+
+    display_deleted_projects: (should_display) =>
+        @setState(deleted: should_display)
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
@@ -803,43 +810,6 @@ class ProjectsTable extends Table
         actions.setState(project_map: table.get())
 
 redux.createTable('projects', ProjectsTable)
-
-ProjectsFilterButtons = rclass
-    displayName : 'ProjectsFilterButtons'
-
-    propTypes :
-        hidden              : rtypes.bool.isRequired
-        deleted             : rtypes.bool.isRequired
-        show_hidden_button  : rtypes.bool
-        show_deleted_button : rtypes.bool
-
-    getDefaultProps: ->
-        hidden  : false
-        deleted : false
-        show_hidden_button : false
-        show_deleted_button : false
-
-    render_deleted_button: ->
-        style = if @props.deleted then 'warning' else "default"
-        if @props.show_deleted_button
-            <Button onClick={=>@actions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
-                <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
-            </Button>
-        else
-            return null
-
-    render_hidden_button: ->
-        style = if @props.hidden then 'warning' else "default"
-        if @props.show_hidden_button
-            <Button onClick = {=>@actions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
-                <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
-            </Button>
-
-    render: ->
-        <ButtonGroup>
-            {@render_deleted_button()}
-            {@render_hidden_button()}
-        </ButtonGroup>
 
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
