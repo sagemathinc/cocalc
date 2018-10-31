@@ -20,6 +20,10 @@ import { throttle } from "underscore";
 
 const { open_new_tab } = require("smc-webapp/misc_page");
 
+import { is_copy } from "./xpra/util";
+
+const { alert_message } = require("smc-webapp/alerts");
+
 const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
@@ -39,6 +43,8 @@ interface Options {
 }
 
 import { EventEmitter } from "events";
+
+let clipboard_error: boolean = false;
 
 export class XpraClient extends EventEmitter {
   private options: Options;
@@ -60,6 +66,9 @@ export class XpraClient extends EventEmitter {
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
     this.init_xpra_events();
     this.connect();
+    this.copy_from_xpra = throttle(this.copy_from_xpra.bind(this), 200, {
+      trailing: false
+    });
   }
 
   get_display(): number {
@@ -167,13 +176,58 @@ export class XpraClient extends EventEmitter {
     this.disable_window_events();
   }
 
+  async get_clipboard(): Promise<string> {
+    return await this.server.get_clipboard();
+  }
+
+  async copy_from_xpra(): Promise<void> {
+    const clipboard = (navigator as any).clipboard;
+    if (clipboard == null) {
+      if (clipboard_error) {
+        return;
+      }
+      clipboard_error = true;
+      alert_message({
+        type: "info",
+        title: "X11 Clipboard Copy.",
+        message:
+          "Currently copying from graphical Linux applications requires Chrome version 66 or higher.  Try using the copy button for internal copy.",
+        timeout: 9999
+      });
+    }
+    const value = await this.get_clipboard();
+    try {
+      await clipboard.writeText(value);
+    } catch (e) {
+      throw Error(`Failed to copy to clipboard: ${e}`);
+    }
+  }
+
+  event_keydown = ev => {
+    // Annoying: typescript doesn't know ev is of type KeyboardEvent
+    // todo -- second arg?
+    const r = this.client.key_inject(ev as any, undefined);
+    if (is_copy(ev as any)) {
+      this.copy_from_xpra();
+    }
+    return r;
+  };
+
+  event_keyup = ev => {
+    return this.client.key_inject(ev as any, undefined);
+  };
+
+  event_keypress = ev => {
+    return this.client.key_inject(ev as any, undefined);
+  };
+
   private enable_window_events(): void {
     if (this.client === undefined) {
       return;
     }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
-      doc.on(name, (this.client as any).key_inject);
+      doc.on(name, this[`event_${name}`]);
     }
     for (let name of MOUSE_EVENTS) {
       doc.on(name, (this.client as any).mouse_inject);
@@ -186,7 +240,7 @@ export class XpraClient extends EventEmitter {
     }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
-      doc.off(name, (this.client as any).key_inject);
+      doc.off(name, this[`event_${name}`]);
     }
     for (let name of MOUSE_EVENTS) {
       doc.off(name, (this.client as any).mouse_inject);
@@ -368,5 +422,4 @@ export class XpraClient extends EventEmitter {
   handle_notification_destroy(nid: number): void {
     this.emit("notification:destroy", nid);
   }
-
 }

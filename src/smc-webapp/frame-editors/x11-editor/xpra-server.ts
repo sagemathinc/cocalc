@@ -101,7 +101,7 @@ export class XpraServer {
       //"all",
       "--socket-dir=/tmp/xpra",
       "--tray=no",
-      "--clipboard=no",  /* we use our own clipboard approach */
+      "--clipboard=no" /* we use our own clipboard approach */,
       "--notifications=yes",
       "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
       "--pulseaudio=no",
@@ -203,5 +203,17 @@ export class XpraServer {
       } // else -- it won't work.
     }
     return `/tmp/xpra/${hostname}-${this.display}`;
+  }
+
+  // get the current contents of the X11 clipboard
+  async get_clipboard(): Promise<string> {
+    return (await exec({
+      env: { DISPLAY: `:${this.display}` },
+      project_id: this.project_id,
+      command: "xsel",
+      err_on_exit: true,
+      timeout: 5,
+      network_timeout: 5
+    })).stdout;
   }
 }

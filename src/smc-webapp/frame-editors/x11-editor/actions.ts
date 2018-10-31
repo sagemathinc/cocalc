@@ -340,6 +340,19 @@ export class Actions extends BaseActions<X11EditorState> {
     }
   }
 
+  async copy(id: string): Promise<void> {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get("type") === "x11") {
+      const value = await this.client.get_clipboard();
+      copypaste.set_buffer(value);
+    } else {
+      super.copy(id);
+    }
+  }
+
   private async init_channel(): Promise<void> {
     if (this._state === "closed") return;
     const api = await project_api(this.project_id);

@@ -262,3 +262,8 @@ export function is_paste(ev: KeyboardEvent): boolean {
   const keycode = ev.which || ev.keyCode;
   return keycode === 86 && (ev.ctrlKey || ev.metaKey);
 }
+
+export function is_copy(ev: KeyboardEvent): boolean {
+  const keycode = ev.which || ev.keyCode;
+  return keycode === 67 && (ev.ctrlKey || ev.metaKey);
+}
