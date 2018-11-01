@@ -441,4 +441,11 @@ export class XpraClient extends EventEmitter {
   handle_notification_destroy(nid: number): void {
     this.emit("notification:destroy", nid);
   }
+
+  // Returns 0 if no parent.
+  // Returns wid of the parent if there is one.
+  get_parent(wid: number): number {
+    const surface = this.client.findSurface(wid);
+    return surface && surface.parent != null ? surface.parent.wid : 0;
+  }
 }

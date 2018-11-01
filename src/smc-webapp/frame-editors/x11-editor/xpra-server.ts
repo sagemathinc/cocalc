@@ -98,7 +98,13 @@ export class XpraServer {
   }
 
   private async _start(port: number): Promise<void> {
+    // Kill any existing Xvfb processes that conflict with
+    // this one -- they can get left around.
     await this._kill_Xvfb();
+
+    // Make sure directory for logs and sockets exists.
+    await this.exec({ command: "mkdir", args: ["-p", "/tmp/xpra"] });
+    // Actually start xpra.
     const XVFB = `/usr/bin/Xvfb +extension Composite -screen 0 ${MAX_WIDTH}x${MAX_HEIGHT}x24+32 -nolisten tcp -noreset`;
     const command = "xpra";
     const args = [

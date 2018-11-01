@@ -274,6 +274,17 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   close_window(id: string, wid: number): void {
+    this.switch_to_window_after_this_closes(id, wid);
+    this.client.close_window(wid);
+  }
+
+  switch_to_window_after_this_closes(id:string, wid: number): void {
+    const parent_wid = this.client.get_parent(wid);
+    if (parent_wid) {
+      this.set_focused_window_in_frame(id, parent_wid);
+      return;
+    }
+
     // Determine the previous available window.
     const used_wids = {};
     for (let leaf_id in this._get_leaf_ids()) {
@@ -297,7 +308,6 @@ export class Actions extends BaseActions<X11EditorState> {
       // nothing available -- at least clear the title.
       this.set_title(id, "");
     }
-    this.client.close_window(wid);
   }
 
   create_notification(_: number, desc: any): void {
