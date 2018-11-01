@@ -14,6 +14,7 @@ require("./lz4");
 let debug;
 if (DEBUG) {
   debug = console.log;
+
 } else {
   debug = function(..._) {};
 }

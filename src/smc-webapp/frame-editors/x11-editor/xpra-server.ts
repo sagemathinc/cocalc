@@ -20,7 +20,6 @@ export interface ExecOpts0 {
   env?: any; // custom environment variables.
 }
 
-
 interface XpraServerOptions {
   project_id: string;
   command?: string;
@@ -110,6 +109,8 @@ export class XpraServer {
       "--compression_level=9",
       "--socket-dir=/tmp/xpra",
       "--tray=no",
+      "--mousewheel=on",
+      "--log-dir=/tmp/xpra",
       "--clipboard=no" /* we use our own clipboard approach */,
       "--notifications=yes",
       "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
@@ -230,7 +231,7 @@ export class XpraServer {
     return (await this.exec({
       command: "xsel",
       err_on_exit: true,
-      timeout: 5,
+      timeout: 5
     })).stdout;
   }
 }
