@@ -261,10 +261,15 @@ export class XpraClient extends EventEmitter {
     e.empty();
     e.append(canvas);
 
-    // Also append any already known overlays.
+    // Append any already known overlays or modals
     for (let id of this.client.window_ids()) {
       const w = this.client.findSurface(id);
-      if (w && w.parent !== undefined && w.parent.wid === wid) {
+      if (w == null) {
+        continue;
+      }
+      if (w.parent !== undefined && w.parent.wid === wid) {
+        this.place_overlay_in_dom(w);
+      } else if (w.metadata && w.metadata["transient-for"] === wid) {
         this.place_overlay_in_dom(w);
       }
     }
@@ -276,13 +281,15 @@ export class XpraClient extends EventEmitter {
   }
 
   window_create(surface: Surface): void {
-    //console.log("window_create", window);
-    this.emit("window:create", surface.wid, {
-      wid: surface.wid,
-      width: surface.w,
-      height: surface.h,
-      title: surface.metadata.title
-    });
+    if (surface.metadata["transient-for"]) {
+      surface.parent = this.client.findSurface(
+        surface.metadata["transient-for"]
+      );
+      // modal window on top of existing one...
+      this.place_overlay_in_dom(surface);
+    } else {
+      this.emit("window:create", surface.wid, surface.metadata.title);
+    }
   }
 
   // Any new top-level window gets moved to position 0,0 and
@@ -326,6 +333,14 @@ export class XpraClient extends EventEmitter {
 
   window_icon({ wid, src, w, h }): void {
     //console.log("window_icon", wid, src);
+    const surface = this.client.findSurface(wid);
+    if (!surface) {
+      return;
+    }
+    if (surface.metadata && surface.metadata["transient-for"]) {
+      // do not track icons for modals.
+      return;
+    }
     this.emit("window:icon", wid, src, w, h);
   }
 
@@ -337,25 +352,28 @@ export class XpraClient extends EventEmitter {
     const e = $(overlay.canvas);
     e.css("position", "absolute");
     if (overlay.parent === undefined) {
-      throw Error("overlay must defined a parent");
+      throw Error("overlay must define a parent");
     }
     const scale = overlay.parent.scale ? overlay.parent.scale : 1;
     const width = `${overlay.canvas.width / scale}px`,
       height = `${overlay.canvas.height / scale}px`,
       left = `${overlay.x / scale}px`,
       top = `${overlay.y / scale}px`;
+    const border: string = overlay.metadata["transient-for"]
+      ? "1px solid grey"
+      : "1px solid rgba(0,0,0,.15)";
     e.css({
       width,
       height,
       left,
       top,
-      border: "1px solid rgba(0,0,0,.15)",
+      border,
       borderRadius: "4px",
       boxShadow: "0 6px 12px rgba(0,0,0,.175)",
-      backgroundColor:'white'
+      backgroundColor: "white"
     });
 
-    // if parent not in DOM yet, the following is no-op.
+    // if parent not in DOM yet, the following is a no-op.
     $(overlay.parent.canvas)
       .parent()
       .append(e);

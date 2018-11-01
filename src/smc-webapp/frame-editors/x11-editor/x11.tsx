@@ -35,22 +35,6 @@ interface Props {
   windows: Map<string, any>;
 }
 
-/*
-const HIDDEN_TEXTAREA_STYLE = {
-  position: "absolute",
-  opacity: 0,
-  left: "-9999em",
-  top: 0,
-  width: 0,
-  height: 0,
-  zIndex: "-10",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  resize: "none"
-};
-
-*/
-
 export class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
@@ -190,6 +174,10 @@ export class X11Component extends Component<Props, {}> {
     const wids = this.props.windows.keySeq().toJS();
     wids.sort((a, b) => cmp(parseInt(a), parseInt(b))); // since they are strings.
     for (let wid of wids) {
+      if (this.props.windows.getIn([wid, 'parent'])) {
+        // don't render a tab for modal dialogs (or windows on top of others that block them).
+        continue;
+      }
       v.push(
         <WindowTab
           id={this.props.id}

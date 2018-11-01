@@ -147,8 +147,10 @@ export class Actions extends BaseActions<X11EditorState> {
       }
     });
 
-    this.client.on("window:create", (wid: number, info) => {
-      let windows = this.store.get("windows").set(`${wid}`, fromJS(info));
+    this.client.on("window:create", (wid: number, title: string) => {
+      let windows = this.store
+        .get("windows")
+        .set(`${wid}`, fromJS({ wid, title }));
       this.setState({ windows });
     });
 
