@@ -107,6 +107,7 @@ export class XpraServer {
       `:${this.display}`,
       //"-d",
       //"all",
+      "--compression_level=9",
       "--socket-dir=/tmp/xpra",
       "--tray=no",
       "--clipboard=no" /* we use our own clipboard approach */,

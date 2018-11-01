@@ -23,7 +23,7 @@ function createConfiguration(defaults = {}, append = {}) {
       image_codecs: [],
       screen: [MAX_WIDTH, MAX_HEIGHT],
       dpi: calculateDPI(),
-      compression_level: 1, // TODO: experiment with this.
+      compression_level: 9,
       reconnect: true,
       notifications: true,
       clipboard: true,
@@ -38,7 +38,7 @@ function createConfiguration(defaults = {}, append = {}) {
       username: "",
       password: "",
       zlib: true,
-      lz4: false // TODO: need to implement this!
+      lz4: true
     },
     defaults,
     append

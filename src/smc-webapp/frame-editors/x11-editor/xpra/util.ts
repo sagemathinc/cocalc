@@ -128,15 +128,7 @@ export function arraybufferBase64(uintArray, skip = 10400): string {
 
 // python-lz4 inserts the length of the uncompressed data as an int
 // at the start of the stream
-export function lz4decode(_) {
-  throw Error("lz4decode: not implemented");
-}
-
-// TODO: The following doesn't work at all using the lz4js npm module.
-// There is a HUGE 8k lines lz4 implementation in the xpra code,
-// which I might try instead...  This is important for speed!
-/*
-export function lz4decode = data => {
+export function lz4decode(data) {
   const d = data.subarray(0, 4);
 
   // output buffer length is stored as little endian
@@ -144,11 +136,9 @@ export function lz4decode = data => {
 
   // decode the LZ4 block
   const inflated = new Uint8Array(length);
-  const uncompressedSize = lz4.decodeBlock(data, inflated, 4);
-
+  const uncompressedSize = (window as any).lz4.decodeBlock(data, inflated, 4);
   return { uncompressedSize, inflated };
-};
-*/
+}
 
 export function strToUint8(str: string): Uint8Array {
   const u8a = new Uint8Array(str.length);

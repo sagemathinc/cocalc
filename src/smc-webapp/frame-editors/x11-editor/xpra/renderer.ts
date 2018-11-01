@@ -6,7 +6,7 @@ stuff that needs to be rendered.
 */
 import { arraybufferBase64, timestamp } from "./util";
 
-//import { lz4decode } from "./util";
+import { lz4decode } from "./util";
 import {inflateSync } from "zlibjs";
 
 
@@ -179,9 +179,8 @@ export class Renderer {
     if (options.zlib > 0) {
       data = inflateSync(data);
     } else if (options.lz4 > 0) {
-      throw Error("render_rgb_image: lz4 compression not implemented yet"); // TODO
-      //const { uncompressedSize, inflated } = lz4decode(data);
-      //data = inflated.slice(0, uncompressedSize);
+      const { uncompressedSize, inflated } = lz4decode(data);
+      data = inflated.slice(0, uncompressedSize);
     }
 
     if (data.length > img.data.length) {

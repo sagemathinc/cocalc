@@ -351,7 +351,8 @@ export class XpraClient extends EventEmitter {
       top,
       border: "1px solid rgba(0,0,0,.15)",
       borderRadius: "4px",
-      boxShadow: "0 6px 12px rgba(0,0,0,.175)"
+      boxShadow: "0 6px 12px rgba(0,0,0,.175)",
+      backgroundColor:'white'
     });
 
     // if parent not in DOM yet, the following is no-op.
