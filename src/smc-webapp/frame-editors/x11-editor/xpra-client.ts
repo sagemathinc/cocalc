@@ -162,7 +162,10 @@ export class XpraClient extends EventEmitter {
 
   close_window(wid: number): void {
     if (wid && this.client.findSurface(wid) !== undefined) {
-      // Tells the backend xpra server that we want window to close.
+      // Tells the backend xpra server that we want window to close
+      // This may or may not actually close the window, e.g., the window
+      // might pop up a modal asking about unsaved changes, and cancelling
+      // that keeps the window opened.  It's just a request.
       this.client.kill(wid);
     } else {
       // Window is not known but user wants to close it.  Just
@@ -359,9 +362,15 @@ export class XpraClient extends EventEmitter {
       height = `${overlay.canvas.height / scale}px`,
       left = `${overlay.x / scale}px`,
       top = `${overlay.y / scale}px`;
-    const border: string = overlay.metadata["transient-for"]
-      ? "1px solid grey"
-      : "1px solid rgba(0,0,0,.15)";
+
+    let border, boxShadow;
+    if (overlay.metadata["transient-for"]) {
+      border = "1px solid rgba(0,0,0,.15)";
+      boxShadow = "rgba(0,0,0,.175) 0 6px 12px";
+    } else {
+      border = "1px solid lightgrey";
+      boxShadow = "rgba(0, 0, 0, 0.25) 0px 6px 24px";
+    }
     e.css({
       width,
       height,
@@ -369,7 +378,7 @@ export class XpraClient extends EventEmitter {
       top,
       border,
       borderRadius: "4px",
-      boxShadow: "0 6px 12px rgba(0,0,0,.175)",
+      boxShadow,
       backgroundColor: "white"
     });
 

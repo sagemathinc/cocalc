@@ -12,6 +12,8 @@ import { Actions } from "./actions";
 
 import { TAB_BAR_GREY, TAB_BAR_BLUE } from "./theme";
 
+import { delay } from "awaiting";
+
 interface Props {
   id: string;
   info: Map<string, any>;
@@ -56,12 +58,16 @@ export class WindowTab extends Component<Props, {}> {
           position: "relative",
           padding: "0 5px"
         }}
-        onClick={evt => {
+        onClick={async evt => {
           this.props.actions.close_window(
             this.props.id,
             this.props.info.get("wid")
           );
           evt.stopPropagation();
+
+          // focus in the next event loop.
+          await delay(0);
+          this.props.actions.focus(this.props.id);
         }}
       >
         <Icon name="times" />

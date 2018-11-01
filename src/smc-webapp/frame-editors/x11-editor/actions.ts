@@ -156,6 +156,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
     this.client.on("window:destroy", (wid: number) => {
       this.delete_window(wid);
+      this.switch_to_window_after_this_closes(wid);
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
@@ -205,6 +206,8 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     if (id === undefined) {
       id = this._get_active_id();
+    } else {
+      this.set_active_id(id);
     }
     const leaf = this._get_frame_node(id);
     if (leaf == null) {
@@ -274,11 +277,27 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   close_window(id: string, wid: number): void {
-    this.switch_to_window_after_this_closes(id, wid);
-    this.client.close_window(wid);
+    const leaf = this._get_frame_node(id);
+    if (leaf != null && leaf.get("type") === "x11") {
+      this.client.close_window(wid);
+    }
   }
 
-  switch_to_window_after_this_closes(id:string, wid: number): void {
+  switch_to_window_after_this_closes(wid: number, id?: string): void {
+    if (id === undefined) {
+      for (let leaf_id in this._get_leaf_ids()) {
+        const leaf = this._get_frame_node(leaf_id);
+        if (
+          leaf != null &&
+          leaf.get("type") === "x11" &&
+          leaf.get("wid") === wid
+        ) {
+          this.switch_to_window_after_this_closes(wid, leaf_id);
+        }
+      }
+      return;
+    }
+
     const parent_wid = this.client.get_parent(wid);
     if (parent_wid) {
       this.set_focused_window_in_frame(id, parent_wid);
