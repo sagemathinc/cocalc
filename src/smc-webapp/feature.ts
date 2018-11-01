@@ -37,7 +37,7 @@ var IS_MOBILE,
 
 if (window != undefined) {
   // In a web browser.
-  const { $ } = window;
+  let { $ } = window;
 
   isMobile = {
     Android() {
@@ -83,6 +83,7 @@ if (window != undefined) {
   if ($ == undefined) {
     // don't even have jQuery -- obviously won't have any features -- this happens, e.g., in node.js
     IS_MOBILE = false;
+    $ = {};
   }
 
   if ($.browser == undefined) {
@@ -193,4 +194,4 @@ if (window != undefined) {
   IS_MOBILE = IS_TOUCH = false;
 }
 
-export { IS_MOBILE, IS_TOUCH, IS_IPAD, isMobile, get_browser, get_mobile };
+export { IS_MOBILE, IS_TOUCH, IS_IPAD, isMobile, is_responsive_mode, get_browser, get_mobile };
