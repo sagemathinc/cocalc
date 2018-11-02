@@ -45,15 +45,15 @@ interface Props {
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 export class SignUp extends React.Component {
-  getInitialState() {
-    return {
+  constructor(props) {
+    this.state = {
       terms_checkbox: false,
       first_name: "",
       last_name: "",
       email: "",
       password: "",
       user_token: ""
-    };
+    }
   }
 
   make_account(e) {
