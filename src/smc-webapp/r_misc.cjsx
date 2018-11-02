@@ -35,6 +35,8 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
+{CloseX} = require('./close-x')
+exports.CloseX = CloseX
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -151,22 +153,6 @@ exports.Saving = Saving = rclass
 
     render: ->
         <span><Icon name='cc-icon-cocalc-ring' spin /> Saving...</span>
-
-closex_style =
-    float      : 'right'
-    marginLeft : '5px'
-
-exports.CloseX = CloseX = rclass
-    displayName : 'Misc-CloseX'
-
-    propTypes :
-        on_close : rtypes.func.isRequired
-        style    : rtypes.object   # optional style for the icon itself
-
-    render:->
-        <a href='' style={closex_style} onClick={(e)=>e.preventDefault();@props.on_close()}>
-            <Icon style={@props.style} name='times' />
-        </a>
 
 exports.SimpleX = SimpleX = ({onClick}) ->
     <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
