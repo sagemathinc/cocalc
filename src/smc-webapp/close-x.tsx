@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Icon } from "./icon";
 
 const closex_style: React.CSSProperties = {
   float: "right",
@@ -13,7 +14,9 @@ export function CloseX({
   style?: React.CSSProperties;
 }) {
   const onClick = e => {
-    e.preventDefault();
+    if (e != undefined) {
+      e.preventDefault();
+    }
     on_close();
   };
 
