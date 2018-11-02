@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Passports } from "./passports";
+import { List } from "immutable";
+import { TypedMap } from "./app-framework/TypedMap";
 
-const { Icon, Loading } = require("./r_misc");
+const { COLORS, Icon, Loading } = require("./r_misc");
 const {
   HelpEmailLink,
   TermsOfService,
@@ -25,29 +27,24 @@ const ERROR_STYLE: React.CSSProperties = {
   marginBottom: "5px"
 };
 
+interface Props {
+  strategies: List<string>;
+  get_api_key: string;
+  sign_up_error: any;
+  token: boolean;
+  has_account: boolean;
+  signing_up: boolean;
+  style: React.CSSProperties;
+  has_remember_me: boolean;
+}
+
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS206: Consider reworking classes to avoid initClass
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 export class SignUp extends React.Component {
-  static initClass() {
-    this.prototype.displayName = "SignUp";
-
-    this.prototype.propTypes = {
-      strategies: rtypes.immutable.List,
-      get_api_key: rtypes.string,
-      sign_up_error: rtypes.immutable.Map,
-      token: rtypes.bool,
-      has_account: rtypes.bool,
-      signing_up: rtypes.bool,
-      style: rtypes.object,
-      has_remember_me: rtypes.bool
-    };
-  }
-
   getInitialState() {
     return {
       terms_checkbox: false,
@@ -212,4 +209,3 @@ export class SignUp extends React.Component {
     );
   }
 }
-SignUp.initClass();
