@@ -70,21 +70,27 @@ export class ProfileImageSelector extends Component<
   };
 
   handle_gravatar_click = () => {
-    if (this.props.email_address)
-      this.set_image(
-        `https://www.gravatar.com/avatar/${md5(
-          this.props.email_address.toLowerCase()
-        )}?d=identicon&s=30`
-      );
+    if (!this.props.email_address) {
+      // Should not be necessary, but to make typescript happy.
+      return;
+    }
+    this.set_image(
+      `https://www.gravatar.com/avatar/${md5(
+        this.props.email_address.toLowerCase()
+      )}?d=identicon&s=30`
+    );
   };
 
   handle_adorable_click = () => {
-    if (this.props.email_address)
-      this.set_image(
-        `https://api.adorable.io/avatars/100/${md5(
-          this.props.email_address.toLowerCase()
-        )}.png`
-      );
+    if (!this.props.email_address) {
+      // Should not be necessary, but to make typescript happy.
+      return;
+    }
+    this.set_image(
+      `https://api.adorable.io/avatars/100/${md5(
+        this.props.email_address.toLowerCase()
+      )}.png`
+    );
   };
 
   handle_default_click = () => this.set_image("");
@@ -155,91 +161,95 @@ export class ProfileImageSelector extends Component<
   };
 
   render_options_gravatar() {
-    if (this.props.email_address)
-      return (
-        <>
-          <Button
-            style={{ marginTop: "5px" }}
-            onClick={this.handle_gravatar_click}
-          >
-            Gravatar
-          </Button>{" "}
-          <a
-            href="#"
-            onClick={e => {
-              e.preventDefault();
-              this.setState({ show_gravatar_explanation: true });
-            }}
-          >
-            What is this?
-          </a>
-          {this.state.show_gravatar_explanation ? (
-            <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
-              Gravatar is a service for using a common avatar across websites.
-              Go to the{" "}
-              <a href="https://en.gravatar.com" target="_blank">
-                Wordpress Gravatar site
-              </a>{" "}
-              and sign in (or create an account) using{" "}
-              {this.props.email_address}.<br />
-              <br />
-              <Button
-                onClick={() =>
-                  this.setState({ show_gravatar_explanation: false })
-                }
-              >
-                Close
-              </Button>
-            </Well>
-          ) : (
+    if (!this.props.email_address) {
+      return;
+    }
+    return (
+      <>
+        <Button
+          style={{ marginTop: "5px" }}
+          onClick={this.handle_gravatar_click}
+        >
+          Gravatar
+        </Button>{" "}
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault();
+            this.setState({ show_gravatar_explanation: true });
+          }}
+        >
+          What is this?
+        </a>
+        {this.state.show_gravatar_explanation ? (
+          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
+            Gravatar is a service for using a common avatar across websites. Go
+            to the{" "}
+            <a href="https://en.gravatar.com" target="_blank">
+              Wordpress Gravatar site
+            </a>{" "}
+            and sign in (or create an account) using {this.props.email_address}.
             <br />
-          )}
-        </>
-      );
+            <br />
+            <Button
+              onClick={() =>
+                this.setState({ show_gravatar_explanation: false })
+              }
+            >
+              Close
+            </Button>
+          </Well>
+        ) : (
+          <br />
+        )}
+      </>
+    );
   }
 
   render_options_adorable() {
-    if (!this.props.email_address)
-      return (
-        <>
-          <Button
-            style={{ marginTop: "5px" }}
-            onClick={this.handle_adorable_click}
-          >
-            Adorable
-          </Button>{" "}
-          <a
-            href="#"
-            onClick={e => {
-              e.preventDefault();
-              this.setState({ show_adorable_explanation: true });
-            }}
-          >
-            What is this?
-          </a>
-          {this.state.show_adorable_explanation ? (
-            <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
-              Adorable creates a cute randomize monster face out of your email.
-              See{" "}
-              <a href="http://avatars.adorable.io" target="_blank">
-                {"http://avatars.adorable.io"}
-              </a>{" "}
-              for more.
-              <br />
-              <br />
-              <Button
-                onClick={() =>
-                  this.setState({ show_adorable_explanation: false })
-                }
-              >
-                Close
-              </Button>
-            </Well>
-          ) : (
+    if (!this.props.email_address) {
+      return;
+    }
+    return  (
+      <>
+        <Button
+          style={{ marginTop: "5px" }}
+          onClick={this.handle_adorable_click}
+        >
+          Adorable
+        </Button>{" "}
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault();
+            this.setState({ show_adorable_explanation: true });
+          }}
+        >
+          What is this?
+        </a>
+        {this.state.show_adorable_explanation ? (
+          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
+            Adorable creates a cute randomize monster face out of your email.
+            See{" "}
+            <a href="http://avatars.adorable.io" target="_blank">
+              {"http://avatars.adorable.io"}
+            </a>{" "}
+            for more.
             <br />
-          )}
-        </>
-      );
+            <br />
+            <Button
+              onClick={() =>
+                this.setState({ show_adorable_explanation: false })
+              }
+            >
+              Close
+            </Button>
+          </Well>
+        ) : (
+          <br />
+        )}
+      </>
+    );
   }
 
   render_options() {
