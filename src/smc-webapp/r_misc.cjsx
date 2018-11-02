@@ -37,6 +37,8 @@ exports.Loading = Loading
 exports.Space = Space
 {CloseX} = require('./close-x')
 exports.CloseX = CloseX
+{Saving} = require('./saving')
+exports.Saving = Saving
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -147,12 +149,6 @@ exports.Octicon = rclass
         if @props.mega
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
-
-exports.Saving = Saving = rclass
-    displayName : 'Misc-Saving'
-
-    render: ->
-        <span><Icon name='cc-icon-cocalc-ring' spin /> Saving...</span>
 
 exports.SimpleX = SimpleX = ({onClick}) ->
     <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
