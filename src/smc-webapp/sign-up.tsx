@@ -40,38 +40,36 @@ interface Props {
 
 interface State {
   terms_checkbox: boolean;
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
   user_token: string;
 }
 
 export class SignUp extends React.Component<Props, State> {
+  private first_name_ref: any;
+  private last_name_ref: any;
+  private email_ref: any;
+  private password_ref: any;
+
   constructor(props) {
     super(props);
+
     this.state = {
       terms_checkbox: false,
-      first_name: "",
-      last_name: "",
-      email: "",
-      password: "",
       user_token: ""
     };
   }
 
-  make_account(e) {
+  make_account = e => {
     e.preventDefault();
     return redux
       .getActions("account")
       .create_account(
-        this.state.first_name,
-        this.state.last_name,
-        this.state.email,
-        this.state.password,
+        this.first_name_ref.value,
+        this.last_name_ref.value,
+        this.email_ref.value,
+        this.password_ref.value,
         this.state.user_token
       );
-  }
+  };
 
   render_error(field) {
     const err =
@@ -143,43 +141,47 @@ export class SignUp extends React.Component<Props, State> {
           <FormGroup>
             {this.render_error("first_name")}
             <FormControl
-              ref="first_name"
+              inputRef={ref => {
+                this.first_name_ref = ref;
+              }}
               type="text"
               autoFocus={false}
               placeholder="First name"
-              onChange={e => this.setState({ first_name: e.target.value })}
               maxLength={120}
             />
           </FormGroup>
           <FormGroup>
             {this.render_error("last_name")}
             <FormControl
-              ref="last_name"
+              inputRef={ref => {
+                this.last_name_ref = ref;
+              }}
               type="text"
               autoFocus={false}
               placeholder="Last name"
-              onChange={e => this.setState({ last_name: e.target.value })}
               maxLength={120}
             />
           </FormGroup>
           <FormGroup>
             {this.render_error("email_address")}
             <FormControl
-              ref="email_address"
+              inputRef={ref => {
+                this.email_ref = ref;
+              }}
               type="email"
               placeholder="Email address"
               maxLength={254}
-              onChange={e => this.setState({ email: e.target.value })}
             />
           </FormGroup>
           <FormGroup>
             {this.render_error("password")}
             <FormControl
-              ref="password"
+              inputRef={ref => {
+                this.password_ref = ref;
+              }}
               type="password"
               placeholder="Choose a password"
               maxLength={64}
-              onChange={e => this.setState({ password: e.target.value })}
             />
           </FormGroup>
           <Button
