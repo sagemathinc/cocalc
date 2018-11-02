@@ -283,8 +283,6 @@ export class Actions extends BaseActions<LatexEditorState> {
   async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
 
-    console.log("this.bad_filename", this.bad_filename);
-
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${
         this.path
