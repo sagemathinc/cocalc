@@ -309,7 +309,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       next_props.is_current
     ) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
-      $(document.activeElement).blur();
+      ($ as any)(document.activeElement).blur();
       $(ReactDOM.findDOMNode(this.refs.scroll)).focus();
     }
   }
