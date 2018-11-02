@@ -624,6 +624,7 @@ class CodeMirrorEditor extends FileEditor
 
     programmatical_goto_line: (line) =>
         cm = @codemirror_with_last_focus
+        return if not cm?
         pos = {line:line-1, ch:0}
         info = cm.getScrollInfo()
         cm.scrollIntoView(pos, info.clientHeight/2)
