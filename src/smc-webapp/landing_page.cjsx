@@ -82,7 +82,6 @@ SignIn = rclass
             <Passports
                 strategies  = {@props.strategies}
                 get_api_key = {@props.get_api_key}
-                small_size  = {true}
                 no_heading  = {true}
             />
         </div>

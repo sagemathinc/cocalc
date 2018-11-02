@@ -7,7 +7,6 @@ const { Icon, Tip } = require("./r_misc");
 interface Props {
   strategies?: List<string>;
   get_api_key?: string;
-  small_size?: boolean;
   no_heading?: boolean;
   style?: object;
 }
@@ -43,18 +42,12 @@ const PASSPORT_STYLES = {
 
 export class Passports extends React.Component<Props> {
   render_strategy(name) {
-    let size;
     if (name === "email") {
       return;
     }
     let url = `${window.app_base_url}/auth/${name}`;
     if (this.props.get_api_key) {
       url += `?get_api_key=${this.props.get_api_key}`;
-    }
-    if (this.props.small_size) {
-      size = undefined;
-    } else {
-      size = "2x";
     }
     const style = misc.copy(PASSPORT_STYLES[name]);
     style.display = "inline-block";
