@@ -31,6 +31,7 @@ import {
 } from "../generic/misc";
 import { print_code } from "../frame-tree/print-code";
 import {
+  ConnectionStatus,
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
@@ -514,15 +515,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       local_view_state: local.set("active_id", active_id)
     });
     this._save_local_view_state();
-    // If active_id is the id of a codemirror editor,
-    // save that it was focused just now; this is just a quick solution to
-    // "give me last active cm" -- we will switch to something
-    // more generic later -- TODO: switch to use _active_id_history
-    let cm: CodeMirror.Editor | undefined = this._cm[active_id];
-    if (cm) {
-      (cm as any)._last_active = new Date();
-      cm.focus();
-    }
+
+    this.focus(active_id);
   }
 
   // Make whatever frame is defined and was most recently active
@@ -634,6 +628,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const prev_id = this._get_most_recent_active_frame_id_of_type(type);
 
     this.set_frame_tree({ id, type });
+
     if (this._cm[id] && type != "cm") {
       // Make sure to clear cm cache in case switching type away,
       // in case the component unmount doesn't do this.
@@ -658,6 +653,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       font_size = get_default_font_size();
     }
     this.set_font_size(id, font_size);
+
+    this.store.emit("new-frame", { id, type });
   }
 
   // raises an exception if the node does not exist; always
@@ -724,6 +721,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       if (!before[new_id]) {
         this.copy_editor_state(id, new_id);
         this.set_active_id(new_id);
+
+        // Emit new-frame event so other code can handle or initialize
+        // creation of a new frame further.
+        if (type === undefined) {
+          const node = this._get_frame_node(new_id);
+          if (node != null) {
+            type = node.get("type");
+          }
+        }
+        this.store.emit("new-frame", {
+          id: new_id,
+          type
+        });
+
         return;
       }
     }
@@ -1021,7 +1032,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    this.set_status(`Set font size to ${font_size}`, 1500);
+    const percent = Math.round((font_size * 100) / 14);
+    this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
   increase_font_size(id: string): void {
@@ -1156,8 +1168,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (id === undefined) {
       id = this._get_active_id();
     }
-    const cm = this._cm[id];
+
+    let cm: CodeMirror.Editor | undefined = this._cm[id];
     if (cm) {
+      // Save that it was focused just now; this is just a quick solution to
+      // "give me last active cm" -- we will switch to something
+      // more generic later -- TODO: switch to use _active_id_history
+      (cm as any)._last_active = new Date();
       cm.focus();
       return;
     }
@@ -1371,13 +1388,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  paste(id: string): void {
+  paste(id: string, _value?: string | true): void {
     if (this._terminal_command(id, "paste")) {
+      return;
+    }
+    let value;
+    if (value === true || value == null) {
+      value = copypaste.get_buffer();
+    }
+    if (value === undefined) {
+      // nothing to paste
       return;
     }
     const cm = this._get_cm(id);
     if (cm != null) {
-      cm.getDoc().replaceSelection(copypaste.get_buffer());
+      cm.getDoc().replaceSelection(value);
       cm.focus();
       return;
     }
@@ -1637,6 +1662,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "html":
         parser = "html-tidy";
         break;
+      case "xml":
+      case "cml":
+      case "kml":
+        parser = "xml-tidy";
+        break;
+      case "bib":
+        parser = "bib-biber";
+        break;
       case "c":
       case "c++":
       case "cc":
@@ -1803,6 +1836,17 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.set_frame_tree({ id: id, title: title });
   }
 
+  set_connection_status(id: string, status?: ConnectionStatus): void {
+    //console.log("set title of term ", id, " to ", title);
+    this.set_frame_tree({ id: id, connection_status: status });
+  }
+
+  connection_status(_: string): void {
+    // no-op, but needed so connection status shows up.
+    // This is the action that may happen if we make clicking on
+    // the connection status indicator do something (reconnect?  show a dialog?).
+  }
+
   /* Kick other uses out of this frame (only implemented for terminals right now). */
   _terminal_command(id: string, cmd: string): boolean {
     const terminal = this.terminals.get(id);
@@ -1852,5 +1896,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._terminal_command(id, "popout")) {
       return;
     }
+  }
+
+  // Override in derived class to set a special env for
+  // any launched terminals.
+  get_term_env(): any {
+    return undefined;
   }
 }

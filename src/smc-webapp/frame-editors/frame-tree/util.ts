@@ -55,5 +55,9 @@ export const PRETTIER_SUPPORT = {
   cc: true, // --*--
   "c++": true, // --*--
   cpp: true, // --*--
-  h: true // --*--
+  h: true, // --*--
+  xml: true, // tidy
+  cml: true, // tidy for xml
+  kml: true, // tidy for xml
+  bib: true // via biber --tool
 };

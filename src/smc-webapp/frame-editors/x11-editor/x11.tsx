@@ -17,16 +17,11 @@ import {
   rtypes
 } from "../../app-framework";
 
-import { debounce } from "underscore";
-
+import { throttle } from "underscore";
 import { is_different } from "../generic/misc";
-
 import { Actions } from "./actions";
-
 import { WindowTab } from "./window-tab";
-
 import { TAB_BAR_GREY } from "./theme";
-
 import { cmp } from "../generic/misc";
 
 interface Props {
@@ -34,6 +29,8 @@ interface Props {
   id: string;
   desc: Map<string, any>;
   is_current: boolean;
+  font_size: number;
+  reload: string;
   // reduxProps:
   windows: Map<string, any>;
 }
@@ -41,6 +38,7 @@ interface Props {
 export class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
+  private measure_size: Function;
 
   static displayName = "X11";
 
@@ -53,6 +51,9 @@ export class X11Component extends Component<Props, {}> {
   }
 
   shouldComponentUpdate(next): boolean {
+    if (!this.props.is_current && next.is_current) {
+      this.focus_textarea();
+    }
     if (this.props.desc.get("wid") != next.desc.get("wid")) {
       this.insert_window_in_div(next);
       return true;
@@ -61,6 +62,13 @@ export class X11Component extends Component<Props, {}> {
       // try
       this.insert_window_in_div(next);
     }
+    if (
+      this.props.desc.get("font_size") != next.desc.get("font_size") ||
+      this.props.reload != next.reload
+    ) {
+      this.measure_size(next);
+      return true;
+    }
     return is_different(this.props, next, ["id", "windows", "is_current"]);
   }
 
@@ -68,7 +76,24 @@ export class X11Component extends Component<Props, {}> {
     this.is_mounted = true;
     this.insert_window_in_div(this.props);
     this.init_resize_observer();
-    this.measure_size = debounce(this.measure_size.bind(this), 500);
+    this.disable_browser_context_menu();
+    this.measure_size = throttle(this.measure_size_nothrottle.bind(this), 500, {
+      leading: false
+    });
+    if (this.props.is_current) {
+      this.focus_textarea();
+    }
+  }
+
+  disable_browser_context_menu(): void {
+    const node: any = ReactDOM.findDOMNode(this.refs.window);
+    // Get rid of browser context menu, which makes no sense on a canvas.
+    // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
+    // NOTE: this would probably make sense in DOM mode instead of canvas mode;
+    // if we switch, disable this...
+    $(node).bind("contextmenu", function() {
+      return false;
+    });
   }
 
   init_resize_observer(): void {
@@ -77,46 +102,50 @@ export class X11Component extends Component<Props, {}> {
   }
 
   async insert_window_in_div(props): Promise<void> {
+    if (!this.is_mounted) {
+      return;
+    }
     const node: any = ReactDOM.findDOMNode(this.refs.window);
     const client = props.actions.client;
     if (client == null) {
-      // to satisfy typescript
+      // will never happen -- to satisfy typescript
       return;
     }
     const wid = props.desc.get("wid");
     if (wid == null) {
       this.is_loaded = false;
-      // nothing focused...
       $(node).empty();
       return;
     }
     try {
       client.render_window(wid, node);
-    } catch(err) {
+    } catch (err) {
       // window not available right now.
       this.is_loaded = false;
       $(node).empty();
       return;
     }
     this.is_loaded = true;
-
     await delay(0);
     if (!this.is_mounted) {
       return;
     }
-    this.measure_size();
+    this.measure_size_nothrottle();
     if (props.is_current) {
       client.focus(wid);
     }
   }
 
-  measure_size(): void {
-    const client = this.props.actions.client;
+  measure_size_nothrottle(props?: Props): void {
+    if (props == null) {
+      props = this.props;
+    }
+    const client = props.actions.client;
     if (client == null) {
       // to satisfy typescript
       return;
     }
-    const wid = this.props.desc.get("wid");
+    const wid = props.desc.get("wid");
     if (wid == null) {
       return;
     }
@@ -126,7 +155,8 @@ export class X11Component extends Component<Props, {}> {
     if (width == null || height == null) {
       return;
     }
-    client.resize_window(wid, width, height);
+    const frame_scale = props.font_size / 14;
+    client.resize_window(wid, width, height, frame_scale);
   }
 
   componentWillUnmount(): void {
@@ -144,6 +174,10 @@ export class X11Component extends Component<Props, {}> {
     const wids = this.props.windows.keySeq().toJS();
     wids.sort((a, b) => cmp(parseInt(a), parseInt(b))); // since they are strings.
     for (let wid of wids) {
+      if (this.props.windows.getIn([wid, 'parent'])) {
+        // don't render a tab for modal dialogs (or windows on top of others that block them).
+        continue;
+      }
       v.push(
         <WindowTab
           id={this.props.id}
@@ -171,15 +205,69 @@ export class X11Component extends Component<Props, {}> {
     );
   }
 
+  render_window_div(): Rendered {
+    return (
+      <div
+        className="smc-vfill"
+        ref="window"
+        style={{ position: "relative" }}
+        onClick={() => this.focus_textarea()}
+      />
+    );
+  }
+
+  focus_textarea(): void {
+    const node: any = ReactDOM.findDOMNode(this.refs.focus);
+    $(node).focus();
+    const client = this.props.actions.client;
+    if (client == null) {
+      return;
+    }
+    client.focus();
+  }
+
+  textarea_blur(): void {
+    const client = this.props.actions.client;
+    if (client == null) {
+      return;
+    }
+    client.blur();
+  }
+
+  on_paste(e): boolean {
+    const value: string = e.clipboardData.getData("Text");
+    this.props.actions.paste(this.props.id, value);
+    return false;
+  }
+
+  render_hidden_textarea(): Rendered {
+    return (
+      <textarea
+        style={{
+          opacity: 0,
+          position: "absolute",
+          height: 0,
+          width: 0,
+          top: 0
+        }}
+        aria-multiline="false"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        tabIndex={0}
+        ref="focus"
+        onBlur={() => this.textarea_blur()}
+        onPaste={e => this.on_paste(e)}
+      />
+    );
+  }
+
   render(): Rendered {
     return (
       <div className="smc-vfill">
         {this.render_tab_bar()}
-        <div
-          className="smc-vfill"
-          ref="window"
-          style={{ position: "relative" }}
-        />
+        {this.render_hidden_textarea()}
+        {this.render_window_div()}
       </div>
     );
   }

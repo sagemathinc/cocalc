@@ -1299,7 +1299,8 @@ class exports.Connection extends EventEmitter
             bash            : false
             aggregate       : undefined  # see comment above.
             err_on_exit     : true
-            allow_post      : true       # set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            allow_post      : true       # **DEPRECATED** set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            env             : undefined  # extra environment variables
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
         start_time = new Date()

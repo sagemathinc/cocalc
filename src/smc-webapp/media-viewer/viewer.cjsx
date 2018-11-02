@@ -31,7 +31,7 @@ exports.MediaViewer = rclass
     render_media: (url) ->
         switch @get_mode()
             when 'image'
-                <img src={url} style={maxWidth:'100%'} />
+                <img src={url} style={maxWidth:'100%', background:'white'} />
             when 'video'
                 <video
                     src      = {url}

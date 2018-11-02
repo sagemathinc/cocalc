@@ -18,13 +18,17 @@ const FORMAT = set([
   "py",
   "r",
   "go",
+  "yml",
   "yaml",
-  "yaml",
+  "xml",
+  "cml" /* that's xml */,
+  "kml" /* geodata keyhole markup, also xml */,
   "c",
   "c++",
   "cc",
   "cpp",
-  "h"
+  "h",
+  "bib"
 ]);
 
 export const cm = {

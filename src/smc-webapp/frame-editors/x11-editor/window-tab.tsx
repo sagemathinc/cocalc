@@ -12,6 +12,8 @@ import { Actions } from "./actions";
 
 import { TAB_BAR_GREY, TAB_BAR_BLUE } from "./theme";
 
+import { delay } from "awaiting";
+
 interface Props {
   id: string;
   info: Map<string, any>;
@@ -56,12 +58,16 @@ export class WindowTab extends Component<Props, {}> {
           position: "relative",
           padding: "0 5px"
         }}
-        onClick={evt => {
+        onClick={async evt => {
           this.props.actions.close_window(
             this.props.id,
             this.props.info.get("wid")
           );
           evt.stopPropagation();
+
+          // focus in the next event loop.
+          await delay(0);
+          this.props.actions.focus(this.props.id);
         }}
       >
         <Icon name="times" />
@@ -73,7 +79,10 @@ export class WindowTab extends Component<Props, {}> {
     return (
       <div
         onClick={evt => {
-          this.props.actions.set_window(
+          // FIRST set the active frame to the one we just clicked on!
+          this.props.actions.set_active_id(this.props.id);
+          // SECOND make this particular tab focused.
+          this.props.actions.set_focused_window_in_frame(
             this.props.id,
             this.props.info.get("wid")
           );
@@ -85,8 +94,8 @@ export class WindowTab extends Component<Props, {}> {
           overflow: "hidden",
           whiteSpace: "nowrap",
           cursor: "pointer",
-          padding: "5px 0 0 5px",
-          borderRight: "1px solid grey",
+          margin: "5px 0 5px 5px",
+          borderRight: "1px solid #aaa",
           background: this.props.is_current ? TAB_BAR_BLUE : TAB_BAR_GREY,
           color: this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE
         }}
@@ -98,3 +107,4 @@ export class WindowTab extends Component<Props, {}> {
     );
   }
 }
+
