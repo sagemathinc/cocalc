@@ -12,8 +12,8 @@ export class Surface {
   public wid: number;
   public x: number;
   public y: number;
-  public w: number;   // width of the actual window on the xpra server
-  public h: number;   // height of the actual window on the xpra server
+  public w: number; // width of the actual window on the xpra server
+  public h: number; // height of the actual window on the xpra server
   public parent: Surface | undefined;
   public overlay: boolean = false;
   public is_dialog: boolean = false;
@@ -104,18 +104,18 @@ export class Surface {
     // there is no possible way to see it in a tabbed no-drag interface.
     this.jq_canvas.css({ "max-width": "100%", "max-height": "100%" });
 
-    if (full_width && !this.is_dialog) {
+    if (full_width && this.parent == null) {
       this.jq_canvas.css("width", "100%");
     }
-    if (full_height && !this.is_dialog) {
+    if (full_height && this.parent == null) {
       this.jq_canvas.css("height", "100%");
     }
   }
 
   //
-  rescale(scale: number, width?: number, height?: number):  void {
-
-    const cur_width = Math.round(this.w / this.scale), cur_height =  Math.round(this.h / this.scale);
+  rescale(scale: number, width?: number, height?: number): void {
+    const cur_width = Math.round(this.w / this.scale),
+      cur_height = Math.round(this.h / this.scale);
     if (width === undefined) {
       width = cur_width;
     }

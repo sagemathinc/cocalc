@@ -435,9 +435,10 @@ export class Client {
           send: this.send
         });
 
-        bus.emit("overlay:create", surface);
 
         this.surfaces[wid] = surface;
+
+        bus.emit("overlay:create", surface);
         this.lastActiveWindow = parentWid;
       }
     );
