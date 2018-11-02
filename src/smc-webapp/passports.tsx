@@ -1,6 +1,6 @@
 import * as React from "react";
-import { List } from "immutable"
-import * as misc from "smc-util/misc"
+import { List } from "immutable";
+import * as misc from "smc-util/misc";
 
 const { Icon, Tip } = require("./r_misc");
 
@@ -11,7 +11,17 @@ interface Props {
   style?: object;
 }
 
-const PASSPORT_STYLES = {
+const BASE_ICON_STYLE: React.CSSProperties = {
+  display: "inline-block",
+  padding: "6px",
+  borderRadius: "50%",
+  width: "50px",
+  height: "50px",
+  marginRight: "10px",
+  textAlign: "center"
+};
+
+const PASSPORT_ICON_STYLES = {
   facebook: {
     backgroundColor: "#395996",
     color: "white"
@@ -30,17 +40,11 @@ const PASSPORT_STYLES = {
   }
 };
 
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-
 export class Passports extends React.Component<Props> {
+  static defaultProps = {
+    strategies: List([])
+  };
+
   render_strategy(name) {
     if (name === "email") {
       return;
@@ -49,18 +53,15 @@ export class Passports extends React.Component<Props> {
     if (this.props.get_api_key) {
       url += `?get_api_key=${this.props.get_api_key}`;
     }
-    const style = misc.copy(PASSPORT_STYLES[name]);
-    style.display = "inline-block";
-    style.padding = "6px";
-    style.borderRadius = "50%";
-    style.width = "50px";
-    style.height = "50px";
-    style.marginRight = "10px";
-    style.textAlign = "center";
-    const cname = misc.capitalize(name);
+    const icon_style = Object.assign(
+      {},
+      BASE_ICON_STYLE,
+      PASSPORT_ICON_STYLES[name]
+    );
+    const passport_name = misc.capitalize(name);
     const title = (
       <span>
-        <Icon name={name} /> {cname}
+        <Icon name={name} /> {passport_name}
       </span>
     );
     return (
@@ -68,9 +69,9 @@ export class Passports extends React.Component<Props> {
         <Tip
           placement="bottom"
           title={title}
-          tip={`Use ${cname} to sign into your CoCalc account instead of an email address and password.`}
+          tip={`Use ${passport_name} to sign into your CoCalc account instead of an email address and password.`}
         >
-          <Icon name={name} style={style} />
+          <Icon name={name} style={icon_style} />
         </Tip>
       </a>
     );
@@ -84,20 +85,12 @@ export class Passports extends React.Component<Props> {
   }
 
   render() {
-    let left;
-    const strategies =
-      (left =
-        this.props.strategies != null
-          ? this.props.strategies.toJS()
-          : undefined) != null
-        ? left
-        : [];
+    // This any gets automatically fixed when upgrading to Typescript 3.1+
+    const strategies = (this.props.strategies as any).toJS();
     return (
       <div style={this.props.style}>
         {this.render_heading()}
-        <div>
-          {Array.from(strategies).map(name => this.render_strategy(name))}
-        </div>
+        <div>{strategies.map(name => this.render_strategy(name))}</div>
         <hr style={{ marginTop: 10, marginBottom: 10 }} />
       </div>
     );
