@@ -20,11 +20,13 @@ function get_wheel_event_name(): string {
 
 const WHEEL_EVENT_NAME = get_wheel_event_name();
 
-/*
+// normalize_wheel: https://github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
+// BSD license
+
 import { PIXEL_STEP, LINE_HEIGHT, PAGE_HEIGHT } from "./constants";
 
-function normalizeWheel(
-  ev: MouseEvent
+function normalize_wheel(
+  ev: any
 ): {
   spinX: number;
   spinY: number;
@@ -37,6 +39,7 @@ function normalizeWheel(
     pixelX = 0,
     pixelY = 0;
 
+  ev = (ev as any).originalEvent;
   // Legacy
   if ("detail" in ev) {
     spinY = ev.detail;
@@ -95,7 +98,6 @@ function normalizeWheel(
     deltaMode: ev.deltaMode || 0
   };
 }
-*/
 
 function getMouseButton(ev: MouseEvent): number {
   let button: number = ev.which
@@ -152,6 +154,8 @@ export class Mouse {
   private send: Function;
   private keyboard: Keyboard;
   private findSurface: Function;
+  private wheel_delta_x: number = 0;
+  private wheel_delta_y: number = 0;
 
   constructor(send: Function, keyboard: Keyboard, findSurface: Function) {
     this.send = send;
@@ -182,33 +186,26 @@ export class Mouse {
       return;
     }
 
-    const topwindow: number = surface.wid;
     const modifiers: string[] = this.keyboard.modifiers(ev);
+    const mouse = getMouse(ev, surface);
+    if (mouse == null) {
+      return;
+    }
+    const { x, y, button, buttons } = mouse;
 
     switch (ev.type) {
       case "mousemove": {
-        const mouse = getMouse(ev, surface);
-        if (mouse == null) {
-          return;
-        }
-        const { x, y, buttons } = mouse;
-
-        this.send("pointer-position", topwindow, [x, y], modifiers, buttons);
+        this.send("pointer-position", wid, [x, y], modifiers, buttons);
         break;
       }
 
       case "mousedown":
       case "mouseup": {
         const pressed = ev.type === "mousedown";
-        const mouse = getMouse(ev, surface);
-        if (mouse == null) {
-          return;
-        }
-        const { x, y, button, buttons } = mouse;
 
         this.send(
           "button-action",
-          topwindow,
+          wid,
           button,
           pressed,
           [x, y],
@@ -219,14 +216,71 @@ export class Mouse {
       }
 
       case WHEEL_EVENT_NAME: {
-        const mouse = getMouse(ev, surface);
-        if (mouse == null) {
-          return;
-        }
-        // TODO: not implemented yet
+        this.do_window_mouse_scroll({ ev, wid, x, y, buttons, modifiers });
         return;
       }
     }
     return surface;
+  }
+
+  do_window_mouse_scroll({
+    ev,
+    wid,
+    x,
+    y,
+    buttons,
+    modifiers
+  }: {
+    ev: MouseEvent;
+    wid: number;
+    x: number;
+    y: number;
+    buttons: number[];
+    modifiers: string[];
+  }): void {
+    // I think server support for wheel.precise is not available in
+    // CoCalc -- I think it depends on the uinput Python module,
+    // and won't work without kernel support that is not allowed by
+    // Docker for security reasons.  So we instead "send
+    // synthetic click+release as many times as needed".
+    let wheel = normalize_wheel(ev);
+
+    const INCREMENT = 120;
+    //clamp to prevent event floods:
+    let px = Math.min(INCREMENT*10, wheel.pixelX);
+    let py = Math.min(INCREMENT*10, wheel.pixelY);
+    let apx = Math.abs(px);
+    let apy = Math.abs(py);
+
+    // Generate a single event if we can, or add to accumulators:
+    if (apx >= 40 && apx <= 160) {
+      this.wheel_delta_x = px > 0 ? INCREMENT : -INCREMENT;
+    } else {
+      this.wheel_delta_x += px;
+    }
+    if (apy >= 40 && apy <= 160) {
+      this.wheel_delta_y = py > 0 ? INCREMENT : -INCREMENT;
+    } else {
+      this.wheel_delta_y += py;
+    }
+    // Send synthetic click+release as many times as needed:
+    let wx = Math.abs(this.wheel_delta_x);
+    let wy = Math.abs(this.wheel_delta_y);
+    let btn_x = this.wheel_delta_x >= 0 ? 6 : 7;
+    let btn_y = this.wheel_delta_y >= 0 ? 5 : 4;
+
+    while (wx >= INCREMENT) {
+      wx -= INCREMENT;
+      this.send("button-action", wid, btn_x, true, [x, y], modifiers, buttons);
+      this.send("button-action", wid, btn_x, false, [x, y], modifiers, buttons);
+    }
+    while (wy >= INCREMENT) {
+      wy -= INCREMENT;
+      this.send("button-action", wid, btn_y, true, [x, y], modifiers, buttons);
+      this.send("button-action", wid, btn_y, false, [x, y], modifiers, buttons);
+    }
+    // Store left overs:
+    this.wheel_delta_x = this.wheel_delta_x >= 0 ? wx : -wx;
+    this.wheel_delta_y = this.wheel_delta_y >= 0 ? wy : -wy;
   }
 }

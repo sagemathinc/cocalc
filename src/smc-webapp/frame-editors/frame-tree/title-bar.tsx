@@ -505,7 +505,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
-          () => this.props.actions.paste(this.props.id),
+          () => this.props.actions.paste(this.props.id, true),
           200,
           true
         )}

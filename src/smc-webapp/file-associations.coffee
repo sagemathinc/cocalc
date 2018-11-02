@@ -82,6 +82,8 @@ codemirror_associations =
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
+    cml    : 'xml'  # http://www.xml-cml.org/, e.g. used by avogadro
+    kml    : 'xml'  # https://de.wikipedia.org/wiki/Keyhole_Markup_Language
     xsl    : 'xsl'
     ''     : 'text'
 

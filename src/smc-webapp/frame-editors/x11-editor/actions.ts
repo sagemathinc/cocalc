@@ -2,7 +2,13 @@
 X Window Editor Actions
 */
 
+import { Channel } from "smc-webapp/project/websocket/types";
+
 import { Map, fromJS } from "immutable";
+
+import { project_api } from "../generic/client";
+
+const copypaste = require("smc-webapp/copy-paste-buffer");
 
 import {
   Actions as BaseActions,
@@ -21,14 +27,24 @@ interface X11EditorState extends CodeEditorState {
 
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
+  private channel: Channel;
   protected doctype: string = "none";
   public store: Store<X11EditorState>;
   client: XpraClient;
 
-  _init2(): void {
+  async _init2(): Promise<void> {
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
+    try {
+      await this.init_channel();
+    } catch (err) {
+      this.set_error(
+        // TODO: should retry instead (?)
+        err +
+          " -- you might need to refresh your browser or close and open this file."
+      );
+    }
   }
 
   /*
@@ -73,6 +89,10 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     this.client.close();
     delete this.client;
+    if (this.channel !== undefined) {
+      this.channel.end();
+      delete this.channel;
+    }
     super.close();
   }
 
@@ -127,13 +147,16 @@ export class Actions extends BaseActions<X11EditorState> {
       }
     });
 
-    this.client.on("window:create", (wid: number, info) => {
-      let windows = this.store.get("windows").set(`${wid}`, fromJS(info));
+    this.client.on("window:create", (wid: number, title: string) => {
+      let windows = this.store
+        .get("windows")
+        .set(`${wid}`, fromJS({ wid, title }));
       this.setState({ windows });
     });
 
     this.client.on("window:destroy", (wid: number) => {
       this.delete_window(wid);
+      this.switch_to_window_after_this_closes(wid);
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
@@ -183,6 +206,8 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     if (id === undefined) {
       id = this._get_active_id();
+    } else {
+      this.set_active_id(id);
     }
     const leaf = this._get_frame_node(id);
     if (leaf == null) {
@@ -252,6 +277,33 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   close_window(id: string, wid: number): void {
+    const leaf = this._get_frame_node(id);
+    if (leaf != null && leaf.get("type") === "x11") {
+      this.client.close_window(wid);
+    }
+  }
+
+  switch_to_window_after_this_closes(wid: number, id?: string): void {
+    if (id === undefined) {
+      for (let leaf_id in this._get_leaf_ids()) {
+        const leaf = this._get_frame_node(leaf_id);
+        if (
+          leaf != null &&
+          leaf.get("type") === "x11" &&
+          leaf.get("wid") === wid
+        ) {
+          this.switch_to_window_after_this_closes(wid, leaf_id);
+        }
+      }
+      return;
+    }
+
+    const parent_wid = this.client.get_parent(wid);
+    if (parent_wid) {
+      this.set_focused_window_in_frame(id, parent_wid);
+      return;
+    }
+
     // Determine the previous available window.
     const used_wids = {};
     for (let leaf_id in this._get_leaf_ids()) {
@@ -275,7 +327,6 @@ export class Actions extends BaseActions<X11EditorState> {
       // nothing available -- at least clear the title.
       this.set_title(id, "");
     }
-    this.client.close_window(wid);
   }
 
   create_notification(_: number, desc: any): void {
@@ -299,5 +350,59 @@ export class Actions extends BaseActions<X11EditorState> {
   delete_notification(_: number): void {
     // NO-OP
     // console.log("delete_notification", nid);
+  }
+
+  async paste(id: string, value?: string | true): Promise<void> {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get("type") === "x11") {
+      if (value === undefined || value === true) {
+        value = copypaste.get_buffer();
+      }
+      if (value === undefined) {
+        // nothing to paste
+        return;
+      }
+      this.channel.write({ cmd: "paste", value });
+    } else {
+      super.paste(id, value);
+    }
+  }
+
+  async copy(id: string): Promise<void> {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get("type") === "x11") {
+      const value = await this.client.get_clipboard();
+      copypaste.set_buffer(value);
+    } else {
+      super.copy(id);
+    }
+  }
+
+  private async init_channel(): Promise<void> {
+    if (this._state === "closed") return;
+    const api = await project_api(this.project_id);
+    this.channel = await api.x11_channel(this.path);
+    const channel: any = this.channel;
+    channel.on("close", () => {
+      channel.removeAllListeners();
+      channel.conn.once("open", async () => {
+        await this.init_channel();
+      });
+    });
+    channel.on("data", x => {
+      if (typeof x === "object") {
+        this.handle_data_from_channel(x);
+      }
+    });
+  }
+
+  private handle_data_from_channel(x: object): void {
+    console.log("handle_data_from_channel", x);
   }
 }

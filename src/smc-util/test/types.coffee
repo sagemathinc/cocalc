@@ -9,6 +9,9 @@
 ###
 Test type checking functionality
 
+IF THESE TESTS FAIL, CHECK `echo $NODE_ENV`. NODE_ENV=production will cause these tests to fail.
+NODE_ENV=development to correctly use this file
+
 NOTE: You can't use `mocha -w` to work on this file, because it doesn't reset the warnings
 internally between runs.
 

@@ -4,7 +4,7 @@
 
 import { Surface } from "./surface";
 
-import { browserLanguage, keyboardLayout, timestamp } from "./util";
+import { browserLanguage, keyboardLayout, timestamp, is_paste } from "./util";
 
 import {
   IS_OSX,
@@ -146,6 +146,16 @@ export class Keyboard {
   }
 
   process(ev: KeyboardEvent, surface: Surface): boolean {
+    if (is_paste(ev)) {
+      // do NOT send the paste keystroke to X -- instead
+      // let it propagate, causing the user to paste into
+      // our hidden textarea.  If the key went to X, that
+      // might cause the focused application to also get
+      // paste from X's own buffer at the same time, which
+      // would be very confusing.
+      return true;
+    }
+
     const topwindow = surface ? surface.wid : 0;
     const rawModifiers = this.getEventModifiers(ev);
     const modifiers = this.modifiers(ev);
@@ -266,7 +276,7 @@ export class Keyboard {
         );
       }
 
-      return true;
+      return false; // don't let anything else propagate by default.
     } else if (ev.type === "keypress") {
       this.capsLock = getCapsLockState(ev, shift);
 

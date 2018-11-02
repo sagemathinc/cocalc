@@ -20,6 +20,10 @@ import { throttle } from "underscore";
 
 const { open_new_tab } = require("smc-webapp/misc_page");
 
+import { is_copy } from "./xpra/util";
+
+const { alert_message } = require("smc-webapp/alerts");
+
 const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
@@ -39,6 +43,8 @@ interface Options {
 }
 
 import { EventEmitter } from "events";
+
+let clipboard_error: boolean = false;
 
 export class XpraClient extends EventEmitter {
   private options: Options;
@@ -60,6 +66,9 @@ export class XpraClient extends EventEmitter {
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
     this.init_xpra_events();
     this.connect();
+    this.copy_from_xpra = throttle(this.copy_from_xpra.bind(this), 200, {
+      trailing: false
+    });
   }
 
   get_display(): number {
@@ -122,8 +131,14 @@ export class XpraClient extends EventEmitter {
     this.client.on("window:metadata", this.window_metadata.bind(this));
     this.client.on("overlay:create", this.overlay_create.bind(this));
     this.client.on("overlay:destroy", this.overlay_destroy.bind(this));
-    this.client.on("notification:create", this.handle_notification_create.bind(this));
-    this.client.on("notification:destroy", this.handle_notification_destroy.bind(this));
+    this.client.on(
+      "notification:create",
+      this.handle_notification_create.bind(this)
+    );
+    this.client.on(
+      "notification:destroy",
+      this.handle_notification_destroy.bind(this)
+    );
     this.client.on("ws:status", this.ws_status.bind(this));
     this.client.on("key", this.record_active);
     this.client.on("mouse", this.record_active);
@@ -147,7 +162,10 @@ export class XpraClient extends EventEmitter {
 
   close_window(wid: number): void {
     if (wid && this.client.findSurface(wid) !== undefined) {
-      // Tells the backend xpra server that we want window to close.
+      // Tells the backend xpra server that we want window to close
+      // This may or may not actually close the window, e.g., the window
+      // might pop up a modal asking about unsaved changes, and cancelling
+      // that keeps the window opened.  It's just a request.
       this.client.kill(wid);
     } else {
       // Window is not known but user wants to close it.  Just
@@ -161,13 +179,58 @@ export class XpraClient extends EventEmitter {
     this.disable_window_events();
   }
 
+  async get_clipboard(): Promise<string> {
+    return await this.server.get_clipboard();
+  }
+
+  async copy_from_xpra(): Promise<void> {
+    const clipboard = (navigator as any).clipboard;
+    if (clipboard == null) {
+      if (clipboard_error) {
+        return;
+      }
+      clipboard_error = true;
+      alert_message({
+        type: "info",
+        title: "X11 Clipboard Copy.",
+        message:
+          "Currently copying from graphical Linux applications requires Chrome version 66 or higher.  Try using the copy button for internal copy.",
+        timeout: 9999
+      });
+    }
+    const value = await this.get_clipboard();
+    try {
+      await clipboard.writeText(value);
+    } catch (e) {
+      throw Error(`Failed to copy to clipboard: ${e}`);
+    }
+  }
+
+  event_keydown = ev => {
+    // Annoying: typescript doesn't know ev is of type KeyboardEvent
+    // todo -- second arg?
+    const r = this.client.key_inject(ev as any, undefined);
+    if (is_copy(ev as any)) {
+      this.copy_from_xpra();
+    }
+    return r;
+  };
+
+  event_keyup = ev => {
+    return this.client.key_inject(ev as any, undefined);
+  };
+
+  event_keypress = ev => {
+    return this.client.key_inject(ev as any, undefined);
+  };
+
   private enable_window_events(): void {
     if (this.client === undefined) {
       return;
     }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
-      doc.on(name, (this.client as any).key_inject);
+      doc.on(name, this[`event_${name}`]);
     }
     for (let name of MOUSE_EVENTS) {
       doc.on(name, (this.client as any).mouse_inject);
@@ -180,7 +243,7 @@ export class XpraClient extends EventEmitter {
     }
     const doc = $(document);
     for (let name of KEY_EVENTS) {
-      doc.off(name, (this.client as any).key_inject);
+      doc.off(name, this[`event_${name}`]);
     }
     for (let name of MOUSE_EVENTS) {
       doc.off(name, (this.client as any).mouse_inject);
@@ -201,10 +264,15 @@ export class XpraClient extends EventEmitter {
     e.empty();
     e.append(canvas);
 
-    // Also append any already known overlays.
+    // Append any already known overlays or modals
     for (let id of this.client.window_ids()) {
       const w = this.client.findSurface(id);
-      if (w && w.parent !== undefined && w.parent.wid === wid) {
+      if (w == null) {
+        continue;
+      }
+      if (w.parent !== undefined && w.parent.wid === wid) {
+        this.place_overlay_in_dom(w);
+      } else if (w.metadata && w.metadata["transient-for"] === wid) {
         this.place_overlay_in_dom(w);
       }
     }
@@ -216,13 +284,15 @@ export class XpraClient extends EventEmitter {
   }
 
   window_create(surface: Surface): void {
-    //console.log("window_create", window);
-    this.emit("window:create", surface.wid, {
-      wid: surface.wid,
-      width: surface.w,
-      height: surface.h,
-      title: surface.metadata.title
-    });
+    if (surface.metadata["transient-for"]) {
+      surface.parent = this.client.findSurface(
+        surface.metadata["transient-for"]
+      );
+      // modal window on top of existing one...
+      this.place_overlay_in_dom(surface);
+    } else {
+      this.emit("window:create", surface.wid, surface.metadata.title);
+    }
   }
 
   // Any new top-level window gets moved to position 0,0 and
@@ -266,6 +336,14 @@ export class XpraClient extends EventEmitter {
 
   window_icon({ wid, src, w, h }): void {
     //console.log("window_icon", wid, src);
+    const surface = this.client.findSurface(wid);
+    if (!surface) {
+      return;
+    }
+    if (surface.metadata && surface.metadata["transient-for"]) {
+      // do not track icons for modals.
+      return;
+    }
     this.emit("window:icon", wid, src, w, h);
   }
 
@@ -277,24 +355,34 @@ export class XpraClient extends EventEmitter {
     const e = $(overlay.canvas);
     e.css("position", "absolute");
     if (overlay.parent === undefined) {
-      throw Error("overlay must defined a parent");
+      throw Error("overlay must define a parent");
     }
     const scale = overlay.parent.scale ? overlay.parent.scale : 1;
     const width = `${overlay.canvas.width / scale}px`,
       height = `${overlay.canvas.height / scale}px`,
       left = `${overlay.x / scale}px`,
       top = `${overlay.y / scale}px`;
+
+    let border, boxShadow;
+    if (overlay.metadata["transient-for"]) {
+      border = "1px solid rgba(0,0,0,.15)";
+      boxShadow = "rgba(0,0,0,.175) 0 6px 12px";
+    } else {
+      border = "1px solid lightgrey";
+      boxShadow = "rgba(0, 0, 0, 0.25) 0px 6px 24px";
+    }
     e.css({
       width,
       height,
       left,
       top,
-      border: "1px solid rgba(0,0,0,.15)",
+      border,
       borderRadius: "4px",
-      boxShadow: "0 6px 12px rgba(0,0,0,.175)"
+      boxShadow,
+      backgroundColor: "white"
     });
 
-    // if parent not in DOM yet, the following is no-op.
+    // if parent not in DOM yet, the following is a no-op.
     $(overlay.parent.canvas)
       .parent()
       .append(e);
@@ -355,13 +443,18 @@ export class XpraClient extends EventEmitter {
     open_new_tab(url);
   }
 
-  handle_notification_create(nid:number,desc): void {
+  handle_notification_create(nid: number, desc): void {
     this.emit("notification:create", nid, desc);
   }
 
-  handle_notification_destroy(nid:number): void {
+  handle_notification_destroy(nid: number): void {
     this.emit("notification:destroy", nid);
   }
 
-
+  // Returns 0 if no parent.
+  // Returns wid of the parent if there is one.
+  get_parent(wid: number): number {
+    const surface = this.client.findSurface(wid);
+    return surface && surface.parent != null ? surface.parent.wid : 0;
+  }
 }

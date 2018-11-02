@@ -109,7 +109,6 @@ html.no-js(lang="en")
           display : none
 
   body
-
     style
       :sass
         @import "smc-webapp/_colors.sass"
@@ -227,8 +226,8 @@ html.no-js(lang="en")
             //- li
             //-   a(href=PREFIX + "#a-explore") Explore
 
-            li(class=navbar_highlight("policies"))
-              a(href=PREFIX + "policies/index.html") Policies
+            li(class=navbar_highlight('features'))
+              a(href=PREFIX + "doc/features.html") Features
 
             if htmlWebpackPlugin.options.COMP_ENV
               li(class=navbar_highlight('software'))
@@ -239,6 +238,10 @@ html.no-js(lang="en")
 
             li(class=navbar_highlight('api'))
               a(href=PREFIX + "doc/api.html") API
+
+            li(class=navbar_highlight("policies"))
+              a(href=PREFIX + "policies/index.html") Policies
+
             li
               a.get-started(href=PREFIX + "app") Sign In
 
