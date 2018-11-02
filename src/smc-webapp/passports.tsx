@@ -1,6 +1,35 @@
 import * as React from "react";
+import { List } from "immutable"
+import * as misc from "smc-util/misc"
 
 const { Icon, Tip } = require("./r_misc");
+
+interface Props {
+  strategies?: List<string>;
+  get_api_key?: string;
+  small_size?: boolean;
+  no_heading?: boolean;
+  style?: object;
+}
+
+const PASSPORT_STYLES = {
+  facebook: {
+    backgroundColor: "#395996",
+    color: "white"
+  },
+  google: {
+    backgroundColor: "#DC4839",
+    color: "white"
+  },
+  twitter: {
+    backgroundColor: "#55ACEE",
+    color: "white"
+  },
+  github: {
+    backgroundColor: "white",
+    color: "black"
+  }
+};
 
 /*
  * decaffeinate suggestions:
@@ -12,38 +41,7 @@ const { Icon, Tip } = require("./r_misc");
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 
-export class Passports extends React.Component {
-  static initClass() {
-    this.prototype.displayName = "Passports";
-
-    this.prototype.propTypes = {
-      strategies: rtypes.immutable.List,
-      get_api_key: rtypes.string,
-      small_size: rtypes.bool,
-      no_header: rtypes.bool,
-      style: rtypes.object
-    };
-
-    this.prototype.styles = {
-      facebook: {
-        backgroundColor: "#395996",
-        color: "white"
-      },
-      google: {
-        backgroundColor: "#DC4839",
-        color: "white"
-      },
-      twitter: {
-        backgroundColor: "#55ACEE",
-        color: "white"
-      },
-      github: {
-        backgroundColor: "white",
-        color: "black"
-      }
-    };
-  }
-
+export class Passports extends React.Component<Props> {
   render_strategy(name) {
     let size;
     if (name === "email") {
@@ -58,7 +56,7 @@ export class Passports extends React.Component {
     } else {
       size = "2x";
     }
-    const style = misc.copy(this.styles[name]);
+    const style = misc.copy(PASSPORT_STYLES[name]);
     style.display = "inline-block";
     style.padding = "6px";
     style.borderRadius = "50%";
@@ -101,7 +99,6 @@ export class Passports extends React.Component {
           : undefined) != null
         ? left
         : [];
-    //# strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
     return (
       <div style={this.props.style}>
         {this.render_heading()}
@@ -113,4 +110,3 @@ export class Passports extends React.Component {
     );
   }
 }
-Passports.initClass();
