@@ -256,7 +256,10 @@ export class Client {
     };
   }
 
-  /*public resize(w: number, h: number): void {
+  /*
+  // TODO: later we may use this to keep menus from hanging over the edge.
+  // But be careful -- it can make mouse not work on part of window!
+    public resize(w: number, h: number): void {
     const sizes = calculateScreens(w, h, this.config.dpi);
     this.send("desktop_size", w, h, sizes);
   }*/
@@ -266,15 +269,14 @@ export class Client {
       const surface = this.surfaces[wid];
       if (surface.parent !== undefined && surface.parent.wid === parent.wid) {
         surface.rescale(scale);
-        this.rescale_children(surface, scale); // and also any children of this.
       }
     }
   }
 
-  private process_server_capabilities(cap) : void {
+  private process_server_capabilities(cap): void {
     this.serverCapabilities = cap;
-    if (cap['modifier_keycodes']) {
-      this.keyboard.process_modifier_keycodes(cap['modifier_keycodes']);
+    if (cap["modifier_keycodes"]) {
+      this.keyboard.process_modifier_keycodes(cap["modifier_keycodes"]);
     }
   }
 
@@ -434,7 +436,6 @@ export class Client {
           properties,
           send: this.send
         });
-
 
         this.surfaces[wid] = surface;
 

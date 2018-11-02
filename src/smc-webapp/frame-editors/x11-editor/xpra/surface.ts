@@ -89,7 +89,8 @@ export class Surface {
     swidth: number,
     sheight: number,
     full_width: boolean,
-    full_height: boolean
+    full_height: boolean,
+    scale: number
   ): void {
     // The main canvas itself has its size updated *only* when
     // the render itself happens, so there is no flicker.
@@ -106,9 +107,15 @@ export class Surface {
 
     if (full_width && this.parent == null) {
       this.jq_canvas.css("width", "100%");
+    } else {
+      this.jq_canvas.css("width", swidth / scale);
+      this.jq_canvas.css("left", this.x / scale);
     }
     if (full_height && this.parent == null) {
       this.jq_canvas.css("height", "100%");
+    } else {
+      this.jq_canvas.css("height", sheight / scale);
+      this.jq_canvas.css("top", this.y / scale);
     }
   }
 
@@ -123,7 +130,7 @@ export class Surface {
       height = cur_height;
     }
 
-    if (this.scale === scale && width === cur_width && height === this.h) {
+    if (this.scale === scale && width === cur_width && height === cur_height) {
       // absolutely no change at all.
       return;
     }
@@ -191,7 +198,8 @@ export class Surface {
       swidth,
       sheight,
       swidth0 === swidth,
-      sheight0 === sheight
+      sheight0 === sheight,
+      scale
     );
 
     this.scale = scale;
