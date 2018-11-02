@@ -1,9 +1,9 @@
 import * as React from "react";
 import { Passports } from "./passports";
 import { List } from "immutable";
-import { TypedMap } from "./app-framework/TypedMap";
+import { redux } from "./app-framework"
 
-const { COLORS, Icon, Loading } = require("./r_misc");
+const { COLORS, UNIT, Icon, Loading } = require("./r_misc");
 const {
   HelpEmailLink,
   TermsOfService,
@@ -11,7 +11,7 @@ const {
 } = require("./customize");
 const {
   Button,
-  CheckBox,
+  Checkbox,
   FormControl,
   FormGroup,
   Well
@@ -38,14 +38,24 @@ interface Props {
   has_remember_me: boolean;
 }
 
+interface State {
+  terms_checkbox: boolean;
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+  user_token: string;
+}
+
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
  * DS207: Consider shorter variations of null checks
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
-export class SignUp extends React.Component {
+export class SignUp extends React.Component<Props, State> {
   constructor(props) {
+    super(props);
     this.state = {
       terms_checkbox: false,
       first_name: "",
@@ -53,12 +63,12 @@ export class SignUp extends React.Component {
       email: "",
       password: "",
       user_token: ""
-    }
+    };
   }
 
   make_account(e) {
     e.preventDefault();
-    return this.actions("account").create_account(
+    return redux.getActions("account").create_account(
       this.state.first_name,
       this.state.last_name,
       this.state.email,

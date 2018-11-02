@@ -1,6 +1,7 @@
 import * as React from "react";
 
 const { Icon, Tip } = require("./r_misc");
+
 /*
  * decaffeinate suggestions:
  * DS101: Remove unnecessary use of Array.from
