@@ -77,9 +77,11 @@ export class Actions extends BaseActions<LatexEditorState> {
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
+  private bad_filename: boolean; // true, if the <filename.tex> can't be processed -- see #3230
 
   _init2(): void {
     if (!this.is_public) {
+      this._init_bad_filename();
       this._init_ext_filename(); // safe to set before syncstring init
       this._init_syncstring_value();
       this._init_ext_path(); // must come after syncstring init
@@ -88,6 +90,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_config();
       this._init_first_build();
     }
+  }
+
+  _init_bad_filename(): void {
+    // #3230 two or more spaces
+    // note: if there are additional reasons why a filename is bad, add it to the
+    // alert msg in run_build.
+    this.bad_filename = /\s\s+/.test(this.path);
   }
 
   _init_ext_filename(): void {
@@ -273,6 +282,17 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
+
+    console.log("this.bad_filename", this.bad_filename);
+
+    if (this.bad_filename) {
+      const err = `ERROR: It is not possible to compile this LaTeX file with the name '${
+        this.path
+      }'.
+        Please modify the filename, such that it does **not** contain two or more consecutive spaces.`;
+      this.set_error(err);
+      return;
+    }
 
     // for knitr related documents, we have to first build the derived tex file ...
     if (this.knitr) {
