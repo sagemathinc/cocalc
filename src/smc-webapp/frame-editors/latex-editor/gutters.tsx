@@ -26,6 +26,7 @@ export function update_gutters(opts: {
     // errors last so always shown if multiple issues on a single line!
     let item: Error;
     for (item of opts.log[group]) {
+      if (!item.file) continue;
       if (path_split(item.file).tail != path) {
         /* for now only show gutter marks in the master file. */
         continue;
