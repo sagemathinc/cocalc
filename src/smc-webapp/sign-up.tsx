@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Passports } from "./passports";
 import { List } from "immutable";
-import { redux } from "./app-framework"
+import { redux } from "./app-framework";
 
 const { COLORS, UNIT, Icon, Loading } = require("./r_misc");
 const {
@@ -47,12 +47,6 @@ interface State {
   user_token: string;
 }
 
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 export class SignUp extends React.Component<Props, State> {
   constructor(props) {
     super(props);
@@ -68,27 +62,29 @@ export class SignUp extends React.Component<Props, State> {
 
   make_account(e) {
     e.preventDefault();
-    return redux.getActions("account").create_account(
-      this.state.first_name,
-      this.state.last_name,
-      this.state.email,
-      this.state.password,
-      this.state.user_token
-    );
+    return redux
+      .getActions("account")
+      .create_account(
+        this.state.first_name,
+        this.state.last_name,
+        this.state.email,
+        this.state.password,
+        this.state.user_token
+      );
   }
 
   render_error(field) {
     const err =
-      this.props.sign_up_error != null
+      this.props.sign_up_error != undefined
         ? this.props.sign_up_error.get(field)
         : undefined;
-    if (err != null) {
+    if (err != undefined) {
       return <div style={ERROR_STYLE}>{err}</div>;
     }
   }
 
   render_passports() {
-    if (this.props.strategies == null) {
+    if (this.props.strategies == undefined) {
       return <Loading />;
     }
     if (this.props.strategies.size > 1) {
