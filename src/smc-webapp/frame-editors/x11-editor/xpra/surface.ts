@@ -16,7 +16,6 @@ export class Surface {
   public h: number; // height of the actual window on the xpra server
   public parent: Surface | undefined;
   public overlay: boolean = false;
-  public is_dialog: boolean = false;
   public canvas: HTMLCanvasElement;
   public jq_canvas: JQuery;
   public context: CanvasRenderingContext2D;
@@ -41,17 +40,6 @@ export class Surface {
     // TODO: canvas.wid is used for handling mouse events.
     // This is a *temporary hack*!
     (this.canvas as any).wid = wid;
-
-    if (
-      metadata["window-type"] != null &&
-      metadata["window-type"][0] === "DIALOG"
-    ) {
-      this.is_dialog = true;
-      this.jq_canvas.css({
-        border: "1px solid lightgrey",
-        boxShadow: "3px 3px 3px lightgrey"
-      });
-    }
 
     const context = this.canvas.getContext("2d");
     if (!context) {
@@ -138,21 +126,6 @@ export class Surface {
     let swidth0, sheight0;
     let swidth = (swidth0 = Math.round(width * scale));
     let sheight = (sheight0 = Math.round(height * scale));
-
-    // In some cases, we will only potentially SHRINK (so buttons can be seen!),
-    // but not enlarge, which is usually really annoying.
-    if (
-      this.metadata != null &&
-      this.metadata["window-type"] != null &&
-      this.metadata["window-type"][0] === "DIALOG"
-    ) {
-      if (swidth >= cur_width) {
-        swidth = cur_width;
-      }
-      if (sheight >= cur_height) {
-        sheight = cur_height;
-      }
-    }
 
     // Honor any size constraints
     const size_constraints = this.metadata["size-constraints"];
