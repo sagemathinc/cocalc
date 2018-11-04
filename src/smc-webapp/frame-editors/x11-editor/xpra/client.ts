@@ -264,11 +264,29 @@ export class Client {
     this.send("desktop_size", w, h, sizes);
   }*/
 
-  public rescale_children(parent: Surface, scale: number): void {
+  public rescale_children(parent: Surface): void {
+    if (parent.rescale_params == null) {
+      // parent has NOT yet been scaled, so no-op.
+      // Because of debouncing things happen initially
+      // in a somewhat random order.
+      return;
+    }
+    const { width, height, scale } = parent.rescale_params;
+    if (width == null || height == null) {
+      return;
+    }
     for (let wid in this.surfaces) {
       const surface = this.surfaces[wid];
       if (surface.parent !== undefined && surface.parent.wid === parent.wid) {
-        surface.rescale(scale);
+        if (surface.is_overlay) {
+          // do nothing.
+        } else {
+          surface.rescale(
+            scale,
+            Math.round(width * 0.9),
+            Math.round(height * 0.9)
+          );
+        }
       }
     }
   }
@@ -365,7 +383,6 @@ export class Client {
         });
 
         this.send("map-window", wid, x, y, w, h, props);
-        this.send("focus", wid);
 
         const surface = new Surface({
           parent: undefined,
@@ -381,7 +398,6 @@ export class Client {
         this.surfaces[wid] = surface;
 
         bus.emit("window:create", surface);
-        this.focus(wid);
       }
     );
 
@@ -446,26 +462,38 @@ export class Client {
 
     bus.on("lost-window", (wid: number) => {
       const surface = this.findSurface(wid);
-
-      if (surface) {
-        // get rid of it...
-        if (surface.overlay) {
-          bus.emit("overlay:destroy", surface);
-        } else {
-          if (this.activeWindow === wid) {
-            bus.emit("window:blur", { wid });
-          }
-          bus.emit("window:destroy", surface);
-        }
-
-        surface.destroy();
-        delete this.surfaces[wid];
+      if (surface == null) {
+        return;
       }
 
-      if (this.surfaces[this.activeWindow] === undefined) {
+      const parent = surface.parent;
+
+      // get rid of it...
+      if (surface.is_overlay) {
+        bus.emit("overlay:destroy", surface);
+      } else {
+        if (this.activeWindow === wid) {
+          bus.emit("window:blur", { wid });
+        }
+        bus.emit("window:destroy", surface);
+      }
+
+      surface.destroy();
+      delete this.surfaces[wid];
+      if (wid == this.activeWindow) {
+        if (parent != null) {
+          this.activeWindow = parent.wid;
+          if (this.surfaces[this.activeWindow] != null) {
+            this.focus(this.activeWindow);
+            return;
+          }
+        }
+      }
+
+      if (this.surfaces[this.activeWindow] == null) {
         // TODO: need a stack instead...? Or maybe our
         // client does a good enough job with its own stack...
-        if (this.surfaces[this.lastActiveWindow] !== undefined) {
+        if (this.surfaces[this.lastActiveWindow] != null) {
           this.activeWindow = this.lastActiveWindow;
         } else {
           this.activeWindow = 0;

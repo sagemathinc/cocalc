@@ -274,6 +274,7 @@ export class XpraClient extends EventEmitter {
         return;
       }
       // modal window on top of existing (assumed!) root window
+      this.client.rescale_children(surface.parent);
       this.emit("child:create", surface.parent.wid, surface.wid);
     } else {
       this.emit("window:create", surface.wid, surface.metadata.title);
@@ -296,21 +297,10 @@ export class XpraClient extends EventEmitter {
     }
 
     const scale = window.devicePixelRatio / frame_scale;
-
-    surface.rescale(scale, width, height);
-    this.client.rescale_children(surface, scale);
     surface.x = 0;
     surface.y = 0;
-
-    this.client.send(
-      "configure-window",
-      wid,
-      surface.x,
-      surface.y,
-      surface.w,
-      surface.h,
-      surface.properties
-    );
+    surface.rescale(scale, width, height);
+    this.client.rescale_children(surface);
   }
 
   window_destroy(surface: Surface): void {
@@ -364,7 +354,7 @@ export class XpraClient extends EventEmitter {
       border = "1px solid lightgrey";
       boxShadow = "grey 0 0 20px";
     } else {
-      border = "1px solid lightgrey";
+      border = "";
       boxShadow = "rgba(0, 0, 0, 0.25) 0px 6px 24px";
     }
     e.css({

@@ -17,7 +17,7 @@ import {
   rtypes
 } from "../../app-framework";
 
-import { throttle } from "underscore";
+import { debounce } from "underscore";
 import { is_different } from "../generic/misc";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
@@ -91,13 +91,11 @@ export class X11Component extends Component<Props, {}> {
   }
 
   componentDidMount(): void {
+    this.measure_size = debounce(this._measure_size.bind(this), 500);
     this.is_mounted = true;
     this.insert_window_in_dom(this.props);
     this.init_resize_observer();
     this.disable_browser_context_menu();
-    this.measure_size = throttle(this.measure_size_nothrottle.bind(this), 500, {
-      leading: false
-    });
     if (this.props.is_current) {
       this.focus_textarea();
     }
@@ -145,11 +143,12 @@ export class X11Component extends Component<Props, {}> {
     }
     this.is_loaded = true;
     this.insert_children_in_dom(props.windows.getIn([wid, "children"], Set()));
+    this._measure_size();
     await delay(0);
     if (!this.is_mounted || wid !== props.desc.get("wid")) {
       return;
     }
-    this.measure_size_nothrottle();
+    this._measure_size();
     if (props.is_current) {
       client.focus_window(wid);
     }
@@ -164,9 +163,10 @@ export class X11Component extends Component<Props, {}> {
     wids.forEach(wid => {
       client.insert_child_in_dom(wid);
     });
+    this.measure_size();
   }
 
-  measure_size_nothrottle(props?: Props): void {
+  _measure_size(props?: Props): void {
     if (props == null) {
       props = this.props;
     }
@@ -192,8 +192,6 @@ export class X11Component extends Component<Props, {}> {
   componentWillUnmount(): void {
     this.is_mounted = false;
     this.is_loaded = false;
-    // TODO: not at all right...
-    this.props.actions.blur();
   }
 
   render_window_tabs(): Rendered[] {

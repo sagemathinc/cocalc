@@ -15,27 +15,29 @@ export class Surface {
   public w: number; // width of the actual window on the xpra server
   public h: number; // height of the actual window on the xpra server
   public parent: Surface | undefined;
-  public overlay: boolean = false;
+  public is_overlay: boolean = false;
   public canvas: HTMLCanvasElement;
   public jq_canvas: JQuery;
   public context: CanvasRenderingContext2D;
   public metadata: { title?: string };
   public properties: any;
   public renderer: Renderer;
-  public scale: number = 1; // TODO: set this properly!
+  public scale: number = 1;
+  private send: Function;
+  public rescale_params: { scale: number; width?: number; height?: number };
 
   constructor({ parent, wid, x, y, w, h, metadata, properties, send }) {
     this.parent = parent;
-    this.overlay = !!parent;
+    this.is_overlay = !!parent;
+    this.send = send;
 
     this.canvas = document.createElement("canvas");
     this.jq_canvas = $(this.canvas);
-    // No matter what, it's critical to never have part of
-    // the window off screen, since there is no possible
-    // way to see it in a tabbed no-drag interface.  It's better
-    // to look distorted than to cause deep frustration with
-    // buttons missing.
-    this.jq_canvas.css({ "max-width": "100%", "max-height": "100%" });
+
+    if (this.parent == null) {
+      this.jq_canvas.css({ "max-width": "100%", "max-height": "100%" });
+    }
+
     this.w = this.canvas.width = w;
     this.h = this.canvas.height = h;
 
@@ -82,13 +84,10 @@ export class Surface {
     delete this.parent;
   }
 
-  updateGeometry(
-    swidth: number,
-    sheight: number,
-    full_width: boolean,
-    full_height: boolean,
-    scale: number
-  ): void {
+  updateGeometry(swidth: number, sheight: number, scale: number): void {
+    if (this.renderer == null) {
+      return; // destroyed
+    }
     // The main canvas itself has its size updated *only* when
     // the render itself happens, so there is no flicker.
     if (this.renderer.drawCanvas.width != swidth) {
@@ -98,13 +97,14 @@ export class Surface {
       this.renderer.drawCanvas.height = sheight;
     }
 
-    if (full_width && this.parent == null) {
+    //console.log("updateGeometry", this.wid, swidth, sheight, scale);
+    if (this.parent == null) {
       this.jq_canvas.css("width", "100%");
     } else {
       this.jq_canvas.css("width", swidth / scale);
       this.jq_canvas.css("left", this.x / scale);
     }
-    if (full_height && this.parent == null) {
+    if (this.parent == null) {
       this.jq_canvas.css("height", "100%");
     } else {
       this.jq_canvas.css("height", sheight / scale);
@@ -112,31 +112,22 @@ export class Surface {
     }
   }
 
-  //
-  rescale(scale: number, width?: number, height?: number): void {
-    const cur_width = Math.round(this.w / this.scale),
-      cur_height = Math.round(this.h / this.scale);
-    if (width === undefined) {
-      width = cur_width;
+  // Rescale the window to better fit the user's frame.
+  // Here width and height (if given) are the dimensions of
+  // that frame, so they are the maximum possible size.
+  // Scale accounts for retina/HiDPI displays, or user zoom.
+  rescale(scale: number, width: number, height: number): void {
+    //console.log("rescale", this.wid, scale, width, height);
+    if (this.renderer == null) {
+      return; // destroyed
     }
-    if (height === undefined) {
-      height = cur_height;
-    }
+    this.rescale_params = { scale, width, height };
+    let swidth = Math.round(width * scale);
+    let sheight = Math.round(height * scale);
 
-    if (this.scale === scale && width === cur_width && height === cur_height) {
-      // absolutely no change at all.
-      return;
-    }
-
-    let swidth0, sheight0;
-    let swidth = (swidth0 = Math.round(width * scale));
-    let sheight = (sheight0 = Math.round(height * scale));
-
-    // Honor any size constraints
     const size_constraints = this.metadata["size-constraints"];
     if (size_constraints != null) {
-      const mn = size_constraints["minimum-size"],
-        mx = size_constraints["maximum-size"];
+      const mn = size_constraints["minimum-size"];
       if (mn != null) {
         if (swidth < mn[0]) {
           swidth = mn[0];
@@ -145,6 +136,8 @@ export class Surface {
           sheight = mn[1];
         }
       }
+
+      const mx = size_constraints["maximum-size"];
       if (mx != null) {
         if (swidth > mx[0]) {
           swidth = mx[0];
@@ -172,16 +165,29 @@ export class Surface {
     }
 
     //console.log("resize_window ", wid, width, height, swidth, sheight);
-    this.updateGeometry(
-      swidth,
-      sheight,
-      swidth0 === swidth,
-      sheight0 === sheight,
-      scale
-    );
+    this.updateGeometry(swidth, sheight, scale);
 
     this.scale = scale;
     this.w = swidth;
     this.h = sheight;
+    if (!this.is_overlay && this.parent != null) {
+      // center (modal) window over parent -- most useful.
+      const parent: Surface = this.parent;
+      this.x = Math.round(parent.x + (parent.w - this.w) / 2);
+      this.y = Math.round(parent.y + (parent.h - this.h) / 2);
+    }
+
+    if (!this.is_overlay) {
+      //console.log("sending ", this.wid, this.w, this.h);
+      this.send(
+        "configure-window",
+        this.wid,
+        this.x,
+        this.y,
+        this.w,
+        this.h,
+        this.properties
+      );
+    }
   }
 }
