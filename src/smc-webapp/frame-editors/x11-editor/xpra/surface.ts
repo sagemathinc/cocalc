@@ -27,13 +27,22 @@ export class Surface {
   constructor({ parent, wid, x, y, w, h, metadata, properties, send }) {
     this.parent = parent;
     this.overlay = !!parent;
+
     this.canvas = document.createElement("canvas");
     this.jq_canvas = $(this.canvas);
-    this.wid = wid;
+    // No matter what, it's critical to never have part of
+    // the window off screen, since there is no possible
+    // way to see it in a tabbed no-drag interface.  It's better
+    // to look distorted than to cause deep frustration with
+    // buttons missing.
+    this.jq_canvas.css({ "max-width": "100%", "max-height": "100%" });
     this.w = this.canvas.width = w;
     this.h = this.canvas.height = h;
+
+    this.wid = wid;
     this.x = x;
     this.y = y;
+
     this.properties = properties;
     this.metadata = metadata;
 
@@ -88,10 +97,6 @@ export class Surface {
     if (this.renderer.drawCanvas.height != sheight) {
       this.renderer.drawCanvas.height = sheight;
     }
-
-    // No matter what, never have part of the window off screen, since
-    // there is no possible way to see it in a tabbed no-drag interface.
-    this.jq_canvas.css({ "max-width": "100%", "max-height": "100%" });
 
     if (full_width && this.parent == null) {
       this.jq_canvas.css("width", "100%");
