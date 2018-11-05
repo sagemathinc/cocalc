@@ -25,7 +25,9 @@
 //
 //###################################################
 
-declare var DEBUG: boolean, window: any, navigator: any;
+declare var DEBUG: boolean, window: any;
+
+const navigator = window.navigator;
 
 var IS_MOBILE,
   IS_TOUCH,
