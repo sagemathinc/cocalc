@@ -25,7 +25,7 @@
 //
 //###################################################
 
-declare var DEBUG: boolean, window: any;
+declare var DEBUG: boolean, window: any, navigator: any;
 
 var IS_MOBILE,
   IS_TOUCH,
@@ -194,4 +194,12 @@ if (window != undefined) {
   IS_MOBILE = IS_TOUCH = false;
 }
 
-export { IS_MOBILE, IS_TOUCH, IS_IPAD, isMobile, is_responsive_mode, get_browser, get_mobile };
+export {
+  IS_MOBILE,
+  IS_TOUCH,
+  IS_IPAD,
+  isMobile,
+  is_responsive_mode,
+  get_browser,
+  get_mobile
+};
