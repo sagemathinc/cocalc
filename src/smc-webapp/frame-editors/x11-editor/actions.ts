@@ -233,7 +233,6 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   blur(): void {
-    // console.log("x11 -- blur");
     if (this.client == null) {
       return;
     }
