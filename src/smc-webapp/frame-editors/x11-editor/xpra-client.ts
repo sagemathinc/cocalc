@@ -30,6 +30,10 @@ const MOUSE_EVENTS = [
   "mousemove",
   "mousedown",
   "mouseup",
+  "touchstart",
+  "touchmove",
+  "touchend",
+  "touchcancel",
   "wheel",
   "mousewheel",
   "DOMMouseScroll"
