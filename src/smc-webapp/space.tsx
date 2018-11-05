@@ -1,4 +1,4 @@
-import { React } from "./app-framework";
+import * as React from "react"
 
 export function Space() {
   return <span>&nbsp;</span>;

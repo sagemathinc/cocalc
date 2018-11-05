@@ -1,4 +1,4 @@
-import { React, Component } from "./app-framework";
+import * as React from "react";
 import { Icon } from "./icon";
 import { TypedMap } from "./app-framework/TypedMap";
 
@@ -22,7 +22,7 @@ const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
   }
 };
 
-export class Loading extends Component<Props> {
+export class Loading extends React.Component<Props> {
   static defaultProps = { text: "Loading..." };
 
   render_estimate() {

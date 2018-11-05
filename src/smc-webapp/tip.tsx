@@ -1,4 +1,4 @@
-import { Component, React } from "./app-framework";
+import * as React from "react";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
 import * as feature from "./feature";
@@ -25,7 +25,7 @@ interface State {
   display_trigger: boolean;
 }
 
-export class Tip extends Component<Props, State> {
+export class Tip extends React.Component<Props, State> {
   constructor(props) {
     super(props);
     this.state = { display_trigger: false };
