@@ -180,7 +180,7 @@ export class Keyboard {
       let str = ev.key || String.fromCharCode(keycode);
       let keyname = ev.code || "";
 
-      if (keyname != str && str in NUMPAD_TO_NAME) {
+      if (keycode >= 96 && keyname != str && str in NUMPAD_TO_NAME) {
         keyname = NUMPAD_TO_NAME[str];
         this.numLock = "0123456789.".includes(keyname);
       } else if (keyname in KEY_TO_NAME) {
