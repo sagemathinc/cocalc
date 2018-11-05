@@ -256,25 +256,45 @@ export class Client {
     };
   }
 
-  /*public resize(w: number, h: number): void {
+  /*
+  // TODO: later we may use this to keep menus from hanging over the edge.
+  // But be careful -- it can make mouse not work on part of window!
+    public resize(w: number, h: number): void {
     const sizes = calculateScreens(w, h, this.config.dpi);
     this.send("desktop_size", w, h, sizes);
   }*/
 
-  public rescale_children(parent: Surface, scale: number): void {
+  public rescale_children(parent: Surface): void {
+    if (parent.rescale_params == null) {
+      // parent has NOT yet been scaled, so no-op.
+      // Because of debouncing things happen initially
+      // in a somewhat random order.
+      return;
+    }
+    const { width, height, scale } = parent.rescale_params;
+    if (width == null || height == null) {
+      return;
+    }
     for (let wid in this.surfaces) {
       const surface = this.surfaces[wid];
       if (surface.parent !== undefined && surface.parent.wid === parent.wid) {
-        surface.rescale(scale);
-        this.rescale_children(surface, scale); // and also any children of this.
+        if (surface.is_overlay) {
+          // do nothing.
+        } else {
+          surface.rescale(
+            scale,
+            Math.round(width * 0.9),
+            Math.round(height * 0.9)
+          );
+        }
       }
     }
   }
 
-  private process_server_capabilities(cap) : void {
+  private process_server_capabilities(cap): void {
     this.serverCapabilities = cap;
-    if (cap['modifier_keycodes']) {
-      this.keyboard.process_modifier_keycodes(cap['modifier_keycodes']);
+    if (cap["modifier_keycodes"]) {
+      this.keyboard.process_modifier_keycodes(cap["modifier_keycodes"]);
     }
   }
 
@@ -363,7 +383,6 @@ export class Client {
         });
 
         this.send("map-window", wid, x, y, w, h, props);
-        this.send("focus", wid);
 
         const surface = new Surface({
           parent: undefined,
@@ -379,7 +398,6 @@ export class Client {
         this.surfaces[wid] = surface;
 
         bus.emit("window:create", surface);
-        this.focus(wid);
       }
     );
 
@@ -435,35 +453,47 @@ export class Client {
           send: this.send
         });
 
-        bus.emit("overlay:create", surface);
-
         this.surfaces[wid] = surface;
+
+        bus.emit("overlay:create", surface);
         this.lastActiveWindow = parentWid;
       }
     );
 
     bus.on("lost-window", (wid: number) => {
       const surface = this.findSurface(wid);
-
-      if (surface) {
-        // get rid of it...
-        if (surface.overlay) {
-          bus.emit("overlay:destroy", surface);
-        } else {
-          if (this.activeWindow === wid) {
-            bus.emit("window:blur", { wid });
-          }
-          bus.emit("window:destroy", surface);
-        }
-
-        surface.destroy();
-        delete this.surfaces[wid];
+      if (surface == null) {
+        return;
       }
 
-      if (this.surfaces[this.activeWindow] === undefined) {
+      const parent = surface.parent;
+
+      // get rid of it...
+      if (surface.is_overlay) {
+        bus.emit("overlay:destroy", surface);
+      } else {
+        if (this.activeWindow === wid) {
+          bus.emit("window:blur", { wid });
+        }
+        bus.emit("window:destroy", surface);
+      }
+
+      surface.destroy();
+      delete this.surfaces[wid];
+      if (wid == this.activeWindow) {
+        if (parent != null) {
+          this.activeWindow = parent.wid;
+          if (this.surfaces[this.activeWindow] != null) {
+            this.focus(this.activeWindow);
+            return;
+          }
+        }
+      }
+
+      if (this.surfaces[this.activeWindow] == null) {
         // TODO: need a stack instead...? Or maybe our
         // client does a good enough job with its own stack...
-        if (this.surfaces[this.lastActiveWindow] !== undefined) {
+        if (this.surfaces[this.lastActiveWindow] != null) {
           this.activeWindow = this.lastActiveWindow;
         } else {
           this.activeWindow = 0;

@@ -213,6 +213,13 @@ file_associations['term'] =
     opts   : {}
     name   : "Terminal"
 
+# This is just for the "Create" menu in files.
+file_associations['x11'] =
+    editor : 'x11'
+    icon   : 'fa-window-restore'
+    opts   : {}
+    name   : "X11 Desktop"
+
 file_associations['ipynb'] =
     editor : 'ipynb'
     icon   : 'cc-icon-ipynb'

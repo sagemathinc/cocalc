@@ -195,6 +195,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
                         <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
                     </Tip>
+                    <Tip title='X11 Desktop'   icon='window-restore'
+                        tip='Create an X11 desktop for running graphical applications.'>
+                        <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
+                    </Tip>
                 </Col>
                 <Col sm={6}>
                     <Tip title='Manage a course'  placement='left'  icon='graduation-cap'

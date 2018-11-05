@@ -2,8 +2,6 @@
 
 import { retry_until_success } from "../generic/async-utils";
 
-import { delay } from "awaiting";
-
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { ConnectionStatus } from "../frame-tree/types";
@@ -150,12 +148,8 @@ export class XpraClient extends EventEmitter {
     this.enable_window_events();
   }
 
-  async focus_window(wid: number): Promise<void> {
+  focus_window(wid: number): void {
     if (wid && this.client.findSurface(wid) !== undefined) {
-      this.client.focus(wid);
-      // sometimes it annoyingly fails without this,
-      // so we use it for now...
-      await delay(100);
       this.client.focus(wid);
     }
   }
@@ -250,7 +244,7 @@ export class XpraClient extends EventEmitter {
     }
   }
 
-  render_window(wid: number, elt: HTMLElement): void {
+  insert_window_in_dom(wid: number, elt: HTMLElement): void {
     const surface = this.client.findSurface(wid);
     if (surface === undefined) {
       throw Error(`missing surface ${wid}`);
@@ -263,19 +257,6 @@ export class XpraClient extends EventEmitter {
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
     e.append(canvas);
-
-    // Append any already known overlays or modals
-    for (let id of this.client.window_ids()) {
-      const w = this.client.findSurface(id);
-      if (w == null) {
-        continue;
-      }
-      if (w.parent !== undefined && w.parent.wid === wid) {
-        this.place_overlay_in_dom(w);
-      } else if (w.metadata && w.metadata["transient-for"] === wid) {
-        this.place_overlay_in_dom(w);
-      }
-    }
   }
 
   window_focus(wid: number): void {
@@ -288,8 +269,13 @@ export class XpraClient extends EventEmitter {
       surface.parent = this.client.findSurface(
         surface.metadata["transient-for"]
       );
-      // modal window on top of existing one...
-      this.place_overlay_in_dom(surface);
+      if (!surface.parent) {
+        // gone
+        return;
+      }
+      // modal window on top of existing (assumed!) root window
+      this.client.rescale_children(surface.parent);
+      this.emit("child:create", surface.parent.wid, surface.wid);
     } else {
       this.emit("window:create", surface.wid, surface.metadata.title);
     }
@@ -311,24 +297,18 @@ export class XpraClient extends EventEmitter {
     }
 
     const scale = window.devicePixelRatio / frame_scale;
-
-    surface.rescale(scale, width, height);
-    this.client.rescale_children(surface, scale);
     surface.x = 0;
     surface.y = 0;
-
-    this.client.send(
-      "configure-window",
-      wid,
-      surface.x,
-      surface.y,
-      surface.w,
-      surface.h,
-      surface.properties
-    );
+    surface.rescale(scale, width, height);
+    this.client.rescale_children(surface);
   }
 
   window_destroy(surface: Surface): void {
+    if (surface.parent != null) {
+      this.emit("child:destroy", surface.parent.wid, surface.wid);
+      surface.destroy();
+      return;
+    }
     //console.log("window_destroy", window);
     surface.destroy();
     this.emit("window:destroy", surface.wid);
@@ -351,24 +331,30 @@ export class XpraClient extends EventEmitter {
     //console.log("window_metadata", info);
   }
 
-  place_overlay_in_dom(overlay: Surface): void {
-    const e = $(overlay.canvas);
-    e.css("position", "absolute");
-    if (overlay.parent === undefined) {
-      throw Error("overlay must define a parent");
+  insert_child_in_dom(wid: number): void {
+    const surface = this.client.findSurface(wid);
+    if (surface == null) {
+      // gone -- nothing to do.
+      return;
     }
-    const scale = overlay.parent.scale ? overlay.parent.scale : 1;
-    const width = `${overlay.canvas.width / scale}px`,
-      height = `${overlay.canvas.height / scale}px`,
-      left = `${overlay.x / scale}px`,
-      top = `${overlay.y / scale}px`;
+    if (surface.parent == null) {
+      throw Error(`insert_child_in_dom: ${wid} must be a child`);
+    }
+
+    const e = $(surface.canvas);
+    e.css("position", "absolute");
+    const scale = surface.parent.scale ? surface.parent.scale : 1;
+    const width = `${surface.canvas.width / scale}px`,
+      height = `${surface.canvas.height / scale}px`,
+      left = `${surface.x / scale}px`,
+      top = `${surface.y / scale}px`;
 
     let border, boxShadow;
-    if (overlay.metadata["transient-for"]) {
-      border = "1px solid rgba(0,0,0,.15)";
-      boxShadow = "rgba(0,0,0,.175) 0 6px 12px";
-    } else {
+    if (surface.metadata["transient-for"]) {
       border = "1px solid lightgrey";
+      boxShadow = "grey 0 0 20px";
+    } else {
+      border = "";
       boxShadow = "rgba(0, 0, 0, 0.25) 0px 6px 24px";
     }
     e.css({
@@ -383,16 +369,23 @@ export class XpraClient extends EventEmitter {
     });
 
     // if parent not in DOM yet, the following is a no-op.
-    $(overlay.parent.canvas)
+    $(surface.parent.canvas)
       .parent()
       .append(e);
   }
 
   overlay_create(overlay: Surface): void {
-    this.place_overlay_in_dom(overlay);
+    if (overlay.parent == null) {
+      return; // make typescript happy
+    }
+    this.emit("child:create", overlay.parent.wid, overlay.wid);
   }
 
   overlay_destroy(overlay: Surface): void {
+    if (overlay.parent == null) {
+      return; // make typescript happy
+    }
+    this.emit("child:destroy", overlay.parent.wid, overlay.wid);
     $(overlay.canvas).remove();
   }
 

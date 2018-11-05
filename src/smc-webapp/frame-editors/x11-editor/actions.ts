@@ -4,7 +4,7 @@ X Window Editor Actions
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
-import { Map, fromJS } from "immutable";
+import { Map, Set, fromJS } from "immutable";
 
 import { project_api } from "../generic/client";
 
@@ -22,7 +22,7 @@ import { Store } from "../../app-framework";
 const { alert_message } = require("smc-webapp/alerts");
 
 interface X11EditorState extends CodeEditorState {
-  windows: Map<string, any>;
+  windows: Map<number, any>;
 }
 
 export class Actions extends BaseActions<X11EditorState> {
@@ -98,8 +98,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
   _set_window(wid: number, obj: any): void {
     let windows = this.store.get("windows");
-    const s = `${wid}`;
-    let window = windows.get(s);
+    let window = windows.get(wid);
     if (window == null) {
       console.warn(`_set_window -- no window with id ${wid}`);
       return;
@@ -107,16 +106,16 @@ export class Actions extends BaseActions<X11EditorState> {
     for (let key in obj) {
       window = window.set(key, obj[key]);
     }
-    windows = windows.set(s, window);
+    windows = windows.set(wid, window);
     this.setState({ windows });
   }
 
   _get_window(wid: number, key: string, def?: any): any {
-    return this.store.get("windows").getIn([`${wid}`, key], def);
+    return this.store.get("windows").getIn([wid, key], def);
   }
 
   delete_window(wid: number): void {
-    let windows = this.store.get("windows").delete(`${wid}`);
+    let windows = this.store.get("windows").delete(wid);
     this.setState({ windows });
   }
 
@@ -126,37 +125,22 @@ export class Actions extends BaseActions<X11EditorState> {
       path: this.path
     });
 
-    this.client.on("window:focus", (wid: number) => {
-      //console.log("window:focus", wid);
-      // if it is a full root level window, switch to show it.
-      if (!this.client.is_root_window(wid)) {
-        return;
-      }
-      const active_id = this._get_active_id();
-      const leaf = this._get_frame_node(active_id);
-      let id;
-      if (leaf && leaf.get("type") === "x11") {
-        id = active_id;
-      } else {
-        id = this._get_most_recent_active_frame_id_of_type("x11");
-      }
-      if (id != null) {
-        const title = this.store.get("windows").getIn([`${wid}`, "title"]);
-        this.set_frame_tree({ id, wid, title });
-        this._ensure_only_one_tab_has_wid(id, wid);
-      }
-    });
-
     this.client.on("window:create", (wid: number, title: string) => {
-      let windows = this.store
-        .get("windows")
-        .set(`${wid}`, fromJS({ wid, title }));
+      let windows = this.store.get("windows").set(wid, fromJS({ wid, title }));
       this.setState({ windows });
     });
 
     this.client.on("window:destroy", (wid: number) => {
       this.delete_window(wid);
       this.switch_to_window_after_this_closes(wid);
+    });
+
+    this.client.on("child:create", (parent_wid: number, child_wid: number) => {
+      this.children_op(parent_wid, child_wid, "add");
+    });
+
+    this.client.on("child:destroy", (parent_wid: number, child_wid: number) => {
+      this.children_op(parent_wid, child_wid, "delete");
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
@@ -184,6 +168,18 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client.on("notification:destroy", (nid: number) => {
       this.delete_notification(nid);
     });
+  }
+
+  private children_op(parent_wid: number, child_wid: number, op: string) {
+    let windows = this.store.get("windows");
+    let parent = windows.get(parent_wid);
+    if (!parent) {
+      return;
+    }
+    let children = parent.get("children", Set())[op](child_wid);
+    parent = parent.set("children", children);
+    windows = windows.set(parent_wid, parent);
+    this.setState({ windows });
   }
 
   set_x11_connection_status(status: ConnectionStatus): void {
@@ -248,11 +244,15 @@ export class Actions extends BaseActions<X11EditorState> {
   // with given id.
   set_focused_window_in_frame(id: string, wid: number): void {
     const leaf = this._get_frame_node(id);
-    if (leaf == null || leaf.get("type") != "x11") {
+    if (leaf == null || leaf.get("type") !== "x11") {
       return;
     }
-    // todo: make it so wid can only be in one x11 leaf...
-    const title = this.store.get("windows").getIn([`${wid}`, "title"]);
+    const window = this.store.get("windows").get(wid);
+    if (window == null) {
+      // wid does not exist.
+      return;
+    }
+    const title = window.get("title");
     this.set_frame_tree({ id, wid, title });
     this.client.focus_window(wid);
     this._ensure_only_one_tab_has_wid(id, wid);
@@ -314,11 +314,11 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     let wid1 = 0;
     this.store.get("windows").forEach(function(_, wid0) {
-      if (parseInt(wid0) === wid) {
+      if (wid0 === wid) {
         return false;
       }
       if (!used_wids[wid0]) {
-        wid1 = parseInt(wid0);
+        wid1 = wid0;
       }
     });
     if (wid1) {
