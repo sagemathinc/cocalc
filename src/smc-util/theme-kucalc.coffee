@@ -11,32 +11,41 @@ This is used mainly in the front-end, but some aspects are also used on the back
 Note: it is not possible to "require" assets, like the logos -- they're defined in webapp/misc_page.
 ###
 
-exports.SITE_NAME            = 'Open CoCalc'
-exports.COMPANY_NAME         = undefined
-exports.COMPANY_EMAIL        = undefined
-exports.APP_TAGLINE          = 'Open-source CoCalc'
-exports.DNS                  = 'localhost' # your DNS entry, e.g. "host.com"
+exports.SITE_NAME            = 'CoCalc'
+exports.COMPANY_NAME         = 'SageMath, Inc.'
+exports.COMPANY_EMAIL        = 'office@sagemath.com'
+exports.APP_TAGLINE          = 'Collaborative Calculation in the Cloud'
+exports.DNS                  = 'cocalc.com'
 exports.DOMAIN_NAME          = 'https://' + exports.DNS
-exports.DISCUSSION_GROUP     = undefined
-exports.WIKI_URL             = undefined
-exports.BLOG_URL             = undefined
-exports.LIVE_DEMO_REQUEST    = undefined
-exports.HELP_EMAIL           = undefined
-exports.TWITTER_HANDLE       = undefined   # string, without the @
-exports.BILLING_EMAIL        = undefined
+exports.DISCUSSION_GROUP     = 'https://groups.google.com/forum/#!forum/cocalc'
+exports.WIKI_URL             = 'https://github.com/sagemathinc/cocalc/wiki/Portal'
+exports.BLOG_URL             = 'https://blog.sagemath.com/'
+exports.LIVE_DEMO_REQUEST    = 'https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform'
+exports.HELP_EMAIL           = 'help@sagemath.com'
+exports.TWITTER_HANDLE       = 'cocalc_com'   # without the @
+exports.BILLING_EMAIL        = 'billing@sagemath.com'
 exports.BILLING_ADDRESS      = '''
-                               Billing Address
+                               1212 East Barclay Court
+                               Seattle, WA 98122, USA
                                '''
-exports.BILLING_TAXID        = null
+exports.BILLING_TAXID        = 'TAX EIN: 47-3015407'
 exports.COPYRIGHT_AGENT_HTML = '''
-                               Nobody. Please enter copyright agent.
+                               William Stein (Copyright Agent)<br>
+                               c/o SageMath, Inc.<br>
+                               1212 East Barclay Court<br>
+                               Seattle, WA 98122<br>
+                               <a href='mailto:copyright@sagemath.com'>copyright@sagemath.com</a>
                                '''
+# for conversion tracking (commercial only)
+exports.gtag_id              = 'AW-943259268'
+exports.sign_up_id           = '44ZfCImosncQhP3jwQM'
+exports.conversion_id        = 'zttYCNDZsXcQhP3jwQM'
 
 # this is used in smc-hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
-exports.SENDGRID_TEMPLATE_ID    = null
+exports.SENDGRID_TEMPLATE_ID    = '0375d02c-945f-4415-a611-7dc3411e2a78'
 # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
-exports.SENDGRID_ASM_INVITES    = null
-exports.SENDGRID_ASM_NEWSLETTER = null
+exports.SENDGRID_ASM_INVITES    = 699
+exports.SENDGRID_ASM_NEWSLETTER = 698
 
 # This is the applications color scheme
 COLORS =

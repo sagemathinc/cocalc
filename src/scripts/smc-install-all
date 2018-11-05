@@ -6,6 +6,8 @@ set -v
 cd `dirname $0`/..
 . smc-env
 
+cocalc_setup_theme
+
 cd $SMC_ROOT
 npm install
 npm install --only=dev

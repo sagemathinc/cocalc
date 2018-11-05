@@ -207,6 +207,18 @@ if not CC_NOCLEAN
                                                 verbose: true
                                                 dry: false
 
+
+## select "theme" based on the build mode
+#if KUCALC_MODE # commercial
+#    src = path.resolve(__dirname, 'smc-utils', 'theme-kucalc.ts')
+#else
+#    src = path.resolve(__dirname, 'smc-utils', 'theme-cocalc.ts')
+#target =  path.resolve(__dirname, 'smc-utils', 'theme.ts')
+#console.log("KUCALC_MODE #{src} → #{target}")
+#fs.unlinkSync(target)
+#fs.linkSync(src, target)
+
+
 # assets.json file
 AssetsPlugin = require('assets-webpack-plugin')
 assetsPlugin = new AssetsPlugin
@@ -409,6 +421,7 @@ setNODE_ENV         = new webpack.DefinePlugin
                                 'BUILD_DATE'      : JSON.stringify(BUILD_DATE)
                                 'BUILD_TS'        : JSON.stringify(BUILD_TS)
                                 'DEBUG'           : JSON.stringify(DEBUG)
+                                'CC_EDITION'      : JSON.stringify(if KUCALC_MODE then 'kucalc' else 'cocalc')
 
 # Writes a JSON file containing the main webpack-assets and their filenames.
 {StatsWriterPlugin} = require("webpack-stats-plugin")
