@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Icon } from "./icon";
-import { TypedMap } from "./app-framework/TypedMap";
+import { TypedMap } from "../app-framework/TypedMap";
 
 interface Props {
   style?: React.CSSProperties;

@@ -1,4 +1,4 @@
-import { Component, React } from "./app-framework";
+import * as React from "react";
 import * as misc from "smc-util/misc";
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 }
 
 // Converted from https://github.com/andreypopp/react-fa
-export class Icon extends Component<Props> {
+export class Icon extends React.Component<Props> {
   static defaultProps = {
     name: "square-o",
     onClick: undefined
