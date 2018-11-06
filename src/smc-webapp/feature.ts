@@ -25,11 +25,9 @@
 //
 //###################################################
 
-declare var DEBUG: boolean, window: any;
+declare const DEBUG: boolean;
 
-const navigator = window.navigator;
-
-var IS_MOBILE,
+let IS_MOBILE,
   IS_TOUCH,
   IS_IPAD,
   isMobile,
@@ -37,8 +35,11 @@ var IS_MOBILE,
   get_mobile,
   is_responsive_mode;
 
-if (window != undefined) {
+if ((global as any).window != undefined) {
   // In a web browser.
+  const window : any = (global as any).window;
+  const navigator = window.navigator;
+
   let { $ } = window;
 
   isMobile = {
