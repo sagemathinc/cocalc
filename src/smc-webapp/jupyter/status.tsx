@@ -30,7 +30,10 @@ class Mode0 extends Component<ModeProps> {
       return <span />;
     }
     return (
-      <div className="pull-right" style={{ color: "#666", margin: "5px", paddingRight: "5px" }}>
+      <div
+        className="pull-right"
+        style={{ color: "#666", margin: "5px", paddingRight: "5px" }}
+      >
         <Icon name="pencil" />
       </div>
     );
@@ -128,10 +131,15 @@ class Kernel0 extends Component<KernelProps> {
 
   render_name() {
     let display_name =
-      this.props.kernel_info != null ? this.props.kernel_info.get("display_name") : undefined;
+      this.props.kernel_info != null
+        ? this.props.kernel_info.get("display_name")
+        : undefined;
     if (display_name == null && this.props.kernels != null) {
       // Definitely an unknown kernel
-      const closestKernel = closest_kernel_match(this.props.kernel, this.props.kernels);
+      const closestKernel = closest_kernel_match(
+        this.props.kernel,
+        this.props.kernels
+      );
       const closestKernelDisplayName = closestKernel.get("display_name");
       const closestKernelName = closestKernel.get("name");
       return (
@@ -139,8 +147,9 @@ class Kernel0 extends Component<KernelProps> {
           style={KERNEL_ERROR_STYLE}
           onClick={() => this.props.actions.set_kernel(closestKernelName)}
         >
-          Unknown kernel <span style={{ fontWeight: "bold" }}>{this.props.kernel}</span>, click here
-          to use {closestKernelDisplayName} instead.
+          Unknown kernel{" "}
+          <span style={{ fontWeight: "bold" }}>{this.props.kernel}</span>, click
+          here to use {closestKernelDisplayName} instead.
         </span>
       );
     } else {
@@ -149,7 +158,12 @@ class Kernel0 extends Component<KernelProps> {
         display_name = this.props.kernel;
       }
       return (
-        <span style={KERNEL_NAME_STYLE}>{display_name != null ? display_name : "No Kernel"}</span>
+        <span
+          style={KERNEL_NAME_STYLE}
+          onClick={() => this.props.actions.show_select_kernel()}
+        >
+          {display_name != null ? display_name : "No Kernel"}
+        </span>
       );
     }
   }
@@ -270,7 +284,10 @@ class Kernel0 extends Component<KernelProps> {
       // unknown, e.g, not reporting/working or old backend.
       return;
     }
-    if (this.props.backend_state !== "running" && this.props.backend_state !== "starting") {
+    if (
+      this.props.backend_state !== "running" &&
+      this.props.backend_state !== "starting"
+    ) {
       // not using resourcesw
       memory = cpu = 0;
     } else {
@@ -305,8 +322,8 @@ class Kernel0 extends Component<KernelProps> {
         <br />
         Does NOT include subprocesses.
         <br />
-        You can clear all memory by selecting Close and Halt from the File menu or restarting your
-        kernel.
+        You can clear all memory by selecting Close and Halt from the File menu
+        or restarting your kernel.
       </div>
     );
     return (
@@ -315,7 +332,11 @@ class Kernel0 extends Component<KernelProps> {
           CPU: <span style={cpu_style}>{cpu}%</span>
         </span>
         <span style={KERNEL_USAGE_STYLE}>
-          Memory: <span style={memory_style}>{memory}MB</span>
+          Memory:{" "}
+          <span style={memory_style}>
+            {memory}
+            MB
+          </span>
         </span>
       </Tip>
     );
@@ -333,7 +354,10 @@ class Kernel0 extends Component<KernelProps> {
       </span>
     );
     const body = (
-      <div className="pull-right" style={{ color: "#666", cursor: "pointer", marginTop: "7px" }}>
+      <div
+        className="pull-right"
+        style={{ color: "#666", cursor: "pointer", marginTop: "7px" }}
+      >
         {title}
         {this.render_backend_state_icon()}
       </div>

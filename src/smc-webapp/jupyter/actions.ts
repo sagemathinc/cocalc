@@ -44,7 +44,8 @@ const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 
 // map project_id (string) -> kernels (immutable)
-let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
+import { Kernels } from "./util";
+let jupyter_kernels = immutable.Map<string, Kernels>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
@@ -923,15 +924,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_init_kernel = (): void => {
-    const account = this.redux.getStore("account");
-    const default_kernel =
-      account != null
-        ? // TODO: getIn types
-          account.getIn(
-            ["editor_settings", "jupyter", "kernel"] as any,
-            DEFAULT_KERNEL
-          )
-        : undefined;
+    const default_kernel = this.store.get_default_kernel();
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
       const kernel = default_kernel || DEFAULT_KERNEL;
@@ -3177,6 +3170,28 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.file_open();
     // Close the file
     this.file_action("close_file");
+  };
+
+  show_select_kernel = (): void => {
+    const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
+    if (kernels != null) {
+      const kernel_selection = this.store.get_kernel_selection(kernels);
+      const kernels_by_name = this.store.get_kernels_by_name(kernels);
+      const default_kernel = this.store.get_default_kernel();
+      this.setState({
+        kernel_selection: kernel_selection,
+        kernels_by_name: kernels_by_name,
+        default_kernel: default_kernel
+      });
+    }
+  };
+
+  select_kernel = (kernel_name: string | undefined): void => {
+    if (kernel_name != null) {
+      this.set_kernel(kernel_name);
+      this.set_default_kernel(kernel_name);
+    }
+    this.setState({ kernel_selection: undefined, kernels_by_name: undefined });
   };
 }
 

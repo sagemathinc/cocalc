@@ -18,6 +18,7 @@ const { EditAttachments } = require("./edit-attachments");
 const { EditCellMetadata } = require("./edit-cell-metadata");
 const { FindAndReplace } = require("./find-and-replace");
 const { ConfirmDialog } = require("./confirm-dialog");
+const { KernelSelector } = require("./select-kernel");
 const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
@@ -27,7 +28,7 @@ const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
   right: 0,
   paddingLeft: "5px",
-  backgroundColor: "#eee",
+  backgroundColor: "#eee"
 };
 
 interface JupyterEditorProps {
@@ -74,6 +75,9 @@ interface JupyterEditorProps {
   raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
+  kernel_selection?: immutable.Map<string, any>;
+  kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
+  default_kernel?: string;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {
@@ -118,7 +122,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
-      },
+        kernel_selection: rtypes.immutable.Map,
+        kernels_by_name: rtypes.immutable.Map,
+        default_kernel: rtypes.string
+      }
     };
   }
 
@@ -165,7 +172,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_heading() {
     return (
-      <div style={{ boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)", zIndex: 100 }}>
+      <div
+        style={{
+          boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
+          zIndex: 100
+        }}
+      >
         {this.render_kernel()}
         {this.render_menubar()}
         {this.props.toolbar ? this.render_buttonbar() : undefined}
@@ -181,7 +193,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     ) {
       return (
         <Loading
-          style={{ fontSize: "24pt", textAlign: "center", marginTop: "15px", color: "#888" }}
+          style={{
+            fontSize: "24pt",
+            textAlign: "center",
+            marginTop: "15px",
+            color: "#888"
+          }}
         />
       );
     }
@@ -264,7 +281,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       return;
     }
     const cell =
-      this.props.cells != null ? this.props.cells.get(this.props.edit_attachments) : undefined;
+      this.props.cells != null
+        ? this.props.cells.get(this.props.edit_attachments)
+        : undefined;
     if (cell == null) {
       return;
     }
@@ -282,7 +301,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         metadata={this.props.edit_cell_metadata.get("metadata")}
         font_size={this.props.font_size}
         cm_options={
-          this.props.cm_options != null ? this.props.cm_options.get("options") : undefined
+          this.props.cm_options != null
+            ? this.props.cm_options.get("options")
+            : undefined
         }
       />
     );
@@ -306,7 +327,22 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_confirm_dialog() {
     return (
-      <ConfirmDialog actions={this.props.actions} confirm_dialog={this.props.confirm_dialog} />
+      <ConfirmDialog
+        actions={this.props.actions}
+        confirm_dialog={this.props.confirm_dialog}
+      />
+    );
+  }
+
+  render_select_kernel() {
+    return (
+      <KernelSelector
+        actions={this.props.actions}
+        kernel={this.props.kernel}
+        kernel_selection={this.props.kernel_selection}
+        kernels_by_name={this.props.kernels_by_name}
+        default_kernel={this.props.default_kernel}
+      />
     );
   }
 
@@ -366,13 +402,31 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
   }
 
+  render_main() {
+    if (this.props.kernel_selection == null) {
+      return (
+        <>
+          {this.render_main_view()}
+          {this.render_introspect()}
+        </>
+      );
+    } else {
+      return this.render_select_kernel();
+    }
+  }
+
   render() {
     if (this.props.fatal) {
       return this.render_fatal();
     }
     return (
       <div
-        style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "hidden" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflowY: "hidden"
+        }}
       >
         {this.render_error()}
         {this.render_about()}
@@ -385,8 +439,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         {this.render_assistant_dialog()}
         {this.render_confirm_dialog()}
         {this.render_heading()}
-        {this.render_main_view()}
-        {this.render_introspect()}
+        {this.render_main()}
       </div>
     );
   }

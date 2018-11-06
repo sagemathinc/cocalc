@@ -6,9 +6,10 @@ declare const localStorage: any;
 
 const misc = require("smc-util/misc");
 import { Store } from "../app-framework";
-import { Set } from "immutable";
+import { Set, Map as ImmutableMap, OrderedMap } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
+import { Kernels } from "./util";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -57,6 +58,9 @@ export interface JupyterStoreState {
   confirm_dialog: any;
   insert_image: any;
   scroll: any;
+  kernel_selection?: ImmutableMap<string, string>;
+  kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
+  default_kernel?: string;
 }
 
 export class JupyterStore extends Store<JupyterStoreState> {
@@ -285,6 +289,41 @@ export class JupyterStore extends Store<JupyterStoreState> {
         return msg_list.toJS();
       }
     }
+  };
+
+  get_default_kernel = (): string | undefined => {
+    const account = this.redux.getStore("account");
+    if (account != null) {
+      // TODO: getIn types
+      return account.getIn(["editor_settings", "jupyter", "kernel"] as any);
+    } else {
+      return undefined;
+    }
+  };
+
+  get_kernel_selection = (kernels: Kernels): ImmutableMap<string, string> => {
+    const data: any = {};
+    kernels.map(entry => {
+      const name = entry.get("name");
+      if (name == null) return;
+      data[name] = entry.get("display_name");
+    });
+    return ImmutableMap<string, string>(data);
+  };
+
+  get_kernels_by_name = (
+    kernels: Kernels
+  ): OrderedMap<string, ImmutableMap<string, string>> => {
+    const data: any = {};
+    kernels.map(entry => {
+      const name = entry.get("name");
+      if (name != null) data[name] = entry;
+    });
+    return OrderedMap<string, ImmutableMap<string, string>>(data).sortBy(
+      (v, k) => {
+        return v.get("display_name", v.get("name", k)).toLowerCase();
+      }
+    );
   };
 
   get_raw_link = (path: any) => {
