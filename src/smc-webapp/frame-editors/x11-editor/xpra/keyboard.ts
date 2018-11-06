@@ -48,7 +48,6 @@ const getCapsLockState = (ev: KeyboardEvent, shift) => {
  * Creates the keyboard input handler
  */
 export class Keyboard {
-  private swapKeys: boolean = IS_OSX;
   private capsLock: boolean = false;
   private numLock: boolean = false;
   private altGr: boolean = false;
@@ -86,12 +85,6 @@ export class Keyboard {
           }
         }
       }
-    }
-    if (this.swapKeys) {
-      [this.meta_modifier, this.control_modifier] = [
-        this.control_modifier,
-        this.meta_modifier
-      ];
     }
   }
 
@@ -221,28 +214,6 @@ export class Keyboard {
         str = str.toLowerCase();
       }
 
-      const oldStr = str;
-      if (this.swapKeys) {
-        switch (keyname) {
-          case "Control_L":
-            keyname = "Meta_L";
-            str = "meta";
-            break;
-          case "Meta_L":
-            keyname = "Control_L";
-            str = "control";
-            break;
-          case "Control_R":
-            keyname = "Meta_R";
-            str = "meta";
-            break;
-          case "Meta_R":
-            keyname = "Control_R";
-            str = "control";
-            break;
-        }
-      }
-
       this.send(
         "key-action",
         topwindow,
@@ -258,10 +229,9 @@ export class Keyboard {
       // MacOS will swallow the key release event if the meta modifier is pressed,
       // so simulate one immediately:
       if (
+        IS_OSX &&
         pressed &&
-        this.swapKeys &&
-        rawModifiers.includes("meta") &&
-        oldStr !== "meta"
+        rawModifiers.includes("meta")
       ) {
         this.send(
           "key-action",
