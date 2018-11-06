@@ -10,9 +10,9 @@ export function CloseX({
   on_close,
   style
 }: {
-  on_close: () => void;
-  style?: React.CSSProperties;
-}) {
+    on_close: () => void;
+    style?: React.CSSProperties;
+  }) {
   const onClick = e => {
     if (e != undefined) {
       e.preventDefault();
