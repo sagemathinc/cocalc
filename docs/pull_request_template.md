@@ -11,5 +11,8 @@
 - [ ] No debugging console.log messages.
 - [ ] All new code is actually used.
 - [ ] Non-obvious code has some sort of comments.
-- [ ] A list of exact steps on how you tested.
+
+Front end:
+- [ ] Restart at least one project and check its `~/.smc/local_hub/local_hub.log`
+- [ ] Completely restart Webpack with `./w` in `/src`
 - [ ] Screenshots if relevant.
