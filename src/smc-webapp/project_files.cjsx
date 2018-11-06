@@ -2043,7 +2043,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'rtex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>

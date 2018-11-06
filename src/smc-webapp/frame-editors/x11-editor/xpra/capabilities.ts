@@ -254,11 +254,9 @@ export function getCapabilities(config, soundCodecs) {
       // Compression bits
       zlib: config.zlib,
       lzi: false,
-      lz4: false,
-      "encoding.rgb_lz4": false,
-      //lz4: config.lz4,
-      //"lz4.js.version": "0.2.0", // FIXME
-      //"encoding.rgb_lz4": true,
+      lz4: config.lz4,
+      "encoding.rgb_lz4": true,
+      "lz4.js.version": (window as any).lz4.version,
       compression_level: config.compression_level,
 
       // Packet encoders

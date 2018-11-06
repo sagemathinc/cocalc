@@ -15,7 +15,7 @@ export function server_time(): Date {
   return webapp_client.server_time();
 }
 
-interface ExecOpts {
+export interface ExecOpts {
   project_id: string;
   path?: string;
   command: string;

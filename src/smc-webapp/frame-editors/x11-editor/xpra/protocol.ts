@@ -9,9 +9,12 @@ import { ord } from "./util";
 import { bencode, bdecode } from "./bencode";
 import { HEADER_SIZE } from "./constants";
 
+require("./lz4");
+
 let debug;
 if (DEBUG) {
   debug = console.log;
+
 } else {
   debug = function(..._) {};
 }
@@ -24,21 +27,28 @@ function inflate(
 ): Uint8Array | null {
   if (level !== 0) {
     if (level & 0x10) {
-      console.error("lz4 compression not supported", level, size, data);
-      return null;
-      /*
-      //const { inflated, uncompressedSize } = lz4decode(data);
-
+      // lz4
+      // python-lz4 inserts the length of the uncompressed data as an int
+      // at the start of the stream
+      const d = data.subarray(0, 4);
+      // output buffer length is stored as little endian
+      const length = d[0] | (d[1] << 8) | (d[2] << 16) | (d[3] << 24);
+      // decode the LZ4 block
+      const inflated = new Uint8Array(length);
+      const uncompressedSize = (window as any).lz4.decodeBlock(
+        data,
+        inflated,
+        4
+      );
       // if lz4 errors out at the end of the buffer, ignore it:
-      if (uncompressedSize <= 0 && size + uncompressedSize !== 0) {
+      if (uncompressedSize <= 0 && size + uncompressedSize != 0) {
         console.error(
           "failed to decompress lz4 data, error code",
           uncompressedSize
         );
         return null;
       }
-
-      return inflated; */
+      return inflated;
     } else {
       return zlib.inflateSync(data);
     }

@@ -2,7 +2,7 @@
 Control backend Xpra server daemon
 */
 
-import { exec } from "../generic/client";
+import { exec, ExecOutput, ExecOpts } from "../generic/client";
 import { reuseInFlight } from "async-await-utils/hof";
 import { MAX_WIDTH, MAX_HEIGHT } from "./xpra/surface";
 import { splitlines, split } from "../generic/misc";
@@ -10,6 +10,15 @@ import { splitlines, split } from "../generic/misc";
 // This will break annoyingly on cocalc-docker
 // if there are multiple projects using it at once.
 const DEFAULT_DISPLAY = 0;
+
+export interface ExecOpts0 {
+  command: string;
+  path?: string;
+  args?: string[];
+  timeout?: number;
+  err_on_exit?: boolean;
+  env?: any; // custom environment variables.
+}
 
 interface XpraServerOptions {
   project_id: string;
@@ -67,8 +76,7 @@ export class XpraServer {
   // xpra will *never* start unless you manually kill it. It's much
   // better to just ensure it is dead.
   private async _kill_Xvfb(): Promise<void> {
-    const { stdout, exit_code } = await exec({
-      project_id: this.project_id,
+    const { stdout, exit_code } = await this.exec({
       command: "pgrep",
       args: ["-a", "Xvfb"],
       err_on_exit: false
@@ -79,8 +87,7 @@ export class XpraServer {
     for (let line of splitlines(stdout)) {
       if (line.indexOf(`Xvfb-for-Xpra-:${this.display}`) !== -1) {
         const pid = line.split(" ")[0];
-        await exec({
-          project_id: this.project_id,
+        await this.exec({
           command: "kill",
           args: ["-9", pid],
           err_on_exit: false
@@ -91,7 +98,13 @@ export class XpraServer {
   }
 
   private async _start(port: number): Promise<void> {
+    // Kill any existing Xvfb processes that conflict with
+    // this one -- they can get left around.
     await this._kill_Xvfb();
+
+    // Make sure directory for logs and sockets exists.
+    await this.exec({ command: "mkdir", args: ["-p", "/tmp/xpra"] });
+    // Actually start xpra.
     const XVFB = `/usr/bin/Xvfb +extension Composite -screen 0 ${MAX_WIDTH}x${MAX_HEIGHT}x24+32 -nolisten tcp -noreset`;
     const command = "xpra";
     const args = [
@@ -99,9 +112,12 @@ export class XpraServer {
       `:${this.display}`,
       //"-d",
       //"all",
+      "--compression_level=9",
       "--socket-dir=/tmp/xpra",
       "--tray=no",
-      "--clipboard=no",  /* we use our own clipboard approach */
+      "--mousewheel=on",
+      "--log-dir=/tmp/xpra",
+      "--clipboard=no" /* we use our own clipboard approach */,
       "--notifications=yes",
       "--no-keyboard-sync" /* see https://xpra.org/trac/wiki/Keyboard */,
       "--pulseaudio=no",
@@ -116,13 +132,11 @@ export class XpraServer {
       "--daemon=yes",
       `--xvfb=${XVFB}`
     ];
-    await exec({
-      project_id: this.project_id,
+    await this.exec({
       command,
       args,
       err_on_exit: true,
-      timeout: 30,
-      network_timeout: 30
+      timeout: 30
     });
   }
 
@@ -131,16 +145,14 @@ export class XpraServer {
     if (line === "") {
       return;
     }
-    await exec({
-      project_id: this.project_id,
+    await this.exec({
       command: "kill",
       args: [split(line)[0]]
     });
   }
 
   private async pgrep(): Promise<string> {
-    const { stdout, exit_code } = await exec({
-      project_id: this.project_id,
+    const { stdout, exit_code } = await this.exec({
       command: "pgrep",
       args: ["-a", "xpra"],
       err_on_exit: false
@@ -181,8 +193,7 @@ export class XpraServer {
   }
 
   async get_hostname(): Promise<string> {
-    const { stdout } = await exec({
-      project_id: this.project_id,
+    const { stdout } = await this.exec({
       command: "hostname",
       err_on_exit: true
     });
@@ -203,5 +214,23 @@ export class XpraServer {
       } // else -- it won't work.
     }
     return `/tmp/xpra/${hostname}-${this.display}`;
+  }
+
+  async exec(opts: ExecOpts0): Promise<ExecOutput> {
+    if (opts.env === undefined) {
+      opts.env = {};
+    }
+    opts.env.DISPLAY = `:${this.display}`;
+    (opts as any).project_id = this.project_id;
+    return await exec(opts as ExecOpts);
+  }
+
+  // get the current contents of the X11 clipboard
+  async get_clipboard(): Promise<string> {
+    return (await this.exec({
+      command: "xsel",
+      err_on_exit: true,
+      timeout: 5
+    })).stdout;
   }
 }

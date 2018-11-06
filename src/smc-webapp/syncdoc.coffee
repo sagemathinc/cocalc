@@ -314,9 +314,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     _debug_sync_state: (info) =>
         console.log "--- #{info}"
-        console.log "codemirror='#{@codemirror.getValue()}'"
-        console.log "syncstring='#{@_syncstring.to_str()}'"
-        if info == 'after' and @codemirror.getValue() != @_syncstring.to_str()
+        console.log "codemirror='#{@codemirror?.getValue()}'"
+        console.log "syncstring='#{@_syncstring?.to_str()}'"
+        if info == 'after' and @codemirror?.getValue() != @_syncstring?.to_str()
             console.warn("BUG -- values are different!")
 
     # Set value of the syncstring to equal current value of the codemirror editor
