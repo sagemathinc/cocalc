@@ -138,13 +138,6 @@ export class XpraServer {
       err_on_exit: true,
       timeout: 30
     });
-
-    // This is needed so that shift+arrow keys
-    // doesn't send numbers.
-    await this.exec({
-      command: "setxkbmap",
-      args: ["-option", "numpad:microsoft"]
-    });
   }
 
   async stop(): Promise<void> {
