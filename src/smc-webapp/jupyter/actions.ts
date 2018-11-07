@@ -49,10 +49,6 @@ let jupyter_kernels = immutable.Map<string, Kernels>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
-// DEFAULT_KERNEL = 'python2'
-// DEFAULT_KERNEL = "anaconda3";
-const DEFAULT_KERNEL = "sagemath";
-
 const syncstring = require("smc-util/syncstring");
 
 const { instantiate_assistant } = require("../assistant/main");
@@ -917,6 +913,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._state = "ready";
       }
 
+      if (this.store.get("kernel") == null) {
+        this.show_select_kernel();
+      } else {
+        // we have a kernel
+        this.hide_select_kernel();
+      }
+
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();
       }
@@ -924,13 +927,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_init_kernel = (): void => {
-    const default_kernel = this.store.get_default_kernel();
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      const kernel = default_kernel || DEFAULT_KERNEL;
-      this.set_kernel(kernel);
+      if (!this._is_project) this.show_select_kernel();
     } else {
       // Opening an existing notebook
+      const default_kernel = this.store.get_default_kernel();
       if (default_kernel == null) {
         // But user has no default kernel, since they never before explicitly set one.
         // So we set it.  This is so that a user's default
@@ -2590,16 +2592,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await this._api_call("store", { key, value });
   };
 
-  set_to_ipynb = (ipynb: any, data_only = false) => {
-    /*
-        set_to_ipynb - set from ipynb object.  This is
-        mainly meant to be run on the backend in the project,
-        but is also run on the frontend too, e.g.,
-        for client-side nbviewer (in which case it won't remove images, etc.).
+  /*
+  set_to_ipynb - set from ipynb object.  This is
+  mainly meant to be run on the backend in the project,
+  but is also run on the frontend too, e.g.,
+  for client-side nbviewer (in which case it won't remove images, etc.).
 
-        See the documentation for load_ipynb_file in project-actions.ts for
-        documentation about the data_only input variable.
-        */
+  See the documentation for load_ipynb_file in project-actions.ts for
+  documentation about the data_only input variable.
+  */
+  set_to_ipynb = (ipynb: any, data_only = false) => {
     //dbg = @dbg("set_to_ipynb")
     let set, trust;
     this._state = "load";
@@ -2617,7 +2619,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined,
             x => x.name
           )
-        : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
+        : undefined;
     //dbg("kernel in ipynb: name='#{kernel}'")
 
     const existing_ids = this.store.get("cell_list", immutable.List()).toJS();
@@ -3174,25 +3176,30 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   show_select_kernel = (): void => {
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
-    if (kernels != null) {
-      const kernel_selection = this.store.get_kernel_selection(kernels);
-      const kernels_by_name = this.store.get_kernels_by_name(kernels);
-      const default_kernel = this.store.get_default_kernel();
-      this.setState({
-        kernel_selection: kernel_selection,
-        kernels_by_name: kernels_by_name,
-        default_kernel: default_kernel
-      });
-    }
+    if (kernels == null) return;
+    const kernel_selection = this.store.get_kernel_selection(kernels);
+    const kernels_by_name = this.store.get_kernels_by_name(kernels);
+    const default_kernel = this.store.get_default_kernel();
+    this.setState({
+      kernel_selection: kernel_selection,
+      kernels_by_name: kernels_by_name,
+      default_kernel: default_kernel
+    });
+  };
+
+  hide_select_kernel = (): void => {
+    this.setState({ kernel_selection: undefined, kernels_by_name: undefined });
   };
 
   select_kernel = (kernel_name: string | undefined): void => {
     if (kernel_name != null) {
       this.set_kernel(kernel_name);
-      this.set_default_kernel(kernel_name);
-      this.focus(true);
+    } else {
+      this.set_kernel(null);
     }
-    this.setState({ kernel_selection: undefined, kernels_by_name: undefined });
+    this.set_default_kernel(kernel_name);
+    this.focus(true);
+    this.hide_select_kernel();
   };
 }
 

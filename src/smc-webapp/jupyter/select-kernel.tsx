@@ -62,6 +62,14 @@ export class KernelSelector extends Component<
     );
   }
 
+  // the idea here is to not set the kernel, but still render the notebook.
+  // looks like that's not easy, and well, probably incompatible with classical jupyter.
+
+  /*
+    <Row style={row_style} className={"pull-right"}>
+      {this.close_button()}
+    </Row>
+
   close_button() {
     return (
       <Button
@@ -73,6 +81,7 @@ export class KernelSelector extends Component<
       </Button>
     );
   }
+  */
 
   render_body() {
     if (
@@ -94,6 +103,7 @@ export class KernelSelector extends Component<
   }
 
   render_suggested_link(cocalc) {
+    if (cocalc == null) return;
     const url: string | undefined = cocalc.get("url");
     const descr: string | undefined = cocalc.get("description", "");
     if (url != null) {
@@ -153,6 +163,17 @@ export class KernelSelector extends Component<
     );
   }
 
+  render_all_selected_link() {
+    if (this.props.kernels_by_name == null) return;
+    const name = this.state.selected_kernel;
+    if (name == null) return;
+    const cocalc: ImmutableMap<string, any> = this.props.kernels_by_name.getIn(
+      [name, "metadata", "cocalc"],
+      null
+    );
+    return this.render_suggested_link(cocalc);
+  }
+
   render_all() {
     if (this.props.kernels_by_name == null) return;
     const all: Rendered[] = [];
@@ -177,6 +198,8 @@ export class KernelSelector extends Component<
         </DropdownButton>
         <Space />
         {this.render_select_button()}
+        <Space />
+        {this.render_all_selected_link()}
       </>
     );
   }
@@ -239,9 +262,6 @@ export class KernelSelector extends Component<
         <Row style={row_style}>{this.render_last()}</Row>
         <Row style={row_style}>{this.render_suggested()}</Row>
         <Row style={row_style}>{this.render_all()}</Row>
-        <Row style={row_style} className={"pull-right"}>
-          {this.close_button()}
-        </Row>
       </Col>
     );
   }
