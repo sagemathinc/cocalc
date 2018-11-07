@@ -301,13 +301,44 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   };
 
+  /*
+   * select all kernels, which are ranked highest for a specific language
+   * and do have a priority weight > 0.
+   *
+   * kernel metadata looks like that
+   *
+   *  "display_name": ...,
+   *  "argv":, ...
+   *  "language": "sagemath",
+   *  "metadata": {
+   *    "cocalc": {
+   *      "priority": 10,
+   *      "description": "Open-source mathematical software system",
+   *      "url": "https://www.sagemath.org/"
+   *    }
+   *  }
+   *
+   * Return dict of language <-> kernel_name
+   */
   get_kernel_selection = (kernels: Kernels): ImmutableMap<string, string> => {
     const data: any = {};
-    kernels.map(entry => {
-      const name = entry.get("name");
-      if (name == null) return;
-      data[name] = entry.get("display_name");
-    });
+    kernels
+      .filter(entry => entry.get("language") != null)
+      .groupBy(entry => entry.get("language"))
+      .forEach((kernels, lang) => {
+        const top: any = kernels
+          .sort((a, b) => {
+            const va = -a.getIn(["metadata", "cocalc", "priority"], 0);
+            const vb = -b.getIn(["metadata", "cocalc", "priority"], 0);
+            return misc.cmp(va, vb);
+          })
+          .first();
+        if (top == null || lang == null) return true;
+        const name = top.get("name");
+        if (name == null) return true;
+        data[lang] = name;
+      });
+
     return ImmutableMap<string, string>(data);
   };
 

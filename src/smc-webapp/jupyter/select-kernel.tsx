@@ -8,7 +8,7 @@ import {
   OrderedMap /*, List as ImmutableList*/
 } from "immutable";
 // import { Kernels } from "./util";
-const { Icon, Markdown } = require("../r_misc"); // TODO: import types
+const { Icon, Markdown, Space } = require("../r_misc"); // TODO: import types
 const {
   Button,
   Col,
@@ -16,6 +16,11 @@ const {
   MenuItem,
   DropdownButton
 } = require("react-bootstrap"); // TODO: import types
+
+const row_style: React.CSSProperties = {
+  marginTop: "5px",
+  marginBottom: "5px"
+};
 
 interface IKernelSelectorProps {
   actions: any;
@@ -36,15 +41,6 @@ export class KernelSelector extends Component<
   constructor(props: IKernelSelectorProps, context: any) {
     super(props, context);
     this.state = { selected_kernel: undefined };
-  }
-
-  close = () => {
-    this.props.actions.close_select_kernel();
-    this.props.actions.focus(true);
-  };
-
-  render_title_icon() {
-    return undefined;
   }
 
   render_select_button() {
@@ -79,7 +75,11 @@ export class KernelSelector extends Component<
   }
 
   render_body() {
-    if (this.props.kernel_selection == null) return;
+    if (
+      this.props.kernel_selection == null ||
+      this.props.kernels_by_name == null
+    )
+      return;
     let ks = this.props.kernel_selection.map((k, v) => {
       return `${k}=${v}`;
     });
@@ -93,17 +93,62 @@ export class KernelSelector extends Component<
     return k.get("display_name", name);
   }
 
+  render_suggested_link(cocalc) {
+    const url: string | undefined = cocalc.get("url");
+    const descr: string | undefined = cocalc.get("description", "");
+    if (url != null) {
+      return (
+        <a href={url} target={"_blank"}>
+          {descr}
+        </a>
+      );
+    } else {
+      return descr;
+    }
+  }
+
   render_suggested() {
+    if (
+      this.props.kernel_selection == null ||
+      this.props.kernels_by_name == null
+    )
+      return;
+
+    const entries: Rendered[] = [];
+    this.props.kernel_selection
+      .sort((a, b) => this.kernel_name(a).localeCompare(this.kernel_name(b)))
+      .map((name, lang) => {
+        const cocalc: ImmutableMap<
+          string,
+          any
+        > = this.props.kernels_by_name!.getIn(
+          [name, "metadata", "cocalc"],
+          null
+        );
+        if (cocalc == null) return;
+        const prio: number = cocalc.get("priority", 0);
+        if (prio < 10) return;
+
+        entries.push(
+          <Row key={lang} style={row_style}>
+            <Col sm={4}>
+              <Button onClick={() => this.props.actions.select_kernel(name)}>
+                <Icon name={`cc-icon-${lang}`} /> {this.kernel_name(name)}
+              </Button>
+            </Col>
+            <Col sm={8}>
+              <div>{this.render_suggested_link(cocalc)}</div>
+            </Col>
+          </Row>
+        );
+      });
+
+    if (entries.length == 0) return;
+
     return (
       <>
         <h4>Suggested kernels</h4>
-        <Col md={4}>
-          <Row>
-            <Button onClick={() => this.props.actions.select_kernel("python3")}>
-              <Icon name={"cc-icon-python"} /> {this.kernel_name("python3")}
-            </Button>
-          </Row>
-        </Col>
+        <Col>{entries}</Col>
       </>
     );
   }
@@ -130,6 +175,8 @@ export class KernelSelector extends Component<
         <DropdownButton id={"Select kernel"} title={"select kernel"}>
           {all}
         </DropdownButton>
+        <Space />
+        {this.render_select_button()}
       </>
     );
   }
@@ -166,9 +213,8 @@ export class KernelSelector extends Component<
     } else {
       return (
         <>
-          Select a new kernel. (Currently selected: "
-          {this.kernel_name(this.props.kernel)}
-          ")
+          Select a new kernel. (Currently selected:{" "}
+          <code>{this.kernel_name(this.props.kernel)}</code>)
         </>
       );
     }
@@ -186,19 +232,15 @@ export class KernelSelector extends Component<
 
     return (
       <Col style={style} md={6} mdOffset={3}>
-        <Row>
-          <h3>
-            {this.render_title_icon()}
-            {"Select a Kernel"}
-          </h3>
+        <Row style={row_style}>
+          <h3>{"Select a Kernel"}</h3>
         </Row>
-        <Row>{this.render_top()}</Row>
-        <Row>{this.render_last()}</Row>
-        <Row>{this.render_suggested()}</Row>
-        <Row>{this.render_all()}</Row>
-
-        <Row>
-          {this.close_button()} {this.render_select_button()}
+        <Row style={row_style}>{this.render_top()}</Row>
+        <Row style={row_style}>{this.render_last()}</Row>
+        <Row style={row_style}>{this.render_suggested()}</Row>
+        <Row style={row_style}>{this.render_all()}</Row>
+        <Row style={row_style} className={"pull-right"}>
+          {this.close_button()}
         </Row>
       </Col>
     );

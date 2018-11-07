@@ -3190,6 +3190,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (kernel_name != null) {
       this.set_kernel(kernel_name);
       this.set_default_kernel(kernel_name);
+      this.focus(true);
     }
     this.setState({ kernel_selection: undefined, kernels_by_name: undefined });
   };
