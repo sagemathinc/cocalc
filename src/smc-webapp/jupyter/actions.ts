@@ -44,7 +44,7 @@ const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 
 // map project_id (string) -> kernels (immutable)
-import { Kernels } from "./util";
+import { Kernels, TKernel } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
@@ -377,9 +377,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ kernels });
     // We must also update the kernel info (e.g., display name), now that we
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-    this.setState({
-      kernel_info: this.store.get_kernel_info(this.store.get("kernel"))
-    });
+    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+    this.setState({ kernel_info });
   };
 
   set_jupyter_kernels = () => {
@@ -887,6 +886,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             if (!this._is_project && orig_kernel !== kernel) {
               this.set_backend_kernel_info();
               this.set_cm_options();
+            }
+
+            // unkown kernel name
+            if (!this._is_project && obj.kernel_info == null) {
+              this.show_select_kernel();
             }
             break;
         }
@@ -3180,15 +3184,28 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernel_selection = this.store.get_kernel_selection(kernels);
     const kernels_by_name = this.store.get_kernels_by_name(kernels);
     const default_kernel = this.store.get_default_kernel();
+    let closestKernel: TKernel | undefined = undefined;
+    const kernel = this.store.get("kernel");
+    const kernel_info = this.store.get_kernel_info(kernel);
+    // unknown kernel, we try to find a close match
+    if (kernel_info == null) {
+      closestKernel = misc.closest_kernel_match(kernel, kernels);
+    }
     this.setState({
-      kernel_selection: kernel_selection,
-      kernels_by_name: kernels_by_name,
-      default_kernel: default_kernel
+      show_kernel_selector: true,
+      kernel_selection,
+      kernels_by_name,
+      default_kernel,
+      closestKernel
     });
   };
 
   hide_select_kernel = (): void => {
-    this.setState({ kernel_selection: undefined, kernels_by_name: undefined });
+    this.setState({
+      show_kernel_selector: false,
+      kernel_selection: undefined,
+      kernels_by_name: undefined
+    });
   };
 
   select_kernel = (kernel_name: string | undefined): void => {

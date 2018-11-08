@@ -23,6 +23,7 @@ const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
 const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
+import { TKernel } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
@@ -75,9 +76,12 @@ interface JupyterEditorProps {
   raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
+  kernel_info: immutable.Map<any, any>;
+  show_kernel_selector?: boolean;
   kernel_selection?: immutable.Map<string, any>;
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
   default_kernel?: string;
+  closestKernel?: TKernel;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {
@@ -122,9 +126,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
+        kernel_info: rtypes.immutable.Map,
+        show_kernel_selector: rtypes.bool,
         kernel_selection: rtypes.immutable.Map,
         kernels_by_name: rtypes.immutable.Map,
-        default_kernel: rtypes.string
+        default_kernel: rtypes.string,
+        closestKernel: rtypes.immutable.Map
       }
     };
   }
@@ -339,9 +346,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       <KernelSelector
         actions={this.props.actions}
         kernel={this.props.kernel}
+        kernel_info={this.props.kernel_info}
         kernel_selection={this.props.kernel_selection}
         kernels_by_name={this.props.kernels_by_name}
         default_kernel={this.props.default_kernel}
+        closestKernel={this.props.closestKernel}
       />
     );
   }
@@ -403,7 +412,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_main() {
-    if (this.props.kernel_selection == null) {
+    const ks = this.props.show_kernel_selector;
+    if (ks == null || ks == false) {
       return (
         <>
           {this.render_main_view()}

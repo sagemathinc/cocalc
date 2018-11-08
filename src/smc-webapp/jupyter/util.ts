@@ -25,4 +25,5 @@ export const JUPYTER_MIMETYPES = [
   "text/plain"
 ];
 
-export type Kernels = immutable.List<immutable.Map<string, string>>;
+export type TKernel = immutable.Map<string, string>;
+export type Kernels = immutable.List<TKernel>;

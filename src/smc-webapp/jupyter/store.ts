@@ -9,7 +9,7 @@ import { Store } from "../app-framework";
 import { Set, Map as ImmutableMap, OrderedMap } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
-import { Kernels } from "./util";
+import { Kernels, TKernel } from "./util";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -31,7 +31,7 @@ export interface JupyterStoreState {
   has_uncommitted_changes?: boolean;
   kernel: any | string;
   kernels: any;
-  kernel_info: any;
+  kernel_info?: any;
   max_output_length: number;
   metadata: any;
   md_edit_ids: Set<string>;
@@ -58,9 +58,11 @@ export interface JupyterStoreState {
   confirm_dialog: any;
   insert_image: any;
   scroll: any;
+  show_kernel_selector: boolean;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
   default_kernel?: string;
+  closestKernel?: TKernel;
 }
 
 export class JupyterStore extends Store<JupyterStoreState> {

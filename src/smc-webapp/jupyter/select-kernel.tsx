@@ -8,14 +8,16 @@ import {
   OrderedMap /*, List as ImmutableList*/
 } from "immutable";
 // import { Kernels } from "./util";
-const { Icon, Markdown, Space } = require("../r_misc"); // TODO: import types
+const { Icon, Markdown, Space, Loading } = require("../r_misc"); // TODO: import types
 const {
   Button,
   Col,
   Row,
   MenuItem,
-  DropdownButton
+  DropdownButton,
+  Alert
 } = require("react-bootstrap"); // TODO: import types
+import { TKernel } from "./util";
 
 const row_style: React.CSSProperties = {
   marginTop: "5px",
@@ -25,9 +27,11 @@ const row_style: React.CSSProperties = {
 interface IKernelSelectorProps {
   actions: any;
   kernel?: string;
+  kernel_info?: any;
   default_kernel?: string;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
+  closestKernel?: TKernel;
 }
 
 interface IKernelSelectorState {
@@ -225,12 +229,17 @@ export class KernelSelector extends Component<
 
   render_top() {
     if (this.props.kernel == null) {
+      let msg: string;
+      if (this.props.kernel_info != null) {
+        msg = "This notebook kernel is unknown.";
+      } else {
+        msg = "This notebook has no kernel.";
+      }
       return (
         <>
-          <strong>This notebook has no kernel set.</strong> A kernel is required
-          in order to evaluate the code in the notebook. Based on the
-          programming language you want to work with, you have to select one.
-          (Otherwise you can only view it.)
+          <strong>{msg}</strong> A working kernel is required in order to
+          evaluate the code in the notebook. Based on the programming language
+          you want to work with, you have to select one.
         </>
       );
     } else {
@@ -243,9 +252,27 @@ export class KernelSelector extends Component<
     }
   }
 
-  render() {
-    if (this.props.kernel_selection == null) return;
+  render_unknown() {
+    const closestKernel = this.props.closestKernel;
+    if (this.props.kernel_info != null || closestKernel == null) return;
 
+    const closestKernelDisplayName = closestKernel.get("display_name");
+    const closestKernelName = closestKernel.get("name");
+
+    return (
+      <Row style={row_style}>
+        <Alert bsStyle={"danger"}>
+          <h3>Kernel unknown</h3>
+          <div>
+            Maybe select {closestKernelDisplayName}{" "}
+            <code>{closestKernelName}</code>
+          </div>
+        </Alert>
+      </Row>
+    );
+  }
+
+  render() {
     const style: React.CSSProperties = {
       padding: "20px 40px",
       overflowY: "auto",
@@ -253,15 +280,29 @@ export class KernelSelector extends Component<
       height: "90%"
     };
 
+    let body: Rendered;
+    if (
+      this.props.kernels_by_name == null ||
+      this.props.kernel_selection == null
+    ) {
+      body = <Loading />;
+    } else {
+      body = (
+        <>
+          <Row style={row_style}>
+            <h3>{"Select a Kernel"}</h3>
+          </Row>
+          <Row style={row_style}>{this.render_top()}</Row>
+          {this.render_unknown()}
+          <Row style={row_style}>{this.render_last()}</Row>
+          <Row style={row_style}>{this.render_suggested()}</Row>
+          <Row style={row_style}>{this.render_all()}</Row>
+        </>
+      );
+    }
     return (
       <Col style={style} md={6} mdOffset={3}>
-        <Row style={row_style}>
-          <h3>{"Select a Kernel"}</h3>
-        </Row>
-        <Row style={row_style}>{this.render_top()}</Row>
-        <Row style={row_style}>{this.render_last()}</Row>
-        <Row style={row_style}>{this.render_suggested()}</Row>
-        <Row style={row_style}>{this.render_all()}</Row>
+        {body}
       </Col>
     );
   }
