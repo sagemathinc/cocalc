@@ -118,7 +118,15 @@ export class XpraClient extends EventEmitter {
     if (!this.options) return; // closed
     const port = await this.server.start();
     if (!this.options) return; // closed
-    const uri = `wss://${window.location.hostname}${window.app_base_url}/${
+
+    // Get origin, but with http[s] stripped.
+    // Do not use window.location.hostname, since that doesn't
+    // include the port, if there is one.
+    let origin = window.location.origin;
+    const i = origin.indexOf(':')
+    origin = origin.slice(i);
+
+    const uri = `wss${origin}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
