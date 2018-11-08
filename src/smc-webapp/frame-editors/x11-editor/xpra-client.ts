@@ -42,6 +42,7 @@ const MOUSE_EVENTS = [
 interface Options {
   project_id: string;
   path: string;
+  idle_timeout_ms: number;
 }
 
 import { EventEmitter } from "events";
@@ -55,6 +56,8 @@ export class XpraClient extends EventEmitter {
   public _ws_status: ConnectionStatus = "disconnected";
   private last_active: number = 0;
   private touch_interval: number;
+  private idle_interval: number;
+  private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
 
   constructor(options: Options) {
     super();
@@ -67,6 +70,7 @@ export class XpraClient extends EventEmitter {
     });
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
     this.init_xpra_events();
+    this.init_idle_timeout();
     this.connect();
     this.copy_from_xpra = throttle(this.copy_from_xpra.bind(this), 200, {
       trailing: false
@@ -90,6 +94,7 @@ export class XpraClient extends EventEmitter {
     this.client.disconnect();
     this.removeAllListeners();
     clearInterval(this.touch_interval);
+    clearInterval(this.idle_interval);
     delete this.options;
     delete this.client;
   }
@@ -103,6 +108,9 @@ export class XpraClient extends EventEmitter {
   }
 
   async connect(): Promise<void> {
+    this.idle_timed_out = false
+    this.last_active = new Date().valueOf();
+    this.emit("ws:idle", false);
     // use this is dumb, but will do **for now**.  It's
     // dumb since instead when we reconnect to the network,
     // it should trigger attempting, etc.  But this will do.
@@ -123,7 +131,7 @@ export class XpraClient extends EventEmitter {
     // Do not use window.location.hostname, since that doesn't
     // include the port, if there is one.
     let origin = window.location.origin;
-    const i = origin.indexOf(':')
+    const i = origin.indexOf(":");
     origin = origin.slice(i);
 
     const uri = `wss${origin}${window.app_base_url}/${
@@ -406,13 +414,12 @@ export class XpraClient extends EventEmitter {
     if (
       status === "disconnected" &&
       this._ws_status !== "disconnected" &&
-      this.client !== undefined
+      this.client !== undefined &&
+      !this.idle_timed_out
     ) {
-      this._ws_status = status;
       this.connect();
-    } else {
-      this._ws_status = status;
     }
+    this._ws_status = status;
   }
 
   ws_data(_, packet: any[]): void {
@@ -461,5 +468,32 @@ export class XpraClient extends EventEmitter {
   get_parent(wid: number): number {
     const surface = this.client.findSurface(wid);
     return surface && surface.parent != null ? surface.parent.wid : 0;
+  }
+
+  public is_idle(): boolean {
+    return this.idle_timed_out;
+  }
+
+  private init_idle_timeout(): void {
+    const idle_timeout: number = this.options.idle_timeout_ms;
+    if (!idle_timeout) {
+      return;
+    }
+    this.idle_interval = setInterval(this.idle_timeout_if_inactive.bind(this), idle_timeout / 2);
+  }
+
+  private idle_timeout_if_inactive(): void {
+    if (this.idle_timed_out) {
+      return;
+    }
+    if (
+      new Date().valueOf() - this.last_active >=
+      this.options.idle_timeout_ms
+    ) {
+      // inactive
+      this.idle_timed_out = true;
+      this.emit("ws:idle", true);
+      this.client.disconnect();
+    }
   }
 }

@@ -33,6 +33,7 @@ interface Props {
   reload: string;
   // reduxProps:
   windows: Map<string, any>;
+  x11_is_idle: boolean;
 }
 
 export class X11Component extends Component<Props, {}> {
@@ -45,7 +46,8 @@ export class X11Component extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        windows: rtypes.immutable.Map
+        windows: rtypes.immutable.Map,
+        x11_is_idle: rtypes.bool
       }
     };
   }
@@ -87,7 +89,12 @@ export class X11Component extends Component<Props, {}> {
     }
 
     // another other change causes re-render (e.g., of tab titles).
-    return is_different(this.props, next, ["id", "windows", "is_current"]);
+    return is_different(this.props, next, [
+      "id",
+      "windows",
+      "is_current",
+      "x11_is_idle"
+    ]);
   }
 
   componentDidMount(): void {
@@ -295,9 +302,41 @@ export class X11Component extends Component<Props, {}> {
     );
   }
 
+  not_idle(): void {
+    this.props.actions.x11_not_idle();
+  }
+
+  render_idle(): Rendered {
+    if (!this.props.x11_is_idle) {
+      return;
+    }
+    return (
+      <div
+        onClick={this.not_idle.bind(this)}
+        style={{
+          position: "absolute",
+          fontSize: "36pt",
+          color: "white",
+          backgroundColor: "#458ac9",
+          textAlign: "center",
+          width: "100%",
+          height: "100%",
+          cursor: "pointer",
+          zIndex: 1,
+          opacity: 0.7
+        }}
+      >
+        Idle
+        <br />
+        (click to resume)
+      </div>
+    );
+  }
+
   render(): Rendered {
     return (
-      <div className="smc-vfill">
+      <div className="smc-vfill" style={{ position: "relative" }}>
+        {this.render_idle()}
         {this.render_tab_bar()}
         {this.render_hidden_textarea()}
         {this.render_window_div()}

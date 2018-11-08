@@ -2,6 +2,11 @@
 X Window Editor Actions
 */
 
+// 15 minute idle timeout -- it's important to disconnect
+// the websocket to the xpra server, to avoid a massive
+// waste of bandwidth...
+const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
+
 import { Channel } from "smc-webapp/project/websocket/types";
 
 import { Map, Set, fromJS } from "immutable";
@@ -25,6 +30,7 @@ const { alert_message } = require("smc-webapp/alerts");
 
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;
+  x11_is_idle: boolean;
 }
 
 export class Actions extends BaseActions<X11EditorState> {
@@ -127,7 +133,8 @@ export class Actions extends BaseActions<X11EditorState> {
   init_client(): void {
     this.client = new XpraClient({
       project_id: this.project_id,
-      path: this.path
+      path: this.path,
+      idle_timeout_ms: CLIENT_IDLE_TIMEOUT_MS
     });
 
     this.client.on("window:create", (wid: number, title: string) => {
@@ -166,6 +173,10 @@ export class Actions extends BaseActions<X11EditorState> {
         // make typescript happy with checking status is an allowed value.
         this.set_x11_connection_status(status);
       }
+    });
+
+    this.client.on("ws:idle", (x11_is_idle: boolean) => {
+      this.setState({ x11_is_idle });
     });
 
     this.client.on("notification:create", (nid: number, desc) => {
@@ -465,5 +476,15 @@ export class Actions extends BaseActions<X11EditorState> {
       }
     }
     return used_wids;
+  }
+
+  // if the x11 connection is idle timed out, call
+  // this to reconnect.  This is a NO-OP if client
+  // is not idle.
+  x11_not_idle(): void {
+    if (this.store.get("x11_is_idle")) {
+      this.setState({ windows: Map() });
+      this.client.connect();
+    }
   }
 }
