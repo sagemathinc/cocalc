@@ -28,10 +28,8 @@ const row_style: React.CSSProperties = {
 };
 
 const main_style: React.CSSProperties = {
-  padding: "20px 40px",
   overflowY: "auto",
-  overflowX: "hidden",
-  height: "90%"
+  overflowX: "hidden"
 };
 
 interface IKernelSelectorProps {
@@ -257,8 +255,8 @@ export class KernelSelector extends Component<
       <Row style={row_style}>
         <h4>Quick selection</h4>
         <div>
-          Your most recently selected kernel was:{" "}
-          {this.render_kernel_button(this.props.default_kernel)}
+          Your most recently selected kernel is{" "}
+          {this.render_kernel_button(this.props.default_kernel)}.
         </div>
       </Row>
     );
@@ -282,8 +280,8 @@ export class KernelSelector extends Component<
     } else {
       return (
         <Row style={row_style}>
-          Select a new kernel. (Currently selected:{" "}
-          <code>{this.kernel_name(this.props.kernel)}</code>)
+          <strong>Select a new kernel.</strong> Your currently selected one is{" "}
+          {this.render_kernel_button(this.props.kernel, "small")}.
         </Row>
       );
     }
@@ -310,9 +308,10 @@ export class KernelSelector extends Component<
 
   render_footer(): Rendered {
     return (
-      <Row style={row_style}>
+      <Row style={{ ...row_style, ...{ color: COLORS.GRAY } }}>
         <strong>Note:</strong> You can always change the selected kernel later
-        via the »Kernel« menu enty.
+        in the »Kernel« menu or by clicking on the kernel information at the top
+        right.
       </Row>
     );
   }
@@ -336,18 +335,20 @@ export class KernelSelector extends Component<
           {this.render_last()}
           {this.render_suggested()}
           {this.render_all()}
-          <hr/>
+          <hr />
           {this.render_footer()}
         </>
       );
     }
     return (
-      <Col style={main_style} md={8} mdOffset={2}>
-        <Row style={row_style}>
-          <h3>{"Select a Kernel"}</h3>
-        </Row>
-        {body}
-      </Col>
+      <div style={main_style} className={"smc-vfill"}>
+        <Col md={8} mdOffset={2}>
+          <Row style={row_style}>
+            <h3>{"Select a Kernel"}</h3>
+          </Row>
+          {body}
+        </Col>
+      </div>
     );
   }
 }
