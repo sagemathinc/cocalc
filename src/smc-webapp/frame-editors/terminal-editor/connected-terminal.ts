@@ -193,9 +193,11 @@ export class Terminal {
       );
     }
 
+    /* Disabled, due to https://github.com/sagemathinc/cocalc/issues/3304
     if (settings.get("font") !== this.terminal_settings.get("font")) {
       this.terminal.setOption("fontFamily", settings.get("font"));
     }
+    */
 
     this.terminal_settings = settings;
   }

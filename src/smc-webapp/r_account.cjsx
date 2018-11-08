@@ -803,24 +803,32 @@ TerminalSettings = rclass
     handleChange: (obj) ->
         @props.redux.getTable('account').set(terminal: obj)
 
+    render_color_scheme: ->
+        <LabeledRow label='Terminal color scheme'>
+            <SelectorInput
+                selected  = {@props.terminal.get('color_scheme')}
+                options   = {TERMINAL_COLOR_SCHEMES}
+                on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+            />
+        </LabeledRow>
+
+    render_font_family: ->
+        return  # disabled due to https://github.com/sagemathinc/cocalc/issues/3304
+        <LabeledRow label='Terminal font family'>
+            <SelectorInput
+                selected  = {@props.terminal.get('font')}
+                options   = {TERMINAL_FONT_FAMILIES}
+                on_change = {(font)=>@handleChange(font:font)}
+            />
+        </LabeledRow>
+
+
     render: ->
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal settings</h2>}>
-            <LabeledRow label='Terminal color scheme'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('color_scheme')}
-                    options   = {TERMINAL_COLOR_SCHEMES}
-                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Terminal font family'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('font')}
-                    options   = {TERMINAL_FONT_FAMILIES}
-                    on_change = {(font)=>@handleChange(font:font)}
-                />
-            </LabeledRow>
+            {@render_color_scheme()}
+            {@render_font_family()}
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
