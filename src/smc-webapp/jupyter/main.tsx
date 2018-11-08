@@ -80,6 +80,7 @@ interface JupyterEditorProps {
   show_kernel_selector?: boolean;
   kernel_selection?: immutable.Map<string, any>;
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
+  kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
   default_kernel?: string;
   closestKernel?: TKernel;
 }
@@ -130,6 +131,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         show_kernel_selector: rtypes.bool,
         kernel_selection: rtypes.immutable.Map,
         kernels_by_name: rtypes.immutable.Map,
+        kernels_by_language: rtypes.immutable.Map,
         default_kernel: rtypes.string,
         closestKernel: rtypes.immutable.Map
       }
@@ -349,6 +351,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernel_info={this.props.kernel_info}
         kernel_selection={this.props.kernel_selection}
         kernels_by_name={this.props.kernels_by_name}
+        kernels_by_language = {this.props.kernels_by_language}
         default_kernel={this.props.default_kernel}
         closestKernel={this.props.closestKernel}
       />

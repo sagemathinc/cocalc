@@ -6,7 +6,13 @@ declare const localStorage: any;
 
 const misc = require("smc-util/misc");
 import { Store } from "../app-framework";
-import { Set, Map as ImmutableMap, OrderedMap } from "immutable";
+import {
+  Set,
+  Map as ImmutableMap,
+  List as ImmutableList,
+  OrderedMap,
+  fromJS as immutableFromJS
+} from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
 import { Kernels, TKernel } from "./util";
@@ -61,6 +67,7 @@ export interface JupyterStoreState {
   show_kernel_selector: boolean;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
+  kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
   default_kernel?: string;
   closestKernel?: TKernel;
 }
@@ -344,19 +351,45 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return ImmutableMap<string, string>(data);
   };
 
-  get_kernels_by_name = (
+  get_kernels_by_name_or_language = (
     kernels: Kernels
-  ): OrderedMap<string, ImmutableMap<string, string>> => {
-    const data: any = {};
+  ): [
+    OrderedMap<string, ImmutableMap<string, string>>,
+    OrderedMap<string, ImmutableList<string>>
+  ] => {
+    let data_name: any = {};
+    let data_lang: any = {};
+    const add_lang = (lang, entry) => {
+      if (data_lang[lang] == null) data_lang[lang] = [];
+      data_lang[lang].push(entry);
+    };
     kernels.map(entry => {
       const name = entry.get("name");
-      if (name != null) data[name] = entry;
-    });
-    return OrderedMap<string, ImmutableMap<string, string>>(data).sortBy(
-      (v, k) => {
-        return v.get("display_name", v.get("name", k)).toLowerCase();
+      const lang = entry.get("language");
+      if (name != null) data_name[name] = entry;
+      if (lang == null) {
+        // we collect all kernels without a language under "misc"
+        add_lang("misc", entry);
+      } else {
+        add_lang(lang, entry);
       }
+    });
+    const by_name = OrderedMap<string, ImmutableMap<string, string>>(
+      data_name
+    ).sortBy((v, k) => {
+      return v.get("display_name", v.get("name", k)).toLowerCase();
+    });
+    // data_lang, we're only interested in the kernel names, not the entry itself
+    data_lang = immutableFromJS(data_lang).map((v, k) => {
+      v = v
+        .sortBy(v => v.get("display_name", v.get("name", k)).toLowerCase())
+        .map(v => v.get("name"));
+      return v;
+    });
+    const by_lang = OrderedMap<string, ImmutableList<string>>(data_lang).sortBy(
+      (_v, k) => k.toLowerCase()
     );
+    return [by_name, by_lang];
   };
 
   get_raw_link = (path: any) => {

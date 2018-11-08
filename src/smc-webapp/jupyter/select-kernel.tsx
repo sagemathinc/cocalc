@@ -5,23 +5,33 @@ help users selecting a kernel
 import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
 import {
   Map as ImmutableMap,
+  List,
   OrderedMap /*, List as ImmutableList*/
 } from "immutable";
-// import { Kernels } from "./util";
-const { Icon, Markdown, Space, Loading } = require("../r_misc"); // TODO: import types
+import * as misc from "smc-util/misc";
+const { Icon, Markdown, /*Space,*/ Loading } = require("../r_misc"); // TODO: import types
 const {
   Button,
   Col,
   Row,
-  MenuItem,
-  DropdownButton,
+  ButtonGroup,
+  /* MenuItem,
+  DropdownButton, */
   Alert
 } = require("react-bootstrap"); // TODO: import types
 import { TKernel } from "./util";
+const { COLORS } = require("smc-util/theme");
 
 const row_style: React.CSSProperties = {
   marginTop: "5px",
   marginBottom: "5px"
+};
+
+const main_style: React.CSSProperties = {
+  padding: "20px 40px",
+  overflowY: "auto",
+  overflowX: "hidden",
+  height: "90%"
 };
 
 interface IKernelSelectorProps {
@@ -31,6 +41,7 @@ interface IKernelSelectorProps {
   default_kernel?: string;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
+  kernels_by_language?: OrderedMap<string, List<string>>;
   closestKernel?: TKernel;
 }
 
@@ -99,11 +110,15 @@ export class KernelSelector extends Component<
     return <Markdown value={`kernels: ${ks.join(", ")}`} />;
   }
 
-  kernel_name(name: string): string {
+  kernel_name(name: string) {
+    return this.kernel_attr(name, "display_name");
+  }
+
+  kernel_attr(name: string, attr: string): string {
     if (this.props.kernels_by_name == null) return "";
     const k = this.props.kernels_by_name.get(name);
     if (k == null) return "";
-    return k.get("display_name", name);
+    return k.get(attr, name);
   }
 
   render_suggested_link(cocalc) {
@@ -119,6 +134,30 @@ export class KernelSelector extends Component<
     } else {
       return descr;
     }
+  }
+
+  render_kernel_button(
+    name: string,
+    size: string = "default",
+    show_icon: boolean = true
+  ): Rendered {
+    const lang = this.kernel_attr(name, "language");
+    let icon: Rendered | undefined = undefined;
+    if (lang != null && show_icon) {
+      if (["python", "r", "sagemath", "octave", "julia"].indexOf(lang) >= 0) {
+        icon = <Icon name={`cc-icon-${lang}`} />;
+      }
+      // TODO do other languages have icons?
+    }
+    return (
+      <Button
+        key={`kernel-${lang}-${name}`}
+        onClick={() => this.props.actions.select_kernel(name)}
+        bsSize={size}
+      >
+        {icon} {this.kernel_name(name)}
+      </Button>
+    );
   }
 
   render_suggested() {
@@ -145,12 +184,8 @@ export class KernelSelector extends Component<
 
         entries.push(
           <Row key={lang} style={row_style}>
-            <Col sm={4}>
-              <Button onClick={() => this.props.actions.select_kernel(name)}>
-                <Icon name={`cc-icon-${lang}`} /> {this.kernel_name(name)}
-              </Button>
-            </Col>
-            <Col sm={8}>
+            <Col sm={6}>{this.render_kernel_button(name)}</Col>
+            <Col sm={6}>
               <div>{this.render_suggested_link(cocalc)}</div>
             </Col>
           </Row>
@@ -160,10 +195,10 @@ export class KernelSelector extends Component<
     if (entries.length == 0) return;
 
     return (
-      <>
+      <Row style={row_style}>
         <h4>Suggested kernels</h4>
         <Col>{entries}</Col>
-      </>
+      </Row>
     );
   }
 
@@ -178,52 +213,54 @@ export class KernelSelector extends Component<
     return this.render_suggested_link(cocalc);
   }
 
-  render_all() {
-    if (this.props.kernels_by_name == null) return;
+  render_all_langs(): Rendered[] | undefined {
+    if (this.props.kernels_by_language == null) return;
+    const label: React.CSSProperties = {
+      fontWeight: "bold",
+      color: COLORS.GRAY_D
+    };
     const all: Rendered[] = [];
-    this.props.kernels_by_name.mapKeys(name => {
-      if (name == null) return;
-      all.push(
-        <MenuItem
-          key={`kernel-${name}`}
-          eventKey={name}
-          onSelect={name => this.setState({ selected_kernel: name })}
-        >
-          {this.kernel_name(name)}
-        </MenuItem>
+    this.props.kernels_by_language.forEach((names, lang) => {
+      const kernels = names.map(name =>
+        this.render_kernel_button(name, "small", false)
       );
+      all.push(
+        <Row key={lang} style={row_style}>
+          <Col sm={2} style={label}>
+            {misc.capitalize(lang)}
+          </Col>
+          <Col sm={10}>
+            <ButtonGroup>{kernels}</ButtonGroup>
+          </Col>
+        </Row>
+      );
+      return true;
     });
 
+    return all;
+  }
+
+  render_all() {
+    if (this.props.kernels_by_language == null) return;
+
     return (
-      <>
+      <Row style={row_style}>
         <h4>All kernels</h4>
-        <DropdownButton id={"Select kernel"} title={"select kernel"}>
-          {all}
-        </DropdownButton>
-        <Space />
-        {this.render_select_button()}
-        <Space />
-        {this.render_all_selected_link()}
-      </>
+        <Col>{this.render_all_langs()}</Col>
+      </Row>
     );
   }
 
   render_last() {
     if (this.props.default_kernel == null) return;
     return (
-      <>
+      <Row style={row_style}>
         <h4>Quick selection</h4>
         <div>
           Your most recently selected kernel was:{" "}
-          <Button
-            onClick={() =>
-              this.props.actions.select_kernel(this.props.default_kernel)
-            }
-          >
-            {this.kernel_name(this.props.default_kernel)}
-          </Button>
+          {this.render_kernel_button(this.props.default_kernel)}
         </div>
-      </>
+      </Row>
     );
   }
 
@@ -236,18 +273,18 @@ export class KernelSelector extends Component<
         msg = "This notebook has no kernel.";
       }
       return (
-        <>
+        <Row style={row_style}>
           <strong>{msg}</strong> A working kernel is required in order to
           evaluate the code in the notebook. Based on the programming language
           you want to work with, you have to select one.
-        </>
+        </Row>
       );
     } else {
       return (
-        <>
+        <Row style={row_style}>
           Select a new kernel. (Currently selected:{" "}
           <code>{this.kernel_name(this.props.kernel)}</code>)
-        </>
+        </Row>
       );
     }
   }
@@ -255,53 +292,60 @@ export class KernelSelector extends Component<
   render_unknown() {
     const closestKernel = this.props.closestKernel;
     if (this.props.kernel_info != null || closestKernel == null) return;
-
-    const closestKernelDisplayName = closestKernel.get("display_name");
     const closestKernelName = closestKernel.get("name");
+    if (closestKernelName == null) return;
 
     return (
       <Row style={row_style}>
         <Alert bsStyle={"danger"}>
-          <h3>Kernel unknown</h3>
+          <h3>Unknown Kernel</h3>
           <div>
-            Maybe select {closestKernelDisplayName}{" "}
-            <code>{closestKernelName}</code>
+            A similar kernel might be{" "}
+            {this.render_kernel_button(closestKernelName)}.
           </div>
         </Alert>
       </Row>
     );
   }
 
-  render() {
-    const style: React.CSSProperties = {
-      padding: "20px 40px",
-      overflowY: "auto",
-      overflowX: "hidden",
-      height: "90%"
-    };
+  render_footer(): Rendered {
+    return (
+      <Row style={row_style}>
+        <strong>Note:</strong> You can always change the selected kernel later
+        via the »Kernel« menu enty.
+      </Row>
+    );
+  }
 
+  render() {
     let body: Rendered;
     if (
       this.props.kernels_by_name == null ||
       this.props.kernel_selection == null
     ) {
-      body = <Loading />;
+      body = (
+        <Row style={row_style}>
+          <Loading />
+        </Row>
+      );
     } else {
       body = (
         <>
-          <Row style={row_style}>
-            <h3>{"Select a Kernel"}</h3>
-          </Row>
-          <Row style={row_style}>{this.render_top()}</Row>
+          {this.render_top()}
           {this.render_unknown()}
-          <Row style={row_style}>{this.render_last()}</Row>
-          <Row style={row_style}>{this.render_suggested()}</Row>
-          <Row style={row_style}>{this.render_all()}</Row>
+          {this.render_last()}
+          {this.render_suggested()}
+          {this.render_all()}
+          <hr/>
+          {this.render_footer()}
         </>
       );
     }
     return (
-      <Col style={style} md={6} mdOffset={3}>
+      <Col style={main_style} md={8} mdOffset={2}>
+        <Row style={row_style}>
+          <h3>{"Select a Kernel"}</h3>
+        </Row>
         {body}
       </Col>
     );

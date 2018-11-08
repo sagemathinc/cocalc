@@ -381,13 +381,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ kernel_info });
   };
 
-  set_jupyter_kernels = () => {
+  set_jupyter_kernels = async () => {
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
     } else {
-      this.fetch_jupyter_kernels();
+      await this.fetch_jupyter_kernels();
     }
+    this.update_select_kernel_data();
   };
 
   set_error = (err: any): void => {
@@ -888,10 +889,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               this.set_cm_options();
             }
 
-            // unkown kernel name
-            if (!this._is_project && obj.kernel_info == null) {
-              this.show_select_kernel();
-            }
             break;
         }
       });
@@ -917,13 +914,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._state = "ready";
       }
 
-      if (this.store.get("kernel") == null) {
+      const kernel = this.store.get("kernel");
+      const no_kernel: boolean = kernel == null;
+      const unknown_kernel: boolean = !no_kernel
+        ? this.store.get_kernel_info(kernel) == null
+        : false;
+      if (no_kernel || unknown_kernel) {
         this.show_select_kernel();
-      } else {
-        // we have a kernel
-        this.hide_select_kernel();
       }
-
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();
       }
@@ -3178,25 +3176,39 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.file_action("close_file");
   };
 
-  show_select_kernel = (): void => {
+  update_select_kernel_data = (): void => {
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);
-    const kernels_by_name = this.store.get_kernels_by_name(kernels);
+    const [
+      kernels_by_name,
+      kernels_by_language
+    ] = this.store.get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
+    // do we have a similar kernel?
     let closestKernel: TKernel | undefined = undefined;
     const kernel = this.store.get("kernel");
     const kernel_info = this.store.get_kernel_info(kernel);
     // unknown kernel, we try to find a close match
-    if (kernel_info == null) {
+    if (kernel_info == null && kernel != null && kernels != null) {
+      // kernel & kernels must be defined
       closestKernel = misc.closest_kernel_match(kernel, kernels);
     }
     this.setState({
-      show_kernel_selector: true,
       kernel_selection,
       kernels_by_name,
+      kernels_by_language,
       default_kernel,
       closestKernel
+    });
+  };
+
+  show_select_kernel = (): void => {
+    this.update_select_kernel_data();
+    // we might not have the "kernels" data yet (but we will, once fetching it is complete)
+    // the select dialog will show a loading spinner
+    this.setState({
+      show_kernel_selector: true
     });
   };
 
