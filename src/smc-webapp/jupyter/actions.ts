@@ -1902,10 +1902,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_kernel = (kernel: any) => {
     if (this.store.get("kernel") !== kernel) {
-      return this._set({
+      this._set({
         type: "settings",
         kernel
       });
+    }
+    if (this.store.get("show_kernel_selector")) {
+      this.hide_select_kernel();
     }
   };
 
@@ -3220,12 +3223,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  select_kernel = (kernel_name: string | undefined): void => {
-    if (kernel_name != null) {
-      this.set_kernel(kernel_name);
-    } else {
-      this.set_kernel(null);
-    }
+  select_kernel = (kernel_name: string): void => {
+    this.set_kernel(kernel_name);
     this.set_default_kernel(kernel_name);
     this.focus(true);
     this.hide_select_kernel();

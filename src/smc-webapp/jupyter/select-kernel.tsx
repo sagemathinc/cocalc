@@ -9,7 +9,7 @@ import {
   OrderedMap /*, List as ImmutableList*/
 } from "immutable";
 import * as misc from "smc-util/misc";
-const { Icon, Markdown, /*Space,*/ Loading } = require("../r_misc"); // TODO: import types
+const { Icon, /* Markdown, /*Space,*/ Loading } = require("../r_misc"); // TODO: import types
 const {
   Button,
   Col,
@@ -28,12 +28,14 @@ const row_style: React.CSSProperties = {
 };
 
 const main_style: React.CSSProperties = {
+  padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden"
 };
 
 interface IKernelSelectorProps {
   actions: any;
+  site_name: string;
   kernel?: string;
   kernel_info?: any;
   default_kernel?: string;
@@ -43,9 +45,7 @@ interface IKernelSelectorProps {
   closestKernel?: TKernel;
 }
 
-interface IKernelSelectorState {
-  selected_kernel?: string;
-}
+interface IKernelSelectorState {}
 
 export class KernelSelector extends Component<
   IKernelSelectorProps,
@@ -53,27 +53,27 @@ export class KernelSelector extends Component<
 > {
   constructor(props: IKernelSelectorProps, context: any) {
     super(props, context);
-    this.state = { selected_kernel: undefined };
+    this.state = {};
   }
 
-  render_select_button() {
-    const disabled = this.state.selected_kernel == null;
-    const msg = disabled
-      ? "Select a kernel"
-      : `Use ${this.kernel_name(this.state.selected_kernel!)}`;
-    return (
-      <Button
-        key={"select"}
-        bsStyle={disabled ? "default" : "primary"}
-        disabled={disabled}
-        onClick={() =>
-          this.props.actions.select_kernel(this.state.selected_kernel)
-        }
-      >
-        {msg}
-      </Button>
-    );
-  }
+  // render_select_button() {
+  //   const disabled = this.state.selected_kernel == null;
+  //   const msg = disabled
+  //     ? "Select a kernel"
+  //     : `Use ${this.kernel_name(this.state.selected_kernel!)}`;
+  //   return (
+  //     <Button
+  //       key={"select"}
+  //       bsStyle={disabled ? "default" : "primary"}
+  //       disabled={disabled}
+  //       onClick={() =>
+  //         this.props.actions.select_kernel(this.state.selected_kernel)
+  //       }
+  //     >
+  //       {msg}
+  //     </Button>
+  //   );
+  // }
 
   // the idea here is to not set the kernel, but still render the notebook.
   // looks like that's not easy, and well, probably incompatible with classical jupyter.
@@ -95,18 +95,6 @@ export class KernelSelector extends Component<
     );
   }
   */
-
-  render_body() {
-    if (
-      this.props.kernel_selection == null ||
-      this.props.kernels_by_name == null
-    )
-      return;
-    let ks = this.props.kernel_selection.map((k, v) => {
-      return `${k}=${v}`;
-    });
-    return <Markdown value={`kernels: ${ks.join(", ")}`} />;
-  }
 
   kernel_name(name: string) {
     return this.kernel_attr(name, "display_name");
@@ -136,7 +124,7 @@ export class KernelSelector extends Component<
 
   render_kernel_button(
     name: string,
-    size: string = "default",
+    size?: string,
     show_icon: boolean = true
   ): Rendered {
     const lang = this.kernel_attr(name, "language");
@@ -200,16 +188,16 @@ export class KernelSelector extends Component<
     );
   }
 
-  render_all_selected_link() {
-    if (this.props.kernels_by_name == null) return;
-    const name = this.state.selected_kernel;
-    if (name == null) return;
-    const cocalc: ImmutableMap<string, any> = this.props.kernels_by_name.getIn(
-      [name, "metadata", "cocalc"],
-      null
-    );
-    return this.render_suggested_link(cocalc);
-  }
+  // render_all_selected_link() {
+  //   if (this.props.kernels_by_name == null) return;
+  //   const name = this.state.selected_kernel;
+  //   if (name == null) return;
+  //   const cocalc: ImmutableMap<string, any> = this.props.kernels_by_name.getIn(
+  //     [name, "metadata", "cocalc"],
+  //     null
+  //   );
+  //   return this.render_suggested_link(cocalc);
+  // }
 
   render_all_langs(): Rendered[] | undefined {
     if (this.props.kernels_by_language == null) return;
@@ -263,12 +251,18 @@ export class KernelSelector extends Component<
   }
 
   render_top() {
-    if (this.props.kernel == null) {
-      let msg: string;
-      if (this.props.kernel_info != null) {
-        msg = "This notebook kernel is unknown.";
+    if (this.props.kernel == null || this.props.kernel_info == null) {
+      let msg: Rendered;
+      // kernel, but no info means it is not known
+      if (this.props.kernel != null && this.props.kernel_info == null) {
+        msg = (
+          <>
+            Your notebook kernel <code>"{this.props.kernel}"</code> does not
+            exist on {this.props.site_name}.
+          </>
+        );
       } else {
-        msg = "This notebook has no kernel.";
+        msg = <>This notebook has no kernel.</>;
       }
       return (
         <Row style={row_style}>
@@ -296,7 +290,7 @@ export class KernelSelector extends Component<
     return (
       <Row style={row_style}>
         <Alert bsStyle={"danger"}>
-          <h3>Unknown Kernel</h3>
+          <h4>Unknown Kernel</h4>
           <div>
             A similar kernel might be{" "}
             {this.render_kernel_button(closestKernelName)}.
@@ -316,19 +310,30 @@ export class KernelSelector extends Component<
     );
   }
 
-  render() {
-    let body: Rendered;
+  render_close_button(): Rendered | undefined {
+    if (this.props.kernel == null || this.props.kernel_info == null) return;
+    return (
+      <Button
+        style={{ float: "right" }}
+        onClick={() => this.props.actions.hide_select_kernel()}
+      >
+        Close
+      </Button>
+    );
+  }
+
+  render_body(): Rendered {
     if (
       this.props.kernels_by_name == null ||
       this.props.kernel_selection == null
     ) {
-      body = (
+      return (
         <Row style={row_style}>
           <Loading />
         </Row>
       );
     } else {
-      body = (
+      return (
         <>
           {this.render_top()}
           {this.render_unknown()}
@@ -340,13 +345,25 @@ export class KernelSelector extends Component<
         </>
       );
     }
+  }
+
+  render_head(): Rendered {
+    return (
+      <Row style={row_style}>
+        <h3>
+          {"Select a Kernel"}
+          {this.render_close_button()}
+        </h3>
+      </Row>
+    );
+  }
+
+  render(): Rendered {
     return (
       <div style={main_style} className={"smc-vfill"}>
         <Col md={8} mdOffset={2}>
-          <Row style={row_style}>
-            <h3>{"Select a Kernel"}</h3>
-          </Row>
-          {body}
+          {this.render_head()}
+          {this.render_body()}
         </Col>
       </div>
     );

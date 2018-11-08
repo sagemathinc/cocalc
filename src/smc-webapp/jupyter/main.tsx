@@ -40,6 +40,7 @@ interface JupyterEditorProps {
   name: string; // TODO: is this correct?
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
+  site_name: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
   toolbar?: boolean;
@@ -134,7 +135,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernels_by_language: rtypes.immutable.Map,
         default_kernel: rtypes.string,
         closestKernel: rtypes.immutable.Map
-      }
+      },
+      customize: { site_name: rtypes.string }
     };
   }
 
@@ -351,9 +353,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         kernel_info={this.props.kernel_info}
         kernel_selection={this.props.kernel_selection}
         kernels_by_name={this.props.kernels_by_name}
-        kernels_by_language = {this.props.kernels_by_language}
+        kernels_by_language={this.props.kernels_by_language}
         default_kernel={this.props.default_kernel}
         closestKernel={this.props.closestKernel}
+        site_name={this.props.site_name}
       />
     );
   }
