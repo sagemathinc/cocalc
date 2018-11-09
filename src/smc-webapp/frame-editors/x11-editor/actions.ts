@@ -392,7 +392,7 @@ export class Actions extends BaseActions<X11EditorState> {
   private async init_channel(): Promise<void> {
     if (this._state === "closed") return;
     const api = await project_api(this.project_id);
-    this.channel = await api.x11_channel(this.path);
+    this.channel = await api.x11_channel(this.path, this.client.get_display());
     const channel: any = this.channel;
     channel.on("close", () => {
       channel.removeAllListeners();

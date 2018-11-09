@@ -2,9 +2,8 @@
 X11 server channel.
 
 TODO:
-  - [ ] paste
-  - [ ] copy
   - [ ] other user activity
+  - [ ] when stopping project, kill xpra's
 */
 
 import { spawn } from "child_process";
@@ -24,16 +23,18 @@ class X11Channel {
     primus,
     path,
     name,
-    logger
+    logger,
+    display
   }: {
     primus: any;
     path: string;
     name: string;
     logger: any;
+    display:number;
   }) {
     this.logger = logger;
     this.log("creating new x11 channel");
-    this.display = 0; // todo
+    this.display = display;  // needed for copy/paste support
     this.path = path;
     this.name = name;
     this.channel = primus.channel(this.name);
@@ -117,11 +118,12 @@ export async function x11_channel(
   client: any,
   primus: any,
   logger: any,
-  path: string
+  path: string,
+  display: number
 ): Promise<string> {
   const name = `x11:${path}`;
   if (x11_channels[name] === undefined) {
-    x11_channels[name] = new X11Channel({ primus, path, name, logger });
+    x11_channels[name] = new X11Channel({ primus, path, name, logger, display });
   }
   return name;
 }

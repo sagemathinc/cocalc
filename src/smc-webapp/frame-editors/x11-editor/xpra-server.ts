@@ -7,10 +7,6 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { MAX_WIDTH, MAX_HEIGHT } from "./xpra/surface";
 import { splitlines, split } from "../generic/misc";
 
-// This will break annoyingly on cocalc-docker
-// if there are multiple projects using it at once.
-const DEFAULT_DISPLAY = 0;
-
 export interface ExecOpts0 {
   command: string;
   path?: string;
@@ -22,8 +18,8 @@ export interface ExecOpts0 {
 
 interface XpraServerOptions {
   project_id: string;
+  display: number;
   command?: string;
-  display?: number;
 }
 
 export class XpraServer {
@@ -39,7 +35,7 @@ export class XpraServer {
     } catch (err) {
       console.warn("xpra: Failed to get hostname.");
     }
-    this.display = opts.display ? opts.display : DEFAULT_DISPLAY;
+    this.display = opts.display;
     this.start = reuseInFlight(this.start);
     this.stop = reuseInFlight(this.stop);
     this.get_port = reuseInFlight(this.get_port);
@@ -186,10 +182,6 @@ export class XpraServer {
       return;
     }
     return parseInt(line.slice(j + 1, k));
-  }
-
-  get_display(): number {
-    return this.display;
   }
 
   async get_hostname(): Promise<string> {
