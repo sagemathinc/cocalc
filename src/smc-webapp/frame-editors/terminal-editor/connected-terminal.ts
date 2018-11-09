@@ -106,7 +106,7 @@ export class Terminal {
     this.term_path = aux_file(`${this.path}-${number}`, "term");
     this.number = number;
     this.id = id;
-    this.terminal = new XTerminal();
+    this.terminal = new XTerminal(this.get_xtermjs_options());
     this.terminal.open(parent);
     this.element = this.terminal.element;
     this.update_settings();
@@ -116,6 +116,30 @@ export class Terminal {
     this.init_settings();
     this.init_touch();
     this.set_connection_status("disconnected");
+  }
+
+  private get_xtermjs_options(): any {
+    const rendererType = "dom";
+    const settings = this.account.get("terminal");
+    if (settings == null) {
+      // not fully loaded yet.
+      return { rendererType };
+    }
+    const scrollback = settings.get("scrollback", SCROLLBACK);
+
+    // Tell the terminal to use the browser's setting
+    // for the generic "monospace" font family.
+    // This can be tuned in the browser settings.
+    const fontFamily = "monospace";
+
+    // The following option possibly makes xterm.js better at
+    // handling huge bursts of data by pausing the backend temporarily.
+    // DO NOT USE! It directly and "violently" conflicts with Ipython's
+    // naive use of "Ctrl+S" for I-search mode.
+    // https://github.com/sagemathinc/cocalc/issues/3236
+    // const useFlowControl = true;
+
+    return { rendererType, scrollback, fontFamily };
   }
 
   assert_not_closed(): void {
@@ -170,19 +194,10 @@ export class Terminal {
       setTheme(this.terminal, settings.get("color_scheme"));
     }
 
-    // The following option possibly makes xterm.js better at
-    // handling huge bursts of data by pausing the backend temporarily.
-    // DO NOT USE! It directly and "violently" conflicts with Ipython's
-    // naive use of "Ctrl+S" for I-search mode.
-    // https://github.com/sagemathinc/cocalc/issues/3236
-    // this.terminal.setOption("useFlowControl", true);
-
-    // Interesting to play with, but breaks copy/paste and maybe other
-    // things right now, probably due to CSS subtlety.
-    //terminal.setOption("rendererType", "dom");
-
-    // TODO -- make configurable by user (actually scrollback is never set in settings).
-    // Also, will need to impact other things, like history...  So NOT straightforward.
+    // TODO -- make configurable by user (actually
+    // scrollback is never set in settings).
+    // Also, will need to impact other things, like
+    // history...  So NOT straightforward.
     if (
       settings.get("scrollback", SCROLLBACK) !==
       this.terminal_settings.get("scrollback", SCROLLBACK)
@@ -192,15 +207,6 @@ export class Terminal {
         settings.get("scrollback", SCROLLBACK)
       );
     }
-
-    /* Disabled, due to https://github.com/sagemathinc/cocalc/issues/3304
-    * if (settings.get("font") !== this.terminal_settings.get("font")) {
-    *   this.terminal.setOption("fontFamily", settings.get("font"));
-    * }
-    */
-    // instead, tell the terminal to use the browser's setting for the generic "monospace" font family
-    // this can be tuned in the browser settings
-    this.terminal.setOption("fontFamily", "monospace");
 
     this.terminal_settings = settings;
   }
