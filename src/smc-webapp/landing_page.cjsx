@@ -123,6 +123,9 @@ SignIn = rclass
                             className = 'pull-right'>Sign&nbsp;In
                         </Button>
                     </Row>
+                    <Row>
+                        {@render_passports()}
+                    </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
                         {@display_error()}
                     </Row>
@@ -536,6 +539,7 @@ exports.LandingPage = rclass
                         sign_in_error = {@props.sign_in_error}
                         has_account   = {@props.has_account}
                         xs            = {true}
+                        strategies    = {@props.strategies}
                         color         = {topbar.color} />
                     <div style={clear:'both'}></div>
             </Row>
