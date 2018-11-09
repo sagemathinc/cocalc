@@ -1341,6 +1341,14 @@ f = () ->
     $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
+
+            ###
+            # Pro Tip:
+            # Type the following in the javascript console to make all strategy
+            # buttons appear, purely for UI testing:
+            #  smc.redux.getActions('account').setState({strategies:["email","facebook","github","google","twitter"]})
+            ###
+
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!
             # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.
