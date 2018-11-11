@@ -131,8 +131,9 @@ key is an object.
 
 const json_stable_stringify = require("json-stable-stringify");
 
-import { Plug } from "./synctable-plug";
-import { Changefeed } from "./synctable-changefeed";
+import { Plug } from "./plug";
+import { Changefeed } from "./changefeed-master";
+import { parse_query } from "./util";
 
 function to_key(x: string | object): string {
   if (typeof x === "object") {
@@ -145,6 +146,8 @@ function to_key(x: string | object): string {
 class SyncTable extends EventEmitter {
   private changefeed?: Changefeed;
   private query: any;
+  private client_query: any;
+  private primary_keys: string[];
   private options: any;
   private client: any;
   private debounce_interval: number;
@@ -157,44 +160,49 @@ class SyncTable extends EventEmitter {
   // according to queries and updates the server pushes to us.
   private value_server?: immutable.Map<string, any>;
 
-  // The changefeed id, when set by doing a change-feed aware query.
-  private id?: string;
-
   // Not connected yet
   // disconnected <--> connected --> closed
   private state: string = "disconnected";
-
   private extra_debug: string;
-
   private plug: Plug;
-
   private table: string;
-
   private schema: any;
-
+  private obj_to_key: Function;
   private emit_change: Function;
+  public reference_count: number = 0;
+  public cache_key: string | undefined;
+  // Which fields the user is allowed to set.
+  // Gets updaed during init.
+  private set_fields: string[] = [];
+  // Which fields *must* be included in any set query.
+  // Also updated during init.
+  private required_set_fields: { [key: string]: boolean } = {};
+  private anonymous: boolean;
 
-  constructor(
-    query,
-    options,
-    client,
-    debounce_interval,
-    throttle_changes,
-    cache_key
-  ) {
+  private is_saving: boolean = false;
+
+  constructor(query, options, client, debounce_interval, throttle_changes) {
     super();
+
+    if (misc.is_array(query)) {
+      throw Error("must be a single query, not array of queries");
+    }
+
     this.setMaxListeners(100);
-    this.query = query;
+    this.query = parse_query(query);
     this.options = options;
     this.client = client;
     this.debounce_interval = debounce_interval;
     this.throttle_changes = throttle_changes;
-    this.cache_key = cache_key;
 
     this.init_query();
     this.init_plug();
     this.init_disconnect();
     this.init_throttle_changes();
+  }
+
+  public get_state(): string {
+    return this.state;
   }
 
   private init_plug(): void {
@@ -214,18 +222,6 @@ class SyncTable extends EventEmitter {
       no_sign_in: this.schema.anonymous || this.client.is_project(),
       // note: projects don't have to authenticate
       extra_dbg // only for debugging
-    });
-  }
-
-  private init_disconnect(): void {
-    this.client.on("disconnected", () => {
-      //console.log("synctable: DISCONNECTED")
-      // When the connection is dropped, the backend hub notices that it was dropped
-      // and immediately cancels all changefeeds.  Thus we set this.id to undefined
-      // below, so that we don't redundantly cancel them again, which leads to an error
-      // and wastes resources (which can pile up).
-      this.id = undefined;
-      return this.disconnected("client disconnect");
     });
   }
 
@@ -272,7 +268,7 @@ class SyncTable extends EventEmitter {
     };
   }
 
-  private dbg(f) : Function {
+  private dbg(f): Function {
     // return this.client.dbg(`SyncTable('${this.table}').${f}`)
     return () => {};
   }
@@ -280,15 +276,9 @@ class SyncTable extends EventEmitter {
   private async connect(): Promise<void> {
     const dbg = this.dbg("connect");
     dbg();
-    if (this.state === "closed") {
-      throw Error("closed");
-    }
+    this.assert_not_closed();
     if (this.state === "connected") {
       return;
-    }
-    if (this.id != null) {
-      this.client.query_cancel({ id: this.id });
-      this.id = undefined;
     }
 
     // 1. save, in case we have any local unsaved changes, then sync with upstream.
@@ -300,7 +290,7 @@ class SyncTable extends EventEmitter {
     await this.create_changefeed();
   }
 
-  private async create_changefeed() : Promise<void> {
+  private async create_changefeed(): Promise<void> {
     const dbg = this.dbg("do_connect_query");
     if (this.state === "closed") {
       dbg("closed so don't do anything ever again");
@@ -313,21 +303,28 @@ class SyncTable extends EventEmitter {
     }
   }
 
-  private close_changefeed() : void {
+  private close_changefeed(): void {
     if (this.changefeed == null) return;
     this.changefeed.close();
     delete this.changefeed;
   }
 
-  private async create_changefeed_using_db_master() : Promise<void> {
+  private async create_changefeed_using_db_master(): Promise<void> {
     // For tables where always being perfectly 100% up to date is
     // critical, which is many of them (e.g., patches, projects).
     this.close_changefeed();
-    this.changefeed = new Changefeed({});
+    this.changefeed = new Changefeed({
+      do_query: this.client.query,
+      cancel_query: this.client.query_cancel,
+      options: this.options,
+      query: this.query,
+      table: this.table
+    });
     await changefeed.init();
   }
 
-  private async create_changefeed_using_db_standby() : Promise<void> {
+  // TODO -- write this
+  private async create_changefeed_using_db_standby(): Promise<void> {
     // For tables where always being perfectly 100% up to date is NOT
     // critical, so we can afford to have the initial query be behind
     // by a few ms.  E.g., list of all my collaborators.
@@ -336,257 +333,32 @@ class SyncTable extends EventEmitter {
     await changefeed.init();
   }
 
-
-  _do_the_query(cb) {
-    const dbg = this.dbg("_do_the_query");
-    let first_resp = true;
-    let this_query_id = undefined;
-    dbg("do the query");
-    return this.client.query({
-      query: this.query,
-      changes: true,
-      timeout: 30,
-      options: this.options,
-      cb: (err, resp) => {
-        if (this.state === "closed") {
-          // already closed so ignore anything else.
-          return;
-        }
-
-        if (is_fatal(err)) {
-          console.warn("setting up changefeed", this.table, err, this.query);
-          this.close(true);
-          if (typeof cb === "function") {
-            cb(err);
-          }
-          cb = undefined;
-          return;
-        }
-
-        if (first_resp) {
-          dbg("query got ", err, resp);
-          first_resp = false;
-          if (this.state === "closed") {
-            return typeof cb === "function" ? cb("closed") : undefined;
-          } else if (
-            (resp != null ? resp.event : undefined) === "query_cancel"
-          ) {
-            return typeof cb === "function" ? cb("query-cancel") : undefined;
-          } else if (err) {
-            return typeof cb === "function" ? cb(err) : undefined;
-          } else if (
-            __guard__(
-              resp != null ? resp.query : undefined,
-              x => x[this.table]
-            ) == null
-          ) {
-            return typeof cb === "function" ? cb("got no data") : undefined;
-          } else {
-            // Successfully completed query
-            this_query_id = this.id = resp.id;
-            this.state = "connected";
-            this._update_all(resp.query[this.table]);
-            this.emit("connected", resp.query[this.table]); // ready to use!
-            if (typeof cb === "function") {
-              cb();
-            }
-            // Do any pending saves
-            for (cb of this._connected_save_cbs != null
-              ? this._connected_save_cbs
-              : []) {
-              this.save(cb);
-            }
-            return delete this._connected_save_cbs;
-          }
-        } else {
-          if (this.state !== "connected") {
-            dbg("nothing to do -- ignore these, and make sure they stop");
-            if (this_query_id != null) {
-              this._client.query_cancel({ id: this_query_id });
-            }
-            return;
-          }
-          if (
-            err ||
-            (resp != null ? resp.event : undefined) === "query_cancel"
-          ) {
-            return this.disconnected(
-              `err=${err}, resp?.event=${resp != null ? resp.event : undefined}`
-            );
-          } else {
-            // Handle the update
-            return this._update_change(resp);
-          }
-        }
-      }
-    });
-  }
-
-  private async do_the_query_using_db_standby() : Promise<void> {
-    let f;
-    const dbg = this.dbg("_do_the_query_using_db_standby");
-    if (this.schema.db_standby === "unsafe") {
-      // do not even require the changefeed to be
-      // working before doing the full query.  This would
-      // for sure miss all changes from when the query
-      // finishes until the changefeed starts.  For some
-      // tables this is fine; for others, not.
-      f = async.parallel;
-    } else {
-      // This still could miss a small amount of data, but only
-      // for a tiny window.
-      f = async.series;
-    }
-
-    /*
-        * Use this for simulating async/slow loading behavior for a specific table.
-        if @_table == 'accounts'
-            console.log("delaying")
-            await require('awaiting').delay(5000)
-        */
-
-    return f([this._start_changefeed, this._do_initial_read_query], err => {
-      if (err) {
-        dbg("FAIL", err);
-        if (typeof cb === "function") {
-          cb(err);
-        }
-        return;
-      }
-      dbg("Success");
-      if (typeof cb === "function") {
-        cb();
-      }
-      // Do any pending saves
-      for (let c of this._connected_save_cbs != null
-        ? this._connected_save_cbs
-        : []) {
-        this.save(c);
-      }
-      return delete this._connected_save_cbs;
-    });
-  }
-
-  _do_initial_read_query(cb) {
-    const dbg = this.dbg("_do_initial_read_query");
-    dbg();
-    return this.client.query({
-      query: this.query,
-      standby: true,
-      timeout: 30,
-      options: this.options,
-      cb: (err, resp) => {
-        if (err) {
-          dbg("FAIL", err);
-          return typeof cb === "function" ? cb(err) : undefined;
-        } else {
-          dbg("success!");
-          this._update_all(resp.query[this.table]);
-          this.state = "connected";
-          this.emit("connected", resp.query[this.table]); // ready to use!
-          return typeof cb === "function" ? cb() : undefined;
-        }
-      }
-    });
-  }
-
-  _start_changefeed(cb) {
-    const dbg = this.dbg("start_changefeed");
-    let first_resp = true;
-    let this_query_id = undefined;
-    dbg("do the query");
-    return this.client.query({
-      query: this.query,
-      changes: true,
-      timeout: 30,
-      options: (this.options != null ? this.options : []).concat({
-        only_changes: true
-      }),
-      cb: (err, resp) => {
-        if (this.state === "closed") {
-          // already closed so ignore anything else.
-          return;
-        }
-
-        if (is_fatal(err)) {
-          console.warn("setting up changefeed", this.table, err, this.query);
-          this.close(true);
-          if (typeof cb === "function") {
-            cb(err);
-          }
-          cb = undefined;
-          return;
-        }
-
-        if (first_resp) {
-          dbg("query got first resp", err, resp);
-          first_resp = false;
-          if (this.state === "closed") {
-            return typeof cb === "function" ? cb("closed") : undefined;
-          } else if (
-            (resp != null ? resp.event : undefined) === "query_cancel"
-          ) {
-            return typeof cb === "function" ? cb("query-cancel") : undefined;
-          } else if (err) {
-            return typeof cb === "function" ? cb(err) : undefined;
-          } else {
-            // Successfully completed query to start changefeed.
-            this_query_id = this.id = resp.id;
-            return typeof cb === "function" ? cb() : undefined;
-          }
-        } else {
-          if (this.state !== "connected") {
-            // TODO: save them up and apply...?
-            dbg("nothing to do -- ignore these, and make sure they stop");
-            if (this_query_id != null) {
-              this.client.query_cancel({ id: this_query_id });
-            }
-            return;
-          }
-          if (
-            err ||
-            (resp != null ? resp.event : undefined) === "query_cancel"
-          ) {
-            return this.disconnected(
-              `err=${err}, resp?.event=${resp != null ? resp.event : undefined}`
-            );
-          } else {
-            // Handle the update
-            return this._update_change(resp);
-          }
-        }
-      }
-    });
-  }
-
-  private disconnected(why) {
+  private disconnected(why: string): void {
     const dbg = this.dbg("_disconnected");
     dbg(`why=${why}`);
     if (this.state === "disconnected") {
       dbg("already disconnected");
       return;
     }
-    if (this.id) {
-      this.client.query_cancel({ id: this.id });
-    }
     this.state = "disconnected";
-    return this._plug.connect(); // start trying to connect again
+    this.plug.connect(); // start trying to connect again
   }
 
   // disconnect, then connect again.
-  reconnect() {
-    return this.disconnected("reconnect called");
+  public reconnect(): void {
+    this.disconnected("reconnect called");
   }
 
-  // Return string key used in the immutable map in which this table is stored.
-  key(obj) {
-    return this._key(obj);
+  public key(obj): string {
+    // Return string key used in the immutable map in
+    // which this table is stored.
+    throw Error("this.key must be set during initialization");
   }
 
   // Return true if there are changes to this synctable that
   // have NOT been confirmed as saved to the backend database.
   // Returns undefined if not initialized.
-  has_uncommitted_changes() {
+  public has_uncommitted_changes(): boolean | undefined {
     if (this._value_server == null && this._value_local == null) {
       return;
     }
@@ -596,80 +368,60 @@ class SyncTable extends EventEmitter {
     return !this._value_server.equals(this._value_local);
   }
 
-  get(arg) {
+  /* Gets records from this table.
+       - arg = not given: returns everything (as an
+               immutable map from key to obj)
+       - arg = array of keys; return map from key to obj
+       - arg = single key; returns corresponding object
+  */
+  public get(arg): immutable.Map<string, any> | undefined {
     if (this._value_local == null) {
       return;
     }
-    if (arg != null) {
-      if (misc.is_array(arg)) {
-        const x = {};
-        for (let k of arg) {
-          x[to_key(k)] = this._value_local.get(to_key(k));
-        }
-        return immutable.fromJS(x);
-      } else {
-        return this._value_local.get(to_key(arg));
-      }
-    } else {
+
+    if (arg == null) {
       return this._value_local;
+    }
+
+    if (misc.is_array(arg)) {
+      const x = {};
+      for (let k of arg) {
+        x[to_key(k)] = this._value_local.get(to_key(k));
+      }
+      return immutable.fromJS(x);
+    } else {
+      return this._value_local.get(to_key(arg));
     }
   }
 
-  get_one() {
+  // Get one record from this table.  Especially useful when
+  // there is only one record, which is an important special
+  // case (a so-called "wide" table?.)
+  public get_one(): immutable.Map<string, any> | undefined {
     return this._value_local != null
       ? this._value_local.toSeq().first()
       : undefined;
   }
 
-  private parse_query(query) {
-    if (typeof query === "string") {
-      // name of a table -- get all fields
-      const v = misc.copy(schema.SCHEMA[query].user_query.get.fields);
-      for (let k in v) {
-        const _ = v[k];
-        v[k] = null;
-      }
-      return { [query]: [v] };
-    } else {
-      const keys = misc.keys(query);
-      if (keys.length !== 1) {
-        throw Error("must specify exactly one table");
-      }
-      const table = keys[0];
-      const x = {};
-      if (!misc.is_array(query[table])) {
-        return { [table]: [query[table]] };
-      } else {
-        return { [table]: query[table] };
-      }
-    }
-  }
-
-  private init_query() {
-    // first parse the query to allow for some convenient shortcuts
-    let pk;
-    this.query = this.parse_query(this.query);
-
-    // Check that the query is probably valid, and record the table and schema
-    if (misc.is_array(this.query)) {
-      throw Error("must be a single query");
-    }
+  private init_query(): void {
+    // Check that the query is probably valid, and
+    // record the table and schema
     const tables = misc.keys(this.query);
     if (misc.len(tables) !== 1) {
       throw Error("must query only a single table");
     }
     this.table = tables[0];
-    if (this.client.is_project()) {
-      this.client_query = schema.SCHEMA[this.table].project_query;
-    } else {
-      this.client_query = schema.SCHEMA[this.table].user_query;
-    }
-    if (!misc.is_array(this.query[this.table])) {
-      throw Error("must be a multi-document queries");
-    }
     this.schema = schema.SCHEMA[this.table];
     if (this.schema == null) {
       throw Error(`unknown schema for table ${this.table}`);
+    }
+    if (this.client.is_project()) {
+      this.client_query = this.schema.project_query;
+    } else {
+      this.client_query = this.schema.user_query;
+    }
+    if (!misc.is_array(this.query[this.table])) {
+      throw Error("must be a multi-document queries");
     }
     this._primary_keys = schema.client_db.primary_keys(this.table);
     // TODO: could put in more checks on validity of query here, using schema...
@@ -680,10 +432,10 @@ class SyncTable extends EventEmitter {
       }
     }
     // Function @_to_key to extract primary key from object
-    if (this._primary_keys.length === 1) {
+    if (this.primary_keys.length === 1) {
       // very common case
-      pk = this._primary_keys[0];
-      this._key = obj => {
+      const pk = this.primary_keys[0];
+      this.obj_to_key = obj => {
         if (obj == null) {
           return;
         }
@@ -695,23 +447,22 @@ class SyncTable extends EventEmitter {
       };
     } else {
       // compound primary key
-      this._key = obj => {
-        let a;
+      this.obj_to_key = obj => {
         if (obj == null) {
           return;
         }
         const v = [];
         if (immutable.Map.isMap(obj)) {
-          for (pk of this._primary_keys) {
-            a = obj.get(pk);
+          for (let pk of this.primary_keys) {
+            const a = obj.get(pk);
             if (a == null) {
               return;
             }
             v.push(a);
           }
         } else {
-          for (pk of this._primary_keys) {
-            a = obj[pk];
+          for (let pk of this.primary_keys) {
+            const a = obj[pk];
             if (a == null) {
               return;
             }
@@ -722,42 +473,29 @@ class SyncTable extends EventEmitter {
       };
     }
 
-    // Which fields the user is allowed to set.
-    this._set_fields = [];
-    // Which fields *must* be included in any set query
-    this._required_set_fields = {};
-    for (var field of misc.keys(this.query[this.table][0])) {
-      if (
-        __guard__(
-          __guard__(
-            this.client_query != null ? this.client_query.set : undefined,
-            x1 => x1.fields
-          ),
-          x => x[field]
-        ) != null
-      ) {
-        this._set_fields.push(field);
-      }
-      if (
-        __guard__(
-          __guard__(
-            this.client_query != null ? this.client_query.set : undefined,
-            x3 => x3.required_fields
-          ),
-          x2 => x2[field]
-        ) != null
-      ) {
-        this._required_set_fields[field] = true;
+    if (this.client_query != null && this.client_query.set != null) {
+      // Initialize set_fields and required_set_fields.
+      const set = this.client_query.set;
+      for (let field of misc.keys(this.query[this.table][0])) {
+        if (set.fields != null && set.fields[field]) {
+          this.set_fields.push(field);
+        }
+        if (set.required_fields != null && set.required_fields[field]) {
+          this.required_set_fields[field] = true;
+        }
       }
     }
 
     // Is anonymous access to this table allowed?
-    return (this._anonymous = !!this.schema.anonymous);
+    this.anonymous = !!this.schema.anonymous;
   }
 
-  // Return map from keys that have changed along with how they changed, or undefined
-  // if the value of local or the server hasn't been initialized
-  _changes() {
+  // Return map from keys that have changed along with how
+  // they changed, or undefined if the value of local or
+  // the server hasn't been initialized.
+  private get_changes():
+    | undefined
+    | { [key: string]: { new_val: any; old_val: any } } {
     if (this._value_server == null || this._value_local == null) {
       return;
     }
@@ -771,32 +509,19 @@ class SyncTable extends EventEmitter {
     return changed;
   }
 
-  private async save() : Promise<void> {
-    if (this.state === "closed") {
-      if (typeof cb === "function") {
-        cb("closed");
-      }
-      return;
+  private async _save(): Promise<void> {
+    this.assert_not_closed();
+    if (this.is_saving) {
+      throw Error("already saving");
     }
-    if (this.__is_saving) {
-      return typeof cb === "function" ? cb("already saving") : undefined;
-    } else {
-      this.__is_saving = true;
-      return this.__save(err => {
-        this.__is_saving = false;
-        return typeof cb === "function" ? cb(err) : undefined;
-      });
-    }
+    this.is_saving = true;
+    await this.__save();
+    this.is_saving = false;
   }
 
-  __save(cb) {
+  private async __save(): Promise<void> {
+    this.assert_not_closed();
     let k, v;
-    if (this.state === "closed") {
-      if (typeof cb === "function") {
-        cb("closed");
-      }
-      return;
-    }
     // console.log("_save('#{@_table}')")
     // Determine which records have changed and what their new values are.
     if (this.value_server == null) {
@@ -823,7 +548,7 @@ class SyncTable extends EventEmitter {
       return;
     }
 
-    const changed = this._changes();
+    const changed = this.get_changes();
     const at_start = this.value_local;
 
     // Send our changes to the server.
@@ -1376,74 +1101,90 @@ class SyncTable extends EventEmitter {
     return new_val;
   }
 
-  close(fatal) {
+  private assert_not_closed(): void {
+    if (this.state === "closed") {
+      throw Error("closed");
+    }
+  }
+
+  close(fatal: boolean = false) {
     if (this.state === "closed") {
       // already closed
       return;
     }
     // decrement the reference to this synctable
     if (global_cache_decref(this)) {
-      // close: not zero -- so don't close it yet -- still in use by multiple clients
+      // close: not zero -- so don't close it yet --
+      // still in use by possibly multiple clients
       return;
     }
-    this._plug.close();
+    this.plug.close();
+    delete this.plug;
     this.client.removeListener("disconnected", this.disconnected);
     if (!fatal) {
-      // do a last attempt at a save (so we don't lose data), then really close.
+      // do a last attempt at a save (so we don't lose data),
+      // then really close.
       this._save(); // this will synchronously construct the last save and send it
     }
-    // The moment the sync part of @_save is done, we remove listeners and clear
-    // everything up.  It's critical that as soon as @close is called that there
-    // be no possible way any further connect events (etc) can make this SyncTable
-    // do anything!!  That finality assumption is made elsewhere (e.g in smc-project/client.coffee)
+    // The moment the sync part of _save is done, we remove listeners
+    // and clear everything up.  It's critical that as soon as close
+    // is called that there be no possible way any further connect
+    // events (etc) can make this SyncTable
+    // do anything!!  That finality assumption is made
+    // elsewhere (e.g in smc-project/client.coffee)
+    this.close_changefeed();
     this.removeAllListeners();
-    if (this.id != null) {
-      this.client.query_cancel({ id: this.id });
-      delete this.id;
-    }
     this.state = "closed";
     delete this.value_local;
-    return delete this.value_server;
+    delete this.value_server;
   }
 
-  // wait until some function of this synctable is truthy
-  // (this might be exactly the same code as in the postgres-synctable.coffee SyncTable....)
-  wait(opts) {
-    opts = defaults(opts, {
-      until: required, // waits until "until(@)" evaluates to something truthy
-      timeout: 30, // in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
-      cb: required
-    }); // cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout; cb('closed') if closed
-    if (this.state === "closed") {
-      // instantly fail -- table is closed so can't wait for anything
-      opts.cb("closed");
-      return;
-    }
-    let x = opts.until(this);
+  public async wait(until: Function, timeout: number = 30): Promise<any> {
+    // wait until some function of this synctable is truthy
+    // (this might be exactly the same code as in the
+    // postgres-synctable.coffee SyncTable....)
+    // Waits until "until(this)" evaluates to something truthy
+    // in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
+    // Returns until(this) on success and raises Error('timeout') or
+    // Error('closed') on failure.
+    this.assert_not_closed();
+    let x = until(this);
     if (x) {
-      opts.cb(undefined, x); // already true
-      return;
+      // Already true
+      return x;
     }
-    let fail_timer = undefined;
-    var f = () => {
-      x = opts.until(this);
-      if (x) {
+
+    const wait = cb => {
+      let fail_timer = undefined;
+      const done = (err, ret) => {
         this.removeListener("change", f);
-        if (fail_timer != null) {
+        this.removeListener("close", f);
+        if (fail_timer !== undefined) {
           clearTimeout(fail_timer);
           fail_timer = undefined;
         }
-        return opts.cb(undefined, x);
+        cb(err, ret);
+      };
+      const f = () => {
+        if (this.state === "closed") {
+          done("closed");
+        }
+        x = until(this);
+        if (x) {
+          done(undefined, x);
+        }
+      };
+      this.on("change", f);
+      this.on("close", f);
+      if (timeout) {
+        const fail = () => {
+          done("timeout");
+        };
+        fail_timer = setTimeout(fail, 1000 * timeout);
       }
     };
-    this.on("change", f);
-    if (opts.timeout) {
-      const fail = () => {
-        this.removeListener("change", f);
-        return opts.cb("timeout");
-      };
-      fail_timer = setTimeout(fail, 1000 * opts.timeout);
-    }
+
+    return await awaiting(wait);
   }
 }
 
@@ -1460,55 +1201,52 @@ export function sync_table(
   debounce_interval = 2000,
   throttle_changes = undefined,
   use_cache = true
-) {
-  const cache_key = json_stable_stringify({
-    query,
-    options,
-    debounce_interval,
-    throttle_changes
-  });
+): SyncTable {
   if (!use_cache) {
     return new SyncTable(
       query,
       options,
       client,
       debounce_interval,
-      throttle_changes,
-      cache_key
+      throttle_changes
     );
   }
 
-  let S = synctables[cache_key];
+  const cache_key = json_stable_stringify({
+    query,
+    options,
+    debounce_interval,
+    throttle_changes
+  });
+  let S: SyncTable | undefined = synctables[cache_key];
   if (S != null) {
-    if (S._state === "connected") {
+    if (S.get_state() === "connected") {
       // same behavior as newly created synctable
-      async.nextTick(function() {
-        if (S._state === "connected") {
-          return S.emit("connected");
+      setTimeout(function() {
+        if (S.get_state() === "connected") {
+          S.emit("connected");
         }
-      });
+      }, 0);
     }
-    S._reference_count += 1;
-    return S;
   } else {
     S = synctables[cache_key] = new SyncTable(
       query,
       options,
       client,
       debounce_interval,
-      throttle_changes,
-      cache_key
+      throttle_changes
     );
-    S._reference_count = 1;
-    return S;
+    S.cache_key = cache_key;
   }
+  S.reference_count += 1;
+  return S;
 }
 
 function global_cache_decref(S: SyncTable): boolean {
-  if (S._reference_count != null) {
-    S._reference_count -= 1;
-    if (S._reference_count <= 0) {
-      delete synctables[S._cache_key];
+  if (S.reference_count && S.cache_key !== undefined) {
+    S.reference_count -= 1;
+    if (S.reference_count <= 0) {
+      delete synctables[S.cache_key];
       return false; // not in use
     } else {
       return true; // still in use
