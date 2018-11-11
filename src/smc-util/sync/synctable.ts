@@ -132,6 +132,7 @@ key is an object.
 const json_stable_stringify = require("json-stable-stringify");
 
 import { Plug } from "./synctable-plug";
+import { Changefeed } from "./synctable-changefeed";
 
 function to_key(x: string | object): string {
   if (typeof x === "object") {
@@ -142,6 +143,7 @@ function to_key(x: string | object): string {
 }
 
 class SyncTable extends EventEmitter {
+  private changefeed?: Changefeed;
   private query: any;
   private options: any;
   private client: any;
@@ -170,6 +172,8 @@ class SyncTable extends EventEmitter {
 
   private schema: any;
 
+  private emit_change: Function;
+
   constructor(
     query,
     options,
@@ -190,7 +194,7 @@ class SyncTable extends EventEmitter {
     this.init_query();
     this.init_plug();
     this.init_disconnect();
-    this.init_throttle_changes();;
+    this.init_throttle_changes();
   }
 
   private init_plug(): void {
@@ -225,107 +229,113 @@ class SyncTable extends EventEmitter {
     });
   }
 
-  private init_throttle_changes(): void {
-    // No throttling of change events unless explicitly requested
+  private set_throttle_changes(): void {
+    // No throttling of change events, unless explicitly requested
     // *or* part of the schema.
-    if (this.throttle_changes == null) {
-      this.throttle_changes = __guard__(
-        __guard__(
-          schema.SCHEMA[this.table] != null
-            ? schema.SCHEMA[this.table].user_query
-            : undefined,
-          x1 => x1.get
-        ),
-        x => x.throttle_changes
-      );
-    }
+    if (this.throttle_changes != null) return;
+    const t = schema.SCHEMA[this.table];
+    if (t == null) return;
+    const u = t.user_query;
+    if (u == null) return;
+    const g = u.get;
+    if (g == null) return;
+    this.throttle_changes = g.throttle_changes;
+  }
+
+  private init_throttle_changes(): void {
+    this.set_throttle_changes();
 
     if (!this.throttle_changes) {
       this.emit_change = changed_keys => this.emit("change", changed_keys);
-    } else {
-      // throttle emitting of change events
-      let all_changed_keys = {};
-      let do_emit_changes = () => {
-        //console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
-        // CRITICAL: some code depends on emitting change even for the *empty* list of keys!
-        // E.g., projects page won't load for new users.  This is the *change* from not
-        // loaded to being loaded, which does make sense.
-        this.emit("change", misc.keys(all_changed_keys));
-        return (all_changed_keys = {});
-      };
-      do_emit_changes = throttle(do_emit_changes, this.throttle_changes);
-      this.emit_change = changed_keys => {
-        //console.log("#{@_table} -- queue changes", changed_keys)
-        for (let key of changed_keys) {
-          all_changed_keys[key] = true;
-        }
-        return do_emit_changes();
-      };
+      return;
     }
+
+    // throttle emitting of change events
+    let all_changed_keys = {};
+    let do_emit_changes = () => {
+      //console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
+      // CRITICAL: some code depends on emitting change even
+      // for the *empty* list of keys!
+      // E.g., projects page won't load for new users.  This
+      // is the *change* from not loaded to being loaded,
+      // which does make sense.
+      this.emit("change", misc.keys(all_changed_keys));
+      all_changed_keys = {};
+    };
+    do_emit_changes = throttle(do_emit_changes, this.throttle_changes);
+    this.emit_change = changed_keys => {
+      //console.log("#{@_table} -- queue changes", changed_keys)
+      for (let key of changed_keys) {
+        all_changed_keys[key] = true;
+      }
+      do_emit_changes();
+    };
   }
 
-  private dbg(f) {
-    //return @_client.dbg("SyncTable('#{@_table}').#{f}")
+  private dbg(f) : Function {
+    // return this.client.dbg(`SyncTable('${this.table}').${f}`)
     return () => {};
   }
 
-  private connect(cb) {
+  private async connect(): Promise<void> {
     const dbg = this.dbg("connect");
     dbg();
     if (this.state === "closed") {
-      if (typeof cb === "function") {
-        cb("closed");
-      }
-      return;
+      throw Error("closed");
     }
     if (this.state === "connected") {
-      if (typeof cb === "function") {
-        cb();
-      }
       return;
     }
     if (this.id != null) {
-      this._client.query_cancel({ id: this.id });
+      this.client.query_cancel({ id: this.id });
       this.id = undefined;
     }
 
-    return async.series(
-      [
-        cb => {
-          // 1. save, in case we have any local unsaved changes, then sync with upstream.
-          if (this.value_local != null && this.value_server != null) {
-            return this._save(cb);
-          } else {
-            return cb();
-          }
-        },
-        cb => {
-          // 2. Now actually do the changefeed query.
-          return this._reconnect(cb);
-        }
-      ],
-      err => {
-        return typeof cb === "function" ? cb(err) : undefined;
-      }
-    );
+    // 1. save, in case we have any local unsaved changes, then sync with upstream.
+    if (this.value_local != null && this.value_server != null) {
+      await this.save();
+    }
+
+    // 2. Now actually setup the changefeed.
+    await this.create_changefeed();
   }
 
-  _reconnect(cb) {
-    const dbg = this.dbg("_reconnect");
+  private async create_changefeed() : Promise<void> {
+    const dbg = this.dbg("do_connect_query");
     if (this.state === "closed") {
       dbg("closed so don't do anything ever again");
-      if (typeof cb === "function") {
-        cb();
-      }
       return;
     }
-    // console.log("synctable", @_table, @_schema.db_standby)
-    if (this.schema.db_standby && !this._client.is_project()) {
-      return this._do_the_query_using_db_standby(cb);
+    if (this.schema.db_standby && !this.client.is_project()) {
+      await this.create_changefeed_using_db_standby();
     } else {
-      return this._do_the_query(cb);
+      await this.create_changefeed_using_db_master();
     }
   }
+
+  private close_changefeed() : void {
+    if (this.changefeed == null) return;
+    this.changefeed.close();
+    delete this.changefeed;
+  }
+
+  private async create_changefeed_using_db_master() : Promise<void> {
+    // For tables where always being perfectly 100% up to date is
+    // critical, which is many of them (e.g., patches, projects).
+    this.close_changefeed();
+    this.changefeed = new Changefeed({});
+    await changefeed.init();
+  }
+
+  private async create_changefeed_using_db_standby() : Promise<void> {
+    // For tables where always being perfectly 100% up to date is NOT
+    // critical, so we can afford to have the initial query be behind
+    // by a few ms.  E.g., list of all my collaborators.
+    this.close_changefeed();
+    this.changefeed = new Changefeed({});
+    await changefeed.init();
+  }
+
 
   _do_the_query(cb) {
     const dbg = this.dbg("_do_the_query");
@@ -412,7 +422,7 @@ class SyncTable extends EventEmitter {
     });
   }
 
-  _do_the_query_using_db_standby(cb) {
+  private async do_the_query_using_db_standby() : Promise<void> {
     let f;
     const dbg = this.dbg("_do_the_query_using_db_standby");
     if (this.schema.db_standby === "unsafe") {
@@ -529,7 +539,7 @@ class SyncTable extends EventEmitter {
             // TODO: save them up and apply...?
             dbg("nothing to do -- ignore these, and make sure they stop");
             if (this_query_id != null) {
-              this._client.query_cancel({ id: this_query_id });
+              this.client.query_cancel({ id: this_query_id });
             }
             return;
           }
@@ -557,7 +567,7 @@ class SyncTable extends EventEmitter {
       return;
     }
     if (this.id) {
-      this._client.query_cancel({ id: this.id });
+      this.client.query_cancel({ id: this.id });
     }
     this.state = "disconnected";
     return this._plug.connect(); // start trying to connect again
@@ -650,9 +660,9 @@ class SyncTable extends EventEmitter {
     }
     this.table = tables[0];
     if (this.client.is_project()) {
-      this._client_query = schema.SCHEMA[this.table].project_query;
+      this.client_query = schema.SCHEMA[this.table].project_query;
     } else {
-      this._client_query = schema.SCHEMA[this.table].user_query;
+      this.client_query = schema.SCHEMA[this.table].user_query;
     }
     if (!misc.is_array(this.query[this.table])) {
       throw Error("must be a multi-document queries");
@@ -720,7 +730,7 @@ class SyncTable extends EventEmitter {
       if (
         __guard__(
           __guard__(
-            this._client_query != null ? this._client_query.set : undefined,
+            this.client_query != null ? this.client_query.set : undefined,
             x1 => x1.fields
           ),
           x => x[field]
@@ -731,7 +741,7 @@ class SyncTable extends EventEmitter {
       if (
         __guard__(
           __guard__(
-            this._client_query != null ? this._client_query.set : undefined,
+            this.client_query != null ? this.client_query.set : undefined,
             x3 => x3.required_fields
           ),
           x2 => x2[field]
@@ -761,7 +771,7 @@ class SyncTable extends EventEmitter {
     return changed;
   }
 
-  _save(cb) {
+  private async save() : Promise<void> {
     if (this.state === "closed") {
       if (typeof cb === "function") {
         cb("closed");
@@ -802,7 +812,7 @@ class SyncTable extends EventEmitter {
       return;
     }
 
-    if (this._client_query.set == null) {
+    if (this.client_query.set == null) {
       // Nothing to do -- can never set anything for this table.
       // There are some tables (e.g., stats) where the remote values
       // could change while user is offline, and the code below would
@@ -868,7 +878,7 @@ class SyncTable extends EventEmitter {
     //    if Math.random() <= .5
     //        query = []
     //@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
-    return this._client.query({
+    return this.client.query({
       query,
       options: [{ set: true }], // force it to be a set query
       timeout: 30,
@@ -886,7 +896,7 @@ class SyncTable extends EventEmitter {
 
           console.warn(`_save('${this.table}') error:`, err);
           if (err === "clock") {
-            this._client.alert_message({
+            this.client.alert_message({
               type: "error",
               timeout: 9999,
               message:
@@ -1191,7 +1201,7 @@ class SyncTable extends EventEmitter {
   _computed_primary_key(obj) {
     let f;
     if (this._primary_keys.length === 1) {
-      f = this._client_query.set.fields[this._primary_keys[0]];
+      f = this.client_query.set.fields[this._primary_keys[0]];
       if (typeof f === "function") {
         return f(obj.toJS(), schema.client_db);
       } else {
@@ -1200,7 +1210,7 @@ class SyncTable extends EventEmitter {
     } else {
       const v = [];
       for (let pk of this._primary_keys) {
-        f = this._client_query.set.fields[pk];
+        f = this.client_query.set.fields[pk];
         if (typeof f === "function") {
           v.push(f(obj.toJS(), schema.client_db));
         } else {
@@ -1388,7 +1398,7 @@ class SyncTable extends EventEmitter {
     // do anything!!  That finality assumption is made elsewhere (e.g in smc-project/client.coffee)
     this.removeAllListeners();
     if (this.id != null) {
-      this._client.query_cancel({ id: this.id });
+      this.client.query_cancel({ id: this.id });
       delete this.id;
     }
     this.state = "closed";
