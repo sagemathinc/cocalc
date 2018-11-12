@@ -9,7 +9,7 @@ interface Props {
     time: number; // Time in seconds
     type: "new" | "ready" | "archived";
   }>;
-  theme: "medium";
+  theme?: "medium" | undefined;
 }
 
 const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {
