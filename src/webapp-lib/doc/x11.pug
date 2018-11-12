@@ -1,0 +1,115 @@
+//- latex landing page
+
+extends ../_base.pug
+
+block vars
+  -
+    navbar_active = 'features';
+    subnavbar_active = 'x11';
+    subtitle = 'Graphical Software using X11';
+
+block header
+  meta(name="description" content=NAME + ' - ' + subtitle)
+  script(type="text/javascript")
+    include:coffee-script ../index.coffee
+
+block content
+
+  //- CSS overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+            > div
+              margin-bottom : 1rem
+
+  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
+  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
+  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+
+  a.anchor#a-top
+  div.container
+    div.row.intro#top
+      div.col-sm-4.col-sm-offset-4.center
+        a(href=PREFIX + "app")
+          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
+      div.col-sm-12.center.descr.
+        #{htmlWebpackPlugin.options.description}
+      div.col-sm-12.center
+        +start_button
+
+    div.row
+      div.col-md-12.center
+        h1 Graphical Software using X11
+      div.col-sm-6
+        div
+          img(src=require("webapp-lib/assets/x11-01.png")).fit
+        div.
+          #[strong #[a(href="http://maxima.sourceforge.net/") Maxima]'s graphical user interface]
+      div.col-sm-6
+        p.
+          #{NAME} is able to
+          #[strong run #[a(href="https://en.wikipedia.org/wiki/X_Window_System") graphical software using X11] via your browser].
+        p.
+          The application with a graphical user interface runs remotely on #{NAME} using a virtual display provided by #[a(href="https://xpra.org/") XPRA].
+        p.
+          Features and benefits
+        ul
+          li.
+            You no longer have to #[strong install and maintain] the applications.
+            In particular when you're teaching a class, students just have to sign in to CoCalc to get started!
+          li.
+            These virtual desktops are #[strong persistent] during an ongoing project session.
+          li.
+            It is also possible to #[strong collaboratively] interact with the same application in real-time.
+          li.
+            You can #[strong copy/paste] between your local desktop environment and the virtual session.
+          li.
+            #[strong Sophisticated session handling and compression] makes this much more robust and faster than traditional SSH X-forwarding.
+
+        p.
+          #[strong Popular applications] are
+          #[a(href="http://maxima.sourceforge.net/") Maxima],
+          #[a(href="https://www.libreoffice.org/") LibreOffice],
+          #[a(href="https://www.openmodelica.org/") OpenModelica],
+          #[a(href="https://code.visualstudio.com") Visual Studio Code],
+          #[a(href="http://www.xm1math.net/texmaker/") TexMaker],
+          and #[strong #[a(href="https://github.com/sagemathinc/cocalc/wiki/x11-help") many more]], ...
+        p.
+          Read our #[a(href="http://blog.sagemath.com/cocalc/2018/11/05/x11.html") blog post] to learn more about this!
+
+  div.container
+    div.row(style="margin-top: 6rem")
+      +start_free
+      div.col-sm-12.center
+        +start_button

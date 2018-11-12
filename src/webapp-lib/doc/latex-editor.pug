@@ -3,7 +3,10 @@
 extends ../_base.pug
 
 block vars
-  - var subtitle = 'Online LaTeX Editor';
+  -
+    navbar_active = 'features';
+    subnavbar_active = 'latex';
+    subtitle = 'Online LaTeX Editor';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
