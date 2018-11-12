@@ -1,70 +1,69 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS206: Consider reworking classes to avoid initClass
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
+import * as React from "react";
+import * as misc from "smc-util/misc";
 
-class SelectorInput {
-  static initClass() {
-    this.prototype.displayName = "Misc-SelectorInput";
+const { FormControl, FormGroup } = require("react-bootstrap");
 
-    this.prototype.propTypes = {
-      selected: rtypes.string,
-      on_change: rtypes.func,
-      disabled: rtypes.bool
-    };
-  }
+interface Props {
+  selected: string;
+  on_change?: (selected: string) => void;
+  disabled?: boolean;
+  options: any;
+  /*
+    | string[]
+    | { value: string; display: React.ComponentType }[]
+    | { [keys: string]: React.ComponentType };
+    */
+}
+
+export class SelectorInput extends React.Component<Props> {
+  onChange = e => {
+    if (this.props.on_change !== undefined) {
+      this.props.on_change(e.target.value);
+    }
+  };
 
   render_options() {
-    let v;
     if (misc.is_array(this.props.options)) {
-      let x;
+      let x: any;
       if (
         this.props.options.length > 0 &&
         typeof this.props.options[0] === "string"
       ) {
         let i = 0;
-        v = [];
-        for (x of Array.from(this.props.options)) {
-          v.push(
+        let result: any[] = [];
+        for (x of this.props.options) {
+          result.push(
             <option key={i} value={x}>
               {x}
             </option>
           );
           i += 1;
         }
-        return v;
+        return result;
       } else {
-        return (() => {
-          const result = [];
-          for (x of Array.from(this.props.options)) {
-            result.push(
-              <option key={x.value} value={x.value}>
-                {x.display}
-              </option>
-            );
-          }
-          return result;
-        })();
-      }
-    } else {
-      v = misc.keys(this.props.options);
-      v.sort();
-      return (() => {
-        const result1 = [];
-        for (let value of Array.from(v)) {
-          const display = this.props.options[value];
-          result1.push(
-            <option key={value} value={value}>
-              {display}
+        let result: any[] = [];
+        for (x of this.props.options) {
+          result.push(
+            <option key={x.value} value={x.value}>
+              {x.display}
             </option>
           );
         }
-        return result1;
-      })();
+        return result;
+      }
+    } else {
+      let v = misc.keys(this.props.options);
+      v.sort();
+      let result: any[] = [];
+      for (let value of v) {
+        const display = this.props.options[value];
+        result.push(
+          <option key={value} value={value}>
+            {display}
+          </option>
+        );
+      }
+      return result;
     }
   }
 
@@ -75,13 +74,7 @@ class SelectorInput {
           value={this.props.selected}
           componentClass="select"
           ref="input"
-          onChange={() =>
-            typeof this.props.on_change === "function"
-              ? this.props.on_change(
-                  ReactDOM.findDOMNode(this.refs.input).value
-                )
-              : undefined
-          }
+          onChange={this.onChange}
           disabled={this.props.disabled}
         >
           {this.render_options()}
@@ -90,4 +83,3 @@ class SelectorInput {
     );
   }
 }
-SelectorInput.initClass();
