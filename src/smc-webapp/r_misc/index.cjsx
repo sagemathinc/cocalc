@@ -39,6 +39,8 @@ exports.Space = Space
 exports.CloseX = CloseX
 {Saving} = require('./saving')
 exports.Saving = Saving
+{SelectorInput} = require('./selector-input')
+exports.SelectorInput = SelectorInput
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -248,46 +250,6 @@ exports.MessageDisplay = MessageDisplay = rclass
                 </Button>
             </Col>
         </Row>
-
-exports.SelectorInput = SelectorInput = rclass
-    displayName : 'Misc-SelectorInput'
-
-    propTypes :
-        selected  : rtypes.string
-        on_change : rtypes.func
-        disabled  : rtypes.bool
-        #options   : array or object
-
-    render_options: ->
-        if misc.is_array(@props.options)
-            if @props.options.length > 0 and typeof(@props.options[0]) == 'string'
-                i = 0
-                v = []
-                for x in @props.options
-                    v.push(<option key={i} value={x}>{x}</option>)
-                    i += 1
-                return v
-            else
-                for x in @props.options
-                    <option key={x.value} value={x.value}>{x.display}</option>
-        else
-            v = misc.keys(@props.options); v.sort()
-            for value in v
-                display = @props.options[value]
-                <option key={value} value={value}>{display}</option>
-
-    render: ->
-        <FormGroup>
-            <FormControl
-                value          = {@props.selected}
-                componentClass = 'select'
-                ref            = 'input'
-                onChange       = {=>@props.on_change?(ReactDOM.findDOMNode(@refs.input).value)}
-                disabled       = {@props.disabled}
-            >
-                {@render_options()}
-            </FormControl>
-        </FormGroup>
 
 exports.TextInput = rclass
     displayName : 'Misc-TextInput'
