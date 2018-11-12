@@ -916,9 +916,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
       const kernel = this.store.get("kernel");
       const no_kernel: boolean = kernel == null;
-      const unknown_kernel: boolean = !no_kernel
-        ? this.store.get_kernel_info(kernel) == null
-        : false;
+      let unknown_kernel: boolean = false;
+      if (!no_kernel)
+        unknown_kernel = this.store.get_kernel_info(kernel) == null;
       if (no_kernel || unknown_kernel) {
         this.show_select_kernel();
       }
