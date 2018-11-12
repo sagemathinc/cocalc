@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ReactDOM, Rendered } from "./app-framework";
 import { Passports } from "./passports";
 import { List } from "immutable";
 import { redux } from "./app-framework";
@@ -44,14 +45,8 @@ interface State {
 }
 
 export class SignUp extends React.Component<Props, State> {
-  private first_name_ref: any;
-  private last_name_ref: any;
-  private email_ref: any;
-  private password_ref: any;
-
   constructor(props) {
     super(props);
-
     this.state = {
       terms_checkbox: false,
       user_token: ""
@@ -63,15 +58,15 @@ export class SignUp extends React.Component<Props, State> {
     return redux
       .getActions("account")
       .create_account(
-        this.first_name_ref.value,
-        this.last_name_ref.value,
-        this.email_ref.value,
-        this.password_ref.value,
+        ReactDOM.findDOMNode(this.refs.first_name).value,
+        ReactDOM.findDOMNode(this.refs.last_name).value,
+        ReactDOM.findDOMNode(this.refs.email).value,
+        ReactDOM.findDOMNode(this.refs.password).value,
         this.state.user_token
       );
   };
 
-  render_error(field) {
+  render_error(field): Rendered {
     const err =
       this.props.sign_up_error != undefined
         ? this.props.sign_up_error.get(field)
@@ -81,40 +76,42 @@ export class SignUp extends React.Component<Props, State> {
     }
   }
 
-  render_passports() {
+  render_passports(): Rendered {
     if (this.props.strategies == undefined) {
       return <Loading />;
     }
-    if (this.props.strategies.size > 1) {
-      return (
-        <div>
-          <Passports
-            strategies={this.props.strategies}
-            get_api_key={this.props.get_api_key}
-            style={{ textAlign: "center" }}
-          />
-          Or sign up via email
-          <br />
-        </div>
-      );
+    if (this.props.strategies.size <= 1) {
+      return;
     }
+    return (
+      <div>
+        <Passports
+          strategies={this.props.strategies}
+          get_api_key={this.props.get_api_key}
+          style={{ textAlign: "center" }}
+        />
+        Or sign up via email
+        <br />
+      </div>
+    );
   }
 
-  render_token_input() {
-    if (this.props.token) {
-      return (
-        <FormGroup>
-          <FormControl
-            type={"text"}
-            placeholder={"Enter the secret token"}
-            onChange={e => this.setState({ user_token: e.target.value })}
-          />
-        </FormGroup>
-      );
+  render_token_input(): Rendered {
+    if (!this.props.token) {
+      return;
     }
+    return (
+      <FormGroup>
+        <FormControl
+          type={"text"}
+          placeholder={"Enter the secret token"}
+          onChange={e => this.setState({ user_token: e.target.value })}
+        />
+      </FormGroup>
+    );
   }
 
-  render_terms() {
+  render_terms(): Rendered {
     return (
       <FormGroup style={{ fontSize: "12pt", margin: "20px" }}>
         <Checkbox
@@ -126,7 +123,85 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
-  render_creation_form() {
+  render_first_name(): Rendered {
+    return (
+      <FormGroup>
+        {this.render_error("first_name")}
+        <FormControl
+          name="first_name"
+          ref="first_name"
+          type="text"
+          autoFocus={false}
+          placeholder="First name"
+          maxLength={120}
+        />
+      </FormGroup>
+    );
+  }
+
+  render_last_name(): Rendered {
+    return (
+      <FormGroup>
+        {this.render_error("last_name")}
+        <FormControl
+          name="last_name"
+          ref="last_name"
+          type="text"
+          autoFocus={false}
+          placeholder="Last name"
+          maxLength={120}
+        />
+      </FormGroup>
+    );
+  }
+
+  render_email(): Rendered {
+    return (
+      <FormGroup>
+        {this.render_error("email_address")}
+        <FormControl
+          name="email"
+          ref="email"
+          type="email"
+          placeholder="Email address"
+          maxLength={254}
+        />
+      </FormGroup>
+    );
+  }
+
+  render_password(): Rendered {
+    return (
+      <FormGroup>
+        {this.render_error("password")}
+        <FormControl
+          name="password"
+          ref="password"
+          type="password"
+          placeholder="Choose a password"
+          maxLength={64}
+        />
+      </FormGroup>
+    );
+  }
+
+  render_button(): Rendered {
+    return (
+      <Button
+        style={{ marginBottom: UNIT, marginTop: UNIT }}
+        disabled={this.props.signing_up}
+        bsStyle={"success"}
+        bsSize={"large"}
+        type={"submit"}
+        block
+      >
+        {this.props.signing_up ? <Icon name="spinner" spin /> : undefined} Sign
+        Up!
+      </Button>
+    );
+  }
+
+  render_creation_form(): Rendered {
     return (
       <div>
         {this.render_token_input()}
@@ -138,69 +213,17 @@ export class SignUp extends React.Component<Props, State> {
           style={{ marginTop: 20, marginBottom: 20 }}
           onSubmit={this.make_account}
         >
-          <FormGroup>
-            {this.render_error("first_name")}
-            <FormControl
-              inputRef={ref => {
-                this.first_name_ref = ref;
-              }}
-              type="text"
-              autoFocus={false}
-              placeholder="First name"
-              maxLength={120}
-            />
-          </FormGroup>
-          <FormGroup>
-            {this.render_error("last_name")}
-            <FormControl
-              inputRef={ref => {
-                this.last_name_ref = ref;
-              }}
-              type="text"
-              autoFocus={false}
-              placeholder="Last name"
-              maxLength={120}
-            />
-          </FormGroup>
-          <FormGroup>
-            {this.render_error("email_address")}
-            <FormControl
-              inputRef={ref => {
-                this.email_ref = ref;
-              }}
-              type="email"
-              placeholder="Email address"
-              maxLength={254}
-            />
-          </FormGroup>
-          <FormGroup>
-            {this.render_error("password")}
-            <FormControl
-              inputRef={ref => {
-                this.password_ref = ref;
-              }}
-              type="password"
-              placeholder="Choose a password"
-              maxLength={64}
-            />
-          </FormGroup>
-          <Button
-            style={{ marginBottom: UNIT, marginTop: UNIT }}
-            disabled={this.props.signing_up}
-            bsStyle={"success"}
-            bsSize={"large"}
-            type={"submit"}
-            block
-          >
-            {this.props.signing_up ? <Icon name="spinner" spin /> : undefined}{" "}
-            Sign Up!
-          </Button>
+          {this.render_first_name()}
+          {this.render_last_name()}
+          {this.render_email()}
+          {this.render_password()}
+          {this.render_button()}
         </form>
       </div>
     );
   }
 
-  render() {
+  render(): Rendered {
     const well_style = {
       marginTop: "10px",
       borderColor: COLORS.LANDING.LOGIN_BAR_BG

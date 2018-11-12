@@ -1314,6 +1314,7 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
+                env         : opts.env
                 aggregate   : opts.aggregate
             opts.cb(undefined, await ws.api.exec(exec_opts))
         catch err
