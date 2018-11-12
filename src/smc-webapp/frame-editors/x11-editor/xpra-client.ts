@@ -22,6 +22,9 @@ import { is_copy } from "./xpra/util";
 
 const { alert_message } = require("smc-webapp/alerts");
 
+const sha1 = require("sha1");
+const { hash_string } = require("smc-util/misc");
+
 const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
@@ -58,16 +61,21 @@ export class XpraClient extends EventEmitter {
   private touch_interval: number;
   private idle_interval: number;
   private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
+  private display: number;
 
   constructor(options: Options) {
     super();
     this.record_active = throttle(this.record_active.bind(this), 30000);
     this.connect = reuseInFlight(this.connect);
     this.options = options;
+    this.init_display();
     this.client = new Client();
+
     this.server = new XpraServer({
-      project_id: this.options.project_id
+      project_id: this.options.project_id,
+      display: this.display
     });
+
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
     this.init_xpra_events();
     this.init_idle_timeout();
@@ -77,8 +85,26 @@ export class XpraClient extends EventEmitter {
     });
   }
 
+  // We make the display number the sha1 hash (made into a 31 bit number)
+  // of the project_id and path.  This is so it is stable over sessions,
+  // restarts, browsers, etc., but also different for differnet files.
+  // If somebody opened a dozen x11 sessions, there's still only a one
+  // in 1 in 3*10^(-8) chance of collision.    Coordinating with the backend
+  // for the number would be annoying since the terminal session DISPLAY
+  // might have to change, and it adds an extra async step (so more time)
+  // to startup.
+  init_display(): void {
+    const s = `${this.options.project_id}${this.options.path}`;
+    let h: number = hash_string(sha1(s));
+    if (h < 0) {
+      h = -h;
+    }
+    h = h % 2 ** 31;
+    this.display = h;
+  }
+
   get_display(): number {
-    return this.server.get_display();
+    return this.display;
   }
 
   get_socket_path(): string {
@@ -108,7 +134,7 @@ export class XpraClient extends EventEmitter {
   }
 
   async connect(): Promise<void> {
-    this.idle_timed_out = false
+    this.idle_timed_out = false;
     this.last_active = new Date().valueOf();
     this.emit("ws:idle", false);
     // use this is dumb, but will do **for now**.  It's
@@ -479,7 +505,10 @@ export class XpraClient extends EventEmitter {
     if (!idle_timeout) {
       return;
     }
-    this.idle_interval = setInterval(this.idle_timeout_if_inactive.bind(this), idle_timeout / 2);
+    this.idle_interval = setInterval(
+      this.idle_timeout_if_inactive.bind(this),
+      idle_timeout / 2
+    );
   }
 
   private idle_timeout_if_inactive(): void {
