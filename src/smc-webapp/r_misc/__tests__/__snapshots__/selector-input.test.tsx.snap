@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Smoke test: it renders a list of {value, display} objects as children of <option></option> 1`] = `
+exports[`Smoke test: it renders a list of {value, display} objects 1`] = `
 Array [
   <option
     key="value_1"
