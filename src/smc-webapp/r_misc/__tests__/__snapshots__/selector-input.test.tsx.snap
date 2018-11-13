@@ -1,0 +1,74 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Smoke test: it renders a list of {value, display} objects as children of <option></option> 1`] = `
+Array [
+  <option
+    key="value_1"
+    value="value_1"
+  >
+    <div>
+      Susan
+    </div>
+  </option>,
+  <option
+    key="value_2"
+    value="value_2"
+  >
+    <div>
+      Harry
+    </div>
+  </option>,
+]
+`;
+
+exports[`Smoke test: it renders a list of strings 1`] = `
+<FormGroup
+  bsClass="form-group"
+>
+  <FormControl
+    bsClass="form-control"
+    componentClass="select"
+    onChange={[Function]}
+  >
+    <option
+      key="0"
+      value="Susan"
+    >
+      Susan
+    </option>
+    <option
+      key="1"
+      value="Harry"
+    >
+      Harry
+    </option>
+    <option
+      key="2"
+      value="Steve"
+    >
+      Steve
+    </option>
+  </FormControl>
+</FormGroup>
+`;
+
+exports[`Smoke test: it renders an object with keys mapped to react components  1`] = `
+Array [
+  <option
+    key="value_1"
+    value="value_1"
+  >
+    <div>
+      Susan
+    </div>
+  </option>,
+  <option
+    key="value_2"
+    value="value_2"
+  >
+    <div>
+      Harry
+    </div>
+  </option>,
+]
+`;
