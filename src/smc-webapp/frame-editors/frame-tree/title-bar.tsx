@@ -1150,7 +1150,17 @@ export class FrameTitleBar extends Component<Props, State> {
   render_close_and_halt_confirm(): Rendered {
     if (!this.state.close_and_halt_confirm) return;
     return (
-      <div style={{ padding: "5px" }}>
+      <div
+        style={{
+          padding: "5px",
+          borderBottom: "1px solid lightgrey",
+          position: "absolute",
+          width: "100%",
+          zIndex: 100,
+          background: "white",
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px"
+        }}
+      >
         Halt the server and close this?
         <Button
           onClick={() => {
@@ -1175,7 +1185,11 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_confirm_bar(): Rendered {
-    return this.render_close_and_halt_confirm();
+    return (
+      <div style={{ position: "relative" }}>
+        {this.render_close_and_halt_confirm()}
+      </div>
+    );
   }
 
   render(): Rendered {
