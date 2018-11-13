@@ -6,8 +6,8 @@ const { FormControl, FormGroup } = require("react-bootstrap");
 interface Props {
   options:
     | string[]
-    | { value: string; display: React.ComponentType }[]
-    | { [keys: string]: React.ComponentType };
+    | { value: string; display: JSX.Element }[]
+    | { [keys: string]: JSX.Element };
   disabled?: boolean;
   selected?: string;
   on_change?: (selected: string) => void;
