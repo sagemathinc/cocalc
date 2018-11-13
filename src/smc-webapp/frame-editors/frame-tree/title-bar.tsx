@@ -949,6 +949,23 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_close_and_halt(labels:boolean): Rendered {
+    if (!this.is_visible("close_and_halt")) {
+      return;
+    }
+    return (
+      <Button
+        bsSize={this.button_size()}
+        key={"close_and_halt"}
+        onClick={() => this.props.actions.close_and_halt(this.props.id)}
+        title={"Close and halt server"}
+      >
+        <Icon name={"hand-stop-o"} />
+        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -1012,6 +1029,8 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     v.push(this.render_zoom_group());
     v.push(this.render_restart());
+    v.push(this.render_close_and_halt(labels));
+
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
     v.push(this.render_pause(labels));
@@ -1062,7 +1081,10 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_connection_status(): Rendered {
-    if (!this.props.connection_status || !this.is_visible("connection_status", true)) {
+    if (
+      !this.props.connection_status ||
+      !this.is_visible("connection_status", true)
+    ) {
       return;
     }
     return (

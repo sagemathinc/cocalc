@@ -125,6 +125,11 @@ export class XpraClient extends EventEmitter {
     delete this.client;
   }
 
+  async close_and_halt(): Promise<void> {
+    this.server.stop();
+    this.close();
+  }
+
   async _connect(): Promise<void> {
     const options = await this.get_xpra_options();
     if (this.client === undefined) {

@@ -20,6 +20,7 @@ export const x11 = {
     "paste",
     /*"print",
     "edit_init_script", */
+    "close_and_halt",
     "help",
     "connection_status"
   ])

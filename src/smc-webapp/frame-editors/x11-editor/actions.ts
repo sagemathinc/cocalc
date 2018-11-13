@@ -487,4 +487,11 @@ export class Actions extends BaseActions<X11EditorState> {
       this.client.connect();
     }
   }
+
+  public async close_and_halt(_:string) : Promise<void> {
+    await this.client.close_and_halt();
+    // and close this window
+    const project_actions = this._get_project_actions();
+    project_actions.close_tab(this.path);
+  }
 }
