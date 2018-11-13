@@ -36,7 +36,7 @@ interface Props {
   x11_is_idle: boolean;
 }
 
-export class X11Component extends Component<Props, {}> {
+class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
   private measure_size: Function;

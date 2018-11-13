@@ -10,7 +10,8 @@ import { Client } from "./xpra/client";
 
 import { Surface } from "./xpra/surface";
 
-import { XpraServer } from "./xpra-server";
+import { XpraServer, ExecOpts0 } from "./xpra-server";
+import { ExecOutput } from "../generic/client";
 
 import { touch, touch_project } from "../generic/client";
 
@@ -529,5 +530,9 @@ export class XpraClient extends EventEmitter {
       this.emit("ws:idle", true);
       this.client.disconnect();
     }
+  }
+
+  public async exec(opts: ExecOpts0): Promise<ExecOutput> {
+    return await this.server.exec(opts);
   }
 }
