@@ -4,15 +4,18 @@ import * as misc from "smc-util/misc";
 const { FormControl, FormGroup } = require("react-bootstrap");
 
 interface Props {
-  selected: string;
-  on_change?: (selected: string) => void;
-  disabled?: boolean;
-  options: any;
-  /*
+  options:
     | string[]
     | { value: string; display: React.ComponentType }[]
     | { [keys: string]: React.ComponentType };
-    */
+  disabled?: boolean;
+  selected?: string;
+  on_change?: (selected: string) => void;
+}
+
+// If the first element is a string, we assume the rest to be a string
+function isStringArrayHeuristic(a: any): a is string[] {
+  return typeof a[0] === "string";
 }
 
 export class SelectorInput extends React.Component<Props> {
@@ -22,15 +25,12 @@ export class SelectorInput extends React.Component<Props> {
     }
   };
 
-  render_options() {
-    if (misc.is_array(this.props.options)) {
+  render_options(): JSX.Element[] {
+    let result: JSX.Element[] = [];
+    if (Array.isArray(this.props.options)) {
       let x: any;
-      if (
-        this.props.options.length > 0 &&
-        typeof this.props.options[0] === "string"
-      ) {
+      if (isStringArrayHeuristic(this.props.options)) {
         let i = 0;
-        let result: any[] = [];
         for (x of this.props.options) {
           result.push(
             <option key={i} value={x}>
@@ -41,7 +41,6 @@ export class SelectorInput extends React.Component<Props> {
         }
         return result;
       } else {
-        let result: any[] = [];
         for (x of this.props.options) {
           result.push(
             <option key={x.value} value={x.value}>
@@ -54,7 +53,6 @@ export class SelectorInput extends React.Component<Props> {
     } else {
       let v = misc.keys(this.props.options);
       v.sort();
-      let result: any[] = [];
       for (let value of v) {
         const display = this.props.options[value];
         result.push(
@@ -63,8 +61,8 @@ export class SelectorInput extends React.Component<Props> {
           </option>
         );
       }
-      return result;
     }
+    return result;
   }
 
   render() {
@@ -73,7 +71,6 @@ export class SelectorInput extends React.Component<Props> {
         <FormControl
           value={this.props.selected}
           componentClass="select"
-          ref="input"
           onChange={this.onChange}
           disabled={this.props.disabled}
         >
