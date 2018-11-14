@@ -193,7 +193,7 @@ export class Client {
     if (!variant) {
       variant = "";
     }
-    if (this.layout === layout) {
+    if (this.layout === layout && this.variant === variant) {
       return;
     }
 
@@ -201,8 +201,7 @@ export class Client {
     this.variant = variant;
 
     if (this.connected) {
-      const variant = "nodeadkeys";
-      // console.log("x11/set_physical_keyboard: sending layout/variant", layout, variant);
+      //console.log("layout-changed", layout, variant);
       this.send("layout-changed", layout, variant);
     }
   }
@@ -570,9 +569,13 @@ export class Client {
       this.connected = true;
       this.connecting = false;
 
-      if (this.layout && this.variant) {
+      if (this.layout) {
         // ensure layout and variant are set.
-        this.send("layout-changed", this.layout, this.variant);
+        this.send(
+          "layout-changed",
+          this.layout,
+          this.variant ? this.variant : ""
+        );
         // console.log("x11 startup-complete layout-changed:", this.layout, this.variant);
       }
 
