@@ -42,7 +42,8 @@ export class Plug {
   }
 
   // Keep trying until we connect - always succeeds if it terminates
-  connect(cb) {
+  // TODO: make async.
+  connect(): void {
     const dbg = this.dbg("connect");
     if (this._state === "closed") {
       dbg("closed");
@@ -54,7 +55,7 @@ export class Plug {
     }
     this._is_connecting = true;
     dbg("");
-    return misc.retry_until_success({
+    misc.retry_until_success({
       f: this.__try_to_connect_once,
       log: dbg,
       start_delay: 3000,
@@ -62,7 +63,6 @@ export class Plug {
       cb: () => {
         delete this._is_connecting;
         dbg("success!");
-        return typeof cb === "function" ? cb() : undefined;
       }
     });
   }

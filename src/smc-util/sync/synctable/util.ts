@@ -1,5 +1,7 @@
 /* Utility functions used by other code here. */
 
+import { callback } from "awaiting";
+
 // Parse query description to allow for some convenient shortcuts
 // TODO: document them here!
 export function parse_query(query) {
@@ -24,4 +26,12 @@ export function parse_query(query) {
       return { [table]: query[table] };
     }
   }
+}
+
+export function callback2(f: Function, opts: any): Promise<any> {
+  function g(cb): void {
+    opts.cb = cb;
+    f(opts);
+  }
+  return await callback(g);
 }
