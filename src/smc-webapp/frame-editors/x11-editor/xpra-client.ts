@@ -536,7 +536,7 @@ export class XpraClient extends EventEmitter {
     return await this.server.exec(opts);
   }
 
-  public set_physical_keyboard(layout: string) : void {
-    this.client.set_physical_keyboard(layout);
+  public set_physical_keyboard(layout: string, variant: string) : void {
+    this.client.set_physical_keyboard(layout, variant);
   }
 }
