@@ -15,6 +15,9 @@ import { project_api } from "../generic/client";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
+import { reuseInFlight } from "async-await-utils/hof";
+import { callback } from "awaiting";
+
 const WID_HISTORY_LENGTH = 40;
 
 import {
@@ -42,6 +45,7 @@ export class Actions extends BaseActions<X11EditorState> {
   client: XpraClient;
 
   async _init2(): Promise<void> {
+    this.launch = reuseInFlight(this.launch);
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
@@ -169,8 +173,11 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("ws:status", (status: string) => {
-      // Right now all x11 frames are connected to the same remote session,
-      // so we set desc on all of them.  Later we may have multiple sessions,
+      // Right now all x11 frames for a given path
+      ///are connected to
+      // the same remote session,
+      // so we set desc on all of them.  Later we
+      // may have multiple sessions,
       // like with the terminal.
       if (
         status === "disconnected" ||
@@ -510,11 +517,28 @@ export class Actions extends BaseActions<X11EditorState> {
     project_actions.close_tab(this.path);
   }
 
-  launch(command: string, args?: string[]): void {
+  async launch(command: string, args?: string[]): Promise<void> {
+    if (this.client._ws_status !== "connected") {
+      // Wait until connected
+      this.set_status(`Waiting until connected before launching ${command}...`);
+      const wait = cb => {
+        const f = status => {
+          if (status === "connected") {
+            this.client.removeListener("ws:status", f);
+            cb();
+          }
+        };
+        this.client.addListener("ws:status", f);
+      };
+      await callback(wait);
+      this.set_status("");
+    }
+    // Launch the command
     this.channel.write({ cmd: "launch", command, args });
+    // TODO: wait for a status message back...
   }
 
-  set_physical_keyboard(layout: string, variant: string) : void {
+  set_physical_keyboard(layout: string, variant: string): void {
     this.client.set_physical_keyboard(layout, variant);
   }
 }
