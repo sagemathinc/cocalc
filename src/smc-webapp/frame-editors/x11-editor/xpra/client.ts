@@ -69,8 +69,8 @@ export class Client {
   private audioCodecs = { codecs: [] };
   private ping_interval: number = 0;
 
-  private layout : string = '';
-  private variant: string = '';
+  private layout: string = "";
+  private variant: string = "";
 
   public send: Function;
   public console: {
@@ -191,18 +191,18 @@ export class Client {
       layout = keyboardLayout(); // really dumb heuristic
     }
     if (!variant) {
-      variant = '';
+      variant = "";
     }
     if (this.layout === layout) {
       return;
     }
-    
+
     this.layout = layout;
     this.variant = variant;
 
     if (this.connected) {
       const variant = "nodeadkeys";
-      console.log("x11/set_physical_keyboard: sending layout/variant", layout, variant);
+      // console.log("x11/set_physical_keyboard: sending layout/variant", layout, variant);
       this.send("layout-changed", layout, variant);
     }
   }
@@ -573,7 +573,7 @@ export class Client {
       if (this.layout && this.variant) {
         // ensure layout and variant are set.
         this.send("layout-changed", this.layout, this.variant);
-        console.log("x11 startup-complete layout-changed:", this.layout, this.variant);
+        // console.log("x11 startup-complete layout-changed:", this.layout, this.variant);
       }
 
       this.console.info("Xpra Client connected");
