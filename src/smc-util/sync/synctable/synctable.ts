@@ -93,7 +93,7 @@ export function set_debug(x: boolean): void {
 import { EventEmitter } from "events";
 import * as immutable from "immutable";
 
-import { throttle } from "underscore";
+import { keys, throttle } from "underscore";
 
 const misc = require("./misc");
 const schema = require("./schema");
@@ -129,7 +129,9 @@ NOTE (3) we use a stable version, since otherwise things will randomly break if 
 key is an object.
 */
 
-const json_stable_stringify = require("json-stable-stringify");
+import * as json_stable_stringify from "json-stable-stringify";
+
+import { reuseInFlight } from "async-await-utils/hof";
 
 import { Plug } from "./plug";
 import { Changefeed } from "./changefeed-master";
@@ -197,8 +199,9 @@ class SyncTable extends EventEmitter {
 
     this.init_query();
     this.init_plug();
-    this.init_disconnect();
     this.init_throttle_changes();
+
+    this.save = reuseInFlight(this.save.bind(this));
   }
 
   public get_state(): string {
@@ -249,18 +252,18 @@ class SyncTable extends EventEmitter {
     // throttle emitting of change events
     let all_changed_keys = {};
     let do_emit_changes = () => {
-      //console.log("#{@_table} -- emitting changes", misc.keys(all_changed_keys))
+      //console.log("#{this.table} -- emitting changes", keys(all_changed_keys))
       // CRITICAL: some code depends on emitting change even
       // for the *empty* list of keys!
       // E.g., projects page won't load for new users.  This
       // is the *change* from not loaded to being loaded,
       // which does make sense.
-      this.emit("change", misc.keys(all_changed_keys));
+      this.emit("change", keys(all_changed_keys));
       all_changed_keys = {};
     };
     do_emit_changes = throttle(do_emit_changes, this.throttle_changes);
     this.emit_change = changed_keys => {
-      //console.log("#{@_table} -- queue changes", changed_keys)
+      //console.log("#{this.table} -- queue changes", changed_keys)
       for (let key of changed_keys) {
         all_changed_keys[key] = true;
       }
@@ -320,7 +323,7 @@ class SyncTable extends EventEmitter {
       query: this.query,
       table: this.table
     });
-    await changefeed.init();
+    await this.changefeed.init();
   }
 
   // TODO -- write this
@@ -406,7 +409,7 @@ class SyncTable extends EventEmitter {
   private init_query(): void {
     // Check that the query is probably valid, and
     // record the table and schema
-    const tables = misc.keys(this.query);
+    const tables = keys(this.query);
     if (misc.len(tables) !== 1) {
       throw Error("must query only a single table");
     }
@@ -431,7 +434,7 @@ class SyncTable extends EventEmitter {
         this.query[this.table][0][primary_key] = null;
       }
     }
-    // Function @_to_key to extract primary key from object
+    // Function this.to_key to extract primary key from object
     if (this.primary_keys.length === 1) {
       // very common case
       const pk = this.primary_keys[0];
@@ -476,7 +479,7 @@ class SyncTable extends EventEmitter {
     if (this.client_query != null && this.client_query.set != null) {
       // Initialize set_fields and required_set_fields.
       const set = this.client_query.set;
-      for (let field of misc.keys(this.query[this.table][0])) {
+      for (let field of keys(this.query[this.table][0])) {
         if (set.fields != null && set.fields[field]) {
           this.set_fields.push(field);
         }
@@ -522,7 +525,7 @@ class SyncTable extends EventEmitter {
   private async __save(): Promise<void> {
     this.assert_not_closed();
     let k, v;
-    // console.log("_save('#{@_table}')")
+    // console.log("_save('#{this.table}')")
     // Determine which records have changed and what their new values are.
     if (this.value_server == null) {
       if (typeof cb === "function") {
@@ -556,7 +559,7 @@ class SyncTable extends EventEmitter {
     const saved_objs = [];
     // sort so that behavior is more predictable = faster (e.g., sync patches are in
     // order); the keys are strings so default sort is fine
-    for (let key of misc.keys(changed).sort()) {
+    for (let key of keys(changed).sort()) {
       const c = changed[key];
       const obj = {};
       // NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
@@ -602,7 +605,7 @@ class SyncTable extends EventEmitter {
     //Use this to test fix_if_no_update_soon:
     //    if Math.random() <= .5
     //        query = []
-    //@_fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
+    //this.fix_if_no_update_soon() # -disabled -- instead use "checking changefeed ids".
     return this.client.query({
       query,
       options: [{ set: true }], // force it to be a set query
@@ -640,7 +643,7 @@ class SyncTable extends EventEmitter {
           if (this.value_server == null || this.value_local == null) {
             // There is absolutely no possible way this can happen, since it was
             // checked for above before the call, and these can only get set by
-            // the close method to undefined, which also sets the @_state to closed,
+            // the close method to undefined, which also sets the this.state to closed,
             // so would get caught above.  However, evidently this **does happen**:
             //   https://github.com/sagemathinc/cocalc/issues/1870
             if (typeof cb === "function") {
@@ -650,17 +653,17 @@ class SyncTable extends EventEmitter {
           }
           this.emit("saved", saved_objs);
           // success: each change in the query what committed successfully to the database; we can
-          // safely set @_value_server (for each value) as long as it didn't change in the meantime.
+          // safely set this.value_server (for each value) as long as it didn't change in the meantime.
           for (k in changed) {
             v = changed[k];
             if (immutable.is(this.value_server.get(k), v.old_val)) {
               // immutable.is since either could be undefined
-              //console.log "setting @_value_server[#{k}] =", v.new_val?.toJS()
+              //console.log "setting this.value_server[#{k}] =", v.new_val?.toJS()
               this.value_server = this.value_server.set(k, v.new_val);
             }
           }
           if (!at_start.equals(this.value_local)) {
-            // keep saving until @_value_local doesn't change *during* the save -- this means
+            // keep saving until this.value_local doesn't change *during* the save -- this means
             // when saving stops that we guarantee there are no unsaved changes.
             return this._save(cb);
           } else {
@@ -671,33 +674,13 @@ class SyncTable extends EventEmitter {
     });
   }
 
-  save(cb) {
-    if (this.state === "closed") {
-      if (typeof cb === "function") {
-        cb("closed");
-      }
-      return;
-    }
+  async save() : Promise<void> {
+    this.assert_not_closed();
     if (this.state !== "connected") {
-      if (typeof cb === "function") {
-        cb("not connected");
-      } // do not change this error message; it is assumed elsewhere.
-      return;
+      // do not change this error message; it is assumed elsewhere.
+      throw Error("not connected");
     }
-
-    if (this._save_debounce == null) {
-      this._save_debounce = {};
-    }
-
-    if (this.value_server == null || this.value_local == null) {
-      if (this._connected_save_cbs == null) {
-        this._connected_save_cbs = [];
-      }
-      this._connected_save_cbs.push(cb);
-      return;
-    }
-
-    return misc.async_debounce({
+    await retry_until_success({
       f: cb => {
         return misc.retry_until_success({
           f: this._save,
@@ -745,7 +728,7 @@ class SyncTable extends EventEmitter {
       );
       this.value_local = this.value_server = immutable.fromJS(x);
       first_connect = true;
-      changed_keys = misc.keys(x); // of course all keys have been changed.
+      changed_keys = keys(x); // of course all keys have been changed.
     } else {
       dbg("harder case -- everything has already been initialized.");
       changed_keys = [];
@@ -881,13 +864,13 @@ class SyncTable extends EventEmitter {
     let local_val = this.value_local.get(key);
     let conflict = false;
     if (!new_val.equals(local_val)) {
-      //console.log("change table='#{@_table}': #{misc.to_json(local_val?.toJS())} --> #{misc.to_json(new_val.toJS())}") if @_table == 'patches'
+      //console.log("change table='#{this.table}': #{misc.to_json(local_val?.toJS())} --> #{misc.to_json(new_val.toJS())}") if this.table == 'patches'
       if (local_val == null) {
         this.value_local = this.value_local.set(key, new_val);
         changed_keys.push(key);
       } else {
         const server = this.value_server.get(key);
-        // Set in @_value_local every key whose value changed between new_val and server; basically, we're
+        // Set in this.value_local every key whose value changed between new_val and server; basically, we're
         // determining and applying the "patch" from upstream, even though it was sent as a complete record.
         // We can compute the patch, since we know the last server value.
         new_val.map((v, k) => {
@@ -895,7 +878,7 @@ class SyncTable extends EventEmitter {
             return (local_val = local_val.set(k, v));
           }
         });
-        //console.log("#{@_table}: set #{k} to #{v}")
+        //console.log("#{this.table}: set #{k} to #{v}")
         if (server != null) {
           server.map((v, k) => {
             if (!new_val.has(k)) {
@@ -908,7 +891,7 @@ class SyncTable extends EventEmitter {
           changed_keys.push(key);
         }
         if (!local_val.equals(new_val)) {
-          //console.log("#{@_table}: conflict! ", local_val, new_val) if @_table == 'patches'
+          //console.log("#{this.table}: conflict! ", local_val, new_val) if this.table == 'patches'
           this.emit("conflict", { new_val, old_val: local_val });
           conflict = true;
         }
@@ -1054,7 +1037,7 @@ class SyncTable extends EventEmitter {
     // Get the current value
     const cur = this.value_local.get(id);
     if (cur == null) {
-      // No record with the given primary key.  Require that all the @_required_set_fields
+      // No record with the given primary key.  Require that all the this.required_set_fields
       // are specified, or it will become impossible to sync this table to the backend.
       for (let k in this._required_set_fields) {
         const _ = this._required_set_fields[k];
