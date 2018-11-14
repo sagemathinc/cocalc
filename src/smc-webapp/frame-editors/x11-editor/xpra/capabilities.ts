@@ -4,12 +4,7 @@
 
 import * as forge from "node-forge";
 import { CHARCODE_TO_NAME } from "./constants";
-import {
-  browserLanguage,
-  supportsWebp,
-  calculateColorGamut,
-  calculateScreens
-} from "./util";
+import { supportsWebp, calculateColorGamut, calculateScreens } from "./util";
 
 const platformMap = {
   Win: {
@@ -129,8 +124,6 @@ function getEncodingCapabilities(config, soundCodecs) {
 }
 
 function getClientCapabilities(config) {
-  const language = browserLanguage();
-
   const keycodes = Object.keys(CHARCODE_TO_NAME).reduce(
     (result, c) => [
       ...result,
@@ -161,8 +154,8 @@ function getClientCapabilities(config) {
     "window.initiate-moveresize": true,
 
     "metadata.supported": [
-      "fullscreen",
-      "maximized",
+      //"fullscreen",
+      //"maximized",
       "above",
       "below",
       // 'set-initial-position', 'group-leader',
@@ -171,24 +164,24 @@ function getClientCapabilities(config) {
       "class-instance",
       "transient-for",
       "window-type",
-      "has-alpha",
+      //"has-alpha",
       "decorations",
       "override-redirect",
-      "tray",
+      //"tray",
       "modal",
-      "opacity"
+      //"opacity"
       // 'shadow', 'desktop',
     ],
 
     // Sound
-    "sound.receive": config.sound,
+    "sound.receive": false,  // TODO: not implemented at all right now.
     "sound.send": false,
     "sound.server_driven": true,
     "sound.bundle-metadata": true,
 
     // encoding stuff
     keyboard: config.keyboard,
-    xkbmap_layout: config.language || language,
+    xkbmap_layout: config.xkbmap_layout || "us", // default, but will get changed quickly on mount.
     xkbmap_keycodes: keycodes,
     xkbmap_print: "",
     xkbmap_query: "",

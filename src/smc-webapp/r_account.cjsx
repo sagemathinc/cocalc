@@ -30,6 +30,7 @@
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
+{PHYSICAL_KEYBOARDS} = require('./frame-editors/x11-editor/xpra/keyboards')
 
 md5 = require('md5')
 
@@ -1029,6 +1030,25 @@ EditorSettingsKeyboardBindings = rclass
             />
         </LabeledRow>
 
+EditorSettingsPhysicalKeyboard = rclass
+    displayName : 'Account-EditorSettingsPhysicalKeyboard'
+
+    propTypes :
+        physical_keyboard  : rtypes.string.isRequired
+        on_change          : rtypes.func.isRequired
+
+    render: ->
+        if @props.physical_keyboard == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {PHYSICAL_KEYBOARDS}
+                    selected  = {@props.physical_keyboard}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
@@ -1062,6 +1082,8 @@ EditorSettings = rclass
                 on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
+            <EditorSettingsPhysicalKeyboard
+                on_change={(value)=>@on_change('physical_keyboard',value)} physical_keyboard={@props.editor_settings.get('physical_keyboard')} />
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>

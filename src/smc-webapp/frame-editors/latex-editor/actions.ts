@@ -757,6 +757,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.synctex_tex_to_pdf(line, ch, this.path);
   }
 
+  time_travel(): void {
+    // knitr case: point to editor file, not the generated tex
+    // https://github.com/sagemathinc/cocalc/issues/3336
+    if (this.knitr) {
+      super.time_travel(this.filename_knitr);
+    } else {
+      super.time_travel();
+    }
+  }
+
   download(id: string): void {
     const node = this._get_frame_node(id);
     if (!node) {

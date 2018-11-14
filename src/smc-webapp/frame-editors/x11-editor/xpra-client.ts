@@ -10,7 +10,8 @@ import { Client } from "./xpra/client";
 
 import { Surface } from "./xpra/surface";
 
-import { XpraServer } from "./xpra-server";
+import { XpraServer, ExecOpts0 } from "./xpra-server";
+import { ExecOutput } from "../generic/client";
 
 import { touch, touch_project } from "../generic/client";
 
@@ -125,6 +126,11 @@ export class XpraClient extends EventEmitter {
     delete this.client;
   }
 
+  async close_and_halt(): Promise<void> {
+    this.server.stop();
+    this.close();
+  }
+
   async _connect(): Promise<void> {
     const options = await this.get_xpra_options();
     if (this.client === undefined) {
@@ -164,7 +170,7 @@ export class XpraClient extends EventEmitter {
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
-    return { uri, dpi, sound: false };
+    return { uri, dpi};
   }
 
   private init_xpra_events(): void {
@@ -524,5 +530,13 @@ export class XpraClient extends EventEmitter {
       this.emit("ws:idle", true);
       this.client.disconnect();
     }
+  }
+
+  public async exec(opts: ExecOpts0): Promise<ExecOutput> {
+    return await this.server.exec(opts);
+  }
+
+  public set_physical_keyboard(layout: string) : void {
+    this.client.set_physical_keyboard(layout);
   }
 }
