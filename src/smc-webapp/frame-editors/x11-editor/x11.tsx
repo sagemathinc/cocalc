@@ -56,11 +56,14 @@ class X11Component extends Component<Props, {}> {
   shouldComponentUpdate(next): boolean {
     if (
       this.props.editor_settings.get("physical_keyboard") !==
-      next.editor_settings.get("physical_keyboard")
+        next.editor_settings.get("physical_keyboard") ||
+      this.props.editor_settings.get("keyboard_variant") !==
+        next.editor_settings.get("keyboard_variant")
     ) {
       // keyboard layout change
       this.props.actions.set_physical_keyboard(
-        next.editor_settings.get("physical_keyboard")
+        next.editor_settings.get("physical_keyboard"),
+        next.editor_settings.get("keyboard_variant")
       );
     }
 
@@ -119,7 +122,8 @@ class X11Component extends Component<Props, {}> {
     }
     // set keyboard layout
     this.props.actions.set_physical_keyboard(
-      this.props.editor_settings.get("physical_keyboard")
+      this.props.editor_settings.get("physical_keyboard"),
+      this.props.editor_settings.get("keyboard_variant")
     );
   }
 
