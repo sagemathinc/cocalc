@@ -66,7 +66,14 @@ export class Actions extends BaseActions<X11EditorState> {
       direction: "col",
       type: "node",
       first: {
-        type: "terminal"
+        direction: "row",
+        type: "node",
+        first: {
+          type: "terminal"
+        },
+        second: {
+          type: "launcher"
+        }
       },
       second: {
         type: "x11"
@@ -407,9 +414,17 @@ export class Actions extends BaseActions<X11EditorState> {
     });
   }
 
-  private handle_data_from_channel(x: object): void {
-    // not used yet -- will be used for multiuser sync.
-    console.log("handle_data_from_channel", x);
+  private handle_data_from_channel(x: any): void {
+    if (x == null) {
+      return;
+    }
+    //console.log("handle_data_from_channel", x);
+    if (x.error != null) {
+      if (x.error.indexOf("unknown command") !== -1) {
+        x.error = "You probably need to restart your project.  " + x.error;
+      }
+      this.set_error(x.error);
+    }
   }
 
   // Update x11 tabs to get as close as we can to having
@@ -486,5 +501,20 @@ export class Actions extends BaseActions<X11EditorState> {
       this.setState({ windows: Map() });
       this.client.connect();
     }
+  }
+
+  public async close_and_halt(_: string): Promise<void> {
+    await this.client.close_and_halt();
+    // and close this window
+    const project_actions = this._get_project_actions();
+    project_actions.close_tab(this.path);
+  }
+
+  launch(command: string, args?: string[]): void {
+    this.channel.write({ cmd: "launch", command, args });
+  }
+
+  set_physical_keyboard(layout: string) : void {
+    this.client.set_physical_keyboard(layout);
   }
 }

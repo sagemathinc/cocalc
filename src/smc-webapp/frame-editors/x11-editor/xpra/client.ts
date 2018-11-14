@@ -8,7 +8,13 @@ import { Keyboard } from "./keyboard";
 import { Mouse } from "./mouse";
 import { Connection } from "./connection";
 import { PING_FREQUENCY } from "./constants";
-import { arraybufferBase64, hexUUID, calculateDPI, timestamp } from "./util";
+import {
+  arraybufferBase64,
+  hexUUID,
+  calculateDPI,
+  keyboardLayout,
+  timestamp
+} from "./util";
 
 import { EventEmitter } from "events";
 
@@ -62,6 +68,8 @@ export class Client {
   private lastActiveWindow: number = 0;
   private audioCodecs = { codecs: [] };
   private ping_interval: number = 0;
+
+  private layout : string = '';
 
   public send: Function;
   public console: {
@@ -167,12 +175,27 @@ export class Client {
   }
 
   // Opens connection
-  public connect(cfg = {}): void {
+  public connect(cfg): void {
+    cfg.xkbmap_layout = this.layout;
     this.config = createConfiguration({}, cfg);
     this.disconnect();
     this.connecting = true;
     this.emitState();
     this.connection.open(this.config);
+  }
+
+  public set_physical_keyboard(layout: string): void {
+    if (!layout || layout === "default") {
+      layout = keyboardLayout(); // really dumb heuristic
+    }
+    if (this.layout === layout) {
+      return;
+    }
+    this.layout = layout;
+    if (this.connected) {
+      console.log("sending layout", layout);
+      this.send("layout-changed", layout, "");
+    }
   }
 
   // Injects a keyboard browser event
@@ -537,6 +560,11 @@ export class Client {
 
       this.connected = true;
       this.connecting = false;
+
+      if (this.layout) {
+        // ensure layout is set.
+        this.send("layout-changed", this.layout, "");
+      }
 
       this.console.info("Xpra Client connected");
       this.emitState();

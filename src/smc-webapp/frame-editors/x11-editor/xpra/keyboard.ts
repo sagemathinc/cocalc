@@ -4,7 +4,7 @@
 
 import { Surface } from "./surface";
 
-import { browserLanguage, keyboardLayout, timestamp, is_paste } from "./util";
+import { is_paste } from "./util";
 
 import {
   IS_OSX,
@@ -13,7 +13,6 @@ import {
   NUMPAD_TO_NAME,
   KEY_TO_NAME,
   CHAR_TO_NAME,
-  KEYSYM_TO_LAYOUT,
   DOM_KEY_LOCATION_RIGHT
 } from "./constants";
 
@@ -52,9 +51,6 @@ export class Keyboard {
   private numLock: boolean = false;
   private altGr: boolean = false;
   private send: Function;
-  private browser_language_change_embargo_time: number = 0;
-  private key_layout: string | null = null;
-  private browser_language: string = browserLanguage();
   private alt_modifier: string = "";
   private meta_modifier: string = "";
   private altgr_modifier: string = "";
@@ -182,11 +178,6 @@ export class Keyboard {
       } else if (str in CHAR_TO_NAME) {
         // next try mapping the actual character
         keyname = CHAR_TO_NAME[str];
-        if (keyname.indexOf("_") > 0) {
-          //ie: Thai_dochada
-          const lang = keyname.split("_")[0];
-          this.checkBrowserLanguage(KEYSYM_TO_LAYOUT[lang]);
-        }
       } else if (keycode in CHARCODE_TO_NAME) {
         // fallback to keycode map:
         keyname = CHARCODE_TO_NAME[keycode];
@@ -228,11 +219,7 @@ export class Keyboard {
 
       // MacOS will swallow the key release event if the meta modifier is pressed,
       // so simulate one immediately:
-      if (
-        IS_OSX &&
-        pressed &&
-        rawModifiers.includes("meta")
-      ) {
+      if (IS_OSX && pressed && rawModifiers.includes("meta")) {
         this.send(
           "key-action",
           topwindow,
@@ -254,51 +241,5 @@ export class Keyboard {
     }
 
     return false;
-  }
-
-  private checkBrowserLanguage(key_layout: string | undefined): void {
-    /**
-     * Use the "key_layout" if we have it;
-     * otherwise, use the browser's language.
-     * This function may send a new detected keyboard layout.
-     * (ignoring the keyboard_layout preference)
-     */
-    const now = timestamp();
-    if (now < this.browser_language_change_embargo_time) {
-      return;
-    }
-    let new_layout: string | null = null;
-    if (key_layout && this.key_layout != key_layout) {
-      console.log(
-        "input language changed from",
-        this.key_layout,
-        "to",
-        key_layout
-      );
-      this.key_layout = new_layout = key_layout;
-    } else {
-      const l = browserLanguage();
-      if (l && this.browser_language != l) {
-        new_layout = keyboardLayout();
-        console.log(
-          "browser language changed from",
-          this.browser_language,
-          "to",
-          l,
-          ", sending new keyboard layout:",
-          new_layout
-        );
-        this.browser_language = l;
-      }
-    }
-    if (new_layout != null) {
-      this.send(["layout-changed", new_layout, ""]);
-      //changing the language too quickly can cause problems server side,
-      //wait at least 2 seconds before checking again:
-      this.browser_language_change_embargo_time = now + 2000;
-    } else {
-      //check again after 100ms minimum
-      this.browser_language_change_embargo_time = now + 100;
-    }
   }
 }

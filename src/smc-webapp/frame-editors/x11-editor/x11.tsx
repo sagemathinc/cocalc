@@ -31,12 +31,13 @@ interface Props {
   is_current: boolean;
   font_size: number;
   reload: string;
+  editor_settings: Map<string, any>;
   // reduxProps:
   windows: Map<string, any>;
   x11_is_idle: boolean;
 }
 
-export class X11Component extends Component<Props, {}> {
+class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
   private measure_size: Function;
@@ -53,6 +54,16 @@ export class X11Component extends Component<Props, {}> {
   }
 
   shouldComponentUpdate(next): boolean {
+    if (
+      this.props.editor_settings.get("physical_keyboard") !==
+      next.editor_settings.get("physical_keyboard")
+    ) {
+      // keyboard layout change
+      this.props.actions.set_physical_keyboard(
+        next.editor_settings.get("physical_keyboard")
+      );
+    }
+
     // focused on a frame
     if (!this.props.is_current && next.is_current) {
       this.focus_textarea();
@@ -106,6 +117,10 @@ export class X11Component extends Component<Props, {}> {
     if (this.props.is_current) {
       this.focus_textarea();
     }
+    // set keyboard layout
+    this.props.actions.set_physical_keyboard(
+      this.props.editor_settings.get("physical_keyboard")
+    );
   }
 
   disable_browser_context_menu(): void {
