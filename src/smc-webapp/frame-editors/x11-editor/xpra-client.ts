@@ -170,7 +170,7 @@ export class XpraClient extends EventEmitter {
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
-    return { uri, dpi, sound: false };
+    return { uri, dpi};
   }
 
   private init_xpra_events(): void {
@@ -534,5 +534,9 @@ export class XpraClient extends EventEmitter {
 
   public async exec(opts: ExecOpts0): Promise<ExecOutput> {
     return await this.server.exec(opts);
+  }
+
+  public set_physical_keyboard(layout: string) : void {
+    this.client.set_physical_keyboard(layout);
   }
 }

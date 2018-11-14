@@ -30,7 +30,7 @@
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
-{PHYSICAL_KEYBOARDS} = require('./frame-editors/x11-editor/misc')
+{PHYSICAL_KEYBOARDS} = require('./frame-editors/x11-editor/xpra/keyboards')
 
 md5 = require('md5')
 
@@ -1041,7 +1041,7 @@ EditorSettingsPhysicalKeyboard = rclass
         if @props.physical_keyboard == 'NO_DATA'
             <Loading />
         else
-            <LabeledRow label='Physical keyboard (for X11)'>
+            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
                 <SelectorInput
                     options   = {PHYSICAL_KEYBOARDS}
                     selected  = {@props.physical_keyboard}

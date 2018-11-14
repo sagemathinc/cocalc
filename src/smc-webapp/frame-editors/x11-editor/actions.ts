@@ -513,4 +513,8 @@ export class Actions extends BaseActions<X11EditorState> {
   launch(command: string, args?: string[]): void {
     this.channel.write({ cmd: "launch", command, args });
   }
+
+  set_physical_keyboard(layout: string) : void {
+    this.client.set_physical_keyboard(layout);
+  }
 }

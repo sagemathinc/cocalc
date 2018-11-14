@@ -1,8 +1,8 @@
-# this is based on /usr/share/X11/xkb/rules/evdev.lst
-# I have no idea if variants like "nodeadkeys" for german are necessary
+// this is based on /usr/share/X11/xkb/rules/evdev.lst
+// I have no idea if variants like "nodeadkeys" for german are necessary
 
-exports.PHYSICAL_KEYBOARDS = [
-  { value: "default", display: "Default (language-based)"},
+export const PHYSICAL_KEYBOARDS = [
+  { value: "default", display: "Default (language-based guess)" },
   { value: "us", display: "English (US)" },
   { value: "af", display: "Afghani" },
   { value: "ara", display: "Arabic" },
@@ -101,16 +101,16 @@ exports.PHYSICAL_KEYBOARDS = [
   { value: "md", display: "Moldavian" },
   { value: "id", display: "Indonesian (Jawi)" },
   { value: "my", display: "Malay (Jawi, Arabic Keyboard)" }
-]
+];
 
-# sort by name, and "default" should be first
-exports.PHYSICAL_KEYBOARDS.sort((a, b) ->
-  # a[0], b[0] is the key of the map
-  if a.value == "default"
-    return -1
-  else if b.value == "default"
-    return 1
-  else
-    return a.display.localeCompare(b.display)
-)
-
+// sort by name, and "default" should be first
+PHYSICAL_KEYBOARDS.sort(function(a, b) {
+  // a[0], b[0] is the key of the map
+  if (a.value === "default") {
+    return -1;
+  } else if (b.value === "default") {
+    return 1;
+  } else {
+    return a.display.localeCompare(b.display);
+  }
+});
