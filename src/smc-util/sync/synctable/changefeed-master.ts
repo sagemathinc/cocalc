@@ -2,11 +2,13 @@ import { EventEmitter } from "events";
 
 import { callback } from "awaiting";
 
+type State = "closed" | "disconnected" | "connecting" | "connected";
+
 export class Changefeed extends EventEmitter {
   private query: any;
-  private do_query : Function;
+  private do_query: Function;
   private query_cancel: Function;
-  private state: string = "new";
+  private state: State = "disconnected";
   private table: string;
   private id: string;
   private options: any;
@@ -18,15 +20,22 @@ export class Changefeed extends EventEmitter {
     this.query = query;
     this.options = options;
     this.table = table;
+    this.handle_update = this.handle_update.bind(this);
   }
 
   // Query for state of the table, connects to the
   // changefeed, and return the initial state
   // of the table.  Throws an exception if anything
   // goes wrong.
-  async init(): Promise<any> {
-    const resp = await callback(this.run_the_query);
-    if (this.state === "closed") {
+  async connect(): Promise<any> {
+    if (this.state != "disconnected") {
+      throw Error(
+        `can only connect if state is 'disconnected' but it is ${this.state}`
+      );
+    }
+    this.state = "connecting";
+    const resp = await callback(this.run_the_query.bind(this));
+    if (this.state === "closed" as State) {
       throw Error("closed");
     }
     if (resp.event === "query_cancel") {
@@ -63,7 +72,7 @@ export class Changefeed extends EventEmitter {
     });
   }
 
-  private handle_update(err, resp) {
+  private handle_update(err, resp): void {
     if (this.state !== "connected") {
       this.close();
       return;
@@ -77,12 +86,13 @@ export class Changefeed extends EventEmitter {
 
   public close(): void {
     this.state = "closed";
-    // todo
     if (this.id != null) {
-      // ignore this update, and stop listening for future ones
+      // stop listening for future updates
       this.query_cancel({ id: this.id });
       delete this.id;
     }
+    this.emit("close");
+    this.removeAllListeners();
   }
 }
 

@@ -1,98 +1,15 @@
-/*
-CoCalc, Copyright (C) 2018, Sagemath Inc.
+// CoCalc, Copyright (C) 2018, Sagemath Inc.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
----
-
-SYNCHRONIZED TABLE -- defined by an object query
-
-    - Do a query against a PostgreSQL table using our object query description.
-    - Synchronization with the backend database is done automatically.
-
-   Methods:
-      - constructor(query): query = the name of a table (or a more complicated object)
-
-      - set(map):  Set the given keys of map to their values; one key must be
-                   the primary key for the table.  NOTE: Computed primary keys will
-                   get automatically filled in; these are keys in schema.coffee,
-                   where the set query looks like this say:
-                      (obj, db) -> db.sha1(obj.project_id, obj.path)
-      - get():     Current value of the query, as an immutable.js Map from
-                   the primary key to the records, which are also immutable.js Maps.
-      - get(key):  The record with given key, as an immutable Map.
-      - get(keys): Immutable Map from given keys to the corresponding records.
-      - get_one(): Returns one record as an immutable Map (useful if there
-                   is only one record)
-
-      - close():   Frees up resources, stops syncing, don't use object further
-
-   Events:
-      - 'before-change': fired right before (and in the same event loop) actually
-                  applying remote incoming changes
-      - 'change', [array of string primary keys] : fired any time the value of the query result
-                 changes, *including* if changed by calling set on this object.
-                 Also, called with empty list on first connection if there happens
-                 to be nothing in this table.   If the primary key is not a string it is
-                 converted to a JSON string.
-      - 'disconnected': fired when table is disconnected from the server for some reason
-      - 'connected': fired when table has successfully connected and finished initializing
-                     and is ready to use
-      - 'saved', [array of saved objects]: fired after confirmed successful save of objects to backend
-
-STATES:
-
-A SyncTable is a finite state machine as follows:
-
-                          -------------------<------------------
-                         \|/                                   |
-    [connecting] --> [connected]  -->  [disconnected]  --> [reconnecting]
-
-Also, there is a final state called 'closed', that the SyncTable moves to when
-it will not be used further; this frees up all connections and used memory.
-The table can't be used after it is closed.   The only way to get to the
-closed state is to explicitly call close() on the table; otherwise, the
-table will keep attempting to connect and work, until it works.
-
-    (anything)  --> [closed]
-
-
-
-- connecting   -- connecting to the backend, and have never connected before.
-
-- connected    -- successfully connected to the backend, initialized, and receiving updates.
-
-- disconnected -- table was successfully initialized, but the network connection
-                  died. Can still takes writes, but they will never try to save to
-                  the backend.  Waiting to reconnect when user connects back to the backend.
-
-- reconnecting -- client just reconnected to the backend, so this table is now trying
-                  to get the full current state of the table and initialize a changefeed.
-
-- closed       -- table is closed, and memory/connections used by the table is freed.
-
-
-WORRY: what if the user does a set and connecting (or reconnecting) takes a long time, e.g., suspend
-a laptop, then resume?  The changes may get saved... a month later.  For some things, e.g., logs,
-this could be fine.  However, on reconnect, the first thing is that complete upstream state of
-table is set on server version of table, so reconnecting user only sends its changes if upstream
-hasn't changed anything in that same record.
-
-*/
-
-// if true, will log to the console a huge amount of
+// If true, will log to the console a huge amount of
 // info about every get/set
-let DEBUG: boolean = true;
+let DEBUG: boolean = false;
 
 export function set_debug(x: boolean): void {
   DEBUG = x;
 }
 
 import { EventEmitter } from "events";
-import * as immutable from "immutable";
+import { Map, fromJS, is as immutable_is, Iterable } from "immutable";
 
 import { keys, throttle } from "underscore";
 
@@ -108,27 +25,6 @@ function is_fatal(err): boolean {
     err.indexOf("tracker") === -1
   );
 }
-
-/*
-We represent synchronized tables by an immutable.js mapping from the primary
-key to the object.  Since PostgresQL primary keys can be compound (more than
-just strings), e.g., they can be arrays, so we convert complicated keys to their
-JSON representation.  A binary object doesn't make sense here in pure javascript,
-but these do:
-      string, number, time, boolean, or array
-Everything automatically converts fine to a string except array, which is the
-main thing this function deals with below.
-NOTE (1)  RIGHT NOW:  This should be safe to change at
-any time, since the keys aren't stored longterm.
-If we do something with localStorage, this will no longer be safe
-without a version number.
-NOTE (2) Of course you could use both a string and an array as primary keys
-in the same table.  You could evily make the string equal the json of an array,
-and this *would* break things.  We are thus assuming that such mixing
-doesn't happen.  An alternative would be to just *always* use a *stable* version of stringify.
-NOTE (3) we use a stable version, since otherwise things will randomly break if the
-key is an object.
-*/
 
 import * as json_stable_stringify from "json-stable-stringify";
 
@@ -146,6 +42,8 @@ function to_key(x: string[] | string | undefined): string | undefined {
   }
 }
 
+type State = "disconnected" | "connected" | "closed";
+
 class SyncTable extends EventEmitter {
   private changefeed?: Changefeed;
   private query: any;
@@ -156,15 +54,15 @@ class SyncTable extends EventEmitter {
   private throttle_changes?: number;
 
   // The value of this query locally.
-  private value_local?: immutable.Map<string, any>;
+  private value_local?: Map<string, any>;
 
   // Our best guess as to the value of this query on the server,
   // according to queries and updates the server pushes to us.
-  private value_server?: immutable.Map<string, any>;
+  private value_server?: Map<string, any>;
 
   // Not connected yet
   // disconnected <--> connected --> closed
-  private state: string = "disconnected";
+  private state: State = "disconnected";
   private plug: Plug;
   private table: string;
   private schema: any;
@@ -186,6 +84,9 @@ class SyncTable extends EventEmitter {
     if (misc.is_array(query)) {
       throw Error("must be a single query, not array of queries");
     }
+
+    this.changefeed_on_update = this.changefeed_on_update.bind(this);
+    this.changefeed_on_close = this.changefeed_on_close.bind(this);
 
     this.setMaxListeners(100);
     this.query = parse_query(query);
@@ -287,6 +188,7 @@ class SyncTable extends EventEmitter {
 
     // 2. Now actually setup the changefeed.
     await this.create_changefeed();
+    this.state = "connected";
   }
 
   private async create_changefeed(): Promise<void> {
@@ -295,25 +197,29 @@ class SyncTable extends EventEmitter {
       dbg("closed so don't do anything ever again");
       return;
     }
+    let initval: any;
     if (this.schema.db_standby && !this.client.is_project()) {
-      await this.create_changefeed_using_db_standby();
+      initval = await this.create_changefeed_using_db_standby();
     } else {
-      await this.create_changefeed_using_db_master();
+      initval = await this.create_changefeed_using_db_master();
     }
+    this.init_changefeed_handlers();
+    this.update_all(initval);
   }
 
   private close_changefeed(): void {
     if (this.changefeed == null) return;
+    this.remove_changefeed_handlers();
     this.changefeed.close();
     delete this.changefeed;
   }
 
-  private async create_changefeed_using_db_master(): Promise<void> {
+  private async create_changefeed_using_db_master(): Promise<any> {
     // For tables where always being perfectly 100% up to date is
     // critical, which is many of them (e.g., patches, projects).
     this.close_changefeed();
     this.changefeed = new Changefeed(this.changefeed_options());
-    await this.changefeed.init();
+    return await this.changefeed.connect();
   }
 
   private changefeed_options() {
@@ -326,6 +232,26 @@ class SyncTable extends EventEmitter {
     };
   }
 
+  private init_changefeed_handlers(): void {
+    if (this.changefeed == null) return;
+    this.changefeed.on("update", this.changefeed_on_update);
+    this.changefeed.on("close", this.changefeed_on_close);
+  }
+
+  private remove_changefeed_handlers(): void {
+    if (this.changefeed == null) return;
+    this.changefeed.removeListener("update", this.changefeed_on_update);
+    this.changefeed.removeListener("close", this.changefeed_on_close);
+  }
+
+  private changefeed_on_update(change): void {
+    this.update_change(change);
+  }
+
+  private changefeed_on_close(): void {
+    this.create_changefeed();
+  }
+
   // TODO -- write this
   private async create_changefeed_using_db_standby(): Promise<void> {
     // For tables where always being perfectly 100% up to date is NOT
@@ -333,7 +259,7 @@ class SyncTable extends EventEmitter {
     // by a few ms.  E.g., list of all my collaborators.
     this.close_changefeed();
     this.changefeed = new Changefeed(this.changefeed_options());
-    await this.changefeed.init();
+    await this.changefeed.connect();
   }
 
   private disconnected(why: string): void {
@@ -383,7 +309,7 @@ class SyncTable extends EventEmitter {
        - arg = array of keys; return map from key to obj
        - arg = single key; returns corresponding object
   */
-  public get(arg): immutable.Map<string, any> | undefined {
+  public get(arg): Map<string, any> | undefined {
     if (this.value_local == null) {
       return;
     }
@@ -400,7 +326,7 @@ class SyncTable extends EventEmitter {
           x[key] = this.value_local.get(key);
         }
       }
-      return immutable.fromJS(x);
+      return fromJS(x);
     } else {
       const key = to_key(arg);
       return key != null ? this.value_local.get(key) : undefined;
@@ -410,7 +336,7 @@ class SyncTable extends EventEmitter {
   // Get one record from this table.  Especially useful when
   // there is only one record, which is an important special
   // case (a so-called "wide" table?.)
-  public get_one(): immutable.Map<string, any> | undefined {
+  public get_one(): Map<string, any> | undefined {
     return this.value_local != null
       ? this.value_local.toSeq().first()
       : undefined;
@@ -452,7 +378,7 @@ class SyncTable extends EventEmitter {
         if (obj == null) {
           return;
         }
-        if (immutable.Map.isMap(obj)) {
+        if (Map.isMap(obj)) {
           return to_key(obj.get(pk));
         } else {
           return to_key(obj[pk]);
@@ -465,7 +391,7 @@ class SyncTable extends EventEmitter {
           return;
         }
         const v: string[] = [];
-        if (immutable.Map.isMap(obj)) {
+        if (Map.isMap(obj)) {
           for (let pk of this.primary_keys) {
             const a = obj.get(pk);
             if (a == null) {
@@ -584,9 +510,9 @@ class SyncTable extends EventEmitter {
         if (v != null) {
           if (
             this.required_set_fields[k] ||
-            !immutable.is(v, c.old_val != null ? c.old_val.get(k) : undefined)
+            !immutable_is(v, c.old_val != null ? c.old_val.get(k) : undefined)
           ) {
-            if (immutable.Iterable.isIterable(v)) {
+            if (Iterable.isIterable(v)) {
               obj[k] = v.toJS();
             } else {
               obj[k] = v;
@@ -653,7 +579,7 @@ class SyncTable extends EventEmitter {
     // safely set this.value_server (for each value) as long as it didn't change in the meantime.
     for (k in changed) {
       v = changed[k];
-      if (immutable.is(this.value_server.get(k), v.old_val)) {
+      if (immutable_is(this.value_server.get(k), v.old_val)) {
         // immutable.is since either could be undefined
         //console.log "setting this.value_server[#{k}] =", v.new_val?.toJS()
         this.value_server = this.value_server.set(k, v.new_val);
@@ -666,19 +592,15 @@ class SyncTable extends EventEmitter {
     }
   }
 
-  // Handle an update of all records from the database.  This happens on
-  // initialization, and also if we disconnect and reconnect.
-  _update_all(v) {
+  // Handle an update of all records from the database.
+  // This happens on initialization, and also if we
+  // disconnect and reconnect.
+  private update_all(v: any[]): void {
     let changed_keys, first_connect;
-    const dbg = this.dbg("_update_all");
+    const dbg = this.dbg("update_all");
 
     if (this.state === "closed") {
       // nothing to do -- just ignore updates from db
-      return;
-    }
-
-    if (v == null) {
-      console.warn(`_update_all('${this.table}') called with v=undefined`);
       return;
     }
 
@@ -700,7 +622,7 @@ class SyncTable extends EventEmitter {
       dbg(
         "easy case -- nothing has been initialized yet, so just set everything."
       );
-      this.value_local = this.value_server = immutable.fromJS(x);
+      this.value_local = this.value_server = fromJS(x);
       first_connect = true;
       changed_keys = keys(x); // of course all keys have been changed.
     } else {
@@ -758,7 +680,7 @@ class SyncTable extends EventEmitter {
       for (let key in x) {
         const val = x[key];
         if (this.value_local.get(key) == null) {
-          this.value_local = this.value_local.set(key, immutable.fromJS(val));
+          this.value_local = this.value_local.set(key, fromJS(val));
           changed_keys.push(key);
         }
       }
@@ -769,20 +691,20 @@ class SyncTable extends EventEmitter {
     // also inform listeners of which records changed (by giving keys).
     //console.log("update_all: changed_keys=", changed_keys)
     if (changed_keys.length !== 0) {
-      this.value_server = immutable.fromJS(x);
+      this.value_server = fromJS(x);
       this.emit_change(changed_keys);
     } else if (first_connect) {
       // First connection and table is empty.
       this.emit_change(changed_keys);
     }
     if (conflict) {
-      return this.save();
+      this.save();
     }
   }
 
-  // Apply one incoming change from the database to the in-memory
-  // local synchronized table
-  _update_change(change) {
+  // Apply one incoming change from the database to the
+  // in-memory local synchronized table.
+  private update_change(change): void {
     //console.log("_update_change", change)
     if (this.state === "closed") {
       // We might get a few more updates even after
@@ -805,6 +727,7 @@ class SyncTable extends EventEmitter {
       );
       return;
     }
+
     if (DEBUG) {
       console.log(`_update_change('${this.table}'): ${misc.to_json(change)}`);
     }
@@ -833,7 +756,7 @@ class SyncTable extends EventEmitter {
       //console.log("_update_change: change")
       this.emit_change(changed_keys);
       if (conflict) {
-        return this.save();
+        this.save();
       }
     }
   }
@@ -847,7 +770,7 @@ class SyncTable extends EventEmitter {
     if (key == null) {
       return false;
     }
-    const new_val = immutable.fromJS(val);
+    const new_val = fromJS(val);
     let local_val = this.value_local.get(key);
     let conflict = false;
     if (!new_val.equals(local_val)) {
@@ -864,7 +787,7 @@ class SyncTable extends EventEmitter {
         // We can compute the patch, since we know the
         // last server value.
         new_val.map((v, k) => {
-          if (!immutable.is(v, server != null ? server.get(k) : undefined)) {
+          if (!immutable_is(v, server != null ? server.get(k) : undefined)) {
             return (local_val = local_val.set(k, v));
           }
         });
@@ -936,14 +859,14 @@ class SyncTable extends EventEmitter {
   ): Promise<void> {
     this.assert_not_closed();
 
-    if (!immutable.Map.isMap(changes)) {
-      changes = immutable.fromJS(changes);
+    if (!Map.isMap(changes)) {
+      changes = fromJS(changes);
     }
     if (this.value_local == null) {
-      this.value_local = immutable.Map({});
+      this.value_local = Map({});
     }
 
-    if (!immutable.Map.isMap(changes)) {
+    if (!Map.isMap(changes)) {
       throw Error(
         "type error -- changes must be an immutable.js Map or JS map"
       );
@@ -1032,7 +955,7 @@ class SyncTable extends EventEmitter {
     }
     // If something changed, then change in our local store,
     // and also kick off a save to the backend.
-    if (!immutable.is(new_val, cur)) {
+    if (!immutable_is(new_val, cur)) {
       this.value_local = this.value_local.set(id, new_val);
       this.save();
       // CRITICAL: other code assumes the key is *NOT*
