@@ -977,8 +977,12 @@ exports.parse_user_search = function(query) {
   if (typeof query !== "string") {
     return r;
   }
-  const queries = Array.from(query.split(/,|;/)).map(q =>
-    q.trim().toLowerCase()
+  const queries = Array.from(
+    query
+      .split("\n")
+      .map(q1 => q1.split(/,|;/))
+      .reduce((acc, val) => acc.concat(val), []) // flatten
+      .map(q => q.trim().toLowerCase())
   );
   const email_re = /<(.*)>/;
   for (let x of Array.from(queries)) {
