@@ -5,7 +5,6 @@ import { callback } from "awaiting";
 export class Changefeed extends EventEmitter {
   private query: any;
   private do_query : Function;
-  private query_function: Function;
   private query_cancel: Function;
   private state: string = "new";
   private table: string;

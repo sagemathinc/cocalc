@@ -101,8 +101,6 @@ import { callback, delay } from "awaiting";
 const misc = require("../../misc");
 const schema = require("../../schema");
 
-const { defaults, required } = misc;
-
 function is_fatal(err): boolean {
   return (
     typeof err === "string" &&
@@ -155,7 +153,6 @@ class SyncTable extends EventEmitter {
   private primary_keys: string[];
   private options: any;
   private client: any;
-  private debounce_interval: number;
   private throttle_changes?: number;
 
   // The value of this query locally.
@@ -168,11 +165,9 @@ class SyncTable extends EventEmitter {
   // Not connected yet
   // disconnected <--> connected --> closed
   private state: string = "disconnected";
-  private extra_debug: string;
   private plug: Plug;
   private table: string;
   private schema: any;
-  private obj_to_key: Function;
   private emit_change: Function;
   public reference_count: number = 0;
   public cache_key: string | undefined;
@@ -182,11 +177,10 @@ class SyncTable extends EventEmitter {
   // Which fields *must* be included in any set query.
   // Also updated during init.
   private required_set_fields: { [key: string]: boolean } = {};
-  private anonymous: boolean;
 
   private is_saving: boolean = false;
 
-  constructor(query, options, client, debounce_interval, throttle_changes) {
+  constructor(query, options, client, throttle_changes) {
     super();
 
     if (misc.is_array(query)) {
@@ -197,7 +191,6 @@ class SyncTable extends EventEmitter {
     this.query = parse_query(query);
     this.options = options;
     this.client = client;
-    this.debounce_interval = debounce_interval;
     this.throttle_changes = throttle_changes;
 
     this.init_query();
@@ -274,8 +267,8 @@ class SyncTable extends EventEmitter {
     };
   }
 
-  private dbg(f): Function {
-    // return this.client.dbg(`SyncTable('${this.table}').${f}`)
+  private dbg(_?: string): Function {
+    // return this.client.dbg(`SyncTable('${this.table}').${_}`)
     return () => {};
   }
 
@@ -359,10 +352,10 @@ class SyncTable extends EventEmitter {
     this.disconnected("reconnect called");
   }
 
-  public key(obj): string {
+  public obj_to_key(_): string | undefined {
     // Return string key used in the immutable map in
     // which this table is stored.
-    throw Error("this.key must be set during initialization");
+    throw Error("this.obj_to_key must be set during initialization");
   }
 
   // Return true if there are changes to this synctable that
@@ -505,9 +498,6 @@ class SyncTable extends EventEmitter {
         }
       }
     }
-
-    // Is anonymous access to this table allowed?
-    this.anonymous = !!this.schema.anonymous;
   }
 
   // Return map from keys that have changed along with how
@@ -697,7 +687,10 @@ class SyncTable extends EventEmitter {
     // to the corresponding record.
     const x = {};
     for (let y of v) {
-      x[this.key(y)] = y;
+      let key = this.obj_to_key(y);
+      if (key != null) {
+        x[key] = y;
+      }
     }
 
     let conflict = false;
@@ -720,7 +713,7 @@ class SyncTable extends EventEmitter {
       // what we just got from DB), make that change.
       // (Later we will possibly merge in the change
       // using the last known upstream database state.)
-      this.value_local.map((local, key: string) => {
+      this.value_local.map((_, key: string) => {
         if (this.value_local == null || this.value_server == null) {
           // to satisfy typescript.
           return;
@@ -824,13 +817,15 @@ class SyncTable extends EventEmitter {
 
     if (
       change.old_val != null &&
-      this.key(change.old_val) !== this.key(change.new_val)
+      this.obj_to_key(change.old_val) !== this.obj_to_key(change.new_val)
     ) {
       // Delete a record (TODO: untested)
-      const key = this.key(change.old_val);
-      this.value_local = this.value_local.delete(key);
-      this.value_server = this.value_server.delete(key);
-      changed_keys.push(key);
+      const key = this.obj_to_key(change.old_val);
+      if (key != null) {
+        this.value_local = this.value_local.delete(key);
+        this.value_server = this.value_server.delete(key);
+        changed_keys.push(key);
+      }
     }
 
     //console.log("update_change: changed_keys=", changed_keys)
@@ -848,7 +843,10 @@ class SyncTable extends EventEmitter {
       // to satisfy typescript.
       return false;
     }
-    const key = this.key(val);
+    const key = this.obj_to_key(val);
+    if (key == null) {
+      return false;
+    }
     const new_val = immutable.fromJS(val);
     let local_val = this.value_local.get(key);
     let conflict = false;
@@ -872,7 +870,7 @@ class SyncTable extends EventEmitter {
         });
         //console.log("#{this.table}: set #{k} to #{v}")
         if (server != null) {
-          server.map((v, k) => {
+          server.map((_, k) => {
             if (!new_val.has(k)) {
               return (local_val = local_val.delete(k));
             }
@@ -960,14 +958,14 @@ class SyncTable extends EventEmitter {
       throw Error(`users may not set ${this.table}`);
     }
     const can_set = this.client_query.set.fields;
-    changes.map((v, k) => {
+    changes.map((_, k) => {
       if (can_set[k] === undefined) {
         throw Error(`users may not set ${this.table}.${k}`);
       }
     });
 
     // Determine the primary key's value
-    let id: string | undefined = this.key(changes);
+    let id: string | undefined = this.obj_to_key(changes);
     if (id == null) {
       // attempt to compute primary key if it is a computed primary key
       let id0 = this.computed_primary_key(changes);
@@ -1004,10 +1002,11 @@ class SyncTable extends EventEmitter {
     let new_val;
 
     if (cur == null) {
-      // No record with the given primary key.  Require that all the this.required_set_fields
-      // are specified, or it will become impossible to sync this table to the backend.
+      // No record with the given primary key.  Require that
+      // all the this.required_set_fields are specified, or
+      // it will become impossible to sync this table to
+      // the backend.
       for (let k in this.required_set_fields) {
-        const _ = this.required_set_fields[k];
         if (changes.get(k) == null) {
           throw Error(`must specify field '${k}' for new records`);
         }
@@ -1141,24 +1140,16 @@ export function synctable(
   query,
   options,
   client,
-  debounce_interval = 2000,
   throttle_changes = undefined,
   use_cache = true
 ): SyncTable {
   if (!use_cache) {
-    return new SyncTable(
-      query,
-      options,
-      client,
-      debounce_interval,
-      throttle_changes
-    );
+    return new SyncTable(query, options, client, throttle_changes);
   }
 
   const cache_key = json_stable_stringify({
     query,
     options,
-    debounce_interval,
     throttle_changes
   });
   let S: SyncTable | undefined = synctables[cache_key];
@@ -1172,7 +1163,6 @@ export function synctable(
       query,
       options,
       client,
-      debounce_interval,
       throttle_changes
     );
     S.cache_key = cache_key;

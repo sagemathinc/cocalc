@@ -12,7 +12,6 @@ export function parse_query(query) {
     // name of a table -- get all fields
     const v = misc.copy(schema.SCHEMA[query].user_query.get.fields);
     for (let k in v) {
-      const _ = v[k];
       v[k] = null;
     }
     return { [query]: [v] };
@@ -22,7 +21,6 @@ export function parse_query(query) {
       throw Error("must specify exactly one table");
     }
     const table = keys[0];
-    const x = {};
     if (!misc.is_array(query[table])) {
       return { [table]: [query[table]] };
     } else {
