@@ -23,7 +23,7 @@ const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
 const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
-import { TKernel } from "./util";
+import { TKernel, Kernels } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
@@ -40,6 +40,7 @@ interface JupyterEditorProps {
   name: string; // TODO: is this correct?
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
+  kernels?: Kernels;
   site_name: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
@@ -92,6 +93,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       [name]: {
         view_mode: rtypes.oneOf(["normal", "json", "raw"]),
         kernel: rtypes.string, // string name of the kernel
+        kernels: rtypes.immutable.List,
         error: rtypes.string,
         fatal: rtypes.string, // *FATAL* error; user must edit file to fix.
         toolbar: rtypes.bool,
@@ -200,7 +202,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     if (
       this.props.cell_list == null ||
       this.props.font_size == null ||
-      this.props.cm_options == null
+      this.props.cm_options == null ||
+      this.props.kernels == null
     ) {
       return (
         <Loading

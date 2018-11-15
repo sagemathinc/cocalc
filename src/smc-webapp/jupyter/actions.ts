@@ -393,6 +393,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       await this.fetch_jupyter_kernels();
     }
     this.update_select_kernel_data();
+    this.check_select_kernel();
   };
 
   set_error = (err: any): void => {
@@ -917,23 +918,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "init") {
         this._state = "ready";
       }
+      this.check_select_kernel();
 
-      const kernel = this.store.get("kernel");
-      const no_kernel = kernel == null;
-      let unknown_kernel = false;
-      if (!no_kernel)
-        unknown_kernel = this.store.get_kernel_info(kernel) == null;
-      if (no_kernel || unknown_kernel) {
-        this.show_select_kernel("bad kernel");
-      } else {
-        // we got a kernel, close dialog if not requested by user
-        if (
-          this.store.get("show_kernel_selector") &&
-          this.store.get("show_kernel_selector_reason") === "bad kernel"
-        ) {
-          this.hide_select_kernel();
-        }
-      }
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();
       }
@@ -3189,6 +3175,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.file_open();
     // Close the file
     this.file_action("close_file");
+  };
+
+  check_select_kernel = (): void => {
+    const kernel = this.store.get("kernel");
+    const no_kernel = kernel == null;
+    let unknown_kernel = false;
+    if (!no_kernel && this.store.get("kernels") != null)
+      unknown_kernel = this.store.get_kernel_info(kernel) == null;
+    if (no_kernel || unknown_kernel) {
+      this.show_select_kernel("bad kernel");
+    } else {
+      // we got a kernel, close dialog if not requested by user
+      if (
+        this.store.get("show_kernel_selector") &&
+        this.store.get("show_kernel_selector_reason") === "bad kernel"
+      ) {
+        this.hide_select_kernel();
+      }
+    }
   };
 
   update_select_kernel_data = (): void => {

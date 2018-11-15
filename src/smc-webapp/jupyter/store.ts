@@ -38,7 +38,7 @@ export interface JupyterStoreState {
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
   kernel?: string;
-  kernels: any;
+  kernels?: Kernels;
   kernel_info?: any;
   max_output_length: number;
   metadata: any;
