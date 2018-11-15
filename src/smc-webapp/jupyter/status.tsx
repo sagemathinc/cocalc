@@ -160,7 +160,7 @@ class Kernel0 extends Component<KernelProps> {
       return (
         <span
           style={KERNEL_NAME_STYLE}
-          onClick={() => this.props.actions.show_select_kernel()}
+          onClick={() => this.props.actions.show_select_kernel("user request")}
         >
           {display_name != null ? display_name : "No Kernel"}
         </span>

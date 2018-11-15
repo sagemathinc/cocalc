@@ -274,7 +274,7 @@ export class KernelSelector extends Component<
     } else {
       return (
         <Row style={row_style}>
-          <strong>Select a new kernel.</strong> Your currently selected one is{" "}
+          <strong>Select a new kernel.</strong> Currently selected:{" "}
           {this.render_kernel_button(this.props.kernel, "small")}.
         </Row>
       );

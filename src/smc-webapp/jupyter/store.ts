@@ -21,6 +21,8 @@ import { Kernels, TKernel } from "./util";
 // copy/paste between different notebooks works.
 let global_clipboard: any = undefined;
 
+export type show_kernel_selector_reasons = "bad kernel" | "user request";
+
 export interface JupyterStoreState {
   nbconvert_dialog: any;
   cell_toolbar: string;
@@ -35,7 +37,7 @@ export interface JupyterStoreState {
   fatal: string;
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
-  kernel: any | string;
+  kernel?: string;
   kernels: any;
   kernel_info?: any;
   max_output_length: number;
@@ -65,6 +67,7 @@ export interface JupyterStoreState {
   insert_image: any;
   scroll: any;
   show_kernel_selector: boolean;
+  show_kernel_selector_reason?: show_kernel_selector_reasons;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
   kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
@@ -170,7 +173,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   };
 
-  get_kernel_info = (kernel: any) => {
+  get_kernel_info = (kernel: any): any | undefined => {
     // slow/inefficient, but ok since this is rarely called
     let info: any = undefined;
     const kernels = this.get("kernels");

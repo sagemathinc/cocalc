@@ -35,7 +35,11 @@ import * as awaiting from "awaiting";
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
 import { Actions } from "../app-framework";
-import { JupyterStoreState, JupyterStore } from "./store";
+import {
+  JupyterStoreState,
+  JupyterStore,
+  show_kernel_selector_reasons
+} from "./store";
 const util = require("./util");
 const parsing = require("./parsing");
 const keyboard = require("./keyboard");
@@ -915,12 +919,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
 
       const kernel = this.store.get("kernel");
-      const no_kernel: boolean = kernel == null;
-      let unknown_kernel: boolean = false;
+      const no_kernel = kernel == null;
+      let unknown_kernel = false;
       if (!no_kernel)
         unknown_kernel = this.store.get_kernel_info(kernel) == null;
       if (no_kernel || unknown_kernel) {
-        this.show_select_kernel();
+        this.show_select_kernel("bad kernel");
+      } else {
+        // we got a kernel, close dialog if not requested by user
+        if (
+          this.store.get("show_kernel_selector") &&
+          this.store.get("show_kernel_selector_reason") === "bad kernel"
+        ) {
+          this.hide_select_kernel();
+        }
       }
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();
@@ -931,7 +943,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   _syncdb_init_kernel = (): void => {
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      if (!this._is_project) this.show_select_kernel();
+      if (!this._is_project) this.show_select_kernel("bad kernel");
     } else {
       // Opening an existing notebook
       const default_kernel = this.store.get_default_kernel();
@@ -3206,17 +3218,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  show_select_kernel = (): void => {
+  show_select_kernel = (reason: show_kernel_selector_reasons): void => {
     this.update_select_kernel_data();
     // we might not have the "kernels" data yet (but we will, once fetching it is complete)
     // the select dialog will show a loading spinner
     this.setState({
+      show_kernel_selector_reason: reason,
       show_kernel_selector: true
     });
   };
 
   hide_select_kernel = (): void => {
     this.setState({
+      show_kernel_selector_reason: undefined,
       show_kernel_selector: false,
       kernel_selection: undefined,
       kernels_by_name: undefined
