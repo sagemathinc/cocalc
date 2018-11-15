@@ -9,7 +9,7 @@ const { webapp_client } = require("../webapp_client");
 const { ProjectSettingsPanel } = require("../project/project-settings-support");
 const {
   callback_opts
-} = require("smc-webapp/frame-editors/generic/async-utils");
+} = require("smc-util/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";

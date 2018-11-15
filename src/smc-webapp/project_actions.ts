@@ -10,7 +10,7 @@ import { to_user_string } from "./frame-editors/generic/misc";
 
 import { query as client_query } from "./frame-editors/generic/client";
 
-import { callback_opts } from "./frame-editors/generic/async-utils";
+import { callback_opts } from "smc-util/async-utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {

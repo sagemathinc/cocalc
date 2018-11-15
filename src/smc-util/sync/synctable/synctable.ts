@@ -83,7 +83,8 @@ hasn't changed anything in that same record.
 
 */
 
-// if true, will log to the console a huge amount of info about every get/set
+// if true, will log to the console a huge amount of
+// info about every get/set
 let DEBUG: boolean = true;
 
 export function set_debug(x: boolean): void {
