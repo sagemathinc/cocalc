@@ -36,3 +36,13 @@ export async function callback2(f: Function, opts: any): Promise<any> {
   }
   return await callback(g);
 }
+
+import * as json_stable_stringify from "json-stable-stringify";
+export function to_key(x: string[] | string | undefined): string | undefined {
+  if (typeof x === "object") {
+    return json_stable_stringify(x);
+  } else {
+    return x;
+  }
+}
+

@@ -8,12 +8,14 @@ export function set_debug(x: boolean): void {
   DEBUG = x;
 }
 
+import { global_cache_decref } from "./global-cache";
+
 import { EventEmitter } from "events";
 import { Map, fromJS, is as immutable_is, Iterable } from "immutable";
 
 import { keys, throttle } from "underscore";
 
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
 
 const misc = require("../../misc");
 const schema = require("../../schema");
@@ -26,25 +28,15 @@ function is_fatal(err): boolean {
   );
 }
 
-import * as json_stable_stringify from "json-stable-stringify";
-
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { Plug } from "./plug";
 import { Changefeed } from "./changefeed-master";
-import { parse_query, callback2 } from "./util";
-
-function to_key(x: string[] | string | undefined): string | undefined {
-  if (typeof x === "object") {
-    return json_stable_stringify(x);
-  } else {
-    return x;
-  }
-}
+import { parse_query, callback2, to_key } from "./util";
 
 type State = "disconnected" | "connected" | "closed";
 
-class SyncTable extends EventEmitter {
+export class SyncTable extends EventEmitter {
   private changefeed?: Changefeed;
   private query: any;
   private client_query: any;
@@ -454,9 +446,12 @@ class SyncTable extends EventEmitter {
     if (this.is_saving) {
       throw Error("already saving");
     }
-    this.is_saving = true;
-    await this._save();
-    this.is_saving = false;
+    try {
+      this.is_saving = true;
+      await this._save();
+    } finally {
+      this.is_saving = false;
+    }
   }
 
   private async _save(): Promise<void> {
@@ -1051,65 +1046,4 @@ class SyncTable extends EventEmitter {
 
     return await callback(wait);
   }
-}
-
-const synctables = {};
-
-// for debugging; in particular, verify that synctables are freed.
-// Do not leave in production; could be slight security risk.
-//# window?.synctables = synctables
-
-export function synctable(
-  query,
-  options,
-  client,
-  throttle_changes = undefined,
-  use_cache = true
-): SyncTable {
-  if (!use_cache) {
-    return new SyncTable(query, options, client, throttle_changes);
-  }
-
-  const cache_key = json_stable_stringify({
-    query,
-    options,
-    throttle_changes
-  });
-  let S: SyncTable | undefined = synctables[cache_key];
-  if (S != null) {
-    if (S.get_state() === "connected") {
-      // same behavior as newly created synctable
-      emit_connected_in_next_tick(S);
-    }
-  } else {
-    S = synctables[cache_key] = new SyncTable(
-      query,
-      options,
-      client,
-      throttle_changes
-    );
-    S.cache_key = cache_key;
-  }
-  S.reference_count += 1;
-  return S;
-}
-
-async function emit_connected_in_next_tick(S: SyncTable): Promise<void> {
-  await delay(0);
-  if (S.get_state() === "connected") {
-    S.emit("connected");
-  }
-}
-
-function global_cache_decref(S: SyncTable): boolean {
-  if (S.reference_count && S.cache_key !== undefined) {
-    S.reference_count -= 1;
-    if (S.reference_count <= 0) {
-      delete synctables[S.cache_key];
-      return false; // not in use
-    } else {
-      return true; // still in use
-    }
-  }
-  return false;
 }
