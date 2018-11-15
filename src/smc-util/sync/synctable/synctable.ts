@@ -17,6 +17,8 @@ import { keys, throttle } from "underscore";
 
 import { callback } from "awaiting";
 
+import { query_function } from "./query-function";
+
 const misc = require("../../misc");
 const schema = require("../../schema");
 
@@ -31,7 +33,7 @@ function is_fatal(err): boolean {
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { Plug } from "./plug";
-import { Changefeed } from "./changefeed-master";
+import { Changefeed } from "./changefeed";
 import { parse_query, callback2, to_key } from "./util";
 
 type State = "disconnected" | "connected" | "closed";
@@ -41,7 +43,7 @@ export class SyncTable extends EventEmitter {
   private query: any;
   private client_query: any;
   private primary_keys: string[];
-  private options: any;
+  private options: any[];
   private client: any;
   private throttle_changes?: number;
 
@@ -54,7 +56,7 @@ export class SyncTable extends EventEmitter {
 
   // Not connected yet
   // disconnected <--> connected --> closed
-  private state: State = "disconnected";
+  private state: State;
   private plug: Plug;
   private table: string;
   private schema: any;
@@ -70,12 +72,14 @@ export class SyncTable extends EventEmitter {
 
   private is_saving: boolean = false;
 
-  constructor(query, options, client, throttle_changes) {
+  constructor(query, options: any[], client, throttle_changes?: number) {
     super();
 
     if (misc.is_array(query)) {
       throw Error("must be a single query, not array of queries");
     }
+
+    this.set_state("disconnected");
 
     this.changefeed_on_update = this.changefeed_on_update.bind(this);
     this.changefeed_on_close = this.changefeed_on_close.bind(this);
@@ -91,10 +95,26 @@ export class SyncTable extends EventEmitter {
     this.init_throttle_changes();
 
     this.save = reuseInFlight(this.save.bind(this));
+
+    this.first_connect();
+  }
+
+  async first_connect(): Promise<void> {
+    try {
+      await this.connect();
+    } catch (err) {
+      console.warn("failed to connect -- ", err);
+      this.close(true);
+    }
   }
 
   public get_state(): string {
     return this.state;
+  }
+
+  private set_state(state: State): void {
+    this.state = state;
+    this.emit("state", state);
   }
 
   private init_plug(): void {
@@ -180,7 +200,7 @@ export class SyncTable extends EventEmitter {
 
     // 2. Now actually setup the changefeed.
     await this.create_changefeed();
-    this.state = "connected";
+    this.set_state("connected");
   }
 
   private async create_changefeed(): Promise<void> {
@@ -189,12 +209,7 @@ export class SyncTable extends EventEmitter {
       dbg("closed so don't do anything ever again");
       return;
     }
-    let initval: any;
-    if (this.schema.db_standby && !this.client.is_project()) {
-      initval = await this.create_changefeed_using_db_standby();
-    } else {
-      initval = await this.create_changefeed_using_db_master();
-    }
+    const initval = await this.create_changefeed_connection();
     this.init_changefeed_handlers();
     this.update_all(initval);
   }
@@ -206,7 +221,7 @@ export class SyncTable extends EventEmitter {
     delete this.changefeed;
   }
 
-  private async create_changefeed_using_db_master(): Promise<any> {
+  private async create_changefeed_connection(): Promise<any[]> {
     // For tables where always being perfectly 100% up to date is
     // critical, which is many of them (e.g., patches, projects).
     this.close_changefeed();
@@ -216,7 +231,7 @@ export class SyncTable extends EventEmitter {
 
   private changefeed_options() {
     return {
-      do_query: this.client.query,
+      do_query: query_function(this.client.query, this.table),
       query_cancel: this.client.query_cancel,
       options: this.options,
       query: this.query,
@@ -244,16 +259,6 @@ export class SyncTable extends EventEmitter {
     this.create_changefeed();
   }
 
-  // TODO -- write this
-  private async create_changefeed_using_db_standby(): Promise<void> {
-    // For tables where always being perfectly 100% up to date is NOT
-    // critical, so we can afford to have the initial query be behind
-    // by a few ms.  E.g., list of all my collaborators.
-    this.close_changefeed();
-    this.changefeed = new Changefeed(this.changefeed_options());
-    await this.changefeed.connect();
-  }
-
   private disconnected(why: string): void {
     const dbg = this.dbg("_disconnected");
     dbg(`why=${why}`);
@@ -261,7 +266,7 @@ export class SyncTable extends EventEmitter {
       dbg("already disconnected");
       return;
     }
-    this.state = "disconnected";
+    this.set_state("disconnected");
     this.plug.connect(); // start trying to connect again
   }
 
@@ -993,8 +998,8 @@ export class SyncTable extends EventEmitter {
     // do anything!!  That finality assumption is made
     // elsewhere (e.g in smc-project/client.coffee)
     this.close_changefeed();
+    this.set_state("closed");
     this.removeAllListeners();
-    this.state = "closed";
     delete this.value_local;
     delete this.value_server;
   }

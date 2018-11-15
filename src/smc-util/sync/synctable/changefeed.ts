@@ -50,6 +50,7 @@ export class Changefeed extends EventEmitter {
     return resp.query[this.table];
   }
 
+  // This is overloaded in the ChangefeedStandby derived class.
   private run_the_query(cb: Function): void {
     // This query_function gets called first on the
     // initial query, then repeatedly with each changefeed

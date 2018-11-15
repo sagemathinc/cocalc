@@ -2,15 +2,21 @@
 
 import { callback } from "awaiting";
 
-const misc = require('smc-util/misc');
-const schema = require('smc-util/schema');
+const misc = require("smc-util/misc");
+const schema = require("smc-util/schema");
 
 // Parse query description to allow for some convenient shortcuts
 // TODO: document them here!
 export function parse_query(query) {
   if (typeof query === "string") {
     // name of a table -- get all fields
-    const v = misc.copy(schema.SCHEMA[query].user_query.get.fields);
+    const s = schema.SCHEMA[query];
+    if (s == null) throw Error(`no schemea for query ${query}`);
+    if (s.user_query == null)
+      throw Error(`user_query not defined for query ${query}`);
+    if (s.user_query.get == null)
+      throw Error(`user_query.get not defined for query ${query}`);
+    const v = misc.copy(s.user_query.get.fields);
     for (let k in v) {
       v[k] = null;
     }
@@ -45,4 +51,3 @@ export function to_key(x: string[] | string | undefined): string | undefined {
     return x;
   }
 }
-
