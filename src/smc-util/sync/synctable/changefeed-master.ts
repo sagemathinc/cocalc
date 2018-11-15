@@ -3,16 +3,19 @@ import { EventEmitter } from "events";
 import { callback } from "awaiting";
 
 export class Changefeed extends EventEmitter {
+  private query: any;
+  private do_query : Function;
   private query_function: Function;
   private query_cancel: Function;
   private state: string = "new";
   private table: string;
   private id: string;
+  private options: any;
 
-  constructor({ do_query, cancel_query, options, query, table }) {
+  constructor({ do_query, query_cancel, options, query, table }) {
     super();
     this.do_query = do_query;
-    this.cancel_query = cancel_query;
+    this.query_cancel = query_cancel;
     this.query = query;
     this.options = options;
     this.table = table;
@@ -23,7 +26,7 @@ export class Changefeed extends EventEmitter {
   // of the table.  Throws an exception if anything
   // goes wrong.
   async init(): Promise<any> {
-    const resp = await callback(this.do_query);
+    const resp = await callback(this.run_the_query);
     if (this.state === "closed") {
       throw Error("closed");
     }
@@ -39,7 +42,7 @@ export class Changefeed extends EventEmitter {
     return resp.query[this.table];
   }
 
-  private do_query(cb: Function): void {
+  private run_the_query(cb: Function): void {
     // This query_function gets called first on the
     // initial query, then repeatedly with each changefeed
     // update. The input function "cb" will be called

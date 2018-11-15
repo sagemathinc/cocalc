@@ -326,7 +326,7 @@ class SyncTable extends EventEmitter {
   private changefeed_options() {
     return {
       do_query: this.client.query,
-      cancel_query: this.client.query_cancel,
+      query_cancel: this.client.query_cancel,
       options: this.options,
       query: this.query,
       table: this.table
@@ -1137,7 +1137,7 @@ const synctables = {};
 // Do not leave in production; could be slight security risk.
 //# window?.synctables = synctables
 
-export function sync_table(
+export function synctable(
   query,
   options,
   client,

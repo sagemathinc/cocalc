@@ -72,7 +72,7 @@ export class Plug {
 
   // Keep trying until we connect - always succeeds if
   // it terminates.
-  connect(): Promise<void> {
+  async connect(): Promise<void> {
     const dbg = this.dbg("connect");
     if (this.state === "closed") {
       dbg("closed");
@@ -115,10 +115,6 @@ export class Plug {
           return;
         }
       }
-      if (give_up_timer) {
-        this.opts.client.removeListener(event, do_connect);
-        clearTimeout(give_up_timer);
-      }
       try {
         await callback(this.opts.connect);
       } catch (err) {
@@ -136,7 +132,7 @@ export class Plug {
     } else {
       event = "signed_in";
     }
-    
+
     function f(cb) {
       this.opts.client.once(event, () => cb());
     }

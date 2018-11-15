@@ -2,6 +2,9 @@
 
 import { callback } from "awaiting";
 
+const misc = require('smc-util/misc');
+const schema = require('smc-util/schema');
+
 // Parse query description to allow for some convenient shortcuts
 // TODO: document them here!
 export function parse_query(query) {
@@ -28,7 +31,7 @@ export function parse_query(query) {
   }
 }
 
-export function callback2(f: Function, opts: any): Promise<any> {
+export async function callback2(f: Function, opts: any): Promise<any> {
   function g(cb): void {
     opts.cb = cb;
     f(opts);
