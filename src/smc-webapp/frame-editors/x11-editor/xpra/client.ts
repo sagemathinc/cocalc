@@ -69,7 +69,8 @@ export class Client {
   private audioCodecs = { codecs: [] };
   private ping_interval: number = 0;
 
-  private layout : string = '';
+  private layout: string = "";
+  private variant: string = "";
 
   public send: Function;
   public console: {
@@ -177,6 +178,7 @@ export class Client {
   // Opens connection
   public connect(cfg): void {
     cfg.xkbmap_layout = this.layout;
+    cfg.xkbmap_variant = this.variant;
     this.config = createConfiguration({}, cfg);
     this.disconnect();
     this.connecting = true;
@@ -184,17 +186,23 @@ export class Client {
     this.connection.open(this.config);
   }
 
-  public set_physical_keyboard(layout: string): void {
+  public set_physical_keyboard(layout: string, variant: string): void {
     if (!layout || layout === "default") {
       layout = keyboardLayout(); // really dumb heuristic
     }
-    if (this.layout === layout) {
+    if (!variant) {
+      variant = "";
+    }
+    if (this.layout === layout && this.variant === variant) {
       return;
     }
+
     this.layout = layout;
+    this.variant = variant;
+
     if (this.connected) {
-      console.log("sending layout", layout);
-      this.send("layout-changed", layout, "");
+      //console.log("layout-changed", layout, variant);
+      this.send("layout-changed", layout, variant);
     }
   }
 
@@ -562,8 +570,13 @@ export class Client {
       this.connecting = false;
 
       if (this.layout) {
-        // ensure layout is set.
-        this.send("layout-changed", this.layout, "");
+        // ensure layout and variant are set.
+        this.send(
+          "layout-changed",
+          this.layout,
+          this.variant ? this.variant : ""
+        );
+        // console.log("x11 startup-complete layout-changed:", this.layout, this.variant);
       }
 
       this.console.info("Xpra Client connected");

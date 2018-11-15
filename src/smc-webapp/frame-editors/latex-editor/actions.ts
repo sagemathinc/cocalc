@@ -2,7 +2,8 @@
 LaTeX Editor Actions.
 */
 
-const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
+const HELP_URL = "https://doc.cocalc.com/latex.html";
+
 const VIEWERS: ReadonlyArray<string> = [
   "pdfjs_canvas",
   "pdfjs_svg",
@@ -725,7 +726,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   help(): void {
     // TODO: call version that deals with popup blockers...
-    const w = window.open(WIKI_HELP_URL, "_blank");
+    const w = window.open(HELP_URL, "_blank");
     if (w) {
       w.focus();
     }
