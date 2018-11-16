@@ -86,7 +86,7 @@ export class Store<State> extends EventEmitter {
 
   destroy = (): void => {
     this.redux.removeStore(this.name);
-  }
+  };
 
   getState(): TypedMap<State> {
     return this.redux._redux_store.getState().get(this.name);
@@ -139,7 +139,7 @@ export class Store<State> extends EventEmitter {
   // wait: for the store to change to a specific state, and when that
   // happens call the given callback.
   wait<T>(opts: {
-    until: (store: Store<State>) => T;
+    until: (store: any) => T; // until?: (store: this) => T // This doesn't work for some reason. It would work if it was a normal positional argument though.
     cb: (err?: string, result?: T) => any;
     throttle_ms?: number;
     timeout?: number;
