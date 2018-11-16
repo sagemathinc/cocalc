@@ -12,6 +12,8 @@ import { Actions } from "./actions";
 
 import { TAB_BAR_GREY, TAB_BAR_BLUE } from "./theme";
 
+import { delay } from "awaiting";
+
 interface Props {
   id: string;
   info: Map<string, any>;
@@ -44,9 +46,7 @@ export class WindowTab extends Component<Props, {}> {
 
   render_close_button(): Rendered {
     const color = this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE;
-    const backgroundColor = this.props.is_current
-      ? TAB_BAR_BLUE
-      : TAB_BAR_GREY;
+    const backgroundColor = this.props.is_current ? TAB_BAR_BLUE : TAB_BAR_GREY;
     return (
       <div
         style={{
@@ -56,12 +56,18 @@ export class WindowTab extends Component<Props, {}> {
           position: "relative",
           padding: "0 5px"
         }}
-        onClick={evt => {
-          this.props.actions.close_window(
-            this.props.id,
-            this.props.info.get("wid")
-          );
+        onClick={async evt => {
+          const wid = this.props.info.get("wid");
+          this.props.actions.close_window(this.props.id, wid);
           evt.stopPropagation();
+
+          // focus this frame in the next event loop.
+          await delay(0);
+          try {
+            this.props.actions.focus(this.props.id);
+          } catch (e) {
+            // ignore - already closed.
+          }
         }}
       >
         <Icon name="times" />
@@ -73,10 +79,14 @@ export class WindowTab extends Component<Props, {}> {
     return (
       <div
         onClick={evt => {
-          this.props.actions.set_window(
+          // FIRST set the active frame to the one we just clicked on!
+          this.props.actions.set_active_id(this.props.id);
+          // SECOND make this particular tab focused.
+          this.props.actions.set_focused_window_in_frame(
             this.props.id,
             this.props.info.get("wid")
           );
+          this.props.actions.client.focus();
           evt.stopPropagation();
         }}
         style={{
@@ -85,8 +95,8 @@ export class WindowTab extends Component<Props, {}> {
           overflow: "hidden",
           whiteSpace: "nowrap",
           cursor: "pointer",
-          padding: "5px 0 0 5px",
-          borderRight: "1px solid grey",
+          margin: "5px 0 5px 5px",
+          borderRight: "1px solid #aaa",
           background: this.props.is_current ? TAB_BAR_BLUE : TAB_BAR_GREY,
           color: this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE
         }}

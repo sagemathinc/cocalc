@@ -36,6 +36,8 @@ const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 import { trunc_middle } from "../generic/misc";
 
+import { ConnectionStatus } from "./types";
+
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
   border: "1px solid rgb(204,204,204)",
@@ -58,6 +60,25 @@ const TITLE_STYLE: CSS.Properties = {
   float: "right",
   whiteSpace: "nowrap"
 };
+
+const CONNECTION_STATUS_STYLE: CSS.Properties = {
+  padding: "5px 5px 0 5px",
+  fontSize: "10pt",
+  float: "right"
+};
+
+function connection_status_color(status: ConnectionStatus): string {
+  switch (status) {
+    case "disconnected":
+      return "rgb(255, 165, 0)";
+    case "connecting":
+      return "#aaa";
+    case "connected":
+      return "#666";
+    default:
+      return "#888";
+  }
+}
 
 const ICON_STYLE: CSS.Properties = {
   width: "20px",
@@ -92,26 +113,42 @@ interface Props {
   editor_spec: any;
   status: string;
   title?: string;
+  connection_status?: ConnectionStatus;
 }
 
-export class FrameTitleBar extends Component<Props, {}> {
-  shouldComponentUpdate(next): boolean {
-    return misc.is_different(this.props, next, [
-      "active_id",
-      "id",
-      "deletable",
-      "is_full",
-      "is_only",
-      "read_only",
-      "has_unsaved_changes",
-      "has_uncommitted_changes",
-      "is_public",
-      "is_saving",
-      "is_paused",
-      "type",
-      "status",
-      "title"
-    ]);
+interface State {
+  close_and_halt_confirm?: boolean;
+}
+
+export class FrameTitleBar extends Component<Props, State> {
+  constructor(props) {
+    super(props);
+    this.state = { close_and_halt_confirm: false };
+  }
+  shouldComponentUpdate(next, state): boolean {
+    return (
+      misc.is_different(
+        this.props,
+        next,
+        [
+          "active_id",
+          "id",
+          "deletable",
+          "is_full",
+          "is_only",
+          "read_only",
+          "has_unsaved_changes",
+          "has_uncommitted_changes",
+          "is_public",
+          "is_saving",
+          "is_paused",
+          "type",
+          "status",
+          "title",
+          "connection_status"
+        ]
+      ) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+    );
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
@@ -482,7 +519,7 @@ export class FrameTitleBar extends Component<Props, {}> {
         key={"paste"}
         title={"Paste buffer"}
         onClick={debounce(
-          () => this.props.actions.paste(this.props.id),
+          () => this.props.actions.paste(this.props.id, true),
           200,
           true
         )}
@@ -926,6 +963,24 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_close_and_halt(labels: boolean): Rendered {
+    if (!this.is_visible("close_and_halt")) {
+      return;
+    }
+    return (
+      <Button
+        disabled={this.state.close_and_halt_confirm}
+        bsSize={this.button_size()}
+        key={"close_and_halt"}
+        onClick={() => this.setState({ close_and_halt_confirm: true })}
+        title={"Close and halt server"}
+      >
+        <Icon name={"hand-stop-o"} />{" "}
+        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -989,6 +1044,8 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     v.push(this.render_zoom_group());
     v.push(this.render_restart());
+    v.push(this.render_close_and_halt(labels));
+
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
     v.push(this.render_pause(labels));
@@ -1038,6 +1095,28 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_connection_status(): Rendered {
+    if (
+      !this.props.connection_status ||
+      !this.is_visible("connection_status", true)
+    ) {
+      return;
+    }
+    return (
+      <span
+        style={CONNECTION_STATUS_STYLE}
+        title={this.props.connection_status}
+      >
+        <Icon
+          style={{
+            color: connection_status_color(this.props.connection_status)
+          }}
+          name={"wifi"}
+        />
+      </span>
+    );
+  }
+
   render_title(): Rendered {
     let title: string = "";
     let icon: string = "";
@@ -1065,6 +1144,51 @@ export class FrameTitleBar extends Component<Props, {}> {
         <Space />
         {trunc_middle(title, 25)}
       </span>
+    );
+  }
+
+  render_close_and_halt_confirm(): Rendered {
+    if (!this.state.close_and_halt_confirm) return;
+    return (
+      <div
+        style={{
+          padding: "5px",
+          borderBottom: "1px solid lightgrey",
+          position: "absolute",
+          width: "100%",
+          zIndex: 100,
+          background: "white",
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px"
+        }}
+      >
+        Halt the server and close this?
+        <Button
+          onClick={() => {
+            this.setState({ close_and_halt_confirm: false });
+            this.props.actions.close_and_halt(this.props.id);
+          }}
+          style={{
+            marginLeft: "20px",
+            marginRight: "5px"
+          }}
+          bsStyle="danger"
+        >
+          <Icon name={"hand-stop-o"} /> Close and Halt
+        </Button>
+        <Button
+          onClick={() => this.setState({ close_and_halt_confirm: false })}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  render_confirm_bar(): Rendered {
+    return (
+      <div style={{ position: "relative" }}>
+        {this.render_close_and_halt_confirm()}
+      </div>
     );
   }
 
@@ -1097,12 +1221,18 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
 
     return (
-      <div style={style} id={`titlebar-${this.props.id}`}>
-        {this.render_control()}
-        {this.props.title ? this.render_title() : undefined}
-        {is_active ? this.render_main_buttons() : undefined}
-        {!is_active && !this.props.title ? this.render_title() : undefined}
-      </div>
+      <>
+        <div style={style} id={`titlebar-${this.props.id}`}>
+          {this.render_control()}
+          {this.props.connection_status
+            ? this.render_connection_status()
+            : undefined}
+          {this.props.title ? this.render_title() : undefined}
+          {is_active ? this.render_main_buttons() : undefined}
+          {!is_active && !this.props.title ? this.render_title() : undefined}
+        </div>
+        {this.render_confirm_bar()}
+      </>
     );
   }
 }

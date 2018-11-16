@@ -6,9 +6,11 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
+import { to_user_string } from "./frame-editors/generic/misc";
+
 import { query as client_query } from "./frame-editors/generic/client";
 
-import { callback_opts } from "./frame-editors/generic/async-utils";
+import { callback_opts } from "smc-util/async-utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -18,10 +20,10 @@ if (typeof window !== "undefined" && window !== null) {
 }
 
 // Normalize path as in node, except '' is the home dir, not '.'.
-function normalize(path:string) : string {
+function normalize(path: string): string {
   path = os_path.normalize(path);
-  if (path === '.') {
-    return '';
+  if (path === ".") {
+    return "";
   } else {
     return path;
   }
@@ -246,7 +248,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.toggle_search_checkbox_git_grep = this.toggle_search_checkbox_git_grep.bind(
       this
     );
-    this.process_results = this.process_results.bind(this);
+    this.process_search_results = this.process_search_results.bind(this);
     this.search = this.search.bind(this);
     this.load_target = this.load_target.bind(this);
     this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
@@ -386,7 +388,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   ): void {
     let store = this.get_store();
-    if (store == undefined || (!opts.change_history && store.get("active_project_tab") === key)) {
+    if (
+      store == undefined ||
+      (!opts.change_history && store.get("active_project_tab") === key)
+    ) {
       // nothing to do
       return;
     }
@@ -2553,10 +2558,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ git_grep: !store.get("git_grep") });
   }
 
-  process_results(err, output, max_results, max_output, cmd) {
+  process_search_results(err, output, max_results, max_output, cmd) {
     let store = this.get_store();
     if (store == undefined) {
       return;
+    }
+    if (err) {
+      err = to_user_string(err);
     }
     if ((err && output == null) || (output != null && output.stdout == null)) {
       this.setState({ search_error: err });
@@ -2564,8 +2572,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const results = output.stdout.split("\n");
-    const too_many_results =
-      output.stdout.length >= max_output || results.length > max_results || err;
+    const too_many_results = !!(
+      output.stdout.length >= max_output ||
+      results.length > max_results ||
+      err
+    );
     let num_results = 0;
     const search_results: {}[] = [];
     for (let line of results) {
@@ -2685,7 +2696,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       err_on_exit: true,
       path: store.get("current_path"),
       cb: (err, output) => {
-        this.process_results(err, output, max_results, max_output, cmd);
+        this.process_search_results(err, output, max_results, max_output, cmd);
       }
     });
   }

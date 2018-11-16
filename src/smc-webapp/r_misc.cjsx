@@ -27,6 +27,15 @@ async = require('async')
 copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../webapp-lib/webapp-error-reporter')
 
+{Icon} = require('./icon')
+exports.Icon = Icon
+{Tip} = require('./tip')
+exports.Tip = Tip
+{Loading} = require('./loading')
+exports.Loading = Loading
+{Space} = require('./space')
+exports.Space = Space
+
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
 build_date  = BUILD_DATE  ? 'N/A'
@@ -115,118 +124,6 @@ exports.SetIntervalHOC = (Comp) ->
             Comp.setInterval = @setInterval
             return React.createElement(Comp, @props, @props.children)
 
-exports.Space = Space = ->
-    <span>&nbsp;</span>
-
-# Font Awesome component -- obviously TODO move to own file
-# Converted from https://github.com/andreypopp/react-fa
-exports.Icon = Icon = rclass
-    displayName : 'Icon'
-
-    propTypes :
-        name       : rtypes.string
-        size       : rtypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
-        rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
-        flip       : rtypes.oneOf(['horizontal', 'vertical'])
-        spin       : rtypes.bool
-        pulse      : rtypes.bool
-        fixedWidth : rtypes.bool
-        stack      : rtypes.oneOf(['1x', '2x'])
-        inverse    : rtypes.bool
-        className  : rtypes.string
-        style      : rtypes.object
-        onClick    : rtypes.func
-        onMouseOver: rtypes.func
-        onMouseOut : rtypes.func
-
-    shouldComponentUpdate: (next) ->  # we exclude style changes for speed reasons (and style is rarely used); always update if there are children
-        return @props.children? or \
-               misc.is_different(@props, next, ['name', 'size', 'rotate', 'flip', 'spin', 'pulse', 'fixedWidth', \
-                                          'stack', 'inverse', 'className']) or \
-               not misc.is_equal(@props.style, next.style)
-
-
-    getDefaultProps: ->
-        name    : 'square-o'
-        onClick : ->
-
-    render_icon: ->
-        {name, size, rotate, flip, spin, pulse, fixedWidth, stack, inverse, className} = @props
-
-        i = name.indexOf('cc-icon')
-
-        if i != -1 and spin
-            # Temporary workaround because cc-icon-cocalc-ring is not a font awesome JS+SVG icon, so
-            # spin, etc., doesn't work on it.  There is a discussion at
-            # https://stackoverflow.com/questions/19364726/issue-making-bootstrap3-icon-spin
-            # about spinning icons, but it's pretty subtle and hard to get right, so I hope
-            # we don't have to implement our own.  Also see
-            # "Icon animation wobble foibles" at https://fontawesome.com/how-to-use/web-fonts-with-css
-            # where they say "witch to the SVG with JavaScript version, it's working a lot better for this".
-            name = 'fa-circle-notch'
-            i = -1
-
-        if i != -1
-            # A custom Cocalc font icon.  Don't even bother with font awesome at all!
-            classNames = name.slice(i)
-        else
-            left = name.slice(0,3)
-            if left == 'fas' or left == 'fab' or left == 'far'
-                # version 5 names are different!  https://fontawesome.com/how-to-use/use-with-node-js
-                # You give something like: 'fas fa-blah'.
-                classNames = name
-            else
-                # temporary until file_associations can be changed
-                if name.slice(0, 3) == 'cc-' and name isnt 'cc-stripe'
-                    classNames = "fab #{name}"
-                    # the cocalc icon font can't do any extra tricks
-                else
-                    # temporary until file_associations can be changed
-                    if name.slice(0, 3) == 'fa-'
-                        classNames = "fa #{name}"
-                    else
-                        classNames = "fa fa-#{name}"
-            # These only make sense for font awesome.
-            if size
-                classNames += " fa-#{size}"
-            if rotate
-                classNames += " fa-rotate-#{rotate}"
-            if flip
-                classNames += " fa-flip-#{flip}"
-            if fixedWidth
-                classNames += ' fa-fw'
-            if spin
-                classNames += ' fa-spin'
-            if pulse
-                classNames += ' fa-pulse'
-            if stack
-                classNames += " fa-stack-#{stack}"
-            if inverse
-                classNames += ' fa-inverse'
-
-        if className
-            classNames += " #{className}"
-        <i className={classNames} />
-
-    render: ->
-        # Wrap in a span for **two** reasons.
-        # 1. A reasonable one -- have to wrap the i, since when rendered using js and svg by new fontawesome 5,
-        # the click handlers of the <i> object are just ignored, since it is removed from the DOM!
-        # This is important the close button on tabs.
-        # 2. An evil one -- FontAwesome's javascript mutates the DOM.  Thus we put a random key in so,
-        # that React just replaces the whole part of the DOM where the SVG version of the icon is,
-        # and doesn't get tripped up by this.   A good example where this is used is when *running* Jupyter
-        # notebooks.
-        <span
-            onClick     = {@props.onClick}
-            onMouseOver = {@props.onMouseOver}
-            onMouseOut  = {@props.onMouseOut}
-            key         = {Math.random()}
-            style       = {@props.style}
-        >
-            {@render_icon()}
-        </span>
-
 # this Octicon icon class requires the CSS file in octicons/octicons/octicons.css (see landing.coffee)
 exports.Octicon = rclass
     displayName : 'Octicon'
@@ -248,40 +145,6 @@ exports.Octicon = rclass
         if @props.mega
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
-
-LOADING_THEMES =
-    medium :
-        fontSize   : "24pt"
-        textAlign  : "center"
-        marginTop  : "15px"
-        color      : "#888"
-        background : "white"
-
-exports.Loading = Loading = rclass
-    displayName : 'Misc-Loading'
-
-    propTypes :
-        style    : rtypes.object
-        text     : rtypes.string
-        estimate : rtypes.immutable.Map  # {time:[time in seconds], type:['new', 'ready', 'archived']}
-        theme    : rtypes.string      # 'medium', see or add to LOADING_THEMES above.
-
-    getDefaultProps : ->
-        text   : 'Loading...'
-
-    render_estimate: ->
-        if @props.estimate?
-            <div>
-                Loading '{@props.estimate.get('type')}' file.
-                <br/>
-                Estimated time: {@props.estimate.get('time')}s
-            </div>
-
-    render: ->
-        <span style={@props.style ? LOADING_THEMES[@props.theme]}>
-            <span><Icon name='cc-icon-cocalc-ring' spin /> {@props.text}</span>
-            {@render_estimate()}
-        </span>
 
 exports.Saving = Saving = rclass
     displayName : 'Misc-Saving'
@@ -1222,108 +1085,6 @@ exports.ActivityDisplay = rclass
             </div>
         else
             <span />
-
-exports.Tip = Tip = rclass
-    displayName : 'Tip'
-
-    propTypes :
-        title         : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired  # not checked for update
-        placement     : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
-        tip           : rtypes.oneOfType([rtypes.string, rtypes.node])              # not checked for update
-        size          : rtypes.string   # "xsmall", "small", "medium", "large"
-        delayShow     : rtypes.number
-        delayHide     : rtypes.number
-        rootClose     : rtypes.bool
-        icon          : rtypes.string
-        id            : rtypes.string   # can be used for screen readers (otherwise defaults to title)
-        style         : rtypes.object   # changing not checked when updating if stable is true
-        popover_style : rtypes.object  # changing not checked ever (default={zIndex:1000})
-        stable        : rtypes.bool     # if true, children assumed to never change
-        allow_touch   : rtypes.bool     # if true, show tooltips on touch devices (via tap); otherwise all tips are completely hidden on touch!
-
-    shouldComponentUpdate: (props, state) ->
-        return not @props.stable or \
-               @props.always_update or \
-               @state.display_trigger != state.display_trigger or \
-               misc.is_different(@props, props, ['placement', 'size', 'delayShow', \
-                                                 'delayHide', 'rootClose', 'icon', 'id'])
-
-    getDefaultProps: ->
-        placement     : 'right'
-        delayShow     : 500
-        delayHide     : 0
-        rootClose     : false
-        popover_style : {zIndex:1000}
-        allow_touch   : false
-
-    getInitialState: ->
-        display_trigger : false
-
-    render_title: ->
-        <span>{<Icon name={@props.icon}/> if @props.icon} {@props.title}</span>
-
-    render_popover: ->
-        if @props.tip
-            <Popover
-                bsSize = {@props.size}
-                title  = {@render_title()}
-                id     = {@props.id ? "tip"}
-                style  = {@props.popover_style}
-            >
-                <span style={wordWrap:'break-word'}>
-                    {@props.tip}
-                </span>
-            </Popover>
-        else
-            <Tooltip
-                bsSize = {@props.size}
-                id     = {@props.id ? "tip"}
-                style  = {@props.popover_style}
-            >
-                {@render_title()}
-            </Tooltip>
-
-    render_overlay: ->
-        # NOTE: It's inadvisable to use "hover" or "focus" triggers for popovers, because they have poor
-        # accessibility from keyboard and on mobile devices. -- from https://react-bootstrap.github.io/components/popovers/
-        <OverlayTrigger
-            placement = {@props.placement}
-            overlay   = {@render_popover()}
-            delayShow = {@props.delayShow}
-            delayHide = {@props.delayHide}
-            rootClose = {@props.rootClose}
-            trigger   = {if feature.IS_TOUCH then 'click'}
-        >
-            <span
-                style        = {@props.style}
-                onMouseLeave = {=>@setState(display_trigger:false)}
-            >
-                {@props.children}
-            </span>
-        </OverlayTrigger>
-
-    render: ->
-        if feature.IS_TOUCH
-            # Tooltips are very frustrating and pointless on mobile or tablets, and cause a lot of trouble; also,
-            # our assumption is that mobile users will also use the desktop version at some point, where
-            # they can learn what the tooltips say.  We do optionally allow a way to use them.
-            if @props.allow_touch
-                return @render_overlay()
-            else
-                return <span style={@props.style}>{@props.children}</span>
-
-        # display_trigger is just an optimization;
-        # if delayHide is set we have to use the full overlay; if not, then using the display_trigger business is faster.
-        if @props.delayHide or @state.display_trigger
-            return @render_overlay()
-        else
-            # when there are tons of tips, this is faster.
-            <span
-                style        = {@props.style}
-                onMouseEnter = {=>@setState(display_trigger:true)}
-            >
-                {@props.children}
-            </span>
 
 exports.SaveButton = rclass
     displayName : 'Misc-SaveButton'

@@ -109,6 +109,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
     this.state = { drag_hover: false };
   }
 
+  componentWillUnmount(): void {
+    if (typeof(this.props.actions.blur) === 'function') {
+      this.props.actions.blur();
+    }
+  }
+
   shouldComponentUpdate(next, state): boolean {
     return (
       this.state.drag_hover !== state.drag_hover ||
@@ -199,6 +205,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         editor_spec={this.props.editor_spec}
         status={this.props.status}
         title={desc.get("title")}
+        connection_status={desc.get("connection_status")}
       />
     );
   }
@@ -329,7 +336,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         pos
       });
       this.props.actions.set_resize();
-      this.props.actions.focus();  // see https://github.com/sagemathinc/cocalc/issues/3269
+      this.props.actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
     };
 
     return (

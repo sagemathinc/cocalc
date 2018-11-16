@@ -25,7 +25,7 @@
 
 ```
 cd smc/src/smc_sagews/smc_sagews/tests
-python3 -m pytest
+python -m pytest
 ```
 
 ### Test Results

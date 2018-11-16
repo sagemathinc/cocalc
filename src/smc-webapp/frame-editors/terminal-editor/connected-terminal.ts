@@ -25,6 +25,8 @@ import { Actions } from "../code-editor/actions";
 import { endswith } from "../generic/misc";
 import { open_init_file } from "./init-file";
 
+import { ConnectionStatus } from "../frame-tree/types";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
@@ -55,8 +57,8 @@ export class Terminal {
   private id: string;
   private terminal: XTerminal;
   private is_paused: boolean = false;
-  private keyhandler_initialized : boolean = false;
-    /* We initially have to ignore when rendering the initial history.
+  private keyhandler_initialized: boolean = false;
+  /* We initially have to ignore when rendering the initial history.
     To TEST this, do this in a terminal, then reconnect:
          printf "\E[c\n" ; sleep 1 ; echo
     The above causes the history to have device attribute requests, which
@@ -104,7 +106,7 @@ export class Terminal {
     this.term_path = aux_file(`${this.path}-${number}`, "term");
     this.number = number;
     this.id = id;
-    this.terminal = new XTerminal();
+    this.terminal = new XTerminal(this.get_xtermjs_options());
     this.terminal.open(parent);
     this.element = this.terminal.element;
     this.update_settings();
@@ -113,6 +115,31 @@ export class Terminal {
     this.init_terminal_data();
     this.init_settings();
     this.init_touch();
+    this.set_connection_status("disconnected");
+  }
+
+  private get_xtermjs_options(): any {
+    const rendererType = "dom";
+    const settings = this.account.get("terminal");
+    if (settings == null) {
+      // not fully loaded yet.
+      return { rendererType };
+    }
+    const scrollback = settings.get("scrollback", SCROLLBACK);
+
+    // Tell the terminal to use the browser's setting
+    // for the generic "monospace" font family.
+    // This can be tuned in the browser settings.
+    const fontFamily = "monospace";
+
+    // The following option possibly makes xterm.js better at
+    // handling huge bursts of data by pausing the backend temporarily.
+    // DO NOT USE! It directly and "violently" conflicts with Ipython's
+    // naive use of "Ctrl+S" for I-search mode.
+    // https://github.com/sagemathinc/cocalc/issues/3236
+    // const useFlowControl = true;
+
+    return { rendererType, scrollback, fontFamily };
   }
 
   assert_not_closed(): void {
@@ -123,6 +150,7 @@ export class Terminal {
 
   close(): void {
     this.assert_not_closed();
+    this.set_connection_status("disconnected");
     this.state = "closed";
     clearInterval(this.touch_interval);
     this.account.removeListener("change", this.update_settings);
@@ -148,6 +176,7 @@ export class Terminal {
     this.conn.removeAllListeners();
     this.conn.end();
     delete this.conn;
+    this.set_connection_status("disconnected");
   }
 
   update_settings(): void {
@@ -165,19 +194,10 @@ export class Terminal {
       setTheme(this.terminal, settings.get("color_scheme"));
     }
 
-    // The following option possibly makes xterm.js better at
-    // handling huge bursts of data by pausing the backend temporarily.
-    // DO NOT USE! It directly and "violently" conflicts with Ipython's
-    // naive use of "Ctrl+S" for I-search mode.
-    // https://github.com/sagemathinc/cocalc/issues/3236
-    // this.terminal.setOption("useFlowControl", true);
-
-    // Interesting to play with, but breaks copy/paste and maybe other
-    // things right now, probably due to CSS subtlety.
-    //terminal.setOption("rendererType", "dom");
-
-    // TODO -- make configurable by user (actually scrollback is never set in settings).
-    // Also, will need to impact other things, like history...  So NOT straightforward.
+    // TODO -- make configurable by user (actually
+    // scrollback is never set in settings).
+    // Also, will need to impact other things, like
+    // history...  So NOT straightforward.
     if (
       settings.get("scrollback", SCROLLBACK) !==
       this.terminal_settings.get("scrollback", SCROLLBACK)
@@ -186,10 +206,6 @@ export class Terminal {
         "scrollback",
         settings.get("scrollback", SCROLLBACK)
       );
-    }
-
-    if (settings.get("font") !== this.terminal_settings.get("font")) {
-      this.terminal.setOption("fontFamily", settings.get("font"));
     }
 
     this.terminal_settings = settings;
@@ -203,11 +219,14 @@ export class Terminal {
       this.disconnect();
     }
     try {
+      this.set_connection_status("connecting");
       const ws = await project_websocket(this.project_id);
       if (this.state === "closed") {
         return;
       }
-      this.conn = await ws.api.terminal(this.term_path);
+      const options: any = {};
+      options.env = this.actions.get_term_env();
+      this.conn = await ws.api.terminal(this.term_path, options);
       if (this.state === "closed") {
         return;
       }
@@ -215,6 +234,7 @@ export class Terminal {
       if (this.state === "closed") {
         return;
       }
+      this.set_connection_status("disconnected");
       console.log(`terminal connect error -- ${err}; will try again in 2s...`);
       await delay(2000);
       if (this.state === "closed") {
@@ -237,6 +257,7 @@ export class Terminal {
       this.conn.write(data);
     }
     this.conn_write_buffer = [];
+    this.set_connection_status("connected");
   }
 
   async reload(): Promise<void> {
@@ -294,6 +315,12 @@ export class Terminal {
     });
   }
 
+  set_connection_status(status: ConnectionStatus): void {
+    if (this.actions != null) {
+      this.actions.set_connection_status(this.id, status);
+    }
+  }
+
   init_weblinks(): void {
     (this.terminal as any).webLinksInit(handleLink);
   }
@@ -309,7 +336,7 @@ export class Terminal {
   }
 
   init_keyhandler(): void {
-    if(this.keyhandler_initialized) {
+    if (this.keyhandler_initialized) {
       return;
     }
     this.keyhandler_initialized = true;
@@ -445,7 +472,7 @@ export class Terminal {
         await delay(0);
         this.terminal.refresh(0, this.terminal.rows - 1);
         // Finally start listening to user input.
-        this.init_keyhandler()
+        this.init_keyhandler();
         cb();
       };
       this.terminal.on("refresh", f);
@@ -552,7 +579,9 @@ export class Terminal {
   }
 
   focus(): void {
-    this.assert_not_closed();
+    if (this.state === "closed") {
+      return;
+    }
     this.terminal.focus();
   }
 

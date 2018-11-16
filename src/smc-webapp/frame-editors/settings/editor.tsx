@@ -8,7 +8,7 @@ import { React, Rendered, Component } from "../../app-framework";
 
 import { is_different } from "../generic/misc";
 
-const { Icon } = require("smc-webapp/r_misc");
+const { Icon } = require("smc-webapp/icon");
 
 import { SpellCheck } from "./spell-check";
 
