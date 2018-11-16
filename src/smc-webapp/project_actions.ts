@@ -642,7 +642,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       chat_width: undefined,
       ignore_kiosk: false,
       new_browser_window: false,
-      payload: undefined
+      payload: undefined,
       change_history: true
     });
     opts.path = normalize(opts.path);

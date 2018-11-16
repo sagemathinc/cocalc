@@ -28,7 +28,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //##############################################################################
-
+import * as immutable from "immutable";
 import { join } from "path";
 
 // 3rd party libs
@@ -523,8 +523,6 @@ export class CourseActions extends Actions<CourseState> {
       delete x[opts.id];
     } else {
       x[opts.id] = opts.desc;
-      // enable for debugging:
-      // console.log(opts.desc);
     }
     this.setState({ activity: x });
     return opts.id;
@@ -750,6 +748,7 @@ export class CourseActions extends Actions<CourseState> {
     item_name:
       | "student"
       | "assignment"
+      | "grading_config"
       | "peer_config"
       | "handout"
       | "skip_grading",
@@ -2742,7 +2741,7 @@ You can find the comments they made in the folders below.\
     return this._stop_copy(assignment_id, student_id, type);
   }
 
-  open_assignment(type, assignment_id, student_id, filepath) {
+  open_assignment(type, assignment_id, student_id, filepath?: string) {
     // type = assigned, collected, graded
     let path, proj;
     const store = this.get_store();
@@ -3025,9 +3024,8 @@ You can find the comments they made in the folders below.\
 
   // Copy the given handout to all non-deleted students, doing several copies in parallel at once.
   copy_handout_to_all_students(handout, new_only, overwrite?) {
-    const desc = `Copying handouts to all students ${
-      new_only ? "who have not already received it" : ""
-    }`;
+    const x = new_only ? "who have not already received it" : "";
+    const desc = `Copying handouts to all students ${x}`;
     const short_desc = "copy to student";
 
     const id = this.set_activity({ desc });
@@ -3169,7 +3167,6 @@ You can find the comments they made in the folders below.\
     grading = grading.merge({
       student_id: next_student_id,
       assignment_id,
-      listing: null,
       end_of_list: next_student_id == null,
       subdir: opts.subdir,
       student_filter,
@@ -3390,7 +3387,7 @@ You can find the comments they made in the folders below.\
     return this.setState({ grading: grading.set_discussion(chat_path) });
   };
   // set the "cursor" to the assignment+student currently being graded
-  grading_update_activity = opts => {
+  grading_update_activity = (opts?) => {
     let location;
     const store = this.get_store();
     if (store == null) {
@@ -3411,11 +3408,11 @@ You can find the comments they made in the folders below.\
       }
     }
     // argument must be an array, and we only have one cursor (at least, at the time of writing)
+    // teacher moved to another student or closed the grading dialog
     return this.syncdb != null
       ? this.syncdb.set_cursor_locs([location])
       : undefined;
   };
-  // teacher moved to another student or closed the grading dialog
   grading_remove_activity = () => {
     if (
       (this.syncdb != null ? this.syncdb.is_closed() : undefined) ||

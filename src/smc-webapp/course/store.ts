@@ -38,7 +38,7 @@ import { Store } from "../app-framework";
 
 // SMC libraries
 const misc = require("smc-util/misc");
-const { defaults } = misc;
+const { defaults, required } = misc;
 
 // Course Library
 import { NO_ACCOUNT, STEPS } from "./util";
@@ -143,6 +143,7 @@ export interface CourseState {
   tab: string;
   unsaved?: boolean;
   _open_discussions: any;
+  grading: any;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -150,6 +151,7 @@ export class CourseStore extends Store<CourseState> {
   private _handout_status: {
     [key: string]: { handout: number; not_handout: number };
   };
+  public _open_discussions: any;
   constructor(a, b) {
     super(a, b);
     this.any_assignment_uses_peer_grading = this.any_assignment_uses_peer_grading.bind(
@@ -931,7 +933,9 @@ export class CourseStore extends Store<CourseState> {
     for (var student of students) {
       var left;
       id = student.get("student_id");
-      const student_info = (data.students[id] = {});
+      const student_info: { name?: string; email?: string } = (data.students[
+        id
+      ] = {});
       student_info.name = this.get_student_name(student);
       student_info.email =
         (left = this.get_student_email(student)) != null ? left : "";
@@ -944,7 +948,7 @@ export class CourseStore extends Store<CourseState> {
         id = student.get("student_id");
         const grade =
           (left1 = this.get_grade(assignment, student)) != null ? left1 : "";
-        var student_data = {
+        var student_data: any = {
           student: id,
           grade,
           comment:
@@ -1112,7 +1116,7 @@ export class CourseStore extends Store<CourseState> {
       }
       return pick_student;
     };
-    const all_points = [];
+    const all_points: any[] = [];
     let list = this.get_sorted_students().map(student => {
       const id = student.get("student_id");
       const name = this.get_student_name(student);
@@ -1181,16 +1185,13 @@ export class CourseStore extends Store<CourseState> {
   // builds the set of all distinct grades entered for manual grading.
   // used for populating the drop-down menu
   get_list_of_grades(assignment_id) {
-    let left;
     const assignment = this.get_assignment(assignment_id);
     if (assignment == null) {
       return;
     }
     const grades = assignment.get("grades");
     // initially, there are no grades
-    const values = immutable.Set(
-      (left = grades != null ? grades.values() : undefined) != null ? left : []
-    );
+    const values = immutable.Set<string>(grades.values() || []);
     return values.sortBy(a => a.toLowerCase());
   }
 }

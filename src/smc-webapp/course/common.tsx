@@ -227,7 +227,7 @@ interface StudentAssignmentInfoProps {
   edited_grade?: string;
   edited_comments?: string;
   is_editing: boolean;
-  peer_grade_layout: boolean;
+  use_peer_grade_layout: boolean;
   points?: number;
   edit_points?: boolean;
   grading_mode: string;
@@ -785,7 +785,7 @@ export class StudentAssignmentInfo extends Component<
         (skip_grading && skip_collect);
     }
 
-    const width = peer_grade || this.props.peer_grade_layout ? 2 : 3;
+    const width = peer_grade || this.props.use_peer_grade_layout ? 2 : 3;
     return (
       <Row
         style={{
@@ -843,10 +843,10 @@ export class StudentAssignmentInfo extends Component<
             {peer_grade && this.props.info.peer_collect
               ? this.render_peer_collect()
               : undefined}
-            {!peer_grade && this.props.peer_grade_layout
+            {!peer_grade && this.props.use_peer_grade_layout
               ? this.render_empty_peer_col("assign")
               : undefined}
-            {!peer_grade && this.props.peer_grade_layout
+            {!peer_grade && this.props.use_peer_grade_layout
               ? this.render_empty_peer_col("collect")
               : undefined}
             <Col md={width} key="grade">

@@ -104,7 +104,6 @@ interface AssignmentsPanelReactProps {
   students: Map<string, StudentRecord>;
   user_map: object;
   path: string;
-  expand_grading_config: any;
 }
 
 interface AssignmentsPanelReduxProps {
@@ -619,11 +618,12 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
       width = 3;
     }
     const buttons: ReactElement<any>[] = [];
-    const insert_skip_button = () => {
+    const insert_skip_button = (key: string) => {
       const b1 = this.render_grading_button(status);
       const b2 = this.render_skip_grading_button(status, true);
+
       return buttons.push(
-        <Col md={width} key={"grading_buttons"}>
+        <Col md={width} key={key}>
           {b1} {b2}
         </Col>
       );
@@ -676,6 +676,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
         students={this.props.students}
         user_map={this.props.user_map}
         active_student_sort={this.props.active_student_sort}
+        active_feedback_edits={this.props.active_feedback_edits}
       />
     );
     return (
@@ -1613,7 +1614,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   render_peer_button() {
     const peer_grade = this.props.assignment.get("peer_grade");
-    const enabled = peer_grade != null ? x.get("enabled") : false;
+    const enabled = peer_grade != null ? peer_grade.get("enabled") : false;
     const icon = <CheckedIcon checked={enabled} />;
     return (
       <Button
@@ -1632,7 +1633,7 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
 
   toggle_configure_grading() {
     const aid = this.props.assignment.get("assignment_id");
-    return this.get_actions().toggle_item_expansion("grading_config", aid);
+    this.get_actions().toggle_item_expansion("grading_config", aid);
   }
 
   render_grading_config_button() {
@@ -1779,6 +1780,10 @@ class StudentListForAssignment extends Component<
         grading_mode={store.get_grading_mode(this.props.assignment)}
         total_points={store.get_points_total(this.props.assignment, student_id)}
         max_points={store.get_grading_maxpoints(this.props.assignment)}
+        is_editing={!!edited_feedback}
+        edited_comments={edited_comments}
+        edited_grade={edited_grade}
+        use_peer_grade_layout={this.is_peer_graded()}
       />
     );
   }

@@ -1259,8 +1259,8 @@ class Student extends Component<StudentProps, StudentState> {
     );
   }
 
-  // peer_grade_layout: if true, the header has two more rows for peer grading
-  render_assignments_info_rows(peer_grade_layout) {
+  // use_peer_grade_layout: if true, the header has two more rows for peer grading
+  render_assignments_info_rows(use_peer_grade_layout) {
     const store = this.get_store();
     const result: any[] = [];
     for (let assignment of store.get_sorted_assignments()) {
@@ -1298,7 +1298,7 @@ class Student extends Component<StudentProps, StudentState> {
           is_editing={!!edited_feedback}
           edited_comments={edited_comments}
           edited_grade={edited_grade}
-          peer_grade_layout={peer_grade_layout}
+          use_peer_grade_layout={use_peer_grade_layout}
           points={points}
           edit_points={false}
           grading_mode={grading_mode}
