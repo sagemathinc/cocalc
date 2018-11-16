@@ -72,8 +72,6 @@ export class SyncTable extends EventEmitter {
   // Also updated during init.
   private required_set_fields: { [key: string]: boolean } = {};
 
-  private is_saving: boolean = false;
-
   constructor(query, options: any[], client, throttle_changes?: number) {
     super();
 
@@ -95,6 +93,7 @@ export class SyncTable extends EventEmitter {
     this.init_query();
     this.init_throttle_changes();
 
+    // So only ever called once
     this.save = reuseInFlight(this.save.bind(this));
 
     this.first_connect();
@@ -167,16 +166,32 @@ export class SyncTable extends EventEmitter {
       : undefined;
   }
 
+  /*
+  Ensure any unsent changes are sent to the backend.
+  When this function returns there are no unsent changes,
+  since it keeps calling _save until nothing has changed
+  locally.
+  */
   public async save(): Promise<void> {
+    console.log("save");
     this.assert_not_closed();
-    if (this.is_saving) {
-      throw Error("already saving");
-    }
-    try {
-      this.is_saving = true;
-      await this._save();
-    } finally {
-      this.is_saving = false;
+    // quick easy check for unsaved changes and
+    // ready to be saved
+    let has_unsaved_changes =
+      this.value_server != null &&
+      this.value_local != null &&
+      this.value_server != this.value_local;
+    while (has_unsaved_changes && this.state !== "closed") {
+      if (this.state !== "connected") {
+        // wait for state change
+        await once(this, "state");
+      }
+      if (this.state === "connected") {
+        // switched to connected so try to save once
+        has_unsaved_changes = await this._save();
+      }
+      // else switched to something else (?), so
+      // loop around and wait again for a change...
     }
   }
 
@@ -201,15 +216,14 @@ export class SyncTable extends EventEmitter {
 
     if (!Map.isMap(changes)) {
       changes = fromJS(changes);
+      if (!misc.is_object(changes)) {
+        throw Error(
+          "type error -- changes must be an immutable.js Map or JS map"
+        );
+      }
     }
     if (this.value_local == null) {
       this.value_local = Map({});
-    }
-
-    if (!Map.isMap(changes)) {
-      throw Error(
-        "type error -- changes must be an immutable.js Map or JS map"
-      );
     }
 
     if (DEBUG) {
@@ -672,16 +686,21 @@ export class SyncTable extends EventEmitter {
     return changed;
   }
 
-  private async _save(): Promise<void> {
-    this.assert_not_closed();
-    let k, v;
-    // console.log("_save('#{this.table}')")
-    // Determine which records have changed and what their new values are.
-    if (this.value_server == null) {
-      throw Error("don't know server yet");
+  /* Send all unsent changes.
+     This function must not be called more than once at a time.
+     Returns boolean:
+        false -- there are no additional changes to be saved
+        true -- new changes appeared during the _save that need to be saved.
+  */
+  private async _save(): Promise<boolean> {
+    console.log("_save");
+    await this.wait_until_ready_to_query_db();
+    if (this.state === "closed") {
+      return false;
     }
-    if (this.value_local == null) {
-      throw Error("don't know local yet");
+    // what their new values are.
+    if (this.value_server == null || this.value_local == null) {
+      return false;
     }
 
     if (this.client_query.set == null) {
@@ -689,11 +708,13 @@ export class SyncTable extends EventEmitter {
       // There are some tables (e.g., stats) where the remote values
       // could change while user is offline, and the code below would
       // result in warnings.
-      return;
+      return false;
     }
 
     const changed = this.get_changes();
-    if (changed == null) return;
+    if (changed == null) {
+      return false;
+    }
     const at_start = this.value_local;
 
     // Send our changes to the server.
@@ -710,7 +731,7 @@ export class SyncTable extends EventEmitter {
         obj[this.primary_keys[0]] = key;
       } else {
         // unwrap compound primary key
-        v = JSON.parse(key);
+        let v = JSON.parse(key);
         let i = 0;
         for (let primary_key of this.primary_keys) {
           obj[primary_key] = v[i];
@@ -718,8 +739,8 @@ export class SyncTable extends EventEmitter {
         }
       }
 
-      for (k of this.set_fields) {
-        v = c.new_val.get(k);
+      for (let k of this.set_fields) {
+        const v = c.new_val.get(k);
         if (v != null) {
           if (
             this.required_set_fields[k] ||
@@ -739,7 +760,7 @@ export class SyncTable extends EventEmitter {
 
     // console.log("sending #{query.length} changes: #{misc.to_json(query)}")
     if (query.length === 0) {
-      return;
+      return false;
     }
     //console.log("query=#{misc.to_json(query)}")
     //Use this to test fix_if_no_update_soon:
@@ -773,36 +794,31 @@ export class SyncTable extends EventEmitter {
             "Your computer's clock is or was off!  Fix it and **refresh your browser**."
         });
       }
-      throw err;
+      return true;
     }
-    if (this.state === "closed") {
-      // this can happen in case synctable is closed after _save is called but before returning from this query.
-      throw Error("closed");
+    if (this.state === "closed" as State) {
+      // this can happen in case synctable is closed after
+      // _save is called but before returning from this query.
+      return false;
     }
     if (this.value_server == null || this.value_local == null) {
-      // There is absolutely no possible way this can happen, since it was
-      // checked for above before the call, and these can only get set by
-      // the close method to undefined, which also sets the this.state to closed,
-      // so would get caught above.  However, evidently this **does happen**:
-      //   https://github.com/sagemathinc/cocalc/issues/1870
-      throw Error("value_server and value_local must be set");
+      // should not happen
+      return false;
     }
-    this.emit("saved", saved_objs);
-    // success: each change in the query what committed successfully to the database; we can
-    // safely set this.value_server (for each value) as long as it didn't change in the meantime.
-    for (k in changed) {
-      v = changed[k];
+    // success: each change in the query that committed
+    // successfully to the database; we can safely set
+    // this.value_server (for each value) as long as
+    // it didn't change in the meantime.
+    for (let k in changed) {
+      const v = changed[k];
       if (immutable_is(this.value_server.get(k), v.old_val)) {
         // immutable.is since either could be undefined
         //console.log "setting this.value_server[#{k}] =", v.new_val?.toJS()
         this.value_server = this.value_server.set(k, v.new_val);
       }
     }
-    if (!at_start.equals(this.value_local)) {
-      // keep saving until this.value_local doesn't change *during* the save -- this means
-      // when saving stops that we guarantee there are no unsaved changes.
-      await this._save();
-    }
+    // return true if there are new unsaved changes:
+    return !at_start.equals(this.value_local);
   }
 
   /*
