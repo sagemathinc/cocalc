@@ -17,6 +17,8 @@ import { keys, throttle } from "underscore";
 
 import { callback } from "awaiting";
 
+import { once } from "../../async-utils";
+
 import { query_function } from "./query-function";
 
 const misc = require("../../misc");
@@ -32,7 +34,6 @@ function is_fatal(err): boolean {
 
 import { reuseInFlight } from "async-await-utils/hof";
 
-import { Plug } from "./plug";
 import { Changefeed } from "./changefeed";
 import { parse_query, callback2, to_key } from "./util";
 
@@ -59,7 +60,6 @@ export class SyncTable extends EventEmitter {
   // Not connected yet
   // disconnected <--> connected --> closed
   private state: State;
-  private plug: Plug;
   private table: string;
   private schema: any;
   private emit_change: Function;
@@ -93,7 +93,6 @@ export class SyncTable extends EventEmitter {
     this.throttle_changes = throttle_changes;
 
     this.init_query();
-    this.init_plug();
     this.init_throttle_changes();
 
     this.save = reuseInFlight(this.save.bind(this));
@@ -318,20 +317,20 @@ export class SyncTable extends EventEmitter {
       // still in use by possibly multiple clients
       return;
     }
-    this.plug.close();
-    delete this.plug;
     this.client.removeListener("disconnected", this.disconnected);
     if (!fatal) {
       // do a last attempt at a save (so we don't lose data),
       // then really close.
       this._save(); // this will synchronously construct the last save and send it
     }
-    // The moment the sync part of _save is done, we remove listeners
-    // and clear everything up.  It's critical that as soon as close
-    // is called that there be no possible way any further connect
-    // events (etc) can make this SyncTable
-    // do anything!!  That finality assumption is made
-    // elsewhere (e.g in smc-project/client.coffee)
+    /*
+    The moment the sync part of _save is done, we remove listeners
+    and clear everything up.  It's critical that as soon as close
+    is called that there be no possible way any further connect
+    events (etc) can make this SyncTable
+    do anything!!  That finality assumption is made
+    elsewhere (e.g in smc-project/client.coffee)
+    */
     this.close_changefeed();
     this.set_state("closed");
     this.removeAllListeners();
@@ -403,26 +402,6 @@ export class SyncTable extends EventEmitter {
     this.emit("state", state);
   }
 
-  private init_plug(): void {
-    const extra_dbg = {};
-    if (misc.is_object(this.query)) {
-      for (let k in this.query) {
-        const v = this.query[k];
-        if (v !== null) {
-          extra_dbg[k] = v;
-        }
-      }
-    }
-    this.plug = new Plug({
-      name: this.table,
-      client: this.client,
-      connect: this.connect.bind(this),
-      no_sign_in: this.schema.anonymous || this.client.is_project(),
-      // note: projects don't have to authenticate
-      extra_dbg // only for debugging
-    });
-  }
-
   private set_throttle_changes(): void {
     // No throttling of change events, unless explicitly requested
     // *or* part of the schema.
@@ -479,14 +458,14 @@ export class SyncTable extends EventEmitter {
       return;
     }
 
-    // 1. save, in case we have any local unsaved changes, then sync with upstream.
+    // 1. save, in case we have any local unsaved changes,
+    // then sync with upstream.
     if (this.value_local != null && this.value_server != null) {
       await this.save();
     }
 
     // 2. Now actually setup the changefeed.
     await this.create_changefeed();
-    this.set_state("connected");
   }
 
   private async create_changefeed(): Promise<void> {
@@ -498,6 +477,7 @@ export class SyncTable extends EventEmitter {
     const initval = await this.create_changefeed_connection();
     this.init_changefeed_handlers();
     this.update_all(initval);
+    this.set_state("connected");
   }
 
   private close_changefeed(): void {
@@ -512,7 +492,30 @@ export class SyncTable extends EventEmitter {
     // critical, which is many of them (e.g., patches, projects).
     this.close_changefeed();
     this.changefeed = new Changefeed(this.changefeed_options());
+    await this.wait_until_ready_to_query_db();
     return await this.changefeed.connect();
+  }
+
+  private async wait_until_ready_to_query_db(): Promise<void> {
+    // Wait until we're ready to query the database.
+    let client_state: string;
+
+    if (this.schema.anonymous || this.client.is_project()) {
+      // For anonymous tables (and for project accessing db),
+      // this just means the client is connected.
+      client_state = "connected";
+    } else {
+      // For non-anonymous tables, the client
+      // has to actually be signed in.
+      client_state = "signed_in";
+    }
+
+    if (this.client[`is_${client_state}`]()) {
+      // state already achieved
+      return;
+    }
+
+    await once(this.client, client_state);
   }
 
   private changefeed_options() {
@@ -542,6 +545,7 @@ export class SyncTable extends EventEmitter {
   }
 
   private changefeed_on_close(): void {
+    this.set_state("disconnected");
     this.create_changefeed();
   }
 
@@ -553,7 +557,6 @@ export class SyncTable extends EventEmitter {
       return;
     }
     this.set_state("disconnected");
-    this.plug.connect(); // start trying to connect again
   }
 
   private obj_to_key(_): string | undefined {
