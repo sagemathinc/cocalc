@@ -529,7 +529,6 @@ export class ConfigurationPanel extends Component<
   };
 
   save_to_csv_v2() {
-    let x;
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
     const students = store.get_sorted_students();
@@ -565,8 +564,8 @@ export class ConfigurationPanel extends Component<
           var line = [name, id, email, apth, grade];
           content +=
             (() => {
-              const result = [];
-              for (x of line) {
+              const result: string[] = [];
+              for (let x of line) {
                 result.push(`\"${x}\"`);
               }
               return result;
@@ -654,7 +653,7 @@ export class ConfigurationPanel extends Component<
 
   save_to_json_v2() {
     const store = this.get_store();
-    const data = store.get_export_course_data();
+    const data: any = store.get_export_course_data();
     data.title = this.props.settings.get("title");
     data.timestamp = webapp_client.server_time().toISOString();
     const content = `${JSON.stringify(data, null, 2)}\n`;

@@ -406,6 +406,7 @@ export class CourseActions extends Actions<CourseState> {
             discussion_show: true
           });
           this.set_tab("assignments");
+          cb();
         }
       ]);
       return;
@@ -1689,7 +1690,7 @@ export class CourseActions extends Actions<CourseState> {
     assignment = store.get_assignment(assignment);
     student = store.get_student(student);
     const student_id = student.get("student_id");
-    const obj = {
+    const obj: { table: string; assignment_id: any; points?: any } = {
       table: "assignments",
       assignment_id: assignment.get("assignment_id")
     };
@@ -3258,8 +3259,9 @@ You can find the comments they made in the folders below.\
     if (store == null) {
       return;
     }
-    const grading = store.get("grading");
-    const apath = store.get_assignment(grading.assignment_id).get("path");
+    // TODO grading and apath is probably used somewhere,but got lost in merging
+    // const grading = store.get("grading");
+    // const apath = store.get_assignment(grading.assignment_id).get("path");
     this.grading_cleanup_all_discussions();
     this.setState({ grading: null });
     return this.grading_remove_activity();
