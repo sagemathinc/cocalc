@@ -32,7 +32,7 @@ underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
-synctable2 = require('./sync/synctable')
+synctable2 = require('./sync/table')
 db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
