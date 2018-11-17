@@ -11,7 +11,7 @@ import { throttle } from "underscore";
 
 import { background_color } from "./themes";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 

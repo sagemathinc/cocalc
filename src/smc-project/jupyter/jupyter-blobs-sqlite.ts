@@ -12,7 +12,7 @@ import { readFile } from "./async-utils-node";
 
 const winston = require("winston");
 
-import { months_ago, to_json } from "../smc-webapp/frame-editors/generic/misc";
+import { months_ago, to_json } from "../smc-util/misc2";
 
 const misc_node = require("smc-util-node/misc_node");
 

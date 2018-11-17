@@ -6,7 +6,7 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
 
 const { filename_extension_notilde, defaults } = require("misc");

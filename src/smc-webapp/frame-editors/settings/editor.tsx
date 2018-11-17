@@ -6,7 +6,7 @@ import { Map } from "immutable";
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 const { Icon } = require("smc-webapp/icon");
 

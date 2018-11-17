@@ -9,7 +9,8 @@ import {
   len,
   merge,
   path_split
-} from "../smc-webapp/frame-editors/generic/misc";
+} from "../smc-util/misc2";
+
 const { console_init_filename } = require("smc-util/misc");
 
 import { exists } from "../jupyter/async-utils-node";

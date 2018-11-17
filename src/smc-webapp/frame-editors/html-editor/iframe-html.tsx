@@ -5,10 +5,13 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 import * as $ from "jquery";
 import { Set } from "immutable";
 import { is_safari } from "../generic/browser";
-import { is_different, list_alternatives } from "../generic/misc";
+import {
+  change_filename_extension,
+  is_different,
+  list_alternatives
+} from "smc-util/misc2";
 import { throttle } from "underscore";
 import { Component, React, ReactDOM, Rendered } from "../../app-framework";
-import { change_filename_extension } from "../generic/misc";
 
 import * as CSS from "csstype";
 

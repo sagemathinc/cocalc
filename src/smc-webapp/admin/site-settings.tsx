@@ -8,7 +8,7 @@ import {
 } from "../app-framework";
 
 import { query } from "../frame-editors/generic/client";
-import { copy, deep_copy, keys } from "../frame-editors/generic/misc";
+import { copy, deep_copy, keys } from "smc-util/misc2";
 
 const { site_settings_conf } = require("smc-util/schema");
 

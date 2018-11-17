@@ -3,7 +3,7 @@ Create the Primus realtime socket server
 */
 
 import { BrowserClient } from "./browser-client";
-import { len } from "../smc-webapp/frame-editors/generic/misc";
+import { len } from "../smc-util/misc2";
 import { callback } from "awaiting";
 const { join } = require("path");
 

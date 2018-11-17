@@ -1,8 +1,10 @@
 /*
-THIS SHOULD BE MOVED OUT OF frame-editors/
+This is a rewrite and SUCCESSOR to ./misc.js.
 
+Each function is rethought from scratch, and we try to implement
+it in a more modern ES 2018/Typescript/standard libraries approach.
 
-This is a rewrite of what we're using from smc-util/misc...
+**The exact behavior of functions may change from what is in misc.js!**
 */
 
 const underscore = require("underscore");

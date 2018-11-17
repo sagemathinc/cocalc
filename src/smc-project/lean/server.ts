@@ -4,8 +4,6 @@ LEAN server
 
 const lean_files = {};
 
-//import { cmp } from "../smc-webapp/frame-editors/generic/misc";
-
 import { lean_server, Lean } from "./lean";
 import { isEqual } from "underscore";
 

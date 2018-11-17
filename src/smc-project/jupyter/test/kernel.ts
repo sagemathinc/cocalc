@@ -1,7 +1,7 @@
 import {} from "mocha";
 import * as expect from "expect";
 import * as common from "./common";
-import { endswith } from "../../smc-webapp/frame-editors/generic/misc";
+import { endswith } from "../../smc-util/misc2";
 
 describe("compute 2+7 using the python2 kernel -- ", function() {
   this.timeout(5000);

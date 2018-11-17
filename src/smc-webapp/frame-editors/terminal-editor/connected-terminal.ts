@@ -22,7 +22,7 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions } from "../code-editor/actions";
 
-import { endswith } from "../generic/misc";
+import { endswith } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";

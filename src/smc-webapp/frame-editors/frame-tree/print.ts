@@ -4,7 +4,7 @@ Convert an *HTML* file (raw url or string content) to printable form.
 TODO: refactor with markdown print (?).
 */
 
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 
 //import { HTML } from 'smc-webapp/r_misc';
 const { HTML } = require("smc-webapp/r_misc");

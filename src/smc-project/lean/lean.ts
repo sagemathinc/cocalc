@@ -9,7 +9,7 @@ import { callback, delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 
-import { path_split } from "../smc-webapp/frame-editors/generic/misc";
+import { path_split } from "../smc-util/misc2";
 
 type SyncString = any;
 type Client = any;

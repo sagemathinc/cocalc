@@ -28,7 +28,7 @@ import {
   len,
   startswith,
   uuid
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
