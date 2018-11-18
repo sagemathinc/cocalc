@@ -10,7 +10,7 @@ All functionality here is of the form:
 import { callback } from "awaiting";
 const {
   callback_opts
-} = require("../smc-webapp/frame-editors/generic/async-utils");
+} = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 
@@ -74,7 +74,7 @@ async function handle_api_call(
     case "lean_channel":
       return await lean_channel(client, primus, logger, data.path);
     case "x11_channel":
-      return await x11_channel(client, primus, logger, data.path);
+      return await x11_channel(client, primus, logger, data.path, data.display);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:

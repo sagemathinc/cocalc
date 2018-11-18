@@ -85,11 +85,10 @@ doctype html
   var subtitle      = null;
   var navbar_active = null;
   function navbar_highlight(what) {
-    if (navbar_active == what) {
-      return 'active';
-    } else {
-      return '';
-    }
+    return (navbar_active == what ? 'active' : '');
+  };
+  function subnavbar_highlight(what) {
+    return (subnavbar_active == what ? 'active' : '');
   };
 
 block vars
@@ -152,7 +151,7 @@ html.no-js(lang="en")
             > footer
               margin-top     : 6rem
             > div.row#top
-              margin         : 5rem 0 0 0
+              margin         : 10rem 0 0 0
             > div#software-env-top
               margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
@@ -215,6 +214,12 @@ html.no-js(lang="en")
             width      : 95%
             height     : 95%
 
+        nav.navbar.navbar-default .navbar-nav.features>li>a,
+        nav.navbar.navbar-default .navbar-nav.software>li>a
+          font-size: 1.5rem
+          padding-top: 5px
+          padding-bottom: 5px
+
     nav.navbar.navbar-default.navbar-fixed-top
       div.container
         div.navbar-header
@@ -245,9 +250,31 @@ html.no-js(lang="en")
             li
               a.get-started(href=PREFIX + "app") Sign In
 
-    block content
+        if navbar_active == 'features'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.features
+              li(class=subnavbar_highlight('jupyter'))
+                a(href=PREFIX + "doc/jupyter-notebook.html") Jupyter Notebook
+              li(class=subnavbar_highlight('latex'))
+                a(href=PREFIX + "doc/latex-editor.html") LaTeX Editor
+              li(class=subnavbar_highlight('r'))
+                a(href=PREFIX + "doc/r-statistical-software.html") R Statistics
+              li(class=subnavbar_highlight('x11'))
+                a(href=PREFIX + "doc/x11.html") X11
 
-    include _footer_kucalc.pug
+        if navbar_active == 'software'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.software
+              li(class=subnavbar_highlight('software-executables'))
+                a(href=PREFIX + "doc/software-executables.html") Executables
+              li(class=subnavbar_highlight('software-python'))
+                a(href=PREFIX + "doc/software-python.html") Python
+              li(class=subnavbar_highlight('software-r'))
+                a(href=PREFIX + "doc/software-r.html") R Statistics
+              li(class=subnavbar_highlight('software-julia'))
+                a(href=PREFIX + "doc/software-julia.html") Julia
+
+    block content
 
     script
       :coffee-script

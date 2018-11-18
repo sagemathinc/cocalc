@@ -3,7 +3,10 @@
 extends ../_base_kucalc.pug
 
 block vars
-  - var subtitle = 'Run Jupyter Notebooks Online';
+  -
+    navbar_active = 'features';
+    subnavbar_active = 'jupyter';
+    var subtitle = 'Run Jupyter Notebooks Online';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)

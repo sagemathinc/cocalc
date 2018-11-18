@@ -7,7 +7,7 @@ const schema = require("smc-util/schema");
 const DEFAULT_FONT_SIZE: number = require("smc-util/db-schema")
   .DEFAULT_FONT_SIZE;
 import { redux } from "../../app-framework";
-import { callback_opts } from "./async-utils";
+import { callback_opts } from "smc-util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
 
@@ -47,7 +47,14 @@ export async function exec(opts: ExecOpts): Promise<ExecOutput> {
 }
 
 export async function touch(project_id: string, path: string): Promise<void> {
+  // touch the file on disk
   await exec({ project_id, command: "touch", args: [path] });
+  // Also record in file-use table that we are editing the file (so appears in file use)
+  // Have to use any type, since file_use isn't converted to typescript yet.
+  const actions : any = redux.getActions("file_use")
+  if (actions != null && typeof(actions.mark_file) === 'function') {
+    actions.mark_file(project_id, path, "edit");
+  }
 }
 
 // Resets the idle timeout timer and makes it known we are using the project.

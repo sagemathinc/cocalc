@@ -102,12 +102,12 @@ SignIn = rclass
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
                         <FormGroup>
-                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                            <FormControl ref='email' type='email' placeholder='Email address' name='email' autoFocus={@props.has_account} onChange={@remove_error} />
                         </FormGroup>
                     </Row>
                     <Row>
                         <FormGroup>
-                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' name='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Row>
                     <Row>
@@ -123,6 +123,9 @@ SignIn = rclass
                             className = 'pull-right'>Sign&nbsp;In
                         </Button>
                     </Row>
+                    <Row>
+                        {@render_passports()}
+                    </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
                         {@display_error()}
                     </Row>
@@ -134,12 +137,12 @@ SignIn = rclass
                 <Row>
                     <Col xs={5}>
                         <FormGroup>
-                            <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='email' type='email' name='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs={4}>
                         <FormGroup>
-                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' name='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs={3}>
@@ -224,7 +227,7 @@ ForgotPassword = rclass
                 </div>
                 <form onSubmit={@forgot_password} style={marginTop:'1em'}>
                     <FormGroup>
-                        <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@set_email} />
+                        <FormControl ref='email' type='email' placeholder='Email address' name='email' autoFocus={true} onChange={@set_email} />
                     </FormGroup>
                     {if @props.forgot_password_error then @display_error() else @display_success()}
                     <hr />
@@ -277,7 +280,7 @@ ResetPassword = rclass
                 </div>
                 <form onSubmit={@reset_password}>
                     <FormGroup>
-                        <FormControl ref='password' type='password' placeholder='New Password' />
+                        <FormControl name='password' ref='password' type='password' placeholder='New Password' />
                     </FormGroup>
                     {@display_error()}
                     <hr />
@@ -536,6 +539,7 @@ exports.LandingPage = rclass
                         sign_in_error = {@props.sign_in_error}
                         has_account   = {@props.has_account}
                         xs            = {true}
+                        strategies    = {@props.strategies}
                         color         = {topbar.color} />
                     <div style={clear:'both'}></div>
             </Row>

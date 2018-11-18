@@ -31,11 +31,13 @@ interface Props {
   is_current: boolean;
   font_size: number;
   reload: string;
+  editor_settings: Map<string, any>;
   // reduxProps:
   windows: Map<string, any>;
+  x11_is_idle: boolean;
 }
 
-export class X11Component extends Component<Props, {}> {
+class X11Component extends Component<Props, {}> {
   private is_mounted: boolean = false;
   private is_loaded: boolean = false;
   private measure_size: Function;
@@ -45,12 +47,26 @@ export class X11Component extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        windows: rtypes.immutable.Map
+        windows: rtypes.immutable.Map,
+        x11_is_idle: rtypes.bool
       }
     };
   }
 
   shouldComponentUpdate(next): boolean {
+    if (
+      this.props.editor_settings.get("physical_keyboard") !==
+        next.editor_settings.get("physical_keyboard") ||
+      this.props.editor_settings.get("keyboard_variant") !==
+        next.editor_settings.get("keyboard_variant")
+    ) {
+      // keyboard layout change
+      this.props.actions.set_physical_keyboard(
+        next.editor_settings.get("physical_keyboard"),
+        next.editor_settings.get("keyboard_variant")
+      );
+    }
+
     // focused on a frame
     if (!this.props.is_current && next.is_current) {
       this.focus_textarea();
@@ -87,7 +103,12 @@ export class X11Component extends Component<Props, {}> {
     }
 
     // another other change causes re-render (e.g., of tab titles).
-    return is_different(this.props, next, ["id", "windows", "is_current"]);
+    return is_different(this.props, next, [
+      "id",
+      "windows",
+      "is_current",
+      "x11_is_idle"
+    ]);
   }
 
   componentDidMount(): void {
@@ -99,6 +120,11 @@ export class X11Component extends Component<Props, {}> {
     if (this.props.is_current) {
       this.focus_textarea();
     }
+    // set keyboard layout
+    this.props.actions.set_physical_keyboard(
+      this.props.editor_settings.get("physical_keyboard"),
+      this.props.editor_settings.get("keyboard_variant")
+    );
   }
 
   disable_browser_context_menu(): void {
@@ -295,9 +321,41 @@ export class X11Component extends Component<Props, {}> {
     );
   }
 
+  not_idle(): void {
+    this.props.actions.x11_not_idle();
+  }
+
+  render_idle(): Rendered {
+    if (!this.props.x11_is_idle) {
+      return;
+    }
+    return (
+      <div
+        onClick={this.not_idle.bind(this)}
+        style={{
+          position: "absolute",
+          fontSize: "36pt",
+          color: "white",
+          backgroundColor: "#458ac9",
+          textAlign: "center",
+          width: "100%",
+          height: "100%",
+          cursor: "pointer",
+          zIndex: 1,
+          opacity: 0.7
+        }}
+      >
+        Idle
+        <br />
+        (click to resume)
+      </div>
+    );
+  }
+
   render(): Rendered {
     return (
-      <div className="smc-vfill">
+      <div className="smc-vfill" style={{ position: "relative" }}>
+        {this.render_idle()}
         {this.render_tab_bar()}
         {this.render_hidden_textarea()}
         {this.render_window_div()}

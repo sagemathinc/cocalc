@@ -331,4 +331,19 @@ export class Actions extends BaseActions<LeanEditorState> {
   handle_cursor_move(_): void {
     this.debounced_update_info();
   }
+
+  public async close_and_halt(_: string): Promise<void> {
+    this.set_status("Killing LEAN server...");
+    const api = await project_api(this.project_id);
+    try {
+      await api.lean({ cmd: "kill" });
+    } catch (err) {
+      this.set_error(`Error killing LEAN server: ${err}`);
+    } finally {
+      this.set_status("");
+    }
+    // and close this window
+    const project_actions = this._get_project_actions();
+    project_actions.close_tab(this.path);
+  }
 }

@@ -29,7 +29,8 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "restart"
+      "restart",
+      "close_and_halt"
     ]),
     gutters: ["Codemirror-lean-messages"]
   },

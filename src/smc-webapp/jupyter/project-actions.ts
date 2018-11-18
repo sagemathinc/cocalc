@@ -9,7 +9,9 @@ fully unit test it via mocking of components.
 
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
-import { callback_opts } from "../frame-editors/generic/async-utils";
+
+
+const { callback_opts } = require("smc-util/async-utils"); // so also works on backend.
 
 const async = require("async");
 const underscore = require("underscore");

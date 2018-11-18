@@ -3,7 +3,10 @@
 extends ../_base_kucalc.pug
 
 block vars
-  - var subtitle = 'R Statistical Computing Online Environment';
+  -
+    navbar_active = 'features';
+    subnavbar_active = 'r';
+    subtitle = 'R Statistical Computing Online Environment';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -19,7 +22,7 @@ block content
       body > div.space
         margin-top       : 5rem
       div#top
-        margin           : 10rem 0 5rem 0
+        margin           : 15rem 0 5rem 0
         .descr
           color          : $COL_GRAY
           font-size      : 2rem

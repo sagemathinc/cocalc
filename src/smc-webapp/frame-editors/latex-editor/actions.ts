@@ -2,7 +2,8 @@
 LaTeX Editor Actions.
 */
 
-const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
+const HELP_URL = "https://doc.cocalc.com/latex.html";
+
 const VIEWERS: ReadonlyArray<string> = [
   "pdfjs_canvas",
   "pdfjs_svg",
@@ -725,7 +726,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   help(): void {
     // TODO: call version that deals with popup blockers...
-    const w = window.open(WIKI_HELP_URL, "_blank");
+    const w = window.open(HELP_URL, "_blank");
     if (w) {
       w.focus();
     }
@@ -755,6 +756,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!cm) return;
     let { line, ch } = cm.getDoc().getCursor();
     this.synctex_tex_to_pdf(line, ch, this.path);
+  }
+
+  time_travel(): void {
+    // knitr case: point to editor file, not the generated tex
+    // https://github.com/sagemathinc/cocalc/issues/3336
+    if (this.knitr) {
+      super.time_travel(this.filename_knitr);
+    } else {
+      super.time_travel();
+    }
   }
 
   download(id: string): void {

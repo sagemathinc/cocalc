@@ -4,7 +4,8 @@ Create a singleton websocket connection directly to a particular project.
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
-import { retry_until_success } from "../../frame-editors/generic/async-utils";
+const { retry_until_success } = require("smc-util/async-utils"); // so also works on backend.
+
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
 
