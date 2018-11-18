@@ -2232,59 +2232,63 @@ exports.seconds2hm = seconds2hm = (secs, longform) =>
 // mquantiles(l, [0, .25, .50, .75, 1], alphap=1, betap=1)
 // The default of scipy is probably better
 exports.quantile = function(list, q, sorted) {
-    if (sorted == null) { sorted = false; }
-    if (!((list != null ? list.length : undefined) >= 2)) {
-        return NaN;
-    }
-    if (!sorted) {
-        list.sort((a, b) => a - b);
-    }
-    const index = (q / 100.0) * (list.length - 1);
-    if (Math.floor(index) === index) {
-        return list[index];
-    } else {
-        const i = Math.floor(index);
-        const fraction = index - i;
-        return list[i] + ((list[i+1] - list[i]) * fraction);
-    }
+  if (sorted == null) {
+    sorted = false;
+  }
+  if (!((list != null ? list.length : undefined) >= 2)) {
+    return NaN;
+  }
+  if (!sorted) {
+    list.sort((a, b) => a - b);
+  }
+  const index = (q / 100.0) * (list.length - 1);
+  if (Math.floor(index) === index) {
+    return list[index];
+  } else {
+    const i = Math.floor(index);
+    const fraction = index - i;
+    return list[i] + (list[i + 1] - list[i]) * fraction;
+  }
 };
- // 5 number quantile
+// 5 number quantile
 exports.five_number_quantiles = function(list, sorted) {
-    if (sorted == null) { sorted = false; }
-    if (!((list != null ? list.length : undefined) >= 2)) {
-        return NaN;
-    }
-    if (!sorted) {
-        list.sort((a, b) => a - b);
-    }
-    const qpoints = [
-        {name:'min',     q:  0, help: 'minimum'},
-        {name:'q25',     q: 25, help: '25-th quantile'},
-        {name:'median',  q: 50, help: 'median'},
-        {name:'q75',     q: 75, help: '75-th quantile'},
-        {name:'max',     q:100, help: 'maximum'}
-    ];
-    const data = {};
-    for (let point of Array.from(qpoints)) {
-        const value = exports.quantile(list, point.q, true);
-        data[`${point.name}`] = {value, help:point.help};
-    }
-    return data;
+  if (sorted == null) {
+    sorted = false;
+  }
+  if (!((list != null ? list.length : undefined) >= 2)) {
+    return NaN;
+  }
+  if (!sorted) {
+    list.sort((a, b) => a - b);
+  }
+  const qpoints = [
+    { name: "min", q: 0, help: "minimum" },
+    { name: "q25", q: 25, help: "25-th quantile" },
+    { name: "median", q: 50, help: "median" },
+    { name: "q75", q: 75, help: "75-th quantile" },
+    { name: "max", q: 100, help: "maximum" }
+  ];
+  const data = {};
+  for (let point of Array.from(qpoints)) {
+    const value = exports.quantile(list, point.q, true);
+    data[`${point.name}`] = { value, help: point.help };
+  }
+  return data;
 };
 
-const lru_cache = require("lru-cache")({max: 1000});
+const lru_cache = require("lru-cache")({ max: 1000 });
 
 exports.roundN = function(num, l) {
-    switch (l) {
-        case 1:
-            return exports.round1(num);
-            break;
-        case 2:
-            return exports.round2(num);
-            break;
-    }
-    const expo = Math.pow(10, l);
-    return Math.round((num + Math.pow(10, -l-2)) * expo) / expo;
+  switch (l) {
+    case 1:
+      return exports.round1(num);
+      break;
+    case 2:
+      return exports.round2(num);
+      break;
+  }
+  const expo = Math.pow(10, l);
+  return Math.round((num + Math.pow(10, -l - 2)) * expo) / expo;
 };
 
 // if anyone wonders, there is more than one way to do this. this is the "mean" version, which
@@ -2293,56 +2297,263 @@ exports.roundN = function(num, l) {
 // l = [1, 1, 2, 3, 5, 8, 13]
 // percentileofscore(l, 2, kind='mean')
 exports.percentRank = function(list, n, sorted) {
-    if (sorted == null) { sorted = false; }
-    if (!((list != null ? list.length : undefined) > 0)) {
-        return NaN;
+  if (sorted == null) {
+    sorted = false;
+  }
+  if (!((list != null ? list.length : undefined) > 0)) {
+    return NaN;
+  }
+  if (!sorted) {
+    list.sort((a, b) => a - b);
+  }
+  let L = 0;
+  let S = 0;
+  const N = list.length;
+  for (
+    let i = 0, end = list.length, asc = 0 <= end;
+    asc ? i < end : i > end;
+    asc ? i++ : i--
+  ) {
+    if (list[i] < n) {
+      L += 1;
+    } else if (list[i] === n) {
+      S += 1;
     }
-    if (!sorted) {
-        list.sort((a, b) => a - b);
-    }
-    let L = 0;
-    let S = 0;
-    const N = list.length;
-    for (let i = 0, end = list.length, asc = 0 <= end; asc ? i < end : i > end; asc ? i++ : i--) {
-      if (list[i] < n) {
-          L += 1;
-      } else if (list[i] === n) {
-          S += 1;
-        }
-    }
-    return (100.0 * (L + (0.5 * S))) / N;
-};
-const animals = 'alligator anteater armadillo auroch axolotl badger bat beaver buffalo camel chameleon cheetah chipmunk chinchilla chupacabra cormorant coyote crow dingo dinosaur dog dolphin dragon duck elephant ferret fox frog giraffe gopher grizzly hedgehog hippo hyena jackal ibex ifrit iguana kangaroo koala kraken lemur leopard liger lion llama manatee mink monkey moose narwhal nyan cat orangutan otter panda penguin platypus python pumpkin quagga rabbit raccoon rhino shark sheep shrew skunk slow loris squirrel tiger turtle walrus wolf wolverine wombat'.split(' ').map(exports.capitalize);
-const adjectives = 'white black red green yellow orange blue gray pink adaptable adorable adventurous affable affectionate agile agreeable ambitious amiable amicable amusing brave bright broad-minded calm careful charming communicative compassionate conscientious considerate convivial courageous courteous creative decisive determined diligent diplomatic discreet dynamic easygoing emotional energetic enthusiastic exuberant fair-minded faithful fearless forceful frank friendly funny generous gentle good gregarious hard-working helpful honest humorous imaginative impartial independent intellectual intelligent intuitive inventive kind loud loving loyal modest neat nice optimistic passionate patient persistent pioneering philosophical placid plucky polite powerful practical pro-active quick-witted quiet rational reliable reserved resourceful romantic self-confident self-disciplined sensible sensitive shy sincere sociable straightforward swift sympathetic thoughtful tidy tough unassuming understanding versatile warmhearted willing witty'.split(' ').map(exports.capitalize);
- // derive a deterministic but anonymous name from a string (usually a uuid, though)
-exports.anonymize = function(str, opts) {
-    opts = defaults(opts, {
-        max_length : 30,
-        mode       : 'animals'
-    }
-    );
-    switch (opts.mode) {
-        case 'animals':
-            var key  = `anonymize::animals::${str}`;
-            var name = lru_cache.get(key);
-            if (name != null) { return name; }
-            var N    = animals.length;
-            var M    = adjectives.length;
-            var A    = exports.hash_string(str.slice(0, -1));
-            var B    = exports.hash_string(str.slice(1));
-            name = `${adjectives[__mod__(B, M)]} ${animals[__mod__(A, N)]}`;
-            lru_cache.set(key, name);
-            return name;
-         case 'uuid':
-            return str.split('-').slice(0, +opts.max_length + 1 || undefined).join('');
-    }
+  }
+  return (100.0 * (L + 0.5 * S)) / N;
 };
 
-function __mod__(a, b) {
+const animals = [
+  "alligator",
+  "anteater",
+  "armadillo",
+  "auroch",
+  "axolotl",
+  "badger",
+  "bat",
+  "beaver",
+  "buffalo",
+  "camel",
+  "chameleon",
+  "cheetah",
+  "chipmunk",
+  "chinchilla",
+  "chupacabra",
+  "cormorant",
+  "coyote",
+  "crow",
+  "dingo",
+  "dinosaur",
+  "dog",
+  "dolphin",
+  "dragon",
+  "duck",
+  "elephant",
+  "ferret",
+  "fox",
+  "frog",
+  "giraffe",
+  "gopher",
+  "grizzly",
+  "hedgehog",
+  "hippo",
+  "hyena",
+  "jackal",
+  "ibex",
+  "ifrit",
+  "iguana",
+  "kangaroo",
+  "koala",
+  "kraken",
+  "lemur",
+  "leopard",
+  "liger",
+  "lion",
+  "llama",
+  "manatee",
+  "mink",
+  "monkey",
+  "moose",
+  "narwhal",
+  "nyan",
+  "cat",
+  "orangutan",
+  "otter",
+  "panda",
+  "penguin",
+  "platypus",
+  "python",
+  "pumpkin",
+  "quagga",
+  "rabbit",
+  "raccoon",
+  "rhino",
+  "shark",
+  "sheep",
+  "shrew",
+  "skunk",
+  "slow",
+  "loris",
+  "squirrel",
+  "tiger",
+  "turtle",
+  "walrus",
+  "wolf",
+  "wolverine",
+  "wombat"
+].map(exports.capitalize);
+
+const adjectives = [
+  "white",
+  "black",
+  "red",
+  "green",
+  "yellow",
+  "orange",
+  "blue",
+  "gray",
+  "pink",
+  "adaptable",
+  "adorable",
+  "adventurous",
+  "affable",
+  "affectionate",
+  "agile",
+  "agreeable",
+  "ambitious",
+  "amiable",
+  "amicable",
+  "amusing",
+  "brave",
+  "bright",
+  "broad-minded",
+  "calm",
+  "careful",
+  "charming",
+  "communicative",
+  "compassionate",
+  "conscientious",
+  "considerate",
+  "convivial",
+  "courageous",
+  "courteous",
+  "creative",
+  "decisive",
+  "determined",
+  "diligent",
+  "diplomatic",
+  "discreet",
+  "dynamic",
+  "easygoing",
+  "emotional",
+  "energetic",
+  "enthusiastic",
+  "exuberant",
+  "fair-minded",
+  "faithful",
+  "fearless",
+  "forceful",
+  "frank",
+  "friendly",
+  "funny",
+  "generous",
+  "gentle",
+  "good",
+  "gregarious",
+  "hard-working",
+  "helpful",
+  "honest",
+  "humorous",
+  "imaginative",
+  "impartial",
+  "independent",
+  "intellectual",
+  "intelligent",
+  "intuitive",
+  "inventive",
+  "kind",
+  "loud",
+  "loving",
+  "loyal",
+  "modest",
+  "neat",
+  "nice",
+  "optimistic",
+  "passionate",
+  "patient",
+  "persistent",
+  "pioneering",
+  "philosophical",
+  "placid",
+  "plucky",
+  "polite",
+  "powerful",
+  "practical",
+  "pro-active",
+  "quick-witted",
+  "quiet",
+  "rational",
+  "reliable",
+  "reserved",
+  "resourceful",
+  "romantic",
+  "self-confident",
+  "self-disciplined",
+  "sensible",
+  "sensitive",
+  "shy",
+  "sincere",
+  "sociable",
+  "straightforward",
+  "swift",
+  "sympathetic",
+  "thoughtful",
+  "tidy",
+  "tough",
+  "unassuming",
+  "understanding",
+  "versatile",
+  "warmhearted",
+  "willing",
+  "witty"
+].map(exports.capitalize);
+
+// derive a deterministic but anonymous name from a string (usually a uuid, though)
+exports.anonymize = function(str, opts) {
+  opts = defaults(opts, {
+    max_length: 30,
+    mode: "animals"
+  });
+  switch (opts.mode) {
+    case "animals":
+      var key = `anonymize::animals::${str}`;
+      var name = lru_cache.get(key);
+      if (name != null) {
+        return name;
+      }
+      var N = animals.length;
+      var M = adjectives.length;
+      var A = exports.hash_string(str.slice(0, -1));
+      var B = exports.hash_string(str.slice(1));
+      name = `${adjectives[modulo(B, M)]} ${animals[modulo(A, N)]}`;
+      lru_cache.set(key, name);
+      return name;
+    case "uuid":
+      return str
+        .split("-")
+        .slice(0, +opts.max_length + 1 || undefined)
+        .join("");
+  }
+};
+
+/* coffeescript's proper %%-modulo operation
+ * https://stackoverflow.com/q/23126440/54236
+ */
+exports.modulo = modulo = function(a, b) {
   a = +a;
   b = +b;
-  return (a % b + b) % b;
-}
+  return ((a % b) + b) % b;
+};
 
 // dear future developer: look into test/misc-test.coffee to see how the expected output is defined.
 exports.seconds2hms = seconds2hms = function(secs, longform, show_seconds) {
