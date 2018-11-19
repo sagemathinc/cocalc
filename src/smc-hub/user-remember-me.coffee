@@ -19,8 +19,13 @@ exports.get_account_id = (database, remember_me, cb) ->
         cb(undefined, account_id)
         return
     x = remember_me.split('$')
+    try
+        hash = auth.generate_hash(x[0], x[1], x[2], x[3])
+    catch err
+        cb("not signed in")
+        return
     database.get_remember_me
-        hash : auth.generate_hash(x[0], x[1], x[2], x[3])
+        hash : hash
         cb   : (err, signed_in_mesg) ->
             if err
                 cb(err)

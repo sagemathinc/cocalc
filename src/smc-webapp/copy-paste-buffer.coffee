@@ -10,13 +10,19 @@ richer content too.
 
 buffer = ''
 
+# TODO: get_buffer could be done via a permission request, though that is a potential security issue.
+# See https://alligator.io/js/async-clipboard-api/
 exports.get_buffer = ->
     return buffer
 
 exports.set_buffer = (s) ->
     buffer = s ? ''
+    if navigator.clipboard?
+        navigator.clipboard.writeText(buffer);  # this is async -- requires at least chrome 66.
+        return
     try
         # https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand
-        # NOTE: there is probably no context in CoCalc where thi will actually work...
+        # NOTE: there is probably no context in CoCalc where this will actually work...
         document.execCommand('copy')
+
     return

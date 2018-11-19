@@ -18,7 +18,7 @@ const websocket_proxy_cache = {};
 const hub_proxy = require("../proxy");
 
 import { createProxyServer } from "http-proxy";
-import { callback_opts } from "../../smc-webapp/frame-editors/generic/async-utils";
+import { callback_opts } from "smc-util/async-utils";
 
 function target_parse_req(
   url: string

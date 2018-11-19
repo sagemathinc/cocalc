@@ -18,7 +18,7 @@ interface ProfileImageSelectorProps {
   profile: ImmutableMap<any, any>;
   redux: any;
   account_id: any;
-  email_address: string;
+  email_address: string | undefined;
 }
 
 interface ProfileImageSelectorState {
@@ -69,19 +69,29 @@ export class ProfileImageSelector extends Component<
     }
   };
 
-  handle_gravatar_click = () =>
+  handle_gravatar_click = () => {
+    if (!this.props.email_address) {
+      // Should not be necessary, but to make typescript happy.
+      return;
+    }
     this.set_image(
       `https://www.gravatar.com/avatar/${md5(
         this.props.email_address.toLowerCase()
       )}?d=identicon&s=30`
     );
+  };
 
-  handle_adorable_click = () =>
+  handle_adorable_click = () => {
+    if (!this.props.email_address) {
+      // Should not be necessary, but to make typescript happy.
+      return;
+    }
     this.set_image(
       `https://api.adorable.io/avatars/100/${md5(
         this.props.email_address.toLowerCase()
       )}.png`
     );
+  };
 
   handle_default_click = () => this.set_image("");
 
@@ -150,38 +160,12 @@ export class ProfileImageSelector extends Component<
     }
   };
 
-  render_options() {
+  render_options_gravatar() {
+    if (!this.props.email_address) {
+      return;
+    }
     return (
       <>
-        <Button
-          style={{ marginTop: "5px" }}
-          onClick={this.handle_default_click}
-        >
-          Default
-        </Button>{" "}
-        <a
-          href="#"
-          onClick={e => {
-            e.preventDefault();
-            this.setState({ show_default_explanation: true });
-          }}
-        >
-          What is this?
-        </a>
-        {this.state.show_default_explanation ? (
-          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
-            The default avatar is a circle with the first letter of your name.
-            <br />
-            <br />
-            <Button
-              onClick={() => this.setState({ show_default_explanation: false })}
-            >
-              Close
-            </Button>
-          </Well>
-        ) : (
-          <br />
-        )}
         <Button
           style={{ marginTop: "5px" }}
           onClick={this.handle_gravatar_click}
@@ -218,6 +202,16 @@ export class ProfileImageSelector extends Component<
         ) : (
           <br />
         )}
+      </>
+    );
+  }
+
+  render_options_adorable() {
+    if (!this.props.email_address) {
+      return;
+    }
+    return  (
+      <>
         <Button
           style={{ marginTop: "5px" }}
           onClick={this.handle_adorable_click}
@@ -254,6 +248,44 @@ export class ProfileImageSelector extends Component<
         ) : (
           <br />
         )}
+      </>
+    );
+  }
+
+  render_options() {
+    return (
+      <>
+        <Button
+          style={{ marginTop: "5px" }}
+          onClick={this.handle_default_click}
+        >
+          Default
+        </Button>{" "}
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault();
+            this.setState({ show_default_explanation: true });
+          }}
+        >
+          What is this?
+        </a>
+        {this.state.show_default_explanation ? (
+          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
+            The default avatar is a circle with the first letter of your name.
+            <br />
+            <br />
+            <Button
+              onClick={() => this.setState({ show_default_explanation: false })}
+            >
+              Close
+            </Button>
+          </Well>
+        ) : (
+          <br />
+        )}
+        {this.render_options_gravatar()}
+        {this.render_options_adorable()}
         <FormControl
           type="file"
           onChange={this.handle_image_file_input}

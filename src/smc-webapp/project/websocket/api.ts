@@ -79,6 +79,16 @@ export class API {
     return this.conn.channel(channel_name);
   }
 
+  // Get the x11 *channel* for the given '.x11' path.
+  async x11_channel(path: string, display: number): Promise<Channel> {
+    const channel_name = await this.call({
+      cmd: "x11_channel",
+      path,
+      display
+    });
+    return this.conn.channel(channel_name);
+  }
+
   // Do a request/response command to the lean server.
   async lean(opts: any): Promise<any> {
     let timeout_ms = 10000;
