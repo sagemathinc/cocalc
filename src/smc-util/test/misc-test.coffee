@@ -709,6 +709,18 @@ describe "parse_user_search", ->
     it "also handles mixed queries and spaces", ->
         exp = {email_queries: ["foo+bar@baz.com", "xyz@mail.com"], string_queries: [["john", "doe"]]}
         pus("   foo+bar@baz.com   , John   Doe  ; <xyz@mail.com>").should.eql exp
+    it "works with line breaks, too", ->
+        exp =
+            email_queries: ["foo@bar.com", "baz+123@cocalc.com", "jd@cocalc.com"]
+            string_queries: [ ["john", "doe"],  ["dr.", "foo", "bar", "baz"]]
+        query = """
+                foo@bar.com
+                baz+123@cocalc.com
+                John Doe
+                Dr. Foo Bar BAZ
+                Jane Dae <jd@cocalc.com>
+                """
+        pus(query).should.eql(exp)
 
 describe "delete_trailing_whitespace", ->
     dtw = misc.delete_trailing_whitespace

@@ -32,6 +32,7 @@ underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
+synctable2 = require('./sync/synctable')
 db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
@@ -1314,6 +1315,7 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
+                env         : opts.env
                 aggregate   : opts.aggregate
             opts.cb(undefined, await ws.api.exec(exec_opts))
         catch err
@@ -1809,6 +1811,9 @@ class exports.Connection extends EventEmitter
 
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
+
+    synctable2: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable(query, options, @, throttle_changes)
 
     # this is async
     symmetric_channel: (name, project_id) =>

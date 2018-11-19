@@ -158,6 +158,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
                         <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
                     </Tip>
+                    <Tip title='RMarkdown File'  icon='cc-icon-r'
+                        tip='RMarkdown document with real-time preview.'>
+                        <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
+                    </Tip>
                 </Col>
                 <Col sm={6}>
                     <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
@@ -194,6 +198,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <Tip title='Stopwatch'   icon='stopwatch'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
                         <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
+                    </Tip>
+                    <Tip title='X11 Desktop'   icon='window-restore'
+                        tip='Create an X11 desktop for running graphical applications.'>
+                        <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
                     </Tip>
                 </Col>
                 <Col sm={6}>

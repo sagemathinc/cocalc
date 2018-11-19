@@ -1,8 +1,6 @@
 // Use Xpra to provide X11 server.
 
-import { retry_until_success } from "../generic/async-utils";
-
-import { delay } from "awaiting";
+import { retry_until_success } from "smc-util/async-utils";
 
 import { reuseInFlight } from "async-await-utils/hof";
 
@@ -12,7 +10,8 @@ import { Client } from "./xpra/client";
 
 import { Surface } from "./xpra/surface";
 
-import { XpraServer } from "./xpra-server";
+import { XpraServer, ExecOpts0 } from "./xpra-server";
+import { ExecOutput } from "../generic/client";
 
 import { touch, touch_project } from "../generic/client";
 
@@ -24,6 +23,9 @@ import { is_copy } from "./xpra/util";
 
 const { alert_message } = require("smc-webapp/alerts");
 
+const sha1 = require("sha1");
+const { hash_string } = require("smc-util/misc");
+
 const BASE_DPI: number = 96;
 
 const KEY_EVENTS = ["keydown", "keyup", "keypress"];
@@ -32,6 +34,10 @@ const MOUSE_EVENTS = [
   "mousemove",
   "mousedown",
   "mouseup",
+  "touchstart",
+  "touchmove",
+  "touchend",
+  "touchcancel",
   "wheel",
   "mousewheel",
   "DOMMouseScroll"
@@ -40,6 +46,7 @@ const MOUSE_EVENTS = [
 interface Options {
   project_id: string;
   path: string;
+  idle_timeout_ms: number;
 }
 
 import { EventEmitter } from "events";
@@ -53,26 +60,52 @@ export class XpraClient extends EventEmitter {
   public _ws_status: ConnectionStatus = "disconnected";
   private last_active: number = 0;
   private touch_interval: number;
+  private idle_interval: number;
+  private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
+  private display: number;
 
   constructor(options: Options) {
     super();
     this.record_active = throttle(this.record_active.bind(this), 30000);
     this.connect = reuseInFlight(this.connect);
     this.options = options;
+    this.init_display();
     this.client = new Client();
+
     this.server = new XpraServer({
-      project_id: this.options.project_id
+      project_id: this.options.project_id,
+      display: this.display
     });
+
     this.init_touch(); // so project is alive so long as x11 session is active in some sense.
     this.init_xpra_events();
+    this.init_idle_timeout();
     this.connect();
     this.copy_from_xpra = throttle(this.copy_from_xpra.bind(this), 200, {
       trailing: false
     });
   }
 
+  // We make the display number the sha1 hash (made into a 31 bit number)
+  // of the project_id and path.  This is so it is stable over sessions,
+  // restarts, browsers, etc., but also different for differnet files.
+  // If somebody opened a dozen x11 sessions, there's still only a one
+  // in 1 in 3*10^(-8) chance of collision.    Coordinating with the backend
+  // for the number would be annoying since the terminal session DISPLAY
+  // might have to change, and it adds an extra async step (so more time)
+  // to startup.
+  init_display(): void {
+    const s = `${this.options.project_id}${this.options.path}`;
+    let h: number = hash_string(sha1(s));
+    if (h < 0) {
+      h = -h;
+    }
+    h = h % 2 ** 31;
+    this.display = h;
+  }
+
   get_display(): number {
-    return this.server.get_display();
+    return this.display;
   }
 
   get_socket_path(): string {
@@ -88,8 +121,14 @@ export class XpraClient extends EventEmitter {
     this.client.disconnect();
     this.removeAllListeners();
     clearInterval(this.touch_interval);
+    clearInterval(this.idle_interval);
     delete this.options;
     delete this.client;
+  }
+
+  async close_and_halt(): Promise<void> {
+    this.server.stop();
+    this.close();
   }
 
   async _connect(): Promise<void> {
@@ -101,6 +140,9 @@ export class XpraClient extends EventEmitter {
   }
 
   async connect(): Promise<void> {
+    this.idle_timed_out = false;
+    this.last_active = new Date().valueOf();
+    this.emit("ws:idle", false);
     // use this is dumb, but will do **for now**.  It's
     // dumb since instead when we reconnect to the network,
     // it should trigger attempting, etc.  But this will do.
@@ -116,11 +158,19 @@ export class XpraClient extends EventEmitter {
     if (!this.options) return; // closed
     const port = await this.server.start();
     if (!this.options) return; // closed
-    const uri = `wss://${window.location.hostname}${window.app_base_url}/${
+
+    // Get origin, but with http[s] stripped.
+    // Do not use window.location.hostname, since that doesn't
+    // include the port, if there is one.
+    let origin = window.location.origin;
+    const i = origin.indexOf(":");
+    origin = origin.slice(i);
+
+    const uri = `wss${origin}${window.app_base_url}/${
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
-    return { uri, dpi, sound: false };
+    return { uri, dpi};
   }
 
   private init_xpra_events(): void {
@@ -150,12 +200,8 @@ export class XpraClient extends EventEmitter {
     this.enable_window_events();
   }
 
-  async focus_window(wid: number): Promise<void> {
+  focus_window(wid: number): void {
     if (wid && this.client.findSurface(wid) !== undefined) {
-      this.client.focus(wid);
-      // sometimes it annoyingly fails without this,
-      // so we use it for now...
-      await delay(100);
       this.client.focus(wid);
     }
   }
@@ -250,7 +296,7 @@ export class XpraClient extends EventEmitter {
     }
   }
 
-  render_window(wid: number, elt: HTMLElement): void {
+  insert_window_in_dom(wid: number, elt: HTMLElement): void {
     const surface = this.client.findSurface(wid);
     if (surface === undefined) {
       throw Error(`missing surface ${wid}`);
@@ -263,19 +309,6 @@ export class XpraClient extends EventEmitter {
     const e: JQuery<HTMLElement> = $(elt);
     e.empty();
     e.append(canvas);
-
-    // Append any already known overlays or modals
-    for (let id of this.client.window_ids()) {
-      const w = this.client.findSurface(id);
-      if (w == null) {
-        continue;
-      }
-      if (w.parent !== undefined && w.parent.wid === wid) {
-        this.place_overlay_in_dom(w);
-      } else if (w.metadata && w.metadata["transient-for"] === wid) {
-        this.place_overlay_in_dom(w);
-      }
-    }
   }
 
   window_focus(wid: number): void {
@@ -288,8 +321,13 @@ export class XpraClient extends EventEmitter {
       surface.parent = this.client.findSurface(
         surface.metadata["transient-for"]
       );
-      // modal window on top of existing one...
-      this.place_overlay_in_dom(surface);
+      if (!surface.parent) {
+        // gone
+        return;
+      }
+      // modal window on top of existing (assumed!) root window
+      this.client.rescale_children(surface.parent);
+      this.emit("child:create", surface.parent.wid, surface.wid);
     } else {
       this.emit("window:create", surface.wid, surface.metadata.title);
     }
@@ -311,24 +349,18 @@ export class XpraClient extends EventEmitter {
     }
 
     const scale = window.devicePixelRatio / frame_scale;
-
-    surface.rescale(scale, width, height);
-    this.client.rescale_children(surface, scale);
     surface.x = 0;
     surface.y = 0;
-
-    this.client.send(
-      "configure-window",
-      wid,
-      surface.x,
-      surface.y,
-      surface.w,
-      surface.h,
-      surface.properties
-    );
+    surface.rescale(scale, width, height);
+    this.client.rescale_children(surface);
   }
 
   window_destroy(surface: Surface): void {
+    if (surface.parent != null) {
+      this.emit("child:destroy", surface.parent.wid, surface.wid);
+      surface.destroy();
+      return;
+    }
     //console.log("window_destroy", window);
     surface.destroy();
     this.emit("window:destroy", surface.wid);
@@ -351,24 +383,30 @@ export class XpraClient extends EventEmitter {
     //console.log("window_metadata", info);
   }
 
-  place_overlay_in_dom(overlay: Surface): void {
-    const e = $(overlay.canvas);
-    e.css("position", "absolute");
-    if (overlay.parent === undefined) {
-      throw Error("overlay must define a parent");
+  insert_child_in_dom(wid: number): void {
+    const surface = this.client.findSurface(wid);
+    if (surface == null) {
+      // gone -- nothing to do.
+      return;
     }
-    const scale = overlay.parent.scale ? overlay.parent.scale : 1;
-    const width = `${overlay.canvas.width / scale}px`,
-      height = `${overlay.canvas.height / scale}px`,
-      left = `${overlay.x / scale}px`,
-      top = `${overlay.y / scale}px`;
+    if (surface.parent == null) {
+      throw Error(`insert_child_in_dom: ${wid} must be a child`);
+    }
+
+    const e = $(surface.canvas);
+    e.css("position", "absolute");
+    const scale = surface.parent.scale ? surface.parent.scale : 1;
+    const width = `${surface.canvas.width / scale}px`,
+      height = `${surface.canvas.height / scale}px`,
+      left = `${surface.x / scale}px`,
+      top = `${surface.y / scale}px`;
 
     let border, boxShadow;
-    if (overlay.metadata["transient-for"]) {
-      border = "1px solid rgba(0,0,0,.15)";
-      boxShadow = "rgba(0,0,0,.175) 0 6px 12px";
-    } else {
+    if (surface.metadata["transient-for"]) {
       border = "1px solid lightgrey";
+      boxShadow = "grey 0 0 20px";
+    } else {
+      border = "";
       boxShadow = "rgba(0, 0, 0, 0.25) 0px 6px 24px";
     }
     e.css({
@@ -383,16 +421,23 @@ export class XpraClient extends EventEmitter {
     });
 
     // if parent not in DOM yet, the following is a no-op.
-    $(overlay.parent.canvas)
+    $(surface.parent.canvas)
       .parent()
       .append(e);
   }
 
   overlay_create(overlay: Surface): void {
-    this.place_overlay_in_dom(overlay);
+    if (overlay.parent == null) {
+      return; // make typescript happy
+    }
+    this.emit("child:create", overlay.parent.wid, overlay.wid);
   }
 
   overlay_destroy(overlay: Surface): void {
+    if (overlay.parent == null) {
+      return; // make typescript happy
+    }
+    this.emit("child:destroy", overlay.parent.wid, overlay.wid);
     $(overlay.canvas).remove();
   }
 
@@ -401,13 +446,12 @@ export class XpraClient extends EventEmitter {
     if (
       status === "disconnected" &&
       this._ws_status !== "disconnected" &&
-      this.client !== undefined
+      this.client !== undefined &&
+      !this.idle_timed_out
     ) {
-      this._ws_status = status;
       this.connect();
-    } else {
-      this._ws_status = status;
     }
+    this._ws_status = status;
   }
 
   ws_data(_, packet: any[]): void {
@@ -456,5 +500,43 @@ export class XpraClient extends EventEmitter {
   get_parent(wid: number): number {
     const surface = this.client.findSurface(wid);
     return surface && surface.parent != null ? surface.parent.wid : 0;
+  }
+
+  public is_idle(): boolean {
+    return this.idle_timed_out;
+  }
+
+  private init_idle_timeout(): void {
+    const idle_timeout: number = this.options.idle_timeout_ms;
+    if (!idle_timeout) {
+      return;
+    }
+    this.idle_interval = setInterval(
+      this.idle_timeout_if_inactive.bind(this),
+      idle_timeout / 2
+    );
+  }
+
+  private idle_timeout_if_inactive(): void {
+    if (this.idle_timed_out) {
+      return;
+    }
+    if (
+      new Date().valueOf() - this.last_active >=
+      this.options.idle_timeout_ms
+    ) {
+      // inactive
+      this.idle_timed_out = true;
+      this.emit("ws:idle", true);
+      this.client.disconnect();
+    }
+  }
+
+  public async exec(opts: ExecOpts0): Promise<ExecOutput> {
+    return await this.server.exec(opts);
+  }
+
+  public set_physical_keyboard(layout: string, variant: string) : void {
+    this.client.set_physical_keyboard(layout, variant);
   }
 }

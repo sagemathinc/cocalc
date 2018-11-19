@@ -164,6 +164,10 @@ export class Mouse {
   }
 
   process(ev: MouseEvent): Surface | undefined {
+    if (ev.clientX == null || ev.clientY == null) {
+      // happens with touch events for now...
+      return;
+    }
     const elt_at = document.elementFromPoint(ev.clientX, ev.clientY);
     if (!elt_at) {
       // nothing under mouse, so no point. (possible? I don't  know.)

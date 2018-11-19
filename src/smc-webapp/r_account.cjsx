@@ -30,6 +30,7 @@
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
+{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
 
 md5 = require('md5')
 
@@ -803,24 +804,32 @@ TerminalSettings = rclass
     handleChange: (obj) ->
         @props.redux.getTable('account').set(terminal: obj)
 
+    render_color_scheme: ->
+        <LabeledRow label='Terminal color scheme'>
+            <SelectorInput
+                selected  = {@props.terminal.get('color_scheme')}
+                options   = {TERMINAL_COLOR_SCHEMES}
+                on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+            />
+        </LabeledRow>
+
+    render_font_family: ->
+        return  # disabled due to https://github.com/sagemathinc/cocalc/issues/3304
+        <LabeledRow label='Terminal font family'>
+            <SelectorInput
+                selected  = {@props.terminal.get('font')}
+                options   = {TERMINAL_FONT_FAMILIES}
+                on_change = {(font)=>@handleChange(font:font)}
+            />
+        </LabeledRow>
+
+
     render: ->
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal settings</h2>}>
-            <LabeledRow label='Terminal color scheme'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('color_scheme')}
-                    options   = {TERMINAL_COLOR_SCHEMES}
-                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Terminal font family'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('font')}
-                    options   = {TERMINAL_FONT_FAMILIES}
-                    on_change = {(font)=>@handleChange(font:font)}
-                />
-            </LabeledRow>
+            {@render_color_scheme()}
+            {@render_font_family()}
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
@@ -1021,6 +1030,46 @@ EditorSettingsKeyboardBindings = rclass
             />
         </LabeledRow>
 
+EditorSettingsPhysicalKeyboard = rclass
+    displayName : 'Account-EditorSettingsPhysicalKeyboard'
+
+    propTypes :
+        physical_keyboard  : rtypes.string.isRequired
+        on_change          : rtypes.func.isRequired
+
+    render: ->
+        if @props.physical_keyboard == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {PHYSICAL_KEYBOARDS}
+                    selected  = {@props.physical_keyboard}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+EditorSettingsKeyboardVariant = rclass
+    displayName : 'Account-EditorSettingsKeyboardVariant'
+
+    propTypes :
+        keyboard_variant         : rtypes.string.isRequired
+        on_change                : rtypes.func.isRequired
+        keyboard_variant_options : rtypes.array.isRequired
+
+    render: ->
+        if @props.keyboard_variant == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {@props.keyboard_variant_options}
+                    selected  = {@props.keyboard_variant}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
@@ -1034,11 +1083,27 @@ EditorSettings = rclass
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings', 'tab_size'])
 
+    get_keyboard_variant_options: (val) ->
+        val ?= @props.editor_settings.get('physical_keyboard')
+        options = misc.deep_copy(KEYBOARD_VARIANTS[val] ? [])
+        options.unshift({value:"", display: "No variant"})
+        return options
+
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
             @props.redux.getTable('account').set("#{name}" : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
+
+        if name == 'physical_keyboard'
+            options = @get_keyboard_variant_options(val)
+            @actions('account').setState(keyboard_variant_options: options)
+            for opt in options
+                if opt.value == 'nodeadkeys'
+                    @on_change('keyboard_variant', opt.value)
+                    return
+            # otherwise, select default
+            @on_change('keyboard_variant', '')
 
     render: ->
         if not @props.editor_settings?
@@ -1054,6 +1119,10 @@ EditorSettings = rclass
                 on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
+            <EditorSettingsPhysicalKeyboard
+                on_change={(value)=>@on_change('physical_keyboard',value)} physical_keyboard={@props.editor_settings.get('physical_keyboard')} />
+            <EditorSettingsKeyboardVariant
+                on_change={(value)=>@on_change('keyboard_variant',value)} keyboard_variant={@props.editor_settings.get('keyboard_variant')} keyboard_variant_options = {@get_keyboard_variant_options()} />
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>
@@ -1333,6 +1402,14 @@ f = () ->
     $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
+
+            ###
+            # Pro Tip:
+            # Type the following in the javascript console to make all strategy
+            # buttons appear, purely for UI testing:
+            #  smc.redux.getActions('account').setState({strategies:["email","facebook","github","google","twitter"]})
+            ###
+
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!
             # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.
