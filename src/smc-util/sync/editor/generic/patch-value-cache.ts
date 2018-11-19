@@ -6,12 +6,7 @@ few keystrokes, which would make SMC unusable.  Also, the
 history browser is very painful to use without caching.
 */
 
-import { cmp_Date, keys, cmp, len } from "smc-util/misc2.ts";
-
-// Make this bigger to make things faster... at the cost of
-// using more memory.  TODO: use lru_cache instead, and
-// an absolute memory threshhold?
-const MAX_PATCHLIST_CACHE_SIZE = 20;
+import { cmp_Date, keys, cmp, len } from "../../../misc2";
 
 interface Entry {
   time: Date;
@@ -32,9 +27,9 @@ export class PatchValueCache {
       return;
     }
     const time0: number = time.valueOf();
-    for (let tm: string in this.cache) {
-      if (parseInt(tm) >= time0) {
-        delete this.cache[tm];
+    for (let time in this.cache) {
+      if (parseInt(time) >= time0) {
+        delete this.cache[time];
       }
     }
   }
@@ -47,7 +42,7 @@ export class PatchValueCache {
       return;
     }
     const v: { time: string; last_used: Date }[] = [];
-    for (let time: string in this.cache) {
+    for (let time in this.cache) {
       let x = this.cache[time];
       if (x != null) {
         v.push({ time, last_used: x.last_used });
@@ -114,7 +109,7 @@ export class PatchValueCache {
   get(time: Date | number): Entry | undefined {
     if (typeof time !== "number") {
       // also allow dates
-      time = time - 0;
+      time = time.valueOf();
     }
     const x = this.cache[time];
     if (x == null) {
@@ -124,7 +119,7 @@ export class PatchValueCache {
     return x;
   }
 
-  oldest_time(): Date {
+  oldest_time(): Date | undefined {
     const v = this.keys();
     if (v.length === 0) {
       return;

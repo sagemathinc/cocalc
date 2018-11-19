@@ -1,6 +1,12 @@
 /*
 Sorted list of patches applied to a starting string/object.
 */
+
+// Make this bigger to make things faster... at the cost of
+// using more memory.  TODO: use lru_cache instead, and
+// an absolute memory threshhold?
+const MAX_PATCHLIST_CACHE_SIZE = 20;
+
 export class SortedPatchList extends EventEmitter {
   constructor(_from_str) {
     {
