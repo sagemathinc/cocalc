@@ -406,7 +406,7 @@ SagePreview = rclass
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
                             Conveniently handout assignments, collect them, grade them, and finally return them.
-                            (<a href="https://tutorial.cocalc.com/" target="_blank"><SiteName /> used for Teaching</a>).
+                            (<a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">Instructor Guide for Teaching</a>).
                         </ExampleBox>
                     </Col>
                 </Row>
