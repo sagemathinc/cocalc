@@ -2,7 +2,7 @@
    in memory locally here.
 */
 
-export interace Patch {
+export interface Patch {
   time: Date; // timestamp of when patch made
   patch: string /* compressed format patch (stored as a
                    JSON *string* in database, but array/object here) */;
@@ -15,4 +15,5 @@ export interace Patch {
 
 export interface Document {
   apply_patch(Patch): Document;
+  is_equal(Document) : boolean;
 }

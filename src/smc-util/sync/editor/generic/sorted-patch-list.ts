@@ -189,6 +189,7 @@ export class SortedPatchList extends EventEmitter {
     // Determine oldest cached value (undefined if nothing cached)
     const oldest_cached_time: Date | undefined = this.cache.oldest_time();
 
+    let value: Document;
     // If the oldest cached value exists and is at least as old as
     // the requested point in time, use it as a base.
     if (
@@ -199,14 +200,15 @@ export class SortedPatchList extends EventEmitter {
       // There is something in the cache, and it is at least as
       // far back in time as the value we want to compute now or
       // any without skips.
-      let cache: Entry;
+      let entry: Entry;
       if (oldest_without_time != null) {
         // true makes "at most" strict, so <.
-        cache = this.cache.newest_value_at_most(oldest_without_time, true);
+        entry = this.cache.newest_value_at_most(oldest_without_time, true);
       } else {
-        cache = this.cache.newest_value_at_most(time);
+        entry = this.cache.newest_value_at_most(time);
       }
-      let { value, start, time: cache_time } = cache;
+      let { start, time: cache_time } = entry;
+      value = entry.value;
       let x: Patch;
       for (x of this.patches.slice(start, this.patches.length)) {
         // all patches starting with the cached one
@@ -234,7 +236,7 @@ export class SortedPatchList extends EventEmitter {
       }
       if (
         oldest_without_time == null &&
-        (time == null || start - cache.start >= 10)
+        (time == null || start - entry.start >= 10)
       ) {
         // Newest -- or at least 10 patches needed to be applied -- so cache result
         this.cache.include(cache_time, value, start);
@@ -251,7 +253,7 @@ export class SortedPatchList extends EventEmitter {
     } else {
       // Cache is empty or doesn't have anything sufficiently old to be useful.
       // Find the newest snapshot at a time that is <= time.
-      let value: Document = this.from_str(""); // default in case no snapshots
+      value = this.from_str(""); // default in case no snapshots
       let start: number = 0;
       for (let i = this.patches.length - 1; i >= 0; i--) {
         if (
@@ -334,32 +336,33 @@ export class SortedPatchList extends EventEmitter {
     }
 
     //console.log("value: time=#{new Date() - start_time}")
-    // Use the following only for testing/debugging, since it will make everything VERY slow.
-    //if @_value_no_cache(time) != value
-    //    console.warn("value for time #{time-0} is wrong!")
+    // Use the following only for testing/debugging,
+    // since it will make everything VERY slow.
+    //if (this.value_no_cache(time) != value) {
+    //    console.warn(`value for time ${time.valueOf()} is wrong!`)
+    //}
+
     return value;
   }
 
   // VERY Slow -- only for consistency checking purposes and debugging.
   // If snapshots=false, don't use snapshots.
-  _value_no_cache(time, snapshots = true) {
-    let value = this.from_str(""); // default in case no snapshots
-    let start = 0;
-    const prev_cutoff = this.newest_snapshot_time();
+  public value_no_cache(
+    time: Date | undefined,
+    snapshots: boolean = true
+  ): Document {
+    let value: Document = this.from_str(""); // default in case no snapshots
+    let start: number = 0;
+    const prev_cutoff: Date = this.newest_snapshot_time();
     if (snapshots && this.patches.length > 0) {
-      // otherwise the [..] notation below has surprising behavior
-      for (
-        let start1 = this.patches.length - 1, i = start1, asc = start1 <= 0;
-        asc ? i <= 0 : i >= 0;
-        asc ? i++ : i--
-      ) {
+      for (let i = this.patches.length - 1; i >= 0; i--) {
         if (
-          (time == null || +this.patches[i].time <= +time) &&
+          (time == null || this.patches[i].time <= time) &&
           this.patches[i].snapshot != null
         ) {
           // Found a patch with known snapshot that is as old as the time.
-          // This is the base on which we will apply other patches to move forward
-          // to the requested time.
+          // This is the base on which we will apply other patches to move
+          // forward to the requested time.
           value = this.from_str(this.patches[i].snapshot);
           start = i + 1;
           break;
@@ -368,12 +371,17 @@ export class SortedPatchList extends EventEmitter {
     }
     // Apply each of the patches we need to get from
     // value (the last snapshot) to time.
-    for (let x of this.patches.slice(start, this.patches.length)) {
+    let x: Patch;
+    for (x of this.patches.slice(start, this.patches.length)) {
       if (time != null && x.time > time) {
         // Done -- no more patches need to be applied
         break;
       }
-      if (x.prev == null || this.times[x.prev - 0] || +x.prev <= +prev_cutoff) {
+      if (
+        x.prev == null ||
+        this.times[x.prev.valueOf()] ||
+        x.prev <= prev_cutoff
+      ) {
         value = value.apply_patch(x.patch);
       } else {
         console.log("skipping patch due to prev", x);
@@ -384,19 +392,21 @@ export class SortedPatchList extends EventEmitter {
 
   // For testing/debugging.  Go through the complete patch history and
   // verify that all snapshots are correct (or not -- in which case say so).
-  _validate_snapshots() {
-    let value;
+  public validate_snapshots(): void {
     if (this.patches.length === 0) {
       return;
     }
-    let i = 0;
+    let value: Document;
+    let i: number = 0;
     if (this.patches[0].snapshot != null) {
       i += 1;
       value = this.from_str(this.patches[0].snapshot);
     } else {
       value = this.from_str("");
     }
-    for (let x of this.patches.slice(i)) {
+
+    let x: Patch;
+    for (x of this.patches.slice(i)) {
       value = value.apply_patch(x.patch);
       if (x.snapshot != null) {
         const snapshot_value = this.from_str(x.snapshot);
@@ -413,22 +423,19 @@ export class SortedPatchList extends EventEmitter {
   }
 
   // integer index of user who made the edit at given point in time (or undefined)
-  user_id(time) {
-    return __guard__(this.patch(time), x => x.user_id);
+  public user_id(time) : number | undefined {
+    const x = this.patch(time);
+    return x == null ? undefined : x.user_id;
   }
 
-  time_sent(time) {
-    return __guard__(this.patch(time), x => x.sent);
+  public time_sent(time) : Date | undefined {
+    const x = this.patch(time);
+    return x == null ? undefined : x.sent;
   }
 
-  // patch at a given point in time
-  // TODO: optimization -- this shouldn't be a linear search!!
-  patch(time) {
-    for (let x of this.patches) {
-      if (+x.time === +time) {
-        return x;
-      }
-    }
+  // Patch at a given point in time
+  public patch(time) : Patch | undefined {
+    return this.times[time.valueOf()]
   }
 
   versions() {
