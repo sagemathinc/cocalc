@@ -1412,6 +1412,7 @@ exports.UpgradeAdjustor = rclass
 
     propTypes :
         quota_params                         : rtypes.object.isRequired # from the schema
+        all_upgrades_to_this_project         : rtypes.object
         submit_upgrade_quotas                : rtypes.func.isRequired
         cancel_upgrading                     : rtypes.func.isRequired
         disable_submit                       : rtypes.bool
@@ -1451,9 +1452,10 @@ exports.UpgradeAdjustor = rclass
         # additionally, the limits are capped by the maximum per project
         maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
         limits = misc.map_limit(limits, maximum)
-        limits    : limits
-        remaining : remaining
-        current   : current
+        return
+            limits    : limits
+            remaining : remaining
+            current   : current
 
     clear_upgrades: ->
         @set_upgrades('min')

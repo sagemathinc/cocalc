@@ -388,6 +388,7 @@ UsagePanel = rclass
             {@render_upgrades_button()}
             {<UpgradeAdjustor
                 project_id                           = {@props.project_id}
+                all_upgrades_to_this_project         = {@props.all_upgrades_to_this_project}
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
                 upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
                 upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
