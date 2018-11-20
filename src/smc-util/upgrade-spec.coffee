@@ -117,8 +117,8 @@ upgrades.params =
         desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
         display        : 'Internet Access'
-        unit           : 'project'
-        display_unit   : 'project'
+        unit           : 'internet upgrade'
+        display_unit   : 'internet upgrade'
         display_factor : 1
         pricing_unit   : 'project'
         pricing_factor : 1
@@ -126,13 +126,13 @@ upgrades.params =
         desc           : 'Full internet access enables a project to connect to the computers outside of CoCalc, download software packages, etc.'
     member_host :
         display        : 'Member Hosting'
-        unit           : 'project'
-        display_unit   : 'project'
+        unit           : 'hosting upgrade'
+        display_unit   : 'hosting upgrade'
         display_factor : 1
         pricing_unit   : 'project'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Runs this project on a member-only host that is NOT pre-emptible; it will not be randomly rebooted and has less users.'
+        desc           : 'Runs this project on a machine hosting less projects, away from the free projects, and does not randomly reboot.'
 
 upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
                         'memory', 'memory_request',
