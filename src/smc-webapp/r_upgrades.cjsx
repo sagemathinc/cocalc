@@ -194,6 +194,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
         <UpgradeAdjustor
             key                                  = {"adjustor-#{project_id}"}
             project_id                           = {project_id}
+            total_project_quotas                 = {@props.get_total_project_quotas(id) }
             upgrades_you_can_use                 = {@props.get_total_upgrades()}
             upgrades_you_applied_to_all_projects = {@props.get_total_upgrades_you_have_applied()}
             upgrades_you_applied_to_this_project = {@props.get_upgrades_you_applied_to_project(project_id)}

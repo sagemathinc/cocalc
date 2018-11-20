@@ -163,7 +163,7 @@ QuotaConsole = rclass
             tip   = {params_data.desc}>{params_data.display}</Tip>}
             key   = {params_data.display}
             style = {borderBottom:'1px solid #ccc'}
-            >
+        >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -388,13 +388,13 @@ UsagePanel = rclass
             {@render_upgrades_button()}
             {<UpgradeAdjustor
                 project_id                           = {@props.project_id}
-                all_upgrades_to_this_project         = {@props.all_upgrades_to_this_project}
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
                 upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
                 upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
                 quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 submit_upgrade_quotas                = {@submit_upgrade_quotas}
                 cancel_upgrading                     = {=>@setState(show_adjustor : false)}
+                total_project_quotas                 = {@props.total_project_quotas}
             /> if @state.show_adjustor}
             <QuotaConsole
                 project_id                   = {@props.project_id}

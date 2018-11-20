@@ -1412,7 +1412,7 @@ exports.UpgradeAdjustor = rclass
 
     propTypes :
         quota_params                         : rtypes.object.isRequired # from the schema
-        all_upgrades_to_this_project         : rtypes.object
+        total_project_quotas                 : rtypes.object
         submit_upgrade_quotas                : rtypes.func.isRequired
         cancel_upgrading                     : rtypes.func.isRequired
         disable_submit                       : rtypes.bool
@@ -1443,15 +1443,23 @@ exports.UpgradeAdjustor = rclass
         return state
 
     get_quota_info : ->
+        # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
+        quota_params = @props.quota_params
+        # how much upgrade you have used between all projects
+        used_upgrades = @props.upgrades_you_applied_to_all_projects
         # how much upgrade you currently use on this one project
         current = @props.upgrades_you_applied_to_this_project
         # how much unused upgrade you have remaining
-        remaining = misc.map_diff(@props.upgrades_you_can_use, @props.upgrades_you_applied_to_all_projects)
+        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
         # maximums you can use, including the upgrades already on this project
         limits = misc.map_sum(current, remaining)
         # additionally, the limits are capped by the maximum per project
         maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
         limits = misc.map_limit(limits, maximum)
+        # all currently applied upgrades to this project
+        project_upgrades = @props.total_project_quotas
+        remainder_upgrades = misc.map_diff(maximum, project_upgrades)
+        limits = misc.map_limit(limits, remainder_upgrades)
         return
             limits    : limits
             remaining : remaining
@@ -1658,19 +1666,7 @@ exports.UpgradeAdjustor = rclass
             # user has no upgrades on their account
             <NoUpgrades cancel={@props.cancel_upgrading} />
         else
-            # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-            quota_params = @props.quota_params
-            # how much upgrade you have used between all projects
-            used_upgrades = @props.upgrades_you_applied_to_all_projects
-            # how much upgrade you currently use on this one project
-            current = @props.upgrades_you_applied_to_this_project
-            # how much unused upgrade you have remaining
-            remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-            # maximums you can use, including the upgrades already on this project
-            limits = misc.map_sum(current, remaining)
-            # additionally, the limits are capped by the maximum per project
-            maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-            limits = misc.map_limit(limits, maximum)
+            {limits, remaining, current} = @get_quota_info()
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<React.Fragment>
@@ -1707,7 +1703,7 @@ exports.UpgradeAdjustor = rclass
                 </Row>
                 <hr/>
 
-                {@render_upgrade_row(n, quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
+                {@render_upgrade_row(n, @props.quota_params[n], remaining[n], current[n], limits[n]) for n in PROJECT_UPGRADES.field_order}
                 <UpgradeRestartWarning />
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
