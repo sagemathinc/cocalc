@@ -8,9 +8,11 @@ history browser is very painful to use without caching.
 
 import { cmp_Date, keys, cmp, len } from "../../../misc2";
 
-interface Entry {
+import { Document } from "./types";
+
+export interface Entry {
   time: Date;
-  value: any;
+  value: Document;
   start: number;
   last_used: Date;
 }
@@ -21,7 +23,7 @@ export class PatchValueCache {
 
   // Remove everything from the value cache that has timestamp >= time.
   // If time not defined, removes everything, thus emptying the cache.
-  invalidate(time: Date | undefined): void {
+  private invalidate(time: Date | undefined): void {
     if (time == null) {
       this.cache = {};
       return;
@@ -36,7 +38,7 @@ export class PatchValueCache {
 
   // Ensure the value cache doesn't have too many entries in it by
   // removing all but n of the ones that have not been accessed recently.
-  prune(n: number): void {
+  public prune(n: number): void {
     if (this.size() <= n) {
       // nothing to do
       return;
@@ -58,7 +60,7 @@ export class PatchValueCache {
   // Include the given value at the given point in time, which should be
   // the output of this.value(time), and should involve applying all patches
   // up to this.patches[start-1].
-  include(time: Date, value: any, start: number) {
+  public include(time: Date, value: any, start: number) {
     this.cache[`${time.valueOf()}`] = {
       time,
       value,
@@ -81,7 +83,7 @@ export class PatchValueCache {
      If time is undefined, returns the newest value in the cache.
      If strict is true, returns newest value at time strictly older than time
   */
-  newest_value_at_most(
+  public newest_value_at_most(
     time?: Date,
     strict: boolean = false
   ): Entry | undefined {
@@ -102,11 +104,12 @@ export class PatchValueCache {
     }
   }
 
-  // Return cached entry corresponding to the given point in time.
-  // Here time must be either a new Date() object, or a number (ms since epoch).
-  // If there is nothing in the cache for the given time, returns undefined.
-  // ** Do NOT mutate the returned value. **
-  get(time: Date | number): Entry | undefined {
+  /* Return cached entry corresponding to the given point in time.
+     Here time must be either a new Date() object, or a number (ms since epoch).
+     If there is nothing in the cache for the given time, returns undefined.
+     ** Do NOT mutate the returned value. **
+  */
+  public get(time: Date | number): Entry | undefined {
     if (typeof time !== "number") {
       // also allow dates
       time = time.valueOf();
@@ -119,7 +122,7 @@ export class PatchValueCache {
     return x;
   }
 
-  oldest_time(): Date | undefined {
+  public oldest_time(): Date | undefined {
     const v = this.keys();
     if (v.length === 0) {
       return;
@@ -129,7 +132,7 @@ export class PatchValueCache {
   }
 
   // Number of cached values
-  size(): number {
+  public size(): number {
     return len(this.cache);
   }
 }
