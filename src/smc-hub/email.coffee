@@ -305,6 +305,9 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
 
 <ul>
 <li style="margin-top:0;margin-bottom:10px;">
+    <strong><a href="https://doc.cocalc.com/">#{SITE_NAME} Manual:</a></strong> learn more about #{SITE_NAME}'s features.
+</li>
+<li style="margin-top:0;margin-bottom:10px;">
     <a href="https://github.com/sagemathinc/cocalc/wiki">#{SITE_NAME} Wiki:</a> the entry-point to learn more about all the details.
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
@@ -314,7 +317,7 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
     <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://tutorial.cocalc.com/">Sophisticated tools for teaching a class</a>.
+    <a href="https://doc.cocalc.com/teaching-instructors.html">Sophisticated tools for teaching a class</a>.
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
     <a href="https://github.com/sagemathinc/cocalc/wiki/Troubleshooting">Troubleshooting connectivity issues</a>
