@@ -1,3 +1,5 @@
+import { CompressedPatch, Patch } from "./types";
+
 const { diff_match_patch } = require("smc-util/dmp");
 export const dmp = new diff_match_patch();
 dmp.Diff_Timeout = 0.2; // computing a diff won't block longer than about 0.2s
@@ -7,11 +9,11 @@ dmp.Diff_Timeout = 0.2; // computing a diff won't block longer than about 0.2s
 // [{"diffs":[[1,"{\"x\":5,\"y\":3}"]],"start1":0,"start2":0,"length1":0,"length2":13},...]
 //
 
-export function compress_patch(patch: any[]): any[] {
+export function compress_patch(patch: CompressedPatch): CompressedPatch {
   return patch.map(p => [p.diffs, p.start1, p.start2, p.length1, p.length2]);
 }
 
-export function decompress_patch(patch: any[]): any[] {
+export function decompress_patch(patch: CompressedPatch): CompressedPatch {
   return patch.map(p => ({
     diffs: p[0],
     start1: p[1],
@@ -22,12 +24,12 @@ export function decompress_patch(patch: any[]): any[] {
 }
 
 // return *a* compressed patch that transforms string s0 into string s1.
-export function make_patch(s0: string, s1: string): any[] {
+export function make_patch(s0: string, s1: string): CompressedPatch {
   return compress_patch(dmp.patch_make(s0, s1));
 }
 
 // apply a compressed patch to a string.
-export function apply_patch(patch: any[], s: string): [string, boolean] {
+export function apply_patch(patch: CompressedPatch, s: string): [string, boolean] {
   let x;
   try {
     x = dmp.patch_apply(decompress_patch(patch), s);
@@ -51,13 +53,11 @@ export function apply_patch(patch: any[], s: string): [string, boolean] {
 
 const { cmp_array } = require("smc-util/misc");
 
-interface P {
-  time: Date;
-  user_id: string;
-}
-
-export function patch_cmp(a: P, b: P): number {
-  return cmp_array([a.time.valueOf(), a.user_id], [b.time.valueOf(), b.user_id]);
+export function patch_cmp(a: Patch, b: Patch): number {
+  return cmp_array(
+    [a.time.valueOf(), a.user_id],
+    [b.time.valueOf(), b.user_id]
+  );
 }
 
 export function time_cmp(a: Date, b: Date): number {

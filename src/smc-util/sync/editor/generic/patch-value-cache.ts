@@ -23,7 +23,7 @@ export class PatchValueCache {
 
   // Remove everything from the value cache that has timestamp >= time.
   // If time not defined, removes everything, thus emptying the cache.
-  private invalidate(time: Date | undefined): void {
+  public invalidate(time: Date | undefined): void {
     if (time == null) {
       this.cache = {};
       return;
@@ -77,8 +77,8 @@ export class PatchValueCache {
 
         x={time:time, value:value, start:start},
 
-     where @value(time) is the given value, and it was obtained
-     by applying the elements of @_patches up to @_patches[start-1]
+     where this.value(time) is the given value, and it was obtained
+     by applying the elements of this.patches up to this.patches[start-1]
      Return undefined if there are no cached values.
      If time is undefined, returns the newest value in the cache.
      If strict is true, returns newest value at time strictly older than time

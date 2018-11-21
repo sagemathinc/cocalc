@@ -4,7 +4,7 @@
 
 export interface Patch {
   time: Date; // timestamp of when patch made
-  patch: string /* compressed format patch (stored as a
+  patch: CompressedPatch /* compressed format patch (stored as a
                    JSON *string* in database, but array/object here) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
@@ -14,6 +14,10 @@ export interface Patch {
 }
 
 export interface Document {
-  apply_patch(Patch): Document;
-  is_equal(Document) : boolean;
+  apply_patch(CompressedPatch): Document;
+  make_patch(Document): CompressedPatch;
+  is_equal(Document): boolean;
+  to_str(): string;
 }
+
+export type CompressedPatch = any[];
