@@ -516,3 +516,4 @@ subscription.student_course =
         member_host    : 2
         mintime        : 7600
         network        : 2
+

@@ -2388,7 +2388,7 @@ exports.map_diff = function(a, b) {
 
 // limit the values in a by the values of b
 // or just by b if b is a number
-exports.map_limit = function(a, b) {
+exports.map_limit = exports.map_min = function(a, b) {
   let k, v;
   const c = {};
   if (typeof b === "number") {
@@ -2400,6 +2400,24 @@ exports.map_limit = function(a, b) {
     for (k in a) {
       v = a[k];
       c[k] = Math.min(v, b[k] != null ? b[k] : Number.MAX_VALUE);
+    }
+  }
+  return c;
+};
+
+// kind of the oppositve of map_limit/map_min
+exports.map_max = function(a, b) {
+  let k, v;
+  const c = {};
+  if (typeof b === "number") {
+    for (k in a) {
+      v = a[k];
+      c[k] = Math.max(v, b);
+    }
+  } else {
+    for (k in a) {
+      v = a[k];
+      c[k] = Math.max(v, b[k] != null ? b[k] : Number.MIN_VALUE);
     }
   }
   return c;
