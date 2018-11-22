@@ -65,31 +65,48 @@ exports.UpgradeAdjustor = rclass
         # This function is quite confusing and tricky.
         # It combines the remaining upgrades of the user with the already applied ones by the same user.
         # Then it limits the applyable upgrades by what's still possible to apply until the maximum is reached.
+        # My mental model:
+        #
+        #   0                                total          maximum
+        #   |<-------------------------------->|                |
+        #   |<----->|<------------------------>|<-------------->|
+        #   | admin |  all upgrades by users   | proj remainder |
+        #   | +     |<------------>|<--------->|<--------->|    |
+        #   | free  |  other users | this user | remaining |    |
+        #   |       |              |           | this user |    |
+        #   |       |              |<--------------------->|    |
+        #   |       |              |  limit for this user  | <= | max
+        #
+        #   admin/free: could be 0
+        #   all upgrades by users is total_project_quotas
+        #   remainder: >=0, usually, but if there are already too many upgrades it is negative!
+        #   this user: upgrades_you_applied_to_this_project. this is >= 0!
+        #   limit for this user: is capped by the user's overall quotas AND the quota maximum
 
         # NOTE : all units are ^ly 'internal' instead of display, e.g. seconds instead of hours
         quota_params = @props.quota_params
         # how much upgrade you have used between all projects
-        used_upgrades = @props.upgrades_you_applied_to_all_projects
+        user_upgrades = @props.upgrades_you_applied_to_all_projects
         # how much upgrade you currently use on this one project
-        current = @props.upgrades_you_applied_to_this_project
-        # how much unused upgrade you have remaining
-        remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
-        # maximums you can use, including the upgrades already on this project
-        limits = misc.map_sum(current, remaining)
-        # additionally, the limits are capped by the maximum per project
-        maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
-        limits = misc.map_limit(limits, maximum)
+        user_current = @props.upgrades_you_applied_to_this_project
         # all currently applied upgrades to this project
-        project_upgrades = @props.total_project_quotas
-        remainder_upgrades = misc.map_diff(maximum, project_upgrades)
-        limits = misc.map_limit(limits, remainder_upgrades)
-        # if there are already more upgrades than the limit, limits shouldn't be negative!
-        limits = misc.map_max(limits, 0)
+        total_upgrades = @props.total_project_quotas
+        # how much unused upgrade you have remaining
+        user_remaining = misc.map_diff(@props.upgrades_you_can_use, user_upgrades)
+        # the overall limits are capped by the maximum per project
+        proj_maximum = require('smc-util/schema').PROJECT_UPGRADES.max_per_project
+        # and they're also limited by what everyone has already applied
+        proj_remainder = misc.map_diff(proj_maximum, total_upgrades)
+        # note: if quota already exeeds, proj_remainder might have negative values -- don't cap at 0
+        # the overall limit for the user is capped by what's left for the project
+        limits = misc.map_limit(user_remaining, proj_remainder)
+        # and finally, we add up what a user can add (with the maybe negative remainder) and cap at 0
+        user_limits = misc.map_max(misc.map_sum(limits, user_current), 0)
         return
-            limits    : limits
-            remaining : remaining
-            current   : current
-            totals    : project_upgrades
+            limits    : user_limits
+            remaining : user_remaining
+            current   : user_current
+            totals    : total_upgrades
 
     clear_upgrades: ->
         @set_upgrades('min')
@@ -144,8 +161,7 @@ exports.UpgradeAdjustor = rclass
             show_remaining = remaining + current - val
             show_remaining = Math.max(show_remaining, 0)
 
-            # compensate val by current set upgrade
-            if not @is_upgrade_input_valid(Math.max(val - current, 0), limit)
+            if not @is_upgrade_input_valid(Math.max(val, 0), limit)
                 label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades or exceed the limit</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
@@ -189,8 +205,7 @@ exports.UpgradeAdjustor = rclass
 
             val = @state["upgrade_#{name}"]
             if misc.parse_number_input(val)?
-            # compensate val by current set upgrade
-                if not @is_upgrade_input_valid(Math.max(val - current, 0), limit)
+                if not @is_upgrade_input_valid(Math.max(val, 0), limit)
                     bs_style = 'error'
                     label = <div style={UPGRADE_ERROR_STYLE}>Value too high: not enough upgrades or exceeding limit</div>
                 else
@@ -206,7 +221,7 @@ exports.UpgradeAdjustor = rclass
 
             unit = misc.plural(show_remaining, display_unit)
             if limit < remaining
-                remaining_note = <span>You have {remaining_all} unallocated {unit}<br/>(you may allocate up to {limit + current} {unit} here)</span>
+                remaining_note = <span>You have {remaining_all} unallocated {unit}<br/>(you may allocate up to {limit} {unit} here)</span>
 
             else
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
