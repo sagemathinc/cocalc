@@ -3,155 +3,80 @@
 
 */
 
+type Patch = any;
+
+import { once } from "../../async-utils";
+
+export interface SyncOpts {
+  project_id: string;
+  path: required;
+  client: Client;
+  from_str: (string) => Document;
+
+  save_interval?: number;
+  cursor_interval?: number;
+  patch_interval?: number;
+  file_use_interval?: number;
+  string_id?: string;
+  cursors?: boolean;
+  doctype?: any;
+  from_patch_str?: (string) => Patch;
+}
+
+type State = "init" | "ready" | "closed";
+
 class SyncDoc extends EventEmitter {
-  constructor(opts) {
-    {
-      // Hack: trick Babel/TypeScript into allowing this before super.
-      if (false) {
-        super();
-      }
-      let thisFn = (() => {
-        return this;
-      }).toString();
-      let thisName = thisFn
-        .slice(thisFn.indexOf("return") + 6 + 1, thisFn.indexOf(";"))
-        .trim();
-      eval(`${thisName} = this;`);
-    }
-    this.set_doc = this.set_doc.bind(this);
-    this.reconnect = this.reconnect.bind(this);
-    this.get_doc = this.get_doc.bind(this);
-    this.from_str = this.from_str.bind(this);
-    this.to_str = this.to_str.bind(this);
-    this.version = this.version.bind(this);
-    this.version_without = this.version_without.bind(this);
-    this.revert = this.revert.bind(this);
-    this.undo = this.undo.bind(this);
-    this.redo = this.redo.bind(this);
-    this.in_undo_mode = this.in_undo_mode.bind(this);
-    this.exit_undo_mode = this.exit_undo_mode.bind(this);
-    this._init_undo_state = this._init_undo_state.bind(this);
-    this.init_project_autosave = this.init_project_autosave.bind(this);
-    this.account_id = this.account_id.bind(this);
-    this.time_sent = this.time_sent.bind(this);
-    this.user_id = this.user_id.bind(this);
-    this.touch = this.touch.bind(this);
-    this._set_initialized = this._set_initialized.bind(this);
-    this.versions = this.versions.bind(this);
-    this.all_versions = this.all_versions.bind(this);
-    this.last_changed = this.last_changed.bind(this);
-    this.close = this.close.bind(this);
-    this.connect = this.connect.bind(this);
-    this._wait_init = this._wait_init.bind(this);
-    this.wait = this.wait.bind(this);
-    this.delete_from_database = this.delete_from_database.bind(this);
-    this._file_is_read_only = this._file_is_read_only.bind(this);
-    this._update_if_file_is_read_only = this._update_if_file_is_read_only.bind(
-      this
-    );
-    this._load_from_disk_if_newer = this._load_from_disk_if_newer.bind(this);
-    this._patch_table_query = this._patch_table_query.bind(this);
-    this._init_patch_list = this._init_patch_list.bind(this);
-    this._init_evaluator = this._init_evaluator.bind(this);
-    this._init_cursors = this._init_cursors.bind(this);
-    this.set_cursor_locs = this.set_cursor_locs.bind(this);
-    this.get_cursors = this.get_cursors.bind(this);
-    this.set_settings = this.set_settings.bind(this);
-    this.get_settings = this.get_settings.bind(this);
-    this.save_asap = this.save_asap.bind(this);
-    this._save = this._save.bind(this);
-    this._next_patch_time = this._next_patch_time.bind(this);
-    this._undelete = this._undelete.bind(this);
-    this._save_patch = this._save_patch.bind(this);
-    this.save = this.save.bind(this);
-    this.snapshot = this.snapshot.bind(this);
-    this.snapshot_if_necessary = this.snapshot_if_necessary.bind(this);
-    this._process_patch = this._process_patch.bind(this);
-    this._get_patches = this._get_patches.bind(this);
-    this.has_full_history = this.has_full_history.bind(this);
-    this.load_full_history = this.load_full_history.bind(this);
-    this.show_history = this.show_history.bind(this);
-    this.get_path = this.get_path.bind(this);
-    this.get_project_id = this.get_project_id.bind(this);
-    this.set_snapshot_interval = this.set_snapshot_interval.bind(this);
-    this._handle_offline = this._handle_offline.bind(this);
-    this._handle_syncstring_save_state = this._handle_syncstring_save_state.bind(
-      this
-    );
-    this._handle_syncstring_update = this._handle_syncstring_update.bind(this);
-    this._update_watch_path = this._update_watch_path.bind(this);
-    this._load_from_disk = this._load_from_disk.bind(this);
-    this._set_save = this._set_save.bind(this);
-    this._set_read_only = this._set_read_only.bind(this);
-    this.get_read_only = this.get_read_only.bind(this);
-    this.wait_until_read_only_known = this.wait_until_read_only_known.bind(
-      this
-    );
-    this.has_unsaved_changes = this.has_unsaved_changes.bind(this);
-    this.hash_of_saved_version = this.hash_of_saved_version.bind(this);
-    this.hash_of_live_version = this.hash_of_live_version.bind(this);
-    this.save_to_disk = this.save_to_disk.bind(this);
-    this.__save_to_disk_after_sync = this.__save_to_disk_after_sync.bind(this);
-    this._save_to_disk = this._save_to_disk.bind(this);
-    this.__save_to_disk_user = this.__save_to_disk_user.bind(this);
-    this.__do_save_to_disk_project = this.__do_save_to_disk_project.bind(this);
-    this._handle_patch_update = this._handle_patch_update.bind(this);
-    this._handle_patch_update_queue = this._handle_patch_update_queue.bind(
-      this
-    );
-    this._sync_remote_and_doc = this._sync_remote_and_doc.bind(this);
-    this.has_uncommitted_changes = this.has_uncommitted_changes.bind(this);
+  private project_id: string; // project_id that contains the doc
+  private path: required; // path of the file corresponding to the doc
+  private client: Client;
+  private from_str: (string) => Document; // creates a doc from a string.
+  private string_id: string;
+
+  private save_interval: number = 2000;
+  private cursor_interval: number = 1000;
+  private patch_interval: number = 1500; // debouncing of incoming upstream patches
+
+  // file_use_interval throttle: default is 60s for everything except .sage-chat files, where it is 10s.
+  private file_use_interval: number;
+
+  private cursors: boolean = false; // if true, also provide cursor tracking functionality
+  private doctype: any = undefined; // optional object describing document constructor (used by project to open file)
+  private from_patch_str: (string) => Patch = JSON.parse;
+
+  private state: State = "init";
+
+  // patches that this client made during this editing session.
+  private my_patches: { [time: string]: Patch } = {};
+
+  constructor(opts: SyncOpts) {
     super();
-    this._opts = opts = defaults(opts, {
-      save_interval: 2000,
-      cursor_interval: 1000,
-      patch_interval: 1500, // debouncing of incoming upstream patches
-      file_use_interval: "default", // throttles: default is 60s for everything except .sage-chat files, where it is 10s.
-      string_id: undefined,
-      project_id: required, // project_id that contains the doc
-      path: required, // path of the file corresponding to the doc
-      client: required,
-      cursors: false, // if true, also provide cursor tracking functionality
-      from_str: required, // creates a doc from a string.
-      doctype: undefined, // optional object describing document constructor (used by project to open file)
-      from_patch_str: JSON.parse,
-      before_change_hook: undefined,
-      after_change_hook: undefined
-    });
+
+    if (opts.string_id === undefined) {
+      this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
+    } else {
+      this.string_id = opts.string_id;
+    }
+
+    for (let field of [
+      "project_id",
+      "path",
+      "client",
+      "from_str",
+      "save_interval",
+      "cursor_interval",
+      "patch_interval",
+      "file_use_interval",
+      "cursors",
+      "doctype",
+      "from_patch_str"
+    ]) {
+      if (opts[field] != undefined) {
+        this[field] = opts[field];
+      }
+    }
 
     this.setMaxListeners(100);
-    this._before_change_hook = opts.before_change_hook;
-    this._after_change_hook = opts.after_change_hook;
 
-    if (opts.string_id == null) {
-      opts.string_id = schema.client_db.sha1(opts.project_id, opts.path);
-    }
-
-    this._closed = true;
-    this._string_id = opts.string_id;
-    this._project_id = opts.project_id;
-    this._path = opts.path;
-    this._client = opts.client;
-    this._from_str = opts.from_str;
-    this._from_patch_str = opts.from_patch_str;
-    this._doctype = opts.doctype;
-    this._patch_format = opts.doctype.patch_format;
-    this._save_interval = opts.save_interval;
-    this._patch_interval = opts.patch_interval;
-
-    this._my_patches = {}; // patches that this client made during this editing session.
-
-    // For debugging -- this is a (slight) security risk in production.
-    /*
-        if window?
-            window.syncstrings ?= {}
-            window.syncstrings[@_path] = @
-        */
-
-    //# window?.s = @
-
-    //dbg = @dbg("constructor(path='#{@_path}')")
-    //dbg('connecting...')
     this.connect(err => {
       //dbg('connected')
       if (err) {
@@ -235,6 +160,17 @@ class SyncDoc extends EventEmitter {
         this._opts.cursor_interval,
         { leading: true, trailing: true }
       );
+    }
+  }
+
+  private set_state(state: State): void {
+    this.state = state;
+    this.emit("state", state);
+  }
+
+  private assert_not_closed(): void {
+    if (this.state === "closed") {
+      throw Error("closed");
     }
   }
 
@@ -605,18 +541,12 @@ class SyncDoc extends EventEmitter {
     return delete this._evaluator;
   }
 
-  connect(cb) {
-    if (!this._closed) {
-      if (typeof cb === "function") {
-        cb("already connected");
-      }
-      return;
-    }
+  private async init_syncstring_table(): Promise<void> {
     const query = {
       syncstrings: {
-        string_id: this._string_id,
-        project_id: this._project_id,
-        path: this._path,
+        string_id: this.string_id,
+        project_id: this.project_id,
+        path: this.path,
         deleted: null,
         users: null,
         last_snapshot: null,
@@ -632,78 +562,70 @@ class SyncDoc extends EventEmitter {
       }
     };
 
-    return async.series(
-      [
-        cb => {
-          // It is critical to do a quick initial touch so file gets opened on the
-          // backend or syncstring gets created (otherwise creation of various
-          // changefeeds below will FATAL fail).
-          return this.touch(0, cb);
-        },
-        cb => {
-          this._syncstring_table = this._client.sync_table(query);
-          return this._syncstring_table.once("connected", () => {
-            this._handle_syncstring_update();
-            this._syncstring_table.on("change", this._handle_syncstring_update);
-            return cb();
-          });
-        },
-        cb => {
-          // wait until syncstring is not archived -- if we open a very old syncstring, the patches
-          // may be archived; we have to wait until after they have been pulled from blob storage before
-          // we init the patch table below, load from disk, etc.
-          return this._syncstring_table.wait({
-            until: t => !__guard__(t.get_one(), x => x.get("archived")),
-            cb
-          });
-        },
-        cb => {
-          return async.parallel(
-            [this._init_patch_list, this._init_cursors, this._init_evaluator],
-            cb
-          );
-        },
-        cb => {
-          this._closed = false;
-          if (this._client.is_user() && this._periodically_touch == null) {
-            this.touch(1);
-            // touch every few minutes while syncstring is open, so that backend local_hub
-            // (if open) keeps its side open
-            this._periodically_touch = setInterval(
-              () => this.touch(TOUCH_INTERVAL_M / 2),
-              1000 * 60 * TOUCH_INTERVAL_M
-            );
-          }
-          if (this._client.is_project()) {
-            return this._load_from_disk_if_newer(cb);
-          } else {
-            return cb();
-          }
-        }
-      ],
-      err => {
-        if (this._closed) {
-          // closed while connecting...
-          cb();
-          return;
-        }
+    this.syncstring_table = this._client.sync_table(query);
+    await once(this.syncstring_table, "connected");
+    this.handle_syncstring_update();
+    this.syncstring_table.on("change", this.handle_syncstring_update);
 
-        if (err) {
-          return cb(err);
-        } else {
-          // Emit 'init' when ready for use.
-          this._wait_init();
-          this.emit("change");
-          this.emit("connected");
-          return cb();
-        }
+    // wait until syncstring is not archived -- if we open an
+    // older syncstring, the patches may be archived, and we have to wait until
+    // after they have been pulled from blob storage before
+    // we init the patch table, load from disk, etc.
+    function is_not_archived(): boolean {
+      const ss = this.syncstring_table.get_one();
+      if (ss != null) {
+        return !ss.get("archived");
+      } else {
+        return false;
       }
+    }
+    await this.syncstring_table.wait(is_not_archived.bind(this), 120);
+  }
+
+  private async connect(): Promise<void> {
+    if (this.state !== "init") {
+      throw Error("connect can only be called in init state");
+    }
+    // It is critical to do a quick initial touch so file gets
+    // opened on the backend or syncstring gets created (otherwise,
+    // creation of various changefeeds below will FATAL fail).
+    await this.touch(0);
+    this.assert_not_closed();
+    await this.init_syncstring_table();
+    this.assert_not_closed();
+    await Promise.all([
+      this.init_patch_list(),
+      this.init_cursors(),
+      this.init_evaluator()
+    ]);
+    this.assert_not_closed();
+    this.init_periodic_touch();
+    if (this._client.is_project()) {
+      await this._load_from_disk_if_newer();
+    }
+
+    await this.wait_until_fully_ready();
+    this.assert_not_closed();
+    this.set_state("ready");
+    this.emit("change"); // from nothing to something.
+  }
+
+  private init_periodic_touch(): void {
+    if (!this.client.is_user() || this.periodically_touch != null) {
+      return;
+    }
+    this.touch(1);
+    // touch every few minutes while syncstring is open, so that project
+    // (if open) keeps its side open
+    this.periodically_touch = setInterval(
+      () => this.touch(TOUCH_INTERVAL_M / 2),
+      1000 * 60 * TOUCH_INTERVAL_M
     );
   }
 
-  // wait until the syncstring table is ready to be used (so extracted from archive, etc.),
-  // and only then emit an init.
-  _wait_init() {
+  // wait until the syncstring table is ready to be
+  // used (so extracted from archive, etc.),
+  private wait_until_fully_ready(): Promise<void> {
     return this._syncstring_table != null
       ? this._syncstring_table.wait({
           until: t => {
@@ -1881,13 +1803,12 @@ class SyncDoc extends EventEmitter {
     );
   }
 
-  // This should only be called after the syncstring is initialized (hence connected), since
-  // otherwise @_syncstring_table isn't defined yet (it gets defined during connect).
-  wait_until_read_only_known(cb) {
-    if (this._closed) {
-      cb("syncstring is closed");
-      return;
-    }
+  // This should only be called after the syncstring is
+  // initialized (hence connected), since
+  // otherwise this.syncstring_table isn't defined
+  // yet (it gets defined during connect).
+  private wait_until_read_only_known(): Promise<void> {
+    this.assert_not_closed();
     if (this._syncstring_table == null) {
       // should never happen
       cb("@_syncstring_table must be defined");
@@ -2333,21 +2254,4 @@ class SyncDoc extends EventEmitter {
       ? this._patches_table.has_uncommitted_changes()
       : undefined;
   }
-}
-
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
-  }
-}
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
