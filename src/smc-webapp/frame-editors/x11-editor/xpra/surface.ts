@@ -98,13 +98,15 @@ export class Surface {
     }
 
     //console.log("updateGeometry", this.wid, swidth, sheight, scale);
-    if (this.parent == null) {
+    const size_constraints = this.metadata["size-constraints"];
+    let maximized = !(size_constraints && size_constraints["maximum-size"]);
+    if (this.parent == null && maximized) {
       this.jq_canvas.css("width", "100%");
     } else {
       this.jq_canvas.css("width", swidth / scale);
       this.jq_canvas.css("left", this.x / scale);
     }
-    if (this.parent == null) {
+    if (this.parent == null && maximized) {
       this.jq_canvas.css("height", "100%");
     } else {
       this.jq_canvas.css("height", sheight / scale);
@@ -164,7 +166,7 @@ export class Surface {
       swidth = MIN_WIDTH;
     }
 
-    //console.log("resize_window ", wid, width, height, swidth, sheight);
+    // console.log("resize_window ", this.wid, width, height, swidth, sheight);
     this.updateGeometry(swidth, sheight, scale);
 
     this.scale = scale;
@@ -178,7 +180,7 @@ export class Surface {
     }
 
     if (!this.is_overlay) {
-      //console.log("sending ", this.wid, this.w, this.h);
+      // console.log("sending ", this.wid, this.w, this.h);
       this.send(
         "configure-window",
         this.wid,
