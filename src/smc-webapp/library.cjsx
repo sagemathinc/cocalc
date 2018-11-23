@@ -118,7 +118,10 @@ exports.Library = rclass ({name}) ->
 
 
     select_list_click: (doc) ->
-        @setState(show_thumb:false)  # we control the visibility of the thumbnail, because it would show to the old one until the new one is loaded
+        # ignore selection of the very same entry
+        return if doc.get('id') == @props.library_selected?.get('id')
+        # we control the visibility of the thumbnail, because it would show to the old one until the new one is loaded
+        @setState(show_thumb:false)
         @props.actions.setState(library_selected:doc)
 
 
