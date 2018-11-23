@@ -103,10 +103,11 @@ exports.UpgradeAdjustor = rclass
         # and finally, we add up what a user can add (with the maybe negative remainder) and cap at 0
         user_limits = misc.map_max(misc.map_sum(limits, user_current), 0)
         return
-            limits    : user_limits
-            remaining : user_remaining
-            current   : user_current
-            totals    : total_upgrades
+            limits         : user_limits
+            remaining      : user_remaining
+            current        : user_current
+            totals         : total_upgrades
+            proj_remainder : proj_remainder
 
     clear_upgrades: ->
         @set_upgrades('min')
@@ -148,7 +149,7 @@ exports.UpgradeAdjustor = rclass
     render_addon: (misc, name, display_unit, limit) ->
         <div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>
 
-    render_upgrade_row: (name, data, remaining=0, current=0, limit=0, total=0) ->
+    render_upgrade_row: (name, data, remaining=0, current=0, limit=0, total=0, proj_remainder=0) ->
         if not data?
             return
 
@@ -164,7 +165,7 @@ exports.UpgradeAdjustor = rclass
             if not @is_upgrade_input_valid(Math.max(val, 0), limit)
                 reasons = []
                 if val > remaining + current then reasons.push('you do not have enough upgrades')
-                if val > limit then reasons.push('exceeds the limit')
+                if val > proj_remainder + current then reasons.push('exceeds the limit')
                 reason = reasons.join(' and ')
                 label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: {reason}</div>
             else
@@ -195,6 +196,7 @@ exports.UpgradeAdjustor = rclass
 
         else if input_type == 'number'
             remaining = misc.round2(remaining * display_factor)
+            proj_remainder = misc.round2(proj_remainder * display_factor)
             display_current = current * display_factor # current already applied
             if current != 0 and misc.round2(display_current) != 0
                 current = misc.round2(display_current)
@@ -207,12 +209,12 @@ exports.UpgradeAdjustor = rclass
             # the amount displayed remaining subtracts off the amount you type in
             show_remaining = misc.round2(remaining + current - current_input)
 
-            val = @state["upgrade_#{name}"]
-            if misc.parse_number_input(val)?
+            val = misc.parse_number_input(@state["upgrade_#{name}"])
+            if val?
                 if not @is_upgrade_input_valid(Math.max(val, 0), limit)
                     reasons = []
                     if val > remaining + current then reasons.push('not enough upgrades')
-                    if val > limit then reasons.push('exceeding limit')
+                    if val > proj_remainder + current then reasons.push('exceeding limit')
                     reason = reasons.join(' and ')
                     bs_style = 'error'
                     label = <div style={UPGRADE_ERROR_STYLE}>Value too high: {reason}</div>
@@ -320,7 +322,7 @@ exports.UpgradeAdjustor = rclass
             # user has no upgrades on their account
             <NoUpgrades cancel={@props.cancel_upgrading} />
         else
-            {limits, remaining, current, totals} = @get_quota_info()
+            {limits, remaining, current, totals, proj_remainder} = @get_quota_info()
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<React.Fragment>
@@ -357,7 +359,7 @@ exports.UpgradeAdjustor = rclass
                 </Row>
                 <hr/>
 
-                {@render_upgrade_row(n, @props.quota_params[n], remaining[n], current[n], limits[n], totals[n]) for n in PROJECT_UPGRADES.field_order}
+                {@render_upgrade_row(n, @props.quota_params[n], remaining[n], current[n], limits[n], totals[n], proj_remainder[n]) for n in PROJECT_UPGRADES.field_order}
                 <UpgradeRestartWarning />
                 {@props.children}
                 <ButtonToolbar style={marginTop:'10px'}>
