@@ -132,7 +132,7 @@ upgrades.params =
         pricing_unit   : 'project'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'Runs this project on a machine hosting less projects, away from the free projects, and does not randomly reboot.'
+        desc           : 'Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots.'
 
 upgrades.field_order = ['member_host', 'network', 'mintime', 'disk_quota',
                         'memory', 'memory_request',

@@ -162,11 +162,15 @@ exports.UpgradeAdjustor = rclass
             show_remaining = Math.max(show_remaining, 0)
 
             if not @is_upgrade_input_valid(Math.max(val, 0), limit)
-                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: you do not have enough upgrades or exceed the limit</div>
+                reasons = []
+                if val > remaining + current then reasons.push('you do not have enough upgrades')
+                if val > limit then reasons.push('exceeds the limit')
+                reason = reasons.join(' and ')
+                label = <div style={UPGRADE_ERROR_STYLE}>Uncheck this: {reason}</div>
             else
                 label = if val == 0 then 'Enable' else 'Enabled'
 
-            is_upgraded = if total >= 1 then <strong>(upgraded)</strong> else ''
+            is_upgraded = if total >= 1 then '(already upgraded)' else '(not upgraded)'
 
             <Row key={name} style={marginTop:'5px'}>
                 <Col sm={6}>
@@ -206,8 +210,12 @@ exports.UpgradeAdjustor = rclass
             val = @state["upgrade_#{name}"]
             if misc.parse_number_input(val)?
                 if not @is_upgrade_input_valid(Math.max(val, 0), limit)
+                    reasons = []
+                    if val > remaining + current then reasons.push('not enough upgrades')
+                    if val > limit then reasons.push('exceeding limit')
+                    reason = reasons.join(' and ')
                     bs_style = 'error'
-                    label = <div style={UPGRADE_ERROR_STYLE}>Value too high: not enough upgrades or exceeding limit</div>
+                    label = <div style={UPGRADE_ERROR_STYLE}>Value too high: {reason}</div>
                 else
                     label = <span></span>
             else
@@ -217,7 +225,8 @@ exports.UpgradeAdjustor = rclass
             schema_limit = PROJECT_UPGRADES.max_per_project
             display_factor = PROJECT_UPGRADES.params[name].display_factor
             # calculates the amount of remaining quotas: limited by the max upgrades and subtract the already applied quotas
-            total_limit = schema_limit[name] * display_factor
+            total_limit = misc.round2(schema_limit[name] * display_factor)
+            show_total = misc.round2(total * display_factor)
 
             unit = misc.plural(show_remaining, display_unit)
             if limit < remaining
@@ -229,7 +238,7 @@ exports.UpgradeAdjustor = rclass
             <Row key={name} style={marginTop:'5px'}>
                 <Col sm={7}>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong> ({total} of {total_limit} {unit})
+                        <strong>{display}</strong> ({show_total} of {total_limit} {unit})
                     </Tip>
                     <br/>
                     {remaining_note}
