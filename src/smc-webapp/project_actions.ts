@@ -153,6 +153,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
     this.clear_all_activity = this.clear_all_activity.bind(this);
+    this.toggle_library = this.toggle_library.bind(this);
     this.set_url_to_path = this.set_url_to_path.bind(this);
     this._url_in_project = this._url_in_project.bind(this);
     this.push_state = this.push_state.bind(this);
@@ -292,6 +293,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   clear_all_activity(): void {
     this.setState({ activity: undefined });
+  }
+
+  toggle_library(show: boolean): void {
+    const store = this.get_store();
+    if (store == undefined) return;
+    this.setState({ show_library: show });
   }
 
   set_url_to_path(current_path): void {
@@ -2413,8 +2420,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for PUBLIC PATHS
-     */
+   * Actions for PUBLIC PATHS
+   */
   set_public_path(
     path,
     opts: {
@@ -2458,8 +2465,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for Project Search
-     */
+   * Actions for Project Search
+   */
 
   toggle_search_checkbox_subdirectories() {
     let store = this.get_store();

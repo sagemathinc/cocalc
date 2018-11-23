@@ -93,6 +93,7 @@ export interface ProjectStoreState {
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
   new_name?: string;
   most_recent_file_click?: string;
+  show_library: boolean;
 
   // Project Log
   project_log?: any; // immutable,
@@ -186,6 +187,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       activity: undefined,
       page_number: 0,
       checked_files: immutable.Set(),
+      show_library: false,
 
       // Project New
       library: immutable.Map({}),

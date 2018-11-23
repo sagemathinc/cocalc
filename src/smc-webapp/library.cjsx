@@ -55,6 +55,7 @@ exports.Library = rclass ({name}) ->
 
     propTypes :
         actions  : rtypes.object.isRequired
+        close    : rtypes.func
 
     getInitialState: ->
         lang        : 'python'
@@ -93,7 +94,9 @@ exports.Library = rclass ({name}) ->
             title  : doc.get('title')
             docid  : doc.get('id')
             start  : doc?.get('start') ? '/'
-            cb     : => @props.actions.set_library_is_copying(false)
+            cb     : =>
+                @props.actions.set_library_is_copying(false)
+                @props.close?()
 
     selector_keyup: (evt) ->
         return if not @props.library_selected?
@@ -185,6 +188,27 @@ exports.Library = rclass ({name}) ->
 
         return <img src={img_path} style={img_style} onLoad={=> @setState(show_thumb:true)} />
 
+    copy_button: ->
+        <Button
+            bsStyle  = "success"
+            onClick  = {=> @copy()}
+            disabled = {@props.library_is_copying}
+        >
+            {
+                if @props.library_is_copying
+                    <span><Loading text='Copying ...' /></span>
+                else
+                    <span><Icon name='files-o' /> Get a Copy</span>
+            }
+        </Button>
+
+    close_button: ->
+        return if not @props.close
+        <Button
+            onClick  = {=> @props.close()}
+        >
+            Close
+        </Button>
 
     details: ->
         return null if (not @props.library_selected?) or (not @metadata()?)
@@ -242,18 +266,7 @@ exports.Library = rclass ({name}) ->
                         <Icon name='exclamation-triangle' style={color:COLORS.YELL_L} /> {info}
                     </p>
             }
-            <Button
-                bsStyle  = "success"
-                onClick  = {=> @copy()}
-                disabled = {@props.library_is_copying}
-            >
-                {
-                    if @props.library_is_copying
-                        <span><Loading text='Copying ...' /></span>
-                    else
-                        <span><Icon name='files-o' /> Get a Copy</span>
-                }
-            </Button>
+            {@copy_button()}
         </div>
 
     render: ->
@@ -268,8 +281,15 @@ exports.Library = rclass ({name}) ->
             return <Loading />
 
         thumb = @props.library_selected?.get('thumbnail')
-        <Row>
-            <Col sm={4}>{@selector()}</Col>
-            <Col sm={if thumb then 6 else 8}>{@details()}</Col>
-            {<Col sm={2}>{@thumbnail()}</Col> if thumb}
-        </Row>
+        <Col sm={12}>
+            <Row>
+                <Col sm={4}>{@selector()}</Col>
+                <Col sm={if thumb then 6 else 8}>{@details()}</Col>
+                {<Col sm={2}>{@thumbnail()}</Col> if thumb}
+            </Row>
+            {if @props.close
+                <Row style={textAlign:"right"}>
+                    {@close_button()}
+                </Row>
+            }
+        </Col>

@@ -29,6 +29,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
+{Library} = require('./library')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -874,6 +875,13 @@ ProjectFilesButtons = rclass
             <ButtonGroup bsSize='small'>
                 <Button bsSize='small' className="upload-button">
                     <Icon name='upload' /> Upload
+                </Button>
+                <Button
+                    bsSize='small'
+                    active={@props.show_library}
+                    onClick={=>@props.actions.toggle_library(true)}
+                >
+                    <Icon name='book' /> Library
                 </Button>
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
@@ -2125,6 +2133,7 @@ exports.ProjectFiles = rclass ({name}) ->
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
             library               : rtypes.object
+            show_library          : rtypes.bool
 
     propTypes :
         project_id             : rtypes.string
@@ -2216,6 +2225,23 @@ exports.ProjectFiles = rclass ({name}) ->
                 actions           = {@props.actions}
                 displayed_listing = {@props.displayed_listing} />
         </Col>
+
+    render_library: () ->
+        <Well style={backgroundColor: 'white'}>
+            <Row>
+                <Col sm={3}>
+                    <h4><Icon name='book' /> Library</h4>
+                </Col>
+                <Col sm={9}>
+                    <Library
+                        project_id={@props.project_id}
+                        name={@props.name}
+                        actions={@actions(name)}
+                        close={=>@props.actions.toggle_library(false)}
+                    />
+                </Col>
+            </Row>
+        </Well>
 
     render_files_actions: (listing, public_view) ->
         if listing.length > 0
@@ -2418,7 +2444,7 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_error()}
             {@render_activity()}
             <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
-                <div style={flex: '1 0 25%', marginRight: '10px', minWidth: '20em'}>
+                <div style={flex: '1 0 20%', marginRight: '10px', minWidth: '20em'}>
                     <ProjectFilesSearch
                         project_id          = {@props.project_id}
                         key                 = {@props.current_path}
@@ -2457,6 +2483,7 @@ exports.ProjectFiles = rclass ({name}) ->
                         actions      = {@props.actions} />
                 </div> if not public_view}
             </div>
+            {@render_library() if @props.show_library}
             <Row>
                 <Col sm={8}>
                     {@render_files_actions(listing, public_view) if listing?}
