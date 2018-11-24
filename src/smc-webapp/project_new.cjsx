@@ -214,7 +214,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
             {@props.children}
         </div>
 
-ProjectNewForm = rclass ({name}) ->
+exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     displayName : 'ProjectNewForm'
 
     reduxProps :
@@ -227,11 +227,16 @@ ProjectNewForm = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
+        close       : rtypes.func
+        show_header : rtypes.bool
 
     getInitialState: ->
         filename           : @props.default_filename ? @default_filename()
         extension_warning  : false
+
+    getDefaultProps: ->
+        show_header        : true
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
@@ -255,6 +260,7 @@ ProjectNewForm = rclass ({name}) ->
             name         : @state.filename
             ext          : ext
             current_path : @props.current_path
+        @props.close?()
 
     submit: (ext) ->
         if not @state.filename  # empty filename
@@ -271,6 +277,14 @@ ProjectNewForm = rclass ({name}) ->
     submit_via_enter: (e) ->
         e.preventDefault()
         @submit()
+
+    close_button: ->
+        return if not @props.close
+        <Button
+            onClick  = {=> @props.close()}
+        >
+            Close
+        </Button>
 
     render_header: ->
         if @props.current_path?
@@ -299,6 +313,7 @@ ProjectNewForm = rclass ({name}) ->
             name         : @state.filename
             current_path : @props.current_path
             switch_over  : true
+        @props.close?()
 
     render_no_extension_alert: ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
@@ -315,7 +330,7 @@ ProjectNewForm = rclass ({name}) ->
 
     render: ->
         <div>
-            {@render_header()}
+            {@render_header() if @props.show_header}
             <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
                 <Col sm={3}>
                     <h4><Icon name='plus' /> Create a new file or directory</h4>
@@ -359,6 +374,11 @@ ProjectNewForm = rclass ({name}) ->
                     </FileTypeSelector>
                 </Col>
             </Row>
+            {if @props.close
+                <Row style={textAlign:"right"}>
+                    {@close_button()}
+                </Row>
+            }
         </div>
 
 render = (project_id, redux) ->

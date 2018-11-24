@@ -94,6 +94,7 @@ export interface ProjectStoreState {
   new_name?: string;
   most_recent_file_click?: string;
   show_library: boolean;
+  show_new: boolean;
 
   // Project Log
   project_log?: any; // immutable,
@@ -188,6 +189,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
+      show_new: false,
 
       // Project New
       library: immutable.Map({}),

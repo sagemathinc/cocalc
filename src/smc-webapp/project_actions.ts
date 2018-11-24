@@ -296,9 +296,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   toggle_library(show: boolean): void {
-    const store = this.get_store();
-    if (store == undefined) return;
     this.setState({ show_library: show });
+  }
+
+  toggle_new(show: boolean): void {
+    this.setState({ show_new: show });
   }
 
   set_url_to_path(current_path): void {

@@ -26,7 +26,7 @@ misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
 SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
-{FileTypeSelector, NewFileButton} = require('./project_new')
+{FileTypeSelector, NewFileButton, ProjectNewForm} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
 {Library} = require('./library')
@@ -873,8 +873,12 @@ ProjectFilesButtons = rclass
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
-                <Button bsSize='small' className="upload-button">
-                    <Icon name='upload' /> Upload
+                <Button
+                    bsSize='small'
+                    active={@props.show_new}
+                    onClick={=>@props.actions.toggle_new(true)}
+                >
+                    <Icon name='plus-circle' /> New
                 </Button>
                 <Button
                     bsSize='small'
@@ -882,6 +886,9 @@ ProjectFilesButtons = rclass
                     onClick={=>@props.actions.toggle_library(true)}
                 >
                     <Icon name='book' /> Library
+                </Button>
+                <Button bsSize='small' className="upload-button">
+                    <Icon name='upload' /> Upload
                 </Button>
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
@@ -2022,7 +2029,7 @@ ProjectFilesSearch = rclass
             <SearchInput
                 autoFocus   = {not feature.IS_TOUCH}
                 autoSelect  = {not feature.IS_TOUCH}
-                placeholder = 'Filename'
+                placeholder = 'Search or create file'
                 value       = {@props.file_search}
                 on_change   = {@on_change}
                 on_submit   = {@search_submit}
@@ -2134,6 +2141,7 @@ exports.ProjectFiles = rclass ({name}) ->
             new_name              : rtypes.string
             library               : rtypes.object
             show_library          : rtypes.bool
+            show_new              : rtypes.bool
 
     propTypes :
         project_id             : rtypes.string
@@ -2241,6 +2249,17 @@ exports.ProjectFiles = rclass ({name}) ->
                     />
                 </Col>
             </Row>
+        </Well>
+
+    render_new: () ->
+        <Well style={backgroundColor: 'white'}>
+            <ProjectNewForm
+                project_id={@props.project_id}
+                name={@props.name}
+                actions={@actions(name)}
+                close={=>@props.actions.toggle_new(false)}
+                show_header={false}
+            />
         </Well>
 
     render_files_actions: (listing, public_view) ->
@@ -2476,23 +2495,27 @@ exports.ProjectFiles = rclass ({name}) ->
                     <UsersViewing project_id={@props.project_id} />
                 </div> if not public_view}
                 {<div style={flex: '1 0 auto', marginBottom:'15px'}>
-                    <ProjectFilesButtons
-                        show_hidden  = {@props.show_hidden ? false}
-                        current_path = {@props.current_path}
-                        public_view  = {public_view}
-                        actions      = {@props.actions} />
+                    {@render_miniterm()}
                 </div> if not public_view}
             </div>
-            {@render_library() if @props.show_library}
             <Row>
                 <Col sm={8}>
                     {@render_files_actions(listing, public_view) if listing?}
                 </Col>
-                <Col sm={4}>
-                    {@render_miniterm() if not public_view}
+                <Col sm={4} style={textAlign:"right"}>
+                    {if not public_view
+                        <ProjectFilesButtons
+                            show_hidden  = {@props.show_hidden ? false}
+                            current_path = {@props.current_path}
+                            public_view  = {public_view}
+                            actions      = {@props.actions}
+                        />
+                    }
                 </Col>
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
+            {@render_new() if @props.show_new}
+            {@render_library() if @props.show_library}
             {### Only show the access error if there is not another error. ###}
             {@render_access_error() if public_view and not error}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
