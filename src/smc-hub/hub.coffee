@@ -188,7 +188,7 @@ init_primus_server = (http_server) ->
 #   globally unique across all of space and time.
 get_client_ids = (opts) ->
     opts = defaults opts,
-        account_id : undefined      # include connected clients logged in under this account
+        account_id : undefined      # include connected clients logged in under this create
         project_id : undefined      # include connected clients that are a user of this project
         exclude    : undefined      # array of id's to exclude from results
         cb         : required

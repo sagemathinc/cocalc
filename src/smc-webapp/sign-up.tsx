@@ -61,7 +61,8 @@ export class SignUp extends React.Component<Props, State> {
         ReactDOM.findDOMNode(this.refs.last_name).value,
         ReactDOM.findDOMNode(this.refs.email).value,
         ReactDOM.findDOMNode(this.refs.password).value,
-        this.state.user_token
+        this.state.user_token,
+        ReactDOM.findDOMNode(this.refs.question).value
       );
   };
 

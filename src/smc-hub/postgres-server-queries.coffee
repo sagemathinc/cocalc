@@ -296,9 +296,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             passport_strategy : undefined
             passport_id       : undefined
             passport_profile  : undefined
+            usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id})")
+        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         if opts.email_address? # canonicalize the email address, if given
