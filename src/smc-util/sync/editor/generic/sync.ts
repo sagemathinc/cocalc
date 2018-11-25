@@ -45,12 +45,13 @@ class SyncDoc extends EventEmitter {
 
   private state: State = "init";
 
+  private syncstring_table: SyncTable;
+
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: Patch } = {};
 
   constructor(opts: SyncOpts) {
     super();
-
     if (opts.string_id === undefined) {
       this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
     } else {
@@ -76,91 +77,96 @@ class SyncDoc extends EventEmitter {
     }
 
     this.setMaxListeners(100);
+    this.init();
+  }
 
-    this.connect(err => {
-      //dbg('connected')
-      if (err) {
-        console.warn(`error creating SyncDoc: '${err}'`);
-        return this.emit("error", err);
-      } else {
-        if (this._client.is_project()) {
-          // CRITICAL: do not start autosaving this until syncstring is initialized!
-          return this.init_project_autosave();
-        } else {
-          // Ensure file is undeleted when explicitly open.
-          return this._undelete();
-        }
-      }
-    });
-
-    if (opts.file_use_interval && this._client.is_user()) {
-      let action;
-      const is_chat = misc.filename_extension(this._path) === "sage-chat";
-      if (is_chat) {
-        action = "chat";
-      } else {
-        action = "edit";
-      }
-      this._last_user_change = misc.minutes_ago(60); // initialize
-      const file_use = () => {
-        // We ONLY count this and record that the file was edited if there was an actual
-        // change record in the patches log, by this user, since last time.
-        let user_is_active = false;
-        for (let tm in this._my_patches) {
-          const _ = this._my_patches[tm];
-          if (new Date(parseInt(tm)) > this._last_user_change) {
-            user_is_active = true;
-            break;
-          }
-        }
-        if (!user_is_active) {
-          return;
-        }
-        this._last_user_change = new Date();
-        return this._client.mark_file({
-          project_id: this._project_id,
-          path: this._path,
-          action,
-          ttl: opts.file_use_interval
-        });
-      };
-
-      this.on(
-        "user_change",
-        underscore.throttle(file_use, opts.file_use_interval, true)
-      );
+  private async init(): Promise<void> {
+    try {
+      await this.init_all();
+    } catch (err) {
+      this.emit("init", err);
+      this.emit("error", err);
+      return;
     }
 
-    if (opts.cursors) {
-      // Initialize throttled cursors functions
-      const set_cursor_locs = (locs, side_effect) => {
-        if (
-          this._last_user_change == null ||
-          new Date() - this._last_user_change >= 1000 * 5 * 60
-        ) {
-          // We ignore setting cursor location in case the user hasn't actually
-          // modified this file recently (5 minutes).  It's annoying to just see a cursor
-          // moving around for a user who isn't doing anything, and this also
-          // prevents bugs in side_effect detection (which is super hard to
-          // get right).
-          return;
-        }
-        const x = {
-          string_id: this._string_id,
-          user_id: this._user_id,
-          locs
-        };
-        if (!side_effect) {
-          x.time = this._client.server_time();
-        }
-        return this._cursors != null ? this._cursors.set(x, "none") : undefined;
-      };
-      this._throttled_set_cursor_locs = underscore.throttle(
-        set_cursor_locs,
-        this._opts.cursor_interval,
-        { leading: true, trailing: true }
-      );
+    // Success -- everything perfectly initialized with no issues.
+    this.set_state("ready");
+    this.emit("change"); // from nothing to something.
+  }
+
+  private init_throttled_cursors(): void {
+    if (!opts.cursors) {
+      return;
     }
+    // Initialize throttled cursors functions
+    const set_cursor_locs = (locs, side_effect) => {
+      if (
+        this._last_user_change == null ||
+        new Date() - this._last_user_change >= 1000 * 5 * 60
+      ) {
+        // We ignore setting cursor location in case the user hasn't actually
+        // modified this file recently (5 minutes).  It's annoying to just see a cursor
+        // moving around for a user who isn't doing anything, and this also
+        // prevents bugs in side_effect detection (which is super hard to
+        // get right).
+        return;
+      }
+      const x = {
+        string_id: this._string_id,
+        user_id: this._user_id,
+        locs
+      };
+      if (!side_effect) {
+        x.time = this._client.server_time();
+      }
+      return this._cursors != null ? this._cursors.set(x, "none") : undefined;
+    };
+    this._throttled_set_cursor_locs = underscore.throttle(
+      set_cursor_locs,
+      this._opts.cursor_interval,
+      { leading: true, trailing: true }
+    );
+  }
+
+  private init_file_use_interval(): void {
+    if (!(opts.file_use_interval && this._client.is_user())) {
+      return;
+    }
+    let action;
+    const is_chat = misc.filename_extension(this._path) === "sage-chat";
+    if (is_chat) {
+      action = "chat";
+    } else {
+      action = "edit";
+    }
+    this._last_user_change = misc.minutes_ago(60); // initialize
+    const file_use = () => {
+      // We ONLY count this and record that the file was edited if there was an actual
+      // change record in the patches log, by this user, since last time.
+      let user_is_active = false;
+      for (let tm in this._my_patches) {
+        const _ = this._my_patches[tm];
+        if (new Date(parseInt(tm)) > this._last_user_change) {
+          user_is_active = true;
+          break;
+        }
+      }
+      if (!user_is_active) {
+        return;
+      }
+      this._last_user_change = new Date();
+      return this._client.mark_file({
+        project_id: this._project_id,
+        path: this._path,
+        action,
+        ttl: opts.file_use_interval
+      });
+    };
+
+    this.on(
+      "user_change",
+      underscore.throttle(file_use, opts.file_use_interval, true)
+    );
   }
 
   private set_state(state: State): void {
@@ -562,7 +568,7 @@ class SyncDoc extends EventEmitter {
       }
     };
 
-    this.syncstring_table = this._client.sync_table(query);
+    this.syncstring_table = this.client.sync_table(query);
     await once(this.syncstring_table, "connected");
     this.handle_syncstring_update();
     this.syncstring_table.on("change", this.handle_syncstring_update);
@@ -582,7 +588,7 @@ class SyncDoc extends EventEmitter {
     await this.syncstring_table.wait(is_not_archived.bind(this), 120);
   }
 
-  private async connect(): Promise<void> {
+  private async init_all(): Promise<void> {
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
@@ -600,14 +606,21 @@ class SyncDoc extends EventEmitter {
     ]);
     this.assert_not_closed();
     this.init_periodic_touch();
+    this.init_file_use_interval();
+    this.init_throttled_cursors();
     if (this._client.is_project()) {
       await this._load_from_disk_if_newer();
     }
 
     await this.wait_until_fully_ready();
     this.assert_not_closed();
-    this.set_state("ready");
-    this.emit("change"); // from nothing to something.
+    if (this._client.is_project()) {
+      this.init_project_autosave();
+    } else {
+      // Ensure file is undeleted when explicitly open.
+      await this.undelete();
+      this.assert_not_closed();
+    }
   }
 
   private init_periodic_touch(): void {
@@ -626,51 +639,32 @@ class SyncDoc extends EventEmitter {
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
   private wait_until_fully_ready(): Promise<void> {
-    return this._syncstring_table != null
-      ? this._syncstring_table.wait({
-          until: t => {
-            const tbl = t.get_one();
-            // init must be set in table and archived must NOT be set (so patches are loaded from blob store)
-            const init = tbl != null ? tbl.get("init") : undefined;
-            if (init && !(tbl != null ? tbl.get("archived") : undefined)) {
-              return init;
-            } else {
-              return false;
-            }
-          },
-          cb: (err, init) => {
-            if (this._closed) {
-              // closed while waiting on condition (perfectly reasonable -- do nothing).
-              return;
-            }
-            if (err) {
-              this.emit("init", err);
-              return;
-            }
-            init = init.toJS();
-            err = init.error;
-            if (err) {
-              this.emit("init", err);
-              return;
-            }
-            if (
-              this._client.is_user() &&
-              this._patch_list.count() === 0 &&
-              (init.size != null ? init.size : 0) > 0
-            ) {
-              // wait for a change -- i.e., project loading the file from
-              // disk and making available...  Because init.size > 0, we know that
-              // there must be SOMETHING in the patches table once initialization is done.
-              // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-              return this._patches_table.once("change", () => {
-                return this.emit("init");
-              });
-            } else {
-              return this.emit("init");
-            }
-          }
-        })
-      : undefined;
+    this.assert_not_closed();
+    function is_fully_ready(t: SyncTable): any {
+      this.assert_not_closed();
+      const tbl = t.get_one();
+      if (tbl === null) {
+        return false;
+      }
+      // init must be set in table and archived must NOT be
+      // set (so patches are loaded from blob store)
+      const init = tbl.get("init");
+      if (init && !tbl.get("archived")) {
+        return init.toJS();
+      } else {
+        return false;
+      }
+    }
+    const init = await this.syncstring_table.wait(is_fully_ready.bind(this), 0);
+
+    if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
+      // wait for a change -- i.e., project loading the file from
+      // disk and making available...  Because init.size > 0, we know that
+      // there must be SOMETHING in the patches table once initialization is done.
+      // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+      await once(this.patches_table, "change");
+    }
+    this.emit("init");
   }
 
   wait(opts) {
@@ -1090,11 +1084,8 @@ class SyncDoc extends EventEmitter {
     return time;
   }
 
-  _undelete() {
-    if (this._closed) {
-      return;
-    }
-    //@dbg("_undelete")()
+  async undelete(): Promise<void> {
+    this.assert_not_closed();
     return this._syncstring_table.set(
       this._syncstring_table.get_one().set("deleted", false)
     );

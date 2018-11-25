@@ -353,15 +353,18 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
-    // wait until some function of this synctable is truthy
+    // wait until some function until of this synctable is truthy (or throws an exception)
     // (this might be exactly the same code as in the
     // postgres-synctable.coffee SyncTable....)
     // Waits until "until(this)" evaluates to something truthy
     // in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
     // Returns until(this) on success and raises Error('timeout') or
     // Error('closed') on failure.
+
+    // The until function may be async.
+
     this.assert_not_closed();
-    let x = until(this);
+    let x = await until(this);
     if (x) {
       // Already true
       return x;
@@ -381,8 +384,14 @@ export class SyncTable extends EventEmitter {
       const f = () => {
         if (this.state === "closed") {
           done("closed");
+          return;
         }
-        x = until(this);
+        try {
+          x = await until(this);
+        } catch (err) {
+          done(err);
+          return;
+        }
         if (x) {
           done(undefined, x);
         }
@@ -796,7 +805,7 @@ export class SyncTable extends EventEmitter {
       }
       return true;
     }
-    if (this.state === "closed" as State) {
+    if (this.state === ("closed" as State)) {
       // this can happen in case synctable is closed after
       // _save is called but before returning from this query.
       return false;
