@@ -208,7 +208,8 @@ exports.Library = rclass ({name}) ->
     close_button: ->
         return if not @props.close
         <Button
-            onClick  = {=> @props.close()}
+            className = {"pull-right"}
+            onClick   = {=> @props.close()}
         >
             Close
         </Button>
@@ -291,7 +292,7 @@ exports.Library = rclass ({name}) ->
                 {<Col sm={2}>{@thumbnail()}</Col> if thumb}
             </Row>
             {if @props.close
-                <Row style={textAlign:"right"}>
+                <Row>
                     {@close_button()}
                 </Row>
             }

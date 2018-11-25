@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
@@ -149,7 +149,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
     render: ->
         row_style =
             marginBottom:'8px'
-        <div>
+        <Fragment>
             <Row style={row_style}>
                 <Col sm={6}>
                     <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
@@ -212,7 +212,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                 </Col>
             </Row>
             {@props.children}
-        </div>
+        </Fragment>
 
 exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     displayName : 'ProjectNewForm'
@@ -281,7 +281,8 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     close_button: ->
         return if not @props.close
         <Button
-            onClick  = {=> @props.close()}
+            onClick   = {=> @props.close()}
+            className = {"pull-right"}
         >
             Close
         </Button>
@@ -329,57 +330,63 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         </Alert>
 
     render: ->
-        <div>
-            {@render_header() if @props.show_header}
-            <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
-                <Col sm={3}>
-                    <h4><Icon name='plus' /> Create a new file or directory</h4>
-                </Col>
-                <Col sm={9}>
-                    <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
-                    <form onSubmit={@submit_via_enter}>
-                        <FormGroup>
-                            <FormControl
-                                autoFocus
-                                ref         = 'project_new_filename'
-                                value       = {@state.filename}
-                                type        = 'text'
-                                disabled    = {@state.extension_warning}
-                                placeholder = 'Name your file, folder, or paste in a link...'
-                                onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
-                        </FormGroup>
-                    </form>
-                    {if @state.extension_warning then @render_no_extension_alert()}
-                    {if @props.file_creation_error then @render_error()}
-                    <h4 style={color:"#666"}>Select the type</h4>
-                    <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
+        <Row>
+            <Col sm={12}>
+                {@render_header() if @props.show_header}
+                <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
+                    <Col sm={3}>
+                        <h4><Icon name='plus' /> Create a new file or directory</h4>
+                    </Col>
+                    <Col sm={9}>
                         <Row>
-                            <Col sm={6}>
-                                <Tip title='Download files from the Internet'  icon = 'cloud'
-                                    tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
-                                    <NewFileButton
-                                        icon     = 'cloud'
-                                        name     = {"Download from Internet #{@blocked()}"}
-                                        on_click = {@create_file}
-                                        loading  = {@state.downloading} />
-                                </Tip>
-                            </Col>
-                            <Col sm={6}>
-                                <Tip title='Create a chatroom'  placement='left'  icon='comment'
-                                    tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
-                                </Tip>
+                            <Col sm={12}>
+                                <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
+                                <form onSubmit={@submit_via_enter}>
+                                    <FormGroup>
+                                        <FormControl
+                                            autoFocus
+                                            ref         = 'project_new_filename'
+                                            value       = {@state.filename}
+                                            type        = 'text'
+                                            disabled    = {@state.extension_warning}
+                                            placeholder = 'Name your file, folder, or paste in a link...'
+                                            onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+                                    </FormGroup>
+                                </form>
+                                {if @state.extension_warning then @render_no_extension_alert()}
+                                {if @props.file_creation_error then @render_error()}
+                                <h4 style={color:"#666"}>Select the type</h4>
                             </Col>
                         </Row>
-                    </FileTypeSelector>
-                </Col>
-            </Row>
-            {if @props.close
-                <Row style={textAlign:"right"}>
-                    {@close_button()}
+                        <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
+                            <Row>
+                                <Col sm={6}>
+                                    <Tip title='Download files from the Internet'  icon = 'cloud'
+                                        tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
+                                        <NewFileButton
+                                            icon     = 'cloud'
+                                            name     = {"Download from Internet #{@blocked()}"}
+                                            on_click = {@create_file}
+                                            loading  = {@state.downloading} />
+                                    </Tip>
+                                </Col>
+                                <Col sm={6}>
+                                    <Tip title='Create a chatroom'  placement='left'  icon='comment'
+                                        tip='Create a chatroom for chatting with other collaborators on this project.'>
+                                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
+                                    </Tip>
+                                </Col>
+                            </Row>
+                        </FileTypeSelector>
+                        {if @props.close
+                            <Row>
+                                <Col sm={12}>{@close_button()}</Col>
+                            </Row>
+                        }
+                    </Col>
                 </Row>
-            }
-        </div>
+            </Col>
+        </Row>
 
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)

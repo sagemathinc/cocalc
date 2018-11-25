@@ -837,6 +837,8 @@ ProjectFilesButtons = rclass
     propTypes :
         show_hidden  : rtypes.bool
         public_view  : rtypes.bool
+        show_new     : rtypes.bool
+        show_library : rtypes.bool
         actions      : rtypes.object.isRequired
 
     handle_refresh: (e) ->
@@ -874,15 +876,15 @@ ProjectFilesButtons = rclass
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
                 <Button
-                    bsSize='small'
-                    active={@props.show_new}
+                    bsSize={'small'}
+                    disabled={@props.show_new}
                     onClick={=>@props.actions.toggle_new(true)}
                 >
                     <Icon name='plus-circle' /> New
                 </Button>
                 <Button
-                    bsSize='small'
-                    active={@props.show_library}
+                    bsSize={'small'}
+                    disabled={@props.show_library}
                     onClick={=>@props.actions.toggle_library(true)}
                 >
                     <Icon name='book' /> Library
@@ -2489,7 +2491,8 @@ exports.ProjectFiles = rclass ({name}) ->
                     <ProjectFilesPath
                         current_path = {@props.current_path}
                         history_path = {@props.history_path}
-                        actions      = {@props.actions} />
+                        actions      = {@props.actions}
+                    />
                 </div>
                 {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
                     <UsersViewing project_id={@props.project_id} />
@@ -2509,6 +2512,8 @@ exports.ProjectFiles = rclass ({name}) ->
                             current_path = {@props.current_path}
                             public_view  = {public_view}
                             actions      = {@props.actions}
+                            show_new     = {@props.show_new}
+                            show_library = {@props.show_library}
                         />
                     }
                 </Col>
