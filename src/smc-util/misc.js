@@ -2389,23 +2389,22 @@ exports.map_diff = function(a, b) {
 // limit the values in a by the values of b
 // or just by b if b is a number
 exports.map_limit = exports.map_min = function(a, b) {
-  let k, v;
   const c = {};
   if (typeof b === "number") {
-    for (k in a) {
-      v = a[k];
+    for (let k in a) {
+      let v = a[k];
       c[k] = Math.min(v, b);
     }
   } else {
-    for (k in a) {
-      v = a[k];
+    for (let k in a) {
+      let v = a[k];
       c[k] = Math.min(v, b[k] != null ? b[k] : Number.MAX_VALUE);
     }
   }
   return c;
 };
 
-// kind of the oppositve of map_limit/map_min
+// kind of the opposite of map_limit/map_min
 exports.map_max = function(a, b) {
   let k, v;
   const c = {};
