@@ -17,7 +17,7 @@ import { keys, throttle } from "underscore";
 
 import { callback } from "awaiting";
 
-import { once } from "../../async-utils";
+import { callback2, once } from "../../async-utils";
 
 import { query_function } from "./query-function";
 
@@ -35,7 +35,7 @@ function is_fatal(err): boolean {
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { Changefeed } from "./changefeed";
-import { parse_query, callback2, to_key } from "./util";
+import { parse_query, to_key } from "./util";
 
 type State = "disconnected" | "connected" | "closed";
 
