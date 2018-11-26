@@ -128,21 +128,3 @@ The following instruction **don't** install SMC. They're for development purpose
    * See `INSTALL.md` for more details.
 
 For further options please [go here](https://github.com/sagemathinc/cocalc/tree/master/src/dev).
-
-### Installation for SELinux (Fedora, etc.)
-
-In order to build and run CoCalc on an SELinux box, first set SELinux to permissive:
-
-    $ setenforce 0
-
-<Install cocalc>
-
-Tell docker and SELinux to "play nicely":
-
-    $ chcon -Rt svirt_sandbox_file_t cocalc
-
-return SELinux to enabled:
-
-    $ setenforce 1
-
--- via [discussion](https://groups.google.com/forum/#!msg/cocalc/nhtbraq1_X4/QTlBy3opBAAJ)
