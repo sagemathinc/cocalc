@@ -15,6 +15,9 @@ import { project_api } from "../generic/client";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
+import { reuseInFlight } from "async-await-utils/hof";
+import { callback } from "awaiting";
+
 const WID_HISTORY_LENGTH = 40;
 
 import {
@@ -42,6 +45,7 @@ export class Actions extends BaseActions<X11EditorState> {
   client: XpraClient;
 
   async _init2(): Promise<void> {
+    this.launch = reuseInFlight(this.launch);
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
@@ -66,7 +70,14 @@ export class Actions extends BaseActions<X11EditorState> {
       direction: "col",
       type: "node",
       first: {
-        type: "terminal"
+        direction: "row",
+        type: "node",
+        first: {
+          type: "terminal"
+        },
+        second: {
+          type: "launcher"
+        }
       },
       second: {
         type: "x11"
@@ -162,8 +173,11 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("ws:status", (status: string) => {
-      // Right now all x11 frames are connected to the same remote session,
-      // so we set desc on all of them.  Later we may have multiple sessions,
+      // Right now all x11 frames for a given path
+      ///are connected to
+      // the same remote session,
+      // so we set desc on all of them.  Later we
+      // may have multiple sessions,
       // like with the terminal.
       if (
         status === "disconnected" ||
@@ -407,9 +421,17 @@ export class Actions extends BaseActions<X11EditorState> {
     });
   }
 
-  private handle_data_from_channel(x: object): void {
-    // not used yet -- will be used for multiuser sync.
-    console.log("handle_data_from_channel", x);
+  private handle_data_from_channel(x: any): void {
+    if (x == null) {
+      return;
+    }
+    //console.log("handle_data_from_channel", x);
+    if (x.error != null) {
+      if (x.error.indexOf("unknown command") !== -1) {
+        x.error = "You probably need to restart your project.  " + x.error;
+      }
+      this.set_error(x.error);
+    }
   }
 
   // Update x11 tabs to get as close as we can to having
@@ -486,5 +508,37 @@ export class Actions extends BaseActions<X11EditorState> {
       this.setState({ windows: Map() });
       this.client.connect();
     }
+  }
+
+  public async close_and_halt(_: string): Promise<void> {
+    await this.client.close_and_halt();
+    // and close this window
+    const project_actions = this._get_project_actions();
+    project_actions.close_tab(this.path);
+  }
+
+  async launch(command: string, args?: string[]): Promise<void> {
+    if (this.client._ws_status !== "connected") {
+      // Wait until connected
+      this.set_status(`Waiting until connected before launching ${command}...`);
+      const wait = cb => {
+        const f = status => {
+          if (status === "connected") {
+            this.client.removeListener("ws:status", f);
+            cb();
+          }
+        };
+        this.client.addListener("ws:status", f);
+      };
+      await callback(wait);
+      this.set_status("");
+    }
+    // Launch the command
+    this.channel.write({ cmd: "launch", command, args });
+    // TODO: wait for a status message back...
+  }
+
+  set_physical_keyboard(layout: string, variant: string): void {
+    this.client.set_physical_keyboard(layout, variant);
   }
 }

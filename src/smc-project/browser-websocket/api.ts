@@ -10,7 +10,7 @@ All functionality here is of the form:
 import { callback } from "awaiting";
 const {
   callback_opts
-} = require("../smc-webapp/frame-editors/generic/async-utils");
+} = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 

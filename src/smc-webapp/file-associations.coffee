@@ -157,7 +157,7 @@ file_associations['md'] =
 file_associations['rmd'] =
     icon   : 'cc-icon-r'
     opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['rmd']}
-    name   : "Rmd"
+    name   : "RMarkdown"
 
 file_associations['rst'] =
     icon   : 'fa-file-code-o'

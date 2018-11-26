@@ -30,6 +30,7 @@
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
+{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
 
 md5 = require('md5')
 
@@ -1029,6 +1030,46 @@ EditorSettingsKeyboardBindings = rclass
             />
         </LabeledRow>
 
+EditorSettingsPhysicalKeyboard = rclass
+    displayName : 'Account-EditorSettingsPhysicalKeyboard'
+
+    propTypes :
+        physical_keyboard  : rtypes.string.isRequired
+        on_change          : rtypes.func.isRequired
+
+    render: ->
+        if @props.physical_keyboard == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {PHYSICAL_KEYBOARDS}
+                    selected  = {@props.physical_keyboard}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+EditorSettingsKeyboardVariant = rclass
+    displayName : 'Account-EditorSettingsKeyboardVariant'
+
+    propTypes :
+        keyboard_variant         : rtypes.string.isRequired
+        on_change                : rtypes.func.isRequired
+        keyboard_variant_options : rtypes.array.isRequired
+
+    render: ->
+        if @props.keyboard_variant == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {@props.keyboard_variant_options}
+                    selected  = {@props.keyboard_variant}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
@@ -1042,11 +1083,27 @@ EditorSettings = rclass
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings', 'tab_size'])
 
+    get_keyboard_variant_options: (val) ->
+        val ?= @props.editor_settings.get('physical_keyboard')
+        options = misc.deep_copy(KEYBOARD_VARIANTS[val] ? [])
+        options.unshift({value:"", display: "No variant"})
+        return options
+
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
             @props.redux.getTable('account').set("#{name}" : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
+
+        if name == 'physical_keyboard'
+            options = @get_keyboard_variant_options(val)
+            @actions('account').setState(keyboard_variant_options: options)
+            for opt in options
+                if opt.value == 'nodeadkeys'
+                    @on_change('keyboard_variant', opt.value)
+                    return
+            # otherwise, select default
+            @on_change('keyboard_variant', '')
 
     render: ->
         if not @props.editor_settings?
@@ -1062,6 +1119,10 @@ EditorSettings = rclass
                 on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
+            <EditorSettingsPhysicalKeyboard
+                on_change={(value)=>@on_change('physical_keyboard',value)} physical_keyboard={@props.editor_settings.get('physical_keyboard')} />
+            <EditorSettingsKeyboardVariant
+                on_change={(value)=>@on_change('keyboard_variant',value)} keyboard_variant={@props.editor_settings.get('keyboard_variant')} keyboard_variant_options = {@get_keyboard_variant_options()} />
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>

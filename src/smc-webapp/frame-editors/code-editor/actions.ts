@@ -20,7 +20,7 @@ import {
   syncdb
 } from "../generic/client";
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, retry_until_success } from "../generic/async-utils";
+import { callback_opts, retry_until_success } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
@@ -1007,9 +1007,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(): void {
+  time_travel(path?:string): void {
     this._get_project_actions().open_file({
-      path: history_path(this.path),
+      path: history_path(path || this.path),
       foreground: true
     });
   }

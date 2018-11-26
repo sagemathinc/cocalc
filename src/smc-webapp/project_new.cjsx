@@ -158,6 +158,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
                         <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
                     </Tip>
+                    <Tip title='RMarkdown File'  icon='cc-icon-r'
+                        tip='RMarkdown document with real-time preview.'>
+                        <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
+                    </Tip>
                 </Col>
                 <Col sm={6}>
                     <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
