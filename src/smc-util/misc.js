@@ -2386,41 +2386,28 @@ exports.map_diff = function(a, b) {
   return c;
 };
 
-// limit the values in a by the values of b
-// or just by b if b is a number
-exports.map_limit = exports.map_min = function(a, b) {
-  const c = {};
-  if (typeof b === "number") {
-    for (let k in a) {
-      let v = a[k];
-      c[k] = Math.min(v, b);
+// compare the values in a map a by the values of b
+// or just by b if b is a number, using func(a, b)
+map_comp_fn = function(func, fallback) {
+  return (a, b) => {
+    const c = {};
+    if (typeof b === "number") {
+      for (let k in a) {
+        let v = a[k];
+        c[k] = func(v, b);
+      }
+    } else {
+      for (let k in a) {
+        let v = a[k];
+        c[k] = func(v, b[k] != null ? b[k] : fallback);
+      }
     }
-  } else {
-    for (let k in a) {
-      let v = a[k];
-      c[k] = Math.min(v, b[k] != null ? b[k] : Number.MAX_VALUE);
-    }
-  }
-  return c;
+    return c;
+  };
 };
 
-// kind of the opposite of map_limit/map_min
-exports.map_max = function(a, b) {
-  let k, v;
-  const c = {};
-  if (typeof b === "number") {
-    for (k in a) {
-      v = a[k];
-      c[k] = Math.max(v, b);
-    }
-  } else {
-    for (k in a) {
-      v = a[k];
-      c[k] = Math.max(v, b[k] != null ? b[k] : Number.MIN_VALUE);
-    }
-  }
-  return c;
-};
+exports.map_limit = exports.map_min = map_comp_fn(Math.min, Number.MAX_VALUE);
+exports.map_max = map_comp_fn(Math.max, Number.MIN_VALUE);
 
 // arithmetic sum of an array
 exports.sum = function(arr, start) {
