@@ -6,6 +6,9 @@
 type Patch = any;
 
 import { once } from "../../async-utils";
+import { filename_extension } from "../../misc2";
+
+const { Evaluator } = require("../../syncstring_evaluator");
 
 export interface SyncOpts {
   project_id: string;
@@ -795,47 +798,56 @@ class SyncDoc extends EventEmitter {
     await this.set_initialized(error, is_read_only, size);
   }
 
-  _patch_table_query(cutoff) {
+  private patch_table_query(cutoff?: Date) {
     const query = {
-      string_id: this._string_id,
+      string_id: this.string_id,
       time: cutoff ? { ">=": cutoff } : null,
-      patch: null, // compressed format patch as a JSON *string*
-      user_id: null, // integer id of user (maps to syncstring table)
-      snapshot: null, // (optional) a snapshot at this point in time
-      sent: null, // (optional) when patch actually sent, which may be later than when made
-      prev: null // (optional) timestamp of previous patch sent from this session
+      // compressed format patch as a JSON *string*
+      patch: null,
+      // integer id of user (maps to syncstring table)
+      user_id: null,
+      // (optional) a snapshot at this point in time
+      snapshot: null,
+      // (optional) when patch actually sent, which may
+      // be later than when made
+      sent: null,
+      // (optional) timestamp of previous patch sent
+      // from this session
+      prev: null
     };
-    if (this._patch_format != null) {
-      query.format = this._patch_format;
+    if (this.patch_format != null) {
+      query.format = this.patch_format;
     }
     return query;
   }
 
-  _init_patch_list(cb) {
-    // CRITICAL: note that _handle_syncstring_update checks whether
-    // init_patch_list is done by testing whether this._patch_list is defined!
-    // That is why we first define "patch_list" below, then set this._patch_list
+  private async init_patch_list(): Promise<void> {
+    this.assert_not_closed();
+
+    // CRITICAL: note that handle_syncstring_update checks whether
+    // init_patch_list is done by testing whether this.patch_list is defined!
+    // That is why we first define "patch_list" below, then set this.patch_list
     // to it only after we're done.
-    delete this._patch_list;
+    delete this.patch_list;
 
-    const patch_list = new SortedPatchList(this._from_str);
+    const patch_list = new SortedPatchList(this.from_str);
 
-    this.patches_table = this.client.sync_table(
-      { patches: this._patch_table_query(this._last_snapshot) },
+    this.patches_table = this.client.synctable2(
+      { patches: this.patch_table_query(this.last_snapshot) },
       undefined,
-      this._patch_interval,
-      this._patch_interval
+      this.patch_interval
     );
 
-    this.patches_table.once("connected", () => {
-      patch_list.add(this._get_patches());
-      const doc = patch_list.value();
-      this._last = this._doc = doc;
-      this.patches_table.on("change", this._handle_patch_update);
-      this.patches_table.on("before-change", () => this.emit("before-change"));
-      this._patch_list = patch_list;
-      return cb();
-    });
+    await once(this.patches_table, "connected");
+    this.assert_not_closed();
+
+    patch_list.add(this.get_patches());
+
+    const doc = patch_list.value();
+    this.last = this.doc = doc;
+    this.patches_table.on("change", this.handle_patch_update);
+    this.patches_table.on("before-change", () => this.emit("before-change"));
+    this.patch_list = patch_list;
 
     /*
       TODO/CRITICAL: We are temporarily disabling same-user
@@ -847,15 +859,13 @@ class SyncDoc extends EventEmitter {
       by multiple people which isn't something users should
       ever do (but they do in big demos).
 
-      this._patch_list.on 'overwrite', (t) =>
+      this.patch_list.on 'overwrite', (t) =>
           * ensure that any outstanding save is done
-          this._patches_table.save () =>
-              this._check_for_timestamp_collision(t)
+          this.patches_table.save () =>
+              this.check_for_timestamp_collision(t)
     */
 
-    return this.patches_table.on("saved", data => {
-      return this._handle_offline(data);
-    });
+    this.patches_table.on("saved", this.handle_offline.bind(this));
   }
 
   /*
@@ -873,12 +883,15 @@ class SyncDoc extends EventEmitter {
             this._save_patch(new_time, JSON.parse(obj.patch))
     */
 
-  _init_evaluator(cb) {
-    if (misc.filename_extension(this._path) === "sagews") {
-      return (this._evaluator = new Evaluator(this, cb));
-    } else {
-      return cb();
+  private async init_evaluator(): Promise<void> {
+    if (filename_extension(this.path) !== "sagews") {
+      // only use init_evaluator for sagews right now.
+      return;
     }
+    const f = cb => {
+      this.evaluator = new Evaluator(this, cb);
+    };
+    await callback(f);
   }
 
   _init_cursors(cb) {
@@ -1273,7 +1286,7 @@ class SyncDoc extends EventEmitter {
       }
       return;
     }
-    const query = this._patch_table_query();
+    const query = this.patch_table_query();
     return this.client.query({
       query: { patches: [query] },
       cb: (err, result) => {
