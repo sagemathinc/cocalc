@@ -252,13 +252,13 @@ class SyncDoc extends EventEmitter {
   }
 
   // Undo/redo public api.
-  //   Calling @undo and @redo returns the version of the document after
+  //   Calling this.undo and this.redo returns the version of the document after
   //   the undo or redo operation, but does NOT otherwise change anything!
   //   The caller can then do what they please with that output (e.g., update the UI).
-  //   The one state change is that the first time calling @undo or @redo switches
+  //   The one state change is that the first time calling this.undo or this.redo switches
   //   into undo/redo state in which additional calls to undo/redo
   //   move up and down the stack of changes made by this user during this session.
-  //   Call @exit_undo_mode() to exit undo/redo mode.
+  //   Call this.exit_undo_mode() to exit undo/redo mode.
   //   Undo and redo *only* impact changes made by this user during this session.
   //   Other users edits are unaffected, and work by this same user working from another
   //   browser tab or session is also unaffected.
@@ -462,27 +462,27 @@ class SyncDoc extends EventEmitter {
     });
   }
 
-  // The project calls this once it has checked for the file on disk; this
-  // way the frontend knows that the syncstring has been initialized in
-  // the database, and also if there was an error doing the check.
-  _set_initialized(error, is_read_only, size, cb) {
-    const init = { time: misc.server_time(), size };
-    if (error) {
-      init.error = `error - ${JSON.stringify(error)}`; // must be a string!
-    } else {
-      init.error = "";
-    }
-    return this.client.query({
+  /* The project calls set_initialized once it has checked for
+     the file on disk; this way the frontend knows that the
+     syncstring has been initialized in the database, and also
+     if there was an error doing the check.
+   */
+  private async set_initialized(
+    error: string,
+    is_read_only: boolean,
+    size: number
+  ): Promise<void> {
+    const init = { time: misc.server_time(), size, error };
+    return await callback2(this.client.query, {
       query: {
         syncstrings: {
-          string_id: this._string_id,
-          project_id: this._project_id,
-          path: this._path,
+          string_id: this.string_id,
+          project_id: this.project_id,
+          path: this.path,
           init,
           read_only: is_read_only
         }
-      },
-      cb
+      }
     });
   }
 
@@ -500,7 +500,7 @@ class SyncDoc extends EventEmitter {
   }
 
   // List of all known timestamps of versions of this string, including
-  // possibly much older versions than returned by @versions(), in
+  // possibly much older versions than returned by this.versions(), in
   // case the full history has been loaded.  The list of timestamps
   // is sorted from oldest to newest.
   all_versions() {
@@ -523,7 +523,7 @@ class SyncDoc extends EventEmitter {
       return;
     }
     this.emit("close");
-    this.removeAllListeners(); // must be after @emit('close') above.
+    this.removeAllListeners(); // must be after this.emit('close') above.
     this._closed = true;
     if (this._periodically_touch != null) {
       clearInterval(this._periodically_touch);
@@ -755,88 +755,44 @@ class SyncDoc extends EventEmitter {
     }
   }
 
-  _update_if_file_is_read_only(cb) {
-    return this._file_is_read_only((err, is_read_only) => {
-      this._set_read_only(is_read_only);
-      return typeof cb === "function" ? cb() : undefined;
-    });
+  private async update_if_file_is_read_only(): Promise<void> {
+    this.set_read_only(await this.file_is_read_only());
   }
 
-  _load_from_disk_if_newer(cb) {
-    const tm = this.last_changed();
+  private async load_from_disk_if_newer(): Promise<void> {
+    const last_changed = this.last_changed();
     const dbg = this.client.dbg(
-      `syncstring._load_from_disk_if_newer('${this._path}')`
+      `syncstring.load_from_disk_if_newer('${this.path}')`
     );
-    const locals = { exists: false, is_read_only: false, size: 0 };
-    return async.series(
-      [
-        cb => {
-          dbg("check if path exists");
-          return this.client.path_exists({
-            path: this._path,
-            cb: (err, exists) => {
-              if (err) {
-                return cb(err);
-              } else {
-                locals.exists = exists;
-                return cb();
-              }
-            }
+    let is_read_only: boolean = false;
+    let size: number = 0;
+    let error: string = "";
+    try {
+      dbg("check if path exists");
+      if (await callback2(this.client.path_exists, { path: this.path })) {
+        // the path exists
+        if (last_changed != null) {
+          dbg("edited before, so stat file");
+          const stats = await callback2(this.client.path_stat, {
+            path: this._path
           });
-        },
-        cb => {
-          if (!locals.exists) {
-            dbg("file does NOT exist");
-            cb();
-            return;
-          }
-          if (tm != null) {
-            dbg("edited before, so stat file");
-            return this.client.path_stat({
-              path: this._path,
-              cb: (err, stats) => {
-                if (err) {
-                  return cb(err);
-                } else if (stats.ctime > tm) {
-                  dbg("disk file changed more recently than edits, so loading");
-                  return this._load_from_disk((err, size) => {
-                    locals.size = size;
-                    return cb(err);
-                  });
-                } else {
-                  dbg("stick with database version");
-                  return cb();
-                }
-              }
-            });
+          if (stats.ctime > last_changed) {
+            dbg("disk file changed more recently than edits, so loading");
+            size = await this.load_from_disk();
           } else {
-            dbg("never edited before");
-            if (locals.exists) {
-              dbg("path exists, so load from disk");
-              return this._load_from_disk((err, size) => {
-                locals.size = size;
-                return cb(err);
-              });
-            } else {
-              return cb();
-            }
+            dbg("stick with database version");
           }
-        },
-        cb => {
-          if (locals.exists) {
-            return this._file_is_read_only(function(err, is_read_only) {
-              locals.is_read_only = is_read_only;
-              return cb(err);
-            });
-          } else {
-            return cb();
-          }
+        } else {
+          dbg("never edited before and path exists, so load from disk");
+          size = await this.load_from_disk();
         }
-      ],
-      err => {
-        return this._set_initialized(err, locals.is_read_only, locals.size, cb);
+        is_read_only = await this.file_is_read_only();
       }
-    );
+    } catch (err) {
+      error = err.toString();
+    }
+
+    await this.set_initialized(error, is_read_only, size);
   }
 
   _patch_table_query(cutoff) {
@@ -857,8 +813,8 @@ class SyncDoc extends EventEmitter {
 
   _init_patch_list(cb) {
     // CRITICAL: note that _handle_syncstring_update checks whether
-    // init_patch_list is done by testing whether @_patch_list is defined!
-    // That is why we first define "patch_list" below, then set @_patch_list
+    // init_patch_list is done by testing whether this._patch_list is defined!
+    // That is why we first define "patch_list" below, then set this._patch_list
     // to it only after we're done.
     delete this._patch_list;
 
@@ -882,16 +838,20 @@ class SyncDoc extends EventEmitter {
     });
 
     /*
-        TODO/CRITICAL: We are temporarily disabling same-user collision detection, since this seems to be leading to
-        serious issues involving a feedback loop, which may be way worse than the 1 in a million issue
-        that this addresses.  This only address the *same* account being used simultaneously on the same file
-        by multiple people which isn't something users should ever do (but they do in big demos).
+      TODO/CRITICAL: We are temporarily disabling same-user
+      collision detection, since this seems to be leading to
+      serious issues involving a feedback loop, which may
+      be way worse than the 1 in a million issue
+      that this addresses.  This only address the *same*
+      account being used simultaneously on the same file
+      by multiple people which isn't something users should
+      ever do (but they do in big demos).
 
-        @_patch_list.on 'overwrite', (t) =>
-            * ensure that any outstanding save is done
-            @_patches_table.save () =>
-                @_check_for_timestamp_collision(t)
-        */
+      this._patch_list.on 'overwrite', (t) =>
+          * ensure that any outstanding save is done
+          this._patches_table.save () =>
+              this._check_for_timestamp_collision(t)
+    */
 
     return this.patches_table.on("saved", data => {
       return this._handle_offline(data);
@@ -900,17 +860,17 @@ class SyncDoc extends EventEmitter {
 
   /*
     _check_for_timestamp_collision: (t) =>
-        obj = @_my_patches[t]
+        obj = this._my_patches[t]
         if not obj?
             return
-        key = @_patches_table.key(obj)
-        if obj.patch != @_patches_table.get(key)?.get('patch')
-            *console.log("COLLISION! #{t}, #{obj.patch}, #{@_patches_table.get(key).get('patch')}")
+        key = this._patches_table.key(obj)
+        if obj.patch != this._patches_table.get(key)?.get('patch')
+            *console.log("COLLISION! #{t}, #{obj.patch}, #{this._patches_table.get(key).get('patch')}")
             * We fix the collision by finding the nearest time after time that
             * is available, and reinserting our patch at that new time.
-            @_my_patches[t] = 'killed'
-            new_time = @_patch_list.next_available_time(new Date(t), @_user_id, @_users.length)
-            @_save_patch(new_time, JSON.parse(obj.patch))
+            this._my_patches[t] = 'killed'
+            new_time = this._patch_list.next_available_time(new Date(t), this._user_id, this._users.length)
+            this._save_patch(new_time, JSON.parse(obj.patch))
     */
 
   _init_evaluator(cb) {
@@ -944,7 +904,7 @@ class SyncDoc extends EventEmitter {
         this._opts.cursor_interval
       );
       this._cursors.once("connected", () => {
-        // cursors now initialized; first initialize the local @_cursor_map,
+        // cursors now initialized; first initialize the local this._cursor_map,
         // which tracks positions of cursors by account_id:
         this._cursor_map = immutable.Map();
         this._cursors.get().map((locs, k) => {
@@ -956,7 +916,7 @@ class SyncDoc extends EventEmitter {
         return cb();
       });
 
-      // @_other_cursors is an immutable.js map from account_id's
+      // this._other_cursors is an immutable.js map from account_id's
       // to list of cursor positions of *other* users (starts undefined).
       this._cursor_map = undefined;
 
@@ -1032,7 +992,7 @@ class SyncDoc extends EventEmitter {
 
   // save any changes we have as a new patch
   _save(cb) {
-    //dbg = @dbg('_save'); dbg('saving changes to db')
+    //dbg = this.dbg('_save'); dbg('saving changes to db')
     if (this._closed) {
       //dbg("string closed -- can't save")
       if (typeof cb === "function") {
@@ -1066,7 +1026,7 @@ class SyncDoc extends EventEmitter {
     }
 
     if (this._saving) {
-      // this makes it at least safe to call @_save() directly...
+      // this makes it at least safe to call this._save() directly...
       if (typeof cb === "function") {
         cb("saving");
       }
@@ -1194,7 +1154,7 @@ class SyncDoc extends EventEmitter {
       // which leads to serious problems!
       obj.sent = time;
     }
-    x.snapshot = obj.snapshot; // also set snapshot in the @_patch_list, which helps with optimization
+    x.snapshot = obj.snapshot; // also set snapshot in the this._patch_list, which helps with optimization
     this.patches_table.set(obj, "none", err => {
       if (!err) {
         // CRITICAL: Only save the snapshot time in the database after the set in the patches table was confirmed as a
@@ -1213,7 +1173,7 @@ class SyncDoc extends EventEmitter {
     return time;
   }
 
-  // Have a snapshot every @_snapshot_interval patches, except
+  // Have a snapshot every this._snapshot_interval patches, except
   // for the very last interval.
   snapshot_if_necessary() {
     const time = this._patch_list.time_of_unmade_periodic_snapshot(
@@ -1304,7 +1264,7 @@ class SyncDoc extends EventEmitter {
   }
 
   load_full_history(cb) {
-    //dbg = @dbg("load_full_history")
+    //dbg = this.dbg("load_full_history")
     //dbg()
     if (this.has_full_history()) {
       //dbg("nothing to do, since complete history definitely already loaded")
@@ -1357,7 +1317,7 @@ class SyncDoc extends EventEmitter {
   // Check if any patches that just got confirmed as saved are relatively old; if so,
   // we mark them as such and also possibly recompute snapshots.
   _handle_offline(data) {
-    //dbg = @dbg("_handle_offline")
+    //dbg = this.dbg("_handle_offline")
     //dbg("data='#{misc.to_json(data)}'")
     if (this._closed) {
       return;
@@ -1401,7 +1361,7 @@ class SyncDoc extends EventEmitter {
     // 'save-to-disk' event, whenever the state changes
     // to indicate a save completed.
 
-    // NOTE: it is intentional that @_syncstring_save_state is not defined
+    // NOTE: it is intentional that this._syncstring_save_state is not defined
     // the first tie this function is called, so that save-to-disk
     // with last save time gets emitted on initial load (which, e.g., triggers
     // latex compilation properly in case of a .tex file).
@@ -1412,7 +1372,7 @@ class SyncDoc extends EventEmitter {
   }
 
   _handle_syncstring_update() {
-    //dbg = @dbg("_handle_syncstring_update")
+    //dbg = this.dbg("_handle_syncstring_update")
     //dbg()
     if (this.syncstring_table == null) {
       // not initialized; nothing to do
@@ -1501,7 +1461,7 @@ class SyncDoc extends EventEmitter {
         return;
       }
 
-      //dbg = @dbg("_handle_syncstring_update('#{@_path}')")
+      //dbg = this.dbg("_handle_syncstring_update('#{this._path}')")
       //dbg("project only handling")
       // Only done for project:
       return async.series(
@@ -1519,8 +1479,8 @@ class SyncDoc extends EventEmitter {
             }
           },
           cb => {
-            // NOTE: very important to completely do @_update_watch_path
-            // before @_save_to_disk below.
+            // NOTE: very important to completely do this._update_watch_path
+            // before this._save_to_disk below.
             // If client is a project and path isn't being properly watched, make it so.
             if (x.project_id != null && this._watch_path !== x.path) {
               //dbg("watch path")
@@ -1612,9 +1572,9 @@ class SyncDoc extends EventEmitter {
             }
             ctime = ctime - 0;
             dbg(
-              `file_watcher: change, ctime=${ctime}, @_save_to_disk_start_ctime=${
+              `file_watcher: change, ctime=${ctime}, this._save_to_disk_start_ctime=${
                 this._save_to_disk_start_ctime
-              }, @_save_to_disk_end_ctime=${this._save_to_disk_end_ctime}`
+              }, this._save_to_disk_end_ctime=${this._save_to_disk_end_ctime}`
             );
             if (this._closed) {
               this._file_watcher.close();
@@ -1637,7 +1597,7 @@ class SyncDoc extends EventEmitter {
               // save event started less than 15s and isn't done.
               // ignore this load.
               dbg(
-                "_load_from_disk: unfinished @_save_to_disk just happened, so ignoring file change"
+                "_load_from_disk: unfinished this._save_to_disk just happened, so ignoring file change"
               );
               return;
             }
@@ -1647,7 +1607,7 @@ class SyncDoc extends EventEmitter {
             ) {
               // changed triggered during the save
               dbg(
-                "_load_from_disk: change happened during @_save_to_disk, so ignoring file change"
+                "_load_from_disk: change happened during this._save_to_disk, so ignoring file change"
               );
               return;
             }
@@ -1685,7 +1645,8 @@ class SyncDoc extends EventEmitter {
     );
   }
 
-  _load_from_disk(cb) {
+  // TODO: finish
+  private async load_from_disk(): Promise<void> {
     // cb(err, size)
     const path = this.get_path();
     const dbg = this.client.dbg(`syncstring._load_from_disk('${path}')`);
@@ -1867,7 +1828,7 @@ class SyncDoc extends EventEmitter {
   // Initiates a save of file to disk, then if cb is set, waits for the state to
   // change to done before calling cb.
   save_to_disk(cb) {
-    //dbg = @dbg("save_to_disk(cb)")
+    //dbg = this.dbg("save_to_disk(cb)")
     //dbg("initiating the save")
     if (!this.has_unsaved_changes()) {
       // no unsaved changes, so don't save --
@@ -2061,7 +2022,7 @@ class SyncDoc extends EventEmitter {
     }
 
     const path = this.get_path();
-    //dbg = @dbg("__do_save_to_disk_project('#{path}')")
+    //dbg = this.dbg("__do_save_to_disk_project('#{path}')")
     if (path == null) {
       cb("not yet initialized");
       return;
@@ -2132,7 +2093,7 @@ class SyncDoc extends EventEmitter {
       // nothing to do
       return;
     }
-    //dbg = @dbg("_handle_patch_update")
+    //dbg = this.dbg("_handle_patch_update")
     //dbg(new Date(), changed_keys)
     if (this._patch_update_queue == null) {
       this._patch_update_queue = [];
@@ -2154,7 +2115,7 @@ class SyncDoc extends EventEmitter {
     }
     this._handle_patch_update_queue_running = true;
 
-    // note: other code handles that @_patches_table.get(key) may not be
+    // note: other code handles that this._patches_table.get(key) may not be
     // defined, e.g., when changed means "deleted"
     let v = this._patch_update_queue.map(key => this.patches_table.get(key));
     this._patch_update_queue = [];
@@ -2182,14 +2143,14 @@ class SyncDoc extends EventEmitter {
           return result1;
         })()
       );
-      // NOTE: This next line can sometimes *cause* new entries to be added to @_patch_update_queue.
+      // NOTE: This next line can sometimes *cause* new entries to be added to this._patch_update_queue.
       this._sync_remote_and_doc();
     }
 
     if (this._patch_update_queue.length > 0) {
       // It is very important that this happen in the next
-      // render loop to avoid the @_sync_remote_and_doc call
-      // in @_handle_patch_update_queue from causing
+      // render loop to avoid the this._sync_remote_and_doc call
+      // in this._handle_patch_update_queue from causing
       // _sync_remote_and_doc to get called from within itself,
       // due to synctable changes being emited on save.
       return setTimeout(this._handle_patch_update_queue, 1);
@@ -2220,7 +2181,7 @@ class SyncDoc extends EventEmitter {
       throw Error("bug - _sync_remote_and_doc can't be called twice at once");
     }
     this._sync_remote_and_doc_calling = true;
-    // ensure that our live @_doc equals what the user's editor shows in their browser (say)
+    // ensure that our live this._doc equals what the user's editor shows in their browser (say)
     if (typeof this._before_change_hook === "function") {
       this._before_change_hook();
     }
