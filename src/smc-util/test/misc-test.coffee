@@ -6,8 +6,6 @@
 #
 ###############################################################################
 
-require('coffee-cache')
-
 misc = require('../misc')
 underscore = require('underscore')
 immutable = require('immutable')

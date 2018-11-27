@@ -24,6 +24,8 @@ addons:
 env:
   global:
     - REPORTER=list # for mocha tests
+    - PGUSER='smc'
+    - PGHOST='/home/travis/build/sagemathinc/cocalc/src/dev/project/postgres_data/socket'
   matrix:
     - MODE=misc
     #- MODE=util
@@ -38,9 +40,10 @@ before_script:
   - "pip -V"
   - "pip3 -V"
   - "python -V"
-  - "nvm install v5.11"
   - "node --version"
   - "pytest --version"
+  - "python2 ~/build/sagemathinc/cocalc/src/dev/project/start_postgres.py &"
+  - "sleep 5"
 
 # the setup & compilation of SMC
 install:
@@ -56,11 +59,7 @@ script:
   - 'if [[ $MODE = "webapp" ]]; then cd ~/build/sagemathinc/cocalc/src/smc-webapp/; npm run test; fi'
   - 'if [[ $MODE = "server" ]]; then npm run coveralls; fi'
   - 'if [[ $MODE = "util"   ]]; then cd ~/build/sagemathinc/cocalc/src/smc-util/; npm test; fi'
-  - |
-    if [[ $MODE = "misc" ]]; then
-      cd ~/build/sagemathinc/cocalc/src/smc-util/;
-      export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee
-    fi
+  - 'if [[ $MODE = "misc"   ]]; then cd ~/build/sagemathinc/cocalc/src/smc-util/; export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee; fi'
 
 # send coverage report over to https://coveralls.io
 #after_success:
