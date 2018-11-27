@@ -24,7 +24,7 @@
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
-SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG} = require('./r_misc')
+SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton, ProjectNewForm} = require('./project_new')
 {SiteName} = require('./customize')
@@ -880,17 +880,17 @@ ProjectFilesButtons = rclass
                     disabled={@props.show_new}
                     onClick={=>@props.actions.toggle_new(true)}
                 >
-                    <Icon name='plus-circle' /> New
+                    <Icon name='plus-circle' /> <HiddenSM>New</HiddenSM>
                 </Button>
                 <Button
                     bsSize={'small'}
                     disabled={@props.show_library}
                     onClick={=>@props.actions.toggle_library(true)}
                 >
-                    <Icon name='book' /> Library
+                    <Icon name='book' /> <HiddenSM>Library</HiddenSM>
                 </Button>
                 <Button bsSize='small' className="upload-button">
-                    <Icon name='upload' /> Upload
+                    <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
                 </Button>
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
@@ -998,8 +998,9 @@ ProjectFilesActions = rclass
         <Button
             onClick={=>@props.actions.set_file_action(name, get_basename)}
             disabled={disabled}
-            key={name} >
-            <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
+            key={name}
+        >
+            <Icon name={obj.icon} /> <VisibleLG>{obj.name}...</VisibleLG>
         </Button>
 
     render_action_buttons: ->
@@ -2501,11 +2502,12 @@ exports.ProjectFiles = rclass ({name}) ->
                     {@render_miniterm()}
                 </div> if not public_view}
             </div>
-            <Row>
-                <Col sm={8}>
+
+            <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+                <div style={flex: '1 0 60%', marginRight: '10px', minWidth: '20em'}>
                     {@render_files_actions(listing, public_view) if listing?}
-                </Col>
-                <Col sm={4} style={textAlign:"right"}>
+                </div>
+                <div style={flex: '1 0 auto', marginBottom:'15px', textAlign: 'right'}>
                     {if not public_view
                         <ProjectFilesButtons
                             show_hidden  = {@props.show_hidden ? false}
@@ -2516,9 +2518,15 @@ exports.ProjectFiles = rclass ({name}) ->
                             show_library = {@props.show_library}
                         />
                     }
-                </Col>
-                {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
-            </Row>
+                </div>
+            </div>
+
+            {if @props.checked_files.size > 0 and @props.file_action?
+                <Row>
+                    {@render_files_action_box(file_map, public_view)}
+                </Row>
+            }
+
             {@render_new() if @props.show_new}
             {@render_library() if @props.show_library}
             {### Only show the access error if there is not another error. ###}

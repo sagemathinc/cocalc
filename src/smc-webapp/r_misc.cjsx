@@ -1785,6 +1785,12 @@ exports.HiddenXS = rclass
             {@props.children}
         </span>
 
+exports.HiddenSM = rclass
+    render: ->
+        <span className={'hidden-sm'}>
+            {@props.children}
+        </span>
+
 # VisibleMDLG = visible on medium or large devices (anything with width > 992px)
 exports.VisibleMDLG = VisibleMDLG = rclass
     render: ->

@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
@@ -440,18 +440,28 @@ exports.ProjectNew = rclass ({name}) ->
         project_id : rtypes.string
         name : rtypes.string
 
+    show_files_tab: ->
+        pa = redux.getProjectActions(@props.project_id)
+        pa.set_active_tab("files")
+
     render: ->
-        <div style={padding:'15px'}>
-            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
-            <hr />
-            <Row>
-                <Col sm={3}>
-                    <h4><Icon name='book' /> Library</h4>
-                </Col>
-                <Col sm={9}>
-                    <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
-                </Col>
-            </Row>
-            <hr />
-            <FileUpload project_id={@props.project_id} name={@props.name} />
-        </div>
+        style =
+            textAlign: 'center'
+            padding: '3rem'
+
+        <Row>
+            <Col xs={6} xsOffset={3} style={style}>
+                <Alert bsStyle={"info"}>
+                    Creating files, the library and upload moved to the{' '}
+                    <Button onClick={=>@show_files_tab()}>
+                        Files panel
+                    </Button>.
+                    <br/>
+                    <img
+                        src={"https://storage.googleapis.com/cocalc-extra/cc-files-new-library-upload-arrow.png"}
+                        style={{width: "100%", marginTop: "3rem"}}
+                    />
+                </Alert>
+            </Col>
+        </Row>
+
