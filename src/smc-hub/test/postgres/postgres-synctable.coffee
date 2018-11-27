@@ -76,6 +76,7 @@ describe 'test storage_server synctable -- ', ->
 
 
 describe 'test accounts synctable', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
