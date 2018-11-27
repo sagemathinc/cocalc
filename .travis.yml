@@ -1,13 +1,23 @@
 # CoCalc Travis-CI Configuration File
 sudo: required
-dist: trusty
+dist: xenial
 
-language: python
-python:
-  - '2.7'
+services:
+  - postgresql
+
+language: "python"
+
+node_js:
+  - "8"
 
 addons:
-  rethinkdb: '2.3.4'
+  postgresql: "10"
+  apt:
+    update: true
+    packages:
+      - "python-pip"
+      - "python3-pip"
+      - "python3-pytest"
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
@@ -17,53 +27,40 @@ env:
     #- MODE=sagews
     #- MODE=server
 
+before_install: []
+
 # installation and setup
 before_script:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y python-pip python-yaml
-  - source /etc/lsb-release
-  - rethinkdb --version
-  - pip -V
-  - python -V
-  - nvm install v5.11
-  - node --version
-  - sudo pip install pytest
-  - pytest --version
+  - "source /etc/lsb-release"
+  - "pip -V"
+  - "pip3 -V"
+  - "python -V"
+  - "nvm install v5.11"
+  - "node --version"
+  - "pytest --version"
 
 # the setup & compilation of SMC
 install:
-  - cd smc/src
-  - source smc-env
-  - npm install
-  - npm run make
-  - cd smc_webapp
-  - npm install
-  - cd ../smc-util
-  - npm install
-  - cd ../smc_pyutil
-  - sudo pip install --upgrade ./
-  - cd ../smc_sagews
-  - sudo pip install --upgrade ./
+  - "cd src"
+  - "source smc-env"
+  - "npm run make"
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-  - if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi 
-  - if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi
-  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
-  - if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi
+  - 'if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi'
+  - 'if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi'
+  - 'if [[ $MODE = "server" ]]; then npm run coveralls; fi'
+  - 'if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi'
 
 # send coverage report over to https://coveralls.io
 #after_success:
 #  - if [[ $MODE = "server" ]]; then sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'; fi
 
 notifications:
-  slack:
-    rooms:
-      - sagemath:imLn6eVwpZSOBCWBIKu97HXx#dev
   email:
     recipients:
-      - hsy@sagemath.com
+      - "hsy@sagemath.com"
     on_success: change
     on_failure: change
