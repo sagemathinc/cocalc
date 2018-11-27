@@ -356,7 +356,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         'created_by    :: INET'      : opts.created_by
                         'password_hash :: CHAR(173)' : opts.password_hash
                         'email_address :: TEXT'      : opts.email_address
-                        'tracking_info :: JSONB'     : { usage_intent: opts.usage_intent }
+                        'tracking_info :: JSONB'     : { sign_up_usage_intent: opts.usage_intent }
                     cb : cb
             (cb) =>
                 if opts.passport_strategy?
