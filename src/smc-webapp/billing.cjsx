@@ -1016,7 +1016,7 @@ ConfirmPaymentMethod = rclass
 
     render: ->
         if not @props.customer
-            return <AddPaymentMethod redux={redux} on_close={@props.on_close} />
+            return <AddPaymentMethod redux={redux} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
