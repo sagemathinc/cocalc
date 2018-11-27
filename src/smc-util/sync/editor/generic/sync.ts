@@ -7,6 +7,8 @@ type Patch = any;
 
 import { Map } from "immutable";
 import { once } from "../../async-utils";
+import { reuseInFlight } from "async-await-utils/hof";
+
 import { filename_extension } from "../../misc2";
 
 const { Evaluator } = require("../../syncstring_evaluator");
@@ -55,6 +57,9 @@ class SyncDoc extends EventEmitter {
   private cursors_table: SyncTable;
   private throttled_set_cursor_locs: Function;
 
+  private last: Document;
+  private doc: Document;
+
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: Patch } = {};
 
@@ -84,6 +89,7 @@ class SyncDoc extends EventEmitter {
       }
     }
 
+    this.save = reuseInFlight(this.save.bind(this));
     this.setMaxListeners(100);
     this.init();
   }
@@ -120,7 +126,7 @@ class SyncDoc extends EventEmitter {
     // Initialize throttled cursors functions
     function set_cursor_locs(locs, side_effect: boolean): void {
       if (
-        this.state === 'closed' ||
+        this.state === "closed" ||
         this.last_user_change == null ||
         new Date() - this.last_user_change >= 1000 * 5 * 60
       ) {
@@ -212,7 +218,7 @@ class SyncDoc extends EventEmitter {
         "value must be a document object with apply_patch, etc., methods"
       );
     }
-    this._doc = value;
+    this.doc = value;
   }
 
   // Reconnect all the syncstring and patches tables, which
@@ -228,17 +234,17 @@ class SyncDoc extends EventEmitter {
 
   // Return underlying document, or undefined if document hasn't been set yet.
   get_doc() {
-    return this._doc;
+    return this.doc;
   }
 
   // Set this doc from its string representation.
   from_str(value) {
-    this._doc = this._from_str(value);
+    this.doc = this._from_str(value);
   }
 
   // Return string representation of this doc, or undefined if the doc hasn't been set yet.
   to_str() {
-    return __guardMethod__(this._doc, "to_str", o => o.to_str());
+    return __guardMethod__(this.doc, "to_str", o => o.to_str());
   }
 
   // Used for internal debug logging
@@ -290,7 +296,7 @@ class SyncDoc extends EventEmitter {
     if (state.pointer === state.my_times.length) {
       // pointing at live state (e.g., happens on entering undo mode)
       const value = this.version(); // last saved version
-      const live = this._doc;
+      const live = this.doc;
       if (value == null) {
         // may be undefined if everything not fully loaded or being reconnected -- in this case, just skip
         // doing the undo, which would be dangerous, e.g., value.make_patch(live) is not going to work.
@@ -467,7 +473,7 @@ class SyncDoc extends EventEmitter {
           path: this._path,
           deleted: this._deleted,
           last_active: misc.server_time(),
-          doctype: misc.to_json(this._doctype)
+          doctype: misc.to_json(this.doctype)
         }
       }, // important to set here, since this is when syncstring is often first created
       cb
@@ -531,10 +537,10 @@ class SyncDoc extends EventEmitter {
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
   close() {
-    if (this.state === 'closed') {
+    if (this.state === "closed") {
       return;
     }
-    this.set_state('close');
+    this.set_state("close");
     this.emit("close");
 
     // must be after this.emit('close') above.
@@ -699,6 +705,12 @@ class SyncDoc extends EventEmitter {
       await once(this.patches_table, "change");
     }
     this.emit("init");
+  }
+
+  public assert_is_ready(): void {
+    if (this.state !== "ready") {
+      throw Error("must be ready");
+    }
   }
 
   public async wait_until_ready(): Promise<void> {
@@ -972,7 +984,7 @@ class SyncDoc extends EventEmitter {
      NOTE: no-op if only one user or cursors not enabled
      for this doc.
   */
-  public set_cursor_locs(locs, side_effect): void {
+  public set_cursor_locs(locs, side_effect: boolean = false): void {
     if (this.state === "closed") {
       return;
     }
@@ -992,109 +1004,87 @@ class SyncDoc extends EventEmitter {
     }
   }
 
-  // returns immutable.js map from account_id to list of cursor positions, if cursors are enabled.
-  get_cursors() {
-    return this._cursor_map;
+  /* Returns immutable.js map from account_id to list
+     of cursor positions, if cursors are enabled.
+  */
+  public get_cursors(): Map<string, any[]> {
+    return this.cursor_map;
   }
 
-  // set settings map.  (no-op if not yet initialized -- thus DO NOT call until initialized...)
-  set_settings(obj) {
-    return this.syncstring_table != null
-      ? this.syncstring_table.set({
-          string_id: this._string_id,
-          settings: obj
-        })
-      : undefined;
+  /* Set settings map.  (no-op if not yet initialized
+     -- thus DO NOT call until initialized...)
+  */
+  public set_settings(obj): void {
+    this.assert_is_ready();
+    this.syncstring_table.set({
+      string_id: this.string_id,
+      settings: obj
+    });
   }
 
   // get immutable.js settings object
-  get_settings() {
-    let left;
-    return (left =
-      this.syncstring_table != null
-        ? this.syncstring_table.get_one().get("settings")
-        : undefined) != null
-      ? left
-      : immutable.Map();
+  public get_settings(): Map<string, any> {
+    this.assert_is_ready();
+    return this.syncstring_table.get_one().get("settings", Map());
   }
 
-  save_asap(cb) {
-    return this._save(cb);
+  /*
+  Save current live syncdoc to backend.  It's safe to
+  call this frequently or multiple times at once, since
+  it is wrapped in reuseInFlight in the constructor.
+
+  Function only returns when there is nothing needing
+  saving.
+
+  Save any changes we have as a new patch.
+  Returns true if there are potentially
+  unsaved changes when _save is done.
+  */
+  public async save(): Promise<void> {
+    // We just keep trying while syncdoc is ready and there
+    // are changes that have not been saved (due to this.doc
+    // changing during the while loop!).
+    while (this.state === "ready" && !this.last.is_equal(this.doc)) {
+      // TODO: put in a delay if just saved too recently?
+      //       Or maybe won't matter since not using database?
+      if (this.handle_patch_update_queue_running) {
+        // wait until the update is done
+        await once(this, "handle_patch_update_queue_done");
+        // but wait until next loop (so as to check that needed
+        // and state still ready).
+        continue;
+      }
+      // Compute new patch and send it.
+      await this.sync_remote_and_doc();
+      // Patch sent, now make a snapshot if we are due for one.
+      this.snapshot_if_necessary();
+      // Emit event since this syncstring was
+      // changed locally (or we wouldn't have had
+      // to save at all).
+      this.emit("user_change");
+    }
   }
 
-  // save any changes we have as a new patch
-  _save(cb) {
-    //dbg = this.dbg('_save'); dbg('saving changes to db')
-    if (this._closed) {
-      //dbg("string closed -- can't save")
-      if (typeof cb === "function") {
-        cb("string closed");
-      }
-      return;
-    }
-
-    if (this._last == null) {
-      //dbg("string not initialized -- can't save")
-      if (typeof cb === "function") {
-        cb("string not initialized");
-      }
-      return;
-    }
-
-    if (this._last.is_equal(this._doc)) {
-      //dbg("nothing changed so nothing to save")
-      if (typeof cb === "function") {
-        cb();
-      }
-      return;
-    }
-
-    if (this._handle_patch_update_queue_running) {
-      // wait until the update is done, then try again.
-      this.once("_handle_patch_update_queue_done", () => {
-        return this._save(cb);
-      });
-      return;
-    }
-
-    if (this._saving) {
-      // this makes it at least safe to call this._save() directly...
-      if (typeof cb === "function") {
-        cb("saving");
-      }
-      return;
-    }
-
-    this._saving = true;
-    this._sync_remote_and_doc(err => {
-      this._saving = false;
-      return typeof cb === "function" ? cb(err) : undefined;
-    });
-
-    this.snapshot_if_necessary();
-    // Emit event since this syncstring was definitely changed locally.
-    return this.emit("user_change");
-  }
-
-  _next_patch_time() {
+  private next_patch_time(): Date {
     let time = this.client.server_time();
-    const min_time = this._patch_list.newest_patch_time();
+    const min_time = this.patch_list.newest_patch_time();
     if (min_time != null && min_time >= time) {
-      time = new Date(min_time - 0 + 1);
+      time = new Date(min_time.valueOf() + 1);
     }
-    time = this._patch_list.next_available_time(
+    time = this.patch_list.next_available_time(
       time,
-      this._user_id,
-      this._users.length
+      this.user_id,
+      this.users.length
     );
     return time;
   }
 
   async undelete(): Promise<void> {
     this.assert_not_closed();
-    return this.syncstring_table.set(
-      this.syncstring_table.get_one().set("deleted", false)
-    );
+    // Version with deleted set to false:
+    const x = this.syncstring_table.get_one().set("deleted", false);
+    // Now write that as new version to table.
+    await this.syncstring_table.set(x);
   }
 
   _save_patch(time, patch, cb) {
@@ -1139,20 +1129,6 @@ class SyncDoc extends EventEmitter {
     return this._patch_list.add([
       this._process_patch(x, undefined, undefined, patch)
     ]);
-  }
-
-  // Save current live string to backend.  It's safe to call this frequently,
-  // since it will debounce itself.
-  save(cb) {
-    if (this._save_debounce == null) {
-      this._save_debounce = {};
-    }
-    misc.async_debounce({
-      f: this._save,
-      interval: this._save_interval,
-      state: this._save_debounce,
-      cb
-    });
   }
 
   // Create and store in the database a snapshot of the state
@@ -1441,7 +1417,7 @@ class SyncDoc extends EventEmitter {
         last_snapshot: this._last_snapshot,
         users: this._users,
         deleted: this._deleted,
-        doctype: misc.to_json(this._doctype)
+        doctype: misc.to_json(this.doctype)
       };
       this.syncstring_table.set(obj);
       this._settings = immutable.Map();
@@ -1747,7 +1723,7 @@ class SyncDoc extends EventEmitter {
         },
         cb => {
           // save back to database
-          return this._save(cb);
+          return this.save(cb);
         }
       ],
       err => {
@@ -1851,7 +1827,7 @@ class SyncDoc extends EventEmitter {
   // isn't loaded yet.  (TODO: faster version of this for syncdb, which avoids
   // converting to a string, which is a waste of time.)
   hash_of_live_version() {
-    const s = __guardMethod__(this._doc, "to_str", o => o.to_str());
+    const s = __guardMethod__(this.doc, "to_str", o => o.to_str());
     if (s != null) {
       return misc.hash_string(s);
     }
@@ -2133,19 +2109,19 @@ class SyncDoc extends EventEmitter {
     for (let key of changed_keys) {
       this._patch_update_queue.push(key);
     }
-    if (this._handle_patch_update_queue_running) {
+    if (this.handle_patch_update_queue_running) {
       return;
     }
-    return setTimeout(this._handle_patch_update_queue, 1);
+    return setTimeout(this.handle_patch_update_queue, 1);
   }
 
-  _handle_patch_update_queue() {
+  handle_patch_update_queue() {
     let x;
     if (this._closed || this.patches_table == null) {
       // https://github.com/sagemathinc/cocalc/issues/2829
       return;
     }
-    this._handle_patch_update_queue_running = true;
+    this.handle_patch_update_queue_running = true;
 
     // note: other code handles that this._patches_table.get(key) may not be
     // defined, e.g., when changed means "deleted"
@@ -2182,15 +2158,15 @@ class SyncDoc extends EventEmitter {
     if (this._patch_update_queue.length > 0) {
       // It is very important that this happen in the next
       // render loop to avoid the this._sync_remote_and_doc call
-      // in this._handle_patch_update_queue from causing
+      // in this.handle_patch_update_queue from causing
       // _sync_remote_and_doc to get called from within itself,
       // due to synctable changes being emited on save.
-      return setTimeout(this._handle_patch_update_queue, 1);
+      return setTimeout(this.handle_patch_update_queue, 1);
     } else {
       // OK, done and nothing in the queue
-      this._handle_patch_update_queue_running = false;
+      this.handle_patch_update_queue_running = false;
       // Notify _save to try again.
-      return this.emit("_handle_patch_update_queue_done");
+      return this.emit("handle_patch_update_queue_done");
     }
   }
 
@@ -2198,12 +2174,13 @@ class SyncDoc extends EventEmitter {
     Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
 
-    This is completely synchronous, and calls before_change_hook and after_change_hook,
-    if given, so will work with live being "isomorphic" to some editor (like codemirror).
+  Only returns once any newly created patches have
+  been sent out.
     */
-  _sync_remote_and_doc(cb) {
+  // TODO!
+  private async sync_remote_and_doc(): Promise<void> {
     // optional cb only used to know when save_patch is done
-    if (this._last == null || this._doc == null) {
+    if (this.last == null || this.doc == null) {
       if (typeof cb === "function") {
         cb();
       }
@@ -2213,17 +2190,17 @@ class SyncDoc extends EventEmitter {
       throw Error("bug - _sync_remote_and_doc can't be called twice at once");
     }
     this._sync_remote_and_doc_calling = true;
-    // ensure that our live this._doc equals what the user's editor shows in their browser (say)
+    // ensure that our live this.doc equals what the user's editor shows in their browser (say)
     if (typeof this._before_change_hook === "function") {
       this._before_change_hook();
     }
-    if (!this._last.is_equal(this._doc)) {
+    if (!this.last.is_equal(this.doc)) {
       // compute transformation from _last to _doc
-      const patch = this._last.make_patch(this._doc); // must be nontrivial
+      const patch = this.last.make_patch(this.doc); // must be nontrivial
       // ... and save that to patch table since there is a nontrivial change
       const time = this._next_patch_time();
       this._save_patch(time, patch, cb);
-      this._last = this._doc;
+      this.last = this.doc;
     } else {
       if (typeof cb === "function") {
         cb();
@@ -2231,9 +2208,9 @@ class SyncDoc extends EventEmitter {
     }
 
     const new_remote = this._patch_list.value();
-    if (!this._doc.is_equal(new_remote)) {
+    if (!this.doc.is_equal(new_remote)) {
       // if any possibility that document changed, set to new version
-      this._last = this._doc = new_remote;
+      this.last = this.doc = new_remote;
       if (typeof this._after_change_hook === "function") {
         this._after_change_hook();
       }
