@@ -220,6 +220,9 @@ schema.accounts =
         api_key :
             type : 'string'
             desc : "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62)."
+        tracking_info :
+            type : 'map'
+            desc : "Contains information about this user for the purpose of behavior tracking"
     pg_indexes : [
         '(lower(first_name) text_pattern_ops)',
         '(lower(last_name)  text_pattern_ops)',
@@ -308,6 +311,7 @@ schema.accounts =
                 font_size       : true
                 profile         : true
                 ssh_keys        : true
+                tracking_info   : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # Hook to truncate some text fields to at most 254 characters, to avoid
                 # further trouble down the line.
