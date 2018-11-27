@@ -206,12 +206,12 @@ export class SyncTable extends EventEmitter {
     'shallow': shallow merges, replacing keys by corresponding values
     'none'   : do no merging at all -- just replace record completely
   Raises an async exception if something goes wrong.
-  Returns the updated value otherwise.
+  Returns promise that resolves to the updated value otherwise.
   */
   public async set(
     changes: any,
     merge: "deep" | "shallow" | "none" = "deep"
-  ): Promise<void> {
+  ): Promise<any> {
     this.assert_not_closed();
 
     if (!Map.isMap(changes)) {

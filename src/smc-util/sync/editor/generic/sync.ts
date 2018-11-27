@@ -3,7 +3,26 @@
 
 */
 
+/*
+If the client becomes disconnected from the backend for more than this long
+then---on reconnect---do extra work to ensure that all snapshots are up to
+date (in case snapshots were made when we were offline), and mark the sent
+field of patches that weren't saved.
+*/
+const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
+
 type Patch = any;
+
+type FileWatch = any;
+
+interface ProcessedPatch {
+  time: Date;
+  user_id: number;
+  patch: Patch;
+  sent?: Date;
+  prev?: Date;
+  snapshot?: string;
+}
 
 import { Map } from "immutable";
 import { once } from "../../async-utils";
@@ -33,7 +52,8 @@ type State = "init" | "ready" | "closed";
 
 class SyncDoc extends EventEmitter {
   private project_id: string; // project_id that contains the doc
-  private path: required; // path of the file corresponding to the doc
+  private path: string; // path of the file corresponding to the doc
+
   private client: Client;
   private from_str: (string) => Document; // creates a doc from a string.
   private string_id: string;
@@ -60,8 +80,22 @@ class SyncDoc extends EventEmitter {
   private last: Document;
   private doc: Document;
 
+  private last_snapshot: Date | undefined;
+  private snapshot_interval: number | undefined;
+
+  private deleted: boolean | undefined;
+  private users: string[] | undefined;
+
+  private settings: Map<string, any> = Map();
+
+  private syncstring_save_state: string = "";
+  private load_full_history_done: boolean = false;
+
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: Patch } = {};
+
+  private watch_path?: string;
+  private file_watcher?: FileWatcher;
 
   constructor(opts: SyncOpts) {
     super();
@@ -164,7 +198,7 @@ class SyncDoc extends EventEmitter {
       return;
     }
     let action;
-    const is_chat = misc.filename_extension(this._path) === "sage-chat";
+    const is_chat = misc.filename_extension(this.path) === "sage-chat";
     if (is_chat) {
       action = "chat";
     } else {
@@ -187,8 +221,8 @@ class SyncDoc extends EventEmitter {
       }
       this._last_user_change = new Date();
       return this.client.mark_file({
-        project_id: this._project_id,
-        path: this._path,
+        project_id: this.project_id,
+        path: this.path,
         action,
         ttl: opts.file_use_interval
       });
@@ -242,27 +276,29 @@ class SyncDoc extends EventEmitter {
     this.doc = this._from_str(value);
   }
 
-  // Return string representation of this doc, or undefined if the doc hasn't been set yet.
-  to_str() {
-    return __guardMethod__(this.doc, "to_str", o => o.to_str());
+  // Return string representation of this doc, or exception
+  // if not yet ready.
+  public to_str(): string {
+    this.assert_is_ready();
+    return this.doc.to_str();
   }
 
   // Used for internal debug logging
-  dbg(f) {
-    return this.client.dbg(`SyncString(path='${this._path}').${f}:`);
+  dbg(f: string): Function {
+    return this.client.dbg(`SyncString(path='${this.path}').${f}:`);
   }
 
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will return undefined
   version(time) {
-    return this._patch_list != null ? this._patch_list.value(time) : undefined;
+    return this.patch_list != null ? this.patch_list.value(time) : undefined;
   }
 
   // Compute version of document if the patches at the given times were simply not included.
   // This is a building block that is used for implementing undo functionality for client editors.
   version_without(times) {
-    return this._patch_list.value(undefined, undefined, times);
+    return this.patch_list.value(undefined, undefined, times);
   }
 
   revert(version) {
@@ -390,7 +426,7 @@ class SyncDoc extends EventEmitter {
       !LOCAL_HUB_AUTOSAVE_S ||
       !this.client.is_project() ||
       this._project_autosave != null ||
-      misc.endswith(this._path, ".sagews")
+      misc.endswith(this.path, ".sagews")
     ) {
       return;
     }
@@ -420,13 +456,13 @@ class SyncDoc extends EventEmitter {
   // sent is approximately the timestamp time.  Only not undefined
   // when there is a significant difference.
   time_sent(time) {
-    return this._patch_list.time_sent(time);
+    return this.patch_list.time_sent(time);
   }
 
   // integer index of user who made the edit at given
   // point in time.
   user_id(time) {
-    return this._patch_list.user_id(time);
+    return this.patch_list.user_id(time);
   }
 
   // Indicate active interest in syncstring; only updates time
@@ -468,10 +504,10 @@ class SyncDoc extends EventEmitter {
     return this.client.query({
       query: {
         syncstrings: {
-          string_id: this._string_id,
-          project_id: this._project_id,
-          path: this._path,
-          deleted: this._deleted,
+          string_id: this.string_id,
+          project_id: this.project_id,
+          path: this.path,
+          deleted: this.deleted,
           last_active: misc.server_time(),
           doctype: misc.to_json(this.doctype)
         }
@@ -522,7 +558,7 @@ class SyncDoc extends EventEmitter {
   // case the full history has been loaded.  The list of timestamps
   // is sorted from oldest to newest.
   all_versions() {
-    return this._patch_list != null ? this._patch_list.versions() : undefined;
+    return this.patch_list != null ? this.patch_list.versions() : undefined;
   }
 
   last_changed() {
@@ -756,7 +792,7 @@ class SyncDoc extends EventEmitter {
     const queries = [
       {
         patches_delete: {
-          id: [this._string_id],
+          id: [this.string_id],
           dummy: null
         }
       },
@@ -807,7 +843,7 @@ class SyncDoc extends EventEmitter {
         if (last_changed != null) {
           dbg("edited before, so stat file");
           const stats = await callback2(this.client.path_stat, {
-            path: this._path
+            path: this.path
           });
           if (stats.ctime > last_changed) {
             dbg("disk file changed more recently than edits, so loading");
@@ -909,7 +945,7 @@ class SyncDoc extends EventEmitter {
             * We fix the collision by finding the nearest time after time that
             * is available, and reinserting our patch at that new time.
             this._my_patches[t] = 'killed'
-            new_time = this._patch_list.next_available_time(new Date(t), this._user_id, this._users.length)
+            new_time = this.patch_list.next_available_time(new Date(t), this._user_id, this._users.length)
             this._save_patch(new_time, JSON.parse(obj.patch))
     */
 
@@ -1087,124 +1123,128 @@ class SyncDoc extends EventEmitter {
     await this.syncstring_table.set(x);
   }
 
-  _save_patch(time, patch, cb) {
-    // cb called when save to the backend done
-    if (this._closed) {
-      if (typeof cb === "function") {
-        cb("closed");
-      }
-      return;
-    }
+  // Promise resolves when save to the backend done
+  private async save_patch(time: Date, patch: Patch): Promise<void> {
+    this.assert_not_closed();
     const obj = {
       // version for database
-      string_id: this._string_id,
+      string_id: this.string_id,
       time,
       patch: JSON.stringify(patch),
-      user_id: this._user_id
+      user_id: this.user_id
     };
 
-    this._my_patches[time - 0] = obj;
+    this.my_patches[time.valueOf()] = obj;
 
-    if (this._patch_format != null) {
-      obj.format = this._patch_format;
+    if (this.patch_format != null) {
+      obj.format = this.patch_format;
     }
-    if (this._deleted) {
+    if (this.deleted) {
       // file was deleted but now change is being made, so undelete it.
-      this._undelete();
+      // TODO: maybe change to explicit user request!
+      await this.undelete();
     }
-    if (this._save_patch_prev != null) {
+    if (this.save_patch_prev != null) {
       // timestamp of last saved patch during this session
-      obj.prev = this._save_patch_prev;
+      obj.prev = this.save_patch_prev;
     }
-    this._save_patch_prev = time;
-    //console.log("_save_patch: #{misc.to_json(obj)}")
+    this.save_patch_prev = time;
 
-    // If in undo mode put the just-created patch in our without timestamp list, so it won't be included when doing undo/redo.
-    if (this._undo_state != null) {
-      this._undo_state.without.unshift(time);
+    // If in undo mode put the just-created patch in our
+    // without timestamp list, so it won't be included
+    // when doing undo/redo.
+    if (this.undo_state != null) {
+      this.undo_state.without.unshift(time);
     }
 
-    //console.log 'saving patch with time ', time - 0
-    const x = this.patches_table.set(obj, "none", cb);
-    return this._patch_list.add([
-      this._process_patch(x, undefined, undefined, patch)
-    ]);
+    // TODO: before conversion this patch_list add happened
+    // before the promise resolved...
+    //console.log 'saving patch with time ', time.valueOf()
+    const x = await this.patches_table.set(obj, "none");
+    this.patch_list.add([this.process_patch(x, undefined, undefined, patch)]);
   }
 
-  // Create and store in the database a snapshot of the state
-  // of the string at the given point in time.  This should
-  // be the time of an existing patch.
-  snapshot(time, force = false) {
-    if (!misc.is_date(time)) {
-      throw Error("time must be a date");
-    }
-    const x = this._patch_list.patch(time);
+  /* Create and store in the database a snapshot of the state
+     of the string at the given point in time.  This should
+     be the time of an existing patch.
+  */
+  private async snapshot(time: Date, force: boolean = false): Promise<void> {
+    const x = this.patch_list.patch(time);
     if (x == null) {
-      console.warn(`no patch at time ${time}`); // should never happen...
-      return;
+      throw Error(`no patch at time ${time}`);
     }
     if (x.snapshot != null && !force) {
-      // there is already a snapshot at this point in time, so nothing further to do.
+      // there is already a snapshot at this point in time,
+      // so nothing further to do.
       return;
     }
+
+    const snapshot: string = this.patch_list.value(time, force).to_str();
     // save the snapshot itself in the patches table.
     const obj = {
-      string_id: this._string_id,
+      string_id: this.string_id,
       time,
       patch: JSON.stringify(x.patch),
-      snapshot: this._patch_list.value(time, force).to_str(),
+      snapshot,
       user_id: x.user_id
     };
     if (force) {
-      // CRITICAL: We are sending the patch/snapshot later, but it was valid.
-      // It's important to make this clear or _handle_offline will
-      // recompute this snapshot and try to update sent on it again,
-      // which leads to serious problems!
+      /* CRITICAL: We are sending the patch/snapshot later, but
+         it was valid.   It's important to make this clear or
+         this.handle_offline will recompute this snapshot and
+         try to update sent on it again, which leads to serious
+         problems!
+      */
       obj.sent = time;
     }
-    x.snapshot = obj.snapshot; // also set snapshot in the this._patch_list, which helps with optimization
-    this.patches_table.set(obj, "none", err => {
-      if (!err) {
-        // CRITICAL: Only save the snapshot time in the database after the set in the patches table was confirmed as a
-        // success -- otherwise if the user refreshes their browser (or visits later) they lose all their early work!
-        this.syncstring_table.set({
-          string_id: this._string_id,
-          project_id: this._project_id,
-          path: this._path,
-          last_snapshot: time
-        });
-        return (this._last_snapshot = time);
-      } else {
-        return console.warn(`failed to save snapshot -- ${err}`);
-      }
+    // also set snapshot in the this.patch_list, which
+    // helps with optimization
+    x.snapshot = obj.snapshot;
+    await this.patches_table.set(obj, "none");
+    /* CRITICAL: Only save the snapshot time in the database
+       after the set in the patches table was confirmed as a
+       success -- otherwise if the user refreshes their
+       browser (or visits later) they lose all their
+       early work!
+    */
+    await this.syncstring_table.set({
+      string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
+      last_snapshot: time
     });
-    return time;
+    this.last_snapshot = time;
   }
 
   // Have a snapshot every this._snapshot_interval patches, except
   // for the very last interval.
-  snapshot_if_necessary() {
-    const time = this._patch_list.time_of_unmade_periodic_snapshot(
-      this._snapshot_interval
+  private async snapshot_if_necessary(): Promise<void> {
+    const time = this.patch_list.time_of_unmade_periodic_snapshot(
+      this.snapshot_interval
     );
     if (time != null) {
-      return this.snapshot(time);
+      await this.snapshot(time);
     }
   }
 
-  // x - patch object
-  // time0, time1: optional range of times; return undefined if patch not in this range
-  // patch -- if given will be used as an actual patch instead of x.patch, which is a JSON string.
-  _process_patch(x, time0, time1, patch) {
-    if (x == null) {
-      // we allow for x itself to not be defined since that simplifies other code
-      return;
-    }
-    let time = x.get("time");
-    if (!misc.is_date(time)) {
+  /* x - patch object
+  time0, time1: optional range of times
+  return undefined if patch not in this range
+  patch -- if given will be used as an actual patch
+           instead of x.patch, which is a JSON string.
+  */
+  private process_patch(
+    x: Map<string, any>,
+    time0?: Date,
+    time1?: Date,
+    patch?: any
+  ): ProcessedPatch | undefined {
+    let t = x.get("time");
+    if (!misc.is_date(t)) {
+      // who knows what is in the database...
       try {
-        time = misc.ISO_to_Date(time);
-        if (isNaN(time)) {
+        t = misc.ISO_to_Date(t);
+        if (isNaN(t)) {
           // ignore patches with bad times
           return;
         }
@@ -1213,25 +1253,31 @@ class SyncDoc extends EventEmitter {
         return;
       }
     }
-    const user_id = x.get("user_id");
-    const sent = x.get("sent");
-    const prev = x.get("prev");
-    if (time0 != null && time < time0) {
+    const time: Date = t;
+    if ((time0 != null && time < time0) || (time1 != null && time > time1)) {
+      // out of range
       return;
     }
-    if (time1 != null && time > time1) {
-      return;
-    }
+
+    const user_id: number = x.get("user_id");
+    const sent: Date = x.get("sent");
+    const prev: Date | undefined = x.get("prev");
     if (patch == null) {
-      // Do **NOT** use misc.from_json, since we definitely do not want to
-      // unpack ISO timestamps as Date, since patch just contains the raw
-      // patches from user editing.  This was done for a while, which
-      // led to horrific bugs in some edge cases...
-      // See https://github.com/sagemathinc/cocalc/issues/1771
-      let left;
-      patch = JSON.parse((left = x.get("patch")) != null ? left : "[]");
+      /* Do **NOT** use misc.from_json, since we definitely
+         do not want to unpack ISO timestamps as Date,
+         since patch just contains the raw patches from
+         user editing.  This was done for a while, which
+         led to horrific bugs in some edge cases...
+         See https://github.com/sagemathinc/cocalc/issues/1771
+      */
+      if (x.has("patch")) {
+        patch = JSON.parse(x.get("patch"));
+      } else {
+        patch = [];
+      }
     }
-    const snapshot = x.get("snapshot");
+
+    const snapshot: string = x.get("snapshot");
     const obj = {
       time,
       user_id,
@@ -1249,16 +1295,22 @@ class SyncDoc extends EventEmitter {
     return obj;
   }
 
-  // return all patches with time such that time0 <= time <= time1;
-  // if time0 undefined then sets equal to time of last_snapshot; if time1 undefined treated as +oo
-  _get_patches(time0, time1) {
+  /* Return all patches with time such that
+            time0 <= time <= time1;
+     If time0 undefined then sets time0 equal to time of last_snapshot.
+     If time1 undefined treated as +oo.
+  */
+  private get_patches(time0?: Date, time1?: Date): ProcessedPatch[] {
     if (time0 == null) {
-      time0 = this._last_snapshot;
+      time0 = this.last_snapshot;
     }
-    const m = this.patches_table.get(); // immutable.js map with keys the string that is the JSON version of the primary key [string_id, timestamp, user_number].
-    const v = [];
+    // m below is an immutable.js map with keys the string that
+    // is the JSON version of the primary key
+    // [string_id, timestamp, user_number].
+    const m: Map<string, any> = this.patches_table.get();
+    const v: ProcessedPatch[] = [];
     m.map((x, id) => {
-      const p = this._process_patch(x, time0, time1);
+      const p = this.process_patch(x, time0, time1);
       if (p != null) {
         return v.push(p);
       }
@@ -1267,81 +1319,72 @@ class SyncDoc extends EventEmitter {
     return v;
   }
 
-  has_full_history() {
-    return !this._last_snapshot || this._load_full_history_done;
+  public has_full_history(): boolean {
+    return !this.last_snapshot || this.load_full_history_done;
   }
 
-  load_full_history(cb) {
+  public async load_full_history(): Promise<void> {
     //dbg = this.dbg("load_full_history")
     //dbg()
     if (this.has_full_history()) {
       //dbg("nothing to do, since complete history definitely already loaded")
-      if (typeof cb === "function") {
-        cb();
-      }
       return;
     }
     const query = this.patch_table_query();
-    return this.client.query({
-      query: { patches: [query] },
-      cb: (err, result) => {
-        if (err) {
-          return typeof cb === "function" ? cb(err) : undefined;
-        } else {
-          const v = [];
-          // _process_patch assumes immutable.js objects
-          immutable.fromJS(result.query.patches).forEach(x => {
-            const p = this._process_patch(x, 0, this._last_snapshot);
-            if (p != null) {
-              return v.push(p);
-            }
-          });
-          this._patch_list.add(v);
-          this._load_full_history_done = true;
-          return typeof cb === "function" ? cb() : undefined;
-        }
+    const result = await callback2(this.client.query, {
+      query: { patches: [query] }
+    });
+    const v: ProcessedPatch[] = [];
+    // process_patch assumes immutable.js objects
+    immutable.fromJS(result.query.patches).forEach(x => {
+      const p = this.process_patch(x, 0, this.last_snapshot);
+      if (p != null) {
+        v.push(p);
       }
     });
+    this.patch_list.add(v);
+    this.load_full_history_done = true;
+    return;
   }
 
-  show_history(opts) {
-    return this._patch_list.show_history(opts);
+  public show_history(opts): void {
+    this.patch_list.show_history(opts);
   }
 
-  get_path() {
-    return this._path;
+  public get_path(): string {
+    return this.path;
   }
 
-  get_project_id() {
-    return this._project_id;
+  public get_project_id(): string {
+    return this.project_id;
   }
 
-  set_snapshot_interval(n) {
-    this.syncstring_table.set(
+  private async set_snapshot_interval(n: number): Promise<void> {
+    await this.syncstring_table.set(
       this.syncstring_table.get_one().set("snapshot_interval", n)
     );
   }
 
-  // Check if any patches that just got confirmed as saved are relatively old; if so,
-  // we mark them as such and also possibly recompute snapshots.
-  _handle_offline(data) {
-    //dbg = this.dbg("_handle_offline")
+  /* Check if any patches that just got confirmed as saved
+     are relatively old; if so, we mark them as such and
+     also possibly recompute snapshots.
+  */
+  private async handle_offline(data): Promise<void> {
+    //dbg = this.dbg("handle_offline")
     //dbg("data='#{misc.to_json(data)}'")
-    if (this._closed) {
-      return;
-    }
-    const now = misc.server_time();
-    let oldest = undefined;
+    this.assert_not_closed();
+    const now: Date = misc.server_time();
+    let oldest: Date | undefined = undefined;
     for (let obj of data) {
       if (obj.sent) {
         // CRITICAL: ignore anything already processed! (otherwise, infinite loop)
         continue;
       }
-      if (now - obj.time >= 1000 * OFFLINE_THRESH_S) {
+      if (now.valueOf() - obj.time.valueOf() >= 1000 * OFFLINE_THRESH_S) {
         // patch is "old" -- mark it as likely being sent as a result of being
         // offline, so clients could potentially discard it.
         obj.sent = now;
-        this.patches_table.set(obj);
+        await this.patches_table.set(obj);
         if (oldest == null || obj.time < oldest) {
           oldest = obj.time;
         }
@@ -1349,311 +1392,254 @@ class SyncDoc extends EventEmitter {
     }
     if (oldest) {
       //dbg("oldest=#{oldest}, so check whether any snapshots need to be recomputed")
-      return (() => {
-        const result = [];
-        for (let snapshot_time of this._patch_list.snapshot_times()) {
-          if (snapshot_time - oldest >= 0) {
-            //console.log("recomputing snapshot #{snapshot_time}")
-            result.push(this.snapshot(snapshot_time, true));
-          } else {
-            result.push(undefined);
-          }
+      for (let snapshot_time of this.patch_list.snapshot_times()) {
+        if (snapshot_time >= oldest) {
+          //console.log("recomputing snapshot #{snapshot_time}")
+          await this.snapshot(snapshot_time, true);
         }
-        return result;
-      })();
+      }
     }
   }
 
-  _handle_syncstring_save_state(state, time) {
-    // This is used to make it possible to emit a
-    // 'save-to-disk' event, whenever the state changes
-    // to indicate a save completed.
+  private handle_syncstring_save_state(state: string, time: Date): void {
+    /* This is used to make it possible to emit a
+       'save-to-disk' event, whenever the state changes
+       to indicate a save completed.
 
-    // NOTE: it is intentional that this._syncstring_save_state is not defined
-    // the first tie this function is called, so that save-to-disk
-    // with last save time gets emitted on initial load (which, e.g., triggers
-    // latex compilation properly in case of a .tex file).
-    if (state === "done" && this._syncstring_save_state !== "done") {
+       NOTE: it is intentional that this._syncstring_save_state is not defined
+       the first tie this function is called, so that save-to-disk
+       with last save time gets emitted on initial load (which, e.g., triggers
+       latex compilation properly in case of a .tex file).
+    */
+    if (state === "done" && this.syncstring_save_state !== "done") {
       this.emit("save-to-disk", time);
     }
-    return (this._syncstring_save_state = state);
+    this.syncstring_save_state = state;
   }
 
-  _handle_syncstring_update() {
-    //dbg = this.dbg("_handle_syncstring_update")
+  private async handle_syncstring_update(): Promise<void> {
+    //dbg = this.dbg("handle_syncstring_update")
     //dbg()
-    if (this.syncstring_table == null) {
-      // not initialized; nothing to do
-      //dbg("nothing to do")
-      return;
-    }
+    await this.wait_until_ready();
 
     const data = this.syncstring_table.get_one();
     const x = data != null ? data.toJS() : undefined;
 
-    this._handle_syncstring_save_state(
-      __guard__(x != null ? x.save : undefined, x1 => x1.state),
-      __guard__(x != null ? x.save : undefined, x2 => x2.time)
-    );
+    if (x != null && x.save != null) {
+      this.handle_syncstring_save_state(x.save.state, x.save.time);
+    }
 
     //dbg(JSON.stringify(x))
-    // TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
-    const client_id = this.client.client_id();
-    // Below " not x.snapshot? or not x.users?" is because the initial touch sets
-    // only string_id and last_active, and nothing else.
-    if (x == null || x.users == null) {
-      // Brand new document
-      this.emit("load-time-estimate", { type: "new", time: 1 });
-      this._last_snapshot = undefined;
-      this._snapshot_interval =
-        schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval;
-      // brand new syncstring
-      this._user_id = 0;
-      this._users = [client_id];
-      const obj = {
-        string_id: this._string_id,
-        project_id: this._project_id,
-        path: this._path,
-        last_snapshot: this._last_snapshot,
-        users: this._users,
-        deleted: this._deleted,
-        doctype: misc.to_json(this.doctype)
-      };
-      this.syncstring_table.set(obj);
-      this._settings = immutable.Map();
-      this.emit("metadata-change");
-      return this.emit("settings-change", this._settings);
-    } else {
-      // Existing document.
-      if (x.archived) {
-        this.emit("load-time-estimate", { type: "archived", time: 8 });
+    try {
+      // Below "x.users == null" works because the initial touch sets
+      // only string_id and last_active, and nothing else.
+      if (x == null || x.users == null) {
+        await this.handle_syncstring_update_new_document(x);
       } else {
-        this.emit("load-time-estimate", { type: "ready", time: 2 });
+        await this.handle_syncstring_update_existing_document(x);
       }
-
-      // TODO: handle doctype change here (?)
-      this._last_snapshot = x.last_snapshot;
-      this._snapshot_interval = x.snapshot_interval;
-      this._users = x.users;
-      this._project_id = x.project_id;
-      this._path = x.path;
-
-      const settings = data.get("settings", immutable.Map());
-      if (settings !== this._settings) {
-        this.emit("settings-change", settings);
-        this._settings = settings;
-      }
-
-      if (this._deleted != null && x.deleted && !this._deleted) {
-        // change to deleted
-        this.emit("deleted");
-      }
-      this._deleted = x.deleted;
-
-      // Ensure that this client is in the list of clients
-      this._user_id =
-        this._users != null ? this._users.indexOf(client_id) : undefined;
-      if (this._user_id === -1) {
-        this._user_id = this._users.length;
-        this._users.push(client_id);
-        this.syncstring_table.set({
-          string_id: this._string_id,
-          project_id: this._project_id,
-          path: this._path,
-          users: this._users
-        });
-      }
-
-      if (!this.client.is_project()) {
-        this.emit("metadata-change");
-        return;
-      }
-
-      //dbg = this.dbg("_handle_syncstring_update('#{this._path}')")
-      //dbg("project only handling")
-      // Only done for project:
-      return async.series(
-        [
-          cb => {
-            if (this._patch_list != null) {
-              //dbg("patch list already loaded")
-              return cb();
-            } else {
-              //dbg("wait for patch list to load...")
-              return this.once("connected", () => {
-                //dbg("patch list loaded")
-                return cb();
-              });
-            }
-          },
-          cb => {
-            // NOTE: very important to completely do this._update_watch_path
-            // before this._save_to_disk below.
-            // If client is a project and path isn't being properly watched, make it so.
-            if (x.project_id != null && this._watch_path !== x.path) {
-              //dbg("watch path")
-              return this._update_watch_path(x.path, cb);
-            } else {
-              return cb();
-            }
-          },
-          cb => {
-            if ((x.save != null ? x.save.state : undefined) === "requested") {
-              //dbg("save to disk")
-              return this._save_to_disk(cb);
-            } else {
-              return cb();
-            }
-          }
-        ],
-        err => {
-          if (err) {
-            this.dbg("_handle_syncstring_update")(
-              `POSSIBLY UNHANDLED ERROR -- ${err}`
-            );
-          }
-          return this.emit("metadata-change");
-        }
-      );
+    } catch (err) {
+      this.dbg("handle_syncstring_update")(`UNHANDLED ERROR -- ${err}`);
     }
   }
 
-  _update_watch_path(path, cb) {
-    const dbg = this.client.dbg(`_update_watch_path('${path}')`);
-    if (this._file_watcher != null) {
+  private async handle_syncstring_update_new_document(x: any): Promise<void> {
+    // Brand new document
+    this.emit("load-time-estimate", { type: "new", time: 1 });
+    this.last_snapshot = undefined;
+    this.snapshot_interval =
+      schema.SCHEMA.syncstrings.user_query.get.fields.snapshot_interval;
+
+    // Brand new syncstring
+    // TODO: worry about race condition with everybody making themselves
+    // have user_id 0... ?
+    this.user_id = 0;
+    this.users = [this.client.client_id()];
+    const obj = {
+      string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
+      last_snapshot: this.last_snapshot,
+      users: this.users,
+      deleted: this.deleted,
+      doctype: misc.to_json(this.doctype)
+    };
+    await this.syncstring_table.set(obj);
+    this.settings = Map();
+    this.emit("metadata-change");
+    this.emit("settings-change", this.settings);
+  }
+
+  private async handle_syncstring_update_existing_document(
+    x: any
+  ): Promise<void> {
+    // Existing document.
+    if (x.archived) {
+      this.emit("load-time-estimate", { type: "archived", time: 4 });
+    } else {
+      this.emit("load-time-estimate", { type: "ready", time: 2 });
+    }
+
+    // TODO: handle doctype change here (?)
+    this.last_snapshot = x.last_snapshot;
+    this.snapshot_interval = x.snapshot_interval;
+    this.users = x.users;
+    this.project_id = x.project_id;
+    this.path = x.path;
+
+    const settings = data.get("settings", immutable.Map());
+    if (settings !== this._settings) {
+      this.settings = settings;
+      this.emit("settings-change", settings);
+    }
+
+    if (this.deleted != null && x.deleted && !this.deleted) {
+      // change to deleted
+      this.emit("deleted");
+    }
+    this.deleted = x.deleted;
+
+    // Ensure that this client is in the list of clients
+    const client_id: string = this.client.client_id();
+    this.user_id = this.users.indexOf(client_id);
+    if (this.user_id === -1) {
+      this.user_id = this.users.length;
+      this.users.push(client_id);
+      await this.syncstring_table.set({
+        string_id: this.string_id,
+        project_id: this.project_id,
+        path: this.path,
+        users: this.users
+      });
+    }
+
+    if (!this.client.is_project()) {
+      this.emit("metadata-change");
+      // not a project -- done.
+      return;
+    }
+    // For rest of this function, we are a project.
+
+    //dbg = this.dbg("_handle_syncstring_update('#{this.path}')")
+    //dbg("project only handling")
+    // Only done for project:
+    this.assert_is_ready();
+
+    // NOTE: very important to completely do this.update_watch_path
+    // before this.save_to_disk below.
+    // If path isn't being properly watched, make it so.
+    if (x.project_id != null && this.watch_path !== x.path) {
+      //dbg("watch path")
+      await this.update_watch_path(x.path);
+    }
+
+    if (x.save != null && x.save.state === "requested") {
+      await this.save_to_disk();
+    }
+
+    this.emit("metadata-change");
+  }
+
+  private async update_watch_path(path?: string): Promise<void> {
+    const dbg = this.client.dbg(`update_watch_path('${path}')`);
+    if (this.file_watcher != null) {
       // clean up
       dbg("close");
-      this._file_watcher.close();
-      delete this._file_watcher;
-      delete this._watch_path;
+      this.file_watcher.close();
+      delete this.file_watcher;
+      delete this.watch_path;
     }
     if (path == null) {
       dbg("not opening another watcher");
-      if (typeof cb === "function") {
-        cb();
-      }
+      this.watch_path = path;
       return;
     }
-    if (this._watch_path != null) {
+    if (this.watch_path != null) {
       dbg("watch_path already defined");
-      if (typeof cb === "function") {
-        cb();
-      }
       return;
     }
     dbg("opening watcher");
-    this._watch_path = path;
-    return async.series(
-      [
-        cb => {
-          return this.client.path_exists({
-            path,
-            cb: (err, exists) => {
-              if (err) {
-                return cb(err);
-              } else if (!exists) {
-                let left;
-                dbg(
-                  `write '${path}' to disk from syncstring in-memory database version`
-                );
-                const data = (left = this.to_str()) != null ? left : ""; // maybe in case of no patches yet (?).
-                return this.client.write_file({
-                  path,
-                  data,
-                  cb: err => {
-                    dbg(`wrote '${path}' to disk -- now calling cb`);
-                    return cb(err);
-                  }
-                });
-              } else {
-                return cb();
-              }
-            }
-          });
-        },
-        cb => {
-          dbg("now requesting to watch file");
-          this._file_watcher = this.client.watch_file({ path });
-          this._file_watcher.on("change", ctime => {
-            if (ctime == null) {
-              ctime = new Date();
-            }
-            ctime = ctime - 0;
-            dbg(
-              `file_watcher: change, ctime=${ctime}, this._save_to_disk_start_ctime=${
-                this._save_to_disk_start_ctime
-              }, this._save_to_disk_end_ctime=${this._save_to_disk_end_ctime}`
-            );
-            if (this._closed) {
-              this._file_watcher.close();
-              return;
-            }
-            if (
-              ctime -
-                (this._save_to_disk_start_ctime != null
-                  ? this._save_to_disk_start_ctime
-                  : 0) >=
-              7 * 1000
-            ) {
-              // last attempt to save was at least 7s ago, so definitely
-              // this change event was not caused by it.
-              dbg("_load_from_disk: no recent save");
-              this._load_from_disk();
-              return;
-            }
-            if (this._save_to_disk_end_ctime == null) {
-              // save event started less than 15s and isn't done.
-              // ignore this load.
-              dbg(
-                "_load_from_disk: unfinished this._save_to_disk just happened, so ignoring file change"
-              );
-              return;
-            }
-            if (
-              this._save_to_disk_start_ctime <= ctime &&
-              ctime <= this._save_to_disk_end_ctime
-            ) {
-              // changed triggered during the save
-              dbg(
-                "_load_from_disk: change happened during this._save_to_disk, so ignoring file change"
-              );
-              return;
-            }
-            // Changed happened near to when there was a save, but not in window, so
-            // we do it..
-            dbg(
-              "_load_from_disk: happened to close to recent save, so ignoring"
-            );
-          });
+    this.assert_is_ready();
+    this.watch_path = path;
+    if (!(await callback2(this.client.path_exists, { path }))) {
+      // path does not exist
+      dbg(`write '${path}' to disk from syncstring in-memory database version`);
+      const data = this.to_str();
+      await callback2(this.client.write_file, { path, data });
+      dbg(`wrote '${path}' to disk`);
+    }
 
-          this._file_watcher.on("delete", () => {
-            dbg("event delete");
-            if (this._closed) {
-              this._file_watcher.close();
-              return;
-            }
-            dbg("delete: setting deleted=true and closing");
-            this.from_str("");
-            this.save(() => {
-              // NOTE: setting deleted=true must be done **after** setting document to blank above,
-              // since otherwise the set would set deleted=false.
-              this.syncstring_table.set(
-                this.syncstring_table.get_one().set("deleted", true)
-              );
-              return this.syncstring_table.save(() => {
-                // make sure deleted:true is saved.
-                return this.close();
-              });
-            });
-          });
-          return cb();
-        }
-      ],
-      err => (typeof cb === "function" ? cb(err) : undefined)
-    );
+    dbg("now requesting to watch file");
+    this.file_watcher = this.client.watch_file({ path });
+    this.file_watcher.on("change", this.handle_file_watcher_change.bind(this));
+    this.file_watcher.on("delete", this.handle_file_watcher_delete.bind(this));
   }
 
-  // TODO: finish
+  private handle_file_watcher_change(ctime: Date): void {
+    const dbg = this.client.dbg("handle_file_watcher_change");
+    this.assert_is_ready();
+    const time: number = ctime.valueOf();
+    dbg(
+      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${
+        this.save_to_disk_start_ctime
+      }, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
+    );
+    if (
+      time -
+        (this._save_to_disk_start_ctime != null
+          ? this._save_to_disk_start_ctime
+          : 0) >=
+      7 * 1000
+    ) {
+      // last attempt to save was at least 7s ago, so definitely
+      // this change event was not caused by it.
+      dbg("load_from_disk since no recent save");
+      this.load_from_disk();
+      return;
+    }
+    if (this.save_to_disk_end_ctime == null) {
+      // save event started less than 15s and isn't done.
+      // ignore this load.
+      dbg(
+        "unfinished this.save_to_disk just happened, so ignoring file change"
+      );
+      return;
+    }
+    if (
+      this.save_to_disk_start_ctime <= time &&
+      time <= this.save_to_disk_end_ctime
+    ) {
+      // changed triggered during the save
+      dbg("change happened during this.save_to_disk, so ignoring file change");
+      return;
+    }
+    // Changed happened near to when there was a save... ignore.
+    dbg("happened too close to recent save, so ignoring");
+  }
+
+  private async handle_file_watcher_delete(): Promise<void> {
+    const dbg = this.client.dbg("handle_file_watcher_delete");
+    this.assert_is_ready();
+    dbg("event delete");
+    if (this._closed) {
+      this._file_watcher.close();
+      return;
+    }
+    dbg("delete: setting deleted=true and closing");
+    this.from_str("");
+    await this.save();
+    // NOTE: setting deleted=true must be done **after** setting
+    // document to blank above,
+    // since otherwise the set would set deleted=false.
+    await this.syncstring_table.set(
+      this.syncstring_table.get_one().set("deleted", true)
+    );
+    // make sure deleted:true is saved:
+    await this.syncstring_table.save();
+    this.close();
+  }
+
+  // TODO: finish converting this -- here.
   private async load_from_disk(): Promise<void> {
     // cb(err, size)
     const path = this.get_path();
@@ -1740,7 +1726,7 @@ class SyncDoc extends EventEmitter {
     }
     // set timestamp of when the save happened; this can be useful for coordinating
     // running code, etc.... and is just generally useful.
-    x.time = new Date() - 0;
+    x.time = new Date().valueOf();
     __guardMethod__(this.syncstring_table, "set", o =>
       o.set(
         __guard__(this.syncstring_table.get_one(), x1 =>
@@ -1939,9 +1925,9 @@ class SyncDoc extends EventEmitter {
           if (last_err) {
             if (typeof this.client.log_error === "function") {
               this.client.log_error({
-                string_id: this._string_id,
-                path: this._path,
-                project_id: this._project_id,
+                string_id: this.string_id,
+                path: this.path,
+                project_id: this.project_id,
                 error: `Error saving file -- ${last_err}`
               });
             }
@@ -2013,7 +1999,7 @@ class SyncDoc extends EventEmitter {
     const expected_hash = this.syncstring_table
       .get_one()
       .getIn(["save", "expected_hash"]);
-    if (failing_to_save(this._path, hash, expected_hash)) {
+    if (failing_to_save(this.path, hash, expected_hash)) {
       this.dbg("__save_to_disk_project")(
         `FAILING TO SAVE-- hash=${hash}, expected_hash=${expected_hash} -- reconnecting`
       );
@@ -2060,8 +2046,10 @@ class SyncDoc extends EventEmitter {
           return this.client.path_stat({
             path,
             cb: (err, stat) => {
-              this._save_to_disk_end_ctime =
-                (stat != null ? stat.ctime : undefined) - 0;
+              this._save_to_disk_end_ctime = (stat != null
+                ? stat.ctime
+                : undefined
+              ).valueOf();
               return cb(err);
             }
           });
@@ -2097,7 +2085,7 @@ class SyncDoc extends EventEmitter {
       // this happens right now when we do a save.
       return;
     }
-    if (this._patch_list == null) {
+    if (this.patch_list == null) {
       // nothing to do
       return;
     }
@@ -2133,7 +2121,7 @@ class SyncDoc extends EventEmitter {
         if (
           x != null &&
           !(this._my_patches != null
-            ? this._my_patches[x.get("time") - 0]
+            ? this._my_patches[x.get("time").valueOf()]
             : undefined)
         ) {
           result.push(x);
@@ -2142,11 +2130,11 @@ class SyncDoc extends EventEmitter {
       return result;
     })();
     if (v.length > 0) {
-      this._patch_list.add(
+      this.patch_list.add(
         (() => {
           const result1 = [];
           for (x of v) {
-            result1.push(this._process_patch(x));
+            result1.push(this.process_patch(x));
           }
           return result1;
         })()
@@ -2207,7 +2195,7 @@ class SyncDoc extends EventEmitter {
       }
     }
 
-    const new_remote = this._patch_list.value();
+    const new_remote = this.patch_list.value();
     if (!this.doc.is_equal(new_remote)) {
       // if any possibility that document changed, set to new version
       this.last = this.doc = new_remote;
