@@ -5,6 +5,7 @@
 
 type Patch = any;
 
+import { Map } from "immutable";
 import { once } from "../../async-utils";
 import { filename_extension } from "../../misc2";
 
@@ -51,6 +52,8 @@ class SyncDoc extends EventEmitter {
 
   private syncstring_table: SyncTable;
   private patches_table: SyncTable;
+  private cursors_table: SyncTable;
+  private throttled_set_cursor_locs: Function;
 
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: Patch } = {};
@@ -115,31 +118,37 @@ class SyncDoc extends EventEmitter {
       return;
     }
     // Initialize throttled cursors functions
-    const set_cursor_locs = (locs, side_effect) => {
+    function set_cursor_locs(locs, side_effect: boolean): void {
       if (
-        this._last_user_change == null ||
-        new Date() - this._last_user_change >= 1000 * 5 * 60
+        this.state === 'closed' ||
+        this.last_user_change == null ||
+        new Date() - this.last_user_change >= 1000 * 5 * 60
       ) {
-        // We ignore setting cursor location in case the user hasn't actually
-        // modified this file recently (5 minutes).  It's annoying to just see a cursor
-        // moving around for a user who isn't doing anything, and this also
-        // prevents bugs in side_effect detection (which is super hard to
-        // get right).
+        /* We ignore setting cursor location in case the
+           user hasn't actually modified this file recently
+           (5 minutes).  It's annoying to just see a cursor
+           moving around for a user who isn't doing
+           anything, and this also prevents bugs in
+           side_effect detection (which is super hard to
+           get right).
+        */
         return;
       }
       const x = {
-        string_id: this._string_id,
-        user_id: this._user_id,
+        string_id: this.string_id,
+        user_id: this.user_id,
         locs
       };
       if (!side_effect) {
         x.time = this.client.server_time();
       }
-      return this._cursors != null ? this._cursors.set(x, "none") : undefined;
-    };
-    this._throttled_set_cursor_locs = underscore.throttle(
-      set_cursor_locs,
-      this._opts.cursor_interval,
+      if (this.cursors_table != null) {
+        this.cursors_table.set(x, "none");
+      }
+    }
+    this.throttled_set_cursor_locs = underscore.throttle(
+      set_cursor_locs.bind(this),
+      this.cursor_interval,
       { leading: true, trailing: true }
     );
   }
@@ -522,45 +531,54 @@ class SyncDoc extends EventEmitter {
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
   close() {
-    if (this._closed) {
+    if (this.state === 'closed') {
       return;
     }
+    this.set_state('close');
     this.emit("close");
-    this.removeAllListeners(); // must be after this.emit('close') above.
-    this._closed = true;
-    if (this._periodically_touch != null) {
-      clearInterval(this._periodically_touch);
-      delete this._periodically_touch;
+
+    // must be after this.emit('close') above.
+    this.removeAllListeners();
+
+    if (this.periodically_touch != null) {
+      clearInterval(this.periodically_touch);
+      delete this.periodically_touch;
     }
-    if (this._project_autosave != null) {
-      clearInterval(this._project_autosave);
-      delete this._project_autosave;
+    if (this.project_autosave != null) {
+      clearInterval(this.project_autosave);
+      delete this.project_autosave;
     }
-    delete this._cursor_map;
-    delete this._users;
+    delete this.cursor_map;
+    delete this.users;
+
     if (this.syncstring_table != null) {
       this.syncstring_table.close();
     }
     delete this.syncstring_table;
+
     if (this.patches_table != null) {
       this.patches_table.close();
     }
     delete this.patches_table;
-    if (this._patch_list != null) {
-      this._patch_list.close();
+    if (this.patch_list != null) {
+      this.patch_list.close();
     }
-    delete this._patch_list;
-    if (this._cursors != null) {
-      this._cursors.close();
+    delete this.patch_list;
+
+    if (this.cursors_table != null) {
+      this.cursors_table.close();
     }
-    delete this._cursors;
+    delete this.cursors_table;
+    delete this.throttled_set_cursor_locs;
+
     if (this.client.is_project()) {
-      this._update_watch_path(); // no input = closes it
+      this.update_watch_path(); // no input = closes it
     }
-    if (this._evaluator != null) {
-      this._evaluator.close();
+
+    if (this.evaluator != null) {
+      this.evaluator.close();
     }
-    return delete this._evaluator;
+    return delete this.evaluator;
   }
 
   private async init_syncstring_table(): Promise<void> {
@@ -885,87 +903,88 @@ class SyncDoc extends EventEmitter {
 
   private async init_evaluator(): Promise<void> {
     if (filename_extension(this.path) !== "sagews") {
-      // only use init_evaluator for sagews right now.
+      // only use init_evaluator for sagews
       return;
     }
-    const f = cb => {
-      this.evaluator = new Evaluator(this, cb);
-    };
-    await callback(f);
+    await callback(cb => (this.evaluator = new Evaluator(this, cb)));
   }
 
-  _init_cursors(cb) {
+  private async init_cursors(): Promise<void> {
     if (!this.client.is_user()) {
-      // only the users care about cursors.
-      return cb();
-    } else {
-      if (!this._opts.cursors) {
-        cb();
-        return;
+      // only users care about cursors.
+      return;
+    }
+    if (!this.cursors) {
+      // do not care about cursors for this syncdoc.
+      return;
+    }
+    const query = {
+      cursors: {
+        string_id: this.string_id,
+        user_id: null,
+        locs: null,
+        time: null
       }
-      const query = {
-        cursors: {
-          string_id: this._string_id,
-          user_id: null,
-          locs: null,
-          time: null
-        }
-      };
-      this._cursors = this.client.sync_table(
-        query,
-        [],
-        this._opts.cursor_interval
+    };
+    this.cursors_table = this.client.synctable2(
+      query,
+      [],
+      this.cursor_interval
+    );
+    await once(this.cursors_table, "connected");
+    this.assert_not_closed();
+
+    // cursors now initialized; first initialize the
+    // local this._cursor_map, which tracks positions
+    // of cursors by account_id:
+    this.cursor_map = Map();
+    this.cursors_table.get().map((locs, k) => {
+      const u = JSON.parse(k);
+      if (u != null) {
+        this.cursor_map = this.cursor_map.set(this.users[u[1]], locs);
+      }
+    });
+
+    this.cursors.on("change", this.handle_cursors_change.bind(this));
+  }
+
+  private handle_cursors_change(keys): void {
+    if (this.state === "closed") {
+      return;
+    }
+    for (let k of keys) {
+      const u = JSON.parse(k);
+      if (u == null) {
+        continue;
+      }
+      const account_id = this.users[u[1]];
+      this.cursor_map = this.cursor_map.set(
+        account_id,
+        this.cursors_table.get(k)
       );
-      this._cursors.once("connected", () => {
-        // cursors now initialized; first initialize the local this._cursor_map,
-        // which tracks positions of cursors by account_id:
-        this._cursor_map = immutable.Map();
-        this._cursors.get().map((locs, k) => {
-          return (this._cursor_map = this._cursor_map.set(
-            this._users[__guard__(JSON.parse(k), x => x[1])],
-            locs
-          ));
-        });
-        return cb();
-      });
-
-      // this._other_cursors is an immutable.js map from account_id's
-      // to list of cursor positions of *other* users (starts undefined).
-      this._cursor_map = undefined;
-
-      return this._cursors.on("change", keys => {
-        if (this._closed) {
-          return;
-        }
-        return (() => {
-          const result = [];
-          for (let k of keys) {
-            const account_id = this._users[__guard__(JSON.parse(k), x => x[1])];
-            this._cursor_map = this._cursor_map.set(
-              account_id,
-              this._cursors.get(k)
-            );
-            result.push(this.emit("cursor_activity", account_id));
-          }
-          return result;
-        })();
-      });
+      this.emit("cursor_activity", account_id);
     }
   }
 
-  // Set this users cursors to the given locs.  This function is
-  // throttled, so calling it many times is safe, and all but
-  // the last call is discarded.
-  // NOTE: no-op if only one user or cursors not enabled for this doc
-  set_cursor_locs(locs, side_effect) {
-    if (this._closed) {
+  /* Set this user's cursors to the given locs.  This
+     function is throttled, so calling it many times
+     is safe, and all but the last call is discarded.
+     NOTE: no-op if only one user or cursors not enabled
+     for this doc.
+  */
+  public set_cursor_locs(locs, side_effect): void {
+    if (this.state === "closed") {
       return;
     }
-    if (this._users.length <= 2) {
-      // Don't bother in special case when only one user (plus the project -- for 2 above!)
-      // since we never display the user's
-      // own cursors - just other user's cursors.  This simple optimization will save tons
-      // of bandwidth, since many files are never opened by more than one user.
+    if (this.users.length <= 2) {
+      /* Don't bother in special case when only one
+         user (plus the project -- for 2 above!)
+         since we never display the user's
+         own cursors - just other user's cursors.
+         This simple optimization will save tons
+         of bandwidth, since many files are never
+         opened by more than one user.
+       */
       return;
     }
     if (typeof this._throttled_set_cursor_locs === "function") {
