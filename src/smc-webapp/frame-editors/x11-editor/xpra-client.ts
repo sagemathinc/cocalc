@@ -1,6 +1,6 @@
 // Use Xpra to provide X11 server.
 
-import { retry_until_success } from "../generic/async-utils";
+import { retry_until_success } from "smc-util/async-utils";
 
 import { reuseInFlight } from "async-await-utils/hof";
 

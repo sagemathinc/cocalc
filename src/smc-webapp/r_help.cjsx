@@ -36,7 +36,7 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
@@ -210,15 +210,20 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
-    frequently_asked_questions :
+    doc :
+        icon : 'book'
+        bold : true
+        href : DOC_URL
+        link : <span><SiteName/> manual</span>
+    wiki :
         icon : 'question-circle'
         bold : true
         href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
+        link : <span><SiteName/> WIKI portal</span>
     teaching :
         icon : 'graduation-cap'
-        href : 'https://tutorial.cocalc.com/'
-        link : <span>How to teach a course with <SiteName/></span>
+        href : 'https://doc.cocalc.com/teaching-instructors.html'
+        link : <span>Instructor Guide: How to teach a course with <SiteName/></span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl

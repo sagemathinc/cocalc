@@ -20,7 +20,7 @@ import {
   syncdb
 } from "../generic/client";
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, retry_until_success } from "../generic/async-utils";
+import { callback_opts, retry_until_success } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,

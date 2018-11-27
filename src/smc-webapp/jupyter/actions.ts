@@ -29,7 +29,8 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
-import { retry_until_success } from "../frame-editors/generic/async-utils";
+const { retry_until_success } = require("smc-util/async-utils"); // so also works in project.
+
 import * as awaiting from "awaiting";
 
 const misc = require("smc-util/misc");

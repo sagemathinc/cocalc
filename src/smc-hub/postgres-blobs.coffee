@@ -873,10 +873,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         ], (err) => opts.cb?(err))
 
 
-    # Some one off code...
+    # Some one-off code...
     resize_profile_image: (account_id) =>
         console.log("resize_profile_image", account_id)
-        {callback_opts} = require("../smc-webapp/frame-editors/generic/async-utils")
+        {callback_opts} = require("smc-util/async-utils")
         result = await callback_opts(@_query)(query : "SELECT profile FROM accounts WHERE account_id='#{account_id}'")
         image = result.rows[0].profile.image
         v = image.split(',')

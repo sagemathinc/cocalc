@@ -50,7 +50,7 @@ import {
 
 import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
 
-import { retry_until_success } from "../smc-webapp/frame-editors/generic/async-utils";
+import { retry_until_success } from "../smc-util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";

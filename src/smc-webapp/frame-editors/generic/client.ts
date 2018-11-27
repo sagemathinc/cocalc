@@ -7,7 +7,7 @@ const schema = require("smc-util/schema");
 const DEFAULT_FONT_SIZE: number = require("smc-util/db-schema")
   .DEFAULT_FONT_SIZE;
 import { redux } from "../../app-framework";
-import { callback_opts } from "./async-utils";
+import { callback_opts } from "smc-util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { Map } from "immutable";
 
