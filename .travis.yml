@@ -22,8 +22,11 @@ addons:
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
 env:
+  global:
+    - REPORTER=list # for mocha tests
   matrix:
-    - MODE=util
+    - MODE=misc
+    #- MODE=util
     #- MODE=sagews
     #- MODE=server
 
@@ -49,10 +52,15 @@ install:
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-  - 'if [[ $MODE = "sagews" ]]; then cd ~/smc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi'
-  - 'if [[ $MODE = "webapp" ]]; then cd ~/smc/src/smc-webapp/; npm run test; fi'
+  - 'if [[ $MODE = "sagews" ]]; then cd ~/build/sagemathinc/cocalc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi'
+  - 'if [[ $MODE = "webapp" ]]; then cd ~/build/sagemathinc/cocalc/src/smc-webapp/; npm run test; fi'
   - 'if [[ $MODE = "server" ]]; then npm run coveralls; fi'
-  - 'if [[ $MODE = "util"   ]]; then cd ~/smc/src/smc-util/; npm test; fi'
+  - 'if [[ $MODE = "util"   ]]; then cd ~/build/sagemathinc/cocalc/src/smc-util/; npm test; fi'
+  - |
+    if [[ $MODE = "misc" ]]; then
+      cd ~/build/sagemathinc/cocalc/src/smc-util/;
+      export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee
+    fi
 
 # send coverage report over to https://coveralls.io
 #after_success:

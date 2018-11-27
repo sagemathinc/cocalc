@@ -242,13 +242,13 @@ describe "min_object of target and upper_bound", ->
     upper_bound = {a:5, b:20, xyz:-2}
     it "modifies target in place", ->
         target = {a:7, b:15, xyz:5.5}
-        # the return value are just the values
-        mo(target, upper_bound).should.eql [ 5, 15, -2 ]
+        exp = { a: 5, b: 15, xyz: -2 }
+        mo(target, upper_bound).should.eql exp
         target.should.eql {a:5, b:15, xyz:-2}
     it "works without a target", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
-        mo().should.be.eql []
+        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge
