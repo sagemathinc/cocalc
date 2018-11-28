@@ -1589,7 +1589,8 @@ exports.UpgradeAdjustor = rclass
             # the amount displayed remaining subtracts off the amount you type in
             show_remaining = misc.round2(remaining + current - current_input)
 
-            val = misc.parse_number_input(@state["upgrade_#{name}"])
+            val_state = @state["upgrade_#{name}"]
+            val = misc.parse_number_input(val_state)
             if val?
                 if not @is_upgrade_input_valid(Math.max(val, 0), limit)
                     reasons = []
@@ -1630,8 +1631,8 @@ exports.UpgradeAdjustor = rclass
                         <InputGroup>
                             <FormControl
                                 ref        = {"upgrade_#{name}"}
-                                type       = 'text'
-                                value      = {val}
+                                type       = {'text'}
+                                value      = {val_state}
                                 bsStyle    = {bs_style}
                                 onChange   = {=>@setState("upgrade_#{name}" : ReactDOM.findDOMNode(@refs["upgrade_#{name}"]).value)}
                             />
