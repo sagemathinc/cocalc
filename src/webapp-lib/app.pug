@@ -26,8 +26,8 @@ html(lang="en")
       | Initializing ...
 
     //- preflight check comes **after** the startup banner and status info, and before any code that might be syntactically broken.
-    //script(type="text/javascript")
-    //  include:typescript preflight-checks.ts
+    script(type="text/javascript")
+      include:typescript preflight-checks.ts
 
     //- this sets the global window.app_base_url: either statically via the BASE_URL template variable, or dynamically via hub
     - var BASE_URL = htmlWebpackPlugin.options.BASE_URL
