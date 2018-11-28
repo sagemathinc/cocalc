@@ -2,14 +2,23 @@
 sudo: required
 dist: xenial
 
-services:
-  - postgresql
+# no need to build all branches
+branches:
+  only:
+    - master
 
+# there is no single language, but python is ok
 language: "python"
 
+# travis supports 8 and 11 (as of winter 2018)
 node_js:
   - "8"
 
+# we want our database
+services:
+  - postgresql
+
+# specify postgres version and additional linux packages here
 addons:
   postgresql: "10"
   apt:
@@ -46,7 +55,8 @@ before_script:
   - "python2 ~/build/sagemathinc/cocalc/src/dev/project/start_postgres.py &"
   - "sleep 5"
 
-# the setup & compilation of SMC
+# the setup & compilation of CoCalc
+# if broken, this will also trigger a test failure, i.e. that's also a test
 install:
   - "cd src"
   - "source smc-env"
@@ -54,7 +64,7 @@ install:
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
-# npm test is the usual, but we also run coverage reporting
+# npm test is the usual, and coverage reporting is disabled
 script:
   - 'if [[ $MODE = "sagews" ]]; then cd ~/build/sagemathinc/cocalc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi'
   - 'if [[ $MODE = "webapp" ]]; then cd ~/build/sagemathinc/cocalc/src/smc-webapp/; npm run test; fi'
