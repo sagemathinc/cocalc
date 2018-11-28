@@ -46,6 +46,8 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
 import { keys, is_valid_uuid_string } from "./frame-editors/generic/misc";
 
+import { AdminStore, AdminActions } from "./admin"
+
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore
 declare type ProjectActions = import("./project_actions").ProjectActions
@@ -197,6 +199,7 @@ export class AppRedux {
   getActions(name: "account"): any;
   getActions(name: "projects"): any;
   getActions(name: "billing"): any;
+  getActions(name: "admin-page"): AdminActions;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -255,6 +258,7 @@ export class AppRedux {
   getStore(name: "customize"): any;
   getStore(name: "projects"): any;
   getStore(name: "users"): any;
+  getStore(name: "admin-page"): AdminStore;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
     if (!this.hasStore(name)) {
