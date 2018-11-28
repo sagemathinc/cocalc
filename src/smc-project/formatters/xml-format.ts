@@ -3,9 +3,7 @@ const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
 const { execute_code } = require("smc-util-node/execute-code");
-const {
-  callback_opts
-} = require("smc-webapp/frame-editors/generic/async-utils");
+const { callback_opts } = require("smc-util/async-utils");
 
 interface ParserOptions {
   parser: string;

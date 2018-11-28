@@ -116,25 +116,39 @@ interface Props {
   connection_status?: ConnectionStatus;
 }
 
-export class FrameTitleBar extends Component<Props, {}> {
-  shouldComponentUpdate(next): boolean {
-    return misc.is_different(this.props, next, [
-      "active_id",
-      "id",
-      "deletable",
-      "is_full",
-      "is_only",
-      "read_only",
-      "has_unsaved_changes",
-      "has_uncommitted_changes",
-      "is_public",
-      "is_saving",
-      "is_paused",
-      "type",
-      "status",
-      "title",
-      "connection_status"
-    ]);
+interface State {
+  close_and_halt_confirm?: boolean;
+}
+
+export class FrameTitleBar extends Component<Props, State> {
+  constructor(props) {
+    super(props);
+    this.state = { close_and_halt_confirm: false };
+  }
+  shouldComponentUpdate(next, state): boolean {
+    return (
+      misc.is_different(
+        this.props,
+        next,
+        [
+          "active_id",
+          "id",
+          "deletable",
+          "is_full",
+          "is_only",
+          "read_only",
+          "has_unsaved_changes",
+          "has_uncommitted_changes",
+          "is_public",
+          "is_saving",
+          "is_paused",
+          "type",
+          "status",
+          "title",
+          "connection_status"
+        ]
+      ) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+    );
   }
 
   is_visible(action_name: string, explicit?: boolean): boolean {
@@ -949,6 +963,24 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_close_and_halt(labels: boolean): Rendered {
+    if (!this.is_visible("close_and_halt")) {
+      return;
+    }
+    return (
+      <Button
+        disabled={this.state.close_and_halt_confirm}
+        bsSize={this.button_size()}
+        key={"close_and_halt"}
+        onClick={() => this.setState({ close_and_halt_confirm: true })}
+        title={"Close and halt server"}
+      >
+        <Icon name={"hand-stop-o"} />{" "}
+        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_print(): Rendered {
     if (!this.is_visible("print")) {
       return;
@@ -1012,6 +1044,8 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
     v.push(this.render_zoom_group());
     v.push(this.render_restart());
+    v.push(this.render_close_and_halt(labels));
+
     v.push(this.render_page_width_height_group());
     v.push(this.render_download());
     v.push(this.render_pause(labels));
@@ -1062,7 +1096,10 @@ export class FrameTitleBar extends Component<Props, {}> {
   }
 
   render_connection_status(): Rendered {
-    if (!this.props.connection_status || !this.is_visible("connection_status", true)) {
+    if (
+      !this.props.connection_status ||
+      !this.is_visible("connection_status", true)
+    ) {
       return;
     }
     return (
@@ -1110,6 +1147,51 @@ export class FrameTitleBar extends Component<Props, {}> {
     );
   }
 
+  render_close_and_halt_confirm(): Rendered {
+    if (!this.state.close_and_halt_confirm) return;
+    return (
+      <div
+        style={{
+          padding: "5px",
+          borderBottom: "1px solid lightgrey",
+          position: "absolute",
+          width: "100%",
+          zIndex: 100,
+          background: "white",
+          boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px"
+        }}
+      >
+        Halt the server and close this?
+        <Button
+          onClick={() => {
+            this.setState({ close_and_halt_confirm: false });
+            this.props.actions.close_and_halt(this.props.id);
+          }}
+          style={{
+            marginLeft: "20px",
+            marginRight: "5px"
+          }}
+          bsStyle="danger"
+        >
+          <Icon name={"hand-stop-o"} /> Close and Halt
+        </Button>
+        <Button
+          onClick={() => this.setState({ close_and_halt_confirm: false })}
+        >
+          Cancel
+        </Button>
+      </div>
+    );
+  }
+
+  render_confirm_bar(): Rendered {
+    return (
+      <div style={{ position: "relative" }}>
+        {this.render_close_and_halt_confirm()}
+      </div>
+    );
+  }
+
   render(): Rendered {
     // Whether this is *the* active currently focused frame:
     let style;
@@ -1139,15 +1221,18 @@ export class FrameTitleBar extends Component<Props, {}> {
     }
 
     return (
-      <div style={style} id={`titlebar-${this.props.id}`}>
-        {this.render_control()}
-        {this.props.connection_status
-          ? this.render_connection_status()
-          : undefined}
-        {this.props.title ? this.render_title() : undefined}
-        {is_active ? this.render_main_buttons() : undefined}
-        {!is_active && !this.props.title ? this.render_title() : undefined}
-      </div>
+      <>
+        <div style={style} id={`titlebar-${this.props.id}`}>
+          {this.render_control()}
+          {this.props.connection_status
+            ? this.render_connection_status()
+            : undefined}
+          {this.props.title ? this.render_title() : undefined}
+          {is_active ? this.render_main_buttons() : undefined}
+          {!is_active && !this.props.title ? this.render_title() : undefined}
+        </div>
+        {this.render_confirm_bar()}
+      </>
     );
   }
 }

@@ -2,7 +2,7 @@ import { Component, Rendered, React } from "../app-framework";
 
 const { Loading, Space } = require("../r_misc");
 
-import { retry_until_success } from "../frame-editors/generic/async-utils";
+import { retry_until_success } from "smc-util/async-utils";
 
 interface Props {
   href?: string;

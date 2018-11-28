@@ -51,7 +51,8 @@ const {
   Row,
   Col,
   Panel,
-  Well
+  Well,
+  Form
 } = require("react-bootstrap");
 
 // CoCalc components
@@ -200,7 +201,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       const { add_search } = this.state;
       return webapp_client.user_search({
         query: add_search,
-        limit: 50,
+        limit: 100,
         cb: (err, select) => {
           let x;
           if (err) {
@@ -262,7 +263,7 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           })();
           // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
           // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
-          // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we wend up
+          // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
           // bringing back everything in the search, which is a bug.
           const select3 = (() => {
             const result1: any[] = [];
@@ -290,7 +291,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
             <Icon name="cc-icon-cocalc-ring" spin />
           ) : (
             <Icon name="search" />
-          )}
+          )}{" "}
+          Search
         </Button>
       );
     }
@@ -548,13 +550,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
               )}
             </Col>
             <Col md={5}>
-              <form onSubmit={this.do_add_search}>
-                <FormGroup>
-                  <InputGroup>
+              <Form onSubmit={this.do_add_search} horizontal>
+                <Col md={9}>
+                  <FormGroup>
                     <FormControl
                       ref="student_add_input"
-                      type="text"
-                      placeholder="Add student by name or email address..."
+                      componentClass="textarea"
+                      placeholder="Add students by name or email address..."
                       value={this.state.add_search}
                       onChange={() =>
                         this.setState({
@@ -573,12 +575,14 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                         }
                       }}
                     />
-                    <InputGroup.Button>
-                      {this.student_add_button()}
-                    </InputGroup.Button>
-                  </InputGroup>
-                </FormGroup>
-              </form>
+                  </FormGroup>
+                </Col>
+                <Col md={3}>
+                  <InputGroup.Button>
+                    {this.student_add_button()}
+                  </InputGroup.Button>
+                </Col>
+              </Form>
               {this.render_add_selector()}
             </Col>
           </Row>
@@ -1195,7 +1199,8 @@ class Student extends Component<StudentProps, StudentState> {
       return (
         <div>
           Are you sure you want to delete this student (you can always undelete
-          them later)?<Space />
+          them later)?
+          <Space />
           <ButtonToolbar>
             <Button onClick={this.delete_student} bsStyle="danger">
               <Icon name="trash" /> YES, Delete

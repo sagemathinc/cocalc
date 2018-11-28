@@ -236,6 +236,7 @@ describe 'working with logs: ', ->
             cb    : (err, log) -> expect(log.length).toBe(0); done(err)
 
 describe 'testing working with blobs: ', ->
+    @timeout(10000)
     beforeEach(setup)
     afterEach(teardown)
     {uuidsha1} = require('smc-util-node/misc_node')

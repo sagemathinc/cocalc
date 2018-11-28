@@ -46,9 +46,7 @@ export class WindowTab extends Component<Props, {}> {
 
   render_close_button(): Rendered {
     const color = this.props.is_current ? TAB_BAR_GREY : TAB_BAR_BLUE;
-    const backgroundColor = this.props.is_current
-      ? TAB_BAR_BLUE
-      : TAB_BAR_GREY;
+    const backgroundColor = this.props.is_current ? TAB_BAR_BLUE : TAB_BAR_GREY;
     return (
       <div
         style={{
@@ -59,15 +57,17 @@ export class WindowTab extends Component<Props, {}> {
           padding: "0 5px"
         }}
         onClick={async evt => {
-          this.props.actions.close_window(
-            this.props.id,
-            this.props.info.get("wid")
-          );
+          const wid = this.props.info.get("wid");
+          this.props.actions.close_window(this.props.id, wid);
           evt.stopPropagation();
 
-          // focus in the next event loop.
+          // focus this frame in the next event loop.
           await delay(0);
-          this.props.actions.focus(this.props.id);
+          try {
+            this.props.actions.focus(this.props.id);
+          } catch (e) {
+            // ignore - already closed.
+          }
         }}
       >
         <Icon name="times" />
@@ -86,6 +86,7 @@ export class WindowTab extends Component<Props, {}> {
             this.props.id,
             this.props.info.get("wid")
           );
+          this.props.actions.client.focus();
           evt.stopPropagation();
         }}
         style={{
@@ -107,4 +108,3 @@ export class WindowTab extends Component<Props, {}> {
     );
   }
 }
-

@@ -2,13 +2,15 @@
 X11 server channel.
 
 TODO:
-  - [ ] paste
-  - [ ] copy
   - [ ] other user activity
+  - [ ] when stopping project, kill xpra's
 */
 
 import { spawn } from "child_process";
 import { callback } from "awaiting";
+const { abspath } = require("smc-util-node/misc_node");
+const { path_split } = require("smc-util/misc");
+import { clone } from "underscore";
 
 const x11_channels = {};
 
@@ -24,16 +26,18 @@ class X11Channel {
     primus,
     path,
     name,
-    logger
+    logger,
+    display
   }: {
     primus: any;
     path: string;
     name: string;
     logger: any;
+    display: number;
   }) {
     this.logger = logger;
     this.log("creating new x11 channel");
-    this.display = 0; // todo
+    this.display = display; // needed for copy/paste support
     this.path = path;
     this.name = name;
     this.channel = primus.channel(this.name);
@@ -73,6 +77,9 @@ class X11Channel {
       case "paste":
         await this.paste(data.value, data.wid ? data.wid : 0);
         break;
+      case "launch":
+        await this.launch(data.command, data.args);
+        break;
       default:
         throw Error("WARNING: unknown command -- " + data.cmd);
     }
@@ -111,17 +118,46 @@ class X11Channel {
       console.log(`xdotool exited with code ${code}`);
     });
   }
+
+  // launch a command and detach -- used to start x11 applications running.
+  launch(command: string, args?: string[]): void {
+    const env = clone(process.env);
+    env.DISPLAY = `:${this.display}`;
+    const cwd = this.get_cwd();
+    const options = { cwd, env, detached: true, stdio: "ignore" };
+    args = args != null ? args : [];
+    try {
+      const sub = spawn(command, args, options);
+      sub.unref();
+    } catch (err) {
+      this.channel.write({
+        error: `error launching ${command} -- ${err}`
+      });
+      return;
+    }
+  }
+
+  private get_cwd(): string {
+    return path_split(abspath(this.path)).head; // containing path
+  }
 }
 
 export async function x11_channel(
   client: any,
   primus: any,
   logger: any,
-  path: string
+  path: string,
+  display: number
 ): Promise<string> {
   const name = `x11:${path}`;
   if (x11_channels[name] === undefined) {
-    x11_channels[name] = new X11Channel({ primus, path, name, logger });
+    x11_channels[name] = new X11Channel({
+      primus,
+      path,
+      name,
+      logger,
+      display
+    });
   }
   return name;
 }

@@ -157,7 +157,7 @@ file_associations['md'] =
 file_associations['rmd'] =
     icon   : 'cc-icon-r'
     opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['rmd']}
-    name   : "Rmd"
+    name   : "RMarkdown"
 
 file_associations['rst'] =
     icon   : 'fa-file-code-o'
@@ -212,6 +212,13 @@ file_associations['term'] =
     icon   : 'fa-terminal'
     opts   : {}
     name   : "Terminal"
+
+# This is just for the "Create" menu in files.
+file_associations['x11'] =
+    editor : 'x11'
+    icon   : 'fa-window-restore'
+    opts   : {}
+    name   : "X11 Desktop"
 
 file_associations['ipynb'] =
     editor : 'ipynb'

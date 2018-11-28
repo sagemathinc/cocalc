@@ -1016,7 +1016,7 @@ ConfirmPaymentMethod = rclass
 
     render: ->
         if not @props.customer
-            return <AddPaymentMethod redux={redux} on_close={@props.on_close} />
+            return <AddPaymentMethod redux={redux} />
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
@@ -1312,7 +1312,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://tutorial.cocalc.com/" target="_blank">this guide</a>, create a course file.
+                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">instructor guide</a> to create a course file for your new course.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
