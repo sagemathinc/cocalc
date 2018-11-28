@@ -869,7 +869,7 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
-        if @props.email_address.indexOf('minerva') != -1 and name == 'jupyter_classic'
+        if @props.email_address.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
             return
         <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
