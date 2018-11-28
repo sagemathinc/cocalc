@@ -34,7 +34,7 @@ env:
   global:
     - REPORTER=list # for mocha tests
     - PGUSER='smc'
-    - PGHOST='/home/travis/build/sagemathinc/cocalc/src/dev/project/postgres_data/socket'
+    - PGHOST='$TRAVIS_BUILD_DIR/src/dev/project/postgres_data/socket'
   matrix:
     # testing both build modes
     - NODE_ENV=production
@@ -50,7 +50,7 @@ before_script:
   - "python -V"
   - "node --version"
   - "pytest --version"
-  - "python2 ~/build/sagemathinc/cocalc/src/dev/project/start_postgres.py &"
+  - "python2 $TRAVIS_BUILD_DIR/src/dev/project/start_postgres.py &"
   - "sleep 5"
 
 # the setup & compilation of CoCalc
@@ -59,19 +59,19 @@ install:
   - "cd src"
   - "source smc-env"
   - "npm run make"
-  #- "cd ~/build/sagemathinc/cocalc/src/smc-webapp/; npm install mocha" # why necessary?
+  #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm install mocha" # why necessary?
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
 # npm test is the usual, and coverage reporting is disabled
 script:
-  - "cd ~/build/sagemathinc/cocalc/src/smc-util-node; npm run test" # easy warmup
-  #- 'cd ~/build/sagemathinc/cocalc/src/smc_sagews/smc_sagews/; cd python -m pytest tests/' # no sage!
-  #- "cd ~/build/sagemathinc/cocalc/src/smc-webapp/; npm run testjcli" # broken
-  #- 'cd ~/build/sagemathinc/cocalc/src/smc-util/; npm test'            # broken
-  - "cd ~/build/sagemathinc/cocalc/src/smc-util/; export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee"
-  - "cd ~/build/sagemathinc/cocalc/src/smc-hub/; npm run testpg; npm run testmisc; npm run testkucalc"
-  #- "cd ~/build/sagemathinc/cocalc/src/smc-project/; npm run test" # also broken
+  - "cd $TRAVIS_BUILD_DIR/src/smc-util-node; npm run test" # easy warmup
+  #- 'cd $TRAVIS_BUILD_DIR/src/smc_sagews/smc_sagews/; cd python -m pytest tests/' # no sage!
+  #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm run testjcli" # broken
+  #- 'cd $TRAVIS_BUILD_DIR/src/smc-util/; npm test'            # broken
+  - "cd $TRAVIS_BUILD_DIR/src/smc-util/; export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee"
+  - "cd $TRAVIS_BUILD_DIR/src/smc-hub/; npm run testpg; npm run testmisc; npm run testkucalc"
+  #- "cd $TRAVIS_BUILD_DIR/src/smc-project/; npm run test" # also broken
   #- 'npm run coveralls' # TODO ... that's from the past, not sure if that could still work. primarily for the webapp, though.
 
 # send coverage report over to https://coveralls.io
