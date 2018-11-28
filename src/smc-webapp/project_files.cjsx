@@ -835,6 +835,7 @@ ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
 
     propTypes :
+        kucalc       : rtypes.string
         show_hidden  : rtypes.bool
         public_view  : rtypes.bool
         show_new     : rtypes.bool
@@ -872,6 +873,17 @@ ProjectFilesButtons = rclass
             <Icon name='life-saver' /> <span style={fontSize: 12} className='hidden-sm'>Backups</span>
         </Button>
 
+    render_library_button: ->
+        # library only exists on kucalc, for now.
+        return if @props.kucalc != 'yes'
+        <Button
+            bsSize={'small'}
+            disabled={@props.show_library}
+            onClick={=>@props.actions.toggle_library(true)}
+        >
+            <Icon name='book' /> <HiddenSM>Library</HiddenSM>
+        </Button>
+
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
@@ -882,13 +894,7 @@ ProjectFilesButtons = rclass
                 >
                     <Icon name='plus-circle' /> <HiddenSM>New</HiddenSM>
                 </Button>
-                <Button
-                    bsSize={'small'}
-                    disabled={@props.show_library}
-                    onClick={=>@props.actions.toggle_library(true)}
-                >
-                    <Icon name='book' /> <HiddenSM>Library</HiddenSM>
-                </Button>
+                {@render_library_button()}
                 <Button bsSize='small' className="upload-button">
                     <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
                 </Button>
@@ -2126,6 +2132,8 @@ exports.ProjectFiles = rclass ({name}) ->
             is_logged_in   : rtypes.bool
         billing :
             customer       : rtypes.object
+        customize :
+            kucalc : rtypes.string
 
         "#{name}" :
             active_file_sort      : rtypes.object
@@ -2516,6 +2524,7 @@ exports.ProjectFiles = rclass ({name}) ->
                             actions      = {@props.actions}
                             show_new     = {@props.show_new}
                             show_library = {@props.show_library}
+                            kucalc       = {@props.kucalc}
                         />
                     }
                 </div>
