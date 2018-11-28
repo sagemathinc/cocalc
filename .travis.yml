@@ -31,10 +31,9 @@ addons:
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
 env:
-  global:
+  global: # note: we cannot use $VARs here
     - REPORTER=list # for mocha tests
     - PGUSER='smc'
-    - PGHOST='$TRAVIS_BUILD_DIR/src/dev/project/postgres_data/socket'
   matrix:
     # testing both build modes
     - NODE_ENV=production
@@ -50,8 +49,9 @@ before_script:
   - "python -V"
   - "node --version"
   - "pytest --version"
+  - 'export PGHOST="$TRAVIS_BUILD_DIR/src/dev/project/postgres_data/socket"'
   - "python2 $TRAVIS_BUILD_DIR/src/dev/project/start_postgres.py &"
-  - "sleep 5"
+  - "sleep 10" # for starting up postgres in the background (db init, etc.)
 
 # the setup & compilation of CoCalc
 # if broken, this will also trigger a test failure, i.e. that's also a test
@@ -66,6 +66,7 @@ install:
 # npm test is the usual, and coverage reporting is disabled
 script:
   - "cd $TRAVIS_BUILD_DIR/src/smc-util-node; npm run test" # easy warmup
+  - "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm test -- --ci" # jest only, until also the jupyter tests work
   #- 'cd $TRAVIS_BUILD_DIR/src/smc_sagews/smc_sagews/; cd python -m pytest tests/' # no sage!
   #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm run testjcli" # broken
   #- 'cd $TRAVIS_BUILD_DIR/src/smc-util/; npm test'            # broken
