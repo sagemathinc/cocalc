@@ -1,3 +1,9 @@
+# computing project quotas based on settings (by admin/system) and user contributions ("upgrades")
+
+
+{DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
+MAX_UPGRADES = require('smc-util/upgrade-spec').upgrades.max_per_project
+
 # No matter what, every project gets SOME possibly tiny amount of guaranteed cpu.
 # This is important since otherwise projects will NOT start at all, e.g., if a paying
 # customer is using 100% of the cpu on the node (this will happen if their limits are
@@ -12,7 +18,11 @@ MIN_POSSIBLE_MEMORY =
     member    : 300
     nonmember : 200
 
-{DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
+# lower bound for the RAM "limit"
+# in particular, we make sure member projects are above the free quota
+MIN_MEMORY_LIMIT =
+    member    : 1.5 * DEFAULT_QUOTAS.memory
+    nonmember : DEFAULT_QUOTAS.memory
 
 
 exports.quota = (settings, users) ->
@@ -23,10 +33,10 @@ exports.quota = (settings, users) ->
     quota =
         network        : false
         member_host    : false
-        disk_quota     : 3000
-        memory_limit   : 1000        # upper bound on RAM in MB
-        memory_request : 0           # will hold guaranteed RAM in MB
-        cpu_limit      : 1           # upper bound on vCPU's
+        disk_quota     : DEFAULT_QUOTAS.disk_quota
+        memory_limit   : DEFAULT_QUOTAS.memory   # upper bound on RAM in MB
+        memory_request : 0                       # will hold guaranteed RAM in MB
+        cpu_limit      : DEFAULT_QUOTAS.cores    # upper bound on vCPU's
         cpu_request    : 0           # will hold guaranteed min number of vCPU's as a float from 0 to infinity.
         privileged     : false       # for elevated docker privileges (FUSE mounting, later more)
         idle_timeout   : DEFAULT_QUOTAS.mintime
@@ -98,24 +108,25 @@ exports.quota = (settings, users) ->
     for _, val of users
         quota.cpu_request += to_int(val?.upgrades?.cpu_shares) / 1024
 
-    # ensure minimums cpu are met
-    if quota.member_host
-        if quota.cpu_request < MIN_POSSIBLE_CPU.member
-            quota.cpu_request = MIN_POSSIBLE_CPU.member
-    else
-        if quota.cpu_request < MIN_POSSIBLE_CPU.nonmember
-            quota.cpu_request = MIN_POSSIBLE_CPU.nonmember
+    # ensure minimum cpu are met
+    cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU)
 
-    # ensure minimum memory met
-    if quota.member_host
-        if quota.memory_request < MIN_POSSIBLE_MEMORY.member
-            quota.memory_request = MIN_POSSIBLE_MEMORY.member
-    else
-        if quota.memory_request < MIN_POSSIBLE_MEMORY.nonmember
-            quota.memory_request = MIN_POSSIBLE_MEMORY.nonmember
+    # ensure minimum memory request is met
+    cap_lower_bound(quota, "memory_request", MIN_POSSIBLE_MEMORY)
+
+    # ensure minimum memory limit is met
+    cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT)
 
     return quota
 
+
+cap_lower_bound = (quota, name, MIN_SPEC) ->
+    if quota.member_host
+        if quota[name] < MIN_SPEC.member
+            quota[name] = MIN_SPEC.member
+    else
+        if quota[name] < MIN_SPEC.nonmember
+            quota[name] = MIN_SPEC.nonmember
 
 to_int = (s) ->
     try
