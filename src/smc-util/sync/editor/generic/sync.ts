@@ -124,6 +124,7 @@ class SyncDoc extends EventEmitter {
     }
 
     this.save = reuseInFlight(this.save.bind(this));
+    this.load_from_disk = reuseInFlight(this.load_from_disk.bind(this));
     this.setMaxListeners(100);
     this.init();
   }
@@ -1639,237 +1640,165 @@ class SyncDoc extends EventEmitter {
     this.close();
   }
 
-  // TODO: finish converting this -- here.
-  private async load_from_disk(): Promise<void> {
-    // cb(err, size)
-    const path = this.get_path();
-    const dbg = this.client.dbg(`syncstring._load_from_disk('${path}')`);
+  private async load_from_disk(): Promise<number> {
+    const path = this.path;
+    const dbg = this.client.dbg(`syncstring.load_from_disk('${path}')`);
     dbg();
-    if (this._load_from_disk_lock) {
-      if (typeof cb === "function") {
-        cb("lock");
-      }
-      return;
+    let exists: boolean = await callback2(this.client.path_exists, { path });
+    let size: number;
+    if (!exists) {
+      dbg("file no longer exists -- setting to blank");
+      size = 0;
+      this.from_str("");
+    } else {
+      dbg("file exists");
+      await this.update_if_file_is_read_only();
+      const data = await callback2(this.client.path_read, {
+        path,
+        maxsize_MB: MAX_FILE_SIZE_MB
+      });
+      size = data.length;
+      dbg(`got it -- length=${size}`);
+      this.from_str(data);
+      // we also know that this is the version on disk, so we update the hash
+      await this.set_save({
+        state: "done",
+        error: false,
+        hash: misc.hash_string(data)
+      });
     }
-    this._load_from_disk_lock = true;
-    const locals = { exists: undefined, size: 0 };
-    return async.series(
-      [
-        cb => {
-          return this.client.path_exists({
-            path,
-            cb: (err, exists) => {
-              locals.exists = exists;
-              if (!exists) {
-                dbg("file no longer exists");
-                this.from_str("");
-              }
-              return cb(err);
-            }
-          });
-        },
-        cb => {
-          if (locals.exists) {
-            return this._update_if_file_is_read_only(cb);
-          } else {
-            return cb();
-          }
-        },
-        cb => {
-          if (!locals.exists) {
-            cb();
-            return;
-          }
-          return this.client.path_read({
-            path,
-            maxsize_MB: MAX_FILE_SIZE_MB,
-            cb: (err, data) => {
-              if (err) {
-                dbg(`failed -- ${err}`);
-                return cb(err);
-              } else {
-                locals.size =
-                  (data != null ? data.length : undefined) != null
-                    ? data != null
-                      ? data.length
-                      : undefined
-                    : 0;
-                dbg(`got it -- length=${locals.size}`);
-                this.from_str(data);
-                // we also know that this is the version on disk, so we update the hash
-                this._set_save({
-                  state: "done",
-                  error: false,
-                  hash: misc.hash_string(data)
-                });
-                return cb();
-              }
-            }
-          });
-        },
-        cb => {
-          // save back to database
-          return this.save(cb);
-        }
-      ],
-      err => {
-        this._load_from_disk_lock = false;
-        return typeof cb === "function" ? cb(err, locals.size) : undefined;
-      }
-    );
+    // save new version (via from_str) to database.
+    await this.save();
+    return size;
   }
 
-  _set_save(x) {
-    if (this._closed) {
-      // nothing to do
-      return;
-    }
-    // set timestamp of when the save happened; this can be useful for coordinating
-    // running code, etc.... and is just generally useful.
+  private async set_save(x: {
+    state: string;
+    error: boolean;
+    hash: number;
+    expected_hash?: number;
+    time?: number;
+  }): Promise<void> {
+    this.assert_is_ready();
+    // set timestamp of when the save happened; this can be useful
+    // for coordinating running code, etc.... and is just generally useful.
     x.time = new Date().valueOf();
-    __guardMethod__(this.syncstring_table, "set", o =>
-      o.set(
-        __guard__(this.syncstring_table.get_one(), x1 =>
-          x1.set("save", immutable.fromJS(x))
-        )
-      )
+    await this.syncstring_table.set(
+      this.syncstring_table.get_one().set("save", immutable.fromJS(x))
     );
   }
 
-  _set_read_only(read_only) {
-    if (this._closed) {
-      // nothing to do
-      return;
-    }
-    __guardMethod__(this.syncstring_table, "set", o =>
-      o.set(
-        __guard__(this.syncstring_table.get_one(), x =>
-          x.set("read_only", read_only)
-        )
-      )
+  private async set_read_only(read_only: boolean): Promise<void> {
+    this.assert_is_ready();
+    await this.syncstring_table.set(
+      this.syncstring_table.get_one().set("read_only", read_only)
     );
   }
 
-  get_read_only() {
-    if (this._closed) {
-      // nothing to do
-      return;
-    }
-    return __guard__(
-      this.syncstring_table != null
-        ? this.syncstring_table.get_one()
-        : undefined,
-      x => x.get("read_only")
-    );
+  public get_read_only(): boolean {
+    this.assert_is_ready();
+    return this.syncstring_table.get_one().get("read_only");
   }
 
-  // This should only be called after the syncstring is
-  // initialized (hence connected), since
-  // otherwise this.syncstring_table isn't defined
-  // yet (it gets defined during connect).
   private wait_until_read_only_known(): Promise<void> {
-    this.assert_not_closed();
-    if (this.syncstring_table == null) {
-      // should never happen
-      cb("this.syncstring_table must be defined");
-      return;
+    this.wait_until_ready();
+    function read_only_defined(t: SyncTable): boolean {
+      const x = t.get_one();
+      if (x == null) {
+        return false;
+      }
+      return x.get("read_only") != null;
     }
-    return this.syncstring_table.wait({
-      until: t => __guard__(t.get_one(), x => x.get("read_only")) != null,
-      cb
-    });
+    await this.syncstring_table.wait(read_only_defined, 5 * 60);
   }
 
-  // Returns true if the current live version of this document has a different hash
-  // than the version mostly recently saved to disk.  I.e., if there are changes
-  // that have not yet been **saved to disk**.  See the other function
-  // has_uncommitted_changes below for determining whether there are changes
-  // that haven't been commited to the database yet.
-  // Returns *undefined* if initialization not even done yet.
-  has_unsaved_changes() {
-    const hash_saved = this.hash_of_saved_version();
-    const hash_live = this.hash_of_live_version();
-    if (hash_saved == null || hash_live == null) {
-      // don't know yet...
+  /* Returns true if the current live version of this document has
+     a different hash than the version mostly recently saved to disk.
+     I.e., if there are changes that have not yet been **saved to
+     disk**.  See the other function has_uncommitted_changes below
+     for determining whether there are changes that haven't been
+     commited to the database yet.  Returns *undefined* if
+     initialization not even done yet. */
+  public has_unsaved_changes(): boolean | undefined {
+    if (this.state !== "ready") {
       return;
     }
-    return hash_live !== hash_saved;
+    return this.hash_of_saved_version() !== this.hash_of_live_version();
   }
 
   // Returns hash of last version saved to disk (as far as we know).
-  hash_of_saved_version() {
-    let left;
-    const table =
-      this.syncstring_table != null
-        ? this.syncstring_table.get_one()
-        : undefined;
-    if (table == null) {
+  public hash_of_saved_version(): number | undefined {
+    if (this.state !== "ready") {
       return;
     }
-    return (left = table.getIn(["save", "hash"])) != null ? left : 0; // known, but not saved ever.
+    return this.syncstring_table.get_one().getIn(["save", "hash"]);
   }
 
-  // Return hash of the live version of the document, or undefined if the document
-  // isn't loaded yet.  (TODO: faster version of this for syncdb, which avoids
-  // converting to a string, which is a waste of time.)
-  hash_of_live_version() {
-    const s = __guardMethod__(this.doc, "to_str", o => o.to_str());
-    if (s != null) {
-      return misc.hash_string(s);
+  /* Return hash of the live version of the document,
+     or undefined if the document isn't loaded yet.
+     (TODO: write faster version of this for syncdb, which
+     avoids
+     converting to a string, which is a waste of time.) */
+  hash_of_live_version(): number | undefined {
+    if (this.state !== "ready") {
+      return;
     }
+    return misc.hash_string(this.doc.to_str());
   }
 
-  // Initiates a save of file to disk, then if cb is set, waits for the state to
-  // change to done before calling cb.
-  save_to_disk(cb) {
+  /* Return true if there are changes to this syncstring that
+     have not been committed to the database (with the commit
+     acknowledged).  This does not mean the file has been
+     written to disk; however, it does mean that it safe for
+     the user to close their browser.
+  */
+  public has_uncommitted_changes(): boolean {
+    if (this.state !== "ready") {
+      return false;
+    }
+    return this.patches_table.has_uncommitted_changes();
+  }
+
+  /* Initiates a save of file to disk, then waits for the
+     state to change. */
+  public async save_to_disk(): Promise<void> {
+    this.assert_is_ready();
     //dbg = this.dbg("save_to_disk(cb)")
     //dbg("initiating the save")
     if (!this.has_unsaved_changes()) {
       // no unsaved changes, so don't save --
-      // CRITICAL: this optimization is assumed by autosave, etc.
-      if (typeof cb === "function") {
-        cb();
-      }
+      // CRITICAL: this optimization is assumed by
+      // autosave, etc.
       return;
     }
 
     if (this.get_read_only()) {
-      // save should fail if file is read only
-      if (typeof cb === "function") {
-        cb("readonly");
-      }
-      return;
+      // save should fail if file is read only and there are changes
+      throw Error("can't save readonly file with changes to disk");
     }
 
-    if (this._deleted) {
-      // nothing to do -- no need to attempt to save if file is already deleted
-      if (typeof cb === "function") {
-        cb();
-      }
+    if (this.deleted) {
+      // nothing to do -- no need to attempt to save if file
+      // is already deleted
       return;
     }
 
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    return this.save(err => {
-      if (err) {
-        return typeof cb === "function" ? cb(err) : undefined;
-      } else {
-        // Now do actual save to the *disk*.
-        return this.__save_to_disk_after_sync(cb);
-      }
-    });
+    await this.save();
+
+    // Now do actual save to the *disk*.
+    await this.__save_to_disk_after_sync();
   }
 
   __save_to_disk_after_sync(cb) {
-    this._save_to_disk();
-    if (this.syncstring_table == null) {
-      cb("this.syncstring_table must be defined");
-      return;
-    }
+    this.assert_is_ready();
+    await this._save_to_disk();
+    this.assert_is_ready();
+    // waiting for save.state to change
+    // TODO: finish
     if (cb != null) {
-      //dbg("waiting for save.state to change from '#{this.syncstring_table.get_one().getIn(['save','state'])}' to 'done'")
       const f = cb => {
         if (this._closed) {
           // closed during save
@@ -1938,11 +1867,15 @@ class SyncDoc extends EventEmitter {
     }
   }
 
-  // Save this file to disk, if it is associated with a project and has a filename.
-  // A user (web browsers) sets the save state to requested.
-  // The project sets the state to saving, does the save to disk, then sets
-  // the state to done.
-  _save_to_disk(cb) {
+  /* Save this file to disk, if it is associated with
+     a project and has a filename.
+     A user (web browsers) sets the save state to requested.
+     The project sets the state to saving, does the save
+     to disk, then sets the state to done.
+  */
+  private async _save_to_disk(): Promise<void> {
+    this.assert_is_ready();
+    // TODO: finish
     if (this.client.is_user()) {
       this.__save_to_disk_user();
       if (typeof cb === "function") {
@@ -1989,7 +1922,7 @@ class SyncDoc extends EventEmitter {
     this.touch();
     const data = this.to_str(); // string version of this doc
     const expected_hash = misc.hash_string(data);
-    return this._set_save({ state: "requested", error: false, expected_hash });
+    return this.set_save({ state: "requested", error: false, expected_hash });
   }
 
   __do_save_to_disk_project(cb) {
@@ -2010,7 +1943,7 @@ class SyncDoc extends EventEmitter {
     if (hash === this.hash_of_saved_version()) {
       // No actual save to disk needed; still we better record this fact in table in case it
       // isn't already recorded
-      this._set_save({ state: "done", error: false, hash });
+      this.set_save({ state: "done", error: false, hash });
       cb();
       return;
     }
@@ -2022,7 +1955,7 @@ class SyncDoc extends EventEmitter {
       return;
     }
     if (!path) {
-      this._set_save({ state: "done", error: "cannot save without path" });
+      this.set_save({ state: "done", error: "cannot save without path" });
       cb("cannot save without path");
       return;
     }
@@ -2058,9 +1991,9 @@ class SyncDoc extends EventEmitter {
       err => {
         //dbg("returned from write_file: #{err}")
         if (err) {
-          this._set_save({ state: "done", error: JSON.stringify(err) });
+          this.set_save({ state: "done", error: JSON.stringify(err) });
         } else {
-          this._set_save({
+          this.set_save({
             state: "done",
             error: false,
             hash: misc.hash_string(data)
@@ -2205,16 +2138,5 @@ class SyncDoc extends EventEmitter {
       this.emit("change");
     }
     return (this._sync_remote_and_doc_calling = false);
-  }
-
-  // Return true if there are changes to this syncstring that have not been
-  // committed to the database (with the commit acknowledged).  This does not
-  // mean the file has been written to disk; however, it does mean that it
-  // safe for the user to close their browser.
-  // Returns undefined if not yet initialized.
-  has_uncommitted_changes() {
-    return this.patches_table != null
-      ? this.patches_table.has_uncommitted_changes()
-      : undefined;
   }
 }
