@@ -25,7 +25,7 @@ interface ProcessedPatch {
 }
 
 import { Map } from "immutable";
-import { once } from "../../async-utils";
+import { once, retry_until_success } from "../../async-utils";
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { filename_extension } from "../../misc2";
@@ -472,6 +472,7 @@ class SyncDoc extends EventEmitter {
   // "this.syncstring_table.set(...)" below because it is critical to
   // to be able to do the touch before this.syncstring_table gets initialized,
   // since otherwise the initial open a file will be very slow.
+  // TODO: convert
   touch(min_age_m = 5, cb) {
     let last_active;
     if (this.client.is_project()) {
@@ -1789,81 +1790,64 @@ class SyncDoc extends EventEmitter {
     await this.save();
 
     // Now do actual save to the *disk*.
-    await this.__save_to_disk_after_sync();
+    await this.save_to_disk_1();
   }
 
-  __save_to_disk_after_sync(cb) {
+  private async save_to_disk_1(): Promise<void> {
     this.assert_is_ready();
-    await this._save_to_disk();
+    await this.save_to_disk_2();
     this.assert_is_ready();
-    // waiting for save.state to change
-    // TODO: finish
-    if (cb != null) {
-      const f = cb => {
-        if (this._closed) {
-          // closed during save
-          cb();
-          return;
-        }
-        if (this._deleted) {
-          // if deleted, then save doesn't need to finish and is done successfully.
-          cb();
-          return;
-        }
-        if (this.syncstring_table == null) {
-          cb(true);
-          return;
-        }
-        return this.syncstring_table.wait({
-          until(table) {
-            return (
-              __guard__(table.get_one(), x => x.getIn(["save", "state"])) ===
-              "done"
-            );
-          },
-          timeout: 10,
-          cb: err => {
-            //dbg("done waiting -- now save.state is '#{this.syncstring_table.get_one().getIn(['save','state'])}'")
-            if (err) {
-              //dbg("got err waiting: #{err}")
-            } else {
-              // ? because this.syncstring_table could be undefined here, if saving and closing at the same time.
-              err =
-                this.syncstring_table != null
-                  ? this.syncstring_table.get_one().getIn(["save", "error"])
-                  : undefined;
-            }
-            //if err
-            //    dbg("got result but there was an error: #{err}")
-            if (err) {
-              this.touch(0); // touch immediately to ensure backend pays attention.
-            }
-            return cb(err);
-          }
+    await this.wait_for_save_done();
+  }
+
+  // wait for save.state to change to state.
+  private async wait_for_save_done(): Promise<void> {
+    function until(table): boolean {
+      return table.get_one().getIn(["save", "state"]) === "done";
+    }
+
+    let last_err = undefined;
+    async function f(): Promise<void> {
+      if (this.state != "ready" || this.deleted) {
+        // not ready or deleted - no longer trying to save.
+        return;
+      }
+      try {
+        await this.syncstring_table.wait(until, 10);
+      } catch (err) {
+        await this.touch(0); // get backend attention!
+        throw err;
+      }
+      if (this.state != "ready" || this.deleted) {
+        // not ready or deleted - no longer trying to save.
+        return;
+      }
+      const err = this.syncstring_table.get_one().getIn(["save", "error"]);
+      if (err) {
+        last_err = err;
+        await this.touch(0); // get backend attention!
+        throw Error(err);
+      }
+      // done with no error.
+      last_err = undefined;
+      return;
+    }
+    await retry_until_success({
+      f,
+      max_tries: 4
+    });
+    if (this.state != "ready") {
+      return;
+    }
+    if (last_err) {
+      if (typeof this.client.log_error === "function") {
+        this.client.log_error({
+          string_id: this.string_id,
+          path: this.path,
+          project_id: this.project_id,
+          error: `Error saving file -- ${last_err}`
         });
-      };
-      return misc.retry_until_success({
-        f,
-        max_tries: 4,
-        cb: (err, last_err) => {
-          if (this._closed) {
-            // closed during save
-            cb();
-            return;
-          }
-          if (last_err) {
-            if (typeof this.client.log_error === "function") {
-              this.client.log_error({
-                string_id: this.string_id,
-                path: this.path,
-                project_id: this.project_id,
-                error: `Error saving file -- ${last_err}`
-              });
-            }
-          }
-          return cb(last_err);
-        }
-      });
+      }
     }
   }
 
@@ -1873,15 +1857,10 @@ class SyncDoc extends EventEmitter {
      The project sets the state to saving, does the save
      to disk, then sets the state to done.
   */
-  private async _save_to_disk(): Promise<void> {
+  private async save_to_disk_2(): Promise<void> {
     this.assert_is_ready();
-    // TODO: finish
     if (this.client.is_user()) {
-      this.__save_to_disk_user();
-      if (typeof cb === "function") {
-        cb();
-      }
-      return;
+      return await this.save_to_disk_user();
     }
 
     if (this._saving_to_disk_cbs != null) {
