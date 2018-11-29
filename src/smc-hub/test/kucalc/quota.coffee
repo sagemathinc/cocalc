@@ -121,18 +121,81 @@ describe 'default quota', ->
 
         maxedout = quota({}, over_max)
         exp =
-            "cpu_limit": 3
-            "cpu_request": 3*1024 # set at the top of quota config
-            "disk_quota": 20000
-            "idle_timeout": 24*3600*90
-            "member_host": true # what this upgrade is about
-            "memory_limit": 16000  # set at the top of quota config
-            "memory_request": 8000 # set at the top of quota config
-            "network": true # what this upgrade is about
-            "privileged": false
-        #expect(maxedout).toEqual(exp)
+            cpu_limit: 4
+            cpu_request: 3 # set at the top of quota config
+            disk_quota: 20000
+            idle_timeout: 24*3600*90
+            member_host: true
+            memory_limit: 16000  # set at the top of quota config
+            memory_request: 8000 # set at the top of quota config
+            network: true
+            privileged: false
+        expect(maxedout).toEqual(exp)
 
 
+    it 'does not limit admin upgrades', ->
+        settings =
+            network         : 2
+            member_host     : 3
+            disk_quota      : 32000 # max 20gb
+            memory          : 20000 # max 16gb
+            mintime         : 24*3600*100 # max 90 days
+            memory_request  : 10000 # max 8gb
+            cores           : 7  # max 4 shared
+            cpu_shares      : 1024 * 4 # max 3 requests
+
+        maxedout = quota(settings, {})
+        exp =
+            cpu_limit: 7 # > limit
+            cpu_request: 4 - .25 # > limit minus some weird constant
+            disk_quota: 32000 # > limit
+            idle_timeout: 24*3600*100 # > limit
+            member_host: true
+            memory_limit: 20000  # > limit
+            memory_request: 10000 # > limit
+            network: true
+            privileged: false
+        expect(maxedout).toEqual(exp)
+
+    it 'combines admin and user upgrades properly', ->
+        settings =
+            network         : 1
+            member_host     : 0
+            disk_quota      : 23000 # max 20gb
+            memory          : 1000 # max 16gb
+            mintime         : 24*3600*33 # max 90 days
+            memory_request  : 1000 # max 8gb
+            cores           : 1  # max 4 shared
+            cpu_shares      : 0
+
+        users =
+            "user-1":
+                upgrades:
+                    member_host    : true
+                    network        : true
+                    memory_request : 3210
+                    disk_quota     : 3000
+                    cores          : 2
+                    mintime        : 24*3600*40
+                    cpu_shares     : 1024 * 0.5
+            "user-2":
+                upgrades:
+                    member_host    : true
+                    network        : true
+                    cores          : 2
+                    mintime        : 24*3600*40
+
+        exp =
+            network         : true
+            member_host     : true
+            memory_request  : 4210
+            memory_limit    : 1500 # 1500 mb free for members
+            cpu_request     : .5
+            cpu_limit       : 4
+            privileged      : false
+            idle_timeout    : 24*3600*90  # 1800 secs free
+            disk_quota      : 23000
+        expect(quota(settings, users)).toEqual(exp)
 
 
 

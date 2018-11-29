@@ -217,6 +217,17 @@ Jupyter kernel defaults
 
     SELECT COUNT(*), editor_settings ->> 'jupyter' AS kernel from accounts GROUP BY kernel ORDER BY count DESC;
 
+and recent
+
+    SELECT COUNT(*), editor_settings #>> '{jupyter, kernel}' AS kernel from accounts WHERE last_active > NOW() - '1 month'::INTERVAL  GROUP BY kernel ORDER BY count DESC;
+
+
+
+Applied upgrades per project (just the idea)
+
+    SELECT project_id, SUM((u.value #>> '{upgrades, memory}')::INT) FROM projects AS p, jsonb_each(p.users) AS u WHERE (u.value #>> '{upgrades, memory}')::INT > 0 GROUP BY project_id limit 10;
+
+
 ## Stripe
 
 ```

@@ -4,6 +4,8 @@
 {DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
 MAX_UPGRADES = require('smc-util/upgrade-spec').upgrades.max_per_project
 
+console.log MAX_UPGRADES
+
 # No matter what, every project gets SOME possibly tiny amount of guaranteed cpu.
 # This is important since otherwise projects will NOT start at all, e.g., if a paying
 # customer is using 100% of the cpu on the node (this will happen if their limits are
@@ -69,13 +71,24 @@ exports.quota = (settings, users) ->
     #            quota.privileged = true
     #            break
 
-    # little helper to caluclate the quotas
-    # name: field in the quota dict, and user is for users, ...
+    # little helper to caluclate the quotas, contributions, and limits
+    # name: of the computed quota, upgrade the quota config key,
+    # parse_num for converting numbers, and factor for conversions
     calc = (name, upgrade, parse_num, factor = 1) ->
-        if settings[name]
-            quota[name] = parse_num(settings[name])
+        # settings "overwrite" the default quotas
+        if settings[upgrade]
+            quota[name] = factor * parse_num(settings[upgrade])
+            base = Math.min(quota[name], factor * MAX_UPGRADES[upgrade])
+        else
+            base = quota[name]
+        # compute how much is left for contributed user upgrades
+        remain = Math.max(0, (factor * MAX_UPGRADES[upgrade]) - base)
+        contribs = 0
         for _, val of users
-            quota[name] += factor * parse_num(val?.upgrades?[upgrade])
+            contribs += factor * parse_num(val?.upgrades?[upgrade])
+        contribs = Math.min(remain, contribs)
+        # use quota[name], and ignore base, because admins are allowed to contribute without limits
+        quota[name] += contribs
 
     # disk space quota in MB
     calc('disk_quota', 'disk_quota', to_int)
@@ -92,7 +105,7 @@ exports.quota = (settings, users) ->
     # cpu limits
     calc('cpu_limit', 'cores', to_float)
 
-    # cpu requests -- some special case ...
+    # cpu requests -- a special case ...
     if settings.cpu_shares
         # Subtract 256 since that's what we used to set in the database manually.
         # This isn't part of anything users pay for.
