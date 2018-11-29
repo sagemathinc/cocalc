@@ -15,51 +15,53 @@ describe 'default quota', ->
         # quota should work without any arguments
         basic = quota()
         exp =
-            "cpu_limit": 1
-            "cpu_request": 0.02
-            "disk_quota": 3000
-            "idle_timeout": 1800
-            "member_host": false
-            "memory_limit": 1000
-            "memory_request": 200
-            "network": false
-            "privileged": false
+            cpu_limit: 1
+            cpu_request: 0.02
+            disk_quota: 3000
+            idle_timeout: 1800
+            member_host: false
+            memory_limit: 1000
+            memory_request: 200
+            network: false
+            privileged: false
         expect(basic).toEqual(exp)
 
     it 'gives members a bit more memory by default', ->
         member = quota({}, {'user-id': {'upgrades': {'member_host': 1}}})
         exp =
-            "cpu_limit": 1
-            "cpu_request": 0.05 # set at the top of quota config
-            "disk_quota": 3000
-            "idle_timeout": 1800
-            "member_host": true # what this upgrade is about
-            "memory_limit": 1500  # set at the top of quota config
-            "memory_request": 300 # set at the top of quota config
-            "network": false
-            "privileged": false
+            cpu_limit: 1
+            cpu_request: 0.05 # set at the top of quota config
+            disk_quota: 3000
+            idle_timeout: 1800
+            member_host: true # what this upgrade is about
+            memory_limit: 1500  # set at the top of quota config
+            memory_request: 300 # set at the top of quota config
+            network: false
+            privileged: false
         expect(member).toEqual(exp)
 
     it 'respects admin member/network upgrades', ->
         admin1 = quota({'member_host': 1, 'network': 1}, {})
         exp =
-            "cpu_limit": 1
-            "cpu_request": 0.05 # set at the top of quota config
-            "disk_quota": 3000
-            "idle_timeout": 1800
-            "member_host": true # what this upgrade is about
-            "memory_limit": 1500  # set at the top of quota config
-            "memory_request": 300 # set at the top of quota config
-            "network": true # what this upgrade is about
-            "privileged": false
+            cpu_limit: 1
+            cpu_request: 0.05 # set at the top of quota config
+            disk_quota: 3000
+            idle_timeout: 1800
+            member_host: true # what this upgrade is about
+            memory_limit: 1500  # set at the top of quota config
+            memory_request: 300 # set at the top of quota config
+            network: true # what this upgrade is about
+            privileged: false
         expect(admin1).toEqual(exp)
 
     it 'adds up user contributions', ->
         users =
             "user-id-1":
                 upgrades:
-                    network : 1
-                    memory  : 1500
+                    network        : 1
+                    memory         : 1500
+                    memory_request : 2500
+                    cpu_shares     : 1024 * .33
             "user-id-2":
                 upgrades:
                     member_host : 1
@@ -75,14 +77,34 @@ describe 'default quota', ->
         exp =
             network         : true
             member_host     : true
-            memory_request  : 300
+            memory_request  : 2500
             memory_limit    : 2630 # 1000 mb free
-            cpu_request     : .05
+            cpu_request     : .33
             cpu_limit       : 1.5 # 1 for free
             privileged      : false
             idle_timeout    : 1899  # 1800 secs free
             disk_quota      : 4000
         expect(added).toEqual(exp)
+
+    it 'doe NOT set limits >= requests -- manage pod in kucalc does that', ->
+        users =
+            "user-1":
+                upgrades:
+                    member_host    : true
+                    network        : true
+                    memory_request : 3210
+
+        exp =
+            network         : true
+            member_host     : true
+            memory_request  : 3210
+            memory_limit    : 1500 # 1500 mb free for members
+            cpu_request     : .05
+            cpu_limit       : 1
+            privileged      : false
+            idle_timeout    : 1800  # 1800 secs free
+            disk_quota      : 3000
+        expect(quota({}, users)).toEqual(exp)
 
     it 'caps user upgrades at their maximum', ->
         over_max =

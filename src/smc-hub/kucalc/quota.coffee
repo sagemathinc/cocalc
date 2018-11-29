@@ -69,44 +69,38 @@ exports.quota = (settings, users) ->
     #            quota.privileged = true
     #            break
 
+    # little helper to caluclate the quotas
+    # name: field in the quota dict, and user is for users, ...
+    calc = (name, upgrade, parse_num, factor = 1) ->
+        if settings[name]
+            quota[name] = parse_num(settings[name])
+        for _, val of users
+            quota[name] += factor * parse_num(val?.upgrades?[upgrade])
+
     # disk space quota in MB
-    if settings.disk_quota
-        quota.disk_quota = to_int(settings.disk_quota)
-    for _, val of users
-        quota.disk_quota += to_int(val?.upgrades?.disk_quota)
+    calc('disk_quota', 'disk_quota', to_int)
 
     # memory limit
-    if settings.memory
-        quota.memory_limit = to_int(settings.memory)
-    for _, val of users
-        quota.memory_limit += to_int(val?.upgrades?.memory)
+    calc('memory_limit', 'memory', to_int)
 
     # idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
-    if settings.mintime
-        quota.idle_timeout = to_int(settings.mintime)
-    for _, val of users
-        quota.idle_timeout += to_int(val?.upgrades?.mintime)
+    calc('idle_timeout', 'mintime', to_int)
 
     # memory request
-    if settings.memory_request
-        quota.memory_request = to_int(settings.memory_request)
-    for _, val of users
-        quota.memory_request += to_int(val?.upgrades?.memory_request)
+    calc('memory_request', 'memory_request', to_int)
 
     # cpu limits
-    if settings.cores
-        quota.cpu_limit = to_float(settings.cores)
-    for _, val of users
-        quota.cpu_limit += to_float(val?.upgrades?.cores)
+    calc('cpu_limit', 'cores', to_float)
 
-    # cpu requests
+    # cpu requests -- some special case ...
     if settings.cpu_shares
         # Subtract 256 since that's what we used to set in the database manually.
         # This isn't part of anything users pay for.
         # We should probably zero this out in the db when switching.
         quota.cpu_request = Math.max(0, to_int(settings.cpu_shares) - 256) / 1024
-    for _, val of users
-        quota.cpu_request += to_int(val?.upgrades?.cpu_shares) / 1024
+        delete settings.cpu_shares
+
+    calc('cpu_request', 'cpu_shares', to_float, 1/1024)
 
     # ensure minimum cpu are met
     cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU)
@@ -118,7 +112,6 @@ exports.quota = (settings, users) ->
     cap_lower_bound(quota, "memory_limit", MIN_MEMORY_LIMIT)
 
     return quota
-
 
 cap_lower_bound = (quota, name, MIN_SPEC) ->
     if quota.member_host
