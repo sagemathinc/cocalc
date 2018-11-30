@@ -1447,7 +1447,7 @@ exports.UpgradeAdjustor = rclass
         # Then it limits the applyable upgrades by what's still possible to apply until the maximum is reached.
         # My mental model:
         #
-        #   0                                total          maximum
+        #   0                           total_upgrades     proj_maximum
         #   |<-------------------------------->|                |
         #   |<----->|<------------------------>|<-------------->|
         #   | admin |  all upgrades by users   | proj remainder |
