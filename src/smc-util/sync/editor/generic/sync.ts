@@ -4,7 +4,7 @@
 */
 
 /*
-If the client becomes disconnected from the backend for more than this long
+OFFLINE_THRESH_S - If the client becomes disconnected from the backend for more than this long
 then---on reconnect---do extra work to ensure that all snapshots are up to
 date (in case snapshots were made when we were offline), and mark the sent
 field of patches that weren't saved.
@@ -25,7 +25,8 @@ interface ProcessedPatch {
 }
 
 import { Map } from "immutable";
-import { once, retry_until_success } from "../../async-utils";
+import { delay } from "awaiting";
+import { callback2, once, retry_until_success } from "../../async-utils";
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { filename_extension } from "../../misc2";
@@ -97,6 +98,8 @@ class SyncDoc extends EventEmitter {
   private watch_path?: string;
   private file_watcher?: FileWatcher;
 
+  private patch_update_queue : string[] = [];
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -124,7 +127,11 @@ class SyncDoc extends EventEmitter {
     }
 
     this.save = reuseInFlight(this.save.bind(this));
+    this.save_to_disk = reuseInFlight(this.save_to_disk.bind(this));
     this.load_from_disk = reuseInFlight(this.load_from_disk.bind(this));
+    this.handle_patch_update_queue = reuseInFlight(
+      this.handle_patch_update_queue.bind(this)
+    );
     this.setMaxListeners(100);
     this.init();
   }
@@ -256,75 +263,83 @@ class SyncDoc extends EventEmitter {
     this.doc = value;
   }
 
-  // Reconnect all the syncstring and patches tables, which
-  // define this syncstring.
+  // Reconnect all the syncstring and patches
+  // tables, which define this syncstring.
   reconnect() {
     if (this.syncstring_table != null) {
       this.syncstring_table.reconnect();
     }
-    return this.patches_table != null
-      ? this.patches_table.reconnect()
-      : undefined;
+    if (this.patches_table != null) {
+      this.patches_table.reconnect();
+    }
   }
 
   // Return underlying document, or undefined if document hasn't been set yet.
-  get_doc() {
+  public get_doc(): Document {
     return this.doc;
   }
 
   // Set this doc from its string representation.
-  from_str(value) {
+  public from_str(value: string): void {
     this.doc = this._from_str(value);
   }
 
-  // Return string representation of this doc, or exception
-  // if not yet ready.
+  // Return string representation of this doc,
+  // or exception if not yet ready.
   public to_str(): string {
     this.assert_is_ready();
     return this.doc.to_str();
   }
 
   // Used for internal debug logging
-  dbg(f: string): Function {
+  private dbg(f: string): Function {
     return this.client.dbg(`SyncString(path='${this.path}').${f}:`);
   }
 
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will return undefined
-  version(time) {
-    return this.patch_list != null ? this.patch_list.value(time) : undefined;
+  public version(time: Date): Document | undefined {
+    this.assert_is_ready();
+    return this.patch_list.value(time);
   }
 
   // Compute version of document if the patches at the given times were simply not included.
   // This is a building block that is used for implementing undo functionality for client editors.
-  version_without(times) {
+  public version_without(times: Date[]): Document {
     return this.patch_list.value(undefined, undefined, times);
   }
 
-  revert(version) {
+  public revert(version: Date): void {
     this.set_doc(this.version(version));
   }
 
-  // Undo/redo public api.
-  //   Calling this.undo and this.redo returns the version of the document after
-  //   the undo or redo operation, but does NOT otherwise change anything!
-  //   The caller can then do what they please with that output (e.g., update the UI).
-  //   The one state change is that the first time calling this.undo or this.redo switches
-  //   into undo/redo state in which additional calls to undo/redo
-  //   move up and down the stack of changes made by this user during this session.
-  //   Call this.exit_undo_mode() to exit undo/redo mode.
-  //   Undo and redo *only* impact changes made by this user during this session.
-  //   Other users edits are unaffected, and work by this same user working from another
-  //   browser tab or session is also unaffected.
-  //
-  //   Finally, undo of a past patch by definition means "the state of the document"
-  //   if that patch was not applied.  The impact of undo is NOT that the patch is
-  //   removed from the patch history; instead it just returns a document here that
-  //   the client can do something with, which may result in future patches.   Thus
-  //   clients could implement a number of different undo strategies without impacting
-  //   other clients code at all.
-  undo() {
+  /* Undo/redo public api.
+  Calling this.undo and this.redo returns the version of
+  the document after the undo or redo operation, but does
+  NOT otherwise change anything! The caller can then do what
+  they please with that output (e.g., update the UI).
+  The one state change is that the first time calling this.undo
+  or this.redo switches into undo/redo state in which additional
+  calls to undo/redo move up and down the stack of changes made
+  by this user during this session.
+
+  Call this.exit_undo_mode() to exit undo/redo mode.
+
+  Undo and redo *only* impact changes made by this user during
+  this session.  Other users edits are unaffected, and work by
+  this same user working from another browser tab or session is
+  also unaffected.
+
+  Finally, undo of a past patch by definition means "the state
+  of the document" if that patch was not applied.  The impact
+  of undo is NOT that the patch is removed from the patch history;
+  instead it just returns a document here that the client can
+  do something with, which may result in future patches.   Thus
+  clients could implement a number of different undo strategies
+  without impacting other clients code at all.
+  */
+  public undo(): void {
     let state = this._undo_state;
     if (state == null) {
       // not in undo mode
@@ -368,7 +383,7 @@ class SyncDoc extends EventEmitter {
     }
   }
 
-  redo() {
+  public redo(): void {
     const state = this._undo_state;
     if (state == null) {
       // nothing to do but return latest live version
@@ -398,15 +413,15 @@ class SyncDoc extends EventEmitter {
     }
   }
 
-  in_undo_mode() {
-    return this._undo_state != null;
+  public in_undo_mode(): boolean {
+    return this.undo_state != null;
   }
 
-  exit_undo_mode() {
-    return delete this._undo_state;
+  public exit_undo_mode(): void {
+    delete this.undo_state;
   }
 
-  _init_undo_state() {
+  private init_undo_state(): void {
     if (this._undo_state != null) {
       this._undo_state;
     }
@@ -1793,6 +1808,7 @@ class SyncDoc extends EventEmitter {
     await this.save_to_disk_1();
   }
 
+  // Auxiliary function 1 for saving to disk:
   private async save_to_disk_1(): Promise<void> {
     this.assert_is_ready();
     await this.save_to_disk_2();
@@ -1815,11 +1831,11 @@ class SyncDoc extends EventEmitter {
       try {
         await this.syncstring_table.wait(until, 10);
       } catch (err) {
+        // timed out after 10s
         await this.touch(0); // get backend attention!
-        throw err;
+        throw Error("timed out");
       }
       if (this.state != "ready" || this.deleted) {
-        // not ready or deleted - no longer trying to save.
         return;
       }
       const err = this.syncstring_table.get_one().getIn(["save", "error"]);
@@ -1828,7 +1844,7 @@ class SyncDoc extends EventEmitter {
         await this.touch(0); // get backend attention!
         throw Error(err);
       }
-      // done with no error.
+      // done, with no error.
       last_err = undefined;
       return;
     }
@@ -1839,19 +1855,18 @@ class SyncDoc extends EventEmitter {
     if (this.state != "ready") {
       return;
     }
-    if (last_err) {
-      if (typeof this.client.log_error === "function") {
-        this.client.log_error({
-          string_id: this.string_id,
-          path: this.path,
-          project_id: this.project_id,
-          error: `Error saving file -- ${last_err}`
-        });
-      }
+    if (last_err && typeof this.client.log_error === "function") {
+      this.client.log_error({
+        string_id: this.string_id,
+        path: this.path,
+        project_id: this.project_id,
+        error: `Error saving file -- ${last_err}`
+      });
     }
   }
 
-  /* Save this file to disk, if it is associated with
+  /* Auxiliary function 2 for saving to disk:
+     If this is associated with
      a project and has a filename.
      A user (web browsers) sets the save state to requested.
      The project sets the state to saving, does the save
@@ -1859,214 +1874,177 @@ class SyncDoc extends EventEmitter {
   */
   private async save_to_disk_2(): Promise<void> {
     this.assert_is_ready();
+
     if (this.client.is_user()) {
       return await this.save_to_disk_user();
     }
 
-    if (this._saving_to_disk_cbs != null) {
-      this._saving_to_disk_cbs.push(cb);
-      return;
-    } else {
-      this._saving_to_disk_cbs = [cb];
+    try {
+      await this.save_to_disk_project();
+    } catch (err) {
+      this.emit("save_to_disk_project", err);
+      throw err;
     }
-
-    return this.__do_save_to_disk_project(err => {
-      const v = this._saving_to_disk_cbs;
-      delete this._saving_to_disk_cbs;
-      for (cb of v) {
-        if (typeof cb === "function") {
-          cb(err);
-        }
-      }
-      return this.emit("save_to_disk_project", err);
-    });
   }
 
-  __save_to_disk_user() {
-    if (this._closed) {
-      // nothing to do
-      return;
-    }
+  private async save_to_disk_user(): Promise<void> {
+    this.assert_is_ready();
+
     if (!this.has_unsaved_changes()) {
-      // Browser client that has no unsaved changes, so don't need to save --
-      // CRITICAL: this optimization is assumed by autosave, etc.
+      /* Browser client that has no unsaved changes,
+         so don't need to save --
+         CRITICAL: this optimization is assumed by autosave.
+       */
       return;
     }
-    // CRITICAL: First, we broadcast interest in the syncstring -- this will cause the relevant project
-    // (if it is running) to open the syncstring (if closed), and hence be aware that the client
-    // is requesting a save.  This is important if the client and database have changes not
-    // saved to disk, and the project stopped listening for activity on this syncstring due
-    // to it not being touched (due to active editing).  Not having this leads to a lot of "can't save"
-    // errors.
+    /* CRITICAL: First, we broadcast interest in the syncstring --
+       this will cause the relevant project (if it is running)
+       to open the syncstring (if closed), and hence be aware
+       that the client is requesting a save.  This is important
+       if the client and database have changes not saved to disk,
+       and the project stopped listening for activity on this
+       syncstring due to it not being touched (due to active
+       editing).  Not having this leads to a lot of "can't save"
+       errors. */
     this.touch();
-    const data = this.to_str(); // string version of this doc
+    // string version of this doc
+    const data: string = this.to_str();
     const expected_hash = misc.hash_string(data);
-    return this.set_save({ state: "requested", error: false, expected_hash });
+    await this.set_save({ state: "requested", error: false, expected_hash });
   }
 
-  __do_save_to_disk_project(cb) {
-    // check if on-disk version is same as in memory, in which case no save is needed.
+  private async save_to_disk_project(): Promise<void> {
+    this.assert_is_ready();
+
+    // check if on-disk version is same as in memory, in
+    // which case no save is needed.
     const data = this.to_str(); // string version of this doc
     const hash = misc.hash_string(data);
     const expected_hash = this.syncstring_table
       .get_one()
       .getIn(["save", "expected_hash"]);
+
     if (failing_to_save(this.path, hash, expected_hash)) {
-      this.dbg("__save_to_disk_project")(
+      this.dbg("save_to_disk_project")(
         `FAILING TO SAVE-- hash=${hash}, expected_hash=${expected_hash} -- reconnecting`
       );
-      cb("failing to save -- reconnecting");
+      throw Error("failing to save -- reconnecting");
       this.reconnect();
       return;
     }
+
     if (hash === this.hash_of_saved_version()) {
-      // No actual save to disk needed; still we better record this fact in table in case it
+      // No actual save to disk needed; still we better
+      // record this fact in table in case it
       // isn't already recorded
-      this.set_save({ state: "done", error: false, hash });
-      cb();
+      await this.set_save({ state: "done", error: false, hash });
       return;
     }
 
-    const path = this.get_path();
-    //dbg = this.dbg("__do_save_to_disk_project('#{path}')")
-    if (path == null) {
-      cb("not yet initialized");
-      return;
-    }
+    const path = this.path;
     if (!path) {
-      this.set_save({ state: "done", error: "cannot save without path" });
-      cb("cannot save without path");
-      return;
+      const err = "cannot save without path";
+      await this.set_save({ state: "done", error: err });
+      throw Error(err);
     }
 
     //dbg("project - write to disk file")
-    // set window to slightly earlier to account for clock imprecision.
-    // Over an sshfs mount, all stats info is **rounded down to the nearest second**,
-    // which this also takes care of.
-    this._save_to_disk_start_ctime = new Date() - 1500;
-    this._save_to_disk_end_ctime = undefined;
-    return async.series(
-      [
-        cb => {
-          return this.client.write_file({
-            path,
-            data,
-            cb
-          });
-        },
-        cb => {
-          return this.client.path_stat({
-            path,
-            cb: (err, stat) => {
-              this._save_to_disk_end_ctime = (stat != null
-                ? stat.ctime
-                : undefined
-              ).valueOf();
-              return cb(err);
-            }
-          });
-        }
-      ],
-      err => {
-        //dbg("returned from write_file: #{err}")
-        if (err) {
-          this.set_save({ state: "done", error: JSON.stringify(err) });
-        } else {
-          this.set_save({
-            state: "done",
-            error: false,
-            hash: misc.hash_string(data)
-          });
-        }
-        return cb(err);
-      }
-    );
+    // set window to slightly earlier to account for clock
+    // imprecision.
+    // Over an sshfs mount, all stats info is **rounded down
+    // to the nearest second**, which this also takes care of.
+    this.save_to_disk_start_ctime = new Date().valueOf() - 1500;
+    this.save_to_disk_end_ctime = undefined;
+    try {
+      await callback2(this.client.write_file, { path, data });
+      this.assert_is_ready();
+      const stat = await callback2(this.client.path_stat, { path });
+      this.assert_is_ready();
+      this.save_to_disk_end_ctime = stat.ctime.valueOf();
+      await this.set_save({
+        state: "done",
+        error: false,
+        hash: misc.hash_string(data)
+      });
+    } catch (err) {
+      await this.set_save({ state: "done", error: JSON.stringify(err) });
+      throw err;
+    }
   }
 
   /*
-    When the underlying synctable that defines the state of the document changes
-    due to new remote patches, this function is called.
-    It handles update of the remote version, updating our live version as a result.
-    */
-  _handle_patch_update(changed_keys) {
-    if (this._closed) {
+    When the underlying synctable that defines the state
+    of the document changes due to new remote patches, this
+    function is called.
+    It handles update of the remote version, updating our
+    live version as a result.
+  */
+  private handle_patch_update(changed_keys): void {
+    if (this.state != "ready") {
       return;
     }
+
     //console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
     if (changed_keys == null || changed_keys.length === 0) {
       // this happens right now when we do a save.
       return;
     }
-    if (this.patch_list == null) {
-      // nothing to do
-      return;
-    }
+
     //dbg = this.dbg("_handle_patch_update")
     //dbg(new Date(), changed_keys)
-    if (this._patch_update_queue == null) {
-      this._patch_update_queue = [];
+    if (this.patch_update_queue == null) {
+      this.patch_update_queue = [];
     }
     for (let key of changed_keys) {
-      this._patch_update_queue.push(key);
+      this.patch_update_queue.push(key);
     }
-    if (this.handle_patch_update_queue_running) {
-      return;
-    }
-    return setTimeout(this.handle_patch_update_queue, 1);
+
+    // Clear patch update_queue in a later event loop.
+    setTimeout(this.handle_patch_update_queue.bind(this), 1);
   }
 
-  handle_patch_update_queue() {
-    let x;
-    if (this._closed || this.patches_table == null) {
-      // https://github.com/sagemathinc/cocalc/issues/2829
-      return;
-    }
-    this.handle_patch_update_queue_running = true;
-
-    // note: other code handles that this._patches_table.get(key) may not be
-    // defined, e.g., when changed means "deleted"
-    let v = this._patch_update_queue.map(key => this.patches_table.get(key));
-    this._patch_update_queue = [];
-    v = (() => {
-      const result = [];
-      for (x of v) {
-        if (
-          x != null &&
-          !(this._my_patches != null
-            ? this._my_patches[x.get("time").valueOf()]
-            : undefined)
-        ) {
-          result.push(x);
+  /*
+  Whenever new patches are added to this.patches_table,
+  their timestamp gets added to this.patch_update_queue.
+  */
+  private async handle_patch_update_queue(): Promise<void> {
+    while (this.patch_update_queue.length > 0 && this.state === "ready") {
+      const v: Map<string, any>[] = [];
+      for (let key of this.patch_update_queue) {
+        const x = this.patches_table.get(key);
+        if (x != null) {
+          // may be null, e.g., when deleted.
+          const t = x.get("time");
+          // Only need to process patches that we didn't
+          // create ourselves.
+          if (t && !this.my_patches[`${t.valueOf()}`]) {
+            v.push(this.process_patch(x));
+          }
         }
       }
-      return result;
-    })();
-    if (v.length > 0) {
-      this.patch_list.add(
-        (() => {
-          const result1 = [];
-          for (x of v) {
-            result1.push(this.process_patch(x));
-          }
-          return result1;
-        })()
-      );
-      // NOTE: This next line can sometimes *cause* new entries to be added to this._patch_update_queue.
-      this._sync_remote_and_doc();
-    }
+      this.patch_update_queue = [];
+      this.patch_list.add(v);
 
-    if (this._patch_update_queue.length > 0) {
-      // It is very important that this happen in the next
-      // render loop to avoid the this._sync_remote_and_doc call
-      // in this.handle_patch_update_queue from causing
-      // _sync_remote_and_doc to get called from within itself,
-      // due to synctable changes being emited on save.
-      return setTimeout(this.handle_patch_update_queue, 1);
-    } else {
-      // OK, done and nothing in the queue
-      this.handle_patch_update_queue_running = false;
-      // Notify _save to try again.
-      return this.emit("handle_patch_update_queue_done");
+      // NOTE: The below sync_remote_and_doc can sometimes
+      // *cause* new entries to be added to this.patch_update_queue.
+      await this.sync_remote_and_doc();
+      if (this.state !== "ready") {
+        return;
+      }
+
+      if (this.patch_update_queue.length > 0) {
+        // It is very important that next loop happen in a later
+        // event loop to avoid the this.sync_remote_and_doc call
+        // in this.handle_patch_update_queue above from causing
+        // sync_remote_and_doc to get called from within itself,
+        // due to synctable changes being emited on save.
+        await delay(1);
+      } else {
+        // OK, done and nothing in the queue
+        // Notify save() to try again -- it may have
+        // paused waiting for this to clear.
+        this.emit("handle_patch_update_queue_done");
+      }
     }
   }
 
@@ -2074,12 +2052,10 @@ class SyncDoc extends EventEmitter {
     Merge remote patches and live version to create new live version,
     which is equal to result of applying all patches.
 
-  Only returns once any newly created patches have
-  been sent out.
+    Only returns once any newly created patches have
+    been sent out.
     */
-  // TODO!
   private async sync_remote_and_doc(): Promise<void> {
-    // optional cb only used to know when save_patch is done
     if (this.last == null || this.doc == null) {
       if (typeof cb === "function") {
         cb();
