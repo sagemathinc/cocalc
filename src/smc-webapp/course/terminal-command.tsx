@@ -249,7 +249,7 @@ class Output extends Component<{ result: Map<string, any> }, {}> {
         >
           {title}
         </a>
-        <pre style={{ maxHeight: "10em", overflow: "auto" }}>
+        <pre style={{ maxHeight: "200ex", overflow: "auto" }}>
           {result.get("stdout")}
           <div style={{ color: "white", background: "red" }}>
             {result.get("stderr")}
