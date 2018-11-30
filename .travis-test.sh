@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+COPY_NODE_ENV="$NODE_ENV"
 
 # for kucalc, we only test the build itself
 if [[ $KUCALC_MODE  = "true" ]]; then exit 0; fi
@@ -20,12 +21,15 @@ cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm test -- --ci
 cd $TRAVIS_BUILD_DIR/src/smc-util/
 export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee
 
+# reset node env
+export NODE_ENV="$COPY_NODE_ENV"
+
 # some hub tests
 cd $TRAVIS_BUILD_DIR/src/smc-hub/
 npm run testpg
 npm run testmisc
 npm run testkucalc
-
+# npm run testapi           # broken
 
 #cd $TRAVIS_BUILD_DIR/src/smc-project/; npm run test # also broken
 
