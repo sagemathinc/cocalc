@@ -1,10 +1,8 @@
 ## Issue Triage
-For the most part, for issue labels on GitHub, we mimic [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).
-
-Contributors with sufficient permissions on the SMC repo can help by adding
+Contributors with sufficient permissions on the CoCalc repo can help by adding
 labels to triage issues:
 
-* Yellow, **A**-prefixed labels state which **area** of SMC the issue relates to.
+* Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to.
 
 * Green, **E**-prefixed labels explain the type of **experience** necessary
   to fix the issue.
@@ -23,17 +21,18 @@ labels to triage issues:
 
 If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 
-[eeasy]:https://github.com/sagemathinc/smc/labels/E-easy
+[eeasy]:https://github.com/sagemathinc/cocalc/labels/E-easy
 
 ### List of labels and their descriptions
 Most tags should be self explanatory but some can be unclear. If you're unsure what a label means how it's different from another just ask (Where??). We'll probably add it to the description here.
 
 - `blocked` -- Always link what the issue is blocked by.
 - `I-bug` -- Something that is clearly wrong based on what the UI tells you or on strongly expected behavior by the majority of people.
-- `I-enhancement` -- Making something in SMC better.
-- `I-feature request` -- Adding some new component to SMC
+- `I-enhancement` -- Making something in CoCalc better.
+- `I-feature request` -- Adding some new component to CoCalc
 - `I-slow` -- Something that seems unnecessarily slow.
-- `I-software request` -- Requests for adding something to be installed in SMC by default.
+- `I-software request` -- Requests for adding something to be installed in CoCalc by default.
 - `I-UA` -- Text that needs to be reworded or a tip that needs to get written.
 
 
+Inspired by [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).

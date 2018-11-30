@@ -128,6 +128,5 @@ export async function callback2(f: Function, opts: any): Promise<any> {
     opts.cb = cb;
     f(opts);
   }
-  return await callback(g);
+  return await awaiting.callback(g);
 }
-
