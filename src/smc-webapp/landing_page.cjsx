@@ -25,7 +25,10 @@ The Landing Page
 {rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
-{HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
+{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{Passports} = require('./passports')
+{SignUp} = require('./sign-up')
+
 
 DESC_FONT = 'sans-serif'
 
@@ -36,225 +39,9 @@ misc = require('smc-util/misc')
 {APP_TAGLINE} = require('smc-util/theme')
 {APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
 {APP_BASE_URL} = require('./misc_page')
-
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
-
-Passports = rclass
-    displayName : 'Passports'
-
-    propTypes :
-        strategies  : rtypes.immutable.List
-        get_api_key : rtypes.string
-        small_size  : rtypes.bool
-        no_header   : rtypes.bool
-        style       : rtypes.object
-
-    styles :
-        facebook :
-            backgroundColor : "#395996"
-            color           : "white"
-        google   :
-            backgroundColor : "#DC4839"
-            color           : "white"
-        twitter  :
-            backgroundColor : "#55ACEE"
-            color           : "white"
-        github   :
-            backgroundColor : 'white'
-            color           : "black"
-
-    render_strategy: (name) ->
-        if name is 'email'
-            return
-        url = "#{window.app_base_url}/auth/#{name}"
-        if @props.get_api_key
-            url += "?get_api_key=#{@props.get_api_key}"
-        if @props.small_size
-            size = undefined
-        else
-            size = '2x'
-        style = misc.copy(@styles[name])
-        style.display = 'inline-block'
-        style.padding = '6px'
-        style.borderRadius = '50%'
-        style.width = '50px'
-        style.height=  '50px'
-        style.marginRight = '10px'
-        style.textAlign = 'center'
-        cname = misc.capitalize(name)
-        title = <span><Icon name={name} /> {cname}</span>
-        <a href={url} key={name} style={fontSize:'28px'}>
-            <Tip placement='bottom' title={title} tip={"Use #{cname} to sign into your CoCalc account instead of an email address and password."}>
-                <Icon name={name} style={style} />
-            </Tip>
-        </a>
-
-    render_heading: ->
-        if @props.no_heading
-            return
-        <h3 style={marginTop: 0}>Connect with</h3>
-
-    render: ->
-        strategies = @props.strategies?.toJS() ? []
-        ## strategies = ['facebook', 'google', 'twitter', 'github']   # for testing.
-        <div style={@props.style}>
-            {@render_heading()}
-            <div>
-                {@render_strategy(name) for name in strategies}
-            </div>
-            <hr style={marginTop: 10, marginBottom: 10} />
-        </div>
-
-ERROR_STYLE =
-    color           : 'white'
-    fontSize        : '125%'
-    backgroundColor : 'red'
-    border          : '1px solid lightgray'
-    padding         : '15px'
-    marginTop       : '5px'
-    marginBottom    : '5px'
-
-SignUp = rclass
-    displayName: 'SignUp'
-
-    propTypes :
-        strategies      : rtypes.immutable.List
-        get_api_key     : rtypes.string
-        sign_up_error   : rtypes.immutable.Map
-        token           : rtypes.bool
-        has_account     : rtypes.bool
-        signing_up      : rtypes.bool
-        style           : rtypes.object
-        has_remember_me : rtypes.bool
-
-    getInitialState: ->
-        terms_checkbox : false
-        first_name     : ''
-        last_name      : ''
-        email          : ''
-        password       : ''
-        user_token     : ''
-
-    make_account: (e) ->
-        e.preventDefault()
-        @actions('account').create_account(@state.first_name, @state.last_name, @state.email, @state.password, @state.user_token)
-
-    render_error: (field)->
-        err = @props.sign_up_error?.get(field)
-        if err?
-            <div style={ERROR_STYLE}>{err}</div>
-
-    render_passports: ->
-        if not @props.strategies?
-            return <Loading />
-        if @props.strategies.size > 1
-            <div>
-                <Passports
-                    strategies  = {@props.strategies}
-                    get_api_key = {@props.get_api_key}
-                    style       = {textAlign: 'center'}
-                />
-                Or sign up via email
-                <br/>
-            </div>
-
-    render_token_input: ->
-        if @props.token
-            <FormGroup>
-                <FormControl
-                    type        = {'text'}
-                    placeholder = {'Enter the secret token'}
-                    onChange    = {(e)=>@setState(user_token: e.target.value)}
-                    />
-            </FormGroup>
-
-    render_terms: ->
-        <FormGroup style={fontSize: '12pt', margin:'20px'}>
-            <Checkbox
-                onChange = {(e)=>@setState(terms_checkbox: e.target.checked)}
-                >
-                <TermsOfService />
-            </Checkbox>
-        </FormGroup>
-
-    render_creation_form: ->
-        <div>
-            {@render_token_input()}
-            {@render_error("token")}
-            {@render_error("generic")}                   {### a generic error ###}
-            {@render_error("account_creation_failed")}
-            {@render_passports() if @state.terms_checkbox}
-            <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
-                <FormGroup>
-                    {@render_error("first_name")}
-                    <FormControl
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'First name'
-                        onChange    = {(e)=>@setState(first_name: e.target.value)}
-                        maxLength   = {120} />
-                </FormGroup>
-                <FormGroup>
-                    {@render_error("last_name")}
-                    <FormControl
-                        type        = 'text'
-                        autoFocus   = {false}
-                        placeholder = 'Last name'
-                        onChange    = {(e)=>@setState(last_name: e.target.value)}
-                        maxLength   = {120} />
-                </FormGroup>
-                <FormGroup>
-                    {@render_error("email_address")}
-                    <FormControl
-                        type        = 'email'
-                        placeholder = 'Email address'
-                        maxLength   = {254}
-                        onChange    = {(e)=>@setState(email: e.target.value)}
-                        />
-                </FormGroup>
-                <FormGroup>
-                    {@render_error("password")}
-                    <FormControl
-                        type        = 'password'
-                        placeholder = 'Choose a password'
-                        maxLength   = {64}
-                        onChange    = {(e)=>@setState(password: e.target.value)}
-                        />
-                </FormGroup>
-                <Button
-                    style    = {marginBottom: UNIT, marginTop: UNIT}
-                    disabled = {@props.signing_up}
-                    bsStyle  = {'success'}
-                    bsSize   = {'large'}
-                    type     = {'submit'}
-                    block >
-                        {<Icon name="spinner" spin /> if @props.signing_up} Sign Up!
-                </Button>
-            </form>
-        </div>
-
-    render: ->
-        well_style =
-            marginTop      : '10px'
-            borderColor    : COLORS.LANDING.LOGIN_BAR_BG
-        well_class = ''
-        # Commenting this out -- the look is confusing and inconsistent.
-        #if not @props.has_remember_me
-        #    # additional highlighting
-        #    well_style.backgroundColor = COLORS.LANDING.LOGIN_BAR_BG
-        #    well_style.color           = 'white'
-        #    well_class = 'webapp-landing-sign-up-highlight'
-        <Well style={well_style} className={well_class}>
-            {### <TermsOfService style={fontWeight:'bold', textAlign: "center"} />  <br /> ###}
-            <AccountCreationEmailInstructions />
-            {@render_terms()}
-            {@render_creation_form() if @state.terms_checkbox}
-            <div style={textAlign: "center"}>
-                Email <HelpEmailLink /> if you need help.
-            </div>
-        </Well>
 
 SignIn = rclass
     displayName : "SignIn"
@@ -295,7 +82,6 @@ SignIn = rclass
             <Passports
                 strategies  = {@props.strategies}
                 get_api_key = {@props.get_api_key}
-                small_size  = {true}
                 no_heading  = {true}
             />
         </div>
@@ -316,12 +102,12 @@ SignIn = rclass
                 <form onSubmit={@sign_in} className='form-inline'>
                     <Row>
                         <FormGroup>
-                            <FormControl ref='email' type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                            <FormControl ref='email' type='email' placeholder='Email address' name='email' autoFocus={@props.has_account} onChange={@remove_error} />
                         </FormGroup>
                     </Row>
                     <Row>
                         <FormGroup>
-                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' name='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Row>
                     <Row>
@@ -337,6 +123,9 @@ SignIn = rclass
                             className = 'pull-right'>Sign&nbsp;In
                         </Button>
                     </Row>
+                    <Row>
+                        {@render_passports()}
+                    </Row>
                     <Row className='form-inline pull-right' style={clear : "right"}>
                         {@display_error()}
                     </Row>
@@ -348,12 +137,12 @@ SignIn = rclass
                 <Row>
                     <Col xs={5}>
                         <FormGroup>
-                            <FormControl style={width:'100%'} ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='email' type='email' name='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs={4}>
                         <FormGroup>
-                            <FormControl style={width:'100%'} ref='password' type='password' placeholder='Password' onChange={@remove_error} />
+                            <FormControl style={width:'100%'} ref='password' type='password' name='password' placeholder='Password' onChange={@remove_error} />
                         </FormGroup>
                     </Col>
                     <Col xs={3}>
@@ -438,7 +227,7 @@ ForgotPassword = rclass
                 </div>
                 <form onSubmit={@forgot_password} style={marginTop:'1em'}>
                     <FormGroup>
-                        <FormControl ref='email' type='email' placeholder='Email address' autoFocus={true} onChange={@set_email} />
+                        <FormControl ref='email' type='email' placeholder='Email address' name='email' autoFocus={true} onChange={@set_email} />
                     </FormGroup>
                     {if @props.forgot_password_error then @display_error() else @display_success()}
                     <hr />
@@ -491,7 +280,7 @@ ResetPassword = rclass
                 </div>
                 <form onSubmit={@reset_password}>
                     <FormGroup>
-                        <FormControl ref='password' type='password' placeholder='New Password' />
+                        <FormControl name='password' ref='password' type='password' placeholder='New Password' />
                     </FormGroup>
                     {@display_error()}
                     <hr />
@@ -617,7 +406,7 @@ SagePreview = rclass
                             <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
                             understand their problems by dropping right into their files from wherever you are.
                             Conveniently handout assignments, collect them, grade them, and finally return them.
-                            (<a href="https://tutorial.cocalc.com/" target="_blank"><SiteName /> used for Teaching</a>).
+                            (<a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">Instructor Guide for Teaching</a>).
                         </ExampleBox>
                     </Col>
                 </Row>
@@ -750,6 +539,7 @@ exports.LandingPage = rclass
                         sign_in_error = {@props.sign_in_error}
                         has_account   = {@props.has_account}
                         xs            = {true}
+                        strategies    = {@props.strategies}
                         color         = {topbar.color} />
                     <div style={clear:'both'}></div>
             </Row>

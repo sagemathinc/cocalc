@@ -3,9 +3,19 @@ import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "react-bootstrap";
 const { Avatar } = require("./other-users");
 const { ErrorDisplay, Icon } = require("./r_misc");
+const md5 = require("md5");
+
+// The docs say this should work but typescript rejects it:
+// import ReactCrop from 'react-image-crop';
+// Typescript likes this, but it still does not work.
+// I think @types/react-image-crop is just very wrong... :-(
+//import * as ReactCrop from "react-image-crop";
+// So we use this:
 const ReactCrop = require("react-image-crop");
 import "react-image-crop/dist/ReactCrop.css";
-const md5 = require("md5");
+// WARNING: the docs, types, etc. are a little out of
+// sync for react-image-crop, so don't try to "fix" the
+// code to match the docs below, and expect it to work.
 
 // This is what facebook uses, and it makes
 // 40x40 look very good.  It takes about 20KB
@@ -18,14 +28,14 @@ interface ProfileImageSelectorProps {
   profile: ImmutableMap<any, any>;
   redux: any;
   account_id: any;
-  email_address: string;
+  email_address: string | undefined;
 }
 
 interface ProfileImageSelectorState {
   is_dragging_image_over_dropzone: boolean;
   custom_image_src?: string;
   crop?: any;
-  pixelCrop?: any;
+  pixelCrop?: ReactCrop.Crop;
   is_loading?: boolean;
   error?: any;
   show_default_explanation?: boolean;
@@ -69,19 +79,29 @@ export class ProfileImageSelector extends Component<
     }
   };
 
-  handle_gravatar_click = () =>
+  handle_gravatar_click = () => {
+    if (!this.props.email_address) {
+      // Should not be necessary, but to make typescript happy.
+      return;
+    }
     this.set_image(
       `https://www.gravatar.com/avatar/${md5(
         this.props.email_address.toLowerCase()
       )}?d=identicon&s=30`
     );
+  };
 
-  handle_adorable_click = () =>
+  handle_adorable_click = () => {
+    if (!this.props.email_address) {
+      // Should not be necessary, but to make typescript happy.
+      return;
+    }
     this.set_image(
       `https://api.adorable.io/avatars/100/${md5(
         this.props.email_address.toLowerCase()
       )}.png`
     );
+  };
 
   handle_default_click = () => this.set_image("");
 
@@ -150,38 +170,12 @@ export class ProfileImageSelector extends Component<
     }
   };
 
-  render_options() {
+  render_options_gravatar() {
+    if (!this.props.email_address) {
+      return;
+    }
     return (
       <>
-        <Button
-          style={{ marginTop: "5px" }}
-          onClick={this.handle_default_click}
-        >
-          Default
-        </Button>{" "}
-        <a
-          href="#"
-          onClick={e => {
-            e.preventDefault();
-            this.setState({ show_default_explanation: true });
-          }}
-        >
-          What is this?
-        </a>
-        {this.state.show_default_explanation ? (
-          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
-            The default avatar is a circle with the first letter of your name.
-            <br />
-            <br />
-            <Button
-              onClick={() => this.setState({ show_default_explanation: false })}
-            >
-              Close
-            </Button>
-          </Well>
-        ) : (
-          <br />
-        )}
         <Button
           style={{ marginTop: "5px" }}
           onClick={this.handle_gravatar_click}
@@ -218,6 +212,16 @@ export class ProfileImageSelector extends Component<
         ) : (
           <br />
         )}
+      </>
+    );
+  }
+
+  render_options_adorable() {
+    if (!this.props.email_address) {
+      return;
+    }
+    return (
+      <>
         <Button
           style={{ marginTop: "5px" }}
           onClick={this.handle_adorable_click}
@@ -254,6 +258,44 @@ export class ProfileImageSelector extends Component<
         ) : (
           <br />
         )}
+      </>
+    );
+  }
+
+  render_options() {
+    return (
+      <>
+        <Button
+          style={{ marginTop: "5px" }}
+          onClick={this.handle_default_click}
+        >
+          Default
+        </Button>{" "}
+        <a
+          href="#"
+          onClick={e => {
+            e.preventDefault();
+            this.setState({ show_default_explanation: true });
+          }}
+        >
+          What is this?
+        </a>
+        {this.state.show_default_explanation ? (
+          <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
+            The default avatar is a circle with the first letter of your name.
+            <br />
+            <br />
+            <Button
+              onClick={() => this.setState({ show_default_explanation: false })}
+            >
+              Close
+            </Button>
+          </Well>
+        ) : (
+          <br />
+        )}
+        {this.render_options_gravatar()}
+        {this.render_options_adorable()}
         <FormControl
           type="file"
           onChange={this.handle_image_file_input}
@@ -286,14 +328,18 @@ export class ProfileImageSelector extends Component<
   }
 
   handle_done_cropping = async (): Promise<void> => {
-    const { pixelCrop, custom_image_src: src } = this.state;
-    if (src == null) {
+    const { pixelCrop, custom_image_src } = this.state;
+    if (custom_image_src == null) {
       this.setState({ error: "image should be set" });
+      return;
+    }
+    if (pixelCrop == null) {
+      this.setState({ error: "pixelCrop should be set" });
       return;
     }
     this.setState({ custom_image_src: undefined });
     const image = new Image();
-    image.src = src as string;
+    image.src = custom_image_src;
     try {
       this.set_image(await getCroppedImg(image, pixelCrop));
     } catch (err) {
@@ -305,13 +351,13 @@ export class ProfileImageSelector extends Component<
   render_crop_selection(): Rendered {
     return (
       <>
-        <ReactCrop
+        <ReactCrop.Component
           src={this.state.custom_image_src}
           minWidth={20}
           minHeight={20}
-          onChange={(crop: any, pixelCrop: any) =>
-            this.setState({ crop, pixelCrop })
-          }
+          onChange={(crop, pixelCrop) => {
+            this.setState({ crop, pixelCrop });
+          }}
           onImageLoaded={image => {
             const crop = ReactCrop.makeAspectCrop(
               {
@@ -400,8 +446,13 @@ export class ProfileImageSelector extends Component<
 
  Returns a Base64 string
  */
-async function getCroppedImg(image, pixelCrop): Promise<string> {
-  (window as any).image = image;
+async function getCroppedImg(
+  image,
+  pixelCrop: ReactCrop.Crop
+): Promise<string> {
+  if (pixelCrop.width == null || pixelCrop.height == null) {
+    throw Error("Error cropping image -- width and height not set");
+  }
   const canvas = document.createElement("canvas");
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;

@@ -8,6 +8,7 @@ import { is_safari } from "../generic/browser";
 import { is_different, list_alternatives } from "../generic/misc";
 import { throttle } from "underscore";
 import { Component, React, ReactDOM, Rendered } from "../../app-framework";
+import { change_filename_extension } from "../generic/misc";
 
 import * as CSS from "csstype";
 
@@ -29,7 +30,7 @@ interface PropTypes {
   mode: "rmd" | undefined;
   style?: any;
   derived_file_types: Set<string>;
-} // should be static; change does NOT cause update.
+} // style should be static; change does NOT cause update.
 
 export class IFrameHTML extends Component<PropTypes, {}> {
   shouldComponentUpdate(next): boolean {
@@ -101,19 +102,24 @@ export class IFrameHTML extends Component<PropTypes, {}> {
   }
 
   render_iframe() {
+    let path = this.props.path;
     if (
       this.props.mode == "rmd" &&
       this.props.derived_file_types != undefined
     ) {
-      if (!this.props.derived_file_types.contains("html")) {
+      if (this.props.derived_file_types.contains("html")) {
+        // keep path as it is; don't remove this case though because of the else
+      } else if (this.props.derived_file_types.contains("nb.html")) {
+        path = change_filename_extension(path, "nb.html");
+      } else {
         return this.render_no_html();
       }
     }
 
     // param below is just to avoid caching.
-    const src_url = `${window.app_base_url}/${this.props.project_id}/raw/${
-      this.props.path
-    }?param=${this.props.reload}`;
+    const src_url = `${window.app_base_url}/${
+      this.props.project_id
+    }/raw/${path}?param=${this.props.reload}`;
 
     return (
       <iframe

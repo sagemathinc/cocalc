@@ -101,3 +101,33 @@ export async function retry_until_success<T>(
     }
   }
 }
+
+import { EventEmitter } from "events";
+
+/* Wait for an event emitter to emit any event at all once.
+   Returns array of args emitted by that event. */
+export async function once(
+  obj: EventEmitter,
+  event: string
+): Promise<any> {
+  let val: any[] = [];
+  function wait(cb: Function): void {
+    obj.once(event, function(...args): void {
+      val = args;
+      cb();
+    });
+  }
+  await awaiting.callback(wait);
+  return val;
+}
+
+
+// Alternative to callback_opts that behaves like the
+// callback defined in awaiting.
+export async function callback2(f: Function, opts: any): Promise<any> {
+  function g(cb): void {
+    opts.cb = cb;
+    f(opts);
+  }
+  return await awaiting.callback(g);
+}

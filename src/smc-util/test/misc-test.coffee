@@ -6,8 +6,6 @@
 #
 ###############################################################################
 
-require('coffee-cache')
-
 misc = require('../misc')
 underscore = require('underscore')
 immutable = require('immutable')
@@ -242,13 +240,13 @@ describe "min_object of target and upper_bound", ->
     upper_bound = {a:5, b:20, xyz:-2}
     it "modifies target in place", ->
         target = {a:7, b:15, xyz:5.5}
-        # the return value are just the values
-        mo(target, upper_bound).should.eql [ 5, 15, -2 ]
+        exp = { a: 5, b: 15, xyz: -2 }
+        mo(target, upper_bound).should.eql exp
         target.should.eql {a:5, b:15, xyz:-2}
     it "works without a target", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
-        mo().should.be.eql []
+        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge
@@ -709,6 +707,18 @@ describe "parse_user_search", ->
     it "also handles mixed queries and spaces", ->
         exp = {email_queries: ["foo+bar@baz.com", "xyz@mail.com"], string_queries: [["john", "doe"]]}
         pus("   foo+bar@baz.com   , John   Doe  ; <xyz@mail.com>").should.eql exp
+    it "works with line breaks, too", ->
+        exp =
+            email_queries: ["foo@bar.com", "baz+123@cocalc.com", "jd@cocalc.com"]
+            string_queries: [ ["john", "doe"],  ["dr.", "foo", "bar", "baz"]]
+        query = """
+                foo@bar.com
+                baz+123@cocalc.com
+                John Doe
+                Dr. Foo Bar BAZ
+                Jane Dae <jd@cocalc.com>
+                """
+        pus(query).should.eql(exp)
 
 describe "delete_trailing_whitespace", ->
     dtw = misc.delete_trailing_whitespace

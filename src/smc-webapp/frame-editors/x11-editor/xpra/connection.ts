@@ -49,6 +49,11 @@ export class Connection {
   }
 
   send(...packet): void {
+    if (packet.length <= 1) {  // TODO: check only need for debug dev mode.
+      throw Error(
+        `x11: send takes at least 2 arguments  -- ${JSON.stringify(packet)}`
+      );
+    }
     this.sendQueue.push(packet, this.socket);
   }
 

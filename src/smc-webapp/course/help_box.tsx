@@ -41,8 +41,8 @@ export function HelpBox() {
             (with a {SITE_NAME} specialist)
           </li>
           <li>
-            <a href="https://tutorial.cocalc.com/" target="_blank">
-              Tutorial for using CoCalc for teaching{" "}
+            <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">
+              Instructor Guide for using CoCalc for teaching{" "}
               <Icon name="external-link" />
             </a>
           </li>

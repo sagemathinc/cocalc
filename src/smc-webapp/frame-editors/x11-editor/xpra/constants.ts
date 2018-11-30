@@ -1746,21 +1746,6 @@ export const CHAR_TO_NAME = Object.keys(KEYSYM_TO_UNICODE).reduce(
   {}
 );
 
-//some keysyms require specific layouts
-export const KEYSYM_TO_LAYOUT = {
-  kana: "jp",
-  Farsi: "ir",
-  Arabic: "ar",
-  Cyrillic: "ru",
-  Ukrainian: "uk",
-  Macedonia: "mk",
-  Greek: "gr",
-  hebrew: "he",
-  Thai: "th",
-  Armenian: "am",
-  Georgian: "ge",
-  braille: "brai"
-};
 
 export const CODEC_DESCRIPTION = {
   mp4a: "mpeg4: aac",

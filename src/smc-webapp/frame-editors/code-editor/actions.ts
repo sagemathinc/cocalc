@@ -20,7 +20,7 @@ import {
   syncdb
 } from "../generic/client";
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, retry_until_success } from "../generic/async-utils";
+import { callback_opts, retry_until_success } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
@@ -456,6 +456,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   reset_local_view_state(): void {
     delete localStorage[this.name];
     this.setState({ local_view_state: this._load_local_view_state() });
+    this.reset_frame_tree();
   }
 
   set_local_view_state(obj): void {
@@ -614,6 +615,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.setState({ local_view_state: local });
     // And save this new state to localStorage.
     this._save_local_view_state();
+    // Emit new-frame events
+    for (let id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(id);
+      if (leaf != null) {
+        const type = leaf.get("type");
+        this.store.emit("new-frame", { id, type });
+      }
+    }
   }
 
   set_frame_tree_leafs(obj): void {
@@ -998,9 +1007,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(): void {
+  time_travel(path?:string): void {
     this._get_project_actions().open_file({
-      path: history_path(this.path),
+      path: history_path(path || this.path),
       foreground: true
     });
   }
@@ -1388,13 +1397,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  paste(id: string): void {
+  paste(id: string, _value?: string | true): void {
     if (this._terminal_command(id, "paste")) {
+      return;
+    }
+    let value;
+    if (value === true || value == null) {
+      value = copypaste.get_buffer();
+    }
+    if (value === undefined) {
+      // nothing to paste
       return;
     }
     const cm = this._get_cm(id);
     if (cm != null) {
-      cm.getDoc().replaceSelection(copypaste.get_buffer());
+      cm.getDoc().replaceSelection(value);
       cm.focus();
       return;
     }
@@ -1655,7 +1672,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         parser = "html-tidy";
         break;
       case "xml":
+      case "cml":
+      case "kml":
         parser = "xml-tidy";
+        break;
+      case "bib":
+        parser = "bib-biber";
         break;
       case "c":
       case "c++":

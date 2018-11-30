@@ -2,7 +2,23 @@
 X Window Editor Actions
 */
 
-import { Map, fromJS } from "immutable";
+// 15 minute idle timeout -- it's important to disconnect
+// the websocket to the xpra server, to avoid a massive
+// waste of bandwidth...
+const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
+
+import { Channel } from "smc-webapp/project/websocket/types";
+
+import { Map, Set, fromJS } from "immutable";
+
+import { project_api } from "../generic/client";
+
+const copypaste = require("smc-webapp/copy-paste-buffer");
+
+import { reuseInFlight } from "async-await-utils/hof";
+import { callback } from "awaiting";
+
+const WID_HISTORY_LENGTH = 40;
 
 import {
   Actions as BaseActions,
@@ -13,20 +29,35 @@ import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 
+const { alert_message } = require("smc-webapp/alerts");
+
 interface X11EditorState extends CodeEditorState {
-  windows: Map<string, any>;
+  windows: Map<number, any>;
+  x11_is_idle: boolean;
 }
 
 export class Actions extends BaseActions<X11EditorState> {
   // no need to open any syncstring for xwindow -- they don't use database sync.
+  private channel: Channel;
+  private wid_history: number[] = []; // array of wid that were active
   protected doctype: string = "none";
   public store: Store<X11EditorState>;
   client: XpraClient;
 
-  _init2(): void {
+  async _init2(): Promise<void> {
+    this.launch = reuseInFlight(this.launch);
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
+    try {
+      await this.init_channel();
+    } catch (err) {
+      this.set_error(
+        // TODO: should retry instead (?)
+        err +
+          " -- you might need to refresh your browser or close and open this file."
+      );
+    }
   }
 
   /*
@@ -39,7 +70,14 @@ export class Actions extends BaseActions<X11EditorState> {
       direction: "col",
       type: "node",
       first: {
-        type: "terminal"
+        direction: "row",
+        type: "node",
+        first: {
+          type: "terminal"
+        },
+        second: {
+          type: "launcher"
+        }
       },
       second: {
         type: "x11"
@@ -49,18 +87,21 @@ export class Actions extends BaseActions<X11EditorState> {
   }
 
   init_new_x11_frame(): void {
-    this.store.on("new-frame", desc => {
-      if (desc.type !== "x11") {
+    this.store.on("new-frame", ({ id, type }) => {
+      if (type !== "x11") {
         return;
       }
+      this.set_frame_tree({ id, wid: undefined, title: "" });
       // Just update this for all x11 frames for now.
       this.set_x11_connection_status(this.client._ws_status);
+      this.update_x11_tabs();
     });
   }
 
   get_term_env(): any {
     const DISPLAY = `:${this.client.get_display()}`;
-    const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();  // this support url forwarding via xdg-open wrapper
+    // This supports url forwarding via xdg-open wrapper:
+    const XPRA_XDG_OPEN_SERVER_SOCKET = this.client.get_socket_path();
     return { DISPLAY, XPRA_XDG_OPEN_SERVER_SOCKET };
   }
 
@@ -70,13 +111,16 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     this.client.close();
     delete this.client;
+    if (this.channel !== undefined) {
+      this.channel.end();
+      delete this.channel;
+    }
     super.close();
   }
 
   _set_window(wid: number, obj: any): void {
     let windows = this.store.get("windows");
-    const s = `${wid}`;
-    let window = windows.get(s);
+    let window = windows.get(wid);
     if (window == null) {
       console.warn(`_set_window -- no window with id ${wid}`);
       return;
@@ -84,49 +128,44 @@ export class Actions extends BaseActions<X11EditorState> {
     for (let key in obj) {
       window = window.set(key, obj[key]);
     }
-    windows = windows.set(s, window);
+    windows = windows.set(wid, window);
     this.setState({ windows });
   }
 
   _get_window(wid: number, key: string, def?: any): any {
-    return this.store.get("windows").getIn([`${wid}`, key], def);
+    return this.store.get("windows").getIn([wid, key], def);
+  }
+
+  delete_window(wid: number): void {
+    let windows = this.store.get("windows").delete(wid);
+    this.setState({ windows });
   }
 
   init_client(): void {
     this.client = new XpraClient({
       project_id: this.project_id,
-      path: this.path
+      path: this.path,
+      idle_timeout_ms: CLIENT_IDLE_TIMEOUT_MS
     });
 
-    this.client.on("window:focus", (wid: number) => {
-      //console.log("window:focus", wid);
-      // if it is a full root level window, switch to show it.
-      if (!this.client.is_root_window(wid)) {
-        return;
-      }
-      const active_id = this._get_active_id();
-      const leaf = this._get_frame_node(active_id);
-      let id;
-      if (leaf && leaf.get("type") === "x11") {
-        id = active_id;
-      } else {
-        id = this._get_most_recent_active_frame_id_of_type("x11");
-      }
-      if (id != null) {
-        const title = this.store.get("windows").getIn([`${wid}`, "title"]);
-        this.set_frame_tree({ id, wid, title });
-        this._ensure_only_one_tab_has_wid(id, wid);
-      }
-    });
-
-    this.client.on("window:create", (wid: number, info) => {
-      let windows = this.store.get("windows").set(`${wid}`, fromJS(info));
+    this.client.on("window:create", (wid: number, title: string) => {
+      this.push_to_wid_history(wid);
+      let windows = this.store.get("windows").set(wid, fromJS({ wid, title }));
       this.setState({ windows });
+      this.update_x11_tabs();
     });
 
     this.client.on("window:destroy", (wid: number) => {
-      let windows = this.store.get("windows").delete(`${wid}`);
-      this.setState({ windows });
+      this.delete_window(wid);
+      this.switch_to_window_after_this_closes(wid);
+    });
+
+    this.client.on("child:create", (parent_wid: number, child_wid: number) => {
+      this.children_op(parent_wid, child_wid, "add");
+    });
+
+    this.client.on("child:destroy", (parent_wid: number, child_wid: number) => {
+      this.children_op(parent_wid, child_wid, "delete");
     });
 
     this.client.on("window:icon", (wid: number, icon: string) => {
@@ -134,8 +173,11 @@ export class Actions extends BaseActions<X11EditorState> {
     });
 
     this.client.on("ws:status", (status: string) => {
-      // Right now all x11 frames are connected to the same remote session,
-      // so we set desc on all of them.  Later we may have multiple sessions,
+      // Right now all x11 frames for a given path
+      ///are connected to
+      // the same remote session,
+      // so we set desc on all of them.  Later we
+      // may have multiple sessions,
       // like with the terminal.
       if (
         status === "disconnected" ||
@@ -146,6 +188,30 @@ export class Actions extends BaseActions<X11EditorState> {
         this.set_x11_connection_status(status);
       }
     });
+
+    this.client.on("ws:idle", (x11_is_idle: boolean) => {
+      this.setState({ x11_is_idle });
+    });
+
+    this.client.on("notification:create", (nid: number, desc) => {
+      this.create_notification(nid, desc);
+    });
+
+    this.client.on("notification:destroy", (nid: number) => {
+      this.delete_notification(nid);
+    });
+  }
+
+  private children_op(parent_wid: number, child_wid: number, op: string) {
+    let windows = this.store.get("windows");
+    let parent = windows.get(parent_wid);
+    if (!parent) {
+      return;
+    }
+    let children = parent.get("children", Set())[op](child_wid);
+    parent = parent.set("children", children);
+    windows = windows.set(parent_wid, parent);
+    this.setState({ windows });
   }
 
   set_x11_connection_status(status: ConnectionStatus): void {
@@ -168,6 +234,8 @@ export class Actions extends BaseActions<X11EditorState> {
     }
     if (id === undefined) {
       id = this._get_active_id();
+    } else {
+      this.set_active_id(id);
     }
     const leaf = this._get_frame_node(id);
     if (leaf == null) {
@@ -193,12 +261,10 @@ export class Actions extends BaseActions<X11EditorState> {
       super.reload(id);
       return;
     }
-    this.set_reload('x11', new Date().valueOf());
+    this.set_reload("x11", new Date().valueOf());
   }
 
-
   blur(): void {
-    // console.log("x11 -- blur");
     if (this.client == null) {
       return;
     }
@@ -207,16 +273,27 @@ export class Actions extends BaseActions<X11EditorState> {
 
   // Set things so that the X11 window wid is displayed in the frame
   // with given id.
-  set_focused_window_in_frame(id: string, wid: number): void {
+  set_focused_window_in_frame(
+    id: string,
+    wid: number,
+    do_not_ensure = false
+  ): void {
+    this.push_to_wid_history(wid);
     const leaf = this._get_frame_node(id);
-    if (leaf == null || leaf.get("type") != "x11") {
+    if (leaf == null || leaf.get("type") !== "x11") {
       return;
     }
-    // todo: make it so wid can only be in one x11 leaf...
-    const title = this.store.get("windows").getIn([`${wid}`, "title"]);
+    const window = this.store.get("windows").get(wid);
+    if (window == null) {
+      // wid does not exist.
+      return;
+    }
+    const title = window.get("title");
     this.set_frame_tree({ id, wid, title });
     this.client.focus_window(wid);
-    this._ensure_only_one_tab_has_wid(id, wid);
+    if (!do_not_ensure) {
+      this._ensure_only_one_tab_has_wid(id, wid);
+    }
   }
 
   _ensure_only_one_tab_has_wid(id: string, wid: number): void {
@@ -233,34 +310,235 @@ export class Actions extends BaseActions<X11EditorState> {
       ) {
         //console.log("clearing", id, wid, leaf.toJS());
         this.set_frame_tree({ id: leaf_id, wid: undefined, title: "" });
+        this.update_x11_tabs();
+        return; // only possibly clear once.
       }
     }
   }
 
   close_window(id: string, wid: number): void {
-    // Determine the previous available window.
+    const leaf = this._get_frame_node(id);
+    if (leaf != null && leaf.get("type") === "x11") {
+      this.client.close_window(wid);
+    }
+  }
+
+  switch_to_window_after_this_closes(wid: number, id?: string): void {
+    if (id === undefined) {
+      for (let leaf_id in this._get_leaf_ids()) {
+        const leaf = this._get_frame_node(leaf_id);
+        if (
+          leaf != null &&
+          leaf.get("type") === "x11" &&
+          leaf.get("wid") === wid
+        ) {
+          this.switch_to_window_after_this_closes(wid, leaf_id);
+        }
+      }
+      return;
+    }
+
+    const parent_wid = this.client.get_parent(wid);
+    if (parent_wid) {
+      this.set_focused_window_in_frame(id, parent_wid);
+      return;
+    }
+
+    // Focus a recent available tab.
+    this.update_x11_tabs();
+  }
+
+  create_notification(_: number, desc: any): void {
+    // use something like this in a terminal to cause a notification:
+    //    xpra control --socket-dir=/tmp/xpra :0 send-notification 0 "foo" "hello" "*"
+    //console.log("create_notification", nid, desc);
+    if (desc.summary.indexOf("Network Performance") !== -1) {
+      // ignore these -- network gets slow frequently due to
+      // browser background throttling... and we haven't implemented
+      // any way for user to "ignore".
+      return;
+    }
+    alert_message({
+      type: "info",
+      title: `X11: ${desc.summary}`,
+      message: desc.body,
+      timeout: 9999
+    });
+  }
+
+  delete_notification(_: number): void {
+    // NO-OP
+    // console.log("delete_notification", nid);
+  }
+
+  async paste(id: string, value?: string | true): Promise<void> {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get("type") === "x11") {
+      if (value === undefined || value === true) {
+        value = copypaste.get_buffer();
+      }
+      if (value === undefined) {
+        // nothing to paste
+        return;
+      }
+      this.channel.write({ cmd: "paste", value });
+    } else {
+      super.paste(id, value);
+    }
+  }
+
+  async copy(id: string): Promise<void> {
+    const leaf = this._get_frame_node(id);
+    if (leaf == null) {
+      return;
+    }
+    if (leaf.get("type") === "x11") {
+      const value = await this.client.get_clipboard();
+      copypaste.set_buffer(value);
+    } else {
+      super.copy(id);
+    }
+  }
+
+  private async init_channel(): Promise<void> {
+    if (this._state === "closed") return;
+    const api = await project_api(this.project_id);
+    this.channel = await api.x11_channel(this.path, this.client.get_display());
+    const channel: any = this.channel;
+    channel.on("close", () => {
+      channel.removeAllListeners();
+      channel.conn.once("open", async () => {
+        await this.init_channel();
+      });
+    });
+    channel.on("data", x => {
+      if (typeof x === "object") {
+        this.handle_data_from_channel(x);
+      }
+    });
+  }
+
+  private handle_data_from_channel(x: any): void {
+    if (x == null) {
+      return;
+    }
+    //console.log("handle_data_from_channel", x);
+    if (x.error != null) {
+      if (x.error.indexOf("unknown command") !== -1) {
+        x.error = "You probably need to restart your project.  " + x.error;
+      }
+      this.set_error(x.error);
+    }
+  }
+
+  // Update x11 tabs to get as close as we can to having
+  // a tab selected in each x11 frame.
+  private update_x11_tabs(): void {
+    const used_wids = this._get_used_wids();
+    const windows = this.store.get("windows");
+
+    for (let leaf_id in this._get_leaf_ids()) {
+      const leaf = this._get_frame_node(leaf_id);
+      if (
+        leaf == null ||
+        leaf.get("type") !== "x11" ||
+        windows.has(leaf.get("wid"))
+      ) {
+        // tab already set
+        continue;
+      }
+      // Set this leaf to something not already used,
+      // preferring most recently created or focused windows.
+      let success: boolean = false;
+      for (let i = this.wid_history.length - 1; i >= 0; i--) {
+        const wid: number = this.wid_history[i];
+        if (!used_wids[wid] && windows.has(wid)) {
+          // bingo -- it's not used and exists.
+          this.set_focused_window_in_frame(leaf_id, wid, true);
+          used_wids[wid] = true;
+          success = true;
+          break;
+        }
+      }
+      if (!success) {
+        // nothing found; make final attempt by just
+        // go through all available window ids'
+        windows.forEach((_, wid) => {
+          if (!used_wids[wid]) {
+            used_wids[wid] = true;
+            this.set_focused_window_in_frame(leaf_id, wid, true);
+            success = true;
+            return false; // stop iteration
+          }
+        });
+      }
+      if (!success) {
+        // still nothing -- at least clear the title
+        this.set_title(leaf_id, "");
+      }
+    }
+  }
+
+  private push_to_wid_history(wid: number): void {
+    this.wid_history.push(wid);
+    if (this.wid_history.length > WID_HISTORY_LENGTH) {
+      this.wid_history.shift();
+    }
+  }
+
+  private _get_used_wids(): { [id: string]: boolean } {
     const used_wids = {};
     for (let leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
-      if (leaf != null && leaf.get("wid")) {
+      if (leaf != null && leaf.get("type") === "x11" && leaf.get("wid")) {
         used_wids[leaf.get("wid")] = true;
       }
     }
-    let wid1 = 0;
-    this.store.get("windows").forEach(function(_, wid0) {
-      if (parseInt(wid0) === wid) {
-        return false;
-      }
-      if (!used_wids[wid0]) {
-        wid1 = parseInt(wid0);
-      }
-    });
-    if (wid1) {
-      this.set_focused_window_in_frame(id, wid1);
-    } else {
-      // nothing available -- at least clear the title.
-      this.set_title(id, "");
+    return used_wids;
+  }
+
+  // if the x11 connection is idle timed out, call
+  // this to reconnect.  This is a NO-OP if client
+  // is not idle.
+  x11_not_idle(): void {
+    if (this.store.get("x11_is_idle")) {
+      this.setState({ windows: Map() });
+      this.client.connect();
     }
-    this.client.close_window(wid);
+  }
+
+  public async close_and_halt(_: string): Promise<void> {
+    await this.client.close_and_halt();
+    // and close this window
+    const project_actions = this._get_project_actions();
+    project_actions.close_tab(this.path);
+  }
+
+  async launch(command: string, args?: string[]): Promise<void> {
+    if (this.client._ws_status !== "connected") {
+      // Wait until connected
+      this.set_status(`Waiting until connected before launching ${command}...`);
+      const wait = cb => {
+        const f = status => {
+          if (status === "connected") {
+            this.client.removeListener("ws:status", f);
+            cb();
+          }
+        };
+        this.client.addListener("ws:status", f);
+      };
+      await callback(wait);
+      this.set_status("");
+    }
+    // Launch the command
+    this.channel.write({ cmd: "launch", command, args });
+    // TODO: wait for a status message back...
+  }
+
+  set_physical_keyboard(layout: string, variant: string): void {
+    this.client.set_physical_keyboard(layout, variant);
   }
 }

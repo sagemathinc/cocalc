@@ -4,12 +4,7 @@
 
 import * as forge from "node-forge";
 import { CHARCODE_TO_NAME } from "./constants";
-import {
-  browserLanguage,
-  supportsWebp,
-  calculateColorGamut,
-  calculateScreens
-} from "./util";
+import { supportsWebp, calculateColorGamut, calculateScreens } from "./util";
 
 const platformMap = {
   Win: {
@@ -129,8 +124,6 @@ function getEncodingCapabilities(config, soundCodecs) {
 }
 
 function getClientCapabilities(config) {
-  const language = browserLanguage();
-
   const keycodes = Object.keys(CHARCODE_TO_NAME).reduce(
     (result, c) => [
       ...result,
@@ -161,8 +154,8 @@ function getClientCapabilities(config) {
     "window.initiate-moveresize": true,
 
     "metadata.supported": [
-      "fullscreen",
-      "maximized",
+      //"fullscreen",
+      //"maximized",
       "above",
       "below",
       // 'set-initial-position', 'group-leader',
@@ -171,24 +164,24 @@ function getClientCapabilities(config) {
       "class-instance",
       "transient-for",
       "window-type",
-      "has-alpha",
+      //"has-alpha",
       "decorations",
       "override-redirect",
-      "tray",
+      //"tray",
       "modal",
-      "opacity"
+      //"opacity"
       // 'shadow', 'desktop',
     ],
 
     // Sound
-    "sound.receive": config.sound,
+    "sound.receive": false,  // TODO: not implemented at all right now.
     "sound.send": false,
     "sound.server_driven": true,
     "sound.bundle-metadata": true,
 
     // encoding stuff
     keyboard: config.keyboard,
-    xkbmap_layout: config.language || language,
+    xkbmap_layout: config.xkbmap_layout || "us", // default, but will get changed quickly on mount.
     xkbmap_keycodes: keycodes,
     xkbmap_print: "",
     xkbmap_query: "",
@@ -203,7 +196,7 @@ function getClientCapabilities(config) {
     ),
     dpi: config.dpi,
 
-    // Clipboard (not handled yet, but we will)
+    // Clipboard
     clipboard_enabled: config.clipboard,
     "clipboard.want_targets": true,
     "clipboard.greedy": true,
@@ -254,11 +247,9 @@ export function getCapabilities(config, soundCodecs) {
       // Compression bits
       zlib: config.zlib,
       lzi: false,
-      lz4: false,
-      "encoding.rgb_lz4": false,
-      //lz4: config.lz4,
-      //"lz4.js.version": "0.2.0", // FIXME
-      //"encoding.rgb_lz4": true,
+      lz4: config.lz4,
+      "encoding.rgb_lz4": true,
+      "lz4.js.version": (window as any).lz4.version,
       compression_level: config.compression_level,
 
       // Packet encoders

@@ -263,6 +263,8 @@ schema.accounts =
                     undo_depth                : 300
                     jupyter_classic           : false
                     show_exec_warning         : true
+                    physical_keyboard         : "default"
+                    keyboard_variant          : ""
                 other_settings  :
                     katex             : true
                     confirm_close     : false

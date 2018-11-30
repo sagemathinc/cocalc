@@ -65,6 +65,7 @@ import { CourseSettingsRecord, CourseStore } from "./store";
 const { HelpBox } = require("./help_box");
 const { DeleteStudentsPanel } = require("./delete_students");
 const { DeleteSharedProjectPanel } = require("./delete_shared_project");
+const { TerminalCommandPanel } = require("./terminal-command");
 
 const STUDENT_COURSE_PRICE = require("smc-util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -369,8 +370,8 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-     * Editing title/description
-     */
+   * Editing title/description
+   */
   render_title_desc_header() {
     return (
       <h4>
@@ -416,8 +417,8 @@ export class ConfigurationPanel extends Component<
   }
 
   /*
-     * Grade export
-     */
+   * Grade export
+   */
   render_grades_header() {
     return (
       <h4>
@@ -962,6 +963,12 @@ export class ConfigurationPanel extends Component<
     );
   }
 
+  render_terminal_command() {
+    return (
+      <TerminalCommandPanel redux={this.props.redux} name={this.props.name} />
+    );
+  }
+
   render_disable_students() {
     return (
       <DisableStudentCollaboratorsPanel
@@ -980,6 +987,7 @@ export class ConfigurationPanel extends Component<
             {this.render_require_institute_pay()}
             {this.render_save_grades()}
             {this.render_start_all_projects()}
+            {this.render_terminal_command()}
             {this.render_delete_students()}
             {this.render_delete_shared_project()}
           </Col>
