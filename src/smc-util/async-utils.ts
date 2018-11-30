@@ -120,3 +120,14 @@ export async function once(
   await awaiting.callback(wait);
   return val;
 }
+
+
+// Alternative to callback_opts that behaves like the
+// callback defined in awaiting.
+export async function callback2(f: Function, opts: any): Promise<any> {
+  function g(cb): void {
+    opts.cb = cb;
+    f(opts);
+  }
+  return await awaiting.callback(g);
+}
