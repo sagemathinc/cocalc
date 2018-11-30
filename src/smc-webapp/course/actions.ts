@@ -48,7 +48,7 @@ import {
   Feedback
 } from "./store";
 
-import { run_in_all_projects } from "./run-in-all-projects";
+import { run_in_all_projects, Result } from "./run-in-all-projects";
 
 // React libraries
 import { Actions } from "../app-framework";
@@ -1159,11 +1159,12 @@ export class CourseActions extends Actions<CourseState> {
   async run_in_all_student_projects(
     command: string,
     args?: string[],
-    timeout?: number
-  ): Promise<any> {
+    timeout?: number,
+    log?:Function,
+  ): Promise<Result[]> {
     const store = this.get_store();
     if (store == null) {
-      return;
+      return [];
     }
     // calling start also deals with possibility that
     // it's in stop state.
@@ -1172,7 +1173,8 @@ export class CourseActions extends Actions<CourseState> {
       store.get_student_project_ids(),
       command,
       args,
-      timeout
+      timeout,
+      log
     );
   }
 
