@@ -26,7 +26,7 @@ const LOCAL_HUB_AUTOSAVE_S = 45;
 
 type Patch = any;
 
-type FileWatch = any;
+type FileWatcher = any;
 
 interface ProcessedPatch {
   time: Date;
@@ -47,17 +47,17 @@ import {
   once,
   retry_until_success,
   reuse_in_flight_methods
-} from "../../async-utils";
+} from "../../../async-utils";
 
-import { cmp_Date, endswith, filename_extension, keys } from "../../misc2";
+import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
 
-const { Evaluator } = require("../../syncstring_evaluator");
+const { Evaluator } = require("../../../syncstring_evaluator");
 
-const { minutes_ago, server_minutes_ago, server_time } = require("../../misc");
+const { minutes_ago, server_minutes_ago, server_time } = require("../../../misc");
 
 export interface SyncOpts {
   project_id: string;
-  path: required;
+  path: string;
   client: Client;
   from_str: (string) => Document;
 
@@ -163,7 +163,7 @@ class SyncDoc extends EventEmitter {
     }
     this._from_str = opts.from_str;
 
-    reuse_in_flight_methoods(this, [
+    reuse_in_flight_methods(this, [
       "save",
       "save_to_disk",
       "load_from_disk",
