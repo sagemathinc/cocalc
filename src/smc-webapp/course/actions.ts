@@ -48,6 +48,8 @@ import {
   Feedback
 } from "./store";
 
+import { run_in_all_projects, Result } from "./run-in-all-projects";
+
 // React libraries
 import { Actions } from "../app-framework";
 
@@ -1099,8 +1101,8 @@ export class CourseActions extends Actions<CourseState> {
 
   // start projects of all (non-deleted) students running
   action_all_student_projects(action) {
-    if (!["start", "stop", "restart"].includes(action)) {
-      throw Error("action must be start, stop or restart");
+    if (!["start", "stop"].includes(action)) {
+      throw Error("action must be start or stop");
     }
     this.action_shared_project(action);
 
@@ -1123,26 +1125,57 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
 
-    if (this.prev_interval_id != null) {
+    if (this.prev_interval_id) {
       window.clearInterval(this.prev_interval_id);
+      this.prev_interval_id = 0;
     }
-    if (this.prev_timeout_id != null) {
+    if (this.prev_timeout_id) {
       window.clearTimeout(this.prev_timeout_id);
+      this.prev_timeout_id = 0;
     }
+    if (action === 'start') {
+      // action is start -- in this case we bizarely keep starting the
+      // projects every 30s.  This is basically a no-op when already running,
+      // so maybe not so bad.  (Do NOT do this for stop or restart, since
+      // those are NOT no-ops, or user might try to start project, only to
+      // be stopped.)
+      // Anyway this is just nuts, but whatever. It needs to be rewritten.
+      const clear_state = () => {
+        window.clearInterval(this.prev_interval_id);
+        return this.setState({ action_all_projects_state: "any" });
+      };
 
-    const clear_state = () => {
-      window.clearInterval(this.prev_interval_id);
-      return this.setState({ action_all_projects_state: "any" });
-    };
-
-    this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
-    this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
+      this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
+      this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
+    }
 
     if (["start", "restart"].includes(action)) {
       this.setState({ action_all_projects_state: "starting" });
     } else if (action === "stop") {
       this.setState({ action_all_projects_state: "stopping" });
     }
+  }
+
+  async run_in_all_student_projects(
+    command: string,
+    args?: string[],
+    timeout?: number,
+    log?:Function,
+  ): Promise<Result[]> {
+    const store = this.get_store();
+    if (store == null) {
+      return [];
+    }
+    // calling start also deals with possibility that
+    // it's in stop state.
+    this.action_all_student_projects('start');
+    return await run_in_all_projects(
+      store.get_student_project_ids(),
+      command,
+      args,
+      timeout,
+      log
+    );
   }
 
   set_all_student_project_titles(title) {

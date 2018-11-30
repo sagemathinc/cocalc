@@ -856,6 +856,7 @@ EditorSettingsCheckboxes = rclass
 
     propTypes :
         editor_settings : rtypes.immutable.Map.isRequired
+        email_address : rtypes.string
         on_change       : rtypes.func.isRequired
 
     shouldComponentUpdate: (props) ->
@@ -868,6 +869,8 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
+        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
+            return
         <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
                ref      = {name}
@@ -1078,6 +1081,7 @@ EditorSettings = rclass
         autosave        : rtypes.number
         tab_size        : rtypes.number
         font_size       : rtypes.number
+        email_address   : rtypes.string
         editor_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (props) ->
@@ -1124,7 +1128,7 @@ EditorSettings = rclass
             <EditorSettingsKeyboardVariant
                 on_change={(value)=>@on_change('keyboard_variant',value)} keyboard_variant={@props.editor_settings.get('keyboard_variant')} keyboard_variant_options = {@get_keyboard_variant_options()} />
             <EditorSettingsCheckboxes
-                on_change={@on_change} editor_settings={@props.editor_settings} />
+                on_change={@on_change} editor_settings={@props.editor_settings} email_address={@props.email_address}/>
         </Panel>
 
 KEYBOARD_SHORTCUTS =
@@ -1385,6 +1389,7 @@ exports.AccountSettingsTop = rclass
                         tab_size        = {@props.tab_size}
                         font_size       = {@props.font_size}
                         editor_settings = {@props.editor_settings}
+                        email_address   = {@props.email_address}
                         redux           = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
