@@ -20,12 +20,12 @@
 
 async = require('async')
 
-{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('./app-framework')
+{Component, React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions, redux, Store, Actions, Redux} = require('../app-framework')
 {Alert, Button, ButtonToolbar, Checkbox, Col, FormControl, FormGroup, ControlLabel, InputGroup, Overlay, OverlayTrigger, Popover, Modal, Tooltip, Row, Well} = require('react-bootstrap')
-{HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('./customize')
-{UpgradeRestartWarning} = require('./upgrade_restart_warning')
+{HelpEmailLink, SiteName, CompanyName, PricingUrl, PolicyTOSPageUrl, PolicyIndexPageUrl, PolicyPricingPageUrl} = require('../customize')
+{UpgradeRestartWarning} = require('../upgrade_restart_warning')
 copy_to_clipboard = require('copy-to-clipboard')
-{reportException} = require('../webapp-lib/webapp-error-reporter')
+{reportException} = require('../../webapp-lib/webapp-error-reporter')
 
 {Icon} = require('./icon')
 exports.Icon = Icon
@@ -35,6 +35,12 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
+{CloseX} = require('./close-x')
+exports.CloseX = CloseX
+{Saving} = require('./saving')
+exports.Saving = Saving
+{SelectorInput} = require('./selector-input')
+exports.SelectorInput = SelectorInput
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -48,12 +54,12 @@ theme       = require('smc-util/theme')
 immutable   = require('immutable')
 underscore  = require('underscore')
 
-markdown    = require('./markdown')
-feature     = require('./feature')
+markdown    = require('../markdown')
+feature     = require('../feature')
 
 {defaults, required} = misc
 
-exports.MarkdownInput = require('./widget-markdown-input/main').MarkdownInput
+exports.MarkdownInput = require('../widget-markdown-input/main').MarkdownInput
 
 # base unit in pixel for margin/size/padding
 exports.UNIT = UNIT = 15
@@ -145,28 +151,6 @@ exports.Octicon = rclass
         if @props.mega
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
-
-exports.Saving = Saving = rclass
-    displayName : 'Misc-Saving'
-
-    render: ->
-        <span><Icon name='cc-icon-cocalc-ring' spin /> Saving...</span>
-
-closex_style =
-    float      : 'right'
-    marginLeft : '5px'
-
-exports.CloseX = CloseX = rclass
-    displayName : 'Misc-CloseX'
-
-    propTypes :
-        on_close : rtypes.func.isRequired
-        style    : rtypes.object   # optional style for the icon itself
-
-    render:->
-        <a href='' style={closex_style} onClick={(e)=>e.preventDefault();@props.on_close()}>
-            <Icon style={@props.style} name='times' />
-        </a>
 
 exports.SimpleX = SimpleX = ({onClick}) ->
     <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
@@ -266,46 +250,6 @@ exports.MessageDisplay = MessageDisplay = rclass
                 </Button>
             </Col>
         </Row>
-
-exports.SelectorInput = SelectorInput = rclass
-    displayName : 'Misc-SelectorInput'
-
-    propTypes :
-        selected  : rtypes.string
-        on_change : rtypes.func
-        disabled  : rtypes.bool
-        #options   : array or object
-
-    render_options: ->
-        if misc.is_array(@props.options)
-            if @props.options.length > 0 and typeof(@props.options[0]) == 'string'
-                i = 0
-                v = []
-                for x in @props.options
-                    v.push(<option key={i} value={x}>{x}</option>)
-                    i += 1
-                return v
-            else
-                for x in @props.options
-                    <option key={x.value} value={x.value}>{x.display}</option>
-        else
-            v = misc.keys(@props.options); v.sort()
-            for value in v
-                display = @props.options[value]
-                <option key={value} value={value}>{display}</option>
-
-    render: ->
-        <FormGroup>
-            <FormControl
-                value          = {@props.selected}
-                componentClass = 'select'
-                ref            = 'input'
-                onChange       = {=>@props.on_change?(ReactDOM.findDOMNode(@refs.input).value)}
-                disabled       = {@props.disabled}
-            >
-                {@render_options()}
-            </FormControl>
-        </FormGroup>
 
 exports.TextInput = rclass
     displayName : 'Misc-TextInput'
@@ -830,9 +774,9 @@ exports.HTML = HTML = rclass
             return {__html: ''}
 
         if @props.safeHTML
-            html = require('./misc_page').sanitize_html_safe(@props.value, @props.post_hook)
+            html = require('../misc_page').sanitize_html_safe(@props.value, @props.post_hook)
         else
-            html = require('./misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
+            html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
         if exports.SHARE_SERVER
             {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
@@ -1151,7 +1095,7 @@ exports.DeletedProjectWarning = ->
 exports.course_warning = (pay) ->
     if not pay
         return false
-    {webapp_client} = require('./webapp_client')
+    {webapp_client} = require('../webapp_client')
     return webapp_client.server_time() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
@@ -1180,13 +1124,13 @@ exports.CourseProjectWarning = (opts) ->
         return <span></span>
     # We may now assume course_info.get is defined, since course_warning is only true if it is.
     pay = course_info.get('pay')
-    billing = require('./billing')
+    billing = require('../billing')
     if avail > 0
         action = <billing.BillingPageLink text="move this project to a members only server" />
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
     is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
-    {webapp_client} = require('./webapp_client')
+    {webapp_client} = require('../webapp_client')
     if pay > webapp_client.server_time()  # in the future
         if is_student
             deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
@@ -1347,7 +1291,7 @@ exports.EditorFileInfoDropdown = EditorFileInfoDropdown = rclass
                 'copy'     : 'files-o'
         else
             # dynamically create a map from 'key' to 'icon'
-            {file_actions} = require('./project_store')
+            {file_actions} = require('../project_store')
             items = underscore.object(([k, v.icon] for k, v of file_actions))
 
         for name, icon of items
@@ -1392,7 +1336,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
     billing: (e) ->
         e.preventDefault()
-        require('./billing').visit_billing_page()
+        require('../billing').visit_billing_page()
 
     render: ->
         <Alert bsStyle='info'>

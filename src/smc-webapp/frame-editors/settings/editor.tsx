@@ -8,7 +8,9 @@ import { React, Rendered, Component } from "../../app-framework";
 
 import { is_different } from "smc-util/misc2";
 
-const { Icon } = require("smc-webapp/icon");
+// import from icon only necessary for testing via Jest
+// Change to import from r_misc when it's all typescript
+import { Icon } from "../../r_misc/icon";
 
 import { SpellCheck } from "./spell-check";
 
