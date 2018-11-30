@@ -73,7 +73,7 @@ exports.HashtagBar = rclass
     render: ->
         <Row>
             <Col md={12}>
-                <ButtonGroup style={padding:'5px', overflowY: 'auto'}>
+                <ButtonGroup style={padding:'5px', overflowY: 'auto', maxHeight:'8em'}>
                     {@render_hashtags()}
                 </ButtonGroup>
             </Col>
