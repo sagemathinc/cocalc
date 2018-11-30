@@ -198,7 +198,7 @@ $.fn.html_noscript = (html) ->
 
 # MathJax some code -- jQuery plugin
 # ATTN: do not call MathJax directly, but always use this .mathjax() plugin.
-# from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc.cjsx)
+# from React.js, the canonical way to call it is $(ReactDOM.findDOMNode(@)).mathjax() (e.g. Markdown in r_misc)
 
 # this queue is used, when starting up or when it isn't configured (yet)
 mathjax_queue = []
