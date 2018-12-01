@@ -33,18 +33,9 @@ const TOUCH_INTERVAL_M = 10;
 const LOCAL_HUB_AUTOSAVE_S = 45;
 // const LOCAL_HUB_AUTOSAVE_S = 5
 
-type Patch = any;
+type XPatch = any;
 
 type FileWatcher = any;
-
-interface ProcessedPatch {
-  time: Date;
-  user_id: number;
-  patch: Patch;
-  sent?: Date;
-  prev?: Date;
-  snapshot?: string;
-}
 
 import { EventEmitter } from "events";
 
@@ -65,16 +56,17 @@ import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
 const { Evaluator } = require("../../../syncstring_evaluator");
 
 const {
+  is_date,
+  ISO_to_Date,
   minutes_ago,
-  server_minutes_ago,
-  server_time
+  server_minutes_ago
 } = require("../../../misc");
 
 const schema = require("../../../schema");
 
 import { SyncTable } from "../../table/synctable";
 
-import { Client, CompressedPatch, DocType, Document } from "./types";
+import { Client, CompressedPatch, DocType, Document, Patch } from "./types";
 
 import { SortedPatchList } from "./sorted-patch-list";
 
@@ -148,7 +140,7 @@ export class SyncDoc extends EventEmitter {
   private last_user_change: Date | undefined;
 
   private last_snapshot: Date | undefined;
-  private snapshot_interval: number | undefined;
+  private snapshot_interval: number;
 
   private deleted: boolean | undefined;
   private users: string[];
@@ -159,7 +151,7 @@ export class SyncDoc extends EventEmitter {
   private load_full_history_done: boolean = false;
 
   // patches that this client made during this editing session.
-  private my_patches: { [time: string]: Patch } = {};
+  private my_patches: { [time: string]: XPatch } = {};
 
   private watch_path?: string;
   private file_watcher?: FileWatcher;
@@ -168,6 +160,8 @@ export class SyncDoc extends EventEmitter {
   private patch_update_queue: string[] = [];
 
   private undo_state: UndoState | undefined;
+
+  private save_patch_prev: Date | undefined;
 
   constructor(opts: SyncOpts) {
     super();
@@ -612,7 +606,7 @@ export class SyncDoc extends EventEmitter {
           project_id: this.project_id,
           path: this.path,
           deleted: this.deleted,
-          last_active: server_time(),
+          last_active: this.client.server_time(),
           doctype: JSON.stringify(this.doctype)
         }
       }
@@ -629,7 +623,7 @@ export class SyncDoc extends EventEmitter {
     is_read_only: boolean,
     size: number
   ): Promise<void> {
-    const init = { time: server_time(), size, error };
+    const init = { time: this.client.server_time(), size, error };
     return await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -1218,9 +1212,9 @@ export class SyncDoc extends EventEmitter {
   }
 
   // Promise resolves when save to the backend done
-  private async save_patch(time: Date, patch: Patch): Promise<void> {
+  private async save_patch(time: Date, patch: XPatch): Promise<void> {
     this.assert_not_closed();
-    const obj = {
+    const obj: any = {
       // version for database
       string_id: this.string_id,
       time,
@@ -1255,7 +1249,10 @@ export class SyncDoc extends EventEmitter {
     // before the promise resolved...
     //console.log 'saving patch with time ', time.valueOf()
     const x = await this.patches_table.set(obj, "none");
-    this.patch_list.add([this.process_patch(x, undefined, undefined, patch)]);
+    const y = this.process_patch(x, undefined, undefined, patch);
+    if (y != null) {
+      this.patch_list.add([y]);
+    }
   }
 
   /* Create and store in the database a snapshot of the state
@@ -1275,7 +1272,7 @@ export class SyncDoc extends EventEmitter {
 
     const snapshot: string = this.patch_list.value(time, force).to_str();
     // save the snapshot itself in the patches table.
-    const obj = {
+    const obj: any = {
       string_id: this.string_id,
       time,
       patch: JSON.stringify(x.patch),
@@ -1321,23 +1318,23 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  /* x - patch object
-  time0, time1: optional range of times
-  return undefined if patch not in this range
-  patch -- if given will be used as an actual patch
-           instead of x.patch, which is a JSON string.
+  /*- x - patch object
+    - time0, time1: optional range of times
+        return undefined if patch not in this range
+    - patch: if given will be used as an actual patch
+        instead of x.patch, which is a JSON string.
   */
   private process_patch(
     x: Map<string, any>,
     time0?: Date,
     time1?: Date,
     patch?: any
-  ): ProcessedPatch | undefined {
+  ): Patch | undefined {
     let t = x.get("time");
-    if (!misc.is_date(t)) {
+    if (!is_date(t)) {
       // who knows what is in the database...
       try {
-        t = misc.ISO_to_Date(t);
+        t = ISO_to_Date(t);
         if (isNaN(t)) {
           // ignore patches with bad times
           return;
@@ -1372,7 +1369,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     const snapshot: string = x.get("snapshot");
-    const obj = {
+    const obj: any = {
       time,
       user_id,
       patch
@@ -1394,16 +1391,19 @@ export class SyncDoc extends EventEmitter {
      If time0 undefined then sets time0 equal to time of last_snapshot.
      If time1 undefined treated as +oo.
   */
-  private get_patches(time0?: Date, time1?: Date): ProcessedPatch[] {
+  private get_patches(time0?: Date, time1?: Date): Patch[] {
     if (time0 == null) {
       time0 = this.last_snapshot;
     }
     // m below is an immutable map with keys the string that
     // is the JSON version of the primary key
     // [string_id, timestamp, user_number].
-    const m: Map<string, any> = this.patches_table.get();
-    const v: ProcessedPatch[] = [];
-    m.map((x, id) => {
+    const m: Map<string, any> | undefined = this.patches_table.get();
+    if (m == null) {
+      throw Error("patches_table must be initialized");
+    }
+    const v: Patch[] = [];
+    m.map((x, _) => {
       const p = this.process_patch(x, time0, time1);
       if (p != null) {
         return v.push(p);
@@ -1428,7 +1428,7 @@ export class SyncDoc extends EventEmitter {
     const result = await callback2(this.client.query, {
       query: { patches: [query] }
     });
-    const v: ProcessedPatch[] = [];
+    const v: Patch[] = [];
     // process_patch assumes immutable objects
     fromJS(result.query.patches).forEach(x => {
       const p = this.process_patch(x, 0, this.last_snapshot);
@@ -1467,7 +1467,7 @@ export class SyncDoc extends EventEmitter {
     //dbg = this.dbg("handle_offline")
     //dbg("data='#{misc.to_json(data)}'")
     this.assert_not_closed();
-    const now: Date = misc.server_time();
+    const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
     for (let obj of data) {
       if (obj.sent) {
@@ -1556,7 +1556,7 @@ export class SyncDoc extends EventEmitter {
       last_snapshot: this.last_snapshot,
       users: this.users,
       deleted: this.deleted,
-      doctype: misc.to_json(this.doctype)
+      doctype: JSON.stringify(this.doctype)
     };
     await this.syncstring_table.set(obj);
     this.settings = Map();
@@ -1757,7 +1757,7 @@ export class SyncDoc extends EventEmitter {
       await this.set_save({
         state: "done",
         error: false,
-        hash: misc.hash_string(data)
+        hash: hash_string(data)
       });
     }
     // save new version (via from_str) to database.
@@ -1835,7 +1835,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return misc.hash_string(this.doc.to_str());
+    return hash_string(this.doc.to_str());
   }
 
   /* Return true if there are changes to this syncstring that
@@ -1985,7 +1985,7 @@ export class SyncDoc extends EventEmitter {
     this.touch();
     // string version of this doc
     const data: string = this.to_str();
-    const expected_hash = misc.hash_string(data);
+    const expected_hash = hash_string(data);
     await this.set_save({ state: "requested", error: false, expected_hash });
   }
 
@@ -1995,7 +1995,7 @@ export class SyncDoc extends EventEmitter {
     // check if on-disk version is same as in memory, in
     // which case no save is needed.
     const data = this.to_str(); // string version of this doc
-    const hash = misc.hash_string(data);
+    const hash = hash_string(data);
     const expected_hash = this.syncstring_table
       .get_one()
       .getIn(["save", "expected_hash"]);
@@ -2031,7 +2031,7 @@ export class SyncDoc extends EventEmitter {
       await this.set_save({
         state: "done",
         error: false,
-        hash: misc.hash_string(data)
+        hash: hash_string(data)
       });
     } catch (err) {
       await this.set_save({ state: "done", error: JSON.stringify(err) });
