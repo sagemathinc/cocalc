@@ -43,10 +43,16 @@ export interface Client {
     }
   ) => void;
   query: (opts: { query: any; cb: Function }) => void;
-  sync_table: (any) => SyncTable;
 
   // Only required to work on project client.
-  path_access: ({path:string; mode:string; cb:Function}) => void;
-  path_exists: ({path:string; cb:Function}) => void;
-  path_stat: ({path:string; cb:Function}) => void;
+  path_access: (opts: { path: string; mode: string; cb: Function }) => void;
+  path_exists: (opts: { path: string; cb: Function }) => void;
+  path_stat: (opts: { path: string; cb: Function }) => void;
+
+  synctable2: (query:any, options:any, throttle_changes?:number) => SyncTable;
+}
+
+export interface DocType {
+  type: string;
+  patch_format?: number; // 0=string or 1=dbdoc, if given
 }

@@ -21,7 +21,6 @@ const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
    stays opened in the local hub, when the local hub is running. */
 const TOUCH_INTERVAL_M = 10;
 
-
 /* How often the local hub will autosave this file to disk if
    it has it open and there are unsaved changes.  This is very
    important since it ensures that a user that edits a file but
@@ -52,7 +51,7 @@ import { EventEmitter } from "events";
 import { throttle } from "underscore";
 import { Map, fromJS } from "immutable";
 
-import { delay } from "awaiting";
+import { callback, delay } from "awaiting";
 
 import {
   callback2,
@@ -75,7 +74,7 @@ const schema = require("../../../schema");
 
 import { SyncTable } from "../../table/synctable";
 
-import { Client, CompressedPatch, Document } from "./types";
+import { Client, CompressedPatch, DocType, Document } from "./types";
 
 import { SortedPatchList } from "./sorted-patch-list";
 
@@ -89,7 +88,7 @@ export interface SyncOpts {
   file_use_interval?: number;
   string_id?: string;
   cursors?: boolean;
-  doctype?: any;
+  doctype: DocType;
 }
 
 export interface UndoState {
@@ -118,18 +117,18 @@ export class SyncDoc extends EventEmitter {
   // not an amount of time.
   private project_autosave_timer: number = 0;
 
-  private periodically_touch_timer : number = 0;
+  private periodically_touch_timer: number = 0;
 
   // file_use_interval throttle: default is 60s for everything
   // except .sage-chat files, where it is 10s.
   private file_use_interval: number;
 
   private cursors: boolean = false; // if true, also provide cursor tracking functionality
-  private cursor_map : Map<string,any> = Map();
+  private cursor_map: Map<string, any> = Map();
 
-  // doctype: optional object describing document constructor
+  // doctype: object describing document constructor
   // (used by project to open file)
-  private doctype: any = undefined;
+  private doctype: DocType;
 
   private state: State = "init";
 
@@ -137,7 +136,7 @@ export class SyncDoc extends EventEmitter {
   private patches_table: SyncTable;
   private cursors_table: SyncTable;
 
-  private evaluator : any;
+  private evaluator: any;
 
   private patch_list: SortedPatchList;
 
@@ -165,6 +164,7 @@ export class SyncDoc extends EventEmitter {
   private watch_path?: string;
   private file_watcher?: FileWatcher;
 
+  private handle_patch_update_queue_running: boolean;
   private patch_update_queue: string[] = [];
 
   private undo_state: UndoState | undefined;
@@ -562,6 +562,17 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list.user_id(time);
   }
 
+  private syncstring_table_get_one(): Map<string, any> {
+    if (this.syncstring_table == null) {
+      throw Error("syncstring_table must be defined");
+    }
+    const t = this.syncstring_table.get_one();
+    if (t == null) {
+      throw Error("syncstring_table must have an entry");
+    }
+    return t;
+  }
+
   /* Indicate active interest in syncstring; only updates time
      if last_active is at least min_age_m=5 minutes old (so
      this can be safely called frequently without too much load).
@@ -578,7 +589,7 @@ export class SyncDoc extends EventEmitter {
       // if min_age_m is 0 always try to do it immediately;
       // if > 0 check what it was:
       if (this.syncstring_table != null) {
-        const t = this.syncstring_table.get_one();
+        const t = this.syncstring_table_get_one();
         if (t != null) {
           last_active = t.get("last_active");
           if (
@@ -749,7 +760,7 @@ export class SyncDoc extends EventEmitter {
       }
     };
 
-    this.syncstring_table = this.client.sync_table(query);
+    this.syncstring_table = this.client.synctable2(query, undefined);
     await once(this.syncstring_table, "connected");
     this.handle_syncstring_update();
     this.syncstring_table.on("change", this.handle_syncstring_update);
@@ -759,7 +770,7 @@ export class SyncDoc extends EventEmitter {
     // after they have been pulled from blob storage before
     // we init the patch table, load from disk, etc.
     function is_not_archived(): boolean {
-      const ss = this.syncstring_table.get_one();
+      const ss = this.syncstring_table_get_one();
       if (ss != null) {
         return !ss.get("archived");
       } else {
@@ -811,9 +822,11 @@ export class SyncDoc extends EventEmitter {
     this.touch(1);
     // touch every few minutes while syncstring is open, so that project
     // (if open) keeps its side open
-    this.periodically_touch_timer = <any> setInterval(
-      () => this.touch(TOUCH_INTERVAL_M / 2),
-      1000 * 60 * TOUCH_INTERVAL_M
+    this.periodically_touch_timer = <any>(
+      setInterval(
+        () => this.touch(TOUCH_INTERVAL_M / 2),
+        1000 * 60 * TOUCH_INTERVAL_M
+      )
     );
   }
 
@@ -856,7 +869,7 @@ export class SyncDoc extends EventEmitter {
 
   public async wait_until_ready(): Promise<void> {
     this.assert_not_closed();
-    if (this.state !== "ready" as State) {
+    if (this.state !== ("ready" as State)) {
       // wait for a state change.
       await once(this, "state");
       if (this.state !== "ready") {
@@ -986,8 +999,8 @@ export class SyncDoc extends EventEmitter {
       // from this session
       prev: null
     };
-    if (this.patch_format != null) {
-      query.format = this.patch_format;
+    if (this.doctype.patch_format != null) {
+      (query as any).format = this.doctype.patch_format;
     }
     return query;
   }
@@ -1090,14 +1103,17 @@ export class SyncDoc extends EventEmitter {
     // cursors now initialized; first initialize the
     // local this._cursor_map, which tracks positions
     // of cursors by account_id:
-    this.cursors_table.get().map((locs, k) => {
+    const s = this.cursors_table.get();
+    if (s == null) {
+      throw Error("bug -- get should not return null once table initialized");
+    }
+    s.map((locs: any[], k: string) => {
       const u = JSON.parse(k);
       if (u != null) {
         this.cursor_map = this.cursor_map.set(this.users[u[1]], locs);
       }
     });
-
-    this.cursors.on("change", this.handle_cursors_change.bind(this));
+    this.cursors_table.on("change", this.handle_cursors_change.bind(this));
   }
 
   private handle_cursors_change(keys): void {
@@ -1139,7 +1155,7 @@ export class SyncDoc extends EventEmitter {
   // get settings object
   public get_settings(): Map<string, any> {
     this.assert_is_ready();
-    return this.syncstring_table.get_one().get("settings", Map());
+    return this.syncstring_table_get_one().get("settings", Map());
   }
 
   /*
@@ -1196,7 +1212,7 @@ export class SyncDoc extends EventEmitter {
   async undelete(): Promise<void> {
     this.assert_not_closed();
     // Version with deleted set to false:
-    const x = this.syncstring_table.get_one().set("deleted", false);
+    const x = this.syncstring_table_get_one().set("deleted", false);
     // Now write that as new version to table.
     await this.syncstring_table.set(x);
   }
@@ -1214,8 +1230,8 @@ export class SyncDoc extends EventEmitter {
 
     this.my_patches[time.valueOf()] = obj;
 
-    if (this.patch_format != null) {
-      obj.format = this.patch_format;
+    if (this.doctype.patch_format != null) {
+      obj.format = this.doctype.patch_format;
     }
     if (this.deleted) {
       // file was deleted but now change is being made, so undelete it.
@@ -1439,7 +1455,7 @@ export class SyncDoc extends EventEmitter {
 
   private async set_snapshot_interval(n: number): Promise<void> {
     await this.syncstring_table.set(
-      this.syncstring_table.get_one().set("snapshot_interval", n)
+      this.syncstring_table_get_one().set("snapshot_interval", n)
     );
   }
 
@@ -1500,7 +1516,7 @@ export class SyncDoc extends EventEmitter {
     //dbg()
     await this.wait_until_ready();
 
-    const data = this.syncstring_table.get_one();
+    const data = this.syncstring_table_get_one();
     const x = data != null ? data.toJS() : undefined;
 
     if (x != null && x.save != null) {
@@ -1710,7 +1726,7 @@ export class SyncDoc extends EventEmitter {
     // document to blank above,
     // since otherwise the set would set deleted=false.
     await this.syncstring_table.set(
-      this.syncstring_table.get_one().set("deleted", true)
+      this.syncstring_table_get_one().set("deleted", true)
     );
     // make sure deleted:true is saved:
     await this.syncstring_table.save();
@@ -1761,20 +1777,20 @@ export class SyncDoc extends EventEmitter {
     // for coordinating running code, etc.... and is just generally useful.
     x.time = new Date().valueOf();
     await this.syncstring_table.set(
-      this.syncstring_table.get_one().set("save", fromJS(x))
+      this.syncstring_table_get_one().set("save", fromJS(x))
     );
   }
 
   private async set_read_only(read_only: boolean): Promise<void> {
     this.assert_is_ready();
     await this.syncstring_table.set(
-      this.syncstring_table.get_one().set("read_only", read_only)
+      this.syncstring_table_get_one().set("read_only", read_only)
     );
   }
 
   public get_read_only(): boolean {
     this.assert_is_ready();
-    return this.syncstring_table.get_one().get("read_only");
+    return this.syncstring_table_get_one().get("read_only");
   }
 
   private wait_until_read_only_known(): Promise<void> {
@@ -1808,7 +1824,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return this.syncstring_table.get_one().getIn(["save", "hash"]);
+    return this.syncstring_table_get_one().getIn(["save", "hash"]);
   }
 
   /* Return hash of the live version of the document,
@@ -1898,7 +1914,7 @@ export class SyncDoc extends EventEmitter {
       if (this.state != "ready" || this.deleted) {
         return;
       }
-      const err = this.syncstring_table.get_one().getIn(["save", "error"]);
+      const err = this.syncstring_table_get_one().getIn(["save", "error"]);
       if (err) {
         last_err = err;
         await this.touch(0); // get backend attention!
@@ -2059,43 +2075,48 @@ export class SyncDoc extends EventEmitter {
   their timestamp gets added to this.patch_update_queue.
   */
   private async handle_patch_update_queue(): Promise<void> {
-    while (this.patch_update_queue.length > 0 && this.state === "ready") {
-      const v: Map<string, any>[] = [];
-      for (let key of this.patch_update_queue) {
-        const x = this.patches_table.get(key);
-        if (x != null) {
-          // may be null, e.g., when deleted.
-          const t = x.get("time");
-          // Only need to process patches that we didn't
-          // create ourselves.
-          if (t && !this.my_patches[`${t.valueOf()}`]) {
-            v.push(this.process_patch(x));
+    try {
+      this.handle_patch_update_queue_running = true;
+      while (this.patch_update_queue.length > 0 && this.state === "ready") {
+        const v: Map<string, any>[] = [];
+        for (let key of this.patch_update_queue) {
+          const x = this.patches_table.get(key);
+          if (x != null) {
+            // may be null, e.g., when deleted.
+            const t = x.get("time");
+            // Only need to process patches that we didn't
+            // create ourselves.
+            if (t && !this.my_patches[`${t.valueOf()}`]) {
+              v.push(this.process_patch(x));
+            }
           }
         }
-      }
-      this.patch_update_queue = [];
-      this.patch_list.add(v);
+        this.patch_update_queue = [];
+        this.patch_list.add(v);
 
-      // NOTE: The below sync_remote_and_doc can sometimes
-      // *cause* new entries to be added to this.patch_update_queue.
-      await this.sync_remote_and_doc();
-      if (this.state !== "ready") {
-        return;
-      }
+        // NOTE: The below sync_remote_and_doc can sometimes
+        // *cause* new entries to be added to this.patch_update_queue.
+        await this.sync_remote_and_doc();
+        if (this.state !== "ready") {
+          return;
+        }
 
-      if (this.patch_update_queue.length > 0) {
-        // It is very important that next loop happen in a later
-        // event loop to avoid the this.sync_remote_and_doc call
-        // in this.handle_patch_update_queue above from causing
-        // sync_remote_and_doc to get called from within itself,
-        // due to synctable changes being emited on save.
-        await delay(1);
-      } else {
-        // OK, done and nothing in the queue
-        // Notify save() to try again -- it may have
-        // paused waiting for this to clear.
-        this.emit("handle_patch_update_queue_done");
+        if (this.patch_update_queue.length > 0) {
+          // It is very important that next loop happen in a later
+          // event loop to avoid the this.sync_remote_and_doc call
+          // in this.handle_patch_update_queue above from causing
+          // sync_remote_and_doc to get called from within itself,
+          // due to synctable changes being emited on save.
+          await delay(1);
+        } else {
+          // OK, done and nothing in the queue
+          // Notify save() to try again -- it may have
+          // paused waiting for this to clear.
+          this.emit("handle_patch_update_queue_done");
+        }
       }
+    } finally {
+      this.handle_patch_update_queue_running = false;
     }
   }
 
