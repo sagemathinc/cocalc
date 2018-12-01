@@ -130,16 +130,16 @@ export async function callback2(f: Function, opts: any): Promise<any> {
 }
 
 export function reuse_in_flight_methods(
-  this: any,
+  obj: any,
   method_names: string[]
 ): void {
   for (method_name of method_names) {
-    this[method_name] = reuseInFlight(this[method_name].bind(this));
+    obj[method_name] = reuseInFlight(obj[method_name].bind(obj));
   }
 }
 
-export function bind_methods(this: any, method_names: string[]): void {
+export function bind_methods(obj: any, method_names: string[]): void {
   for (method_name of method_names) {
-    this[method_name] = this[method_name].bind(this);
+    obj[method_name] = obj[method_name].bind(obj);
   }
 }

@@ -131,7 +131,7 @@ export class SyncTable extends EventEmitter {
        - arg = array of keys; return map from key to obj
        - arg = single key; returns corresponding object
   */
-  public get(arg): Map<string, any> | undefined {
+  public get(arg?): Map<string, any> | undefined {
     if (this.value_local == null) {
       return;
     }

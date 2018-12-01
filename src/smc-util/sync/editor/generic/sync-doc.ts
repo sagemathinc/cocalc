@@ -1,15 +1,26 @@
 /*
+SyncDoc -- the core class for editing with a synchronized document.
 
+This code supports both string-doc and db-doc, for editing both
+strings and small database tables efficiently, with history,
+undo, save to disk, etc.
 
+This code is run *both* in browser clients and under node.js
+in projects, and behaves slightly differently in each case.
 */
 
 /* OFFLINE_THRESH_S - If the client becomes disconnected from
    the backend for more than this long then---on reconnect---do
    extra work to ensure that all snapshots are up to date (in
    case snapshots were made when we were offline), and mark the
-   sent field of patches that weren't saved.
-*/
+   sent field of patches that weren't saved. */
 const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
+
+/* Client -- when it has this syncstring open and connected
+   -- will touch the syncstring every so often so that it
+   stays opened in the local hub, when the local hub is running. */
+const TOUCH_INTERVAL_M = 10;
+
 
 /* How often the local hub will autosave this file to disk if
    it has it open and there are unsaved changes.  This is very
@@ -19,8 +30,7 @@ const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
    file saved to disk soon.  This is important, e.g., for homework
    getting collected and not missing the last few changes.  It turns
    out this is what people expect.
-   Set to 0 to disable. (But don't do that.)
-*/
+   Set to 0 to disable. (But don't do that.) */
 const LOCAL_HUB_AUTOSAVE_S = 45;
 // const LOCAL_HUB_AUTOSAVE_S = 5
 
@@ -36,6 +46,8 @@ interface ProcessedPatch {
   prev?: Date;
   snapshot?: string;
 }
+
+import { EventEmitter } from "events";
 
 import { throttle } from "underscore";
 import { Map, fromJS } from "immutable";
@@ -53,62 +65,82 @@ import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
 
 const { Evaluator } = require("../../../syncstring_evaluator");
 
-const { minutes_ago, server_minutes_ago, server_time } = require("../../../misc");
+const {
+  minutes_ago,
+  server_minutes_ago,
+  server_time
+} = require("../../../misc");
+
+const schema = require("../../../schema");
+
+import { SyncTable } from "../../table/synctable";
+
+import { Client, CompressedPatch, Document } from "./types";
+
+import { SortedPatchList } from "./sorted-patch-list";
 
 export interface SyncOpts {
   project_id: string;
   path: string;
   client: Client;
   from_str: (string) => Document;
-
-  save_interval?: number;
   cursor_interval?: number;
   patch_interval?: number;
   file_use_interval?: number;
   string_id?: string;
   cursors?: boolean;
   doctype?: any;
-  from_patch_str?: (string) => Patch;
 }
 
 export interface UndoState {
   my_times: Date[];
   pointer: number;
   without: Date[];
+  final?: CompressedPatch;
 }
 
-type State = "init" | "ready" | "closed";
+export type State = "init" | "ready" | "closed";
 
-class SyncDoc extends EventEmitter {
+export class SyncDoc extends EventEmitter {
   private project_id: string; // project_id that contains the doc
   private path: string; // path of the file corresponding to the doc
 
   private client: Client;
   private _from_str: (string) => Document; // creates a doc from a string.
   private string_id: string;
+  private my_user_id: number;
 
-  private save_interval: number = 2000;
   private cursor_interval: number = 1000;
   // debouncing of incoming upstream patches
   private patch_interval: number = 1500;
 
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
-  private project_autosave_interval: number = 0;
+  private project_autosave_timer: number = 0;
+
+  private periodically_touch_timer : number = 0;
 
   // file_use_interval throttle: default is 60s for everything
   // except .sage-chat files, where it is 10s.
   private file_use_interval: number;
 
   private cursors: boolean = false; // if true, also provide cursor tracking functionality
-  private doctype: any = undefined; // optional object describing document constructor (used by project to open file)
-  private from_patch_str: (string) => Patch = JSON.parse;
+  private cursor_map : Map<string,any> = Map();
+
+  // doctype: optional object describing document constructor
+  // (used by project to open file)
+  private doctype: any = undefined;
 
   private state: State = "init";
 
   private syncstring_table: SyncTable;
   private patches_table: SyncTable;
   private cursors_table: SyncTable;
+
+  private evaluator : any;
+
+  private patch_list: SortedPatchList;
+
   private throttled_set_cursor_locs: Function;
 
   private last: Document;
@@ -120,7 +152,7 @@ class SyncDoc extends EventEmitter {
   private snapshot_interval: number | undefined;
 
   private deleted: boolean | undefined;
-  private users: string[] | undefined;
+  private users: string[];
 
   private settings: Map<string, any> = Map();
 
@@ -135,7 +167,7 @@ class SyncDoc extends EventEmitter {
 
   private patch_update_queue: string[] = [];
 
-  private undo_state : UndoState | undefined;
+  private undo_state: UndoState | undefined;
 
   constructor(opts: SyncOpts) {
     super();
@@ -149,7 +181,6 @@ class SyncDoc extends EventEmitter {
       "project_id",
       "path",
       "client",
-      "save_interval",
       "cursor_interval",
       "patch_interval",
       "file_use_interval",
@@ -201,52 +232,82 @@ class SyncDoc extends EventEmitter {
     this.emit("change"); // from nothing to something.
   }
 
+  private do_set_cursor_locs(locs: any[], side_effect: boolean): void {
+    if (
+      this.state === "closed" ||
+      this.last_user_change == null ||
+      new Date().valueOf() - this.last_user_change.valueOf() >= 1000 * 5 * 60
+    ) {
+      /* We ignore setting cursor location in case the
+         user hasn't actually modified this file recently
+         (5 minutes).  It's annoying to just see a cursor
+         moving around for a user who isn't doing
+         anything, and this also prevents bugs in
+         side_effect detection (which is super hard to
+         get right).
+        */
+      return;
+    }
+    const x: {
+      string_id: string;
+      user_id: number;
+      locs: any[];
+      time?: Date;
+    } = {
+      string_id: this.string_id,
+      user_id: this.my_user_id,
+      locs
+    };
+    if (!side_effect) {
+      x.time = this.client.server_time();
+    }
+    if (this.cursors_table != null) {
+      this.cursors_table.set(x, "none");
+    }
+  }
+
   private init_throttled_cursors(): void {
-    if (!opts.cursors) {
+    if (!this.cursors) {
       return;
     }
     // Initialize throttled cursors functions
-    function set_cursor_locs(locs, side_effect: boolean): void {
-      if (
-        this.state === "closed" ||
-        this.last_user_change == null ||
-        new Date() - this.last_user_change >= 1000 * 5 * 60
-      ) {
-        /* We ignore setting cursor location in case the
-           user hasn't actually modified this file recently
-           (5 minutes).  It's annoying to just see a cursor
-           moving around for a user who isn't doing
-           anything, and this also prevents bugs in
-           side_effect detection (which is super hard to
-           get right).
-        */
-        return;
-      }
-      const x = {
-        string_id: this.string_id,
-        user_id: this.user_id,
-        locs
-      };
-      if (!side_effect) {
-        x.time = this.client.server_time();
-      }
-      if (this.cursors_table != null) {
-        this.cursors_table.set(x, "none");
-      }
-    }
     this.throttled_set_cursor_locs = throttle(
-      set_cursor_locs.bind(this),
+      this.do_set_cursor_locs.bind(this),
       this.cursor_interval,
       { leading: true, trailing: true }
     );
   }
 
-  private init_file_use_interval(): void {
-    if (!(opts.file_use_interval && this.client.is_user())) {
+  /* Set this user's cursors to the given locs.  This
+     function is throttled, so calling it many times
+     is safe, and all but the last call is discarded.
+     NOTE: no-op if only one user or cursors not enabled
+     for this doc. */
+  public set_cursor_locs(locs, side_effect: boolean = false): void {
+    this.assert_is_ready();
+    if (this.users.length <= 2) {
+      /* Don't bother in special case when only one
+         user (plus the project -- for 2 above!)
+         since we never display the user's
+         own cursors - just other user's cursors.
+         This simple optimization will save tons
+         of bandwidth, since many files are never
+         opened by more than one user. */
       return;
     }
+    if (this.throttled_set_cursor_locs != null) {
+      this.throttled_set_cursor_locs(locs, side_effect);
+    }
+  }
+
+  private init_file_use_interval(): void {
+    if (!this.file_use_interval || !this.client.is_user()) {
+      // file_use_interval has to be set, and we only do
+      // this for browser user.
+      return;
+    }
+    const is_chat = filename_extension(this.path) === "sage-chat";
     let action;
-    const is_chat = misc.filename_extension(this.path) === "sage-chat";
     if (is_chat) {
       action = "chat";
     } else {
@@ -322,19 +383,24 @@ class SyncDoc extends EventEmitter {
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will return undefined
-  public version(time: Date): Document | undefined {
+  public version(time?: Date): Document {
     this.assert_is_ready();
     return this.patch_list.value(time);
   }
 
-  // Compute version of document if the patches at the given times were simply not included.
-  // This is a building block that is used for implementing undo functionality for client editors.
+  /* Compute version of document if the patches at the given times
+     were simply not included.  This is a building block that is
+     used for implementing undo functionality for client editors. */
   public version_without(times: Date[]): Document {
     return this.patch_list.value(undefined, undefined, times);
   }
 
   public revert(version: Date): void {
-    this.set_doc(this.version(version));
+    const doc = this.version(version);
+    if (doc == null) {
+      throw Error(`no document with version ${version}`);
+    }
+    this.set_doc(doc);
   }
 
   /* Undo/redo public api.
@@ -363,6 +429,7 @@ class SyncDoc extends EventEmitter {
   without impacting other clients code at all.
   */
   public undo(): Document {
+    this.assert_is_ready();
     let state = this.undo_state;
     if (state == null) {
       // not in undo mode
@@ -372,12 +439,6 @@ class SyncDoc extends EventEmitter {
       // pointing at live state (e.g., happens on entering undo mode)
       const value: Document = this.version(); // last saved version
       const live: Document = this.doc;
-      if (value == null) {
-        // may be undefined if everything not fully loaded or being reconnected -- in this case, just skip
-        // doing the undo, which would be dangerous, e.g., value.make_patch(live) is not going to work.
-        // See https://github.com/sagemathinc/cocalc/issues/2586
-        return live;
-      }
       if (!live.is_equal(value)) {
         // User had unsaved changes, so last undo is to revert to version without those.
         state.final = value.make_patch(live); // live redo if needed
@@ -407,6 +468,7 @@ class SyncDoc extends EventEmitter {
   }
 
   public redo(): Document {
+    this.assert_is_ready();
     const state = this.undo_state;
     if (state == null) {
       // nothing to do but return latest live version
@@ -465,15 +527,15 @@ class SyncDoc extends EventEmitter {
     if (
       !LOCAL_HUB_AUTOSAVE_S ||
       !this.client.is_project() ||
-      this.project_autosave_interval ||
+      this.project_autosave_timer ||
       endswith(this.path, ".sagews")
     ) {
       return;
     }
 
-    this.project_autosave_interval = setInterval(
-      this.save_to_disk,
-      LOCAL_HUB_AUTOSAVE_S * 1000
+    // Explicit cast due to node vs browser typings.
+    this.project_autosave_timer = <any>(
+      setInterval(this.save_to_disk, LOCAL_HUB_AUTOSAVE_S * 1000)
     );
   }
 
@@ -556,7 +618,7 @@ class SyncDoc extends EventEmitter {
     is_read_only: boolean,
     size: number
   ): Promise<void> {
-    const init = { time: misc.server_time(), size, error };
+    const init = { time: server_time(), size, error };
     return await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -577,7 +639,12 @@ class SyncDoc extends EventEmitter {
   public versions(): Date[] {
     this.assert_is_ready();
     const v: Date[] = [];
-    this.patches_table.get().map((x, _) => {
+    const s: Map<string, any> | undefined = this.patches_table.get();
+    if (s == null) {
+      // shouldn't happen do to assert_is_ready above.
+      throw Error("patches_table must be initialized");
+    }
+    s.map((x, _) => {
       v.push(x.get("time"));
     });
     v.sort(cmp_Date);
@@ -615,13 +682,13 @@ class SyncDoc extends EventEmitter {
     // what happened and can respond to it.
     this.removeAllListeners();
 
-    if (this.periodically_touch) {
-      clearInterval(this.periodically_touch);
-      this.periodically_touch = 0;
+    if (this.periodically_touch_timer) {
+      clearInterval(this.periodically_touch_timer as any);
+      this.periodically_touch_timer = 0;
     }
-    if (this.project_autosave_interval) {
-      clearInterval(this.project_autosave_interval);
-      this.project_autosave_interval = 0;
+    if (this.project_autosave_timer) {
+      clearInterval(this.project_autosave_timer as any);
+      this.project_autosave_timer = 0;
     }
 
     delete this.cursor_map;
@@ -723,7 +790,7 @@ class SyncDoc extends EventEmitter {
     this.init_file_use_interval();
     this.init_throttled_cursors();
     if (this.client.is_project()) {
-      await this._load_from_disk_if_newer();
+      await this.load_from_disk_if_newer();
     }
 
     await this.wait_until_fully_ready();
@@ -738,13 +805,13 @@ class SyncDoc extends EventEmitter {
   }
 
   private init_periodic_touch(): void {
-    if (!this.client.is_user() || this.periodically_touch != null) {
+    if (!this.client.is_user() || this.periodically_touch_timer) {
       return;
     }
     this.touch(1);
     // touch every few minutes while syncstring is open, so that project
     // (if open) keeps its side open
-    this.periodically_touch = setInterval(
+    this.periodically_touch_timer = <any> setInterval(
       () => this.touch(TOUCH_INTERVAL_M / 2),
       1000 * 60 * TOUCH_INTERVAL_M
     );
@@ -752,16 +819,16 @@ class SyncDoc extends EventEmitter {
 
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
-  private wait_until_fully_ready(): Promise<void> {
+  private async wait_until_fully_ready(): Promise<void> {
     this.assert_not_closed();
     function is_fully_ready(t: SyncTable): any {
       this.assert_not_closed();
       const tbl = t.get_one();
-      if (tbl === null) {
+      if (tbl == null) {
         return false;
       }
       // init must be set in table and archived must NOT be
-      // set (so patches are loaded from blob store)
+      // set, so patches are loaded from blob store.
       const init = tbl.get("init");
       if (init && !tbl.get("archived")) {
         return init.toJS();
@@ -789,9 +856,9 @@ class SyncDoc extends EventEmitter {
 
   public async wait_until_ready(): Promise<void> {
     this.assert_not_closed();
-    if (this.state !== "ready") {
+    if (this.state !== "ready" as State) {
       // wait for a state change.
-      await wait(this, "state");
+      await once(this, "state");
       if (this.state !== "ready") {
         throw Error("failed to initialize");
       }
@@ -1023,7 +1090,6 @@ class SyncDoc extends EventEmitter {
     // cursors now initialized; first initialize the
     // local this._cursor_map, which tracks positions
     // of cursors by account_id:
-    this.cursor_map = Map();
     this.cursors_table.get().map((locs, k) => {
       const u = JSON.parse(k);
       if (u != null) {
@@ -1049,32 +1115,6 @@ class SyncDoc extends EventEmitter {
         this.cursors_table.get(k)
       );
       this.emit("cursor_activity", account_id);
-    }
-  }
-
-  /* Set this user's cursors to the given locs.  This
-     function is throttled, so calling it many times
-     is safe, and all but the last call is discarded.
-     NOTE: no-op if only one user or cursors not enabled
-     for this doc.
-  */
-  public set_cursor_locs(locs, side_effect: boolean = false): void {
-    if (this.state === "closed") {
-      return;
-    }
-    if (this.users.length <= 2) {
-      /* Don't bother in special case when only one
-         user (plus the project -- for 2 above!)
-         since we never display the user's
-         own cursors - just other user's cursors.
-         This simple optimization will save tons
-         of bandwidth, since many files are never
-         opened by more than one user.
-       */
-      return;
-    }
-    if (typeof this._throttled_set_cursor_locs === "function") {
-      this._throttled_set_cursor_locs(locs, side_effect);
     }
   }
 
@@ -1147,7 +1187,7 @@ class SyncDoc extends EventEmitter {
     }
     time = this.patch_list.next_available_time(
       time,
-      this.user_id,
+      this.my_user_id,
       this.users.length
     );
     return time;
@@ -1169,7 +1209,7 @@ class SyncDoc extends EventEmitter {
       string_id: this.string_id,
       time,
       patch: JSON.stringify(patch),
-      user_id: this.user_id
+      user_id: this.my_user_id
     };
 
     this.my_patches[time.valueOf()] = obj;
@@ -1491,7 +1531,7 @@ class SyncDoc extends EventEmitter {
     // Brand new syncstring
     // TODO: worry about race condition with everybody making themselves
     // have user_id 0... ?
-    this.user_id = 0;
+    this.my_user_id = 0;
     this.users = [this.client.client_id()];
     const obj = {
       string_id: this.string_id,
@@ -1539,9 +1579,9 @@ class SyncDoc extends EventEmitter {
 
     // Ensure that this client is in the list of clients
     const client_id: string = this.client.client_id();
-    this.user_id = this.users.indexOf(client_id);
-    if (this.user_id === -1) {
-      this.user_id = this.users.length;
+    this.my_user_id = this.users.indexOf(client_id);
+    if (this.my_user_id === -1) {
+      this.my_user_id = this.users.length;
       this.users.push(client_id);
       await this.syncstring_table.set({
         string_id: this.string_id,

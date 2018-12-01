@@ -159,11 +159,7 @@ export class SortedPatchList extends EventEmitter {
     as a building block to implement undo.  We do not assume that
     without_times is sorted.
   */
-  public value(
-    time?: Date,
-    force?: boolean,
-    without_times?: Date[]
-  ): Document | undefined {
+  public value(time?: Date, force?: boolean, without_times?: Date[]): Document {
     // oldest time that is skipped:
     let oldest_without_time: Date | undefined = undefined;
     // all skipped times.
@@ -423,10 +419,13 @@ export class SortedPatchList extends EventEmitter {
     }
   }
 
-  // integer index of user who made the edit at given point in time (or undefined)
-  public user_id(time): number | undefined {
+  // integer index of user who made the edit at given point in time.
+  public user_id(time): number {
     const x = this.patch(time);
-    return x == null ? undefined : x.user_id;
+    if (x == null) {
+      throw Error(`no edit at ${time}`);
+    }
+    return x.user_id;
   }
 
   public time_sent(time): Date | undefined {
