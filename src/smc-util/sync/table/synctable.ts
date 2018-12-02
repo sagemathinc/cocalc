@@ -107,15 +107,15 @@ export class SyncTable extends EventEmitter {
   /*
   Return true if there are changes to this synctable that
   have NOT been confirmed as saved to the backend database.
-  Returns undefined if not initialized.
+  (Always returns false when not yet initialized.)
   */
-  public has_uncommitted_changes(): boolean | undefined {
+  public has_uncommitted_changes(): boolean {
     if (this.value_server == null && this.value_local == null) {
-      return;
+      return false;
     }
     if (this.value_server == null) {
       if (this.value_local == null) {
-        return;
+        return false;
       }
       return true;
     }

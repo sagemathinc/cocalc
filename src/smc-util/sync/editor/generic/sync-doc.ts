@@ -33,9 +33,10 @@ const TOUCH_INTERVAL_M = 10;
 const LOCAL_HUB_AUTOSAVE_S = 45;
 // const LOCAL_HUB_AUTOSAVE_S = 5
 
-type XPatch = any;
+// How big of files we allow users to open using syncstrings.
+const MAX_FILE_SIZE_MB = 2;
 
-type FileWatcher = any;
+type XPatch = any;
 
 import { EventEmitter } from "events";
 
@@ -56,6 +57,7 @@ import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
 const { Evaluator } = require("../../../syncstring_evaluator");
 
 const {
+  hash_string,
   is_date,
   ISO_to_Date,
   minutes_ago,
@@ -66,9 +68,18 @@ const schema = require("../../../schema");
 
 import { SyncTable } from "../../table/synctable";
 
-import { Client, CompressedPatch, DocType, Document, Patch } from "./types";
+import {
+  Client,
+  CompressedPatch,
+  DocType,
+  Document,
+  Patch,
+  FileWatcher
+} from "./types";
 
 import { SortedPatchList } from "./sorted-patch-list";
+
+import { patch_cmp } from "./util";
 
 export interface SyncOpts {
   project_id: string;
@@ -162,6 +173,9 @@ export class SyncDoc extends EventEmitter {
   private undo_state: UndoState | undefined;
 
   private save_patch_prev: Date | undefined;
+
+  private save_to_disk_start_ctime: number | undefined;
+  private save_to_disk_end_ctime: number | undefined;
 
   constructor(opts: SyncOpts) {
     super();
@@ -1431,7 +1445,7 @@ export class SyncDoc extends EventEmitter {
     const v: Patch[] = [];
     // process_patch assumes immutable objects
     fromJS(result.query.patches).forEach(x => {
-      const p = this.process_patch(x, 0, this.last_snapshot);
+      const p = this.process_patch(x, new Date(0), this.last_snapshot);
       if (p != null) {
         v.push(p);
       }
@@ -1453,7 +1467,7 @@ export class SyncDoc extends EventEmitter {
     return this.project_id;
   }
 
-  private async set_snapshot_interval(n: number): Promise<void> {
+  public async set_snapshot_interval(n: number): Promise<void> {
     await this.syncstring_table.set(
       this.syncstring_table_get_one().set("snapshot_interval", n)
     );
@@ -1528,16 +1542,16 @@ export class SyncDoc extends EventEmitter {
       // Below "x.users == null" works because the initial touch sets
       // only string_id and last_active, and nothing else.
       if (x == null || x.users == null) {
-        await this.handle_syncstring_update_new_document(x);
+        await this.handle_syncstring_update_new_document();
       } else {
-        await this.handle_syncstring_update_existing_document(x);
+        await this.handle_syncstring_update_existing_document(x, data);
       }
     } catch (err) {
       this.dbg("handle_syncstring_update")(`UNHANDLED ERROR -- ${err}`);
     }
   }
 
-  private async handle_syncstring_update_new_document(x: any): Promise<void> {
+  private async handle_syncstring_update_new_document(): Promise<void> {
     // Brand new document
     this.emit("load-time-estimate", { type: "new", time: 1 });
     this.last_snapshot = undefined;
@@ -1565,7 +1579,8 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async handle_syncstring_update_existing_document(
-    x: any
+    x: any,
+    data: Map<string, any>
   ): Promise<void> {
     // Existing document.
     if (x.archived) {
@@ -1699,6 +1714,11 @@ export class SyncDoc extends EventEmitter {
       );
       return;
     }
+    if (this.save_to_disk_start_ctime == null) {
+      // this can't happen due to checks above, but it makes
+      // typescript happier.
+      return;
+    }
     if (
       this.save_to_disk_start_ctime <= time &&
       time <= this.save_to_disk_end_ctime
@@ -1714,11 +1734,6 @@ export class SyncDoc extends EventEmitter {
   private async handle_file_watcher_delete(): Promise<void> {
     const dbg = this.client.dbg("handle_file_watcher_delete");
     this.assert_is_ready();
-    dbg("event delete");
-    if (this.state === "closed") {
-      this.file_watcher.close();
-      return;
-    }
     dbg("delete: setting deleted=true and closing");
     this.from_str("");
     await this.save();
@@ -1756,7 +1771,7 @@ export class SyncDoc extends EventEmitter {
       // we also know that this is the version on disk, so we update the hash
       await this.set_save({
         state: "done",
-        error: false,
+        error: "",
         hash: hash_string(data)
       });
     }
@@ -1767,8 +1782,8 @@ export class SyncDoc extends EventEmitter {
 
   private async set_save(x: {
     state: string;
-    error: boolean;
-    hash: number;
+    error: string;
+    hash?: number;
     expected_hash?: number;
     time?: number;
   }): Promise<void> {
@@ -1793,8 +1808,8 @@ export class SyncDoc extends EventEmitter {
     return this.syncstring_table_get_one().get("read_only");
   }
 
-  private wait_until_read_only_known(): Promise<void> {
-    this.wait_until_ready();
+  public async wait_until_read_only_known(): Promise<void> {
+    await this.wait_until_ready();
     function read_only_defined(t: SyncTable): boolean {
       const x = t.get_one();
       if (x == null) {
@@ -1986,7 +2001,7 @@ export class SyncDoc extends EventEmitter {
     // string version of this doc
     const data: string = this.to_str();
     const expected_hash = hash_string(data);
-    await this.set_save({ state: "requested", error: false, expected_hash });
+    await this.set_save({ state: "requested", error: "", expected_hash });
   }
 
   private async save_to_disk_project(): Promise<void> {
@@ -1996,15 +2011,19 @@ export class SyncDoc extends EventEmitter {
     // which case no save is needed.
     const data = this.to_str(); // string version of this doc
     const hash = hash_string(data);
+
+    /*
+    // TODO: put this consistency check back in (?).
     const expected_hash = this.syncstring_table
       .get_one()
       .getIn(["save", "expected_hash"]);
+    */
 
     if (hash === this.hash_of_saved_version()) {
       // No actual save to disk needed; still we better
       // record this fact in table in case it
       // isn't already recorded
-      await this.set_save({ state: "done", error: false, hash });
+      await this.set_save({ state: "done", error: "", hash });
       return;
     }
 
@@ -2030,7 +2049,7 @@ export class SyncDoc extends EventEmitter {
       this.save_to_disk_end_ctime = stat.ctime.valueOf();
       await this.set_save({
         state: "done",
-        error: false,
+        error: "",
         hash: hash_string(data)
       });
     } catch (err) {
@@ -2078,7 +2097,7 @@ export class SyncDoc extends EventEmitter {
     try {
       this.handle_patch_update_queue_running = true;
       while (this.patch_update_queue.length > 0 && this.state === "ready") {
-        const v: Map<string, any>[] = [];
+        const v: Patch[] = [];
         for (let key of this.patch_update_queue) {
           const x = this.patches_table.get(key);
           if (x != null) {
@@ -2087,7 +2106,10 @@ export class SyncDoc extends EventEmitter {
             // Only need to process patches that we didn't
             // create ourselves.
             if (t && !this.my_patches[`${t.valueOf()}`]) {
-              v.push(this.process_patch(x));
+              const p = this.process_patch(x);
+              if (p != null) {
+                v.push(p);
+              }
             }
           }
         }

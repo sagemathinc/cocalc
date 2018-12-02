@@ -24,6 +24,11 @@ export interface Document {
 
 export type CompressedPatch = any[];
 
+export interface FileWatcher {
+  on: (event: string, handler: Function) => void;
+  close: () => void;
+}
+
 /* This is what we need from the "client".
 There's actually a completely separate client
 that runs in the browser and one on the project,
@@ -42,14 +47,31 @@ export interface Client {
       ttl: number;
     }
   ) => void;
+
+  log_error: (
+    opts: { project_id: string; path: string; string_id: string; error: any }
+  ) => void;
+
   query: (opts: { query: any; cb: Function }) => void;
 
   // Only required to work on project client.
   path_access: (opts: { path: string; mode: string; cb: Function }) => void;
   path_exists: (opts: { path: string; cb: Function }) => void;
   path_stat: (opts: { path: string; cb: Function }) => void;
+  path_read: (
+    opts: { path: string; maxsize_MB?: number; cb: Function }
+  ) => void;
+  write_file: (opts: { path: string; data: string; cb: Function }) => void;
+  watch_file: (opts: { path: string }) => FileWatcher;
 
-  synctable2: (query:any, options:any, throttle_changes?:number) => SyncTable;
+  synctable2: (
+    query: any,
+    options: any,
+    throttle_changes?: number
+  ) => SyncTable;
+
+  // account_id or project_id
+  client_id: () => string;
 }
 
 export interface DocType {
