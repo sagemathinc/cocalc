@@ -1,7 +1,5 @@
 /* Utility functions used by other code here. */
 
-import { callback } from "awaiting";
-
 const misc = require("smc-util/misc");
 const schema = require("smc-util/schema");
 

@@ -381,7 +381,7 @@ export class SyncTable extends EventEmitter {
         }
         cb(err, ret);
       };
-      const f = () => {
+      const f = async () => {
         if (this.state === "closed") {
           done("closed");
           return;
@@ -422,7 +422,7 @@ export class SyncTable extends EventEmitter {
 
   private set_state(state: State): void {
     this.state = state;
-    this.emit("state", state);
+    this.emit(state);
   }
 
   private set_throttle_changes(): void {

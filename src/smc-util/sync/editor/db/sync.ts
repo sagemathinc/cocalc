@@ -1,13 +1,6 @@
+/*
 class Doc {
   constructor(_db) {
-    this.to_str = this.to_str.bind(this);
-    this.is_equal = this.is_equal.bind(this);
-    this.apply_patch = this.apply_patch.bind(this);
-    this.make_patch = this.make_patch.bind(this);
-    this.changes = this.changes.bind(this);
-    this.reset_changes = this.reset_changes.bind(this);
-    this.get = this.get.bind(this);
-    this.get_one = this.get_one.bind(this);
     this._db = _db;
     if (this._db == null) {
       throw Error("@_db must be defined");
@@ -101,3 +94,5 @@ class SyncDoc extends syncstring.SyncDoc {
     });
   }
 }
+
+*/

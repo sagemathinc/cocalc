@@ -1,3 +1,4 @@
+/*
 import immutable from "immutable";
 import underscore from "underscore";
 
@@ -679,3 +680,5 @@ export class DBDoc {
     return k0.union(k1);
   }
 }
+
+*/

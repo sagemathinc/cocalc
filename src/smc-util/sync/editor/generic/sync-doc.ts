@@ -81,16 +81,19 @@ import { SortedPatchList } from "./sorted-patch-list";
 
 import { patch_cmp } from "./util";
 
-export interface SyncOpts {
+export interface SyncOpts0 {
   project_id: string;
   path: string;
   client: Client;
-  from_str: (string) => Document;
   cursor_interval?: number;
   patch_interval?: number;
   file_use_interval?: number;
   string_id?: string;
   cursors?: boolean;
+}
+
+export interface SyncOpts extends SyncOpts0 {
+  from_str: (string) => Document;
   doctype: DocType;
 }
 
@@ -353,7 +356,7 @@ export class SyncDoc extends EventEmitter {
 
   private set_state(state: State): void {
     this.state = state;
-    this.emit("state", state);
+    this.emit(state);
   }
 
   private assert_not_closed(): void {
@@ -771,7 +774,10 @@ export class SyncDoc extends EventEmitter {
     this.syncstring_table = this.client.synctable2(query, undefined);
     await once(this.syncstring_table, "connected");
     this.handle_syncstring_update();
-    this.syncstring_table.on("change", this.handle_syncstring_update);
+    this.syncstring_table.on(
+      "change",
+      this.handle_syncstring_update.bind(this)
+    );
 
     // wait until syncstring is not archived -- if we open an
     // older syncstring, the patches may be archived, and we have to wait until
@@ -878,11 +884,8 @@ export class SyncDoc extends EventEmitter {
   public async wait_until_ready(): Promise<void> {
     this.assert_not_closed();
     if (this.state !== ("ready" as State)) {
-      // wait for a state change.
-      await once(this, "state");
-      if (this.state !== "ready") {
-        throw Error("failed to initialize");
-      }
+      // wait for a state change to ready.
+      await once(this, "ready");
     }
   }
 
@@ -1022,7 +1025,7 @@ export class SyncDoc extends EventEmitter {
     // to it only after we're done.
     delete this.patch_list;
 
-    const patch_list = new SortedPatchList(this.from_str);
+    const patch_list = new SortedPatchList(this._from_str);
 
     this.patches_table = this.client.synctable2(
       { patches: this.patch_table_query(this.last_snapshot) },
@@ -1182,7 +1185,8 @@ export class SyncDoc extends EventEmitter {
     // We just keep trying while syncdoc is ready and there
     // are changes that have not been saved (due to this.doc
     // changing during the while loop!).
-    while (this.state === "ready" && !this.last.is_equal(this.doc)) {
+    while (this.state === "ready" && !this.doc.is_equal(this.last)) {
+      const doc = this.doc;
       // TODO: put in a delay if just saved too recently?
       //       Or maybe won't matter since not using database?
       if (this.handle_patch_update_queue_running) {
@@ -1200,6 +1204,10 @@ export class SyncDoc extends EventEmitter {
       // changed locally (or we wouldn't have had
       // to save at all).
       this.emit("user_change");
+      if (doc.is_equal(this.doc)) {
+        // no change during loop.
+        return;
+      }
     }
   }
 

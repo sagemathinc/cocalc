@@ -1835,6 +1835,19 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
+    syncstring2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+        opts.client = @
+        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
+        return new SyncString2(opts)
+
     sync_db: (opts) =>
         opts = defaults opts,
             project_id      : required
