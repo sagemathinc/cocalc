@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Icon } from "./icon";
-import { TypedMap } from "./app-framework/TypedMap";
+import { TypedMap } from "../app-framework/TypedMap";
 
 interface Props {
   style?: React.CSSProperties;
@@ -9,7 +9,7 @@ interface Props {
     time: number; // Time in seconds
     type: "new" | "ready" | "archived";
   }>;
-  theme: "medium";
+  theme?: "medium" | undefined;
 }
 
 const LOADING_THEMES: { [keys: string]: React.CSSProperties } = {

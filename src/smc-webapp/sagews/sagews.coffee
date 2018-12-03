@@ -1301,7 +1301,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 return
 
     process_html_output: (e) =>
-        # TODO: when redoing this using react, see the Markdown component in r_misc.cjsx
+        # TODO: when redoing this using react, see the Markdown component in r_misc
         # and the process_smc_links jQuery plugin in misc_page.coffee
         # makes tables look MUCH nicer
         e.find("table").addClass('table')

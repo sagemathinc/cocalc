@@ -56,6 +56,7 @@ export type StudentRecord = TypedMap<{
   project_id: string;
   deleted: boolean;
   note: string;
+  terminal_command: Map<string, any>;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
