@@ -381,7 +381,7 @@ API message2
             desc   : 'if set to anything truth-ish, will create (if needed) and return api key with signed_in message'
         usage_intent:
             init   : undefined
-            desc   : 'response to Cocalc usage intent'
+            desc   : 'response to Cocalc usage intent at sign up'
     desc           : """
 Examples:
 

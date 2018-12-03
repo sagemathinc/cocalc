@@ -86,7 +86,6 @@ class AccountActions extends Actions
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
     create_account: (first_name, last_name, email, password, token, usage_intent) =>
-        console.log("redux_account.create_account got #{usage_intent} -->")
         @setState(signing_up: true)
         webapp_client.create_account
             first_name      : first_name

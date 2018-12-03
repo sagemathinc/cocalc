@@ -106,7 +106,6 @@ exports.create_account = (opts) ->
                         else
                             cb()
         (cb) ->
-            console.log("create-account.coffee got #{opts.mesg.usage_intent} -->")
             dbg("create new account")
             opts.database.create_account
                 first_name    : opts.mesg.first_name

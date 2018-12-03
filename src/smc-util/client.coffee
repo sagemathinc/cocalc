@@ -821,7 +821,6 @@ class exports.Connection extends EventEmitter
             opts.cb(undefined, message.account_creation_failed(reason:{"account_creation_failed":"You are submitting too many requests to create an account; please wait a second."}))
             return
 
-        console.log("client.coffee create_account got #{opts.usage_intent} -->")
         @_create_account_lock = true
         @call
             allow_post : false

@@ -693,7 +693,6 @@ class exports.Client extends EventEmitter
 
     # Messages: Account creation, deletion, sign in, sign out
     mesg_create_account: (mesg) =>
-        console.log("hub_client passing on create_account got #{mesg.usage_intent} -->")
         create_account
             client   : @
             mesg     : mesg
