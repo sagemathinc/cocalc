@@ -42,6 +42,9 @@ exports.gtag_id              = 'AW-943259268'
 exports.sign_up_id           = '44ZfCImosncQhP3jwQM'
 exports.conversion_id        = 'zttYCNDZsXcQhP3jwQM'
 
+# documentation
+exports.JUPYTER_CLASSIC_MODERN  = 'https://doc.cocalc.com/jupyter.html#classical-versus-cocalc'
+
 # this is used in smc-hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 exports.SENDGRID_TEMPLATE_ID    = '0375d02c-945f-4415-a611-7dc3411e2a78'
 # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager

@@ -168,6 +168,7 @@ const remove_redux = function(course_filename, redux, course_project_id) {
 const COURSE_EDITOR_STYLE: CSSProperties = {
   height: "100%",
   overflowY: "scroll",
+  overflowX: "hidden",
   padding: "7px"
 };
 
