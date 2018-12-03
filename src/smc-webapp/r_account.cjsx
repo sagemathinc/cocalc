@@ -31,6 +31,7 @@
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
 {PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+{JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 
 md5 = require('md5')
 
@@ -849,7 +850,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
     build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
-    jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
+    jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
@@ -869,7 +870,7 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
-        if @props.email_address.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
+        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
             return
         <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
