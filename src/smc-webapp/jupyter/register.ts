@@ -13,7 +13,7 @@ const { webapp_client } = require("../webapp_client");
 
 const { JupyterEditor } = require("./main");
 const { JupyterActions } = require("./actions");
-const { JupyterStore } = require("./store");
+const { JupyterStore , initial_jupyter_store_state} = require("./store");
 
 export function register() {
   return register_file_editor({
@@ -32,7 +32,7 @@ export function register() {
       }
 
       const actions = redux.createActions(name, JupyterActions);
-      const store = redux.createStore(name, JupyterStore);
+      const store = redux.createStore(name, JupyterStore, initial_jupyter_store_state);
 
       const syncdb = webapp_client.sync_db({
         project_id,

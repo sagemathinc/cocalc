@@ -79,6 +79,7 @@ interface JupyterEditorProps {
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
   kernel_info: immutable.Map<any, any>;
+  check_select_kernel_init: boolean;
   show_kernel_selector?: boolean;
   kernel_selection?: immutable.Map<string, any>;
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
@@ -131,6 +132,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
+        check_select_kernel_init: rtypes.bool,
         show_kernel_selector: rtypes.bool,
         kernel_selection: rtypes.immutable.Map,
         kernels_by_name: rtypes.immutable.Map,
@@ -203,7 +205,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.cell_list == null ||
       this.props.font_size == null ||
       this.props.cm_options == null ||
-      this.props.kernels == null
+      this.props.kernels == null ||
+      this.props.check_select_kernel_init == false
     ) {
       return (
         <Loading
@@ -422,15 +425,15 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_main() {
     const ks = this.props.show_kernel_selector;
-    if (ks == null || ks == false) {
+    if (ks == true) {
+      return this.render_select_kernel();
+    } else {
       return (
         <>
           {this.render_main_view()}
           {this.render_introspect()}
         </>
       );
-    } else {
-      return this.render_select_kernel();
     }
   }
 

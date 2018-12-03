@@ -921,6 +921,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._state = "ready";
       }
       this.check_select_kernel();
+      this.setState({check_select_kernel_init: true})
 
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();

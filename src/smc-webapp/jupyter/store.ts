@@ -66,6 +66,7 @@ export interface JupyterStoreState {
   confirm_dialog: any;
   insert_image: any;
   scroll: any;
+  check_select_kernel_init: boolean;
   show_kernel_selector: boolean;
   show_kernel_selector_reason?: show_kernel_selector_reasons;
   kernel_selection?: ImmutableMap<string, string>;
@@ -74,6 +75,13 @@ export interface JupyterStoreState {
   default_kernel?: string;
   closestKernel?: TKernel;
 }
+
+export const initial_jupyter_store_state: {
+  [K in keyof JupyterStoreState]?: JupyterStoreState[K]
+} = {
+  check_select_kernel_init: false,
+  show_kernel_selector:false
+};
 
 export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
