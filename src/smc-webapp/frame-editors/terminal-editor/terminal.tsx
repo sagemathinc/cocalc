@@ -86,9 +86,12 @@ export class TerminalFrame extends Component<Props, {}> {
     // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
     // if we switch, disable this...
+    // Well, this context menu is still silly. Always disable it.
+    //if (Terminal.rendererType != "dom") {
     $(node).bind("contextmenu", function() {
       return false;
     });
+    //}
 
     // TODO: Obviously restoring the exact scroll position would be better...
     this.terminal.scroll_to_bottom();
@@ -124,7 +127,7 @@ export class TerminalFrame extends Component<Props, {}> {
           this.terminal.focus();
         }}
       >
-        <div className={"smc-vfill"} ref={"terminal"} />
+        <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />
       </div>
     );
   }

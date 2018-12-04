@@ -118,8 +118,12 @@ export class Terminal {
     this.set_connection_status("disconnected");
   }
 
+  static get rendererType() {
+    return "dom";
+  }
+
   private get_xtermjs_options(): any {
-    const rendererType = "dom";
+    const rendererType = Terminal.rendererType;
     const settings = this.account.get("terminal");
     if (settings == null) {
       // not fully loaded yet.
