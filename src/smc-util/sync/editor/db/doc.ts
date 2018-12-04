@@ -1,7 +1,7 @@
 import { CompressedPatch, Document } from "../generic/types";
 import * as immutable from "immutable";
 
-//import { } from "./util";
+import { to_str } from "./util";
 
 type Record = immutable.Map<string, any>;
 type Records = immutable.List<Record>;
@@ -36,6 +36,8 @@ export class DBDocument implements Document {
   private changes: Changes;
 
   public readonly size: number;
+
+  private to_str_cache?: string;
 
   constructor(
     primary_keys: Set<string>,
@@ -95,7 +97,11 @@ export class DBDocument implements Document {
   }
 
   public to_str(): string {
-    // TODO
+    if (this.to_str_cache != null) {
+      // We can use a cache, since this is an immutable object
+      return this.to_str_cache;
+    }
+    return (this.to_str_cache = to_str(this.to_obj()));
   }
 
   public is_equal(other?: DBDocument): boolean {
@@ -110,3 +116,27 @@ export class DBDocument implements Document {
     // TODO
   }
 }
+
+export function from_str(
+  s: string,
+  primary_keys: string[],
+  string_cols: string[]
+): DBDocument {
+  const obj: Map<string, any>[] = [];
+  for (let line of s.split("\n")) {
+    if (line.length > 0) {
+      try {
+        const x = JSON.parse(line);
+        if (typeof x === "object") {
+          obj.push(x);
+        } else {
+          throw Error("each line must be an object");
+        }
+      } catch (e) {
+        console.warn(`CORRUPT db-doc string: ${e} -- skipping '${line}'`);
+      }
+    }
+  }
+  return new DBDocument(primary_keys, string_cols, immutable.fromJS(obj));
+}
+
