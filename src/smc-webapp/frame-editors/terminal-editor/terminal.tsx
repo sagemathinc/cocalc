@@ -87,11 +87,11 @@ export class TerminalFrame extends Component<Props, {}> {
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
     // if we switch, disable this...
     // Well, this context menu is still silly. Always disable it.
-    //if (Terminal.rendererType != "dom") {
-    $(node).bind("contextmenu", function() {
-      return false;
-    });
-    //}
+    if (true || this.terminal.rendererType != "dom") {
+      $(node).bind("contextmenu", function() {
+        return false;
+      });
+    }
 
     // TODO: Obviously restoring the exact scroll position would be better...
     this.terminal.scroll_to_bottom();

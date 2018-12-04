@@ -55,6 +55,7 @@ export class Terminal {
   private term_path: string;
   private number: number;
   private id: string;
+  readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
   private is_paused: boolean = false;
   private keyhandler_initialized: boolean = false;
@@ -103,6 +104,7 @@ export class Terminal {
     this.terminal_settings = Map(); // what was last set.
     this.project_id = actions.project_id;
     this.path = actions.path;
+    this.rendererType = "dom";
     this.term_path = aux_file(`${this.path}-${number}`, "term");
     this.number = number;
     this.id = id;
@@ -118,12 +120,8 @@ export class Terminal {
     this.set_connection_status("disconnected");
   }
 
-  static get rendererType() {
-    return "dom";
-  }
-
   private get_xtermjs_options(): any {
-    const rendererType = Terminal.rendererType;
+    const rendererType = this.rendererType;
     const settings = this.account.get("terminal");
     if (settings == null) {
       // not fully loaded yet.
