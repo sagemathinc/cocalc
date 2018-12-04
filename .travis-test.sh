@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
+
+# exit if there is a problem
+set -e
+
 COPY_NODE_ENV="$NODE_ENV"
 
-# for kucalc, we only test the build itself
-if [[ $KUCALC_MODE  = "true" ]]; then exit 0; fi
+# special cases in kucalc mode
 
+# we test if the webapp builds
+if [[ $KUCALC_MODE == "webapp" ]]; then
+    python install.py webapp build
+fi
+
+# here we test if the hubs run
+if [[ $KUCALC_MODE == "hub" ]]; then
+    export COCALC_PROJECT_ID="cc642cf9-8c3b-4762-a45c-28e4509599de"
+    $TRAVIS_BUILD_DIR/src/dev/project/start_hub.py test
+    $TRAVIS_BUILD_DIR/src/dev/project/start_api.py test
+    $TRAVIS_BUILD_DIR/src/dev/project/start_share.py test
+fi
+
+if [[ $KUCALC_MODE == "hub" || $KUCALC_MODE == "webapp" ]]; then exit 0; fi
+
+# running tests (install section did already build everything)
 # easy warmup
 cd $TRAVIS_BUILD_DIR/src/smc-util-node; npm run test
 

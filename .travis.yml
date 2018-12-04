@@ -36,9 +36,10 @@ env:
     - PGUSER='smc'
   matrix:
     # testing build modes
-    - NODE_ENV=production
-    - NODE_ENV=development
-    - CC_COMP_ENV=true KUCALC_MODE=true
+    - KUCALC_MODE=false   NODE_ENV=production
+    - KUCALC_MODE=false   NODE_ENV=development
+    - KUCALC_MODE=webapp  NODE_ENV=production CC_COMP_ENV=true
+    - KUCALC_MODE=hub     NODE_ENV=production CC_COMP_ENV=true
 
 before_install: []
 
@@ -59,8 +60,8 @@ before_script:
 install:
   - "cd src"
   - "source smc-env"
-  - 'if [[ $KUCALC_MODE != "true" ]]; then npm run make; fi'
-  - 'if [[ $KUCALC_MODE  = "true" ]]; then python install.py webapp build; fi'
+  - 'if [[ $KUCALC_MODE == "false" ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE == "hub"   ]]; then "$TRAVIS_BUILD_DIR/.travis-install-hub.sh"; fi'
   #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm install mocha" # why necessary?
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
