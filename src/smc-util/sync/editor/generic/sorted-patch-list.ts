@@ -454,7 +454,7 @@ export class SortedPatchList extends EventEmitter {
   }: {
     milliseconds?: boolean;
     trunc?: number;
-    log: Function;
+    log?: Function;
   }) {
     if (milliseconds === undefined) {
       milliseconds = false;

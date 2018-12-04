@@ -1040,7 +1040,7 @@ export class SyncDoc extends EventEmitter {
 
     const doc = patch_list.value();
     this.last = this.doc = doc;
-    this.patches_table.on("change", this.handle_patch_update);
+    this.patches_table.on("change", this.handle_patch_update.bind(this));
     this.patches_table.on("before-change", () => this.emit("before-change"));
     this.patch_list = patch_list;
 
@@ -1463,7 +1463,7 @@ export class SyncDoc extends EventEmitter {
     return;
   }
 
-  public show_history(opts): void {
+  public show_history(opts = {}): void {
     this.patch_list.show_history(opts);
   }
 
@@ -2164,20 +2164,17 @@ export class SyncDoc extends EventEmitter {
     // should we replace this with emitting an event, then
     // waiting until the next event loop?  This MUST be addressed.
 
-    if (this.last.is_equal(this.doc)) {
-      // nothing to do.
-      return;
-    }
-
-    // compute transformation from this.last to this.doc
-    const patch = this.last.make_patch(this.doc); // must be nontrivial
-    this.last = this.doc;
-    // ... and save that to patch table since there
-    // is a nontrivial change
-    const time = this.next_patch_time();
-    await this.save_patch(time, patch);
-    if (this.state !== "ready") {
-      return;
+    if (!this.last.is_equal(this.doc)) {
+      // compute transformation from this.last to this.doc
+      const patch = this.last.make_patch(this.doc); // must be nontrivial
+      this.last = this.doc;
+      // ... and save that to patch table since there
+      // is a nontrivial change
+      const time = this.next_patch_time();
+      await this.save_patch(time, patch);
+      if (this.state !== "ready") {
+        return;
+      }
     }
 
     const new_remote = this.patch_list.value();
