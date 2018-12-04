@@ -8,6 +8,7 @@ import { Button, Modal } from "react-bootstrap";
 const { Icon } = require("../r_misc"); // TODO: import types
 const { ShowSupportLink } = require("../support"); // TODO: import types
 import { Map as ImmutableMap } from "immutable";
+const {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 
 interface AboutProps {
   actions: any;
@@ -54,7 +55,7 @@ export class About extends Component<AboutProps> {
         <a href="https://github.com/sagemathinc/cocalc/wiki/sagejupyter" target="_new">
           documentation
         </a>, create a <ShowSupportLink />, or see the latest{" "}
-        <a href="https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern" target="_blank">
+        <a href={JUPYTER_CLASSIC_MODERN} target="_blank">
           status of Jupyter in CoCalc.
         </a>
       </span>
