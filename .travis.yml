@@ -75,7 +75,5 @@ script:
 
 notifications:
   email:
-    recipients:
-      - "hsy@sagemath.com"
     on_success: change
     on_failure: change
