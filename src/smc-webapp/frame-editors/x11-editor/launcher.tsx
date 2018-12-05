@@ -3,13 +3,13 @@ X11 Window frame.
 */
 
 import { React, Component, Rendered } from "../../app-framework";
-import { debounce, keys } from "underscore";
+import { debounce, keys, sortBy } from "underscore";
 const { Button } = require("react-bootstrap");
 const { Icon } = require("r_misc");
 
 import { Actions } from "./actions";
 
-const DESC = {
+const APPS = {
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
     icon: "edit",
@@ -37,7 +37,7 @@ const DESC = {
     desc: "Command line terminal"
   },
   gitk: { icon: "git", desc: "Explore Git repository in current directory" },
-  gitg: { icon: "git", desc: "gitg is a graphical user interface for git" },
+  gitg: { icon: "git", desc: "GNOME's client to work with Git repositories" },
   idle: {
     icon: "cc-icon-python",
     desc: "Minimalistic Python IDE",
@@ -57,12 +57,12 @@ const DESC = {
   lowriter: {
     desc: "LibreOffice Writer",
     icon: "file-alt",
-    label: "LO Writer"
+    label: "Writer"
   },
   localc: {
     desc: "LibreOffice Calc",
     icon: "table",
-    label: "LO Calc"
+    label: "Calc"
   },
   nteract: {
     command: "nteract",
@@ -163,11 +163,26 @@ const DESC = {
     label: "Shotwell",
     desc: "Shotwell is a personal photo manager.",
     icon: "camera"
+  },
+  evince: {
+    label: "Evince",
+    icon: "file-pdf",
+    desc: "A document viewer for PDF, PostScript, DVI, DjVu, ..."
+  },
+  calibre: {
+    label: "Calibre",
+    icon: "book",
+    desc: "A powerful and easy to use e-book manager"
   }
 };
 
-const APPS: string[] = keys(DESC);
-APPS.sort();
+function sort_apps(k): string {
+  const label = APPS[k].label;
+  const name = label ? label : k;
+  return name.toLowerCase();
+}
+
+const APP_KEYS: string[] = sortBy(keys(APPS), sort_apps);
 
 interface Props {
   actions: Actions;
@@ -186,7 +201,7 @@ export class Launcher extends Component<Props, {}> {
   }
 
   launch(app: string): void {
-    const desc = DESC[app];
+    const desc = APPS[app];
     if (desc == null) {
       return;
     }
@@ -194,7 +209,7 @@ export class Launcher extends Component<Props, {}> {
   }
 
   render_launcher(app: string): Rendered {
-    const desc = DESC[app];
+    const desc = APPS[app];
     if (desc == null) {
       return;
     }
@@ -218,7 +233,7 @@ export class Launcher extends Component<Props, {}> {
 
   render_launchers(): Rendered[] {
     const v: Rendered[] = [];
-    for (let app of APPS) {
+    for (let app of APP_KEYS) {
       v.push(this.render_launcher(app));
     }
     return v;
