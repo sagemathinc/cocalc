@@ -1,5 +1,5 @@
 # kucalc-style
-set -e
+set -ex
 
 npm install coffeescript -g
 
