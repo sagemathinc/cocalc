@@ -36,10 +36,10 @@ env:
     - PGUSER='smc'
   matrix:
     # testing build modes
-    - KUCALC_MODE=false   NODE_ENV=production
-    - KUCALC_MODE=false   NODE_ENV=development
-    - KUCALC_MODE=webapp  NODE_ENV=production CC_COMP_ENV=true
-    - KUCALC_MODE=hub     NODE_ENV=production CC_COMP_ENV=true
+    - KUCALC_MODE=false    NODE_ENV=production
+    # - KUCALC_MODE=false   NODE_ENV=development   # disabled: just uses resources, no real gain
+    - KUCALC_MODE=webapp   NODE_ENV=production CC_COMP_ENV=true
+    - KUCALC_MODE=services NODE_ENV=production CC_COMP_ENV=true
 
 before_install: []
 
@@ -60,8 +60,8 @@ before_script:
 install:
   - "cd src"
   - "source smc-env"
-  - 'if [[ $KUCALC_MODE == "false" ]]; then npm run make; fi'
-  - 'if [[ $KUCALC_MODE == "hub"   ]]; then "$TRAVIS_BUILD_DIR/.travis-install-hub.sh"; fi'
+  - 'if [[ $KUCALC_MODE == "false"    ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-install-services.sh"; fi'
   #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm install mocha" # why necessary?
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
@@ -76,7 +76,5 @@ script:
 
 notifications:
   email:
-    recipients:
-      - "hsy@sagemath.com"
     on_success: change
     on_failure: change
