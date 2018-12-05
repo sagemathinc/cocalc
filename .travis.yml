@@ -37,7 +37,7 @@ env:
   matrix:
     # testing build modes
     - NODE_ENV=production
-    - NODE_ENV=development
+    #- NODE_ENV=development  # disabled: just uses resources, no real gain
     - CC_COMP_ENV=true KUCALC_MODE=true
 
 before_install: []
