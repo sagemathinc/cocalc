@@ -20,7 +20,7 @@ for path in 'smc-util' 'smc-util-node' 'smc-hub' 'smc-webapp' 'smc-project' 'smc
     coffee -c $TRAVIS_BUILD_DIR/src/$path
 done
 
-# project: typescript
-cd $TRAVIS_BUILD_DIR/src/smc-project
-$TRAVIS_BUILD_DIR/src/node_modules/.bin/tsc -p tsconfig.json
+## project: typescript
+#cd $TRAVIS_BUILD_DIR/src/smc-project
+#$TRAVIS_BUILD_DIR/src/node_modules/.bin/tsc -p tsconfig.json
 
