@@ -27,7 +27,7 @@ describe 'default quota', ->
         expect(basic).toEqual(exp)
 
     it 'gives members a bit more memory by default', ->
-        member = quota({}, {'user-id': {'upgrades': {'member_host': 1}}})
+        member = quota({}, {userX: {upgrades: {member_host : 1}}})
         exp =
             cpu_limit: 1
             cpu_request: 0.05 # set at the top of quota config
@@ -41,7 +41,7 @@ describe 'default quota', ->
         expect(member).toEqual(exp)
 
     it 'respects admin member/network upgrades', ->
-        admin1 = quota({'member_host': 1, 'network': 1}, {})
+        admin1 = quota({member_host: 1, network: 1}, {})
         exp =
             cpu_limit: 1
             cpu_request: 0.05 # set at the top of quota config
@@ -56,20 +56,20 @@ describe 'default quota', ->
 
     it 'adds up user contributions', ->
         users =
-            "user-id-1":
+            user1:
                 upgrades:
                     network        : 1
                     memory         : 1500
                     memory_request : 2500
                     cpu_shares     : 1024 * .33
-            "user-id-2":
+            user2:
                 upgrades:
                     member_host : 1
                     network     : 1
                     memory      : 123
                     cores       : .5
                     disk_quota  : 1000
-            "user-id-3":
+            user3:
                 upgrades:
                     mintime     : 99
                     memory      : 7
@@ -86,9 +86,9 @@ describe 'default quota', ->
             disk_quota      : 4000
         expect(added).toEqual(exp)
 
-    it 'doe NOT set limits >= requests -- manage pod in kucalc does that', ->
+    it 'do NOT set limits >= requests -- manage pod in kucalc does that', ->
         users =
-            "user-1":
+            user1:
                 upgrades:
                     member_host    : true
                     network        : true
@@ -108,7 +108,7 @@ describe 'default quota', ->
 
     it 'caps user upgrades at their maximum', ->
         over_max =
-            "user-id-2":
+            user2:
                 upgrades:
                     network         : 2
                     member_host     : 3
@@ -169,16 +169,16 @@ describe 'default quota', ->
             cpu_shares      : 0
 
         users =
-            "user-1":
+            user1:
                 upgrades:
                     member_host    : true
                     network        : true
                     memory_request : 3210
-                    disk_quota     : 3000
+                    disk_quota     : 3000 # settings are already > max
                     cores          : 2
                     mintime        : 24*3600*40
                     cpu_shares     : 1024 * 0.5
-            "user-2":
+            user2:
                 upgrades:
                     member_host    : true
                     network        : true
@@ -197,13 +197,46 @@ describe 'default quota', ->
             disk_quota      : 23000
         expect(quota(settings, users)).toEqual(exp)
 
+    it 'does not allow privileged updates for users', ->
+        users = { user1: { upgrades: { privileged: 1}}}
+        q = quota({}, users)
+        expect(q.privileged).toBe(false)
 
+    it 'allows privileged updates for admins', ->
+        settings = {privileged: 1}
+        q = quota(settings, {})
+        expect(q.privileged).toBe(true)
 
+    it 'caps ensures a minimum lower limit for ceratin quotas', ->
+        settings =
+            cpu_request    : 0
+            memory_request : 0
+            memory_limit   : 0
+        users =
+            user1:
+                upgrades:
+                    cpu_request    : 0
+                    memory_request : 0
+                    memory_limit   : 0
 
+        q = quota(settings, users)
+        expect(q.cpu_request).toBeGreaterThan(0.01)
+        expect(q.memory_request).toBeGreaterThan(100)
+        expect(q.memory_limit).toBeGreaterThan(100)
 
+    it 'caps depending on free vs. member', ->
+        free   = {user1: { upgrades: {member_host:0}}}
+        member = {user2: { upgrades: {member_host:1}}}
+        qfree   = quota({}, free)
+        qmember = quota({}, member)
 
+        # checking two of them explicitly
+        expect(qfree.cpu_request).toBe(0.02)
+        expect(qmember.cpu_request).toBe(0.05)
 
-
-
+        # members get strictly more than free users
+        expect(qfree.cpu_request).toBeLessThan(qmember.cpu_request)
+        expect(qfree.memory_request).toBeLessThan(qmember.memory_request)
+        expect(qfree.memory_limit).toBeLessThan(qmember.memory_limit)
 
 

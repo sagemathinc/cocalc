@@ -1,10 +1,7 @@
 # computing project quotas based on settings (by admin/system) and user contributions ("upgrades")
 
-
 {DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
 MAX_UPGRADES = require('smc-util/upgrade-spec').upgrades.max_per_project
-
-console.log MAX_UPGRADES
 
 # No matter what, every project gets SOME possibly tiny amount of guaranteed cpu.
 # This is important since otherwise projects will NOT start at all, e.g., if a paying
@@ -127,12 +124,8 @@ exports.quota = (settings, users) ->
     return quota
 
 cap_lower_bound = (quota, name, MIN_SPEC) ->
-    if quota.member_host
-        if quota[name] < MIN_SPEC.member
-            quota[name] = MIN_SPEC.member
-    else
-        if quota[name] < MIN_SPEC.nonmember
-            quota[name] = MIN_SPEC.nonmember
+    cap = if quota.member_host then MIN_SPEC.member else MIN_SPEC.nonmember
+    quota[name] = Math.max(quota[name], cap)
 
 to_int = (s) ->
     try
