@@ -32,7 +32,7 @@ addons:
 # http://docs.travis-ci.com/user/environment-variables/
 env:
   global: # note: we cannot use $VARs here
-    - REPORTER=list # for mocha tests
+    - REPORTER=min # for mocha tests
     - PGUSER='smc'
   matrix:
     # testing build modes
@@ -75,7 +75,5 @@ script:
 
 notifications:
   email:
-    recipients:
-      - "hsy@sagemath.com"
     on_success: change
     on_failure: change
