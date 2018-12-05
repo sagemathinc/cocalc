@@ -14,6 +14,9 @@ language: "python"
 node_js:
   - "8"
 
+git:
+  depth: 3
+
 # we want our database
 services:
   - postgresql
@@ -35,14 +38,17 @@ env:
     - REPORTER=min # for mocha tests
     - PGUSER='smc'
   matrix:
-    # testing build modes
-    - NODE_ENV=production
-    - NODE_ENV=development
-    - CC_COMP_ENV=true KUCALC_MODE=true
+    # this runs the "normal" tests
+    - KUCALC_MODE=false    NODE_ENV=production
+    # - KUCALC_MODE=false   NODE_ENV=development   # disabled: just uses resources, no real gain
+    # this just builds the webapp for production (full minifaction, all static pages, etc.)
+    - KUCALC_MODE=webapp   NODE_ENV=production CC_COMP_ENV=true
+    # this compiles the hub, project, etc. and runs hubs in test mode
+    - KUCALC_MODE=services NODE_ENV=production CC_COMP_ENV=true
 
 before_install: []
 
-# installation and setup
+# installation and setup: make notes about the environment and init&start postgres
 before_script:
   - "source /etc/lsb-release"
   - "pip -V"
@@ -59,15 +65,15 @@ before_script:
 install:
   - "cd src"
   - "source smc-env"
-  - 'if [[ $KUCALC_MODE != "true" ]]; then npm run make; fi'
-  - 'if [[ $KUCALC_MODE  = "true" ]]; then python install.py webapp build; fi'
-  #- "cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm install mocha" # why necessary?
+  - 'if [[ $KUCALC_MODE == "false"    ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-install-services.sh"; fi'
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
 # npm test is the usual, and coverage reporting is disabled
 script:
-  - "$TRAVIS_BUILD_DIR/.travis-test.sh"
+  - 'if [[ $KUCALC_MODE == "false"    ]]; then "$TRAVIS_BUILD_DIR/.travis-test.sh"; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test-services.sh"; fi'
 
 # send coverage report over to https://coveralls.io
 #after_success:
