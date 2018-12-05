@@ -65,14 +65,14 @@ before_script:
 install:
   - "cd src"
   - "source smc-env"
-  - 'if [[ $KUCALC_MODE == "false"    ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE != "services" ]]; then npm run make; fi'
   - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-install-services.sh"; fi'
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
 # npm test is the usual, and coverage reporting is disabled
 script:
-  - 'if [[ $KUCALC_MODE == "false"    ]]; then "$TRAVIS_BUILD_DIR/.travis-test.sh"; fi'
+  - 'if [[ $KUCALC_MODE != "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test.sh"; fi'
   - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test-services.sh"; fi'
 
 # send coverage report over to https://coveralls.io
