@@ -1,14 +1,19 @@
 import { CompressedPatch, Document } from "../generic/types";
 import * as immutable from "immutable";
+import { isEqual } from "underscore";
 
-import { to_str } from "./util";
+import { is_array, is_object, copy_without } from "../../../misc";
+
+import { make_patch as string_make_patch } from "../generic/util";
+import { map_merge_patch, merge_set, nonnull_cols, to_str } from "./util";
 
 type Record = immutable.Map<string, any>;
 type Records = immutable.List<Record>;
 type Index = immutable.Map<string, immutable.Set>;
 type Indexes = immutable.Map<string, Index>;
 
-export type WhereCondition = {[field:string]:any};
+export type WhereCondition = { [field: string]: any };
+export type SetCondition = immutable.Map<string, any> | Map<string, any>;
 
 interface Changes {
   changes: immutable.Set<string>; // primary keys that changed
@@ -49,6 +54,9 @@ export class DBDocument implements Document {
     indexes?: Indexes,
     changes?
   ) {
+    this.primary_key_cols = this.primary_key_cols.bind(this);
+    this.primary_key_part = this.primary_key_part.bind(this);
+
     this.primary_keys = new Set(primary_keys);
     this.string_cols = new Set(string_cols);
     this.records = records;
@@ -139,20 +147,19 @@ export class DBDocument implements Document {
       i += 2;
     }
     return db;
-
   }
 
   public make_patch(other: DBDocument): CompressedPatch {
-    let v;
     if (other.size === 0) {
       // Special case -- delete everything
       return [-1, [{}]];
     }
 
     let t0 = immutable.Set(this.records);
-    let t1 = immutable.Set(other._records);
+    let t1 = immutable.Set(other.records);
     // Remove the common intersection -- nothing going on there.
-    // Doing this greatly reduces the complexity in the common case in which little has changed
+    // Doing this greatly reduces the complexity in the common
+    // case in which little has changed
     const common = t0.intersect(t1).add(undefined);
     t0 = t0.subtract(common);
     t1 = t1.subtract(common);
@@ -164,20 +171,20 @@ export class DBDocument implements Document {
     }
     if (t1.size === 0) {
       // Special case: t1 is empty -- bunch of deletes
-      v = [];
+      const v: Map<string, any>[] = [];
       t0.map(x => {
-        v.push(this._primary_key_part(x.toJS()));
+        v.push(this.primary_key_part(x.toJS()));
       });
       return [-1, v];
     }
 
     // compute the key parts of t0 and t1 as sets
     // means -- set got from t0 by taking only the primary_key columns
-    const k0 = t0.map(this._primary_key_cols);
-    const k1 = t1.map(this._primary_key_cols);
+    const k0 = t0.map(this.primary_key_cols);
+    const k1 = t1.map(this.primary_key_cols);
 
-    const add = [];
-    let remove = undefined;
+    const add: any[] = [];
+    let remove: any[] | undefined = undefined;
 
     // Deletes: everything in k0 that is not in k1
     const deletes = k0.subtract(k1);
@@ -193,12 +200,13 @@ export class DBDocument implements Document {
       });
     }
 
-    // Everything in k1 that is also in k0 -- these must have all changed
+    // Everything in k1 that is also in k0 -- these
+    // must have all changed
     const changed = k1.intersect(k0);
     if (changed.size > 0) {
       changed.map(k => {
         const obj = k.toJS();
-        const obj0 = this._primary_key_part(obj);
+        const obj0 = this.primary_key_part(obj);
         const from = this.get_one(obj0).toJS();
         const to = other.get_one(obj0).toJS();
         // undefined for each key of from not in to
@@ -207,17 +215,19 @@ export class DBDocument implements Document {
             obj[k] = null;
           }
         }
-        // explicitly set each key of to that is different than corresponding key of from
+        // Explicitly set each key of to that is different
+        // than corresponding key of from
         for (k in to) {
-          v = to[k];
-          if (!underscore.isEqual(from[k], v)) {
+          const v = to[k];
+          if (!isEqual(from[k], v)) {
             if (this.string_cols.has(k) && from[k] != null && v != null) {
               // A string patch
-              obj[k] = syncstring.make_patch(from[k], v);
-            } else if (misc.is_object(from[k]) && misc.is_object(v)) {
-              // Changing from one map to another, where they are not equal -- can use
-              // a merge to make this more efficient.  This is an important optimization,
-              // to avoid making patches HUGE.
+              obj[k] = string_make_patch(from[k], v);
+            } else if (is_object(from[k]) && is_object(v)) {
+              // Changing from one map to another, where they are not
+              // equal -- can use a merge to make this more efficient.
+              // This is an important optimization, to avoid making
+              // patches HUGE.
               obj[k] = map_merge_patch(from[k], v);
             } else {
               obj[k] = v;
@@ -228,7 +238,7 @@ export class DBDocument implements Document {
       });
     }
 
-    const patch = [];
+    const patch: any[] = [];
     if (remove != null) {
       patch.push(-1);
       patch.push(remove);
@@ -241,13 +251,17 @@ export class DBDocument implements Document {
     return patch;
   }
 
-  // Given an immutable map f, return its restriction to the primary keys
-  private primary_key_cols(f : immutable.Map<string,any>) : immutable.Map<string, any> {
+  // Given an immutable map f, return its restriction
+  // to the primary keys.
+  private primary_key_cols(
+    f: immutable.Map<string, any>
+  ): immutable.Map<string, any> {
     return f.filter((v, k) => this.primary_keys.has(k));
   }
 
-  private select(where : WhereCondition) {
-    if (immutable.Map.isMap(where)) {  // TODO: maybe do not allow?
+  private select(where: WhereCondition): immutable.Set | undefined {
+    if (immutable.Map.isMap(where)) {
+      // TODO: maybe do not allow?
       where = where.toJS();
     }
     // Return immutable set with defined indexes the elts of @_records that
@@ -256,12 +270,12 @@ export class DBDocument implements Document {
     let result = undefined;
     for (let field in where) {
       const value = where[field];
-      const index = this._indexes.get(field);
+      const index = this.indexes.get(field);
       if (index == null) {
         throw Error(`field '${field}' must be a primary key`);
       }
-      // v is an immutable.js set or undefined
-      const v = index.get(to_key(value)); // v may be undefined here, so important to do the v? check first!
+      const v: immutable.Set | undefined = index.get(to_key(value));
+      // v may be undefined here
       if (v == null) {
         return immutable.Set(); // no matches for this field - done
       }
@@ -278,21 +292,16 @@ export class DBDocument implements Document {
     }
     if (result == null) {
       // where condition must have been empty -- matches everything
-      return this._everything;
+      return this.everything;
     } else {
       return result;
     }
   }
 
   // Used internally for determining the set/where parts of an object.
-  private parse(obj) {
-    if (immutable.Map.isMap(obj)) {     // TODO: maybe do not allow?
-      // it is very clean/convenient to allow this
-      obj = obj.toJS();
-    }
-    if (!misc.is_object(obj)) {
-      throw Error("obj must be a Javascript object");
-    }
+  private parse(
+    obj: Map<string, any>
+  ): { where: Map<string, any>; set: Map<string, any> } {
     const where = {};
     const set = {};
     for (let field in obj) {
@@ -305,45 +314,45 @@ export class DBDocument implements Document {
         set[field] = val;
       }
     }
-    return { where, set, obj }; // return obj, in case had to convert from immutable
+    // return obj, in case had to convert from immutable
+    return { where, set };
   }
 
-  public set(obj) {
-    let field, record, set, where;
-    if (misc.is_array(obj)) {
+  public set(obj: SetCondition | SetCondition[]): DBDocument {
+    if (is_array(obj)) {
       let z = this;
       for (let x of obj) {
         z = z.set(x);
       }
       return z;
     }
-    ({ where, set, obj } = this.parse(obj));
-    // console.log("set #{misc.to_json(set)}, #{misc.to_json(where)}")
-    let matches = this.select(where);
+    if (immutable.Map.isMap(obj)) {
+      // TODO: maybe do not allow?
+      // it is very clean/convenient to allow this
+      obj = obj.toJS();
+    }
+    const { set, where } = this.parse(obj);
+    const matches = this.select(where);
     let { changes } = this.changes;
-    let n = matches != null ? matches.first() : undefined;
-    // TODO: very natural optimization would be be to fully support and use obj being immutable
+    const n = matches != null ? matches.first() : undefined;
     if (n != null) {
       // edit the first existing record that matches
-      const before = (record = this.records.get(n));
-      for (field in set) {
+      let record = this.records.get(n);
+      const before = record;
+      for (let field in set) {
         const value = set[field];
         if (value === null) {
           // null = how to delete fields
           record = record.delete(field);
         } else {
-          if (this.string_cols.has(field) && misc.is_array(value)) {
+          if (this.string_cols.has(field) && is_array(value)) {
             // special case: a string patch
-            var left;
             record = record.set(
               field,
-              syncstring.apply_patch(
-                value,
-                (left = before.get(field)) != null ? left : ""
-              )[0]
+              syncstring.apply_patch(value, before.get(field, ""))[0]
             );
           } else {
-            var new_val;
+            let new_val;
             const cur = record.get(field);
             const change = immutable.fromJS(value);
             if (immutable.Map.isMap(cur) && immutable.Map.isMap(change)) {
@@ -357,14 +366,15 @@ export class DBDocument implements Document {
       }
 
       if (!before.equals(record)) {
-        // there was an actual change, so update; doesn't change anything involving indexes.
-        changes = changes.add(this._primary_key_cols(record));
-        return new DBDoc(
+        // there was an actual change, so update; doesn't change
+        // anything involving indexes.
+        changes = changes.add(this.primary_key_cols(record));
+        return new DBDocument(
           this.primary_keys,
           this.string_cols,
           this.records.set(n, record),
-          this._everything,
-          this._indexes,
+          this.everything,
+          this.indexes,
           { changes, from_db: this.changes.from_db }
         );
       } else {
@@ -374,23 +384,26 @@ export class DBDocument implements Document {
       // The sparse array matches had nothing in it, so append a new record.
       for (field in this.string_cols) {
         if (obj[field] != null && misc.is_array(obj[field])) {
-          // it's a patch -- but there is nothing to patch, so discard this field
-          obj = misc.copy_without(obj, field);
+          // It's a patch -- but there is nothing to patch,
+          // so discard this field
+          obj = copy_without(obj, field);
         }
       }
-      record = nonnull_cols(immutable.fromJS(obj)); // remove null columns (indicate delete)
-      changes = changes.add(this._primary_key_cols(record));
+      // remove null columns (null indicates delete)
+      record = nonnull_cols(immutable.fromJS(obj));
+      changes = changes.add(this.primary_key_cols(record));
       const records = this.records.push(record);
       n = records.size - 1;
-      const everything = this._everything.add(n);
+      const everything = this.everything.add(n);
       // update indexes
-      let indexes = this._indexes;
-      for (field in this.primary_keys) {
+      let indexes = this.indexes;
+      for (field of this.primary_keys) {
         const val = obj[field];
-        if (val != null && val !== null) {
-          var left1;
-          const index =
-            (left1 = indexes.get(field)) != null ? left1 : immutable.Map();
+        if (val != null) {
+          let index = indexes.get(field);
+          if (index == null) {
+            index = immutable.Map();
+          }
           const k = to_key(val);
           matches = index.get(k);
           if (matches != null) {
@@ -401,7 +414,7 @@ export class DBDocument implements Document {
           indexes = indexes.set(field, index.set(k, matches));
         }
       }
-      return new DBDoc(
+      return new DBDocument(
         this.primary_keys,
         this.string_cols,
         records,
@@ -412,8 +425,8 @@ export class DBDocument implements Document {
     }
   }
 
-  public delete(where : WhereCondition ) : void {
-    if (misc.is_array(where)) {
+  public delete(where: WhereCondition | WhereCondition[]): DBDocument {
+    if (is_array(where)) {
       let z = this;
       for (let x of where) {
         z = z.delete(x);
@@ -422,33 +435,31 @@ export class DBDocument implements Document {
     }
     // console.log("delete #{misc.to_json(where)}")
     // if where undefined, will delete everything
-    if (this._everything.size === 0) {
+    if (this.everything.size === 0) {
       // no-op -- no data so deleting is trivial
       return this;
     }
-    let { changes } = this._changes;
-    const remove = this._select(where);
-    if (remove.size === this._everything.size) {
+    let { changes } = this.changes;
+    const remove = this.select(where);
+    if (remove.size === this.everything.size) {
       // actually deleting everything; easy special cases
       changes = changes.union(
-        this.records
-          .filter(record => record != null)
-          .map(this._primary_key_cols)
+        this.records.filter(record => record != null).map(this.primary_key_cols)
       );
-      return new DBDoc(
+      return new DBDocument(
         this.primary_keys,
         this.string_cols,
         undefined,
         undefined,
         undefined,
-        { changes, from_db: this._changes.from_db }
+        { changes, from_db: this.changes.from_db }
       );
     }
 
     // remove matches from every index
-    let indexes = this._indexes;
-    for (var field in this.primary_keys) {
-      var index = indexes.get(field);
+    let indexes = this.indexes;
+    for (let field of this.primary_keys) {
+      let index = indexes.get(field);
       if (index == null) {
         continue;
       }
@@ -468,16 +479,17 @@ export class DBDocument implements Document {
       });
     }
 
-    // delete corresponding records (actually set to undefined)
+    // delete corresponding records (actually set to undefined to
+    // preserve index references).
     let records = this.records;
     remove.map(n => {
       changes = changes.add(this.primary_key_cols(records.get(n)));
-      return (records = records.set(n, undefined));
+      records = records.set(n, undefined);
     });
 
-    const everything = this._everything.subtract(remove);
+    const everything = this.everything.subtract(remove);
 
-    return new DBDoc(
+    return new DBDocument(
       this.primary_keys,
       this.string_cols,
       records,
@@ -488,8 +500,8 @@ export class DBDocument implements Document {
   }
 
   // Returns immutable list of all matches
-  public get(where : WhereCondition) : Records {
-    const matches = this._select(where);
+  public get(where: WhereCondition): Records {
+    const matches = this.select(where);
     if (matches == null) {
       return immutable.List();
     }
@@ -497,8 +509,10 @@ export class DBDocument implements Document {
   }
 
   // Returns the first match, or undefined if there are no matches
-  get_one(where  : WhereCondition) : Record | undefined {
-    const matches = this._select(where);
+  get_one(where: WhereCondition): Record | undefined {
+    // TODO: couldn't select have a shortcut to return once one
+    // result is found.
+    const matches = this.select(where);
     if (matches == null) {
       return;
     }
@@ -506,8 +520,8 @@ export class DBDocument implements Document {
   }
 
   // x = javascript object
-  private primary_key_part(x) {
-    const where = {};
+  private primary_key_part(x: Map<string, any>): Map<string, any> {
+    const where: Map<string, any> = {};
     for (let k in x) {
       const v = x[k];
       if (this.primary_keys.has(k)) {
@@ -517,30 +531,29 @@ export class DBDocument implements Document {
     return where;
   }
 
-
   // Return immutable set of primary keys of records that
   // change in going from this to other.
-  private changed_keys(other : DBDocument) : immutable.Set<string> {
-    if (this.records === (other != null ? other._records : undefined)) {
-      // identical
+  private changed_keys(other: DBDocument): immutable.Set<string> {
+    if (this.records === other.records) {
+      // identical -- obviously, nothing changed.
       return immutable.Set();
     }
-    let t0 = immutable.Set(this.records).filter(x => x != null); // defined records
-    if (other == null) {
-      return t0.map(this._primary_key_cols);
-    }
-
-    let t1 = immutable.Set(other._records).filter(x => x != null);
+    // Get the defined records; there may be undefined ones due
+    // to lazy delete.
+    let t0 = immutable.Set(this.records).filter(x => x != null);
+    let t1 = immutable.Set(other.records).filter(x => x != null);
 
     // Remove the common intersection -- nothing going on there.
-    // Doing this greatly reduces the complexity in the common case in which little has changed
+    // Doing this greatly reduces the complexity in the common
+    // case in which little has changed
     const common = t0.intersect(t1);
     t0 = t0.subtract(common);
     t1 = t1.subtract(common);
 
     // compute the key parts of t0 and t1 as sets
-    const k0 = t0.map(this._primary_key_cols);
-    const k1 = t1.map(this._primary_key_cols);
+    const k0 = t0.map(this.primary_key_cols);
+    const k1 = t1.map(this.primary_key_cols);
+
     return k0.union(k1);
   }
 }
@@ -567,4 +580,3 @@ export function from_str(
   }
   return new DBDocument(primary_keys, string_cols, immutable.fromJS(obj));
 }
-
