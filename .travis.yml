@@ -14,6 +14,9 @@ language: "python"
 node_js:
   - "8"
 
+git:
+  depth: 3
+
 # we want our database
 services:
   - postgresql
@@ -69,8 +72,8 @@ install:
 # A non-zero exit code indicates a failure.
 # npm test is the usual, and coverage reporting is disabled
 script:
-  - 'if [[ $KUCALC_MODE == "false"    ]]; then $TRAVIS_BUILD_DIR/.travis-test.sh; fi'
-  - 'if [[ $KUCALC_MODE == "services" ]]; then $TRAVIS_BUILD_DIR/.travis-test-services.sh; fi'
+  - 'if [[ $KUCALC_MODE == "false"    ]]; then "$TRAVIS_BUILD_DIR/.travis-test.sh"; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test-services.sh"; fi'
 
 # send coverage report over to https://coveralls.io
 #after_success:
