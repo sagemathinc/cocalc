@@ -590,12 +590,25 @@ exports.start_server = start_server = (cb) ->
 
             if program.port or program.share_port or program.proxy_port
                 winston.debug("Starting registering periodically with the database and updating a health check...")
+
+                if program.test
+                    winston.debug("setting up hub_register_cb for testing")
+                    hub_register_cb = (err) ->
+                        if err
+                            winston.debug("hub_register_cb err:", err)
+                            process.exit(1)
+                        else
+                            process.exit(0)
+                else
+                    hub_register_cb = undefined
+
                 hub_register.start
                     database   : database
                     clients    : clients
                     host       : program.host
                     port       : program.port
                     interval_s : REGISTER_INTERVAL_S
+                    cb         : hub_register_cb
 
                 winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
@@ -659,6 +672,7 @@ command_line = () ->
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)
