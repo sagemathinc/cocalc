@@ -188,7 +188,7 @@ export class SignUp extends React.Component<Props, State> {
   render_question() {
     return (
       <>
-        <span>What would you like to do with CoCalc?</span>
+        <span>What would you like to do with CoCalc? (optional)</span>
         <FormGroup>
           <FormControl
             name="question"
