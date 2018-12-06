@@ -349,14 +349,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @_query
                     query  : "INSERT INTO accounts"
                     values :
-                        'account_id    :: UUID'      : account_id
-                        'first_name    :: TEXT'      : opts.first_name
-                        'last_name     :: TEXT'      : opts.last_name
-                        'created       :: TIMESTAMP' : new Date()
-                        'created_by    :: INET'      : opts.created_by
-                        'password_hash :: CHAR(173)' : opts.password_hash
-                        'email_address :: TEXT'      : opts.email_address
-                        'tracking_info :: JSONB'     : { sign_up_usage_intent: opts.usage_intent }
+                        'account_id     :: UUID'      : account_id
+                        'first_name     :: TEXT'      : opts.first_name
+                        'last_name      :: TEXT'      : opts.last_name
+                        'created        :: TIMESTAMP' : new Date()
+                        'created_by     :: INET'      : opts.created_by
+                        'password_hash  :: CHAR(173)' : opts.password_hash
+                        'email_address  :: TEXT'      : opts.email_address
+                        'sign_up_usage_intent :: TEXT': opts.usage_intent
                     cb : cb
             (cb) =>
                 if opts.passport_strategy?

@@ -220,9 +220,9 @@ schema.accounts =
         api_key :
             type : 'string'
             desc : "Optional API key that grants full API access to anything this account can access. Key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62)."
-        tracking_info :
-            type : 'map'
-            desc : "Contains information about this user for the purpose of behavior tracking"
+        sign_up_usage_intent :
+            type : 'string'
+            desc : "What user intended to use CoCalc for at sign up"
     pg_indexes : [
         '(lower(first_name) text_pattern_ops)',
         '(lower(last_name)  text_pattern_ops)',
@@ -300,18 +300,18 @@ schema.accounts =
                 ssh_keys        : {}
         set :
             fields :
-                account_id      : 'account_id'
-                editor_settings : true
-                other_settings  : true
-                first_name      : true
-                last_name       : true
-                terminal        : true
-                autosave        : true
-                evaluate_key    : true
-                font_size       : true
-                profile         : true
-                ssh_keys        : true
-                tracking_info   : true
+                account_id           : 'account_id'
+                editor_settings      : true
+                other_settings       : true
+                first_name           : true
+                last_name            : true
+                terminal             : true
+                autosave             : true
+                evaluate_key         : true
+                font_size            : true
+                profile              : true
+                ssh_keys             : true
+                sign_up_usage_intent : true
             check_hook : (db, obj, account_id, project_id, cb) ->
                 # Hook to truncate some text fields to at most 254 characters, to avoid
                 # further trouble down the line.
