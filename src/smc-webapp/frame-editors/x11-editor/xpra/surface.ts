@@ -72,7 +72,7 @@ export class Surface {
       { wid: this.wid, canvas: this.canvas, context: this.context },
       send
     );
-    //console.log("new Surface", this);
+    // console.log("new Surface", this);
   }
 
   // close wid when this surface is clicked on.

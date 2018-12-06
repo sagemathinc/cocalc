@@ -418,6 +418,13 @@ export class Client {
         let parent : Surface | undefined = undefined;
         if (metadata["transient-for"]) {
           parent = this.findSurface(metadata["transient-for"]);
+          if (parent != null) {
+            // Flatten the tree structure (basically for simplicity).
+            // This is assumed right now in actions...
+            while (parent.parent !== undefined) {
+              parent = parent.parent;
+            }
+          }
         }
 
         const surface = new Surface({
@@ -471,8 +478,7 @@ export class Client {
           return;
         }
 
-        // Go up to the root; I don't know if this is actually
-        // necessary in practice....
+        // Flatten the tree structure (same as above).
         while (parent.parent !== undefined) {
           parent = parent.parent;
           parentWid = parent.wid;
