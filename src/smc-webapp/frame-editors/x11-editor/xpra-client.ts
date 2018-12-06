@@ -318,11 +318,8 @@ export class XpraClient extends EventEmitter {
 
   window_create(surface: Surface): void {
     if (surface.metadata["transient-for"]) {
-      surface.parent = this.client.findSurface(
-        surface.metadata["transient-for"]
-      );
       if (!surface.parent) {
-        // gone
+        // parent gone, so don't bother with child...?
         return;
       }
       // modal window on top of existing (assumed!) root window

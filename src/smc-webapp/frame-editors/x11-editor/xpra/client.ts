@@ -314,8 +314,8 @@ export class Client {
         } else {
           surface.rescale(
             scale,
-            Math.round(width * 0.9),
-            Math.round(height * 0.9)
+            Math.round(width * 0.85),
+            Math.round(height * 0.85)
           );
         }
       }
@@ -415,8 +415,13 @@ export class Client {
 
         this.send("map-window", wid, x, y, w, h, props);
 
+        let parent : Surface | undefined = undefined;
+        if (metadata["transient-for"]) {
+          parent = this.findSurface(metadata["transient-for"]);
+        }
+
         const surface = new Surface({
-          parent: undefined,
+          parent,
           wid,
           x,
           y,
@@ -424,7 +429,8 @@ export class Client {
           h,
           metadata,
           properties,
-          send: this.send
+          send: this.send,
+          is_overlay : false
         });
         this.surfaces[wid] = surface;
 
@@ -481,7 +487,8 @@ export class Client {
           h,
           metadata,
           properties,
-          send: this.send
+          send: this.send,
+          is_overlay : true
         });
 
         this.surfaces[wid] = surface;
