@@ -329,15 +329,39 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
+    render_upload: ->
+        {SMC_Dropzone} = require('./smc-dropzone')
+
+        <Row style={marginTop: '20px'}>
+            <Col sm={12}>
+                <h4><Icon name='cloud-upload' /> Upload</h4>
+            </Col>
+            <Col sm={12}>
+                <SMC_Dropzone
+                        dropzone_handler     = {{}}
+                        project_id           = {@props.project_id}
+                        current_path         = {@props.current_path}
+                        show_header          = {false}
+                />
+            </Col>
+            <Col sm={12}>
+                <div style={color: "#666"}>
+                    <em>You can also drag&drop onto the file listing below</em>
+                </div>
+            </Col>
+        </Row>
+
     render: ->
         <Row>
             <Col sm={12}>
                 {@render_header() if @props.show_header}
-                <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
-                    <Col sm={3}>
-                        <h4><Icon name='plus' /> Create a new file or directory</h4>
+                <Row sm={3}>
+                    <Col sm={12}>
+                        <h4><Icon name='plus-circle' /> Create a new file or directory</h4>
                     </Col>
-                    <Col sm={9}>
+                </Row>
+                <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
+                    <Col sm={12}>
                         <Row>
                             <Col sm={12}>
                                 <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
@@ -378,13 +402,14 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                                 </Col>
                             </Row>
                         </FileTypeSelector>
-                        {if @props.close
-                            <Row>
-                                <Col sm={12}>{@close_button()}</Col>
-                            </Row>
-                        }
                     </Col>
                 </Row>
+                {@render_upload()}
+                {if @props.close
+                    <Row>
+                        <Col sm={12}>{@close_button()}</Col>
+                    </Row>
+                }
             </Col>
         </Row>
 
@@ -450,7 +475,7 @@ exports.ProjectNew = rclass ({name}) ->
             padding: '3rem'
 
         <Row>
-            <Col xs={6} xsOffset={3} style={style}>
+            <Col xs={8} xsOffset={2} style={style}>
                 <Alert bsStyle={"info"}>
                     Creating files, the library and upload moved to the{' '}
                     <Button onClick={=>@show_files_tab()}>

@@ -43,7 +43,7 @@ const keyboard = require("./keyboard");
 const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
-const {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
 
 // map project_id (string) -> kernels (immutable)
 let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
@@ -1834,20 +1834,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // File --> Open: just show the file listing page.
   file_open = (): void => {
-    if (this.redux != null) {
-      this.redux
-        .getProjectActions(this.store.get("project_id"))
-        .set_active_tab("files");
-    }
+    if (this.redux == null) return;
+    this.redux
+      .getProjectActions(this.store.get("project_id"))
+      .set_active_tab("files");
   };
 
-  // file_new = (): void => {
-  //   if (this.redux != null) {
-  //     this.redux
-  //       .getProjectActions(this.store.get("project_id"))
-  //       .set_active_tab("new");
-  //   }
-  // };
+  // File --> New: like open, but also show the create panel
+  file_new = (): void => {
+    if (this.redux == null) return;
+    const project_actions = this.redux.getProjectActions(
+      this.store.get("project_id")
+    );
+    project_actions.set_active_tab("files");
+    project_actions.toggle_new(true);
+  };
 
   register_input_editor = (id: any, editor: any): void => {
     if (this._input_editors == null) {
@@ -3154,7 +3155,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.confirm_dialog({
       title: "Switch to the Classical Notebook?",
       body:
-        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" + JUPYTER_CLASSIC_MODERN + ")",
+        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
+        JUPYTER_CLASSIC_MODERN +
+        ")",
       choices: [
         { title: "Switch to Classical Notebook", style: "warning" },
         { title: "Continue using CoCalc Jupyter Notebook", default: true }
