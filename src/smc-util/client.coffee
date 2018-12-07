@@ -1835,7 +1835,7 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
-    syncstring2: (opts) =>
+    sync_string2: (opts) =>
         opts = defaults opts,
             id                : undefined
             project_id        : required
@@ -1861,7 +1861,7 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new db_doc.SyncDB(opts)
 
-    syncdb2: (opts) =>
+    sync_db2: (opts) =>
         opts = defaults opts,
             id                : undefined
             project_id        : required

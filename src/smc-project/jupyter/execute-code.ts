@@ -19,11 +19,8 @@ import {
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
-  StdinFunction,
-  Message
+  StdinFunction
 } from "../smc-webapp/jupyter/project-interface";
-
-type MesgHandler = (mesg: Message) => void;
 
 export class CodeExecutionEmitter extends EventEmitter
   implements CodeExecutionEmitterInterface {

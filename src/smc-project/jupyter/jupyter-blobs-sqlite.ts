@@ -167,7 +167,7 @@ export class BlobStore implements BlobStoreInterface {
     const router = express.Router();
     base += "blobs/";
 
-    router.get(base, (req, res) => {
+    router.get(base, (_, res) => {
       res.send(to_json(this.keys()));
     });
 

@@ -102,7 +102,7 @@ function assert_type(name: string, x: any, type: string): void {
 
 export async function lean(
   client: any,
-  primus: any,
+  _: any,
   logger: any,
   opts: any
 ): Promise<any> {

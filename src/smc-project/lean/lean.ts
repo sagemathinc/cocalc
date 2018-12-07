@@ -1,15 +1,9 @@
 import { isEqual } from "underscore";
 
-import { exec } from "child_process";
-
-import { access, readFile } from "fs";
-
 import * as lean_client from "lean-client-js-node";
 import { callback, delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
-
-import { path_split } from "../smc-util/misc2";
 
 type SyncString = any;
 type Client = any;
@@ -129,7 +123,6 @@ export class Lean extends EventEmitter {
         }
         this.emit("tasks", path, v);
       }
-      const t = now();
       for (let path in this.running) {
         if (!running[path]) {
           this.dbg("server", path, " done; no longer running");
