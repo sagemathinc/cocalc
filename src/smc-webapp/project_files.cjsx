@@ -512,7 +512,8 @@ NoFiles = rclass
     # Go to the new file tab if there is no file search
     handle_click: ->
         if @props.file_search.length == 0
-            @props.actions.set_active_tab('new')
+            #@props.actions.set_active_tab('new')
+            @props.actions.toggle_new(true)
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -887,13 +888,6 @@ ProjectFilesButtons = rclass
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
-                <Button
-                    bsSize={'small'}
-                    disabled={@props.show_new}
-                    onClick={=>@props.actions.toggle_new(true)}
-                >
-                    <Icon name='plus-circle' /> <HiddenSM>New</HiddenSM>
-                </Button>
                 {@render_library_button()}
                 <Button bsSize='small' className="upload-button">
                     <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
@@ -982,7 +976,7 @@ ProjectFilesActions = rclass
         style =
             color      : '#999'
             height     : '22px'
-            margin     : '3px 20px'
+            margin     : '5px'
 
         if checked is 0
             <div style={style}>
@@ -1006,7 +1000,7 @@ ProjectFilesActions = rclass
             disabled={disabled}
             key={name}
         >
-            <Icon name={obj.icon} /> <VisibleLG>{obj.name}...</VisibleLG>
+            <Icon name={obj.icon} /> <HiddenSM>{obj.name}...</HiddenSM>
         </Button>
 
     render_action_buttons: ->
@@ -1061,19 +1055,19 @@ ProjectFilesActions = rclass
         </ButtonGroup>
 
     render: ->
-        <Row>
-            <Col sm={12}>
-                <ButtonToolbar>
+        <div style={flex: '1 0 auto'}>
+            <div style={flex: '1 0 auto'}>
+                <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'}>
                     <ButtonGroup>
                         {@render_check_all_button()}
                     </ButtonGroup>
                     {@render_action_buttons()}
                 </ButtonToolbar>
-            </Col>
-            <Col sm={12}>
+            </div>
+            <div style={flex: '1 0 auto'}>
                 {@render_currently_selected()}
-            </Col>
-        </Row>
+            </div>
+        </div>
 
 WIKI_SHARE_HELP_URL = 'https://github.com/sagemathinc/cocalc/wiki/share'
 
@@ -2091,7 +2085,7 @@ ProjectFilesNew = rclass
     # Go to new file tab if no file is specified
     on_create_button_clicked: ->
         if @props.file_search.length == 0
-            @props.actions.set_active_tab('new')
+            @props.actions.toggle_new(true)
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -2512,7 +2506,7 @@ exports.ProjectFiles = rclass ({name}) ->
             </div>
 
             <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
-                <div style={flex: '1 0 60%', marginRight: '10px', minWidth: '20em'}>
+                <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
                     {@render_files_actions(listing, public_view) if listing?}
                 </div>
                 <div style={flex: '1 0 auto', marginBottom:'15px', textAlign: 'right'}>

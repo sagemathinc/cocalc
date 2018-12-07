@@ -1841,13 +1841,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  file_new = (): void => {
-    if (this.redux != null) {
-      this.redux
-        .getProjectActions(this.store.get("project_id"))
-        .set_active_tab("new");
-    }
-  };
+  // file_new = (): void => {
+  //   if (this.redux != null) {
+  //     this.redux
+  //       .getProjectActions(this.store.get("project_id"))
+  //       .set_active_tab("new");
+  //   }
+  // };
 
   register_input_editor = (id: any, editor: any): void => {
     if (this._input_editors == null) {
