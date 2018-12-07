@@ -1,6 +1,7 @@
 // Well-defined JSON.stringify...
-import json_stable from "json-stable-stringify";
+const json_stable = require("json-stable-stringify");
 import * as immutable from "immutable";
+import { isEqual } from "underscore";
 
 export function to_key(s: any): string {
   if (immutable.Map.isMap(s)) {
@@ -45,7 +46,7 @@ export function map_merge_patch(obj1, obj2) {
   for (var key in obj1) {
     const val1 = obj1[key];
     val2 = obj2[key];
-    if (underscore.isEqual(val1, val2)) {
+    if (isEqual(val1, val2)) {
       // nothing to do
     } else if (val2 == null) {
       change[key] = null;
@@ -68,10 +69,10 @@ export function map_merge_patch(obj1, obj2) {
 //  - we set the other vals of obj, accordingly.
 // So this is a shallow merge with the ability to *delete* keys.
 export function merge_set(
-  obj: immutable.Map,
-  change: immutable.Map
-): immutable.Map {
-  change.map(function(v, k) {
+  obj: immutable.Map<any,any>,
+  change: immutable.Map<any,any>
+): immutable.Map<any,any> {
+  change.forEach(function(v, k) {
     if (v === null || v == null) {
       obj = obj.delete(k);
     } else {
@@ -82,7 +83,8 @@ export function merge_set(
 }
 
 export function nonnull_cols(
-  f: immutable.Map<any.any>
-): immutable.Map<any.any> {
-  return f.filter((v, k) => v !== null);
+  f: immutable.Map<any,any>
+): immutable.Map<any,any> {
+  // Yes, "!==" not "!=" below!
+  return immutable.Map(f.filter((v, _) => v !== null));
 }
