@@ -24,7 +24,7 @@
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
-SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM} = require('./r_misc')
+SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM, CloseX2} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
 {FileTypeSelector, NewFileButton, ProjectNewForm} = require('./project_new')
 {SiteName} = require('./customize')
@@ -2242,10 +2242,15 @@ exports.ProjectFiles = rclass ({name}) ->
     render_library: () ->
         <Well style={backgroundColor: 'white'}>
             <Row>
-                <Col sm={3}>
+                <Col sm={10}>
                     <h4><Icon name='book' /> Library</h4>
                 </Col>
-                <Col sm={9}>
+                <Col sm={2}>
+                    <CloseX2 close={=>@props.actions.toggle_library(false)} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
                     <Library
                         project_id={@props.project_id}
                         name={@props.name}

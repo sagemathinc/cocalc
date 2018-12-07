@@ -26,7 +26,7 @@ underscore = require('underscore')
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2} = require('./r_misc')
 {User} = require('./users')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
@@ -331,33 +331,48 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
 
     render_upload: ->
         {SMC_Dropzone} = require('./smc-dropzone')
-
-        <Row style={marginTop: '20px'}>
-            <Col sm={12}>
-                <h4><Icon name='cloud-upload' /> Upload</h4>
-            </Col>
-            <Col sm={12}>
-                <SMC_Dropzone
-                        dropzone_handler     = {{}}
-                        project_id           = {@props.project_id}
-                        current_path         = {@props.current_path}
-                        show_header          = {false}
-                />
-            </Col>
-            <Col sm={12}>
-                <div style={color: "#666"}>
-                    <em>You can also drag&drop onto the file listing below</em>
-                </div>
-            </Col>
-        </Row>
+        <Fragment>
+            <Row style={marginTop: '20px'}>
+                <Col sm={12}>
+                    <h4><Icon name='cloud-upload' /> Upload</h4>
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={9}>
+                    <SMC_Dropzone
+                            dropzone_handler     = {{}}
+                            project_id           = {@props.project_id}
+                            current_path         = {@props.current_path}
+                            show_header          = {false}
+                    />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm={9}>
+                    <div style={color: "#666"}>
+                        <em>You can also drag&drop onto the file listing below</em>
+                    </div>
+                </Col>
+                <Col sm={3}>
+                    {if @props.close
+                        <Row>
+                            <Col sm={12}>{@close_button()}</Col>
+                        </Row>
+                    }
+                </Col>
+            </Row>
+        </Fragment>
 
     render: ->
         <Row>
             <Col sm={12}>
                 {@render_header() if @props.show_header}
                 <Row sm={3}>
-                    <Col sm={12}>
+                    <Col sm={10}>
                         <h4><Icon name='plus-circle' /> Create a new file or directory</h4>
+                    </Col>
+                    <Col sm={2}>
+                      <CloseX2 close={@props.close} />
                     </Col>
                 </Row>
                 <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
@@ -405,11 +420,6 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     </Col>
                 </Row>
                 {@render_upload()}
-                {if @props.close
-                    <Row>
-                        <Col sm={12}>{@close_button()}</Col>
-                    </Row>
-                }
             </Col>
         </Row>
 

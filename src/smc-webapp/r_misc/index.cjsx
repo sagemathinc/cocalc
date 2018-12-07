@@ -36,8 +36,13 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
+
 {CloseX} = require('./close-x')
 exports.CloseX = CloseX
+
+{CloseX2} = require('./close-x2')
+exports.CloseX2 = CloseX2
+
 {Saving} = require('./saving')
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
