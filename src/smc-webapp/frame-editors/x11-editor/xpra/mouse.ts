@@ -206,6 +206,7 @@ export class Mouse {
       case "mousedown":
       case "mouseup": {
         const pressed = ev.type === "mousedown";
+        surface.do_close_on_click();
 
         this.send(
           "button-action",

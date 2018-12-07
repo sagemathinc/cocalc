@@ -2,14 +2,26 @@
 sudo: required
 dist: xenial
 
-services:
-  - postgresql
+# no need to build all branches
+branches:
+  only:
+    - master
 
+# there is no single language, but python is ok
 language: "python"
 
+# travis supports 8 and 11 (as of winter 2018)
 node_js:
   - "8"
 
+git:
+  depth: 3
+
+# we want our database
+services:
+  - postgresql
+
+# specify postgres version and additional linux packages here
 addons:
   postgresql: "10"
   apt:
@@ -22,20 +34,21 @@ addons:
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
 env:
-  global:
-    - REPORTER=list # for mocha tests
+  global: # note: we cannot use $VARs here
+    - REPORTER=min # for mocha tests
     - PGUSER='smc'
-    - PGHOST='/home/travis/build/sagemathinc/cocalc/src/dev/project/postgres_data/socket'
   matrix:
-    - MODE=misc
-    - MODE=hub # hub, postgres, etc.
-    #- MODE=util
-    #- MODE=sagews
-    #- MODE=server
+    # this runs the "normal" tests
+    - KUCALC_MODE=false    NODE_ENV=production
+    # - KUCALC_MODE=false   NODE_ENV=development   # disabled: just uses resources, no real gain
+    # this just builds the webapp for production (full minifaction, all static pages, etc.)
+    - KUCALC_MODE=webapp   NODE_ENV=production CC_COMP_ENV=true
+    # this compiles the hub, project, etc. and runs hubs in test mode
+    - KUCALC_MODE=services NODE_ENV=production CC_COMP_ENV=true
 
 before_install: []
 
-# installation and setup
+# installation and setup: make notes about the environment and init&start postgres
 before_script:
   - "source /etc/lsb-release"
   - "pip -V"
@@ -43,25 +56,24 @@ before_script:
   - "python -V"
   - "node --version"
   - "pytest --version"
-  - "python2 ~/build/sagemathinc/cocalc/src/dev/project/start_postgres.py &"
-  - "sleep 5"
+  - 'export PGHOST="$TRAVIS_BUILD_DIR/src/dev/project/postgres_data/socket"'
+  - "python2 $TRAVIS_BUILD_DIR/src/dev/project/start_postgres.py &"
+  - "sleep 10" # for starting up postgres in the background (db init, etc.)
 
-# the setup & compilation of SMC
+# the setup & compilation of CoCalc
+# if broken, this will also trigger a test failure, i.e. that's also a test
 install:
   - "cd src"
   - "source smc-env"
-  - "npm run make"
+  - 'if [[ $KUCALC_MODE != "services" ]]; then npm run make; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-install-services.sh"; fi'
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
-# npm test is the usual, but we also run coverage reporting
+# npm test is the usual, and coverage reporting is disabled
 script:
-  - 'if [[ $MODE = "sagews" ]]; then cd ~/build/sagemathinc/cocalc/src/smc_sagews/smc_sagews/; python -m pytest tests/; fi'
-  - 'if [[ $MODE = "webapp" ]]; then cd ~/build/sagemathinc/cocalc/src/smc-webapp/; npm run test; fi'
-  - 'if [[ $MODE = "server" ]]; then npm run coveralls; fi'
-  - 'if [[ $MODE = "util"   ]]; then cd ~/build/sagemathinc/cocalc/src/smc-util/; npm test; fi'
-  - 'if [[ $MODE = "misc"   ]]; then cd ~/build/sagemathinc/cocalc/src/smc-util/; export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee; fi'
-  - 'if [[ $MODE = "hub"  ]]; then cd ~/build/sagemathinc/cocalc/src/smc-hub/; npm run testpg; npm run testmisc; npm run testkucalc; fi'
+  - 'if [[ $KUCALC_MODE != "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test.sh"; fi'
+  - 'if [[ $KUCALC_MODE == "services" ]]; then "$TRAVIS_BUILD_DIR/.travis-test-services.sh"; fi'
 
 # send coverage report over to https://coveralls.io
 #after_success:
@@ -69,7 +81,5 @@ script:
 
 notifications:
   email:
-    recipients:
-      - "hsy@sagemath.com"
     on_success: change
     on_failure: change

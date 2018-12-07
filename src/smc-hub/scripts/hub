@@ -17,4 +17,6 @@ if id != '':
 else:
     cmd = "node --max-old-space-size=8000 run/hub.js " + args
 print cmd
-os.system(cmd)
+
+if os.WEXITSTATUS(os.system(cmd)):
+    raise RuntimeError

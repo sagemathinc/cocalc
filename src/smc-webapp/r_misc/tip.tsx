@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Icon } from "./icon";
 import * as misc from "smc-util/misc";
-import * as feature from "./feature";
+import * as feature from "../feature";
 
 const { OverlayTrigger, Popover, Tooltip } = require("react-bootstrap");
 

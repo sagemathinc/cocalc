@@ -92,11 +92,12 @@ exports.start = (opts) ->
         host       : required
         port       : required
         interval_s : required
+        cb         : undefined
     winston.debug("hub_register.start...")
     the_database = opts.database
     the_clients  = opts.clients
     the_host     = opts.host
     the_port     = opts.port
     the_interval = opts.interval_s
-    register_hub()
+    register_hub(opts.cb)
     setInterval(register_hub, the_interval*1000)
