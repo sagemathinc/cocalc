@@ -326,7 +326,7 @@ export class XpraClient extends EventEmitter {
       this.client.rescale_children(surface.parent);
       this.emit("child:create", surface.parent.wid, surface.wid);
     } else {
-      this.emit("window:create", surface.wid, surface.metadata.title);
+      this.emit("window:create", surface.wid, surface.metadata.title, !!surface.metadata["modal"]);
     }
   }
 
