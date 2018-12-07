@@ -5,11 +5,17 @@ import { isEqual } from "underscore";
 import { is_array, is_object, copy_without } from "../../../misc";
 
 import { make_patch as string_make_patch } from "../generic/util";
-import { map_merge_patch, merge_set, nonnull_cols, to_str } from "./util";
+import {
+  map_merge_patch,
+  merge_set,
+  nonnull_cols,
+  to_key,
+  to_str
+} from "./util";
 
-type Record = immutable.Map<string, any>;
+type Record = immutable.Map<string, any> | undefined;
 type Records = immutable.List<Record>;
-type Index = immutable.Map<string, immutable.Set>;
+type Index = immutable.Map<string, immutable.Set<number>>;
 type Indexes = immutable.Map<string, Index>;
 
 export type WhereCondition = { [field: string]: any };
@@ -22,24 +28,26 @@ interface Changes {
 
 // Immutable DB document
 export class DBDocument implements Document {
-  private primary_keys: Set;
+  private primary_keys: Set<string>;
 
   // Columns that should be treated as non-atomic strings.
   // This means simultaneous changes by multiple clients are
   // merged, instead of last-write-wins.  Also, large changes
   // are propagated at patches, rather than sending
   // complete string.
-  private string_cols: string[];
+  private string_cols: Set<string>;
 
   // list of records -- each is assumed to be an immutable.Map.
   private records: immutable.List<Record>;
 
-  // TODO: describe
-  private everything: immutable.Set;
+  // set of numbers n such that records.get(n) is defined.
+  private everything: immutable.Set<number>;
+
   // TODO: describe
   private indexes: Indexes;
 
-  // Change tracking -- not used internally, but can be useful by client code.
+  // Change tracking -- not used internally, but
+  // can be useful by client code.
   private changes: Changes;
 
   public readonly size: number;
@@ -49,7 +57,7 @@ export class DBDocument implements Document {
   constructor(
     primary_keys: Set<string>,
     string_cols: Set<string>,
-    records?: Records = immutable.List(),
+    records: Records = immutable.List(),
     everything?: immutable.Set<number>,
     indexes?: Indexes,
     changes?
@@ -74,7 +82,7 @@ export class DBDocument implements Document {
         v.push(n);
       }
     }
-    return immutable.Set(v).sort();
+    return immutable.Set(v);
   }
 
   private init_indexes(): Indexes {
@@ -85,13 +93,17 @@ export class DBDocument implements Document {
       indexes = indexes.set(field, index);
     }
     this.records.map((record: Record, n: number) => {
+      if (record == null) {
+        // null records are sentinels for deletions.
+        return;
+      }
       indexes.map((index: Index, field: string) => {
         const val = record.get(field);
         if (val != null) {
           const k: string = to_key(val);
           let matches = index.get(k);
           if (matches != null) {
-            matches = matches.add(n).sort();
+            matches = matches.add(n);
           } else {
             matches = immutable.Set([n]);
           }
@@ -111,7 +123,8 @@ export class DBDocument implements Document {
       // We can use a cache, since this is an immutable object
       return this.to_str_cache;
     }
-    return (this.to_str_cache = to_str(this.to_obj()));
+    const obj = this.get({}).toJS();
+    return (this.to_str_cache = to_str(obj));
   }
 
   public is_equal(other?: DBDocument): boolean {
@@ -137,7 +150,7 @@ export class DBDocument implements Document {
 
   public apply_patch(patch: CompressedPatch): DBDocument {
     let i = 0;
-    let db = this;
+    let db: DBDocument = this;
     while (i < patch.length) {
       if (patch[i] === -1) {
         db = db.delete(patch[i + 1]);
@@ -173,15 +186,20 @@ export class DBDocument implements Document {
       // Special case: t1 is empty -- bunch of deletes
       const v: Map<string, any>[] = [];
       t0.map(x => {
-        v.push(this.primary_key_part(x.toJS()));
+        if (x != null) {
+          v.push(this.primary_key_part(x.toJS()));
+        }
       });
       return [-1, v];
     }
 
     // compute the key parts of t0 and t1 as sets
     // means -- set got from t0 by taking only the primary_key columns
-    const k0 = t0.map(this.primary_key_cols);
-    const k1 = t1.map(this.primary_key_cols);
+    // (Why the "as"? Typescript makes the output of the map be of type
+    //        Iterable<Record, Iterable<string, any>>
+    // But, it's just a set.  So cast it.)
+    const k0 = t0.map(this.primary_key_cols) as immutable.Set<Record>;
+    const k1 = t1.map(this.primary_key_cols) as immutable.Set<Record>;
 
     const add: any[] = [];
     let remove: any[] | undefined = undefined;
@@ -196,7 +214,12 @@ export class DBDocument implements Document {
     const inserts = k1.subtract(k0);
     if (inserts.size > 0) {
       inserts.map(k => {
-        add.push(other.get_one(k.toJS()).toJS());
+        if (k != null) {
+          const x = other.get_one(k);
+          if (x != null) {
+            add.push(x.toJS());
+          }
+        }
       });
     }
 
@@ -205,32 +228,41 @@ export class DBDocument implements Document {
     const changed = k1.intersect(k0);
     if (changed.size > 0) {
       changed.map(k => {
+        if (k == null) {
+          return;
+        }
         const obj = k.toJS();
         const obj0 = this.primary_key_part(obj);
-        const from = this.get_one(obj0).toJS();
-        const to = other.get_one(obj0).toJS();
+        const from0 = this.get_one(obj0);
+        const to0 = other.get_one(obj0);
+        if (from0 == null || to0 == null) {
+          // just to make typescript happy
+          return;
+        }
+        const from = from0.toJS();
+        const to = to0.toJS();
         // undefined for each key of from not in to
-        for (k in from) {
-          if (to[k] == null) {
-            obj[k] = null;
+        for (let key in from) {
+          if (to[key] == null) {
+            obj[key] = null;
           }
         }
-        // Explicitly set each key of to that is different
-        // than corresponding key of from
-        for (k in to) {
-          const v = to[k];
-          if (!isEqual(from[k], v)) {
-            if (this.string_cols.has(k) && from[k] != null && v != null) {
+        // Explicitly set each key of `to` that is different
+        // than corresponding key of `from`:
+        for (let key in to) {
+          const v = to[key];
+          if (!isEqual(from[key], v)) {
+            if (this.string_cols.has(key) && from[key] != null && v != null) {
               // A string patch
-              obj[k] = string_make_patch(from[k], v);
-            } else if (is_object(from[k]) && is_object(v)) {
+              obj[key] = string_make_patch(from[key], v);
+            } else if (is_object(from[key]) && is_object(v)) {
               // Changing from one map to another, where they are not
               // equal -- can use a merge to make this more efficient.
               // This is an important optimization, to avoid making
               // patches HUGE.
-              obj[k] = map_merge_patch(from[k], v);
+              obj[key] = map_merge_patch(from[key], v);
             } else {
-              obj[k] = v;
+              obj[key] = v;
             }
           }
         }
@@ -256,10 +288,13 @@ export class DBDocument implements Document {
   private primary_key_cols(
     f: immutable.Map<string, any>
   ): immutable.Map<string, any> {
-    return f.filter((v, k) => this.primary_keys.has(k));
+    return f.filter((_, k) => k != null && this.primary_keys.has(k)) as immutable.Map<
+      string,
+      any
+    >;
   }
 
-  private select(where: WhereCondition): immutable.Set | undefined {
+  private select(where: WhereCondition): immutable.Set<Record> | undefined {
     if (immutable.Map.isMap(where)) {
       // TODO: maybe do not allow?
       where = where.toJS();
@@ -334,7 +369,7 @@ export class DBDocument implements Document {
     const { set, where } = this.parse(obj);
     const matches = this.select(where);
     let { changes } = this.changes;
-    const n = matches != null ? matches.first() : undefined;
+    const n = matches != null ? matches.min() : undefined;
     if (n != null) {
       // edit the first existing record that matches
       let record = this.records.get(n);
@@ -516,7 +551,7 @@ export class DBDocument implements Document {
     if (matches == null) {
       return;
     }
-    return this.records.get(matches.first());
+    return this.records.get(matches.min());
   }
 
   // x = javascript object

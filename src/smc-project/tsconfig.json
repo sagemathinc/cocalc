@@ -3,6 +3,9 @@
     "types": ["node"],
     "lib": ["es7"],
     "strictNullChecks": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "downlevelIteration": true
   },
   "exclude": [
     "../smc-webapp/node_modules/",

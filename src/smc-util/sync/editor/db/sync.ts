@@ -1,19 +1,19 @@
 import { SyncDoc, SyncOpts0, SyncOpts } from "../generic/sync-doc";
 import { from_str } from "./doc";
+import { Document, DocType } from "../generic/types";
 
 export interface SyncDBOpts extends SyncOpts0 {
+  from_str: (string) => Document;
+  doctype: DocType;
   primary_keys : string[];
-  string_cols? : string[];
+  string_cols  : string[];
 }
 
 export class SyncDB extends SyncDoc {
   constructor(opts: SyncDBOpts) {
-    if (opts.string_cols == null) {
-      opts.string_cols = [];
-    }
     // TS question -- What is the right way to do this?
-    (opts as SyncOpts).from_str = str => from_str(str, opts.primary_keys, opts.string_cols);
-    (opts as SyncOpts).doctype = {
+    opts.from_str = str => from_str(str, opts.primary_keys, opts.string_cols);
+    opts.doctype = {
       type: "db",
       patch_format: 1,
       opts: {

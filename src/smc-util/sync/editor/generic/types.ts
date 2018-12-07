@@ -77,4 +77,5 @@ export interface Client {
 export interface DocType {
   type: string;
   patch_format?: number; // 0=string or 1=dbdoc, if given
+  opts?: { [key: string]: any };
 }
