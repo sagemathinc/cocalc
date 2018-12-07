@@ -495,7 +495,7 @@ export class SortedPatchList extends EventEmitter {
       }
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
-        JSON.stringify(trunc_middle(s.to_str(), trunc).trim())
+        trunc_middle(s.to_str(), trunc).trim()
       );
       i += 1;
     }

@@ -347,7 +347,7 @@ export class DBDocument implements Document {
     const set: jsmap = {};
     for (let field in obj) {
       const val = obj[field];
-      if (this.primary_keys.has(field) != null) {
+      if (this.primary_keys.has(field)) {
         if (val != null) {
           where[field] = val;
         }

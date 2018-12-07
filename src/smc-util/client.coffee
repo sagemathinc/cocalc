@@ -1861,6 +1861,21 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new db_doc.SyncDB(opts)
 
+    syncdb2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            primary_keys      : required
+            string_cols       : []
+        opts.client = @
+        SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
+        return new SyncDB2(opts)
+
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
             project_id : required
