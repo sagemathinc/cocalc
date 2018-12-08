@@ -13,7 +13,7 @@ Maybe
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 import { CellWorksheet } from "./cell-worksheet";
 import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";

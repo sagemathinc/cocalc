@@ -3,7 +3,7 @@ React component that represents gutter markers in a codemirror editor.
 */
 
 import { React, ReactDOM, Component, Rendered } from "../../app-framework";
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 import * as CodeMirror from "codemirror";
 
 interface Props {

@@ -6,7 +6,7 @@ const { Icon, Space, TimeAgo } = require("smc-webapp/r_misc");
 
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 
-import { capitalize } from "smc-webapp/frame-editors/generic/misc";
+import { capitalize } from "smc-util/misc2";
 
 import { Row, Col } from "react-bootstrap";
 

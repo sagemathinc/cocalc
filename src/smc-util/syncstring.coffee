@@ -140,7 +140,7 @@ class PatchValueCache
             return
         time0 = time - 0
         for tm, _ of @cache
-            if tm >= time0
+            if parseInt(tm) >= time0
                 delete @cache[tm]
         return
 
@@ -1425,7 +1425,7 @@ class SyncDoc extends EventEmitter
             time      : time
             patch     : JSON.stringify(x.patch)
             snapshot  : @_patch_list.value(time, force).to_str()
-            user_id   : x.user_id
+            user_id   : x.user_rocess_pid
         if force
             # CRITICAL: We are sending the patch/snapshot later, but it was valid.
             # It's important to make this clear or _handle_offline will

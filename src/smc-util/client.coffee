@@ -32,7 +32,7 @@ underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
-synctable2 = require('./sync/synctable')
+synctable2 = require('./sync/table')
 db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
@@ -1835,6 +1835,19 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
+    sync_string2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+        opts.client = @
+        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
+        return new SyncString2(opts)
+
     sync_db: (opts) =>
         opts = defaults opts,
             project_id      : required
@@ -1847,6 +1860,21 @@ class exports.Connection extends EventEmitter
             save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
+
+    sync_db2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            primary_keys      : required
+            string_cols       : []
+        opts.client = @
+        SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
+        return new SyncDB2(opts)
 
     open_existing_sync_document: (opts) =>
         opts = defaults opts,

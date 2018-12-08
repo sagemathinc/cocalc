@@ -38,7 +38,7 @@ import {
   path_split,
   separate_file_extension,
   change_filename_extension
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
 const { open_new_tab } = require("smc-webapp/misc_page");
 

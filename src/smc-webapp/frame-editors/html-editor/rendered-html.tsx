@@ -3,7 +3,7 @@ Component that shows rendered HTML.
 */
 
 import { delay } from "awaiting";
-import { is_different, path_split } from "../generic/misc";
+import { is_different, path_split } from "smc-util/misc2";
 import { Map } from "immutable";
 import { throttle } from "underscore";
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";

@@ -6,7 +6,7 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
-import { to_user_string } from "./frame-editors/generic/misc";
+import { to_user_string } from "smc-util/misc2";
 
 import { query as client_query } from "./frame-editors/generic/client";
 

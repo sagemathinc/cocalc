@@ -4,8 +4,6 @@ LEAN server
 
 const lean_files = {};
 
-//import { cmp } from "../smc-webapp/frame-editors/generic/misc";
-
 import { lean_server, Lean } from "./lean";
 import { isEqual } from "underscore";
 
@@ -104,7 +102,7 @@ function assert_type(name: string, x: any, type: string): void {
 
 export async function lean(
   client: any,
-  primus: any,
+  _: any,
   logger: any,
   opts: any
 ): Promise<any> {

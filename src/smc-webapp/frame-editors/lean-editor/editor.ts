@@ -2,7 +2,7 @@
 Top-level react component for editing markdown documents
 */
 
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { LeanCodemirrorEditor } from "./lean-codemirror";
 import { LeanMessages } from "./lean-messages";

@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { React } from "../../app-framework";
 import { fromJS } from "immutable";
 import { print_window, popup } from "./print";
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 
 const { CodeMirrorStatic } = require("smc-webapp/jupyter/codemirror-static");
 
