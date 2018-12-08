@@ -85,13 +85,14 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    create_account: (first_name, last_name, email, password, token) =>
+    create_account: (first_name, last_name, email, password, token, usage_intent) =>
         @setState(signing_up: true)
         webapp_client.create_account
             first_name      : first_name
             last_name       : last_name
             email_address   : email
             password        : password
+            usage_intent    : usage_intent
             agreed_to_terms : true
             token           : token
             utm             : get_utm()
