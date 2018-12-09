@@ -121,6 +121,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   process_data_queue(): void {
+      // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     if (this.data_queue.length === 0) {
       return;
     }
@@ -166,6 +168,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   update_status_bar = (): void => {
+      // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     const synced =
       this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
     const tasks = this.store.unsafe_getIn(["tasks"]);
@@ -184,6 +188,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   };
 
   update_gutters = (): void => {
+      // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     const synced =
       this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
     const messages = this.store.unsafe_getIn(["messages"]);
@@ -311,6 +317,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   async update_info(): Promise<void> {
+    // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     const cm = this._recent_cm();
     if (cm == null) {
       // e.g., maybe no editor
