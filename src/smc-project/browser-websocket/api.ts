@@ -75,6 +75,8 @@ async function handle_api_call(
       return await lean_channel(client, primus, logger, data.path);
     case "x11_channel":
       return await x11_channel(client, primus, logger, data.path, data.display);
+    case "sync_channel":
+      return await sync_channel(client, primus, logger, data.query);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
@@ -109,3 +111,5 @@ import { terminal } from "../terminal/server";
 import { lean, lean_channel } from "../lean/server";
 
 import { x11_channel } from "../x11/server";
+
+import { sync_channel } from "../sync/server";

@@ -89,6 +89,15 @@ export class API {
     return this.conn.channel(channel_name);
   }
 
+  // Get the sync *channel* for the given SyncTable project query.
+  async synctable_channel(query: { [field: string]: any }): Promise<Channel> {
+    const channel_name = await this.call({
+      cmd: "sync_channel",
+      query
+    });
+    return this.conn.channel(channel_name);
+  }
+
   // Do a request/response command to the lean server.
   async lean(opts: any): Promise<any> {
     let timeout_ms = 10000;
