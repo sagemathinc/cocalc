@@ -4,7 +4,7 @@ Top-level react component for editing markdown documents
 
 import { IFrameHTML } from "../html-editor/iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { aux_file } from "../frame-tree/util";
 import { SETTINGS_SPEC } from "../settings/editor";

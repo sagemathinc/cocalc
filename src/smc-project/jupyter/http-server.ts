@@ -8,7 +8,7 @@ kernels, sending signals, doing tab completions, and so on.
 import { exists } from "./async-utils-node";
 import { blob_store } from "./jupyter-blobs-sqlite";
 import { get_kernel_data } from "./kernel-data";
-import { startswith } from "../smc-webapp/frame-editors/generic/misc";
+import { startswith } from "../smc-util/misc2";
 
 const BASE = "/.smc/jupyter/";
 

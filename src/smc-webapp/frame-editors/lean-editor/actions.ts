@@ -20,7 +20,7 @@ import {
 import { FrameTree } from "../frame-tree/types";
 
 import { project_api } from "../generic/client";
-import { capitalize } from "../generic/misc";
+import { capitalize } from "smc-util/misc2";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 

@@ -3,15 +3,13 @@ X11 Window frame.
 */
 
 import { React, Component, Rendered } from "../../app-framework";
-
-import { debounce, keys } from "underscore";
-
+import { debounce, keys, sortBy } from "underscore";
 const { Button } = require("react-bootstrap");
 const { Icon } = require("r_misc");
 
 import { Actions } from "./actions";
 
-const DESC = {
+const APPS = {
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
     icon: "edit",
@@ -39,6 +37,7 @@ const DESC = {
     desc: "Command line terminal"
   },
   gitk: { icon: "git", desc: "Explore Git repository in current directory" },
+  gitg: { icon: "git", desc: "GNOME's client to work with Git repositories" },
   idle: {
     icon: "cc-icon-python",
     desc: "Minimalistic Python IDE",
@@ -54,6 +53,16 @@ const DESC = {
     desc:
       "A powerful office suite (spreadsheet, word processor, presentations, etc. -- open Word, Excel, Powerpoint, etc.)",
     label: "LibreOffice"
+  },
+  lowriter: {
+    desc: "LibreOffice Writer",
+    icon: "file-alt",
+    label: "Writer"
+  },
+  localc: {
+    desc: "LibreOffice Calc",
+    icon: "table",
+    label: "Calc"
   },
   nteract: {
     command: "nteract",
@@ -72,11 +81,12 @@ const DESC = {
       "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
     label: "RStudio"
   },
-  /* octave: {
-    icon: "cubes",
-    desc: "Scientific programming largely compatible with Matlab",
-    label: "Octave"
-  },*/
+  // octave: {
+  //   icon: "cc-icon-octave",
+  //   desc: "Scientific programming largely compatible with Matlab",
+  //   label: "Octave",
+  //   command: "/usr/bin/octave"
+  // },
   texmacs: {
     icon: "cc-icon-tex-file",
     desc:
@@ -87,11 +97,92 @@ const DESC = {
     icon: "cc-icon-tex-file",
     desc: "An integrated writing environment for creating LaTeX documents",
     label: "TeXstudio"
+  },
+  openmodelica: {
+    icon: "cogs",
+    desc:
+      "an open-source Modelica-based modeling and simulation environment intended for industrial and academic usage",
+    label: "OpenModelica",
+    command: "OMEdit"
+  },
+  pspp: {
+    icon: "table",
+    desc: "Statistical analysis of sampled data, similar to SPSS",
+    label: "PSPP",
+    command: "psppire"
+  },
+  gnumeric: {
+    icon: "table",
+    desc:
+      "Gnumeric is a spreadsheet, a computer program used to manipulate and analyze numeric data",
+    label: "Gnumeric",
+    command: "gnumeric"
+  },
+  scribus: {
+    icon: "address-card",
+    desc: "a page layout program",
+    command: "scribus",
+    label: "Scribus"
+  },
+  spyder: {
+    command: "spyder3",
+    desc:
+      "Spyder is a powerful scientific environment written in Python, for Python, and designed by and for scientists, engineers and data analysts.",
+    icon: "calculator",
+    label: "Spyder"
+  },
+  gchempaint: {
+    desc: "GChemPaint is a 2D chemical structures editor.",
+    icon: "atom",
+    label: "GChemPaint"
+  },
+  dia: {
+    desc: "Dia is a program to draw structured diagrams.",
+    icon: "connectdevelop",
+    label: "Dia"
+  },
+  pycharm: {
+    command: "pycharm.sh",
+    desc: "A powerful and smart IDE for productive Python development.",
+    icon: "cc-icon-python",
+    label: "PyCharm"
+  },
+  intellij: {
+    label: "IntelliJ IDEA",
+    desc: "A powerful and smart IDE for productive JAVA development.",
+    command: "idea.sh",
+    icon: "lightbulb"
+  },
+  avogadro: {
+    label: "Avogadro",
+    desc:
+      "An advanced molecule editor and visualizer designed for cross-platform use in computational chemistry, molecular modeling, bioinformatics, materials science, and related areas",
+    icon: "atom"
+  },
+  shotwell: {
+    label: "Shotwell",
+    desc: "Shotwell is a personal photo manager.",
+    icon: "camera"
+  },
+  evince: {
+    label: "Evince",
+    icon: "file-pdf",
+    desc: "A document viewer for PDF, PostScript, DVI, DjVu, ..."
+  },
+  calibre: {
+    label: "Calibre",
+    icon: "book",
+    desc: "A powerful and easy to use e-book manager"
   }
 };
 
-const APPS: string[] = keys(DESC);
-APPS.sort();
+function sort_apps(k): string {
+  const label = APPS[k].label;
+  const name = label ? label : k;
+  return name.toLowerCase();
+}
+
+const APP_KEYS: string[] = sortBy(keys(APPS), sort_apps);
 
 interface Props {
   actions: Actions;
@@ -110,7 +201,7 @@ export class Launcher extends Component<Props, {}> {
   }
 
   launch(app: string): void {
-    const desc = DESC[app];
+    const desc = APPS[app];
     if (desc == null) {
       return;
     }
@@ -118,7 +209,7 @@ export class Launcher extends Component<Props, {}> {
   }
 
   render_launcher(app: string): Rendered {
-    const desc = DESC[app];
+    const desc = APPS[app];
     if (desc == null) {
       return;
     }
@@ -128,7 +219,12 @@ export class Launcher extends Component<Props, {}> {
     }
 
     return (
-      <Button key={app} onClick={() => this.launch(app)} title={desc.desc}>
+      <Button
+        key={app}
+        onClick={() => this.launch(app)}
+        title={desc.desc}
+        style={{ margin: "5px" }}
+      >
         {icon}
         {desc.label ? desc.label : app}
       </Button>
@@ -137,7 +233,7 @@ export class Launcher extends Component<Props, {}> {
 
   render_launchers(): Rendered[] {
     const v: Rendered[] = [];
-    for (let app of APPS) {
+    for (let app of APP_KEYS) {
       v.push(this.render_launcher(app));
     }
     return v;
@@ -145,7 +241,7 @@ export class Launcher extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <div style={{ overflowY: "auto", margin: "5px" }}>
+      <div style={{ overflowY: "auto", padding: "5px" }}>
         {this.render_launchers()}
       </div>
     );

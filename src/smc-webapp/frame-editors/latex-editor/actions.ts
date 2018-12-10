@@ -38,8 +38,9 @@ import {
   path_split,
   separate_file_extension,
   change_filename_extension
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
+const { open_new_tab } = require("smc-webapp/misc_page");
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;
@@ -725,11 +726,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   help(): void {
-    // TODO: call version that deals with popup blockers...
-    const w = window.open(HELP_URL, "_blank");
-    if (w) {
-      w.focus();
-    }
+    open_new_tab(HELP_URL);
   }
 
   zoom_page_width(id: string): void {

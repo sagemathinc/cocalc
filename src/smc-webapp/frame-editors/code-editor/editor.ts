@@ -3,7 +3,7 @@ Top-level react component for editing code.
 */
 
 import { CodemirrorEditor } from "./codemirror-editor";
-import { filename_extension, set } from "../generic/misc";
+import { filename_extension, set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 

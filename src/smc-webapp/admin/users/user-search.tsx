@@ -8,7 +8,7 @@ import { React, Component, Rendered, ReactDOM } from "smc-webapp/app-framework";
 
 import { user_search, User } from "smc-webapp/frame-editors/generic/client";
 
-import { cmp } from "smc-webapp/frame-editors/generic/misc";
+import { cmp } from "smc-util/misc2";
 
 import { UserResult } from "./user";
 

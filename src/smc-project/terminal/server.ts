@@ -5,11 +5,8 @@ Terminal server
 const { spawn } = require("node-pty");
 import { readFile, writeFile } from "fs";
 
-import {
-  len,
-  merge,
-  path_split
-} from "../smc-webapp/frame-editors/generic/misc";
+import { len, merge, path_split } from "../smc-util/misc2";
+
 const { console_init_filename } = require("smc-util/misc");
 
 import { exists } from "../jupyter/async-utils-node";
@@ -48,7 +45,7 @@ export async function terminal(
 
     if (options.args != null) {
       for (let arg of options.args) {
-        if (typeof(arg) === 'string') {
+        if (typeof arg === "string") {
           args.push(arg);
         }
       }
@@ -287,10 +284,10 @@ export async function terminal(
         //logger.debug("terminal channel control message", JSON.stringify(data));
         switch (data.cmd) {
           case "size":
-            const size = (terminals[name].client_sizes[spark.id] = {
+            terminals[name].client_sizes[spark.id] = {
               rows: data.rows,
               cols: data.cols
-            });
+            };
             resize();
             break;
           case "boot":
@@ -309,7 +306,7 @@ export async function terminal(
               }
             }
             // broadcast message to all other clients telling them to close.
-            channel.forEach(function(spark0, id, connections) {
+            channel.forEach(function(spark0, id, _) {
               if (id !== spark.id) {
                 spark0.write({ cmd: "close" });
               }
