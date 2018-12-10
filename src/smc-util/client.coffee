@@ -804,6 +804,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
+            usage_intent   : undefined
             get_api_key    : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
@@ -829,6 +830,7 @@ class exports.Connection extends EventEmitter
                 email_address   : opts.email_address
                 password        : opts.password
                 agreed_to_terms : opts.agreed_to_terms
+                usage_intent    : opts.usage_intent
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
