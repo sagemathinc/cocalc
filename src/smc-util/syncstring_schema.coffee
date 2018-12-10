@@ -347,6 +347,8 @@ schema.cursors =
                 # this verifies that user has write access to these cursors
                 db._user_set_query_cursors_check(obj, account_id, project_id, cb)
 
+schema.cursors.project_query = misc.deep_copy(schema.cursors.user_query)
+
 schema.eval_inputs =
     primary_key: ['string_id', 'time', 'user_id']
     durability : 'soft' # loss of eval requests not serious

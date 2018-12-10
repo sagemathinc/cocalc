@@ -650,6 +650,10 @@ export class SyncTable extends EventEmitter {
     } else {
       this.client_query = this.schema.user_query;
     }
+    if (this.client_query == null) {
+      throw Error(`no query schema allowing queries to ${this.table}`);
+    }
+
     if (!misc.is_array(this.query[this.table])) {
       throw Error("must be a multi-document queries");
     }
@@ -747,6 +751,7 @@ export class SyncTable extends EventEmitter {
         true -- new changes appeared during the _save that need to be saved.
   */
   private async _save(): Promise<boolean> {
+    //console.log("_save", this.table);
     await this.wait_until_ready_to_query_db();
     if (this.state === "closed") {
       return false;

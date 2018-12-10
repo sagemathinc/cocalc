@@ -97,7 +97,7 @@ class SyncChannel {
         throw Error("invalid options");
       }
       if (option.ephemeral != null) {
-        this.ephemeral = options.ephemeral;
+        this.ephemeral = option.ephemeral;
       } else {
         this.options.push(option);
       }
