@@ -15,7 +15,7 @@ import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import { throttle } from "underscore";
 import * as $ from "jquery";
-import { is_different, seconds_ago, list_alternatives } from "../generic/misc";
+import { is_different, seconds_ago, list_alternatives } from "smc-util/misc2";
 import { dblclick } from "./mouse-click";
 import {
   Component,

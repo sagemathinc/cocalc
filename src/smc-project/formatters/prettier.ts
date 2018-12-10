@@ -25,8 +25,6 @@ const { r_format } = require("./r-format");
 const { clang_format } = require("./clang-format");
 const { gofmt } = require("./gofmt");
 const misc = require("../smc-util/misc");
-const body_parser = require("body-parser");
-const express = require("express");
 const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // from project Jupyter
 
 import { callback } from "awaiting";

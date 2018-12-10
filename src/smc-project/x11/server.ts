@@ -67,7 +67,7 @@ class X11Channel {
     this.channel.on("connection", this.new_connection.bind(this));
   }
 
-  async handle_data(spark, data): Promise<void> {
+  async handle_data(_, data): Promise<void> {
     this.log("handle_data ", data);
     if (typeof data !== "object") {
       return; // nothing defined yet
@@ -143,7 +143,7 @@ class X11Channel {
 }
 
 export async function x11_channel(
-  client: any,
+  _: any,
   primus: any,
   logger: any,
   path: string,

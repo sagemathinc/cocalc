@@ -6,7 +6,7 @@ import { server_time } from "../generic/client";
 
 import { Message } from "./types";
 
-import { capitalize, is_different } from "../generic/misc";
+import { capitalize, is_different } from "smc-util/misc2";
 
 import {
   React,

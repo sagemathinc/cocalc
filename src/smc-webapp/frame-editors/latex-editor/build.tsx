@@ -4,7 +4,7 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 
 import { List } from "immutable";
 import { ButtonGroup, Button } from "react-bootstrap";
-import { is_different, path_split } from "../generic/misc";
+import { is_different, path_split } from "smc-util/misc2";
 import {
   React,
   rclass,

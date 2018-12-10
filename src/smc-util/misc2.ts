@@ -1,8 +1,10 @@
 /*
-THIS SHOULD BE MOVED OUT OF frame-editors/
+This is a rewrite and SUCCESSOR to ./misc.js.
 
+Each function is rethought from scratch, and we try to implement
+it in a more modern ES 2018/Typescript/standard libraries approach.
 
-This is a rewrite of what we're using from smc-util/misc...
+**The exact behavior of functions may change from what is in misc.js!**
 */
 
 const underscore = require("underscore");
@@ -150,11 +152,20 @@ export function cmp(a: any, b: any): -1 | 0 | 1 {
   return 0;
 }
 
+/*
+compare two Date | undefined | null objects.
+
+null and undefined are considered equal to each other.
+*/
+
 export function cmp_Date(
   a: Date | undefined | null,
   b: Date | undefined | null
 ): -1 | 0 | 1 {
   if (a == null) {
+    if (b == null) {
+      return 0;
+    }
     return -1;
   }
   if (b == null) {
