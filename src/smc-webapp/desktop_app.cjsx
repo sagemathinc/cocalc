@@ -48,6 +48,8 @@ nav_class = 'hidden-xs'
 
 HIDE_LABEL_THOLD = 6
 
+NAV_HEIGHT = 36
+
 FileUsePageWrapper = (props) ->
     styles =
         zIndex       : '10'
@@ -55,7 +57,7 @@ FileUsePageWrapper = (props) ->
         position     : 'fixed'
         boxShadow    : '0 0 15px #aaa'
         border       : '2px solid #ccc'
-        top          : '43px'
+        top          : "#{NAV_HEIGHT - 2}px"
         background   : '#fff'
         right        : '2em'
         overflowY    : 'auto'
@@ -196,7 +198,7 @@ Page = rclass
 
     render_right_nav: ->
         logged_in = @props.is_logged_in
-        <Nav id='smc-right-tabs-fixed' style={height:'36px', lineHeight:'20px', margin:'0', overflowY:'hidden'}>
+        <Nav id='smc-right-tabs-fixed' style={height:"#{NAV_HEIGHT}px", lineHeight:'20px', margin:'0', overflowY:'hidden'}>
             {@render_admin_tab() if logged_in and @props.groups?.includes('admin')}
             {@render_sign_in_tab() if not logged_in}
             <NavTab
@@ -222,7 +224,7 @@ Page = rclass
             float      : 'right'
             padding    : '10px 7px'
 
-        <Nav style={height:"36px", margin:'0', overflow:'hidden'}>
+        <Nav style={height:"#{NAV_HEIGHT}px", margin:'0', overflow:'hidden'}>
             <NavTab
                 name           = {'projects'}
                 inner_style    = {padding:'0px'}
@@ -266,7 +268,7 @@ Page = rclass
             display       : 'flex'
             marginBottom  : 0
             width         : '100%'
-            minHeight     : '36px'
+            minHeight     : "#{NAV_HEIGHT}px"
             position      : 'fixed'
             right         : 0
             zIndex        : '100'
@@ -274,7 +276,7 @@ Page = rclass
             top           : top
 
         positionHackOffset = if @props.show_global_info then announce_bar_offset else 0
-        positionHackHeight = (36 + positionHackOffset) + 'px'
+        positionHackHeight = (NAV_HEIGHT + positionHackOffset) + 'px'
 
         <div ref="page" style={style} onDragOver={(e) -> e.preventDefault()} onDrop={@drop}>
             {<FileUsePageWrapper /> if @props.show_file_use}
