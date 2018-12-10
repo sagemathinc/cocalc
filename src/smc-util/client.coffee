@@ -1820,6 +1820,13 @@ class exports.Connection extends EventEmitter
     synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable_no_changefeed(query, options, @, throttle_changes)
 
+    synctable_no_database: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_database(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_project: (project_id, query, options, throttle_changes=undefined) =>
+        return await require('smc-webapp/project/websocket/synctable').synctable_project(project_id, query, options, @, throttle_changes)
+
     # this is async
     symmetric_channel: (name, project_id) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'

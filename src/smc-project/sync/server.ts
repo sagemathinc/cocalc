@@ -9,10 +9,7 @@ TODO:
       it to NOT be a changefeed.
 */
 
-import {
-  synctable_no_changefeed,
-  SyncTableNoChangefeed
-} from "../smc-util/sync/table";
+import { synctable_no_changefeed, SyncTable } from "../smc-util/sync/table";
 
 import { once } from "../smc-util/async-utils";
 
@@ -46,7 +43,7 @@ import * as stringify from "fast-json-stable-stringify";
 const { sha1 } = require("smc-util-node/misc_node");
 
 class SyncChannel {
-  private synctable: SyncTableNoChangefeed;
+  private synctable: SyncTable;
   private client: Client;
   private logger: Logger;
   public readonly name: string;
@@ -98,7 +95,7 @@ class SyncChannel {
       this.options,
       this.client
     );
-    this.synctable.on("saved-objects", this.handle_synctable_save.bind(this))
+    this.synctable.on("saved-objects", this.handle_synctable_save.bind(this));
     this.log("created synctable -- waiting for connect");
     await once(this.synctable, "connected");
     this.log("created synctable -- now connected");
@@ -120,12 +117,12 @@ class SyncChannel {
     });
   }
 
-  private synctable_all(): { all: any[] } | undefined {
+  private synctable_all(): any[] | undefined {
     const all = this.synctable.get();
     if (all === undefined) {
-      return all;
+      return;
     }
-    return { all };
+    return all.valueSeq().toJS();
   }
 
   private send_synctable_all(spark: Spark): void {
@@ -139,7 +136,7 @@ class SyncChannel {
 
   private broadcast_synctable_all(): void {
     this.log("broadcast_synctable_all");
-    const s = this.synctable.get();
+    const s = this.synctable_all();
     if (s == null) {
       return;
     }
@@ -148,7 +145,7 @@ class SyncChannel {
     });
   }
 
-  private handle_synctable_save(saved_objs) : void {
+  private handle_synctable_save(saved_objs): void {
     this.channel.forEach((spark: Spark) => {
       spark.write(saved_objs);
     });

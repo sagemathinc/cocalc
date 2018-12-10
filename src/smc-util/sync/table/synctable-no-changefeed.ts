@@ -20,41 +20,27 @@ import { SyncTable, Client } from "./synctable";
 
 import { bind_methods } from "../../async-utils";
 
-interface Change {
-  new_val?: any;
-  old_val?: any;
-}
-
-export interface SyncTableNoChangefeed extends SyncTable {
-  update(change: Change): void;
-}
-
 export function synctable_no_changefeed(
   query,
   options,
   client: Client,
   throttle_changes?: undefined | number
-): SyncTableNoChangefeed {
+): SyncTable {
   if (options == null) {
     options = [];
   }
   const client2 = new ClientNoChangefeed(client);
-  const synctable = new SyncTable(query, options, client2, throttle_changes);
-  const synctable2: SyncTableNoChangefeed = synctable as SyncTableNoChangefeed;
-  synctable2.update = client2.update.bind(client2);
-  return synctable2;
+  return new SyncTable(query, options, client2, throttle_changes);
 }
 
 class ClientNoChangefeed extends EventEmitter {
   private client: Client;
-  private changes_cb: Function;
 
   constructor(client) {
     super();
 
     bind_methods(this, [
       "query",
-      "update",
       "dbg",
       "query_cancel",
       "emit_connected",
@@ -101,21 +87,11 @@ class ClientNoChangefeed extends EventEmitter {
 
   private changefeed_query(opts): void {
     opts.changes = false;
-    this.changes_cb = opts.cb;
     this.client.query(opts);
-  }
-
-  public update(change: Change): void {
-    // TODO: will write to the changefeed.
-    console.log("got change", change);
-    if (this.changes_cb != null) {
-      this.changes_cb(undefined, change);
-    }
   }
 
   public query_cancel(_): void {
     // no op since no changefeed.
-    delete this.changes_cb;
     this.client.removeListener("connected", this.emit_connected);
     this.client.removeListener("signed_in", this.emit_signed_in);
   }
