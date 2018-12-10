@@ -2,7 +2,7 @@
 Hashtag bar for selecting which tasks are shown by tags
 ###
 
-{Button, ButtonGroup} = require('react-bootstrap')
+{Button, ButtonGroup, Row, Col} = require('react-bootstrap')
 
 {React, rclass, rtypes}  = require('../app-framework')
 
@@ -71,6 +71,10 @@ exports.HashtagBar = rclass
         return (x[1] for x in v)
 
     render: ->
-        <ButtonGroup style={padding:'5px', paddingBottom: '38px', overflowY: 'auto'}>
-            {@render_hashtags()}
-        </ButtonGroup>
+        <Row>
+            <Col md={12}>
+                <ButtonGroup style={padding:'5px', overflowY: 'auto', maxHeight:'8em'}>
+                    {@render_hashtags()}
+                </ButtonGroup>
+            </Col>
+        </Row>

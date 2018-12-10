@@ -4,7 +4,7 @@ The format bar
 
 import { React, Component, Rendered, Fragment } from "../../app-framework";
 
-import { cmp } from "../generic/misc";
+import { cmp } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 

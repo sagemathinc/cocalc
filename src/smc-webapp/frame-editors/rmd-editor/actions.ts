@@ -10,7 +10,7 @@ import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
-import { change_filename_extension, path_split } from "../generic/misc";
+import { change_filename_extension, path_split } from "smc-util/misc2";
 
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;

@@ -4,7 +4,7 @@ Top-level react component for editing markdown documents
 
 import { createEditor } from "../frame-tree/editor";
 import { RenderedMarkdown } from "./rendered-markdown";
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";

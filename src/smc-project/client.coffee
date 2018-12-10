@@ -540,6 +540,18 @@ class exports.Client extends EventEmitter
         @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
 
+    sync_string2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            path              : required
+            file_use_interval : 'default'
+            patch_interval    : 1000
+            save_interval     : 2000
+        opts.client = @
+        opts.project_id = @project_id
+        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
+        return new SyncString2(opts)
+
     sync_db: (opts) =>
         opts = defaults opts,
             path            : required
@@ -557,6 +569,21 @@ class exports.Client extends EventEmitter
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()
         return new db_doc.SyncDB(opts)
+
+    sync_db2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            primary_keys      : required
+            string_cols       : []
+        opts.client = @
+        opts.project_id = @project_id
+        SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
+        return new SyncDB2(opts)
 
     symmetric_channel: (name) =>
         return require('./browser-websocket/symmetric_channel').symmetric_channel(name)

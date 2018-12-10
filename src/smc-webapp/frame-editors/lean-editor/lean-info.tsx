@@ -1,6 +1,6 @@
 import { Map } from "immutable";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 const { Markdown } = require("smc-webapp/r_misc");
 

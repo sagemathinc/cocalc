@@ -18,7 +18,7 @@ import {
 
 import { Map } from "immutable";
 
-import { plural } from "../frame-editors/generic/misc";
+import { plural } from "smc-util/misc2";
 
 const { Icon, Loading } = require("../r_misc");
 

@@ -368,3 +368,11 @@ span.katex
 //  position: absolute
 //  font-size: 28px
 //  margin-top: -14px
+
+
+// issue https://github.com/sagemathinc/cocalc/issues/3389
+// fixing terminal scroll bar
+div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
+  background: transparent !important
+  z-index: 1
+

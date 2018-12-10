@@ -34,7 +34,7 @@ const misc = require("smc-util/misc");
 const util = require("../frame-tree/util");
 const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
-import { trunc_middle } from "../generic/misc";
+import { trunc_middle } from "smc-util/misc2";
 
 import { ConnectionStatus } from "./types";
 

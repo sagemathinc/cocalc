@@ -17,7 +17,7 @@ import {
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { split } from "../generic/misc";
+import { split } from "smc-util/misc2";
 
 import { Engine, build_command } from "./latexmk";
 

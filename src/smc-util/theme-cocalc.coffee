@@ -19,6 +19,7 @@ exports.DNS                  = 'localhost' # your DNS entry, e.g. "host.com"
 exports.DOMAIN_NAME          = 'https://' + exports.DNS
 exports.DISCUSSION_GROUP     = undefined
 exports.WIKI_URL             = undefined
+exports.DOC_URL              = 'https://doc.cocalc.com/'
 exports.BLOG_URL             = undefined
 exports.LIVE_DEMO_REQUEST    = undefined
 exports.HELP_EMAIL           = undefined

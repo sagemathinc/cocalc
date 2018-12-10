@@ -6,8 +6,6 @@
 #
 ###############################################################################
 
-require('coffee-cache')
-
 immutable = require('immutable')
 
 synctable = require('../synctable')

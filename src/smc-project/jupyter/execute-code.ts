@@ -14,16 +14,13 @@ import {
   trunc,
   deep_copy,
   copy_with
-} from "../smc-webapp/frame-editors/generic/misc";
+} from "../smc-util/misc2";
 
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
-  StdinFunction,
-  Message
+  StdinFunction
 } from "../smc-webapp/jupyter/project-interface";
-
-type MesgHandler = (mesg: Message) => void;
 
 export class CodeExecutionEmitter extends EventEmitter
   implements CodeExecutionEmitterInterface {
