@@ -26,6 +26,7 @@ export async function synctable_project(
   let first_data = true;
   channel.on("data", function(data) {
     if (!is_array(data)) {
+      console.warn("data = ", data);
       throw Error("data must be an array");
     }
     for (let x of data) {

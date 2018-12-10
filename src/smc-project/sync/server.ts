@@ -4,12 +4,15 @@ between project and browser client.
 
 TODO:
 
-- [ ] initially synctable will just be a normal synctable
-      with a changefeed, but for efficiency we'll change
-      it to NOT be a changefeed.
+- [ ] If initial query fails, need to raise exception.  Right now it gets
+silently swallowed in persistent mode...
 */
 
-import { synctable_no_changefeed, SyncTable } from "../smc-util/sync/table";
+import {
+  synctable_no_changefeed,
+  synctable_no_database,
+  SyncTable
+} from "../smc-util/sync/table";
 
 import { once } from "../smc-util/async-utils";
 
@@ -48,9 +51,15 @@ class SyncChannel {
   private logger: Logger;
   public readonly name: string;
   private query: Query;
-  private options: any;
+  private options: any[] = [];
   private query_string: string;
   private channel: Channel;
+
+  // If true, do not use a database at all, even on the backend.
+  // Table is reset any time this object is created.  This is
+  // useful, e.g., for tracking user cursor locations or other
+  // ephemeral state.
+  private ephemeral: boolean = false;
 
   constructor({
     client,
@@ -71,12 +80,28 @@ class SyncChannel {
     this.logger = logger;
     this.name = name;
     this.query = query;
-    this.options = options;
+    this.init_options(options);
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log("creating new sync channel");
     this.init_handlers();
     this.init_synctable();
+  }
+
+  private init_options(options): void {
+    if (options == null) {
+      return;
+    }
+    for (let option of options) {
+      if (typeof option != "object" || option == null) {
+        throw Error("invalid options");
+      }
+      if (option.ephemeral != null) {
+        this.ephemeral = options.ephemeral;
+      } else {
+        this.options.push(option);
+      }
+    }
   }
 
   private log(...args): void {
@@ -90,11 +115,15 @@ class SyncChannel {
 
   private async init_synctable(): Promise<void> {
     this.log("init_synctable");
-    this.synctable = synctable_no_changefeed(
-      this.query,
-      this.options,
-      this.client
-    );
+    let create_synctable: Function;
+    if (this.ephemeral) {
+      this.log("init_synctable -- ephemeral (no database)");
+      create_synctable = synctable_no_database;
+    } else {
+      this.log("init_synctable -- persistent (but no changefeeds)");
+      create_synctable = synctable_no_changefeed;
+    }
+    this.synctable = create_synctable(this.query, this.options, this.client);
     this.synctable.on("saved-objects", this.handle_synctable_save.bind(this));
     this.log("created synctable -- waiting for connect");
     await once(this.synctable, "connected");
@@ -113,6 +142,7 @@ class SyncChannel {
         await this.handle_data(spark, data);
       } catch (err) {
         spark.write({ error: `error handling command -- ${err}` });
+        this.log("error handling command -- ", err, err.stack);
       }
     });
   }
