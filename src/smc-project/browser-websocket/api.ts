@@ -10,7 +10,7 @@ All functionality here is of the form:
 import { callback } from "awaiting";
 const {
   callback_opts
-} = require("../smc-webapp/frame-editors/generic/async-utils");
+} = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 
@@ -29,7 +29,6 @@ export function init_websocket_api(
     );
     spark.on("request", async function(data, done) {
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
-      // Echo the received request data
       try {
         const resp = await handle_api_call(client, data, primus, logger);
         //logger.debug("primus-api", "response", resp);
@@ -74,6 +73,8 @@ async function handle_api_call(
       return await lean(client, primus, logger, data.opts);
     case "lean_channel":
       return await lean_channel(client, primus, logger, data.path);
+    case "x11_channel":
+      return await x11_channel(client, primus, logger, data.path, data.display);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
@@ -106,3 +107,5 @@ async function exec(opts: any): Promise<ExecuteOutput> {
 import { terminal } from "../terminal/server";
 
 import { lean, lean_channel } from "../lean/server";
+
+import { x11_channel } from "../x11/server";

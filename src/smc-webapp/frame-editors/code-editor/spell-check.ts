@@ -2,7 +2,7 @@
 Backend spell checking support
 */
 
-import { filename_extension } from "../generic/misc";
+import { filename_extension } from "smc-util/misc2";
 import { exec, ExecOutput } from "../generic/client";
 import { language } from "../generic/misc-page";
 import { KNITR_EXTS } from "../latex-editor/util";

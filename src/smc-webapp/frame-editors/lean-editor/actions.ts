@@ -2,6 +2,10 @@
 Lean Editor Actions
 */
 
+// This should be longer than the time between keystrokes, but
+// small enough that it feels fast/responsive.
+const DEBOUNCE_MS = 750;
+
 import { debounce } from "underscore";
 
 import { List } from "immutable";
@@ -16,7 +20,7 @@ import {
 import { FrameTree } from "../frame-tree/types";
 
 import { project_api } from "../generic/client";
-import { capitalize } from "../generic/misc";
+import { capitalize } from "smc-util/misc2";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
@@ -47,17 +51,17 @@ export class Actions extends BaseActions<LeanEditorState> {
 
     this.debounced_process_data_queue = debounce(() => {
       this.process_data_queue();
-    }, 750);
+    }, DEBOUNCE_MS);
 
     this.debounced_update_info = debounce(() => {
       this.update_info();
-    }, 500);
+    }, DEBOUNCE_MS);
     this.debounced_update_gutters = debounce(() => {
       this.update_gutters();
-    }, 500);
+    }, DEBOUNCE_MS);
     this.debounced_update_status_bar = debounce(() => {
       this.update_status_bar();
-    }, 500);
+    }, DEBOUNCE_MS);
 
     this.setState({
       messages: [],
@@ -91,12 +95,17 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   async _init_channel(): Promise<void> {
+    if (this._state === "closed") return;
     const api = await project_api(this.project_id);
     this.channel = await api.lean_channel(this.path);
     const channel: any = this.channel;
+    if (this._syncstring != null) {
+      this._syncstring.touch(); // so the backend project will "care" about this file.
+    }
     channel.on("close", () => {
-      channel.conn.once("open", () => {
-        channel.connect();
+      channel.removeAllListeners();
+      channel.conn.once("open", async () => {
+        await this._init_channel();
       });
     });
     channel.on("data", x => {
@@ -129,6 +138,23 @@ export class Actions extends BaseActions<LeanEditorState> {
     this.data_queue = [];
     this.update_gutters();
     this.update_status_bar();
+  }
+
+  async restart(): Promise<void> {
+    this.set_status("Restarting LEAN ...");
+    // Using hash: -1 as a signal for restarting -- yes, that's ugly
+    this.setState({
+      sync: { hash: -1, time: 0 }
+    });
+    const api = await project_api(this.project_id);
+    try {
+      await api.lean({ cmd: "restart" });
+      await this.update_info();
+    } catch (err) {
+      this.set_error(`Error restarting LEAN: ${err}`);
+    } finally {
+      this.set_status("");
+    }
   }
 
   close(): void {
@@ -229,7 +255,7 @@ export class Actions extends BaseActions<LeanEditorState> {
       return [];
     }
 
-    this.set_status("Completing at line ${line+1}...");
+    this.set_status(`Completing at line ${line + 1}...`);
     try {
       const api = await project_api(this.project_id);
       return await api.lean({
@@ -240,7 +266,7 @@ export class Actions extends BaseActions<LeanEditorState> {
       });
     } catch (err) {
       err = err.toString();
-      if (err === "timeout") {
+      if (err === "timeout" || err === "Error: interrupted") {
         // user likely doesn't care about error report if this is the reason.
         return [];
       }
@@ -304,5 +330,20 @@ export class Actions extends BaseActions<LeanEditorState> {
 
   handle_cursor_move(_): void {
     this.debounced_update_info();
+  }
+
+  public async close_and_halt(_: string): Promise<void> {
+    this.set_status("Killing LEAN server...");
+    const api = await project_api(this.project_id);
+    try {
+      await api.lean({ cmd: "kill" });
+    } catch (err) {
+      this.set_error(`Error killing LEAN server: ${err}`);
+    } finally {
+      this.set_status("");
+    }
+    // and close this window
+    const project_actions = this._get_project_actions();
+    project_actions.close_tab(this.path);
   }
 }

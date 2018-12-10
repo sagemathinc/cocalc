@@ -48,6 +48,8 @@ import {
   Feedback
 } from "./store";
 
+import { run_in_all_projects, Result } from "./run-in-all-projects";
+
 // React libraries
 import { Actions } from "../app-framework";
 
@@ -510,7 +512,7 @@ export class CourseActions extends Actions<CourseState> {
       }`,
       description:
         store.get("settings").get("description") +
-        "\n---\n This project is shared with all students."
+        "\n\n---\n\nThis project is shared with all students in the course."
     };
     return x;
   }
@@ -1017,26 +1019,36 @@ export class CourseActions extends Actions<CourseState> {
       invite(student_account_id);
     }
     // Make sure all collaborators on course project are on the student's project:
-    const target_users = this.redux
+    const course_collaborators = this.redux
       .getStore("projects")
       .get_users(s.get("course_project_id"));
-    if (target_users == null) {
+    if (course_collaborators == null) {
       // console.log("projects store isn't sufficiently initialized yet...");
       return;
     }
-    target_users.map((_, account_id) => {
+    course_collaborators.map((_, account_id) => {
       if (users.get(account_id) == null) {
         invite(account_id);
       }
     });
-    if (!s.get_allow_collabs()) {
+    // Regarding student_account_id !== undefined below, see https://github.com/sagemathinc/cocalc/pull/3259
+    // The problem is that student_account_id might not yet be known to the .course, even though
+    // the student has been added and the account_id exists, and is known to the account opening
+    // the .course file.  This is just due to a race condition somewhere else.  For now -- before
+    // just factoring out and rewriting all this code better -- we at least make this one change
+    // so the student isn't "brutally" kicked out of the course.
+    if (
+      s.get("settings") != undefined &&
+      !s.get_allow_collabs() &&
+      student_account_id != undefined
+    ) {
       // Remove anybody extra on the student project
-      return users.map((_, account_id) => {
+      users.map((_, account_id) => {
         if (
-          target_users.get(account_id) == null &&
+          course_collaborators.get(account_id) == null &&
           account_id !== student_account_id
         ) {
-          return this.redux
+          this.redux
             .getActions("projects")
             .remove_collaborator(student_project_id, account_id);
         }
@@ -1089,8 +1101,8 @@ export class CourseActions extends Actions<CourseState> {
 
   // start projects of all (non-deleted) students running
   action_all_student_projects(action) {
-    if (!["start", "stop", "restart"].includes(action)) {
-      throw Error("action must be start, stop or restart");
+    if (!["start", "stop"].includes(action)) {
+      throw Error("action must be start or stop");
     }
     this.action_shared_project(action);
 
@@ -1113,26 +1125,57 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
 
-    if (this.prev_interval_id != null) {
+    if (this.prev_interval_id) {
       window.clearInterval(this.prev_interval_id);
+      this.prev_interval_id = 0;
     }
-    if (this.prev_timeout_id != null) {
+    if (this.prev_timeout_id) {
       window.clearTimeout(this.prev_timeout_id);
+      this.prev_timeout_id = 0;
     }
+    if (action === 'start') {
+      // action is start -- in this case we bizarely keep starting the
+      // projects every 30s.  This is basically a no-op when already running,
+      // so maybe not so bad.  (Do NOT do this for stop or restart, since
+      // those are NOT no-ops, or user might try to start project, only to
+      // be stopped.)
+      // Anyway this is just nuts, but whatever. It needs to be rewritten.
+      const clear_state = () => {
+        window.clearInterval(this.prev_interval_id);
+        return this.setState({ action_all_projects_state: "any" });
+      };
 
-    const clear_state = () => {
-      window.clearInterval(this.prev_interval_id);
-      return this.setState({ action_all_projects_state: "any" });
-    };
-
-    this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
-    this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
+      this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
+      this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
+    }
 
     if (["start", "restart"].includes(action)) {
       this.setState({ action_all_projects_state: "starting" });
     } else if (action === "stop") {
       this.setState({ action_all_projects_state: "stopping" });
     }
+  }
+
+  async run_in_all_student_projects(
+    command: string,
+    args?: string[],
+    timeout?: number,
+    log?:Function,
+  ): Promise<Result[]> {
+    const store = this.get_store();
+    if (store == null) {
+      return [];
+    }
+    // calling start also deals with possibility that
+    // it's in stop state.
+    this.action_all_student_projects('start');
+    return await run_in_all_projects(
+      store.get_student_project_ids(),
+      command,
+      args,
+      timeout,
+      log
+    );
   }
 
   set_all_student_project_titles(title) {

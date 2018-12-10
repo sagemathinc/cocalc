@@ -27,7 +27,7 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 import { React, ReactDOM, Component } from "../../app-framework";
 import { Map, Set } from "immutable";
 
@@ -92,9 +92,11 @@ interface FrameTreeProps {
   is_saving: boolean;
   gutter_markers: Map<string, any>;
   editor_settings: Map<string, any>;
+  terminal: Map<string, any>;
   status: string;
   settings: Map<string, any>;
   complete: Map<string, any>;
+  derived_file_types: Set<string>;
 }
 
 interface FrameTreeState {
@@ -105,6 +107,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   constructor(props) {
     super(props);
     this.state = { drag_hover: false };
+  }
+
+  componentWillUnmount(): void {
+    if (typeof(this.props.actions.blur) === 'function') {
+      this.props.actions.blur();
+    }
   }
 
   shouldComponentUpdate(next, state): boolean {
@@ -128,9 +136,11 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "is_saving",
         "gutter_markers",
         "editor_settings",
+        "terminal",
         "settings",
         "status",
-        "complete"
+        "complete",
+        "derived_file_types"
       ])
     );
   }
@@ -161,9 +171,11 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         is_saving={this.props.is_saving}
         gutter_markers={this.props.gutter_markers}
         editor_settings={this.props.editor_settings}
+        terminal={this.props.terminal}
         settings={this.props.settings}
         status={this.props.status}
         complete={this.props.complete}
+        derived_file_types={this.props.derived_file_types}
       />
     );
   }
@@ -188,10 +200,12 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         has_uncommitted_changes={this.props.has_uncommitted_changes}
         is_saving={this.props.is_saving}
         is_public={this.props.is_public}
+        is_paused={desc.get("is_paused")}
         type={desc.get("type")}
         editor_spec={this.props.editor_spec}
         status={this.props.status}
         title={desc.get("title")}
+        connection_status={desc.get("connection_status")}
       />
     );
   }
@@ -214,6 +228,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           id={id}
           name={this.props.name}
           actions={this.props.actions}
+          mode={spec.mode}
           read_only={desc.get(
             "read_only",
             this.props.read_only || this.props.is_public
@@ -237,10 +252,13 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           gutters={spec.gutters != null ? spec.gutters : []}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          terminal={this.props.terminal}
           settings={this.props.settings}
           status={this.props.status}
           renderer={spec.renderer}
           complete={this.props.complete.get(desc.get("id"))}
+          derived_file_types={this.props.derived_file_types}
+          desc={desc}
         />
       </div>
     );
@@ -306,26 +324,26 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
       }
     };
 
-    const handle_stop = (_, ui) => {
+    const handle_stop = async (_, ui) => {
       misc_page.drag_stop_iframe_enable();
       const clientX = ui.node.offsetLeft + ui.x + drag_offset;
       const elt = ReactDOM.findDOMNode(this.refs.cols_container);
       const pos = (clientX - elt.offsetLeft) / elt.offsetWidth;
       reset();
+      const id = this.props.frame_tree.get("id");
       this.props.actions.set_frame_tree({
-        id: this.props.frame_tree.get("id"),
+        id,
         pos
       });
       this.props.actions.set_resize();
+      this.props.actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
     };
 
-    // the preventDefault below prevents the text and scroll of what is in the frame from getting messed up during the drag.
     return (
       <Draggable
         ref={"cols_drag_bar"}
         axis={"x"}
         onStop={handle_stop}
-        onMouseDown={e => e.preventDefault()}
         onStart={misc_page.drag_start_iframe_disable}
       >
         <div
@@ -422,6 +440,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         pos
       });
       this.props.actions.set_resize();
+      this.props.actions.focus();
       this.safari_hack();
     };
 
@@ -430,7 +449,6 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         ref={"rows_drag_bar"}
         axis={"y"}
         onStop={handle_stop}
-        onMouseDown={e => e.preventDefault()}
         onStart={misc_page.drag_start_iframe_disable}
       >
         <div

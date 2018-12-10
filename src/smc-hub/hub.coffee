@@ -392,7 +392,11 @@ update_stats = (cb) ->
             connect_to_database(error:99999, pool:5, cb:cb)
         (cb) ->
             database.get_stats(cb:cb)
-    ], cb)
+    ], (err) -> cb?(err))
+
+init_update_stats = (cb) ->
+    setInterval(update_stats, 60000)
+    update_stats(cb)
 
 stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
@@ -499,6 +503,23 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_compute_server(cb)
         (cb) ->
+            if not program.dev
+                cb(); return
+            # Whenever we start the dev server, we just assume
+            # all projects are stopped, since assuming they are
+            # running when they are not is bad.  Something similar
+            # is done in cocalc-docker.
+            misc_node.execute_code  # in the scripts/ path...
+                command : "cocalc_kill_all_dev_projects.py"
+            database._query
+                safety_check : false
+                query : """update projects set state='{"state":"opened"}'"""
+                cb    : cb
+        (cb) ->
+            if not program.dev
+                cb(); return
+            init_update_stats(cb)
+        (cb) ->
             if not program.port
                 cb(); return
             # proxy server and http server; Some of this working etc. *relies* on compute_server having been created.
@@ -569,12 +590,25 @@ exports.start_server = start_server = (cb) ->
 
             if program.port or program.share_port or program.proxy_port
                 winston.debug("Starting registering periodically with the database and updating a health check...")
+
+                if program.test
+                    winston.debug("setting up hub_register_cb for testing")
+                    hub_register_cb = (err) ->
+                        if err
+                            winston.debug("hub_register_cb err:", err)
+                            process.exit(1)
+                        else
+                            process.exit(0)
+                else
+                    hub_register_cb = undefined
+
                 hub_register.start
                     database   : database
                     clients    : clients
                     host       : program.host
                     port       : program.port
                     interval_s : REGISTER_INTERVAL_S
+                    cb         : hub_register_cb
 
                 winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
@@ -638,6 +672,7 @@ command_line = () ->
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
         .option('--db_pool <n>', 'number of db connections in pool (default: 1)', ((n)->parseInt(n)), 1)

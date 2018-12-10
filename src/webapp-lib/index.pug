@@ -6,7 +6,7 @@
 
 //- development:
 //- webpack-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors
-//- webpack-watch-staticpages: cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; CC_STATICPAGES=true SOURCE_MAP=false webpack --debug --output-pathinfo --progress --colors --watch
+//- webpack-watch-staticpages: env CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors --watch --watch-poll=1000
 
 extends _base.pug
 
@@ -24,9 +24,60 @@ block header
   meta(name="description" content=htmlWebpackPlugin.options.description)
 
 block content
-  - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
-  - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
-  - var free_disk_gb = (free_quotas['disk_quota'] / 1000).toFixed(1)
+
+  //- CSS: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      body > div.space
+        margin-top       : 5rem
+      div#top
+        margin           : 10rem 0 5rem 0
+        .descr
+          color          : $COL_GRAY
+          font-size      : 2rem
+        > div
+          margin-bottom  : 2rem
+      #statstable td,
+      #statstable th
+        text-align       : right
+      blockquote.blockquote
+        font-size        : 16px
+        img
+          height         : 10rem
+          width          : auto
+          float          : left
+          margin         : 0 1rem 1rem 0
+      ul,
+      ol
+        padding-left     : 2rem
+      div
+        img
+          width             : 100%
+          height            : auto
+        &.row
+          margin-top        : 2rem
+          margin-bottom     : 4rem
+          > div
+            > h1
+              margin-bottom : 4rem
+            > h2, h3
+              margin-bottom : 2rem
+      .left,
+      #statstable td.left
+        text-align     : left
+      #explore,
+      #bottom
+        background-color : $COL_GRAY_LL
+        div > h3
+          white-space    : nowrap
+      #included > div
+        padding          : 0
+      .ff-only
+        display: none
+      @supports (-moz-appearance:none)
+        .ff-only
+          display: block
 
   a.anchor#a-top
   div.container
@@ -44,16 +95,15 @@ block content
         +start_button
 
     div.row
-      div.col-md-12.center
+      div.col-sm-12.center
         h1 Online computing environment
       div.col-sm-6
+        h4  Intro to CoCalc by Mark Quinn (University of Sheffield)
         //- img(src=require('!file-loader!sagepreview/01-worksheet.png'))
-        div.
-          Intro to CoCalc (credits: Mark Quinn, University of Sheffield)
         div.youtube-video-container
           iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
-        p #{NAME} is a #[strong sophisticated online environment] for
+        h4 #{NAME} is a sophisticated online workspace
         ul
           li.
             #[strong Mathematical calculation]:
@@ -75,6 +125,7 @@ block content
             #[strong Document authoring]:
             #[a(href="https://www.latex-project.org/") LaTeX],
             #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown/HTML],
+            #[a(href="https://rmarkdown.rstudio.com/") RMarkdown],
             ...
           li.
             #[strong General purpose computing]:
@@ -83,6 +134,12 @@ block content
             #[a(href="https://julialang.org/") Julia],
             #[a(href="https://www.scala-lang.org/") Scala],
             …
+        p #[strong Collaborative Environment]
+        p
+          ul
+            li Share your files #[strong privately] with project collaborators &mdash; all files are synchronized in real-time.
+            li #[strong Time-travel] is a detailed history of all your edits and everything is backed up in #[strong consistent snapshots].
+            li Finally, you can select any document to #[strong publish it online].
         p #[strong Zero Setup:] getting started does not require any software setup.
           ol
             li First, create your personal #[strong account].
@@ -90,16 +147,33 @@ block content
             li.
               Finally, create a #[strong worksheet] or upload your own files:
               #{NAME} supports online editing of #[a(href="http://jupyter.org/") Jupyter Notebooks], Sage Worksheets,
-              #[a(href="./doc/latex-editor.html") LaTeX files], etc.
-        p #[strong Collaborative Environment]
-        p
-          ul
-            li Share your files #[em privately] with project collaborators &mdash; all files are synchronized in real-time.
-            li #[em Time-travel] is a detailed history of all your edits and everything is backed up in #[em consistent snapshots].
-            li Finally, you can select any document to #[em publish it online].
-        p.
-          A default project under a free plan has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
-          #[a(href="policies/pricing.html") Subscriptions] make hosting more robust and increase quotas.
+              #[a(href="./doc/latex-editor.html") LaTeX files],
+              #[a(href="./doc/r-statistical-software.html") R documents] etc.
+
+  a.anchor#a-presentation
+  div.container
+    div.row
+      div.col-sm-6
+        h4  CoCalc talk by William Stein (Harvard, 2018)
+        div.youtube-video-container
+          iframe(src="https://www.youtube.com/embed/G5SIwRinEYk?rel=0" frameborder="0" allowfullscreen)
+      div.col-sm-6
+        h4 Presentation outline
+        ul
+          li Background and history of CoCalc
+          li Demonstration of functionality
+          li Architectural overview, underlying tech stack, ...
+          li Synchronization of documents, the backbone of collaboration
+          li Collaboration and chat
+          li Culture, open-source, academic and commercial usage
+
+
+  a.anchor#a-startnow
+  div.container
+    div.row(style="margin-top: 6rem")
+      +start_free
+      div.col-sm-12.center
+        +start_button
 
   a.anchor#a-explore
   div.space#explore
@@ -126,20 +200,21 @@ block content
           h3 #[i.fa.fa-graduation-cap] Teaching
           div.
             #{htmlWebpackPlugin.options.title}
-            #[a(href="https://tutorial.cocalc.com/" target="_blank") offers sophisticated tools for teaching].
+            #[a(href="https://doc.cocalc.com/teaching-instructors.html") offers sophisticated tools for teaching].
             Start by creating a #[strong course], add your students, create assignments and distribute them to all students.
             While students work on it, you can assist them by jumping right into their files where they're working.
             Later, collect, grade and re-distribute the files.
           div.
-            #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
+            #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching") Courses using #{htmlWebpackPlugin.options.title}]
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-file-text-o] Authoring
           div.
             Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]].
             It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
             also supports advanced features like
-            #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html" target="_blank") SageTeX] and
-            #[a(href="https://yihui.name/knitr/" target="_blank") R's Knitr].
+            #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX],
+            #[a(href="https://ctan.org/pkg/pythontex") PythonTeX] and
+            #[a(href="https://yihui.name/knitr/") R's Knitr].
 
   a.anchor#a-teaching
   div.space#teaching
@@ -172,8 +247,8 @@ block content
           div.row
             div.col-md-6
               ul
-                li #[a(href="https://tutorial.cocalc.com/" target="_blank") Tutorial for Teaching]
-                li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching" target="_blank") Courses using #{htmlWebpackPlugin.options.title}]
+                li #[a(href="https://doc.cocalc.com/") CoCalc Manual]
+                li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching") Courses using #{htmlWebpackPlugin.options.title}]
             div.col-md-6
               a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
 
@@ -202,7 +277,7 @@ block content
               They just open up a web browser and go to #[a(href=URL) #{URL}] and that's it.
               They just type code directly in, hit shift+enter and it runs, and they can see if it works.
               It provides immediate feedback.
-              The #[a(href="https://tutorial.cocalc.com/") course management features] work really well.
+              The #[a(href="https://doc.cocalc.com/teaching-instructors.html") course management features] work really well.
             footer.
               #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles, Fall 2016
 
@@ -266,14 +341,26 @@ block content
             #[strong side-by-side] preview and forward/inverse search.
             This allows you to not only do computations online,
             but also create scientific documents for their dissemination.
+          div.
+            Additionally, there is support for:
+            #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX],
+            #[a(href="https://ctan.org/pkg/pythontex") PythonTeX] and
+            #[a(href="https://yihui.name/knitr/") R's Knitr].
           br/
           div
             img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
         div.col-md-6
-          h2 #[i.fa.cc-icon-markdown] Markdown/HTML
+          h2 #[i.fa.cc-icon-markdown] Markdown/HTML/Rmd
           div.
-            There is also support for editing #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] or HTML documents.
-            The live preview supports LaTeX formulas and embedded graphics.
+            Conveniently edit
+            #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] #[code .md]
+            or HTML documents
+            with side-by-side live preview, showing LaTeX formulas and embedded graphics.
+          div.
+            #{NAME} also supports
+            #[a(href="https://rmarkdown.rstudio.com/") RMarkdown] #[code .Rmd] files
+            to include #[a(href="https://www.r-project.org/") R] and
+            #[a(href="https://www.python.org/") Python] calculations and plots.
           br/
           div
             img(src="https://storage.googleapis.com/cocalc-extra/smc-mdhtml-20170516.png").fit
@@ -313,65 +400,12 @@ block content
 
   div
     div.container
-      div.row
-        div.col-sm-12.center(style="margin-top: 6rem")
+      div.row(style="margin-top: 6rem")
+        +start_free
+        div.col-sm-12.center
           +start_button
       div.row
         div.col-sm-12.center(style="margin-top: 6rem")
           p Do you have any further questions or want to see how #{NAME} helps you with teaching?
           p
             a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank") Request a live demo!
-
-  //- CSS comes at the bottom: overwrites styles defined in the header
-  style
-    :sass
-      @import "smc-webapp/_colors.sass"
-      body > div.space
-        margin-top       : 5rem
-      div#top
-        margin           : 10rem 0 5rem 0
-        .descr
-          color          : $COL_GRAY
-          font-size      : 2rem
-        > div
-          margin-bottom  : 2rem
-      #statstable td,
-      #statstable th
-        text-align       : right
-      blockquote.blockquote
-        font-size        : 16px
-        img
-          height         : 10rem
-          width          : auto
-          float          : left
-          margin         : 0 1rem 1rem 0
-      ul,
-      ol
-        padding-left     : 2rem
-      div
-        img
-          width             : 100%
-          height            : auto
-        &.row
-          margin-top        : 2rem
-          margin-bottom     : 4rem
-          > div
-            > h1
-              margin-bottom : 4rem
-            > h2, h3
-              margin-bottom : 2rem
-      .left,
-      #statstable td.left
-        text-align     : left
-      #explore,
-      #bottom
-        background-color : $COL_GRAY_LL
-        div > h3
-          white-space    : nowrap
-      #included > div
-        padding          : 0
-      .ff-only
-        display: none
-      @supports (-moz-appearance:none)
-        .ff-only
-          display: block

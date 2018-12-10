@@ -2,7 +2,8 @@
 LaTeX Editor Actions.
 */
 
-const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/LaTeX-Editor";
+const HELP_URL = "https://doc.cocalc.com/latex.html";
+
 const VIEWERS: ReadonlyArray<string> = [
   "pdfjs_canvas",
   "pdfjs_svg",
@@ -17,9 +18,11 @@ import {
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
 import { sagetex, sagetex_hash } from "./sagetex";
+import { pythontex, pythontex_errors } from "./pythontex";
 import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
+import { count_words } from "./count_words";
 import { server_time, ExecOutput } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
@@ -35,8 +38,9 @@ import {
   path_split,
   separate_file_extension,
   change_filename_extension
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
+const { open_new_tab } = require("smc-webapp/misc_page");
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;
@@ -57,11 +61,13 @@ interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
   sync: string;
   scroll_pdf_into_view: ScrollIntoViewMap;
+  word_count: string;
   zoom_page_width: string;
   zoom_page_height: string;
   build_command: string | List<string>;
   knitr: boolean;
   knitr_error: boolean; // true, if there is a knitr problem
+  // pythontex_error: boolean;  // true, if pythontex processing had an issue
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -73,9 +79,11 @@ export class Actions extends BaseActions<LatexEditorState> {
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
+  private bad_filename: boolean; // true, if the <filename.tex> can't be processed -- see #3230
 
   _init2(): void {
     if (!this.is_public) {
+      this._init_bad_filename();
       this._init_ext_filename(); // safe to set before syncstring init
       this._init_syncstring_value();
       this._init_ext_path(); // must come after syncstring init
@@ -84,6 +92,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_config();
       this._init_first_build();
     }
+  }
+
+  _init_bad_filename(): void {
+    // #3230 two or more spaces
+    // note: if there are additional reasons why a filename is bad, add it to the
+    // alert msg in run_build.
+    this.bad_filename = /\s\s+/.test(this.path);
   }
 
   _init_ext_filename(): void {
@@ -200,6 +215,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   check_for_fatal_error(): void {
     const build_logs: BuildLogs = this.store.get("build_logs");
+    if (!build_logs) return;
     const errors = build_logs.getIn(["latex", "parse", "errors"]);
     if (errors === undefined || errors.size < 1) return;
     const last_error = errors.get(errors.size - 1);
@@ -268,18 +284,51 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_build(time: number, force: boolean): Promise<void> {
     this.setState({ build_logs: Map() });
+
+    if (this.bad_filename) {
+      const err = `ERROR: It is not possible to compile this LaTeX file with the name '${
+        this.path
+      }'.
+        Please modify the filename, such that it does **not** contain two or more consecutive spaces.`;
+      this.set_error(err);
+      return;
+    }
+
+    // for knitr related documents, we have to first build the derived tex file ...
     if (this.knitr) {
       await this.run_knitr(time, force);
       if (this.store.get("knitr_error")) return;
     }
-    await this.run_latex(time, force);
+    // update word count asynchronously
+    const run_word_count = this.word_count(time, force);
+    // update_pdf=false, because it is defered until the end
+    await this.run_latex(time, force, false);
+    // ... and then patch the synctex file to align the source line numberings
     if (this.knitr) {
       await this.run_patch_synctex(time, force);
     }
+
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
-    if (typeof s == "string" && s.indexOf("sagetex.sty") != -1) {
-      await this.run_sagetex(time, force);
+    let update_pdf = true;
+    if (typeof s == "string") {
+      if (s.indexOf("sagetex.sty") != -1) {
+        update_pdf = false;
+        await this.run_sagetex(time, force);
+      }
+      if (s.indexOf("pythontex.sty") != -1 || s.indexOf("PythonTeX") != -1) {
+        update_pdf = false;
+        await this.run_pythontex(time, force);
+      }
     }
+
+    // we suppress a cycle of loading the PDF if sagetex or pythontex runs above
+    // because these two trigger a rebuild and update_pdf on their own at the end
+    if (update_pdf) {
+      this.update_pdf(time, force);
+    }
+
+    // and finally, wait for word count to finish -- to make clear the whole operation is done
+    await run_word_count;
   }
 
   async run_knitr(time: number, force: boolean): Promise<void> {
@@ -291,7 +340,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       output = await knitr(
         this.project_id,
         this.filename_knitr,
-        force ? undefined : time || this._last_save_time,
+        this.make_timestamp(time, force),
         status
       );
     } catch (err) {
@@ -325,7 +374,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await patch_synctex(
         this.project_id,
         this.path,
-        force ? undefined : time || this._last_save_time,
+        this.make_timestamp(time, force),
         status
       );
     } catch (err) {
@@ -336,10 +385,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_latex(time: number, force: boolean): Promise<void> {
+  async run_latex(
+    time: number,
+    force: boolean,
+    update_pdf: boolean = true
+  ): Promise<void> {
     let output: BuildLog;
     let build_command: string | string[];
-    let timestamp = force ? undefined : time || this._last_save_time;
+    const timestamp = this.make_timestamp(time, force);
     let s: string | List<string> = this.store.get("build_command");
     if (!s) {
       return;
@@ -384,6 +437,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     });
 
+    if (update_pdf) {
+      this.update_pdf(time, force);
+    }
+  }
+
+  update_pdf(time: number, force: boolean): void {
+    const timestamp = this.make_timestamp(time, force);
     // forget currently cached pdf
     this._forget_pdf_document();
     // ... before setting a new one for all the viewers,
@@ -399,7 +459,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       const output: BuildLog = await bibtex(
         this.project_id,
         this.path,
-        force ? undefined : time || this._last_save_time
+        this.make_timestamp(time, force)
       );
       this.set_build_logs({ bibtex: output });
     } catch (err) {
@@ -417,11 +477,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       try {
         hash = await sagetex_hash(this.project_id, this.path, time, status);
         if (hash === this._last_sagetex_hash) {
-          // no change - nothing to do.
+          // no change - nothing to do except updating the pdf preview
+          this.update_pdf(time, force);
           return;
         }
       } catch (err) {
         this.set_error(err);
+        this.update_pdf(time, force);
         return;
       } finally {
         this.set_status("");
@@ -447,6 +509,43 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._last_sagetex_hash = hash;
       this.set_status("");
     }
+  }
+
+  async run_pythontex(time: number, force: boolean): Promise<void> {
+    let output: BuildLog;
+    const status = s => this.set_status(`Running PythonTeX... ${s}`);
+    status("");
+
+    try {
+      // Run PythonTeX
+      output = await pythontex(this.project_id, this.path, time, force, status);
+      // Now run latex again, since we had to run pythontex, which changes
+      // the inserted snippets. This +1 forces re-running latex... but still dedups
+      // it in case of multiple users.
+      await this.run_latex(time + 1, force);
+    } catch (err) {
+      this.set_error(err);
+      // this.setState({ pythontex_error: true });
+      this.update_pdf(time, force);
+      return;
+    } finally {
+      this.set_status("");
+    }
+    // this is similar to how knitr errors are processed
+    output.parse = pythontex_errors(this.path, output).toJS();
+    this.set_build_logs({ pythontex: output });
+    update_gutters({
+      path: this.path,
+      log: output.parse,
+      set_gutter: (line, component) => {
+        this.set_gutter_marker({
+          line,
+          component,
+          gutter_id: "Codemirror-latex-errors"
+        });
+      }
+    });
+    // this.setState({ pythontex_error: output.parse.all.length > 0 });
   }
 
   async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
@@ -591,6 +690,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       case "sagetex":
         this.run_sagetex(now, false);
         return;
+      case "pythontex":
+        this.run_pythontex(now, false);
+        return;
       case "clean":
         this.run_clean();
         return;
@@ -599,12 +701,32 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  help(): void {
-    // TODO: call version that deals with popup blockers...
-    const w = window.open(WIKI_HELP_URL, "_blank");
-    if (w) {
-      w.focus();
+  make_timestamp(time: number, force: boolean): number | undefined {
+    return force ? undefined : time || this._last_save_time;
+  }
+
+  async word_count(time: number, force: boolean): Promise<void> {
+    // only run word count if at least one such panel exists
+    if (!this._has_frame_of_type("word_count")) {
+      return;
     }
+
+    try {
+      const timestamp = this.make_timestamp(time, force);
+      const output = await count_words(this.project_id, this.path, timestamp);
+      if (output.stderr) {
+        const err = `Error:\n${output.stderr}`;
+        this.setState({ word_count: err });
+      } else {
+        this.setState({ word_count: output.stdout });
+      }
+    } catch (err) {
+      this.set_error(err);
+    }
+  }
+
+  help(): void {
+    open_new_tab(HELP_URL);
   }
 
   zoom_page_width(id: string): void {
@@ -631,6 +753,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!cm) return;
     let { line, ch } = cm.getDoc().getCursor();
     this.synctex_tex_to_pdf(line, ch, this.path);
+  }
+
+  time_travel(): void {
+    // knitr case: point to editor file, not the generated tex
+    // https://github.com/sagemathinc/cocalc/issues/3336
+    if (this.knitr) {
+      super.time_travel(this.filename_knitr);
+    } else {
+      super.time_travel();
+    }
   }
 
   download(id: string): void {

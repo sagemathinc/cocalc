@@ -4,8 +4,6 @@ Channels used for optimizing realtime sync.
 
 import { EventEmitter } from "events";
 
-const json = require("json-stable-stringify");
-
 const sync_tables = {};
 
 function get_name(name: string): string {
@@ -13,7 +11,7 @@ function get_name(name: string): string {
 }
 
 export async function browser_symmetric_channel(
-  client: any,
+  _: any,
   primus: any,
   logger: any,
   name: string

@@ -9,7 +9,7 @@ const { webapp_client } = require("../webapp_client");
 const { ProjectSettingsPanel } = require("../project/project-settings-support");
 const {
   callback_opts
-} = require("smc-webapp/frame-editors/generic/async-utils");
+} = require("smc-util/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
@@ -455,7 +455,7 @@ ${name}
 
   render() {
     return (
-      <ProjectSettingsPanel title="Add New Collaborators" icon="plus">
+      <ProjectSettingsPanel title="Add new collaborators" icon="plus">
         Who would you like to invite to work with on this project? Anybody
         listed here can simultaneously work with you on any notebooks and
         terminals in this project, and add other people to this project.

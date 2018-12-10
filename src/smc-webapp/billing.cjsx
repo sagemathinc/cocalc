@@ -224,7 +224,7 @@ AddPaymentMethod = rclass
 
     propTypes :
         redux    : rtypes.object.isRequired
-        on_close : rtypes.func.isRequired  # called when this should be closed
+        on_close : rtypes.func  # optional, called when this should be closed
 
     getInitialState: ->
         new_payment_info :
@@ -243,7 +243,7 @@ AddPaymentMethod = rclass
         @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
-                @props.on_close()
+                @props.on_close?()
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.address_country != "United States"
@@ -476,7 +476,7 @@ AddPaymentMethod = rclass
                         >
                             Add Credit Card
                         </Button>
-                        <Button onClick={@props.on_close}>Cancel</Button>
+                        { <Button onClick={@props.on_close}>Cancel</Button> if @props.on_close? }
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -978,6 +978,7 @@ AddSubscription = rclass
                     {@render_create_subscription_confirm(plan_data) if @props.selected_plan isnt ''}
                     {<ConfirmPaymentMethod
                         is_recurring = {@is_recurring()}
+                        on_close = {@props.on_close}
                     /> if @props.selected_plan isnt ''}
                     <Row>
                         <Col sm={5} smOffset={7}>
@@ -997,6 +998,7 @@ ConfirmPaymentMethod = rclass
 
     propTypes :
         is_recurring : rtypes.bool
+        on_close : rtypes.func
 
     render_single_payment_confirmation: ->
         <span>
@@ -1310,7 +1312,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Following <a href="https://tutorial.cocalc.com/" target="_blank">this guide</a>, create a course file.
+                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">instructor guide</a> to create a course file for your new course.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1667,7 +1669,7 @@ Subscriptions = rclass
     render_header: ->
         <Row>
             <Col sm={6}>
-                <Icon name='list-alt' /> Subscriptions and Course Packages
+                <Icon name='list-alt' /> Subscriptions and course packages
             </Col>
             <Col sm={6}>
                 {@render_add_subscription_button()}

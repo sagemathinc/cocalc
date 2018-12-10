@@ -5,6 +5,7 @@ extends ../_base.pug
 block vars
   -
     navbar_active = 'software';
+    subnavbar_active = 'software-r';
     subtitle = NAME + " R Environments";
 
 block header
@@ -21,6 +22,8 @@ block content
         and the left column describes the name and summary of the library.
       div.
         Besides all the listed libraries you can install additional ones in your project.
+      div.
+        More information: #[a(href="./r-statistical-software.html") R support on #{NAME}].
 
   +software-environment-table('R')
 

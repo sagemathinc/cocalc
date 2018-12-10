@@ -18,10 +18,11 @@ exports.APP_TAGLINE          = 'Collaborative Calculation in the Cloud'
 exports.DNS                  = 'cocalc.com'
 exports.DOMAIN_NAME          = 'https://' + exports.DNS
 exports.DISCUSSION_GROUP     = 'https://groups.google.com/forum/#!forum/cocalc'
+exports.DOC_URL              = 'https://doc.cocalc.com/'
 exports.WIKI_URL             = 'https://github.com/sagemathinc/cocalc/wiki/Portal'
 exports.BLOG_URL             = 'https://blog.sagemath.com/'
 exports.LIVE_DEMO_REQUEST    = 'https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform'
-exports.HELP_EMAIL           = 'help@sagemath.com'
+exports.HELP_EMAIL           = 'help@cocalc.com'
 exports.TWITTER_HANDLE       = 'cocalc_com'   # without the @
 exports.BILLING_EMAIL        = 'billing@sagemath.com'
 exports.BILLING_ADDRESS      = '''
@@ -40,6 +41,9 @@ exports.COPYRIGHT_AGENT_HTML = '''
 exports.gtag_id              = 'AW-943259268'
 exports.sign_up_id           = '44ZfCImosncQhP3jwQM'
 exports.conversion_id        = 'zttYCNDZsXcQhP3jwQM'
+
+# documentation
+exports.JUPYTER_CLASSIC_MODERN  = 'https://doc.cocalc.com/jupyter.html#classical-versus-cocalc'
 
 # this is used in smc-hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 exports.SENDGRID_TEMPLATE_ID    = '0375d02c-945f-4415-a611-7dc3411e2a78'
@@ -82,8 +86,8 @@ COLORS.TOP_BAR =
     ACTIVE      : 'white'
     TEXT        : COLORS.GRAY
     TEXT_ACTIVE : COLORS.GRAY_D
-    X           : COLORS.GRAY_D
-    X_HOVER     : COLORS.GRAY
+    X           : COLORS.GRAY
+    X_HOVER     : COLORS.GRAY_L
     SIGN_IN_BG  : COLORS.YELL_L
 
 # landing page

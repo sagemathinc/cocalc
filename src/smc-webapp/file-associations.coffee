@@ -8,6 +8,7 @@ via the newer registration system.
 ###
 
 codemirror_associations =
+    adb    : 'ada'
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
     cql    : 'text/x-sql'
@@ -46,7 +47,7 @@ codemirror_associations =
     ls     : 'text/x-livescript'
     lua    : 'lua'
     m      : 'text/x-octave'
-    md     : 'gfm'
+    md     : 'yaml-frontmatter'
     ml     : 'text/x-ocaml'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
@@ -59,9 +60,9 @@ codemirror_associations =
     py     : 'python'
     pyx    : 'python'
     r      : 'r'
-    rmd    : 'gfm'
-    rnw    : 'stex2'
-    rtex   : 'stex2'
+    rmd    : 'rmd'
+    rnw    : 'rnw'
+    rtex   : 'rtex'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -81,6 +82,8 @@ codemirror_associations =
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
+    cml    : 'xml'  # http://www.xml-cml.org/, e.g. used by avogadro
+    kml    : 'xml'  # https://de.wikipedia.org/wiki/Keyhole_Markup_Language
     xsl    : 'xsl'
     ''     : 'text'
 
@@ -132,13 +135,13 @@ file_associations['tex'] =
 file_associations['rnw'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4, mode:codemirror_associations['rnw']}
     name   : "R Knitr Rnw"
 
 file_associations['rtex'] =
     editor : 'latex'
     icon   : 'cc-icon-tex-file'
-    opts   : {mode:'stex2', indent_unit:4, tab_size:4}
+    opts   : {mode:'stex2', indent_unit:4, tab_size:4, mode:codemirror_associations['rtex']}
     name   : "R Knitr Rtex"
 
 file_associations['html'] =
@@ -148,13 +151,13 @@ file_associations['html'] =
 
 file_associations['md'] =
     icon   : 'cc-icon-markdown'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
+    opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['md']}
     name   : "markdown"
 
 file_associations['rmd'] =
     icon   : 'cc-icon-r'
-    opts   : {indent_unit:4, tab_size:4, mode:'gfm'}
-    name   : "Rmd"
+    opts   : {indent_unit:4, tab_size:4, mode:codemirror_associations['rmd']}
+    name   : "RMarkdown"
 
 file_associations['rst'] =
     icon   : 'fa-file-code-o'
@@ -209,6 +212,13 @@ file_associations['term'] =
     icon   : 'fa-terminal'
     opts   : {}
     name   : "Terminal"
+
+# This is just for the "Create" menu in files.
+file_associations['x11'] =
+    editor : 'x11'
+    icon   : 'fa-window-restore'
+    opts   : {}
+    name   : "X11 Desktop"
 
 file_associations['ipynb'] =
     editor : 'ipynb'
@@ -302,3 +312,4 @@ file_associations['sagews'] =
     opts              : {mode:'sagews'}
     name              : 'sagews'
     exclude_from_menu : true
+

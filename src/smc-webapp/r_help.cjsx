@@ -36,13 +36,24 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
 li_style = exports.li_style =
     lineHeight    : 'inherit'
     marginBottom  : '10px'
+
+# improve understanding of large numbers
+fmt_large = (num) ->
+    num = parseInt(num)
+    if localStorage.fmt_large
+        return num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+    else
+        return num.toLocaleString()
+    #num += 31 * num + 7890
+    # num.toLocaleString(undefined, {useGrouping:true, maximumSignificantDigits: 2})
+
 
 HelpPageUsageSection = rclass
     reduxProps :
@@ -55,6 +66,7 @@ HelpPageUsageSection = rclass
             accounts_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_created    : rtypes.object # {RECENT_TIMES.key → number, ...}
             projects_edited     : rtypes.object # {RECENT_TIMES.key → number, ...}
+            files_opened        : rtypes.object
 
     displayName : 'HelpPage-HelpPageUsageSection'
 
@@ -83,27 +95,47 @@ HelpPageUsageSection = rclass
         n = @props.projects_edited?[RECENT_TIMES_KEY.active]
         <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
+    timespan_keys: ->
+        ['last_hour', 'last_day', 'last_week', 'last_month']
+
     recent_usage_stats_rows: ->
         stats = [
             ['Modified projects', @props.projects_edited],
             ['Created projects', @props.projects_created],
             ['Created accounts', @props.accounts_created]
         ]
+
         for stat in stats
             <tr key={stat[0]}>
                 <th style={textAlign:'left'}>{stat[0]}</th>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_hour]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_day]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_week]}
-                </td>
-                <td>
-                    {stat[1]?[RECENT_TIMES_KEY.last_month]}
-                </td>
+                {
+                    for k in @timespan_keys()
+                        <td key={k}>
+                            {fmt_large(stat[1]?[RECENT_TIMES_KEY[k]])}
+                        </td>
+                }
+            </tr>
+
+    render_filetype_stats_rows: ->
+        stats = [
+            ['Sage Worksheets',   'sagews'],
+            ['Jupyter Notebooks', 'ipynb'],
+            ['LaTeX Documents',   'tex'],
+            ['Markdown Documents','md']
+        ]
+        #if DEBUG then console.log('@props.files_opened', @props.files_opened)
+        for [name, ext] in stats
+            <tr key={name}>
+                <th style={textAlign:'left'}>{name}</th>
+                {
+                    for timespan in @timespan_keys()
+                        k        = RECENT_TIMES_KEY[timespan]
+                        total    = @props.files_opened?.total?[k]?[ext]    ? 0
+                        #distinct = @props.files_opened?.distinct?[k]?[ext] ? 0
+                        <td key={k}>
+                            {fmt_large(total)}
+                        </td>
+                }
             </tr>
 
     render_recent_usage_stats: ->
@@ -121,6 +153,12 @@ HelpPageUsageSection = rclass
             </thead>
             <tbody>
                 {@recent_usage_stats_rows()}
+                <tr><td colSpan={5}>&nbsp;</td></tr>
+                <tr>
+                    <th style={textAlign:'left'}>Edited files</th>
+                    <td colSpan={4}>&nbsp;</td>
+                </tr>
+                {@render_filetype_stats_rows()}
             </tbody>
         </Table>
 
@@ -172,15 +210,20 @@ SUPPORT_LINKS =
         href : 'mailto:' + HELP_EMAIL
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
-    frequently_asked_questions :
+    doc :
+        icon : 'book'
+        bold : true
+        href : DOC_URL
+        link : <span><SiteName/> manual</span>
+    wiki :
         icon : 'question-circle'
         bold : true
         href : WIKI_URL
-        link : <span><SiteName/> documentation</span>
+        link : <span><SiteName/> WIKI portal</span>
     teaching :
         icon : 'graduation-cap'
-        href : 'https://tutorial.cocalc.com/'
-        link : <span>How to teach a course with <SiteName/></span>
+        href : 'https://doc.cocalc.com/teaching-instructors.html'
+        link : <span>Instructor Guide: How to teach a course with <SiteName/></span>
     pricing :
         icon : 'money'
         href : PolicyPricingPageUrl
@@ -297,7 +340,7 @@ ABOUT_LINKS =
     developers :
         icon : 'keyboard-o'
         text : <span>
-                Core developers: John Jeng,{' '}
+                <a target='_blank' href='http://blog.sagemath.com/cocalc/2018/09/10/where-is-cocalc-from.html'>Core developers</a>: John Jeng,{' '}
                 <a target='_blank' href='http://harald.schil.ly/'>Harald Schilly</a>,{' '}
                 <a target="_blank" href='https://twitter.com/haldroid'>Hal Snyder</a>,{' '}
                 <a target='_blank' href='http://wstein.org'>William Stein</a>
@@ -366,8 +409,7 @@ exports.HelpPage = HelpPage = rclass
     displayName : 'HelpPage'
 
     render_compute_env: ->
-        env = <ComputeEnvironment />
-        return <Row>{env}</Row> if env?
+        return <Row><ComputeEnvironment /></Row>
 
     render: ->
         banner_style =
@@ -411,7 +453,7 @@ exports.HelpPage = HelpPage = rclass
                 <Row>
                     {<LinkList title='About' icon='info-circle' links={ABOUT_LINKS} width={12} /> if require('./customize').commercial}
                 </Row>
-                {@render_compute_env() if KUCALC_COMP_ENV}
+                {@render_compute_env()}
             </Col>
             <Col sm={1} md={2} xsHidden></Col>
             <Col xs={12} sm={12} md={12}>

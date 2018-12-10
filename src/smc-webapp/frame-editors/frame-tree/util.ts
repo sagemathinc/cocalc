@@ -2,7 +2,7 @@
 Utility functions useful for frame-tree editors.
 */
 
-import { path_split, separate_file_extension } from "../generic/misc";
+import { path_split, separate_file_extension } from "smc-util/misc2";
 
 export function parse_path(
   path: string
@@ -39,6 +39,7 @@ export const PRETTIER_SUPPORT = {
   js: true,
   jsx: true,
   md: true,
+  rmd: true,
   css: true,
   ts: true,
   tsx: true,
@@ -54,5 +55,9 @@ export const PRETTIER_SUPPORT = {
   cc: true, // --*--
   "c++": true, // --*--
   cpp: true, // --*--
-  h: true // --*--
+  h: true, // --*--
+  xml: true, // tidy
+  cml: true, // tidy for xml
+  kml: true, // tidy for xml
+  bib: true // via biber --tool
 };

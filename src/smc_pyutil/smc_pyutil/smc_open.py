@@ -72,7 +72,7 @@ def process(paths):
 def main():
     if len(sys.argv) == 1:
         print "Usage: open [path names] ..."
-        print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
+        print "Opens each file (or directory) in the CoCalc web-based editor from the shell."
         print "If the named file doesn't exist, it is created."
     else:
         process(sys.argv[1:])

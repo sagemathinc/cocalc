@@ -1,23 +1,53 @@
-//- feature page
+//- for development, run $ env CC_COMP_ENV=true CC_STATICPAGES=true npm run webpack-debug
 
 extends ../_base.pug
 
 block vars
-  - subtitle = "Features"
+  -
+    navbar_active = 'features';
+    subtitle = NAME + " Special Features";
 
 block header
   meta(name="description" content=NAME + " Features")
 
 block content
-  a.anchor#a-top
-  div.container
-    div.row#top
-      h1 Features
 
-
-  //- CSS comes at the bottom: overwrites styles defined in the header
   style
     :sass
       @import "smc-webapp/_colors.sass"
-      div#top
-        margin           : 5rem 0
+      div.row#top
+        min-height: 50vh
+        ul
+          li
+            margin-top    : 10px
+            margin-bottom : 10px
+            a
+              font-weight   : bold
+              padding-right : 10px
+
+  a.anchor#a-top
+  div.container
+    div.row#top
+      h1 #{NAME} Features
+      div= "These pages feature in-depth explanations about what " + NAME + " is able to do."
+      ul
+        li
+          a(href='jupyter-notebook.html') Jupyter Notebooks:
+          span #{NAME} offers a platform-specific edition of notebooks with real-time collaboration, chat, and precise edit-history
+
+        li
+          a(href='r-statistical-software.html') R statistical software:
+          span notebook, command-line, LaTeX with Knitr and RMarkdown, and much more
+
+        li
+          a(href='latex-editor.html') LaTeX Editor:
+          span learn how #{NAME}'s LaTeX editor can help you being a productive author online
+
+        li
+          a(href='x11.html') Graphical Software:
+          span run graphical applications in #{NAME}'s remote virtual display environment
+
+        li
+          span There is much more to explore. Just to name a few, there are Sage Worksheets, Course management, Task management, Chat, etc.
+
+

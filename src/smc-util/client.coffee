@@ -32,6 +32,7 @@ underscore = require('underscore')
 
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
+synctable2 = require('./sync/table')
 db_doc = require('./db-doc')
 
 smc_version = require('./smc-version')
@@ -803,6 +804,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
+            usage_intent   : undefined
             get_api_key    : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
@@ -828,6 +830,7 @@ class exports.Connection extends EventEmitter
                 email_address   : opts.email_address
                 password        : opts.password
                 agreed_to_terms : opts.agreed_to_terms
+                usage_intent    : opts.usage_intent
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
@@ -884,21 +887,35 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb      : opts.cb
 
+    delete_remember_me_cookie: (cb) =>
+        # This actually sets the content of the cookie to empty.
+        # (I just didn't implement a delete action on the backend yet.)
+        base_url = window.app_base_url ? ''
+        mesg =
+            url  : base_url + '/cookies'
+            set  : base_url + 'remember_me'
+        @_cookies(mesg, cb)
+
     sign_out: (opts) ->
         opts = defaults opts,
             everywhere   : false
             cb           : undefined
             timeout      : DEFAULT_TIMEOUT # seconds
 
-        @account_id = undefined
+        @delete_remember_me_cookie (err) =>
+            if err
+                opts.cb?("error deleting remember me cookie")
+                return
 
-        @call
-            allow_post : false
-            message    : message.sign_out(everywhere:opts.everywhere)
-            timeout    : opts.timeout
-            cb         : opts.cb
+            @account_id = undefined
 
-        @emit('signed_out')
+            @call
+                allow_post : false
+                message    : message.sign_out(everywhere:opts.everywhere)
+                timeout    : opts.timeout
+                cb         : opts.cb
+
+            @emit('signed_out')
 
     change_password: (opts) ->
         opts = defaults opts,
@@ -1285,7 +1302,8 @@ class exports.Connection extends EventEmitter
             bash            : false
             aggregate       : undefined  # see comment above.
             err_on_exit     : true
-            allow_post      : true       # set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            allow_post      : true       # **DEPRECATED** set to false if genuinely could take a long time (e.g., more than about 5s?); but this requires websocket be setup, so more likely to fail or be slower.
+            env             : undefined  # extra environment variables
             cb              : required   # cb(err, {stdout:..., stderr:..., exit_code:..., time:[time from client POV in ms]}).
 
         start_time = new Date()
@@ -1299,6 +1317,7 @@ class exports.Connection extends EventEmitter
                 max_output  : opts.max_output
                 bash        : opts.bash
                 err_on_exit : opts.err_on_exit
+                env         : opts.env
                 aggregate   : opts.aggregate
             opts.cb(undefined, await ws.api.exec(exec_opts))
         catch err
@@ -1369,7 +1388,7 @@ class exports.Connection extends EventEmitter
             query_id : -1     # So we can check that it matches the most recent query
             limit    : 20
             timeout  : DEFAULT_TIMEOUT
-            active   : '6 months'
+            active   : '13 months'
             admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
             cb       : required
 
@@ -1795,6 +1814,9 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
+    synctable2: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable(query, options, @, throttle_changes)
+
     # this is async
     symmetric_channel: (name, project_id) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
@@ -1815,6 +1837,19 @@ class exports.Connection extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
+    sync_string2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+        opts.client = @
+        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
+        return new SyncString2(opts)
+
     sync_db: (opts) =>
         opts = defaults opts,
             project_id      : required
@@ -1827,6 +1862,21 @@ class exports.Connection extends EventEmitter
             save_interval   : 2000    # amount to debounce saves (in ms)
         opts.client = @
         return new db_doc.SyncDB(opts)
+
+    sync_db2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            primary_keys      : required
+            string_cols       : []
+        opts.client = @
+        SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
+        return new SyncDB2(opts)
 
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
@@ -1900,7 +1950,13 @@ class exports.Connection extends EventEmitter
                 query   : opts.query
                 options : opts.options
                 standby : opts.standby
-                cb      : opts.cb
+                cb      : (err, resp) =>
+                    if not err or not opts.standby
+                        opts.cb?(err, resp)
+                        return
+                    console.warn("query err and is standby; try again without standby.")
+                    opts.standby = false
+                    @query(opts)
             return
 
         #@__query_id ?= 0; @__query_id += 1; id = @__query_id
@@ -1954,6 +2010,28 @@ class exports.Connection extends EventEmitter
             opts.cb(undefined, resp)
         catch err
             opts.cb(err)
+
+    touch_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        if not @account_id?
+            # silently ignore if not signed in
+            opts.cb?()
+            return
+        # Throttle -- so if this function is called with the same project_id
+        # twice in 60s, it's ignored (to avoid unnecessary network traffic).
+        @_touch_project_throttle ?= {}
+        last = @_touch_project_throttle[opts.project_id]
+        if last? and new Date().valueOf() - last <= 60000
+            opts.cb?()
+            return
+        @_touch_project_throttle[opts.project_id] = new Date().valueOf()
+        @call
+            allow_post  : true
+            message     : message.touch_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
 
 
 #################################################

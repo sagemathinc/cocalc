@@ -295,7 +295,14 @@ if ENABLED and window.console?
     wrapFunction(console, "error", (-> sendLogLine("error", arguments)))
 
 if ENABLED
-    window.addEventListener("unhandledrejection",(e) -> reportException(e.reason,"unhandledrejection"))
+    window.addEventListener "unhandledrejection",(e) ->
+        # just to make sure there is a message
+        reason = e.reason ? '<no reason>'
+        if typeof(reason) == 'object'
+            misc = require('smc-util/misc')
+            reason = "#{reason.stack ? reason.message ? misc.trunc_middle(misc.to_json(reason), 1000)}"
+        e.message = "unhandledrejection: #{reason}"
+        reportException(e, "unhandledrejection")
 
 # public API
 

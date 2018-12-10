@@ -13,7 +13,7 @@ import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 import { ErrorStyles } from "../frame-tree/types";
 
-import { copy, is_different } from "../generic/misc";
+import { copy, is_different } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
@@ -29,6 +29,7 @@ interface FrameTreeEditorReactProps {
 
 interface FrameTreeEditorReduxProps {
   editor_settings?: Map<string, any>;
+  terminal?: Map<string, any>;
   is_public: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
@@ -48,6 +49,7 @@ interface FrameTreeEditorReduxProps {
   gutter_markers: Map<string, any>;
   settings: Map<string, any>;
   complete: Map<string, any>;
+  derived_file_types: Set<string>;
 }
 
 type FrameTreeEditorProps = FrameTreeEditorReactProps &
@@ -74,7 +76,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   static reduxProps({ name }) {
     return {
       account: {
-        editor_settings: rtypes.immutable.Map
+        editor_settings: rtypes.immutable.Map,
+        terminal: rtypes.immutable.Map
       },
       [name]: {
         is_public: rtypes.bool.isRequired,
@@ -100,7 +103,9 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         settings: rtypes.immutable.Map.isRequired,
 
-        complete: rtypes.immutable.Map.isRequired
+        complete: rtypes.immutable.Map.isRequired,
+
+        derived_file_types: rtypes.immutable.Set
       }
     };
   }
@@ -137,8 +142,10 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           "is_saving",
           "gutter_markers",
           "editor_settings",
+          "terminal",
           "settings",
-          "complete"
+          "complete",
+          "derived_file_types"
         ]
       ) ||
       this.props.editor_settings.get("extra_button_bar") !==
@@ -193,9 +200,11 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           is_saving={this.props.is_saving}
           gutter_markers={this.props.gutter_markers}
           editor_settings={this.props.editor_settings}
+          terminal={this.props.terminal}
           settings={this.props.settings}
           status={this.props.status}
           complete={this.props.complete}
+          derived_file_types={this.props.derived_file_types}
         />
       </div>
     );
@@ -225,13 +234,13 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
   }
 
   render_status_bar(): Rendered {
-    let status: string;
     if (!this.props.is_loaded) {
-      status = `Waiting for ${this.props.path}...`;
-    } else {
-      status = this.props.status;
+      return;
     }
-    return <StatusBar status={status} />;
+    if (!this.props.status) {
+      return;
+    }
+    return <StatusBar status={this.props.status} />;
   }
 
   render_loading(): Rendered {

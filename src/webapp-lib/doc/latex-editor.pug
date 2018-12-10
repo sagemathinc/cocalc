@@ -3,7 +3,10 @@
 extends ../_base.pug
 
 block vars
-  - var subtitle = 'Online LaTeX Editor';
+  -
+    navbar_active = 'features';
+    subnavbar_active = 'latex';
+    subtitle = 'Online LaTeX Editor';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -280,9 +283,9 @@ block content
           div.
             You can configure if your published files should be listed publicly, or rather only be available via a confidential URL.
 
-  div
-    div.container
-      div.row
-        div.col-sm-12.center(style="margin-top: 6rem")
-          +start_button
 
+  div.container
+    div.row(style="margin-top: 6rem")
+      +start_free
+      div.col-sm-12.center
+        +start_button

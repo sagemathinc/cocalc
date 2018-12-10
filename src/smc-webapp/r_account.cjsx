@@ -30,6 +30,8 @@
 {ColorPicker} = require('./colorpicker')
 {Avatar} = require('./other-users')
 {ProfileImageSelector} = require('./r_profile_image')
+{PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
+{JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 
 md5 = require('md5')
 
@@ -679,6 +681,8 @@ DeleteAccountConfirmation = rclass
             Are you sure you want to DELETE YOUR ACCOUNT?<br/>
             You will <span style={fontWeight:'bold'}>immediately</span> lose access to <span style={fontWeight:'bold'}>all</span> of your projects, and any subscriptions will be canceled.<br/>
             <hr style={marginTop:'10px', marginBottom:'10px'}/>
+            Do NOT delete your account if you are a current student in a course on CoCalc! <a href="https://github.com/sagemathinc/cocalc/issues/3243" target="_blank">Why?</a>
+            <hr style={marginTop:'10px', marginBottom:'10px'}/>
             To DELETE YOUR ACCOUNT, enter your first and last name below.
             <FormGroup>
                 <FormControl
@@ -707,6 +711,20 @@ DeleteAccountConfirmation = rclass
                 </Button>
             </ButtonToolbar>
             {@render_error()}
+        </Well>
+
+    # Make this the render function to disable account deletion
+    xxx_render: ->
+        <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
+            To delete your account, contact us at <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>{" "}
+            or open a support request by clicking "Help" in the top right menu.<br/>
+            <Button
+                style = {marginTop:'5px'}
+                bsStyle = 'primary'
+                onClick = {@props.cancel_click}
+            >
+                Cancel
+            </Button>
         </Well>
 
 ###
@@ -787,32 +805,32 @@ TerminalSettings = rclass
     handleChange: (obj) ->
         @props.redux.getTable('account').set(terminal: obj)
 
+    render_color_scheme: ->
+        <LabeledRow label='Terminal color scheme'>
+            <SelectorInput
+                selected  = {@props.terminal.get('color_scheme')}
+                options   = {TERMINAL_COLOR_SCHEMES}
+                on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+            />
+        </LabeledRow>
+
+    render_font_family: ->
+        return  # disabled due to https://github.com/sagemathinc/cocalc/issues/3304
+        <LabeledRow label='Terminal font family'>
+            <SelectorInput
+                selected  = {@props.terminal.get('font')}
+                options   = {TERMINAL_FONT_FAMILIES}
+                on_change = {(font)=>@handleChange(font:font)}
+            />
+        </LabeledRow>
+
+
     render: ->
         if not @props.terminal?
             return <Loading />
-        <Panel header={<h2> <Icon name='terminal' /> Terminal settings <span className='lighten'>(applied to newly opened terminals)</span></h2>}>
-            <LabeledRow label='Terminal font size'>
-                <NumberInput
-                    on_change = {(font_size)=>@handleChange(font_size:font_size)}
-                    min       = {3}
-                    max       = {80}
-                    number    = {@props.terminal.get('font_size')}
-                    unit      = "px" />
-            </LabeledRow>
-            <LabeledRow label='Terminal font family'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('font')}
-                    options   = {TERMINAL_FONT_FAMILIES}
-                    on_change = {(font)=>@handleChange(font:font)}
-                />
-            </LabeledRow>
-            <LabeledRow label='Terminal color scheme'>
-                <SelectorInput
-                    selected  = {@props.terminal.get('color_scheme')}
-                    options   = {TERMINAL_COLOR_SCHEMES}
-                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
-                />
-            </LabeledRow>
+        <Panel header={<h2> <Icon name='terminal' /> Terminal settings</h2>}>
+            {@render_color_scheme()}
+            {@render_font_family()}
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
@@ -832,13 +850,14 @@ EDITOR_SETTINGS_CHECKBOXES =
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
     build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
-    jupyter_classic           : <span>use classical Jupyter notebook <a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>(DANGER: this can cause trouble...)</a></span>
+    jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass
     displayName : 'Account-EditorSettingsCheckboxes'
 
     propTypes :
         editor_settings : rtypes.immutable.Map.isRequired
+        email_address : rtypes.string
         on_change       : rtypes.func.isRequired
 
     shouldComponentUpdate: (props) ->
@@ -851,6 +870,8 @@ EditorSettingsCheckboxes = rclass
         </span>
 
     render_checkbox: (name, desc) ->
+        if @props.email_address?.indexOf('minervaproject.com') != -1 and name == 'jupyter_classic'
+            return
         <Checkbox checked  = {@props.editor_settings.get(name)}
                key      = {name}
                ref      = {name}
@@ -1013,6 +1034,46 @@ EditorSettingsKeyboardBindings = rclass
             />
         </LabeledRow>
 
+EditorSettingsPhysicalKeyboard = rclass
+    displayName : 'Account-EditorSettingsPhysicalKeyboard'
+
+    propTypes :
+        physical_keyboard  : rtypes.string.isRequired
+        on_change          : rtypes.func.isRequired
+
+    render: ->
+        if @props.physical_keyboard == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard layout (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {PHYSICAL_KEYBOARDS}
+                    selected  = {@props.physical_keyboard}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+EditorSettingsKeyboardVariant = rclass
+    displayName : 'Account-EditorSettingsKeyboardVariant'
+
+    propTypes :
+        keyboard_variant         : rtypes.string.isRequired
+        on_change                : rtypes.func.isRequired
+        keyboard_variant_options : rtypes.array.isRequired
+
+    render: ->
+        if @props.keyboard_variant == 'NO_DATA'
+            <Loading />
+        else
+            <LabeledRow label='Keyboard variant (for X11 Desktop)'>
+                <SelectorInput
+                    options   = {@props.keyboard_variant_options}
+                    selected  = {@props.keyboard_variant}
+                    on_change = {@props.on_change}
+                />
+            </LabeledRow>
+
+
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
@@ -1021,16 +1082,33 @@ EditorSettings = rclass
         autosave        : rtypes.number
         tab_size        : rtypes.number
         font_size       : rtypes.number
+        email_address   : rtypes.string
         editor_settings : rtypes.immutable.Map
 
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['autosave', 'font_size', 'editor_settings', 'tab_size'])
+
+    get_keyboard_variant_options: (val) ->
+        val ?= @props.editor_settings.get('physical_keyboard')
+        options = misc.deep_copy(KEYBOARD_VARIANTS[val] ? [])
+        options.unshift({value:"", display: "No variant"})
+        return options
 
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
             @props.redux.getTable('account').set("#{name}" : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
+
+        if name == 'physical_keyboard'
+            options = @get_keyboard_variant_options(val)
+            @actions('account').setState(keyboard_variant_options: options)
+            for opt in options
+                if opt.value == 'nodeadkeys'
+                    @on_change('keyboard_variant', opt.value)
+                    return
+            # otherwise, select default
+            @on_change('keyboard_variant', '')
 
     render: ->
         if not @props.editor_settings?
@@ -1046,8 +1124,12 @@ EditorSettings = rclass
                 on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.get('theme')} />
             <EditorSettingsKeyboardBindings
                 on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.get('bindings')} />
+            <EditorSettingsPhysicalKeyboard
+                on_change={(value)=>@on_change('physical_keyboard',value)} physical_keyboard={@props.editor_settings.get('physical_keyboard')} />
+            <EditorSettingsKeyboardVariant
+                on_change={(value)=>@on_change('keyboard_variant',value)} keyboard_variant={@props.editor_settings.get('keyboard_variant')} keyboard_variant_options = {@get_keyboard_variant_options()} />
             <EditorSettingsCheckboxes
-                on_change={@on_change} editor_settings={@props.editor_settings} />
+                on_change={@on_change} editor_settings={@props.editor_settings} email_address={@props.email_address}/>
         </Panel>
 
 KEYBOARD_SHORTCUTS =
@@ -1292,20 +1374,6 @@ exports.AccountSettingsTop = rclass
                         everywhere             = {@props.everywhere}
                         other_settings         = {@props.other_settings}
                         redux                  = {@props.redux} />
-                    <TerminalSettings
-                        terminal = {@props.terminal}
-                        redux    = {@props.redux} />
-                    <KeyboardSettings
-                        evaluate_key = {@props.evaluate_key}
-                        redux        = {@props.redux} />
-                </Col>
-                <Col xs={12} md={6}>
-                    <EditorSettings
-                        autosave        = {@props.autosave}
-                        tab_size        = {@props.tab_size}
-                        font_size       = {@props.font_size}
-                        editor_settings = {@props.editor_settings}
-                        redux           = {@props.redux} />
                     <OtherSettings
                         other_settings     = {@props.other_settings}
                         is_stripe_customer = {@props.stripe_customer?}
@@ -1316,6 +1384,21 @@ exports.AccountSettingsTop = rclass
                         last_name     = {@props.last_name}
                         redux         = {@props.redux} />
                 </Col>
+                <Col xs={12} md={6}>
+                    <EditorSettings
+                        autosave        = {@props.autosave}
+                        tab_size        = {@props.tab_size}
+                        font_size       = {@props.font_size}
+                        editor_settings = {@props.editor_settings}
+                        email_address   = {@props.email_address}
+                        redux           = {@props.redux} />
+                    <TerminalSettings
+                        terminal = {@props.terminal}
+                        redux    = {@props.redux} />
+                    <KeyboardSettings
+                        evaluate_key = {@props.evaluate_key}
+                        redux        = {@props.redux} />
+                </Col>
             </Row>
             <Footer/>
         </div>
@@ -1325,6 +1408,14 @@ f = () ->
     $.get "#{window.app_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
+
+            ###
+            # Pro Tip:
+            # Type the following in the javascript console to make all strategy
+            # buttons appear, purely for UI testing:
+            #  smc.redux.getActions('account').setState({strategies:["email","facebook","github","google","twitter"]})
+            ###
+
             # OPTIMIZATION: this forces re-render of the strategy part of the component above!
             # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.

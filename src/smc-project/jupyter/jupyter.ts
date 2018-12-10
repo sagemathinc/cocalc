@@ -23,7 +23,6 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
-import kernelspecs from "kernelspecs";
 import { exists, unlink } from "./async-utils-node";
 import * as pidusage from "pidusage";
 
@@ -50,7 +49,7 @@ import {
 
 import { remove_redundant_reps } from "../smc-webapp/jupyter/import-from-ipynb";
 
-import { retry_until_success } from "../smc-webapp/frame-editors/generic/async-utils";
+import { retry_until_success } from "../smc-util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";
@@ -167,7 +166,6 @@ export class JupyterKernel extends EventEmitter
   private _directory: string;
   private _filename: string;
   private _identity: string;
-  private _start_time: number;
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
@@ -195,7 +193,6 @@ export class JupyterKernel extends EventEmitter
     this._filename = tail;
     this._set_state("off");
     this._identity = uuid();
-    this._start_time = new Date().valueOf();
     this._execute_code_queue = [];
     if (_jupyter_kernels[this._path] !== undefined) {
       // This happens when we change the kernel for a given file, e.g., from python2 to python3.
@@ -709,6 +706,14 @@ export class JupyterKernel extends EventEmitter
     }
     this._kernel_info = info;
     return info;
+  }
+
+  async save_ipynb_file(): Promise<void> {
+    if (this._actions != null) {
+      await callback(this._actions.save_ipynb_file);
+    } else {
+      throw Error("save_ipynb_file -- ERROR: actions not known");
+    }
   }
 
   more_output(id: string): any[] {

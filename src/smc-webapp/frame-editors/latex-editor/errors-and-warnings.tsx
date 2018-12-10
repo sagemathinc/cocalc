@@ -3,7 +3,7 @@ Show errors and warnings.
 */
 
 import { Map } from "immutable";
-import { capitalize, is_different, path_split } from "../generic/misc";
+import { capitalize, is_different, path_split } from "smc-util/misc2";
 import {
   Component,
   React,
@@ -183,7 +183,9 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       this.props.build_logs.getIn(["latex", "parse"]) !=
         props.build_logs.getIn(["latex", "parse"]) ||
       this.props.build_logs.getIn(["knitr", "parse"]) !=
-        props.build_logs.getIn(["knitr", "parse"])
+        props.build_logs.getIn(["knitr", "parse"]) ||
+      this.props.build_logs.getIn(["pythontex", "parse"]) !=
+        props.build_logs.getIn(["pythontex", "parse"])
     );
   }
 
@@ -274,6 +276,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
           this.render_group("latex", group)
         )}
         {["errors", "warnings"].map(group => this.render_group("knitr", group))}
+        {this.render_group("pythontex", "errors")}
       </div>
     );
   }

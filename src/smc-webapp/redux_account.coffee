@@ -85,13 +85,14 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setState(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    create_account: (first_name, last_name, email, password, token) =>
+    create_account: (first_name, last_name, email, password, token, usage_intent) =>
         @setState(signing_up: true)
         webapp_client.create_account
             first_name      : first_name
             last_name       : last_name
             email_address   : email
             password        : password
+            usage_intent    : usage_intent
             agreed_to_terms : true
             token           : token
             utm             : get_utm()
@@ -300,6 +301,7 @@ class AccountStore extends Store
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
 # ... except for show_global_info2 (null or a timestamp)
 init.other_settings.show_global_info2 = 'loading' # indicates there is no data yet
+init.editor_settings.physical_keyboard = 'NO_DATA' # indicator that there is no data
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 store = redux.createStore('account', AccountStore, init)
 

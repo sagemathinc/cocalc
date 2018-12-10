@@ -13,8 +13,8 @@ export const redux = redux0;
 const default_project_id: string = "98e85b9b-51bb-4889-be47-f42698c37ed4";
 
 import { delay } from "awaiting";
-import { uuid } from "../../generic/misc";
-import { callback_opts } from "../../generic/async-utils";
+import { uuid } from "smc-util/misc2";
+import { callback_opts } from "smc-util/async-utils";
 import { read_text_file_from_project } from "../../generic/client";
 
 interface ReduxData {

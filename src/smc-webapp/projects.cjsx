@@ -45,7 +45,8 @@ TODO:  This entire file should be broken into many small files/components,
 which are in the projects/ subdirectory.
 ###
 {NewProjectCreator} = require('./projects/create-project')
-{ProjectRow}        = require('./projects/project')
+{ProjectRow}        = require('./projects/project-row')
+{ProjectsFilterButtons} = require('./projects/projects-filter-buttons')
 
 MAX_DEFAULT_PROJECTS = 50
 
@@ -215,20 +216,21 @@ class ProjectsActions extends Actions
     # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
-            project_id   : required  # string  id of the project to open
-            target       : undefined # string  The file path to open
-            switch_to    : true      # bool    Whether or not to foreground it
-            ignore_kiosk : false     # bool    Ignore ?fullscreen=kiosk
+            project_id     : required  # string  id of the project to open
+            target         : undefined # string  The file path to open
+            switch_to      : true      # bool    Whether or not to foreground it
+            ignore_kiosk   : false     # bool    Ignore ?fullscreen=kiosk
+            change_history : true      # bool    Whether or not to alter browser history
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
         if not relation? or relation in ['public', 'admin']
             @fetch_public_project_title(opts.project_id)
         project_actions.fetch_directory_listing()
-        redux.getActions('page').set_active_tab(opts.project_id) if opts.switch_to
+        redux.getActions('page').set_active_tab(opts.project_id, opts.change_history) if opts.switch_to
         @set_project_open(opts.project_id)
         if opts.target?
-            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk)
+            redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
         redux.getActions('page').restore_session(opts.project_id)
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
@@ -251,7 +253,7 @@ class ProjectsActions extends Actions
         redux.getActions('page').save_session()
 
     # should not be in projects...?
-    load_target: (target, switch_to, ignore_kiosk=false) =>
+    load_target: (target, switch_to, ignore_kiosk=false, change_history=true) =>
         #if DEBUG then console.log("projects actions/load_target: #{target}")
         if not target or target.length == 0
             redux.getActions('page').set_active_tab('projects')
@@ -261,14 +263,15 @@ class ProjectsActions extends Actions
             t = segments.slice(1).join('/')
             project_id = segments[0]
             @open_project
-                project_id   : project_id
-                target       : t
-                switch_to    : switch_to
-                ignore_kiosk : ignore_kiosk
+                project_id     : project_id
+                target         : t
+                switch_to      : switch_to
+                ignore_kiosk   : ignore_kiosk
+                change_history : change_history
 
     # Put the given project in the foreground
-    foreground_project: (project_id) =>
-        redux.getActions('page').set_active_tab(project_id)
+    foreground_project: (project_id, change_history=true) =>
+        redux.getActions('page').set_active_tab(project_id, change_history)
 
         redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
@@ -336,6 +339,7 @@ class ProjectsActions extends Actions
     # Collaborators
     ###
     remove_collaborator: (project_id, account_id) =>
+        name = redux.getStore('users').get_name(account_id)
         webapp_client.project_remove_collaborator
             project_id : project_id
             account_id : account_id
@@ -343,6 +347,10 @@ class ProjectsActions extends Actions
                 if err # TODO: -- set error in store for this project...
                     err = "Error removing collaborator #{account_id} from #{project_id} -- #{err}"
                     alert_message(type:'error', message:err)
+                else
+                    @redux.getProjectActions(project_id).log
+                        event    : 'remove_collaborator'
+                        removed_name : name
 
     # this is for inviting existing users, the email is only known by the back-end
     invite_collaborator: (project_id, account_id, body, subject, silent, replyto, replyto_name) =>
@@ -497,6 +505,12 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id : project_id
             deleted    : not is_deleted
+
+    display_hidden_projects: (should_display) =>
+        @setState(hidden: should_display)
+
+    display_deleted_projects: (should_display) =>
+        @setState(deleted: should_display)
 
 # Define projects store
 class ProjectsStore extends Store
@@ -796,43 +810,6 @@ class ProjectsTable extends Table
         actions.setState(project_map: table.get())
 
 redux.createTable('projects', ProjectsTable)
-
-ProjectsFilterButtons = rclass
-    displayName : 'ProjectsFilterButtons'
-
-    propTypes :
-        hidden              : rtypes.bool.isRequired
-        deleted             : rtypes.bool.isRequired
-        show_hidden_button  : rtypes.bool
-        show_deleted_button : rtypes.bool
-
-    getDefaultProps: ->
-        hidden  : false
-        deleted : false
-        show_hidden_button : false
-        show_deleted_button : false
-
-    render_deleted_button: ->
-        style = if @props.deleted then 'warning' else "default"
-        if @props.show_deleted_button
-            <Button onClick={=>@actions('projects').setState(deleted: not @props.deleted)} bsStyle={style}>
-                <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
-            </Button>
-        else
-            return null
-
-    render_hidden_button: ->
-        style = if @props.hidden then 'warning' else "default"
-        if @props.show_hidden_button
-            <Button onClick = {=>@actions('projects').setState(hidden: not @props.hidden)} bsStyle={style}>
-                <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
-            </Button>
-
-    render: ->
-        <ButtonGroup>
-            {@render_deleted_button()}
-            {@render_hidden_button()}
-        </ButtonGroup>
 
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'

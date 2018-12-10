@@ -2043,7 +2043,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'rnw', 'rtex', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
@@ -2175,8 +2175,6 @@ exports.ProjectFiles = rclass ({name}) ->
             current_path : @props.current_path
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
-        if not switch_over
-            @props.actions.fetch_directory_listing()
 
     create_folder: (switch_over=true) ->
         @props.actions.create_folder
@@ -2184,8 +2182,6 @@ exports.ProjectFiles = rclass ({name}) ->
             current_path : @props.current_path
             switch_over  : switch_over
         @props.actions.setState(file_search : '', page_number: 0)
-        if not switch_over
-            @props.actions.fetch_directory_listing()
 
     render_paging_buttons: (num_pages) ->
         if num_pages > 1
@@ -2335,7 +2331,7 @@ exports.ProjectFiles = rclass ({name}) ->
             return <div>
                 {e}
                 <br />
-                <Button onClick={@update_current_listing}>
+                <Button onClick={() => @props.actions.fetch_directory_listing()}>
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
@@ -2371,13 +2367,9 @@ exports.ProjectFiles = rclass ({name}) ->
                 />
             </SMC_Dropwrapper>
         else
-            @update_current_listing()
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
                 <Loading />
             </div>
-
-    update_current_listing: ->
-        setTimeout(@props.actions.fetch_directory_listing, 0)
 
     start_project: ->
         @actions('projects').start_project(@props.project_id)

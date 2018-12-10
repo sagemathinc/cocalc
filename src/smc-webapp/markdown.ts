@@ -4,6 +4,8 @@ Conversion from Markdown *to* HTML, trying not to horribly mangle math.
 
 import * as MarkdownIt from "markdown-it";
 
+const MarkdownItFrontMatter = require("markdown-it-front-matter");
+
 const misc = require("smc-util/misc");
 
 import { math_escape, math_unescape } from "smc-util/markdown-utils";
@@ -39,7 +41,15 @@ See https://github.com/sagemathinc/cocalc/issues/2863
 for another example where remove_math is annoying.
 */
 
-export function markdown_to_html(markdown_string: string): string {
+export interface MD2html {
+  html: string;
+  frontmatter: string;
+}
+
+function process(
+  markdown_string: string,
+  mode: "default" | "frontmatter"
+): MD2html {
   let text: string;
   let math: string[];
   // console.log(0, JSON.stringify(markdown_string));
@@ -48,14 +58,36 @@ export function markdown_to_html(markdown_string: string): string {
   // console.log(2, JSON.stringify(text), JSON.stringify(math));
   // Process checkboxes [ ].
   text = checkboxes(text);
-  // Render text to HTML.
-  let html: string = markdown_it.render(text);
+
+  let html: string;
+  let frontmatter = "";
+
+  // avoid instantiating a new markdown object for normal md processing
+  if (mode == "frontmatter") {
+    const md_frontmatter = new MarkdownIt(OPTIONS).use(
+      MarkdownItFrontMatter,
+      fm => {
+        frontmatter = fm;
+      }
+    );
+    html = md_frontmatter.render(text);
+  } else {
+    html = markdown_it.render(text);
+  }
+
   // console.log(3, JSON.stringify(html));
   // Substitute processed math back in.
   html = replace_math(html, math);
   // console.log(4, JSON.stringify(html));
   html = math_unescape(html);
   // console.log(5, JSON.stringify(html));
+  return { html, frontmatter };
+}
 
-  return html;
+export function markdown_to_html_frontmatter(s: string): MD2html {
+  return process(s, "frontmatter");
+}
+
+export function markdown_to_html(s: string): string {
+  return process(s, "default").html;
 }

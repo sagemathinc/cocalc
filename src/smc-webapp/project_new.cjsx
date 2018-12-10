@@ -152,11 +152,15 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         <div>
             <Row style={row_style}>
                 <Col sm={6}>
-                    <Tip icon='file-code-o' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
-                        <NewFileButton icon='file-code-o' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
+                    <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                        <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
-                    <Tip icon='file-code-o' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
-                        <NewFileButton icon='file-code-o' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
+                    <Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
+                        <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
+                    </Tip>
+                    <Tip title='RMarkdown File'  icon='cc-icon-r'
+                        tip='RMarkdown document with real-time preview.'>
+                        <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
                     </Tip>
                 </Col>
                 <Col sm={6}>
@@ -194,6 +198,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <Tip title='Stopwatch'   icon='stopwatch'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
                         <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
+                    </Tip>
+                    <Tip title='X11 Desktop'   icon='window-restore'
+                        tip='Create an X11 desktop for running graphical applications.'>
+                        <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
                     </Tip>
                 </Col>
                 <Col sm={6}>

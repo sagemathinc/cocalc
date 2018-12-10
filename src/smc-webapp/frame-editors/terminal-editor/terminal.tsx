@@ -2,11 +2,16 @@
 A single terminal frame.
 */
 
-declare const Terminal: any;
+import { Map } from "immutable";
+import { ResizeObserver } from "resize-observer";
+
+import { Terminal } from "./connected-terminal";
 
 import { throttle } from "underscore";
 
-import { is_different } from "../generic/misc";
+import { background_color } from "./themes";
+
+import { is_different } from "smc-util/misc2";
 
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
 
@@ -17,85 +22,112 @@ interface Props {
   project_id: string;
   font_size: number;
   editor_state: any;
+  is_current: boolean;
+  terminal: Map<string, any>;
 }
 
 export class TerminalFrame extends Component<Props, {}> {
   static displayName = "TerminalFrame";
 
-  private terminal: any;
+  private terminal: Terminal;
+  private is_mounted: boolean = false;
 
   shouldComponentUpdate(next): boolean {
     return is_different(this.props, next, [
       "id",
       "project_id",
       "path",
-      "font_size"
+      "font_size",
+      "terminal"
     ]);
   }
 
-  on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(this.refs.scroll);
-    if (elt == null) {
-      return;
+  componentWillReceiveProps(next: Props): void {
+    if (this.props.font_size !== next.font_size) {
+      this.set_font_size(next.font_size);
     }
-    const scroll = $(elt).scrollTop();
-    this.props.actions.save_editor_state(this.props.id, { scroll });
+    if (!this.props.is_current && next.is_current) {
+      this.terminal.focus();
+    }
   }
 
   componentDidMount(): void {
-    this.restore_scroll();
+    this.is_mounted = true;
+    this.set_font_size = throttle(this.set_font_size, 500);
     this.init_terminal();
+    this.terminal.is_mounted = true;
+    this.measure_size = this.measure_size.bind(this);
   }
 
   componentWillUnmount(): void {
+    this.is_mounted = false;
     if (this.terminal !== undefined) {
-      $(this.terminal.element).remove();
+      this.terminal.element.remove();
+      this.terminal.is_mounted = false;
+      // Ignore size for this terminal.
+      this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
+      delete this.terminal;
     }
   }
 
   init_terminal(): void {
     const node: any = ReactDOM.findDOMNode(this.refs.terminal);
     if (node == null) {
-      return;
+      throw Error("refs.terminal MUST be defined");
     }
-    const terminal = this.props.actions._get_terminal(this.props.id);
-    if(terminal != null) {
-      this.terminal = terminal;
-    } else {
-      this.terminal = new Terminal();
-      this.terminal.open();
-      this.terminal.resize(140,25);
-      this.props.actions.set_terminal(this.props.id, this.terminal);
+    this.terminal = this.props.actions._get_terminal(this.props.id, node);
+    this.set_font_size(this.props.font_size);
+    this.measure_size();
+    new ResizeObserver(() => this.measure_size()).observe(node);
+    if (this.props.is_current) {
+      this.terminal.focus();
     }
-    const elt = $(this.terminal.element)
-    elt.css('width', '100%');
-    elt.appendTo($(node));
-    this.terminal.element.className = "webapp-console-terminal";
+    // Get rid of browser context menu, which makes no sense on a canvas.
+    // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
+    // NOTE: this would probably make sense in DOM mode instead of canvas mode;
+    // if we switch, disable this...
+    // Well, this context menu is still silly. Always disable it.
+    if (true || this.terminal.rendererType != "dom") {
+      $(node).bind("contextmenu", function() {
+        return false;
+      });
+    }
+
+    // TODO: Obviously restoring the exact scroll position would be better...
+    this.terminal.scroll_to_bottom();
   }
 
-  async restore_scroll(): Promise<void> {
-    const scroll = this.props.editor_state.get("scroll");
-    const elt = $(ReactDOM.findDOMNode(this.refs.scroll));
-    if (elt.length === 0) return;
-    elt.scrollTop(scroll);
+  async set_font_size(font_size: number): Promise<void> {
+    if (this.terminal == null || !this.is_mounted) {
+      return;
+    }
+    if (this.terminal.getOption("fontSize") !== font_size) {
+      this.terminal.set_font_size(font_size);
+      this.measure_size();
+    }
+  }
+
+  measure_size(): void {
+    if (this.terminal == null || !this.is_mounted) {
+      return;
+    }
+    this.terminal.measure_size();
   }
 
   render(): Rendered {
+    const color = background_color(this.props.terminal.get("color_scheme"));
+    /* 4px padding is consistent with CodeMirror */
     return (
       <div
-        style={{
-          overflowY: "scroll",
-          width: "100%"
+        className={"smc-vfill"}
+        style={{ backgroundColor: color, padding: "0 0 0 4px" }}
+        onClick={() => {
+          /* otherwise, clicking right outside term defocuses,
+             which is confusing */
+          this.terminal.focus();
         }}
-        ref={"scroll"}
-        onScroll={throttle(() => this.on_scroll(), 250)}
-        className={
-          "cocalc-editor-div"
-        } /* this cocalc-editor-div class is needed for a safari hack only */
       >
-        <div
-          ref={"terminal"}
-        />
+        <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />
       </div>
     );
   }

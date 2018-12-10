@@ -6,8 +6,6 @@
 #
 ###############################################################################
 
-require('coffee-cache')
-
 misc = require('../misc')
 underscore = require('underscore')
 immutable = require('immutable')
@@ -92,6 +90,9 @@ describe "sinon", ->
 describe 'seconds2hms', ->
     s2hms = misc.seconds2hms
     s2hm  = misc.seconds2hm
+    m = 60 # one minute
+    h = 60 * m # one hour
+    d = 24 * h # one day
     it 'converts to short form', ->
         expect(s2hms(0)).toEqual '0s'
         expect(s2hms(60)).toEqual '1m0s'
@@ -117,6 +118,16 @@ describe 'seconds2hms', ->
         expect(s2hm(3601, true)).toEqual '1 hour'
         expect(s2hm(7300, true)).toEqual '2 hours 1 minute'
         expect(s2hm(36000, true)).toEqual '10 hours'
+    it 'converts to short form in days resolution', ->
+        expect(s2hm(d + 2 * h + 1 * m)).toEqual '1d2h1m'
+        expect(s2hm(21 * d + 19 * h - 1)).toEqual '21d18h59m'
+        expect(s2hm(1 * d)).toEqual '1d'
+        expect(s2hm(1 * d + 3 * m)).toEqual '1d3m'
+    it 'converts to long form in hour days resolution', ->
+        expect(s2hm(1 * d + 2 * h + 1 * m, true)).toEqual '1 day 2 hours 1 minute'
+        expect(s2hm(21 * d + 19 * h - 1, true)).toEqual '21 days 18 hours 59 minutes'
+        expect(s2hm(1 * d, true)).toEqual '1 day'
+        expect(s2hm(1 * d + 3 * m, true)).toEqual '1 day 3 minutes'
 
 describe 'startswith', ->
     startswith = misc.startswith
@@ -229,13 +240,13 @@ describe "min_object of target and upper_bound", ->
     upper_bound = {a:5, b:20, xyz:-2}
     it "modifies target in place", ->
         target = {a:7, b:15, xyz:5.5}
-        # the return value are just the values
-        mo(target, upper_bound).should.eql [ 5, 15, -2 ]
+        exp = { a: 5, b: 15, xyz: -2 }
+        mo(target, upper_bound).should.eql exp
         target.should.eql {a:5, b:15, xyz:-2}
     it "works without a target", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
-        mo().should.be.eql []
+        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge
@@ -696,6 +707,18 @@ describe "parse_user_search", ->
     it "also handles mixed queries and spaces", ->
         exp = {email_queries: ["foo+bar@baz.com", "xyz@mail.com"], string_queries: [["john", "doe"]]}
         pus("   foo+bar@baz.com   , John   Doe  ; <xyz@mail.com>").should.eql exp
+    it "works with line breaks, too", ->
+        exp =
+            email_queries: ["foo@bar.com", "baz+123@cocalc.com", "jd@cocalc.com"]
+            string_queries: [ ["john", "doe"],  ["dr.", "foo", "bar", "baz"]]
+        query = """
+                foo@bar.com
+                baz+123@cocalc.com
+                John Doe
+                Dr. Foo Bar BAZ
+                Jane Dae <jd@cocalc.com>
+                """
+        pus(query).should.eql(exp)
 
 describe "delete_trailing_whitespace", ->
     dtw = misc.delete_trailing_whitespace
@@ -1225,7 +1248,9 @@ describe "ticket_id_to_ticket_url", ->
         y.should.match /^http/
         y.should.match /123/
 
-describe "map_limit limits the values of a by the values in b or by b if b is a number", ->
+describe "map_min limits the values of a by the values in b or by b if b is a number", ->
+    it "map_min == map_limit", ->
+        misc.map_limit.should.eql misc.map_min
     it "Limits by a map with similar keys", ->
         a = {'x': 8, 'y': -1, 'z': 5}
         b = {'x': 4.4, 'y': 2.2}
@@ -1236,6 +1261,18 @@ describe "map_limit limits the values of a by the values in b or by b if b is a 
         b = 0
         e = {'x': 0, 'y': -1, 'z': 0}
         misc.map_limit(a, b).should.eql e
+
+describe "map_max is similar to map_min", ->
+    it "Limits by a map with similar keys", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = {'x': 4.4, 'y': 2.2}
+        e = {'x': 8, 'y': 2.2, 'z': 5}
+        misc.map_max(a, b).should.eql e
+    it "Limits by a number", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = 0
+        e = {'x': 8, 'y': 0, 'z': 5}
+        misc.map_max(a, b).should.eql e
 
 describe 'is_valid_email_address is', ->
     valid = misc.is_valid_email_address

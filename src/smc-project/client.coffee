@@ -21,8 +21,8 @@ as a result.
 # not active for this long (should be at least 5 minutes).  Longer is better since
 # it reduces how long a user might have to wait for save, etc.,
 # but it slightly increases database work (managing a changefeed).
-SYNCSTRING_MAX_AGE_M = 7
-#SYNCSTRING_MAX_AGE_M = 1 # TESTING
+SYNCSTRING_MAX_AGE_M = 10
+# SYNCSTRING_MAX_AGE_M = 1 # TESTING
 
 {PROJECT_HUB_HEARTBEAT_INTERVAL_S} = require('smc-util/heartbeat')
 
@@ -389,7 +389,10 @@ class exports.Client extends EventEmitter
             if not mesg.multi_response
                 delete @_hub_callbacks[mesg.id]
                 delete @_hub_client_sockets[socket.id].callbacks[mesg.id]
-            f(mesg)
+            try
+                f(mesg)
+            catch err
+                dbg("WARNING: error handling message from client. -- #{err}")
             return true
         else
             dbg("no callback")
@@ -507,6 +510,7 @@ class exports.Client extends EventEmitter
 
     # Get the synchronized table defined by the given query.
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
+        #@dbg("sync_table")(JSON.stringify(query))
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
         # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
         #opts = defaults opts,
@@ -536,6 +540,18 @@ class exports.Client extends EventEmitter
         @dbg("sync_string(path='#{opts.path}')")()
         return new syncstring.SyncString(opts)
 
+    sync_string2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            path              : required
+            file_use_interval : 'default'
+            patch_interval    : 1000
+            save_interval     : 2000
+        opts.client = @
+        opts.project_id = @project_id
+        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
+        return new SyncString2(opts)
+
     sync_db: (opts) =>
         opts = defaults opts,
             path            : required
@@ -553,6 +569,21 @@ class exports.Client extends EventEmitter
         opts.project_id = @project_id
         @dbg("sync_db(path='#{opts.path}')")()
         return new db_doc.SyncDB(opts)
+
+    sync_db2: (opts) =>
+        opts = defaults opts,
+            id                : undefined
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            primary_keys      : required
+            string_cols       : []
+        opts.client = @
+        opts.project_id = @project_id
+        SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
+        return new SyncDB2(opts)
 
     symmetric_channel: (name) =>
         return require('./browser-websocket/symmetric_channel').symmetric_channel(name)

@@ -29,7 +29,8 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
-import { retry_until_success } from "../frame-editors/generic/async-utils";
+const { retry_until_success } = require("smc-util/async-utils"); // so also works in project.
+
 import * as awaiting from "awaiting";
 
 const misc = require("smc-util/misc");
@@ -42,6 +43,7 @@ const keyboard = require("./keyboard");
 const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
+const {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 
 // map project_id (string) -> kernels (immutable)
 let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
@@ -84,8 +86,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _last_cursors?: any;
   private _last_start?: any;
   private assistant_actions: any;
-  private path: any;
-  private project_id: any;
+  private path: string;
+  private project_id: string;
   private set_save_status: any;
   private update_keyboard_shortcuts: any;
   private project_conn: any;
@@ -108,12 +110,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public util: any; // TODO: check if this is used publicly
 
   _init = (
-    project_id: any,
-    path: any,
+    project_id: string,
+    path: string,
     syncdb: any,
     store: any,
     client: any
   ) => {
+    if (project_id == null || path == null) {
+      // typescript should ensure this, but just in case.
+      throw Error("type error -- project_id and path can't be null");
+      return;
+    }
     store.dbg = f => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
@@ -266,7 +273,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error("closed");
     }
     return await (await this.init_project_conn()).api.jupyter(
-      this.store.get("path"),
+      this.path,
       endpoint,
       query,
       timeout_ms
@@ -1053,7 +1060,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb.sync();
   };
 
-  save = () => {
+  save = async () => {
     if (this.store.get("read_only")) {
       // can't save when readonly
       return;
@@ -1061,16 +1068,31 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.get("mode") === "edit") {
       this._get_cell_input();
     }
-    // Saves our customer format sync doc-db to disk; the backend will
-    // also save the normal ipynb file to disk right after.
-    this.syncdb.save(() => {
-      return typeof this.set_save_status === "function"
-        ? this.set_save_status()
-        : undefined;
-    });
-    return typeof this.set_save_status === "function"
-      ? this.set_save_status()
-      : undefined;
+    // Save the .ipynb file to disk.  Note that this
+    // *changes* the syncdb by updating the last save time.
+    try {
+      await this._api_call("save_ipynb_file", {});
+      // Now saves our custom-format syncdb to disk.
+      await awaiting.callback(this.syncdb.save);
+    } catch (err) {
+      if (err.toString().indexOf("no kernel with path") != -1) {
+        // This means that the kernel simply hasn't been initialized yet.
+        // User can try to save later, once it has.
+        return;
+      }
+      if (err.toString().indexOf("unknown endpoint") != -1) {
+        this.set_error(
+          "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings."
+        );
+        return;
+      }
+      this.set_error(err.toString());
+    } finally {
+      // And update the save status finally.
+      if (typeof this.set_save_status === "function") {
+        this.set_save_status();
+      }
+    }
   };
 
   save_asap = (): void => {
@@ -2151,11 +2173,22 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   );
 
   _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
-    const data = await this._api_call("kernel_info", {});
-    this.setState({
-      backend_kernel_info: data,
-      // this is when the server for this doc started, not when kernel last started!
-      start_time: data.start_time
+    const f = async () => {
+      if (this._state === "closed") {
+        return;
+      }
+      const data = await this._api_call("kernel_info", {});
+      this.setState({
+        backend_kernel_info: data,
+        // this is when the server for this doc started, not when kernel last started!
+        start_time: data.start_time
+      });
+    };
+    await retry_until_success({
+      max_time: 1000 * 60 * 30,
+      start_delay: 500,
+      max_delay: 3000,
+      f
     });
 
     // Update the codemirror editor options.
@@ -2596,13 +2629,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
     //dbg("kernel in ipynb: name='#{kernel}'")
 
+    const existing_ids = this.store.get("cell_list", immutable.List()).toJS();
+
     if (data_only) {
       trust = undefined;
       set = function() {};
     } else {
       if (typeof this.reset_more_output === "function") {
         this.reset_more_output();
-      } // clear the more output handler (only on backend)
+        // clear the more output handler (only on backend)
+      }
       this.syncdb.delete(undefined, false); // completely empty database
       // preserve trust state across file updates/loads
       trust = this.store.get("trust");
@@ -2624,7 +2660,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     importer.import({
       ipynb,
-      existing_ids: __guard__(this.store.get("cell_list"), x1 => x1.toJS()),
+      existing_ids,
       new_id: this._new_id,
       process_attachment:
         this._jupyter_kernel != null
@@ -3118,7 +3154,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.confirm_dialog({
       title: "Switch to the Classical Notebook?",
       body:
-        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern)",
+        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" + JUPYTER_CLASSIC_MODERN + ")",
       choices: [
         { title: "Switch to Classical Notebook", style: "warning" },
         { title: "Continue using CoCalc Jupyter Notebook", default: true }

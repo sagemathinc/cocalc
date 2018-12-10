@@ -1,4 +1,3 @@
-
 /*
 Customization and selection of the build command.
 
@@ -18,7 +17,7 @@ import {
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { split } from "../generic/misc";
+import { split } from "smc-util/misc2";
 
 import { Engine, build_command } from "./latexmk";
 
@@ -57,9 +56,13 @@ export class BuildCommand extends Component<Props, State> {
     }
   }
 
-  build_command_string(cmd: string | List<string>): string {
+  // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
+  build_command_string(cmd: string | List<string> | undefined): string {
     let s: string;
-    if (typeof cmd === "string") {
+    if (cmd == null) {
+      // cmd is not initialized, see actions._init_config
+      return "";
+    } else if (typeof cmd === "string") {
       s = cmd;
     } else {
       let v: string[] = [];

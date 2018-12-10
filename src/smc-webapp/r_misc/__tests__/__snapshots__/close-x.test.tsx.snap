@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke test close-x it accepts custom styling for the Icon 1`] = `
+<Icon
+  name="times"
+  style={
+    Object {
+      "marginBottom": "12px",
+      "marginTop": "3px",
+    }
+  }
+/>
+`;
+
+exports[`smoke test close-x it renders 1`] = `
+<a
+  href=""
+  onClick={[Function]}
+  style={
+    Object {
+      "float": "right",
+      "marginLeft": "5px",
+    }
+  }
+>
+  <Icon
+    name="times"
+  />
+</a>
+`;

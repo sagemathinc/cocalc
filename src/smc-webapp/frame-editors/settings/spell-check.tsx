@@ -17,7 +17,7 @@ import { DropdownButton, MenuItem } from "react-bootstrap";
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 import { DICTS, dict_desc } from "./aspell-dicts";
 
@@ -41,7 +41,7 @@ export class SpellCheck extends Component<Props, {}> {
         </MenuItem>
       );
       if (lang == "disabled") {
-        v.push(<MenuItem divider key={'div'} />);
+        v.push(<MenuItem divider key={"div"} />);
       }
     }
     return v;
@@ -58,7 +58,7 @@ export class SpellCheck extends Component<Props, {}> {
   render(): Rendered {
     return (
       <div>
-        <span style={{ fontSize: "11pt", paddingRight:'10px' }}>
+        <span style={{ fontSize: "11pt", paddingRight: "10px" }}>
           <b>Spellcheck language</b> for this file (updates on save):
         </span>
         {this.render_dropdown()}

@@ -141,14 +141,14 @@ div#smc-react-container
   .smc-small-only
     display : none
 
-.ui-pnotify-title
-  font-size: 16px;
+//.ui-pnotify-title
+//  font-size: 16px;
 
-.ui-pnotify-history-container
-  position : fixed
-  border-color: $COL_GRAY_D
-  .ui-pnotify-history-pulldown
-    background-color: $COL_GRAY_L0
+//.ui-pnotify-history-container
+//  position : fixed
+//  border-color: $COL_GRAY_D
+//  .ui-pnotify-history-pulldown
+//     background-color: $COL_GRAY_L0
 
 .CodeMirror, .CodeMirror-wrap
   line-height : normal
@@ -368,3 +368,11 @@ span.katex
 //  position: absolute
 //  font-size: 28px
 //  margin-top: -14px
+
+
+// issue https://github.com/sagemathinc/cocalc/issues/3389
+// fixing terminal scroll bar
+div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
+  background: transparent !important
+  z-index: 1
+

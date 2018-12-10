@@ -56,6 +56,7 @@ export type StudentRecord = TypedMap<{
   project_id: string;
   deleted: boolean;
   note: string;
+  terminal_command: Map<string, any>;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
@@ -238,15 +239,11 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    let left;
-    return (left = this.get("settings").get("pay")) != null ? left : "";
+    return !!this.get("settings").get("pay");
   }
 
   get_allow_collabs() {
-    let left;
-    return (left = this.get("settings").get("allow_collabs")) != null
-      ? left
-      : true;
+    return !!this.get("settings").get("allow_collabs");
   }
 
   get_email_invite() {

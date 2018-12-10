@@ -3,11 +3,12 @@ Top-level react component for editing HTML documents
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 import { QuickHTMLPreview } from "./rendered-html";
 import { IFrameHTML } from "./iframe-html";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
+import { terminal } from "../terminal-editor/editor";
 
 const EDITOR_SPEC = {
   cm: {
@@ -33,6 +34,7 @@ const EDITOR_SPEC = {
       "format"
     ])
   },
+
   iframe: {
     short: "HTML",
     name: "HTML IFrame",
@@ -62,6 +64,8 @@ const EDITOR_SPEC = {
       "reload"
     ])
   },
+
+  terminal,
 
   settings: SETTINGS_SPEC
 };

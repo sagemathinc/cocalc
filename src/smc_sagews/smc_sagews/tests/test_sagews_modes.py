@@ -6,6 +6,10 @@ import re
 import os
 from textwrap import dedent
 
+class TestLatexMode:
+    def test_latex(self, execblob):
+        execblob("%latex\nhello", want_html = False, file_type='png', ignore_stdout = True)
+
 class TestP3Mode:
     """
     not the same as python3 mode, which is an alias for anaconda3
@@ -17,7 +21,7 @@ class TestP3Mode:
 
 class TestSingularMode:
     def test_singular_version(self, exec2):
-        exec2('%singular_kernel\nsystem("version");','4103\n')
+        exec2('%singular_kernel\nsystem("version");',pattern=r"^41\d\d\b")
     def test_singular_factor_polynomial(self, exec2):
         code = dedent('''
         %singular_kernel
@@ -278,5 +282,5 @@ class TestJuliaMode:
         exec2('%julia\nquadratic(a, sqr_term, b) = (-b + sqr_term) / 2a\nquadratic(2.0, -2.0, -12.0)', '2.5', timeout=40)
 
     def test_julia_version(self, exec2):
-        exec2("%julia\nVERSION", pattern='"0.6.3"', timeout=40)
+        exec2("%julia\nVERSION", pattern='v"0.7.0"', timeout=40)
 

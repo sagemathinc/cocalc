@@ -52,6 +52,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {JupyterServerPanel}   = require('./project/plain-jupyter-server')
+{JupyterLabServerPanel}   = require('./project/jupyterlab-server')
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
@@ -162,7 +163,7 @@ QuotaConsole = rclass
             tip   = {params_data.desc}>{params_data.display}</Tip>}
             key   = {params_data.display}
             style = {borderBottom:'1px solid #ccc'}
-            >
+        >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -393,6 +394,7 @@ UsagePanel = rclass
                 quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 submit_upgrade_quotas                = {@submit_upgrade_quotas}
                 cancel_upgrading                     = {=>@setState(show_adjustor : false)}
+                total_project_quotas                 = {@props.total_project_quotas}
             /> if @state.show_adjustor}
             <QuotaConsole
                 project_id                   = {@props.project_id}
@@ -996,6 +998,7 @@ ProjectSettingsBody = rclass ({name}) ->
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
+                    <JupyterLabServerPanel  key='jupyterlab' project_id={@props.project_id} />
                 </Col>
             </Row>
         </div>

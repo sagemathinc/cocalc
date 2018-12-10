@@ -6,7 +6,7 @@ using the given editor settings.
 import * as CodeMirror from "codemirror";
 const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
 
 const { filename_extension_notilde, defaults } = require("misc");
@@ -232,13 +232,15 @@ export function cm_options(
     "tsx",
     "json",
     "md",
+    "rmd",
     "r",
     "html",
     "c",
     "c++",
     "cc",
     "cpp",
-    "h"
+    "h",
+    "bib"
   ];
   if (tab2exts.includes(ext)) {
     opts.tab_size = opts.indent_unit = 2;
@@ -265,7 +267,10 @@ export function cm_options(
     matchBrackets: opts.match_brackets,
     autoCloseBrackets: opts.auto_close_brackets && !["hs", "lhs"].includes(ext), //972
     autoCloseTags:
-      opts.mode.indexOf("xml") !== -1 || opts.mode.indexOf("html") !== -1
+      opts.mode.indexOf("xml") !== -1 ||
+      opts.mode.indexOf("html") !== -1 ||
+      opts.mode.indexOf("cml") !== -1 ||
+      opts.mode.indexOf("kml") !== -1
         ? opts.auto_close_xml_tags
         : undefined,
     autoCloseLatex:
@@ -304,8 +309,12 @@ export function cm_options(
     options.keyMap = opts.bindings;
   }
 
-  if (opts.theme != null && opts.theme !== "standard") {
+  if (opts.theme != null) {
     options.theme = opts.theme;
+  } else {
+    // options.theme MUST be set to something because this code is in CodeMirror
+    //    cm.options.theme.replace...
+    options.theme = "default";
   }
 
   return options;
