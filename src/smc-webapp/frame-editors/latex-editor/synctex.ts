@@ -6,7 +6,7 @@ import {
   path_split,
   splitlines,
   change_filename_extension
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { exec, ExecOutput } from "../generic/client";
 
 interface SyncTex {

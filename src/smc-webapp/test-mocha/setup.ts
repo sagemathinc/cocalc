@@ -1,6 +1,6 @@
 import * as $ from "jquery";
 import { callback, delay } from "awaiting";
-import { startswith } from "../frame-editors/generic/misc";
+import { startswith } from "smc-util/misc2";
 
 export async function mocha_run(path: string): Promise<void> {
   const w: any = window as any;

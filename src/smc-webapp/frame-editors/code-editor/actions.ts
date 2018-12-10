@@ -28,7 +28,7 @@ import {
   len,
   startswith,
   uuid
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -53,6 +53,7 @@ import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
+const { open_new_tab } = require("smc-webapp/misc_page");
 
 interface gutterMarkerParams {
   line: number;
@@ -1007,7 +1008,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return this.redux.getProjectActions(this.project_id);
   }
 
-  time_travel(path?:string): void {
+  time_travel(path?: string): void {
     this._get_project_actions().open_file({
       path: history_path(path || this.path),
       foreground: true
@@ -1016,10 +1017,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   help(type: string): void {
     const url = WIKI_HELP_URL + type + "-help";
-    const w = window.open(url, "_blank");
-    if (w) {
-      w.focus();
-    }
+    open_new_tab(url);
   }
 
   change_font_size(delta: number, id?: string): void {

@@ -59,3 +59,11 @@ def get_ports():
             ports[x] = get_open_port()
             open(file, 'w').write(str(ports[x]))
     return ports
+
+
+def test():
+    import sys
+    if len(sys.argv) >= 2 and sys.argv[1] == 'test':
+        return '--test'
+    else:
+        return ''

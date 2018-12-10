@@ -9,7 +9,7 @@ much, so we add it for many keyboard shortcuts here.
 
 import * as CodeMirror from "codemirror";
 
-import { merge } from "../generic/misc";
+import { merge } from "smc-util/misc2";
 
 export function extra_alt_keys(
   extraKeys: any,

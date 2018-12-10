@@ -6,7 +6,7 @@ import { Component, React, ReactDOM } from "../../app-framework";
 
 import { SVGGraphics, PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 import { AnnotationLayer, SyncHighlight } from "./pdfjs-annotation";
 

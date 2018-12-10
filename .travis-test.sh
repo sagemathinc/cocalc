@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
+
+# exit if there is a problem
+set -ex
+
 COPY_NODE_ENV="$NODE_ENV"
 
-# for kucalc, we only test the build itself
-if [[ $KUCALC_MODE  = "true" ]]; then exit 0; fi
+# special cases in kucalc mode
 
+# we test if the webapp builds
+if [[ $KUCALC_MODE == "webapp" ]]; then
+    python install.py webapp build
+    exit 0
+fi
+
+# running tests (install section did already build everything)
 # easy warmup
 cd $TRAVIS_BUILD_DIR/src/smc-util-node; npm run test
 

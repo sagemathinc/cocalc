@@ -27,7 +27,7 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 import { React, ReactDOM, Component } from "../../app-framework";
 import { Map, Set } from "immutable";
 

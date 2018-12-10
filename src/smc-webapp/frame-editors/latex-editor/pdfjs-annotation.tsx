@@ -19,7 +19,7 @@ const PDFJS = require("pdfjs-dist/webpack");
 
 import { delay } from "awaiting";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 export interface SyncHighlight {
   y: number;

@@ -1,7 +1,5 @@
 /* Utility functions used by other code here. */
 
-import { callback } from "awaiting";
-
 const misc = require("smc-util/misc");
 const schema = require("smc-util/schema");
 
@@ -33,14 +31,6 @@ export function parse_query(query) {
       return { [table]: query[table] };
     }
   }
-}
-
-export async function callback2(f: Function, opts: any): Promise<any> {
-  function g(cb): void {
-    opts.cb = cb;
-    f(opts);
-  }
-  return await callback(g);
 }
 
 import * as json_stable_stringify from "json-stable-stringify";

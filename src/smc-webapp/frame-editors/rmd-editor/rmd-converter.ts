@@ -3,7 +3,7 @@ Convert R Markdown file to hidden Markdown file, then read.
 */
 
 // import { aux_file } from "../frame-tree/util";
-import { path_split /* change_filename_extension */ } from "../generic/misc";
+import { path_split /* change_filename_extension */ } from "smc-util/misc2";
 import {
   exec,
   ExecOutput /* read_text_file_from_project */

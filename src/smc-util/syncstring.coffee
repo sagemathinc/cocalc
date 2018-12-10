@@ -140,7 +140,7 @@ class PatchValueCache
             return
         time0 = time - 0
         for tm, _ of @cache
-            if tm >= time0
+            if parseInt(tm) >= time0
                 delete @cache[tm]
         return
 

@@ -17,7 +17,7 @@ import { keys, throttle } from "underscore";
 
 import { callback } from "awaiting";
 
-import { once } from "../../async-utils";
+import { callback2, once } from "../../async-utils";
 
 import { query_function } from "./query-function";
 
@@ -35,7 +35,7 @@ function is_fatal(err): boolean {
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { Changefeed } from "./changefeed";
-import { parse_query, callback2, to_key } from "./util";
+import { parse_query, to_key } from "./util";
 
 type State = "disconnected" | "connected" | "closed";
 
@@ -107,15 +107,15 @@ export class SyncTable extends EventEmitter {
   /*
   Return true if there are changes to this synctable that
   have NOT been confirmed as saved to the backend database.
-  Returns undefined if not initialized.
+  (Always returns false when not yet initialized.)
   */
-  public has_uncommitted_changes(): boolean | undefined {
+  public has_uncommitted_changes(): boolean {
     if (this.value_server == null && this.value_local == null) {
-      return;
+      return false;
     }
     if (this.value_server == null) {
       if (this.value_local == null) {
-        return;
+        return false;
       }
       return true;
     }
@@ -131,7 +131,7 @@ export class SyncTable extends EventEmitter {
        - arg = array of keys; return map from key to obj
        - arg = single key; returns corresponding object
   */
-  public get(arg): Map<string, any> | undefined {
+  public get(arg?): Map<string, any> | undefined {
     if (this.value_local == null) {
       return;
     }
@@ -206,12 +206,12 @@ export class SyncTable extends EventEmitter {
     'shallow': shallow merges, replacing keys by corresponding values
     'none'   : do no merging at all -- just replace record completely
   Raises an async exception if something goes wrong.
-  Returns the updated value otherwise.
+  Returns promise that resolves to the updated value otherwise.
   */
   public async set(
     changes: any,
     merge: "deep" | "shallow" | "none" = "deep"
-  ): Promise<void> {
+  ): Promise<any> {
     this.assert_not_closed();
 
     if (!Map.isMap(changes)) {
@@ -353,15 +353,18 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
-    // wait until some function of this synctable is truthy
+    // wait until some function until of this synctable is truthy (or throws an exception)
     // (this might be exactly the same code as in the
     // postgres-synctable.coffee SyncTable....)
     // Waits until "until(this)" evaluates to something truthy
     // in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
     // Returns until(this) on success and raises Error('timeout') or
     // Error('closed') on failure.
+
+    // The until function may be async.
+
     this.assert_not_closed();
-    let x = until(this);
+    let x = await until(this);
     if (x) {
       // Already true
       return x;
@@ -378,11 +381,17 @@ export class SyncTable extends EventEmitter {
         }
         cb(err, ret);
       };
-      const f = () => {
+      const f = async () => {
         if (this.state === "closed") {
           done("closed");
+          return;
         }
-        x = until(this);
+        try {
+          x = await until(this);
+        } catch (err) {
+          done(err);
+          return;
+        }
         if (x) {
           done(undefined, x);
         }
@@ -413,7 +422,7 @@ export class SyncTable extends EventEmitter {
 
   private set_state(state: State): void {
     this.state = state;
-    this.emit("state", state);
+    this.emit(state);
   }
 
   private set_throttle_changes(): void {
@@ -796,7 +805,7 @@ export class SyncTable extends EventEmitter {
       }
       return true;
     }
-    if (this.state === "closed" as State) {
+    if (this.state === ("closed" as State)) {
       // this can happen in case synctable is closed after
       // _save is called but before returning from this query.
       return false;

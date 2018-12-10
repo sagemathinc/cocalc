@@ -1,0 +1,2 @@
+set -v
+echo 'require("coffeescript/register"); require("ts-node").register({ project: `${__dirname}/../tsconfig.json` }); require("./index")' | node 2>&1 |head -n 20
