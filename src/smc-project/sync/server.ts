@@ -9,9 +9,14 @@ TODO:
       it to NOT be a changefeed.
 */
 
-import { synctable_no_changefeed, SyncTable } from "../smc-util/sync/table";
+import {
+  synctable_no_changefeed,
+  SyncTableNoChangefeed
+} from "../smc-util/sync/table";
 
 import { once } from "../smc-util/async-utils";
+
+const { is_array } = require("../smc-util/misc");
 
 type Query = { [key: string]: any };
 
@@ -41,7 +46,7 @@ import * as stringify from "fast-json-stable-stringify";
 const { sha1 } = require("smc-util-node/misc_node");
 
 class SyncChannel {
-  private synctable: SyncTable;
+  private synctable: SyncTableNoChangefeed;
   private client: Client;
   private logger: Logger;
   public readonly name: string;
@@ -88,7 +93,12 @@ class SyncChannel {
 
   private async init_synctable(): Promise<void> {
     this.log("init_synctable");
-    this.synctable = synctable_no_changefeed(this.query, this.options, this.client);
+    this.synctable = synctable_no_changefeed(
+      this.query,
+      this.options,
+      this.client
+    );
+    this.synctable.on("saved-objects", this.handle_synctable_save.bind(this))
     this.log("created synctable -- waiting for connect");
     await once(this.synctable, "connected");
     this.log("created synctable -- now connected");
@@ -133,15 +143,25 @@ class SyncChannel {
     if (s == null) {
       return;
     }
-    this.channel.forEach(function(spark: Spark) {
+    this.channel.forEach((spark: Spark) => {
       spark.write(s);
     });
   }
 
-  private async handle_data(spark: Spark, data: string): Promise<void> {
+  private handle_synctable_save(saved_objs) : void {
+    this.channel.forEach((spark: Spark) => {
+      spark.write(saved_objs);
+    });
+  }
+
+  private async handle_data(_: Spark, data: any): Promise<void> {
     this.log("handle_data ", data);
-    // Echo it back
-    spark.write(data);
+    if (!is_array(data)) {
+      throw Error("data must be an array of set objects");
+    }
+    for (let x of data) {
+      this.synctable.set(x);
+    }
   }
 
   public close(): void {

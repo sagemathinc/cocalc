@@ -25,7 +25,7 @@ interface Change {
   old_val?: any;
 }
 
-interface SyncTableNoChangefeed extends SyncTable {
+export interface SyncTableNoChangefeed extends SyncTable {
   update(change: Change): void;
 }
 
@@ -51,18 +51,27 @@ class ClientNoChangefeed extends EventEmitter {
 
   constructor(client) {
     super();
+
+    bind_methods(this, [
+      "query",
+      "update",
+      "dbg",
+      "query_cancel",
+      "emit_connected",
+      "emit_signed_in"
+    ]);
     this.client = client;
+
+    // These MUST be after the binds above, obviously.
     client.on("connected", this.emit_connected);
     client.on("signed_in", this.emit_signed_in);
-
-    bind_methods(this, ["query", "update", "dbg", "query_cancel", "emit_connected", "emit_signed_in"]);
   }
 
-  private emit_connected() : void {
+  private emit_connected(): void {
     this.emit("connected");
   }
 
-  private emit_signed_in() : void {
+  private emit_signed_in(): void {
     this.emit("signed_in");
   }
 
@@ -86,7 +95,6 @@ class ClientNoChangefeed extends EventEmitter {
     if (opts.changes) {
       this.changefeed_query(opts);
     } else {
-      // normal query or set query, so leave as is.
       this.client.query(opts);
     }
   }
@@ -108,8 +116,8 @@ class ClientNoChangefeed extends EventEmitter {
   public query_cancel(_): void {
     // no op since no changefeed.
     delete this.changes_cb;
-    this.client.removeListener('connected', this.emit_connected);
-    this.client.removeListener('signed_in', this.emit_signed_in);
+    this.client.removeListener("connected", this.emit_connected);
+    this.client.removeListener("signed_in", this.emit_signed_in);
   }
 
   public alert_message(opts): void {

@@ -127,7 +127,7 @@ export class SyncTable extends EventEmitter {
     this.init_query();
     this.init_throttle_changes();
 
-    // So only ever called once
+    // So only ever runs once at a time.
     this.save = reuseInFlight(this.save.bind(this));
 
     this.first_connect();
@@ -238,13 +238,14 @@ export class SyncTable extends EventEmitter {
     'deep'   : (DEFAULT) deep merges the changes into the record, keep as much info as possible.
     'shallow': shallow merges, replacing keys by corresponding values
     'none'   : do no merging at all -- just replace record completely
-  Raises an async exception if something goes wrong.
-  Returns promise that resolves to the updated value otherwise.
+  Raises an exception if something goes wrong doing the set.
+  Returns updated value otherwise.
+  Causes a save if their are changes.
   */
-  public async set(
+  public set(
     changes: any,
     merge: "deep" | "shallow" | "none" = "deep"
-  ): Promise<any> {
+  ): any {
     this.assert_not_closed();
 
     if (!Map.isMap(changes)) {
@@ -746,7 +747,6 @@ export class SyncTable extends EventEmitter {
         true -- new changes appeared during the _save that need to be saved.
   */
   private async _save(): Promise<boolean> {
-    console.log("_save");
     await this.wait_until_ready_to_query_db();
     if (this.state === "closed") {
       return false;
@@ -815,6 +815,9 @@ export class SyncTable extends EventEmitter {
     if (query.length === 0) {
       return false;
     }
+
+    this.emit("saved-objects", saved_objs);
+
     //console.log("query=#{misc.to_json(query)}")
     //Use this to test fix_if_no_update_soon:
     //    if Math.random() <= .5

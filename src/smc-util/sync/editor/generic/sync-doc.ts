@@ -1225,12 +1225,12 @@ export class SyncDoc extends EventEmitter {
     return time;
   }
 
-  async undelete(): Promise<void> {
+  undelete(): void {
     this.assert_not_closed();
     // Version with deleted set to false:
     const x = this.syncstring_table_get_one().set("deleted", false);
     // Now write that as new version to table.
-    await this.syncstring_table.set(x);
+    this.syncstring_table.set(x);
   }
 
   // Promise resolves when save to the backend done
@@ -1267,10 +1267,8 @@ export class SyncDoc extends EventEmitter {
       this.undo_state.without.unshift(time);
     }
 
-    // TODO: before conversion this patch_list add happened
-    // before the promise resolved...
     //console.log 'saving patch with time ', time.valueOf()
-    const x = await this.patches_table.set(obj, "none");
+    const x = this.patches_table.set(obj, "none");
     const y = this.process_patch(x, undefined, undefined, patch);
     if (y != null) {
       this.patch_list.add([y]);
@@ -1313,19 +1311,21 @@ export class SyncDoc extends EventEmitter {
     // also set snapshot in the this.patch_list, which
     // helps with optimization
     x.snapshot = obj.snapshot;
-    await this.patches_table.set(obj, "none");
+    this.patches_table.set(obj, "none");
+    await this.patches_table.save();
     /* CRITICAL: Only save the snapshot time in the database
-       after the set in the patches table was confirmed as a
-       success -- otherwise if the user refreshes their
+       after the set in the patches table was saved
+       -- otherwise if the user refreshes their
        browser (or visits later) they lose all their
        early work!
     */
-    await this.syncstring_table.set({
+    this.syncstring_table.set({
       string_id: this.string_id,
       project_id: this.project_id,
       path: this.path,
       last_snapshot: time
     });
+    await this.syncstring_table.save();
     this.last_snapshot = time;
   }
 
@@ -1475,8 +1475,8 @@ export class SyncDoc extends EventEmitter {
     return this.project_id;
   }
 
-  public async set_snapshot_interval(n: number): Promise<void> {
-    await this.syncstring_table.set(
+  public set_snapshot_interval(n: number): void {
+    this.syncstring_table.set(
       this.syncstring_table_get_one().set("snapshot_interval", n)
     );
   }
@@ -1500,7 +1500,7 @@ export class SyncDoc extends EventEmitter {
         // patch is "old" -- mark it as likely being sent as a result of being
         // offline, so clients could potentially discard it.
         obj.sent = now;
-        await this.patches_table.set(obj);
+        this.patches_table.set(obj);
         if (oldest == null || obj.time < oldest) {
           oldest = obj.time;
         }
@@ -1580,7 +1580,7 @@ export class SyncDoc extends EventEmitter {
       deleted: this.deleted,
       doctype: JSON.stringify(this.doctype)
     };
-    await this.syncstring_table.set(obj);
+    this.syncstring_table.set(obj);
     this.settings = Map();
     this.emit("metadata-change");
     this.emit("settings-change", this.settings);
@@ -1622,12 +1622,13 @@ export class SyncDoc extends EventEmitter {
     if (this.my_user_id === -1) {
       this.my_user_id = this.users.length;
       this.users.push(client_id);
-      await this.syncstring_table.set({
+      this.syncstring_table.set({
         string_id: this.string_id,
         project_id: this.project_id,
         path: this.path,
         users: this.users
       });
+      await this.syncstring_table.save();
     }
 
     if (!this.client.is_project()) {
@@ -1748,7 +1749,7 @@ export class SyncDoc extends EventEmitter {
     // NOTE: setting deleted=true must be done **after** setting
     // document to blank above,
     // since otherwise the set would set deleted=false.
-    await this.syncstring_table.set(
+    this.syncstring_table.set(
       this.syncstring_table_get_one().set("deleted", true)
     );
     // make sure deleted:true is saved:
@@ -1799,16 +1800,18 @@ export class SyncDoc extends EventEmitter {
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
     x.time = new Date().valueOf();
-    await this.syncstring_table.set(
+    this.syncstring_table.set(
       this.syncstring_table_get_one().set("save", fromJS(x))
     );
+    await this.syncstring_table.save();
   }
 
   private async set_read_only(read_only: boolean): Promise<void> {
     this.assert_is_ready();
-    await this.syncstring_table.set(
+    this.syncstring_table.set(
       this.syncstring_table_get_one().set("read_only", read_only)
     );
+    await this.syncstring_table.save();
   }
 
   public get_read_only(): boolean {
