@@ -33,7 +33,7 @@ function mouse_draggable(): void {
     e.preventDefault();
     // Still need to remove the focus from the codemirror textarea
     // otherwise, space-key and others have no effect on scrolling.
-    $(document.activeElement).blur();
+    ($ as any)(document.activeElement).blur();
 
     elt.css("cursor", "move");
     if (e.clientX == undefined || e.clientY == undefined) return; // do not bother
