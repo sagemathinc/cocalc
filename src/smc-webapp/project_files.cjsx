@@ -2240,37 +2240,45 @@ exports.ProjectFiles = rclass ({name}) ->
         </Col>
 
     render_library: () ->
-        <Well style={backgroundColor: 'white'}>
-            <Row>
-                <Col sm={10}>
-                    <h4><Icon name='book' /> Library</h4>
-                </Col>
-                <Col sm={2}>
-                    <CloseX2 close={=>@props.actions.toggle_library(false)} />
-                </Col>
-            </Row>
-            <Row>
-                <Col sm={12}>
-                    <Library
+        <Row>
+            <Col sm={12} smOffset={0} md={8} mdOffset={2}>
+                <Well style={backgroundColor: 'white'}>
+                    <Row>
+                        <Col sm={10}>
+                            <h4><Icon name='book' /> Library</h4>
+                        </Col>
+                        <Col sm={2}>
+                            <CloseX2 close={=>@props.actions.toggle_library(false)} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm={12}>
+                            <Library
+                                project_id={@props.project_id}
+                                name={@props.name}
+                                actions={@actions(name)}
+                                close={=>@props.actions.toggle_library(false)}
+                            />
+                        </Col>
+                    </Row>
+                </Well>
+            </Col>
+        </Row>
+
+    render_new: () ->
+        <Row>
+            <Col sm={12} smOffset={0} md={8} mdOffset={2}>
+                <Well style={backgroundColor: 'white'}>
+                    <ProjectNewForm
                         project_id={@props.project_id}
                         name={@props.name}
                         actions={@actions(name)}
-                        close={=>@props.actions.toggle_library(false)}
+                        close={=>@props.actions.toggle_new(false)}
+                        show_header={false}
                     />
-                </Col>
-            </Row>
-        </Well>
-
-    render_new: () ->
-        <Well style={backgroundColor: 'white'}>
-            <ProjectNewForm
-                project_id={@props.project_id}
-                name={@props.name}
-                actions={@actions(name)}
-                close={=>@props.actions.toggle_new(false)}
-                show_header={false}
-            />
-        </Well>
+                </Well>
+            </Col>
+        </Row>
 
     render_files_actions: (listing, public_view) ->
         if listing.length > 0
