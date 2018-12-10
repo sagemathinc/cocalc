@@ -1,5 +1,25 @@
 # computing project quotas based on settings (by admin/system) and user contributions ("upgrades")
 
+# historical note
+# old code added a "hardcoded" cpu_shares value in the setting, which was set in the DB
+# we no longer have that in kucalc
+# in December 2018, we removed that from the DB (LIMIT 10 to avoid locking the db too long)
+
+###
+WITH s256 AS (
+    SELECT project_id
+    FROM projects
+    WHERE (settings ->> 'cpu_shares')::float = 256
+    ORDER BY created ASC
+    LIMIT 10
+)
+UPDATE projects AS p
+SET    settings = jsonb_set(settings, '{cpu_shares}', '0')
+FROM   s256
+WHERE  p.project_id = s256.project_id
+RETURNING p.project_id;
+###
+
 {DEFAULT_QUOTAS} = require('smc-util/upgrade-spec')
 MAX_UPGRADES = require('smc-util/upgrade-spec').upgrades.max_per_project
 
