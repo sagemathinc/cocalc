@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke test 1`] = `
+<span>
+  <Icon
+    name="cc-icon-cocalc-ring"
+    spin={true}
+  />
+   Saving...
+</span>
+`;

@@ -3,6 +3,9 @@ Terminal Editor Actions
 */
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
+const { open_new_tab } = require("smc-webapp/misc_page");
+
+const HELP_URL = "https://doc.cocalc.com/terminal.html";
 
 export class Actions extends CodeEditorActions {
   // no need to open any syncstring for terminals -- they don't use database sync.
@@ -14,6 +17,7 @@ export class Actions extends CodeEditorActions {
     return { type: "terminal" };
   }
 
-
-
+  help(): void {
+    open_new_tab(HELP_URL);
+  }
 }

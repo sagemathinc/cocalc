@@ -22,7 +22,7 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions } from "../code-editor/actions";
 
-import { endswith } from "../generic/misc";
+import { endswith } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
@@ -55,6 +55,7 @@ export class Terminal {
   private term_path: string;
   private number: number;
   private id: string;
+  readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
   private is_paused: boolean = false;
   private keyhandler_initialized: boolean = false;
@@ -103,6 +104,7 @@ export class Terminal {
     this.terminal_settings = Map(); // what was last set.
     this.project_id = actions.project_id;
     this.path = actions.path;
+    this.rendererType = "dom";
     this.term_path = aux_file(`${this.path}-${number}`, "term");
     this.number = number;
     this.id = id;
@@ -119,7 +121,7 @@ export class Terminal {
   }
 
   private get_xtermjs_options(): any {
-    const rendererType = "dom";
+    const rendererType = this.rendererType;
     const settings = this.account.get("terminal");
     if (settings == null) {
       // not fully loaded yet.

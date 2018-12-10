@@ -3,7 +3,7 @@ Show errors and warnings.
 */
 
 import { Map } from "immutable";
-import { capitalize, is_different, path_split } from "../generic/misc";
+import { capitalize, is_different, path_split } from "smc-util/misc2";
 import {
   Component,
   React,

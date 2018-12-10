@@ -6,8 +6,6 @@
 #
 ###############################################################################
 
-require('coffee-cache')
-
 misc = require('../misc')
 underscore = require('underscore')
 immutable = require('immutable')
@@ -242,13 +240,13 @@ describe "min_object of target and upper_bound", ->
     upper_bound = {a:5, b:20, xyz:-2}
     it "modifies target in place", ->
         target = {a:7, b:15, xyz:5.5}
-        # the return value are just the values
-        mo(target, upper_bound).should.eql [ 5, 15, -2 ]
+        exp = { a: 5, b: 15, xyz: -2 }
+        mo(target, upper_bound).should.eql exp
         target.should.eql {a:5, b:15, xyz:-2}
     it "works without a target", ->
         mo(upper_bounds : {a : 42}).should.be.ok
     it "returns empty object if nothing is given", ->
-        mo().should.be.eql []
+        mo().should.be.eql {}
 
 describe 'merge', ->
     merge = misc.merge
@@ -1250,7 +1248,9 @@ describe "ticket_id_to_ticket_url", ->
         y.should.match /^http/
         y.should.match /123/
 
-describe "map_limit limits the values of a by the values in b or by b if b is a number", ->
+describe "map_min limits the values of a by the values in b or by b if b is a number", ->
+    it "map_min == map_limit", ->
+        misc.map_limit.should.eql misc.map_min
     it "Limits by a map with similar keys", ->
         a = {'x': 8, 'y': -1, 'z': 5}
         b = {'x': 4.4, 'y': 2.2}
@@ -1261,6 +1261,18 @@ describe "map_limit limits the values of a by the values in b or by b if b is a 
         b = 0
         e = {'x': 0, 'y': -1, 'z': 0}
         misc.map_limit(a, b).should.eql e
+
+describe "map_max is similar to map_min", ->
+    it "Limits by a map with similar keys", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = {'x': 4.4, 'y': 2.2}
+        e = {'x': 8, 'y': 2.2, 'z': 5}
+        misc.map_max(a, b).should.eql e
+    it "Limits by a number", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = 0
+        e = {'x': 8, 'y': 0, 'z': 5}
+        misc.map_max(a, b).should.eql e
 
 describe 'is_valid_email_address is', ->
     valid = misc.is_valid_email_address

@@ -25,10 +25,11 @@ export class Surface {
   public scale: number = 1;
   private send: Function;
   public rescale_params: { scale: number; width?: number; height?: number };
+  public _close_on_click?: Set<number>;
 
-  constructor({ parent, wid, x, y, w, h, metadata, properties, send }) {
+  constructor({ parent, wid, x, y, w, h, metadata, properties, send, is_overlay }) {
     this.parent = parent;
-    this.is_overlay = !!parent;
+    this.is_overlay = is_overlay;
     this.send = send;
 
     this.canvas = document.createElement("canvas");
@@ -48,6 +49,16 @@ export class Surface {
     this.properties = properties;
     this.metadata = metadata;
 
+    if (
+      parent &&
+      metadata &&
+      metadata["transient-for"] &&
+      metadata["window-type"] &&
+      metadata["window-type"][0] === "DIALOG"
+    ) {
+      parent.close_on_click(wid);
+    }
+
     // TODO: canvas.wid is used for handling mouse events.
     // This is a *temporary hack*!
     (this.canvas as any).wid = wid;
@@ -61,6 +72,26 @@ export class Surface {
       { wid: this.wid, canvas: this.canvas, context: this.context },
       send
     );
+    // console.log("new Surface", this);
+  }
+
+  // close wid when this surface is clicked on.
+  close_on_click(wid: number): void {
+    if (this._close_on_click === undefined) {
+      this._close_on_click = new Set([wid]);
+    } else {
+      this._close_on_click.add(wid);
+    }
+  }
+
+  do_close_on_click(): void {
+    if (this._close_on_click === undefined) {
+      return;
+    }
+    for (let wid of this._close_on_click) {
+      this.send("close-window", wid);
+    }
+    delete this._close_on_click;
   }
 
   draw(...args): void {
@@ -98,13 +129,15 @@ export class Surface {
     }
 
     //console.log("updateGeometry", this.wid, swidth, sheight, scale);
-    if (this.parent == null) {
+    const size_constraints = this.metadata["size-constraints"];
+    let maximized = !(size_constraints && size_constraints["maximum-size"]);
+    if (this.parent == null && maximized) {
       this.jq_canvas.css("width", "100%");
     } else {
       this.jq_canvas.css("width", swidth / scale);
       this.jq_canvas.css("left", this.x / scale);
     }
-    if (this.parent == null) {
+    if (this.parent == null && maximized) {
       this.jq_canvas.css("height", "100%");
     } else {
       this.jq_canvas.css("height", sheight / scale);
@@ -164,7 +197,7 @@ export class Surface {
       swidth = MIN_WIDTH;
     }
 
-    //console.log("resize_window ", wid, width, height, swidth, sheight);
+    // console.log("resize_window ", this.wid, width, height, swidth, sheight);
     this.updateGeometry(swidth, sheight, scale);
 
     this.scale = scale;
@@ -178,7 +211,7 @@ export class Surface {
     }
 
     if (!this.is_overlay) {
-      //console.log("sending ", this.wid, this.w, this.h);
+      // console.log("sending ", this.wid, this.w, this.h);
       this.send(
         "configure-window",
         this.wid,

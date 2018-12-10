@@ -14,7 +14,7 @@ function close(proc, cb): void {
   proc.on("close", code => cb(undefined, code));
 }
 
-function formatR(input_path: string, logger: any) {
+function formatR(input_path: string) {
   // in-place is fine, according to my tests
   const expr = `suppressMessages(require(formatR)); tidy_source(source="${input_path}", file="${input_path}", indent=2, width.cutoff=80)`;
   return spawn("R", ["--quiet", "--vanilla", "--no-save", "-e", expr]);
@@ -22,7 +22,7 @@ function formatR(input_path: string, logger: any) {
 
 export async function r_format(
   input: string,
-  options: ParserOptions,
+  _: ParserOptions,
   logger: any
 ): Promise<string> {
   // create input temp file
@@ -30,7 +30,7 @@ export async function r_format(
   await callback(writeFile, input_path, input);
 
   // spawn the R formatter
-  const r_formatter = formatR(input_path, logger);
+  const r_formatter = formatR(input_path);
 
   // stdout/err capture
   let stdout: string = "";
