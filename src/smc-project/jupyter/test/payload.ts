@@ -6,7 +6,7 @@ import {} from "mocha";
 import * as expect from "expect";
 import * as common from "./common";
 
-import { startswith, getIn } from "../../smc-webapp/frame-editors/generic/misc";
+import { startswith, getIn } from "../../smc-util/misc2";
 
 describe("create python2 kernel and do evals with and without payloads -- ", async function() {
   this.timeout(5000);

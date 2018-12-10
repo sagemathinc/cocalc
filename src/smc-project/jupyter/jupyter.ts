@@ -23,7 +23,6 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
-import kernelspecs from "kernelspecs";
 import { exists, unlink } from "./async-utils-node";
 import * as pidusage from "pidusage";
 
@@ -167,7 +166,6 @@ export class JupyterKernel extends EventEmitter
   private _directory: string;
   private _filename: string;
   private _identity: string;
-  private _start_time: number;
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
@@ -195,7 +193,6 @@ export class JupyterKernel extends EventEmitter
     this._filename = tail;
     this._set_state("off");
     this._identity = uuid();
-    this._start_time = new Date().valueOf();
     this._execute_code_queue = [];
     if (_jupyter_kernels[this._path] !== undefined) {
       // This happens when we change the kernel for a given file, e.g., from python2 to python3.

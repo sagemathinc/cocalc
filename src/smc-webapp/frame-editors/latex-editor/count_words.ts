@@ -1,5 +1,5 @@
 import { exec } from "../generic/client";
-import { path_split } from "../generic/misc";
+import { path_split } from "smc-util/misc2";
 
 // an enhancement might be to generate html via $ texcount -htmlcore
 // but that doesn't format it in a substantially better way

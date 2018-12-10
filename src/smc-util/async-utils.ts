@@ -11,6 +11,7 @@ The two helpful async/await libraries I found are:
 */
 
 import * as awaiting from "awaiting";
+import { reuseInFlight } from "async-await-utils/hof";
 
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
@@ -106,10 +107,7 @@ import { EventEmitter } from "events";
 
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event. */
-export async function once(
-  obj: EventEmitter,
-  event: string
-): Promise<any> {
+export async function once(obj: EventEmitter, event: string): Promise<any> {
   let val: any[] = [];
   function wait(cb: Function): void {
     obj.once(event, function(...args): void {
@@ -121,7 +119,6 @@ export async function once(
   return val;
 }
 
-
 // Alternative to callback_opts that behaves like the
 // callback defined in awaiting.
 export async function callback2(f: Function, opts: any): Promise<any> {
@@ -130,4 +127,19 @@ export async function callback2(f: Function, opts: any): Promise<any> {
     f(opts);
   }
   return await awaiting.callback(g);
+}
+
+export function reuse_in_flight_methods(
+  obj: any,
+  method_names: string[]
+): void {
+  for (let method_name of method_names) {
+    obj[method_name] = reuseInFlight(obj[method_name].bind(obj));
+  }
+}
+
+export function bind_methods(obj: any, method_names: string[]): void {
+  for (let method_name of method_names) {
+    obj[method_name] = obj[method_name].bind(obj);
+  }
 }
