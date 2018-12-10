@@ -9,7 +9,7 @@ TODO:
       it to NOT be a changefeed.
 */
 
-import { synctable, SyncTable } from "../smc-util/sync/table";
+import { synctable_no_changefeed, SyncTable } from "../smc-util/sync/table";
 
 import { once } from "../smc-util/async-utils";
 
@@ -88,7 +88,7 @@ class SyncChannel {
 
   private async init_synctable(): Promise<void> {
     this.log("init_synctable");
-    this.synctable = synctable(this.query, this.options, this.client);
+    this.synctable = synctable_no_changefeed(this.query, this.options, this.client);
     this.log("created synctable -- waiting for connect");
     await once(this.synctable, "connected");
     this.log("created synctable -- now connected");

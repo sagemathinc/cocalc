@@ -1,3 +1,18 @@
+/*
+
+Variations:  Instead of making this class really complicated
+with many different ways to do sync (e.g, changefeeds, project
+websockets, unit testing, etc.), we have one single approach via
+a Client that has a certain interface.  Then we implement different
+Clients that have this interface, in order to support different
+ways of orchestrating a SyncTable.
+
+TODO:
+ - copy over and update docs from synctable.coffee header.
+
+
+*/
+
 // CoCalc, Copyright (C) 2018, Sagemath Inc.
 
 // If true, will log to the console a huge amount of
@@ -24,6 +39,20 @@ import { query_function } from "./query-function";
 const misc = require("../../misc");
 const schema = require("../../schema");
 
+// What we need the client below to implement so we can use
+// it to support a table.
+export interface Client extends EventEmitter {
+  is_project: () => boolean;
+  dbg: (string) => Function;
+  query: (
+    opts: { query: any; options?: any[]; timeout?: number; cb?: Function }
+  ) => void;
+  query_cancel: Function;
+  alert_message: Function;
+  is_connected: () => boolean;
+  is_signed_in: () => boolean;
+}
+
 function is_fatal(err): boolean {
   return (
     typeof err === "string" &&
@@ -47,7 +76,7 @@ export class SyncTable extends EventEmitter {
   private client_query: any;
   private primary_keys: string[];
   private options: any[];
-  private client: any;
+  private client: Client;
   private throttle_changes?: number;
 
   // The value of this query locally.
@@ -72,7 +101,12 @@ export class SyncTable extends EventEmitter {
   // Also updated during init.
   private required_set_fields: { [key: string]: boolean } = {};
 
-  constructor(query, options: any[], client, throttle_changes?: number) {
+  constructor(
+    query,
+    options: any[],
+    client: Client,
+    throttle_changes?: number
+  ) {
     super();
 
     if (misc.is_array(query)) {
@@ -547,7 +581,6 @@ export class SyncTable extends EventEmitter {
       return;
     }
 
-    dbg(`waiting for client to emit ${client_state}`, this.client[`is_${client_state}`](), this.client._connected);
     await once(this.client, client_state);
     dbg(`success -- client emited ${client_state}`);
   }
