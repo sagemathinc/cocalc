@@ -76,7 +76,7 @@ async function handle_api_call(
     case "x11_channel":
       return await x11_channel(client, primus, logger, data.path, data.display);
     case "sync_channel":
-      return await sync_channel(client, primus, logger, data.query);
+      return await sync_channel(client, primus, logger, data.query, data.options);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:

@@ -2608,6 +2608,13 @@ class exports.Client extends EventEmitter
                     project_id : mesg.project_id
                     action     : 'touch'
                     cb         : cb
+            (cb) =>
+                f = @database.ensure_connection_to_project
+                if f?
+                    dbg("also create socket connection (so project can query db, etc.)")
+                    f(mesg.project_id, cb)
+                else
+                    cb()
         ], (err) =>
             if err
                 dbg("failed -- #{err}")

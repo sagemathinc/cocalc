@@ -90,10 +90,14 @@ export class API {
   }
 
   // Get the sync *channel* for the given SyncTable project query.
-  async synctable_channel(query: { [field: string]: any }): Promise<Channel> {
+  async synctable_channel(
+    query: { [field: string]: any },
+    options?: { [field: string]: any }[]
+  ): Promise<Channel> {
     const channel_name = await this.call({
       cmd: "sync_channel",
-      query
+      query,
+      options
     });
     return this.conn.channel(channel_name);
   }

@@ -173,7 +173,6 @@ export class SyncTable extends EventEmitter {
   locally.
   */
   public async save(): Promise<void> {
-    console.log("save");
     this.assert_not_closed();
     // quick easy check for unsaved changes and
     // ready to be saved
@@ -468,8 +467,10 @@ export class SyncTable extends EventEmitter {
     };
   }
 
-  private dbg(_?: string): Function {
-    // return this.client.dbg(`SyncTable('${this.table}').${_}`)
+  private dbg(f?: string): Function {
+    if (this.client.is_project()) {
+      return this.client.dbg(`SyncTable('${this.table}').${f}`);
+    }
     return () => {};
   }
 
@@ -484,22 +485,28 @@ export class SyncTable extends EventEmitter {
     // 1. save, in case we have any local unsaved changes,
     // then sync with upstream.
     if (this.value_local != null && this.value_server != null) {
+      dbg("save any unsaved changes first");
       await this.save();
     }
 
     // 2. Now actually setup the changefeed.
+    dbg("actually setup changefeed");
     await this.create_changefeed();
+    dbg("connect should have succeeded");
   }
 
   private async create_changefeed(): Promise<void> {
-    const dbg = this.dbg("do_connect_query");
+    const dbg = this.dbg("create_changefeed");
     if (this.state === "closed") {
       dbg("closed so don't do anything ever again");
       return;
     }
+    dbg("creating changefeed connection...");
     const initval = await this.create_changefeed_connection();
+    dbg("got changefeed, now initializing table data");
     this.init_changefeed_handlers();
     this.update_all(initval);
+    dbg("setting state to connected");
     this.set_state("connected");
   }
 
@@ -520,6 +527,8 @@ export class SyncTable extends EventEmitter {
   }
 
   private async wait_until_ready_to_query_db(): Promise<void> {
+    const dbg = this.dbg("wait_until_ready_to_query_db");
+
     // Wait until we're ready to query the database.
     let client_state: string;
 
@@ -534,11 +543,13 @@ export class SyncTable extends EventEmitter {
     }
 
     if (this.client[`is_${client_state}`]()) {
-      // state already achieved
+      dbg("state already achieved -- no need to wait");
       return;
     }
 
+    dbg(`waiting for client to emit ${client_state}`, this.client[`is_${client_state}`](), this.client._connected);
     await once(this.client, client_state);
+    dbg(`success -- client emited ${client_state}`);
   }
 
   private changefeed_options() {
