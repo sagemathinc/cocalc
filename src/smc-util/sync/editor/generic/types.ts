@@ -70,6 +70,13 @@ export interface Client {
     throttle_changes?: number
   ) => SyncTable;
 
+  synctable_project: (
+    project_id: string,
+    query: any,
+    options: any,
+    throttle_changes?: number
+  ) => Promise<SyncTable>;
+
   // account_id or project_id
   client_id: () => string;
 }

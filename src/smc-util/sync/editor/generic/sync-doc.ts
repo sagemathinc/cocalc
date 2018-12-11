@@ -296,16 +296,6 @@ export class SyncDoc extends EventEmitter {
      for this doc. */
   public set_cursor_locs(locs, side_effect: boolean = false): void {
     this.assert_is_ready();
-    if (this.users.length <= 2) {
-      /* Don't bother in special case when only one
-         user (plus the project -- for 2 above!)
-         since we never display the user's
-         own cursors - just other user's cursors.
-         This simple optimization will save tons
-         of bandwidth, since many files are never
-         opened by more than one user. */
-      return;
-    }
     if (this.throttled_set_cursor_locs != null) {
       this.throttled_set_cursor_locs(locs, side_effect);
     }
@@ -773,7 +763,7 @@ export class SyncDoc extends EventEmitter {
 
     this.syncstring_table = this.client.synctable2(query, undefined);
     await once(this.syncstring_table, "connected");
-    this.handle_syncstring_update();
+    await this.handle_syncstring_update();
     this.syncstring_table.on(
       "change",
       this.handle_syncstring_update.bind(this)
@@ -1103,12 +1093,14 @@ export class SyncDoc extends EventEmitter {
         time: null
       }
     };
-    this.cursors_table = this.client.synctable2(
+    // We make cursors an ephemeral table, since there is no
+    // need to persist it to the database, obviously!
+    this.cursors_table = await this.client.synctable_project(
+      this.project_id,
       query,
-      [],
+      [{ ephemeral: true }],
       this.cursor_interval
     );
-    await once(this.cursors_table, "connected");
     this.assert_not_closed();
 
     // cursors now initialized; first initialize the
@@ -1536,7 +1528,9 @@ export class SyncDoc extends EventEmitter {
   private async handle_syncstring_update(): Promise<void> {
     //dbg = this.dbg("handle_syncstring_update")
     //dbg()
-    await this.wait_until_ready();
+    if (this.state === 'closed') {
+      return;
+    }
 
     const data = this.syncstring_table_get_one();
     const x = data != null ? data.toJS() : undefined;
@@ -1596,7 +1590,6 @@ export class SyncDoc extends EventEmitter {
     } else {
       this.emit("load-time-estimate", { type: "ready", time: 2 });
     }
-
     // TODO: handle doctype change here (?)
     this.last_snapshot = x.last_snapshot;
     this.snapshot_interval = x.snapshot_interval;
@@ -1641,7 +1634,10 @@ export class SyncDoc extends EventEmitter {
     //dbg = this.dbg("_handle_syncstring_update('#{this.path}')")
     //dbg("project only handling")
     // Only done for project:
-    this.assert_is_ready();
+    //this.assert_is_ready();
+    if (this.state === 'closed') {
+      return;
+    }
 
     // NOTE: very important to completely do this.update_watch_path
     // before this.save_to_disk below.
