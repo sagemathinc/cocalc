@@ -88,7 +88,7 @@ exports.quota = (settings, users) ->
     #            quota.privileged = true
     #            break
 
-    # little helper to caluclate the quotas, contributions, and limits
+    # Little helper to calculate the quotas, contributions, and limits.
     # name: of the computed quota, upgrade the quota config key,
     # parse_num for converting numbers, and factor for conversions
     calc = (name, upgrade, parse_num, factor = 1) ->
