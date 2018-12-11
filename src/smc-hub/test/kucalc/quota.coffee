@@ -1,3 +1,6 @@
+# Make loading typescript quota.ts just work, hopefully
+require('ts-node').register()
+
 init     = require('./init')
 db       = undefined
 setup    = (cb) -> (init.setup (err) -> db=init.db(); cb(err))
