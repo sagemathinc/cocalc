@@ -195,7 +195,7 @@ export class SignUp extends React.Component<Props, State> {
             ref="question"
             type="text"
             autoFocus={false}
-            placeholder="Learn Python"
+            placeholder="Enter some keywords"
           />
         </FormGroup>
       </>
