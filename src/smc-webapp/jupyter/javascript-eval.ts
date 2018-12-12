@@ -12,7 +12,8 @@ export function javascript_eval(line: string, element: any) {
       "require is not available in CoCalc; if you need a Javascript library, please request it."
     );
   require = require = requirejs = requirejs;
-  element = element; // I know, it's so typescript things that "element" is being used so this will compile.
+  require = require; // Same as below
+  element = element; // I know, it's so typescript thinks that "element" is being used so this will compile.
   // TODO: element is jquery wrapped element
   // "element" is possibly used in eval.
   try {

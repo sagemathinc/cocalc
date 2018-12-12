@@ -62,6 +62,7 @@
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",
     "temp": "^0.8.3",
+    "typescript": "^3.2.2",
     "underscore": "^1.7.0",
     "winston": "^2.4"
   },
