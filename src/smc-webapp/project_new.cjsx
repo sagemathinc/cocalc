@@ -140,14 +140,19 @@ NewFileDropdown = rclass
 # Use Rows and Cols to append more buttons to this class.
 # Could be changed to auto adjust to a list of pre-defined button names.
 exports.FileTypeSelector = FileTypeSelector = rclass
-    proptypes :
-        create_file   : rtypes.func.required
-        create_folder : rtypes.func.required
+    displayName : 'ProjectNew-FileTypeSelector'
+
+    propTypes :
+        create_file   : rtypes.func  #.required # commented, causes an exception upon init
+        create_folder : rtypes.func  #.required
         styles        : rtypes.object
 
     render: ->
+        return if not @props.create_file or not @props.create_file
+
         row_style =
             marginBottom:'8px'
+
         <Fragment>
             <Row style={row_style}>
                 <Col sm={6}>
@@ -197,6 +202,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <Tip title='Stopwatch'   icon='stopwatch'
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
                         <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
+                    </Tip>
+                    <Tip title='Create a chatroom'  placement='left'  icon='comment'
+                        tip='Create a chatroom for chatting with other collaborators on this project.'>
+                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
                     </Tip>
                     <Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
@@ -405,12 +414,6 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                                         name     = {"Download from Internet #{@blocked()}"}
                                         on_click = {@create_file}
                                         loading  = {@state.downloading} />
-                                </Tip>
-                            </Col>
-                            <Col sm={6}>
-                                <Tip title='Create a chatroom'  placement='left'  icon='comment'
-                                    tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
                                 </Tip>
                             </Col>
                         </Row>

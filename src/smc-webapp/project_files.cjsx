@@ -591,16 +591,10 @@ NoFiles = rclass
     render_file_type_selection: ->
         <div>
             <h4 style={color:"#666"}>Or select a file type</h4>
-            <FileTypeSelector create_file={@props.create_file} create_folder={@props.create_folder} >
-                <Row>
-                    <Col sm={12}>
-                        <Tip title='Create a Chatroom'  placement='right'  icon='comment'
-                            tip='Create a chatroom for chatting with other collaborators on this project.'>
-                            <NewFileButton icon='comment' name='Chatroom' on_click={@props.create_file} ext='sage-chat' />
-                        </Tip>
-                    </Col>
-                </Row>
-            </FileTypeSelector>
+            <FileTypeSelector
+                create_file = {@props.create_file}
+                create_folder = {@props.create_folder}
+            />
         </div>
 
     render: ->
@@ -644,15 +638,14 @@ FileListing = rclass
         create_file            : rtypes.func.isRequired   # TODO: should be action!
         selected_file_index    : rtypes.number
         project_id             : rtypes.string
-        show_upload            : rtypes.bool
         shift_is_down          : rtypes.bool
         sort_by                : rtypes.func              # TODO: should be data
         library                : rtypes.object
         other_settings         : rtypes.immutable
+        show_new               : rtypes.bool
 
     getDefaultProps: ->
         file_search           : ''
-        show_upload           : false
 
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -707,14 +700,17 @@ FileListing = rclass
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
     render_no_files: ->
-        if @props.listing.length is 0 and @props.file_search[0] isnt TERM_MODE_CHAR
-            <NoFiles
-                current_path  = {@props.current_path}
-                actions       = {@props.actions}
-                public_view   = {@props.public_view}
-                file_search   = {@props.file_search}
-                create_folder = {@props.create_folder}
-                create_file   = {@props.create_file} />
+        return if @props.show_new
+        return if @props.listing.length isnt 0
+        return if @props.file_search[0] is TERM_MODE_CHAR
+        <NoFiles
+            current_path  = {@props.current_path}
+            actions       = {@props.actions}
+            public_view   = {@props.public_view}
+            file_search   = {@props.file_search}
+            create_folder = {@props.create_folder}
+            create_file   = {@props.create_file}
+        />
 
     render_first_steps: ->
         return  # See https://github.com/sagemathinc/cocalc/issues/3138
@@ -2267,7 +2263,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_new: () ->
         <Row>
-            <Col sm={12} smOffset={0} md={8} mdOffset={2}>
+            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
                 <Well style={backgroundColor: 'white'}>
                     <ProjectNewForm
                         project_id={@props.project_id}
@@ -2428,7 +2424,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     other_settings         = {@props.other_settings}
                     library                = {@props.library}
                     redux                  = {@props.redux}
-                    event_handlers
+                    show_new               = {@props.show_new}
                 />
             </SMC_Dropwrapper>
         else
