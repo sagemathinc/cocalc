@@ -31,7 +31,7 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes, ReactDOM}  = require('./app-framework')
+{rclass, React, rtypes, ReactDOM, Fragment}  = require('./app-framework')
 {Button, FormControl, InputGroup, FormGroup, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 
@@ -41,8 +41,9 @@ output_style =
     position  : 'absolute'
     zIndex    : 2
     boxShadow : '0px 0px 7px #aaa'
-    maxHeight : '400px'
+    maxHeight : '450px'
     overflow  : 'auto'
+    right     : 0
 
 BAD_COMMANDS =
     sage    : "Create a Sage worksheet instead,\nor type 'sage' in a full terminal."
@@ -169,7 +170,7 @@ exports.MiniTerminal = MiniTerminal = rclass
     render: ->
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
         # We don't use inline, since we still want the full horizontal width.
-        <div>
+        <Fragment>
             <form onSubmit={(e) => e.preventDefault(); @execute_command()} style={marginBottom: '-10px'}>
                 <FormGroup>
                     <InputGroup>
@@ -192,4 +193,4 @@ exports.MiniTerminal = MiniTerminal = rclass
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>
-        </div>
+        </Fragment>

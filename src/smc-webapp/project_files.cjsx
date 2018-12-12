@@ -490,7 +490,7 @@ FirstSteps = rclass
                 </span>
                 <br/>
                 <span style={line2}>
-                    You can also load it via "+ Add" → "Library" → "First Steps in <SiteName />"
+                    You can also load it via "Library" → "First Steps in <SiteName />"
                 </span>
             </Row>
         </Col>
@@ -2241,7 +2241,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_library: () ->
         <Row>
-            <Col sm={12} smOffset={0} md={8} mdOffset={2}>
+            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
                 <Well style={backgroundColor: 'white'}>
                     <Row>
                         <Col sm={10}>
@@ -2310,7 +2310,9 @@ exports.ProjectFiles = rclass ({name}) ->
         <ActivityDisplay
             trunc    = {80}
             activity = {underscore.values(@props.activity)}
-            on_clear = {=>@props.actions.clear_all_activity()} />
+            on_clear = {=>@props.actions.clear_all_activity()}
+            style    = {top: '100px'}
+        />
 
     render_pay: ->
         <PayCourseFee project_id={@props.project_id} redux={@props.redux} />

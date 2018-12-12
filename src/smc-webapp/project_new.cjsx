@@ -31,7 +31,6 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
-{Library} = require('./library')
 
 v = misc.keys(file_associations)
 v.sort()
