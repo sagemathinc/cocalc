@@ -1,17 +1,18 @@
 // computing project quotas based on settings (by admin/system) and user contributions ("upgrades")
 
-// historical note
-// old code added a "hardcoded" cpu_shares value in the setting, which was set in the DB
-// we no longer have that in kucalc
-// in December 2018, we removed that from the DB (LIMIT 10 to avoid locking the db too long)
+// historical note:
+// previously there was a "hardcoded" cpu_shares value in the setting, which was stored in the DB.
+// we no longer have that in kucalc, but the values were still there.
+// this quota code subtracted 256 unconditionally from that value to compensate for this.
+// in December 2018, we removed almost all cpu_shares from the DB (LIMIT 1000 to avoid locking the db too long)
 
 /*
 WITH s256 AS (
     SELECT project_id
     FROM projects
-    WHERE (settings ->> 'cpu_shares')::float = 256
+    WHERE (settings ->> 'cpu_shares')::float BETWEEN 1 AND 256
     ORDER BY created ASC
-    LIMIT 10
+    LIMIT 1000
 )
 UPDATE projects AS p
 SET    settings = jsonb_set(settings, '{cpu_shares}', '0')
@@ -81,7 +82,7 @@ interface ISettings {
 
 exports.quota = function(settings_arg?: ISettings, users_arg?: IUsers) {
   // we want settings and users to be defined below and make sure the
-  // arguments aren't modified
+  // arguments can't be modified
   const settings: Readonly<ISettings> = Object.freeze(
     settings_arg == null ? {} : settings_arg
   );
@@ -189,18 +190,11 @@ exports.quota = function(settings_arg?: ISettings, users_arg?: IUsers) {
   // memory request
   calc("memory_request", "memory_request", to_int);
 
-  // cpu limits
+  // "cores" is the hard upper bound the project container should get
   calc("cpu_limit", "cores", to_float);
 
-  // cpu requests -- a special case ...
-  if (settings.cpu_shares) {
-    // Subtract 256 since that's what we used to set in the database manually.
-    // This isn't part of anything users pay for.
-    // We should probably zero this out in the db when switching.
-    quota.cpu_request = Math.max(0, to_int(settings.cpu_shares) - 256) / 1024;
-  } else {
-    calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
-  }
+  // cpu_shares is the minimum cpu usage to request
+  calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
 
   // ensure minimum cpu are met
   cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU);

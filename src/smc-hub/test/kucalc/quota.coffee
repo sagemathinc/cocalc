@@ -135,7 +135,6 @@ describe 'default quota', ->
             privileged: false
         expect(maxedout).toEqual(exp)
 
-
     it 'does not limit admin upgrades', ->
         settings =
             network         : 2
@@ -150,7 +149,7 @@ describe 'default quota', ->
         maxedout = quota(settings, {})
         exp =
             cpu_limit: 7 # > limit
-            cpu_request: 4 - .25 # > limit minus some weird constant
+            cpu_request: 4 # > limit
             disk_quota: 32000 # > limit
             idle_timeout: 24*3600*100 # > limit
             member_host: true
