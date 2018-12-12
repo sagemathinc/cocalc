@@ -626,7 +626,14 @@ describe 'test writing and reading for recent_syncstrings_in_project -- ', ->
                         query : {syncstrings:{project_id:projects[0], path:path0, last_active:time1}}
                         cb    : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'delete', old_val:{last_active:time3, project_id:projects[0], string_id:string_id0}})
+                    expect(x.action).toEqual('delete')
+                    expect(x.old_val.project_id).toEqual(projects[0])
+                    expect(x.old_val.string_id).toEqual(string_id0)
+                    # the last_active time might jitter a bit. checking if inside a bracket...
+                    time3.setSeconds(time3.getSeconds() - 1)
+                    expect(x.old_val.last_active.getTime()).toBeGreaterThan(time3.getTime())
+                    time3.setSeconds(time3.getSeconds() + 2)
+                    expect(x.old_val.last_active.getTime()).toBeLessThan(time3.getTime())
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->
