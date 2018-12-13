@@ -113,8 +113,8 @@ exports.NewFileButton = NewFileButton = rclass
     render: ->
         <Button
             onClick={@on_click}
-            style={marginRight:'5px'}
-            className={@props.className ? ''}
+            style={marginRight:'5px', marginBottom:'5px'}
+            className={@props.className}
         >
             <Icon name={@props.icon} /> {@props.name}
             {@props.children}
@@ -134,14 +134,34 @@ NewFileDropdown = rclass
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
-        <MenuItem eventKey={i} key={i} onSelect={=>@props.create_file(ext)}>
-            <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+        text = <Fragment>
+                   <span style={textTransform:'capitalize'}>
+                    {data.name}
+                   </span>
+                   <span style={color:'#666'}>(.{ext})</span>
+               </Fragment>
+        <MenuItem
+            className={ 'dropdown-menu-left'}
+            eventKey={i}
+            key={i}
+            onSelect={=>@props.create_file(ext)}
+        >
+            <Icon name={data.icon} /> {text}
         </MenuItem>
 
     render: ->
-        <SplitButton id='new_file_dropdown'  title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
-            {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
-        </SplitButton>
+        <span
+            className={'pull-right dropdown-splitbutton-left'}
+            style={marginRight: '5px'}
+        >
+            <SplitButton
+                id={'new_file_dropdown'}
+                title={@file_dropdown_icon()}
+                onClick={=>@props.create_file()}
+            >
+                {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
+            </SplitButton>
+        </span>
 
 # Use Rows and Cols to append more buttons to this class.
 # Could be changed to auto adjust to a list of pre-defined button names.
@@ -161,7 +181,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
 
         <Fragment>
             <Row style={row_style}>
-                <Col sm={10}>
+                <Col sm={12}>
                     <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
@@ -173,20 +193,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
                     </Tip>
                 </Col>
-                <Col sm={2}>
-                    <Tip
-                        title='Folder'  placement='left' icon='folder-open-o'
-                        tip='Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem.' >
-                        <NewFileButton
-                            icon='folder-open-o' name='Folder'
-                            on_click={@props.create_folder}
-                            className={'pull-right'}
-                        />
-                    </Tip>
-                </Col>
             </Row>
             <Row style={row_style}>
-                <Col sm={6}>
+                <Col sm={12}>
                     <Tip title='Markdown File'   icon='cc-icon-markdown'
                         tip='Create a Markdown formatted document with real-time preview.'>
                         <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
@@ -215,18 +224,13 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create an X11 desktop for running graphical applications.'>
                         <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
                     </Tip>
-                    <Tip title='Manage a course'  placement='left'  icon='graduation-cap'
+                    <Tip title='Manage a course'  placement='bottom'  icon='graduation-cap'
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
                         <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
-                </Col>
-                <Col sm={6}>
-                    <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
-                        <NewFileDropdown create_file={@props.create_file} />
-                    </Tip>
+                   {@props.children}
                 </Col>
             </Row>
-            {@props.children}
         </Fragment>
 
 exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
@@ -377,6 +381,42 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </Row>
         </Fragment>
 
+    render_new_file_folder: ->
+        <Fragment>
+            <Tip
+                title={'Folder'}
+                placement={'left'}
+                icon={'folder-open-o'}
+                tip={'Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem.'}
+            >
+                <NewFileButton
+                    icon={'folder-open-o'}
+                    name={'Folder'}
+                    on_click={@create_folder}
+                    className={'pull-right'}
+                />
+            </Tip>
+            <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.' placement='top'>
+                <NewFileDropdown
+                    create_file={@submit}
+                />
+            </Tip>
+        </Fragment>
+
+    render_filename_form: ->
+        <form onSubmit={@submit_via_enter}>
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    ref         = 'project_new_filename'
+                    value       = {@state.filename}
+                    type        = 'text'
+                    disabled    = {@state.extension_warning}
+                    placeholder = 'Name your file, folder, or paste in a link...'
+                    onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+            </FormGroup>
+        </form>
+
     render: ->
         <Fragment>
             {@render_header() if @props.show_header}
@@ -390,39 +430,32 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </Row>
             <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
                 <Col sm={12}>
-                    <Row>
-                        <Col sm={12}>
-                            <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
-                            <form onSubmit={@submit_via_enter}>
-                                <FormGroup>
-                                    <FormControl
-                                        autoFocus
-                                        ref         = 'project_new_filename'
-                                        value       = {@state.filename}
-                                        type        = 'text'
-                                        disabled    = {@state.extension_warning}
-                                        placeholder = 'Name your file, folder, or paste in a link...'
-                                        onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
-                                </FormGroup>
-                            </form>
-                            {if @state.extension_warning then @render_no_extension_alert()}
-                            {if @props.file_creation_error then @render_error()}
-                            <h4 style={color:"#666"}>Select the type</h4>
-                        </Col>
-                    </Row>
+                    <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
+                    <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+                        <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
+                            {@render_filename_form()}
+                        </div>
+                        <div style={flex: '0 0 auto'}>
+                            {@render_new_file_folder()}
+                        </div>
+                    </div>
+                    {if @state.extension_warning then @render_no_extension_alert()}
+                    {if @props.file_creation_error then @render_error()}
+                    <h4 style={color:"#666"}>Select the type</h4>
                     <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
-                        <Row>
-                            <Col sm={6}>
-                                <Tip title='Download files from the Internet'  icon = 'cloud'
-                                    tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
-                                    <NewFileButton
-                                        icon     = 'cloud'
-                                        name     = {"Download from Internet #{@blocked()}"}
-                                        on_click = {@create_file}
-                                        loading  = {@state.downloading} />
-                                </Tip>
-                            </Col>
-                        </Row>
+                        <Tip
+                            title='Download files from the Internet'
+                            icon = 'cloud'
+                            placement='bottom'
+                            tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}"
+                        >
+                            <NewFileButton
+                                icon     = {'cloud'}
+                                name     = {"Download from Internet #{@blocked()}"}
+                                on_click = {@create_file}
+                                loading  = {@state.downloading}
+                            />
+                        </Tip>
                     </FileTypeSelector>
                 </Col>
             </Row>

@@ -2258,6 +2258,7 @@ exports.ProjectFiles = rclass ({name}) ->
         </Row>
 
     render_new: () ->
+        return if not @props.show_new
         <Row>
             <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
                 <Well style={backgroundColor: 'white'}>
@@ -2450,6 +2451,47 @@ exports.ProjectFiles = rclass ({name}) ->
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
+    render_control_row: (public_view, visible_listing) ->
+        <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+            <div style={flex: '1 0 20%', marginRight: '10px', minWidth: '20em'}>
+                <ProjectFilesSearch
+                    project_id          = {@props.project_id}
+                    key                 = {@props.current_path}
+                    file_search         = {@props.file_search}
+                    actions             = {@props.actions}
+                    current_path        = {@props.current_path}
+                    selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
+                    selected_file_index = {@props.selected_file_index}
+                    file_creation_error = {@props.file_creation_error}
+                    num_files_displayed = {visible_listing?.length}
+                    create_file         = {@create_file}
+                    create_folder       = {@create_folder}
+                    public_view         = {public_view}
+                />
+            </div>
+            {<div
+                style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}
+                className='cc-project-files-create-dropdown'
+             >
+                    {@render_new_file()}
+            </div> if not public_view}
+            <div
+                className = 'cc-project-files-path'
+                style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
+                <ProjectFilesPath
+                    current_path = {@props.current_path}
+                    history_path = {@props.history_path}
+                    actions      = {@props.actions}
+                />
+            </div>
+            {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
+                <UsersViewing project_id={@props.project_id} />
+            </div> if not public_view}
+            {<div style={flex: '1 0 auto', marginBottom:'15px'}>
+                {@render_miniterm()}
+            </div> if not public_view}
+        </div>
+
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -2474,43 +2516,8 @@ exports.ProjectFiles = rclass ({name}) ->
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}
-            <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
-                <div style={flex: '1 0 20%', marginRight: '10px', minWidth: '20em'}>
-                    <ProjectFilesSearch
-                        project_id          = {@props.project_id}
-                        key                 = {@props.current_path}
-                        file_search         = {@props.file_search}
-                        actions             = {@props.actions}
-                        current_path        = {@props.current_path}
-                        selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
-                        selected_file_index = {@props.selected_file_index}
-                        file_creation_error = {@props.file_creation_error}
-                        num_files_displayed = {visible_listing?.length}
-                        create_file         = {@create_file}
-                        create_folder       = {@create_folder}
-                        public_view         = {public_view} />
-                </div>
-                {<div
-                    style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}
-                    className='cc-project-files-create-dropdown' >
-                        {@render_new_file()}
-                </div> if not public_view}
-                <div
-                    className = 'cc-project-files-path'
-                    style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
-                    <ProjectFilesPath
-                        current_path = {@props.current_path}
-                        history_path = {@props.history_path}
-                        actions      = {@props.actions}
-                    />
-                </div>
-                {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
-                    <UsersViewing project_id={@props.project_id} />
-                </div> if not public_view}
-                {<div style={flex: '1 0 auto', marginBottom:'15px'}>
-                    {@render_miniterm()}
-                </div> if not public_view}
-            </div>
+            {@render_control_row(public_view, visible_listing)}
+            {@render_new()}
 
             <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
@@ -2537,7 +2544,6 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Row>
             }
 
-            {@render_new() if @props.show_new}
             {@render_library() if @props.show_library}
             {### Only show the access error if there is not another error. ###}
             {@render_access_error() if public_view and not error}
