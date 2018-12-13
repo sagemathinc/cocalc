@@ -16,7 +16,7 @@ export async function synctable_project(
   throttle_changes?: undefined | number
 ): Promise<SyncTable> {
   // wake up the project
-  client.touch_project({project_id});
+  client.touch_project({ project_id });
   const synctable = synctable_no_database(
     query,
     options,
@@ -27,6 +27,7 @@ export async function synctable_project(
   const channel = await api.synctable_channel(query, options);
   let first_data = true;
   channel.on("data", function(data) {
+    // console.log(query, "data=", data);
     if (!is_array(data)) {
       if (data != null && data.error != null) {
         throw Error(`synctable_project error - ${data.error}`);
@@ -35,7 +36,7 @@ export async function synctable_project(
       throw Error("data must be an array");
     }
     for (let x of data) {
-      synctable.set(x);
+      synctable.set(x, "shallow", true);
     }
     if (first_data) {
       synctable.emit("project-ready");

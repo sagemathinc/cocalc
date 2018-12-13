@@ -26,7 +26,7 @@ export function set_debug(x: boolean): void {
 import { global_cache_decref } from "./global-cache";
 
 import { EventEmitter } from "events";
-import { Map, fromJS, is as immutable_is, Iterable } from "immutable";
+import { Map, fromJS, List, is as immutable_is, Iterable } from "immutable";
 
 import { keys, throttle } from "underscore";
 
@@ -241,10 +241,14 @@ export class SyncTable extends EventEmitter {
   Raises an exception if something goes wrong doing the set.
   Returns updated value otherwise.
   Causes a save if their are changes.
+
+  types -- if true, use db schema to ensure types are correct,
+           converting if necessary.  This may **mutate** `changes`!
   */
   public set(
     changes: any,
-    merge: "deep" | "shallow" | "none" = "deep"
+    merge: "deep" | "shallow" | "none" = "deep",
+    types: boolean = false
   ): any {
     this.assert_not_closed();
 
@@ -262,6 +266,10 @@ export class SyncTable extends EventEmitter {
 
     if (DEBUG) {
       console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
+    }
+
+    if (types) {
+      changes = this.coerce_types(changes);
     }
 
     // Ensure that each key is allowed to be set.
@@ -778,13 +786,15 @@ export class SyncTable extends EventEmitter {
     // Send our changes to the server.
     const query: any[] = [];
     const saved_objs: any[] = [];
-    // sort so that behavior is more predictable = faster (e.g., sync patches are in
+    // sort so that behavior is more predictable = faster
+    // (e.g., sync patches are in
     // order); the keys are strings so default sort is fine
     for (let key of keys(changed).sort()) {
       if (key == null) continue;
       const c = changed[key];
       const obj = {};
-      // NOTE: this may get replaced below with proper javascript, e.g., for compound primary key
+      // NOTE: this may get replaced below with proper
+      // javascript, e.g., for compound primary key
       if (this.primary_keys.length === 1) {
         obj[this.primary_keys[0]] = key;
       } else {
@@ -880,6 +890,89 @@ export class SyncTable extends EventEmitter {
     }
     // return true if there are new unsaved changes:
     return !at_start.equals(this.value_local);
+  }
+
+  // Return modified immutable Map, with all types coerced to be
+  // as specified in the schema, if possible, or throw an exception.
+  private coerce_types(changes: Map<string, any>): Map<string, any> {
+    const t = schema.SCHEMA[this.table];
+    if (t == null) {
+      throw Error(`Missing schema for table ${this.table}`);
+    }
+    const fields = t.fields;
+    if (fields == null) {
+      throw Error(`Missing fields part of schema for table ${this.table}`);
+    }
+    return Map(changes.map((value, field) => {
+      if(typeof(field) !== 'string') {  // satisfy typescript.
+        return;
+      }
+      const spec = fields[field];
+      if (spec == null) {
+        console.warn(changes, fields);
+        throw Error(
+          `Cannot coerce: no field '${field}' in table ${this.table}`
+        );
+      }
+      let desired: string | undefined = spec.type || spec.pg_type;
+      if (desired == null) {
+        throw Error(`Cannot coerce: no type info for field ${field}`);
+      }
+      desired = desired.toLowerCase();
+
+      const actual = typeof value;
+      if (desired === actual) {
+        return value;
+      }
+
+      // We can add more or less later...
+      if (desired === "string" || desired.slice(0, 4) === "char") {
+        if (actual !== "string") {
+          // ensure is a string
+          return `${value}`;
+        }
+        return value;
+      }
+      if (desired === "timestamp") {
+        if (!(value instanceof Date)) {
+          // make it a Date object. (usually converting from string rep)
+          return new Date(value);
+        }
+        return value;
+      }
+      if (desired === "integer") {
+        // always fine to do this -- will round floats, fix strings, etc.
+        return parseInt(value);
+      }
+      if (desired === "number") {
+        // actual wasn't number, so parse:
+        return parseFloat(value);
+      }
+      if (desired === "array") {
+        if (!List.isList(value)) {
+          throw Error("must be a list");
+        }
+        return value;
+      }
+      if (desired === "map") {
+        if (!Map.isMap(value)) {
+          throw Error("must be a map");
+        }
+        return value;
+      }
+      if (desired === "boolean") {
+        if (!misc.is_object(value)) {
+          throw Error("must be a map)");
+        }
+        // actual wasn't boolean, so coerce.
+        return !!value;
+      }
+      if (desired === "uuid") {
+        misc.assert_uuid(value);
+        return value;
+      }
+      return value;
+    }));
   }
 
   /*

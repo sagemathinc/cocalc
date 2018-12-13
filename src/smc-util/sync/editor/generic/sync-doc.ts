@@ -115,9 +115,9 @@ export class SyncDoc extends EventEmitter {
   private string_id: string;
   private my_user_id: number;
 
-  private cursor_interval: number = 1000;
+  private cursor_interval: number = 50;
   // debouncing of incoming upstream patches
-  private patch_interval: number = 1500;
+  private patch_interval: number = 250;
 
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
@@ -151,7 +151,7 @@ export class SyncDoc extends EventEmitter {
   private last: Document;
   private doc: Document;
 
-  private last_user_change: Date | undefined;
+  private last_user_change: Date = minutes_ago(60);
 
   private last_snapshot: Date | undefined;
   private snapshot_interval: number;
@@ -244,19 +244,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private do_set_cursor_locs(locs: any[], side_effect: boolean): void {
-    if (
-      this.state === "closed" ||
-      this.last_user_change == null ||
-      new Date().valueOf() - this.last_user_change.valueOf() >= 1000 * 5 * 60
-    ) {
-      /* We ignore setting cursor location in case the
-         user hasn't actually modified this file recently
-         (5 minutes).  It's annoying to just see a cursor
-         moving around for a user who isn't doing
-         anything, and this also prevents bugs in
-         side_effect detection (which is super hard to
-         get right).
-        */
+    if (this.state === "closed") {
       return;
     }
     const x: {
@@ -296,9 +284,10 @@ export class SyncDoc extends EventEmitter {
      for this doc. */
   public set_cursor_locs(locs, side_effect: boolean = false): void {
     this.assert_is_ready();
-    if (this.throttled_set_cursor_locs != null) {
-      this.throttled_set_cursor_locs(locs, side_effect);
+    if (this.throttled_set_cursor_locs == null) {
+      throw Error("cursors not enabled");
     }
+    this.throttled_set_cursor_locs(locs, side_effect);
   }
 
   private init_file_use_interval(): void {
@@ -314,8 +303,7 @@ export class SyncDoc extends EventEmitter {
     } else {
       action = "edit";
     }
-    this.last_user_change = minutes_ago(60); // initialize
-    function file_use(): void {
+    const file_use = () => {
       // We ONLY count this and record that the file was
       // edited if there was an actual change record in the
       // patches log, by this user, since last time.
@@ -336,12 +324,9 @@ export class SyncDoc extends EventEmitter {
         action,
         ttl: this.file_use_interval
       });
-    }
+    };
 
-    this.on(
-      "user_change",
-      throttle(file_use.bind(this), this.file_use_interval, true)
-    );
+    this.on("user_change", throttle(file_use, this.file_use_interval, true));
   }
 
   private set_state(state: State): void {

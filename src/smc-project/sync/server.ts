@@ -187,7 +187,7 @@ class SyncChannel {
       throw Error("data must be an array of set objects");
     }
     for (let x of data) {
-      this.synctable.set(x);
+      this.synctable.set(x, "shallow", true);
     }
   }
 

@@ -491,7 +491,7 @@ export class SortedPatchList extends EventEmitter {
       ) {
         s = s.apply_patch(x.patch);
       } else {
-        log(`prev=${x.prev} missing, so not applying`);
+        log(`prev=${x.prev.valueOf()} is missing, so not applying this patch`);
       }
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
