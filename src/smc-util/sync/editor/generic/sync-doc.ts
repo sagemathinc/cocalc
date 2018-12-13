@@ -761,8 +761,11 @@ export class SyncDoc extends EventEmitter {
       }
     };
 
-    this.syncstring_table = this.client.synctable2(query, undefined);
-    await once(this.syncstring_table, "connected");
+    this.syncstring_table = await this.client.synctable_project(
+      this.project_id,
+      query,
+      [{ ephemeral: false }]
+    );
     await this.handle_syncstring_update();
     this.syncstring_table.on(
       "change",
@@ -1017,13 +1020,12 @@ export class SyncDoc extends EventEmitter {
 
     const patch_list = new SortedPatchList(this._from_str);
 
-    this.patches_table = this.client.synctable2(
+    this.patches_table = await this.client.synctable_project(
+      this.project_id,
       { patches: this.patch_table_query(this.last_snapshot) },
-      undefined,
+      [{ ephemeral: false }],
       this.patch_interval
     );
-
-    await once(this.patches_table, "connected");
     this.assert_not_closed();
 
     patch_list.add(this.get_patches());
@@ -1528,7 +1530,7 @@ export class SyncDoc extends EventEmitter {
   private async handle_syncstring_update(): Promise<void> {
     //dbg = this.dbg("handle_syncstring_update")
     //dbg()
-    if (this.state === 'closed') {
+    if (this.state === "closed") {
       return;
     }
 
@@ -1635,7 +1637,7 @@ export class SyncDoc extends EventEmitter {
     //dbg("project only handling")
     // Only done for project:
     //this.assert_is_ready();
-    if (this.state === 'closed') {
+    if (this.state === "closed") {
       return;
     }
 
