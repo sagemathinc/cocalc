@@ -599,9 +599,7 @@ NoFiles = rclass
 
     render: ->
         <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
-            <Col sm={2}>
-            </Col>
-            <Col sm={8}>
+            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
                 <span style={fontSize:'20px'}>
                     No files found
                 </span>
@@ -609,8 +607,6 @@ NoFiles = rclass
                 {@render_create_button() if not @props.public_view}
                 {@render_help_alert()}
                 {@render_file_type_selection() if @props.file_search.length > 0}
-            </Col>
-            <Col sm={2}>
             </Col>
         </Row>
 

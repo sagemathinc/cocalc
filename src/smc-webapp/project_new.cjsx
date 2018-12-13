@@ -31,6 +31,7 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
+{SMC_Dropzone} = require('./smc-dropzone')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -98,10 +99,11 @@ exports.NewFileButton = NewFileButton = rclass
     mixins : [ImmutablePureRenderMixin]
 
     propTypes :
-        name     : rtypes.string
-        icon     : rtypes.string
-        on_click : rtypes.func
-        ext      : rtypes.string
+        name      : rtypes.string
+        icon      : rtypes.string
+        on_click  : rtypes.func
+        ext       : rtypes.string
+        className : rtypes.string
 
     on_click: ->
         if @props.ext?
@@ -109,7 +111,11 @@ exports.NewFileButton = NewFileButton = rclass
         else
             @props.on_click()
     render: ->
-        <Button onClick={@on_click}  style={marginRight:'5px'} >
+        <Button
+            onClick={@on_click}
+            style={marginRight:'5px'}
+            className={@props.className ? ''}
+        >
             <Icon name={@props.icon} /> {@props.name}
             {@props.children}
         </Button>
@@ -155,7 +161,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
 
         <Fragment>
             <Row style={row_style}>
-                <Col sm={6}>
+                <Col sm={10}>
                     <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
@@ -167,17 +173,15 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
                     </Tip>
                 </Col>
-                <Col sm={6}>
-                    <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
-                        <NewFileDropdown create_file={@props.create_file} />
-                    </Tip>
-                    <span style={marginRight:'5px'}></span>
+                <Col sm={2}>
                     <Tip
                         title='Folder'  placement='left' icon='folder-open-o'
-                        tip='Create a folder in which to store and organize your files.  CoCalc provides a full featured filesystem.' >
+                        tip='Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem.' >
                         <NewFileButton
                             icon='folder-open-o' name='Folder'
-                            on_click={@props.create_folder} />
+                            on_click={@props.create_folder}
+                            className={'pull-right'}
+                        />
                     </Tip>
                 </Col>
             </Row>
@@ -211,11 +215,14 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create an X11 desktop for running graphical applications.'>
                         <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
                     </Tip>
-                </Col>
-                <Col sm={6}>
                     <Tip title='Manage a course'  placement='left'  icon='graduation-cap'
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
                         <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
+                    </Tip>
+                </Col>
+                <Col sm={6}>
+                    <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
+                        <NewFileDropdown create_file={@props.create_file} />
                     </Tip>
                 </Col>
             </Row>
@@ -223,7 +230,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         </Fragment>
 
 exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
-    displayName : 'ProjectNewForm'
+    displayName : 'ProjectNew-ProjectNewForm'
 
     reduxProps :
         "#{name}" :
@@ -338,7 +345,6 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         </Alert>
 
     render_upload: ->
-        {SMC_Dropzone} = require('./smc-dropzone')
         <Fragment>
             <Row style={marginTop: '20px'}>
                 <Col sm={12}>
@@ -348,10 +354,10 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             <Row>
                 <Col sm={12}>
                     <SMC_Dropzone
-                            dropzone_handler     = {{}}
-                            project_id           = {@props.project_id}
-                            current_path         = {@props.current_path}
-                            show_header          = {false}
+                        dropzone_handler     = {{}}
+                        project_id           = {@props.project_id}
+                        current_path         = {@props.current_path}
+                        show_header          = {false}
                     />
                 </Col>
             </Row>
@@ -456,8 +462,6 @@ FileUpload = rclass ({name}) ->
     mixins : [ImmutablePureRenderMixin]
 
     render: ->
-        {SMC_Dropzone} = require('./smc-dropzone')
-
         <Row>
             <Col sm={3}>
                 <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
