@@ -17,8 +17,13 @@ import {
   public_get_text_file,
   prettier,
   syncstring,
-  syncdb
+  syncdb2,
+  syncstring2
 } from "../generic/client";
+
+import { SyncDB } from "smc-util/sync/editor/db";
+import { SyncString } from "smc-util/sync/editor/string";
+
 import { aux_file } from "../frame-tree/util";
 import { callback_opts, retry_until_success } from "smc-util/async-utils";
 import {
@@ -94,8 +99,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   T | CodeEditorState
 > {
   protected _state: "closed" | undefined;
-  protected _syncstring: any;
-  protected _syncdb?: any; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
+  protected _syncstring: SyncString;
+  protected _syncdb?: SyncDB; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
   private _syncstring_init: boolean = false; // true once init has happened.
   private _syncdb_init: boolean = false; // true once init has happened
   protected _key_handler: any;
@@ -206,7 +211,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _init_syncstring(): void {
     if (this.doctype == "none") {
-      this._syncstring = syncstring({
+      // TODO: this is obviously probably broken.
+      this._syncstring = <SyncString>syncstring({
         project_id: this.project_id,
         path: this.path,
         cursors: true,
@@ -217,17 +223,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         patch_interval: 500
       });
     } else if (this.doctype == "syncstring") {
-      this._syncstring = syncstring({
+      this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true,
-        before_change_hook: () => this.set_syncstring_to_codemirror(),
-        after_change_hook: () => this.set_codemirror_to_syncstring(),
-        save_interval: 500,
-        patch_interval: 500
+        cursors: true
       });
     } else if (this.doctype == "syncdb") {
-      this._syncstring = syncdb({
+      this._syncstring = syncdb2({
         project_id: this.project_id,
         path: this.path,
         primary_keys: this.primary_keys,
@@ -237,7 +239,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
-    this._syncstring.once("init", err => {
+    this._syncstring.once("ready", err => {
       if (err) {
         this.set_error(
           `Fatal error opening file -- ${err}.  Please try reopening the file again.`
@@ -257,15 +259,27 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       ) {
         this.setState({ is_loaded: true });
       }
+
+      this._syncstring.on(
+        "metadata-change",
+        this._syncstring_metadata.bind(this)
+      );
+      this._syncstring.on(
+        "cursor_activity",
+        this._syncstring_cursor_activity.bind(this)
+      );
     });
 
-    this._syncstring.on("metadata-change", () => this._syncstring_metadata());
-    this._syncstring.on("cursor_activity", () =>
-      this._syncstring_cursor_activity()
+    this._syncstring.on(
+      "before-change",
+      this.set_syncstring_to_codemirror.bind(this)
     );
-
-    this._syncstring.on("change", () => this._syncstring_change());
-    this._syncstring.on("init", () => this._syncstring_change());
+    this._syncstring.on(
+      "after-change",
+      this.set_codemirror_to_syncstring.bind(this)
+    );
+    this._syncstring.on("change", this._syncstring_change.bind(this));
+    this._syncstring.on("ready", this._syncstring_change.bind(this));
 
     this._syncstring.once("load-time-estimate", est => {
       return this.setState({ load_time_estimate: est });
@@ -289,19 +303,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     path?: string
   ): void {
     const aux = aux_file(path || this.path, "syncdb");
-    this._syncdb = syncdb({
+    this._syncdb = syncdb2({
       project_id: this.project_id,
       path: aux,
       primary_keys: primary_keys,
       string_cols: string_cols
     });
-    this._syncdb.once("init", err => {
-      if (err) {
-        this.set_error(
-          `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
-        );
-        return;
-      }
+    this._syncdb.once("error", err => {
+      this.set_error(
+        `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
+      );
+    });
+    this._syncdb.once("ready", () => {
       this._syncdb_init = true;
       if (
         !this.store.get("is_loaded") &&
@@ -380,25 +393,35 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       );
       delete this._key_handler;
     }
-    if (this._syncstring) {
-      // syncstring was initialized; be sure not to
-      // loose the very last change user made!
-      this.set_syncstring_to_codemirror();
-      this._syncstring._save();
-      this._syncstring.close();
-      delete this._syncstring;
-    }
-    if (this._syncdb) {
-      // syncstring was initialized; be sure not to
-      // loose the very last change user made!
-      this._syncdb.save_asap();
-      this._syncdb.close();
-      delete this._syncdb;
-    }
+    this.close_syncstring();
+    this.close_syncdb();
     // Remove underlying codemirror doc from cache.
     cm_doc_cache.close(this.project_id, this.path);
     // Free up any allocated terminals.
     this.terminals.close();
+  }
+
+  private async close_syncstring(): Promise<void> {
+    if (this._syncstring == null) return;
+    const s = this._syncstring;
+    delete this._syncstring;
+
+    // syncstring was initialized; be sure not to
+    // lose the very last change user made!
+    this.set_syncstring_to_codemirror();
+    await s.save();
+    s.close();
+  }
+
+  private async close_syncdb(): Promise<void> {
+    if (this._syncdb == null) return;
+    const s = this._syncdb;
+    delete this._syncdb;
+
+    // syncstring was initialized; be sure not to
+    // lose the very last change user made!
+    await s.save();
+    s.close();
   }
 
   __save_local_view_state(): void {
@@ -860,8 +883,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // TOOD: this is probably naive and slow too...
     let cursors = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
-      if (account_id === this._syncstring._client.account_id) {
+      if (account_id === this.redux.getStore("account").get_account_id()) {
         // skip self.
+        // TODO: actually soon we should show own cursor...
         return;
       }
       info.get("locs").forEach(loc => {

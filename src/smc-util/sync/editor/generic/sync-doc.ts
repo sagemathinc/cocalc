@@ -85,7 +85,6 @@ export interface SyncOpts0 {
   project_id: string;
   path: string;
   client: Client;
-  cursor_interval?: number;
   patch_interval?: number;
   file_use_interval?: number;
   string_id?: string;
@@ -115,8 +114,7 @@ export class SyncDoc extends EventEmitter {
   private string_id: string;
   private my_user_id: number;
 
-  private cursor_interval: number = 50;
-  // debouncing of incoming upstream patches
+  // throttling of incoming upstream patches
   private patch_interval: number = 250;
 
   // This is what's actually output by setInterval -- it's
@@ -145,8 +143,6 @@ export class SyncDoc extends EventEmitter {
   private evaluator: any;
 
   private patch_list: SortedPatchList;
-
-  private throttled_set_cursor_locs: Function;
 
   private last: Document;
   private doc: Document;
@@ -192,7 +188,6 @@ export class SyncDoc extends EventEmitter {
       "project_id",
       "path",
       "client",
-      "cursor_interval",
       "patch_interval",
       "file_use_interval",
       "cursors",
@@ -232,7 +227,7 @@ export class SyncDoc extends EventEmitter {
     try {
       await this.init_all();
     } catch (err) {
-      this.emit("init", err);
+      console.warn("SyncDoc init error -- ", err);
       this.emit("error", err);
       this.close();
       return;
@@ -243,8 +238,9 @@ export class SyncDoc extends EventEmitter {
     this.emit("change"); // from nothing to something.
   }
 
-  private do_set_cursor_locs(locs: any[], side_effect: boolean): void {
-    if (this.state === "closed") {
+  /* Set this user's cursors to the given locs. */
+  public set_cursor_locs(locs: any[], side_effect: boolean = false): void {
+    if (this.cursors_table == null) {
       return;
     }
     const x: {
@@ -260,34 +256,9 @@ export class SyncDoc extends EventEmitter {
     if (!side_effect) {
       x.time = this.client.server_time();
     }
-    if (this.cursors_table != null) {
-      this.cursors_table.set(x, "none");
-    }
-  }
-
-  private init_throttled_cursors(): void {
-    if (!this.cursors) {
-      return;
-    }
-    // Initialize throttled cursors functions
-    this.throttled_set_cursor_locs = throttle(
-      this.do_set_cursor_locs.bind(this),
-      this.cursor_interval,
-      { leading: true, trailing: true }
-    );
-  }
-
-  /* Set this user's cursors to the given locs.  This
-     function is throttled, so calling it many times
-     is safe, and all but the last call is discarded.
-     NOTE: no-op if only one user or cursors not enabled
-     for this doc. */
-  public set_cursor_locs(locs, side_effect: boolean = false): void {
-    this.assert_is_ready();
-    if (this.throttled_set_cursor_locs == null) {
-      throw Error("cursors not enabled");
-    }
-    this.throttled_set_cursor_locs(locs, side_effect);
+    console.log("set cursor table entry to ", JSON.stringify(locs));
+    this.cursors_table.set(x, "none");
+    console.log("after set, ", JSON.stringify(this.cursors_table.get()));
   }
 
   private init_file_use_interval(): void {
@@ -344,7 +315,8 @@ export class SyncDoc extends EventEmitter {
     this.doc = value;
   }
 
-  // Return underlying document, or undefined if document hasn't been set yet.
+  // Return underlying document, or undefined if document
+  // hasn't been set yet.
   public get_doc(): Document {
     return this.doc;
   }
@@ -362,9 +334,11 @@ export class SyncDoc extends EventEmitter {
   }
 
   // Used for internal debug logging
+  /*
   private dbg(f: string): Function {
     return this.client.dbg(`SyncString(path='${this.path}').${f}:`);
   }
+  */
 
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
@@ -711,8 +685,6 @@ export class SyncDoc extends EventEmitter {
       delete this.cursors_table;
     }
 
-    delete this.throttled_set_cursor_locs;
-
     if (this.client.is_project()) {
       this.update_watch_path(); // no input = closes it
     }
@@ -791,7 +763,6 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed();
     this.init_periodic_touch();
     this.init_file_use_interval();
-    this.init_throttled_cursors();
     if (this.client.is_project()) {
       await this.load_from_disk_if_newer();
     }
@@ -1085,8 +1056,7 @@ export class SyncDoc extends EventEmitter {
     this.cursors_table = await this.client.synctable_project(
       this.project_id,
       query,
-      [{ ephemeral: true }],
-      this.cursor_interval
+      [{ ephemeral: true }]
     );
     this.assert_not_closed();
 
@@ -1527,17 +1497,17 @@ export class SyncDoc extends EventEmitter {
     }
 
     //dbg(JSON.stringify(x))
-    try {
-      // Below "x.users == null" works because the initial touch sets
-      // only string_id and last_active, and nothing else.
-      if (x == null || x.users == null) {
-        await this.handle_syncstring_update_new_document();
-      } else {
-        await this.handle_syncstring_update_existing_document(x, data);
-      }
-    } catch (err) {
-      this.dbg("handle_syncstring_update")(`UNHANDLED ERROR -- ${err}`);
+    // try {
+    // Below "x.users == null" works because the initial touch sets
+    // only string_id and last_active, and nothing else.
+    if (x == null || x.users == null) {
+      await this.handle_syncstring_update_new_document();
+    } else {
+      await this.handle_syncstring_update_existing_document(x, data);
     }
+    /*} catch (err) {
+      this.dbg("handle_syncstring_update")(`UNHANDLED ERROR -- ${err}`);
+    }*/
   }
 
   private async handle_syncstring_update_new_document(): Promise<void> {
@@ -2146,10 +2116,8 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null) {
       return;
     }
-    // TODO: there was a "before_change_hook" call here --
-    // should we replace this with emitting an event, then
-    // waiting until the next event loop?  This MUST be addressed.
 
+    this.emit("before-change");
     if (!this.last.is_equal(this.doc)) {
       // compute transformation from this.last to this.doc
       const patch = this.last.make_patch(this.doc); // must be nontrivial
@@ -2168,7 +2136,7 @@ export class SyncDoc extends EventEmitter {
       // There is a possibility that document changed, so
       // set to new version.
       this.last = this.doc = new_remote;
-      // TODO: there was an after_change_hook call here.
+      this.emit("after-change");
       this.emit("change");
     }
   }

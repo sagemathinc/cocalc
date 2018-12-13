@@ -179,6 +179,22 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
+interface SyncstringOpts2 {
+  project_id: string;
+  path: string;
+  cursors?: boolean;
+  save_interval?: number; // amount to debounce saves (in ms)
+  patch_interval?: number;
+}
+
+import { SyncString } from 'smc-util/sync/editor/string/sync';
+
+export function syncstring2(opts: SyncstringOpts2): SyncString {
+  const opts1: any = opts;
+  opts1.client = webapp_client;
+  return new SyncString(opts1);
+}
+
 interface SyncDBOpts {
   project_id: string;
   path: string;
@@ -193,6 +209,14 @@ interface SyncDBOpts {
 export function syncdb(opts: SyncDBOpts): any {
   const opts1: any = opts;
   return webapp_client.sync_db(opts1);
+}
+
+import { SyncDB } from 'smc-util/sync/editor/db/sync';
+
+export function syncdb2(opts: SyncDBOpts): SyncDB {
+  const opts1: any = opts;
+  opts1.client = webapp_client;
+  return new SyncDB(opts1);
 }
 
 interface QueryOpts {

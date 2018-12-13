@@ -194,10 +194,16 @@ export class SyncTable extends EventEmitter {
   there is only one record, which is an important special
   case (a so-called "wide" table?.)
   */
-  public get_one(): Map<string, any> | undefined {
-    return this.value_local != null
-      ? this.value_local.toSeq().first()
-      : undefined;
+  public get_one(arg?): Map<string, any> | undefined {
+    if (arg == null) {
+      return this.value_local != null
+        ? this.value_local.toSeq().first()
+        : undefined;
+    } else {
+      // TODO: make more efficient by not just getting everything!
+      const r = this.get(arg);
+      return r != null ? r.toSeq().first() : undefined;
+    }
   }
 
   /*
@@ -903,76 +909,79 @@ export class SyncTable extends EventEmitter {
     if (fields == null) {
       throw Error(`Missing fields part of schema for table ${this.table}`);
     }
-    return Map(changes.map((value, field) => {
-      if(typeof(field) !== 'string') {  // satisfy typescript.
-        return;
-      }
-      const spec = fields[field];
-      if (spec == null) {
-        console.warn(changes, fields);
-        throw Error(
-          `Cannot coerce: no field '${field}' in table ${this.table}`
-        );
-      }
-      let desired: string | undefined = spec.type || spec.pg_type;
-      if (desired == null) {
-        throw Error(`Cannot coerce: no type info for field ${field}`);
-      }
-      desired = desired.toLowerCase();
+    return Map(
+      changes.map((value, field) => {
+        if (typeof field !== "string") {
+          // satisfy typescript.
+          return;
+        }
+        const spec = fields[field];
+        if (spec == null) {
+          console.warn(changes, fields);
+          throw Error(
+            `Cannot coerce: no field '${field}' in table ${this.table}`
+          );
+        }
+        let desired: string | undefined = spec.type || spec.pg_type;
+        if (desired == null) {
+          throw Error(`Cannot coerce: no type info for field ${field}`);
+        }
+        desired = desired.toLowerCase();
 
-      const actual = typeof value;
-      if (desired === actual) {
-        return value;
-      }
+        const actual = typeof value;
+        if (desired === actual) {
+          return value;
+        }
 
-      // We can add more or less later...
-      if (desired === "string" || desired.slice(0, 4) === "char") {
-        if (actual !== "string") {
-          // ensure is a string
-          return `${value}`;
+        // We can add more or less later...
+        if (desired === "string" || desired.slice(0, 4) === "char") {
+          if (actual !== "string") {
+            // ensure is a string
+            return `${value}`;
+          }
+          return value;
+        }
+        if (desired === "timestamp") {
+          if (!(value instanceof Date)) {
+            // make it a Date object. (usually converting from string rep)
+            return new Date(value);
+          }
+          return value;
+        }
+        if (desired === "integer") {
+          // always fine to do this -- will round floats, fix strings, etc.
+          return parseInt(value);
+        }
+        if (desired === "number") {
+          // actual wasn't number, so parse:
+          return parseFloat(value);
+        }
+        if (desired === "array") {
+          if (!List.isList(value)) {
+            throw Error("must be a list");
+          }
+          return value;
+        }
+        if (desired === "map") {
+          if (!Map.isMap(value)) {
+            throw Error("must be a map");
+          }
+          return value;
+        }
+        if (desired === "boolean") {
+          if (!misc.is_object(value)) {
+            throw Error("must be a map)");
+          }
+          // actual wasn't boolean, so coerce.
+          return !!value;
+        }
+        if (desired === "uuid") {
+          misc.assert_uuid(value);
+          return value;
         }
         return value;
-      }
-      if (desired === "timestamp") {
-        if (!(value instanceof Date)) {
-          // make it a Date object. (usually converting from string rep)
-          return new Date(value);
-        }
-        return value;
-      }
-      if (desired === "integer") {
-        // always fine to do this -- will round floats, fix strings, etc.
-        return parseInt(value);
-      }
-      if (desired === "number") {
-        // actual wasn't number, so parse:
-        return parseFloat(value);
-      }
-      if (desired === "array") {
-        if (!List.isList(value)) {
-          throw Error("must be a list");
-        }
-        return value;
-      }
-      if (desired === "map") {
-        if (!Map.isMap(value)) {
-          throw Error("must be a map");
-        }
-        return value;
-      }
-      if (desired === "boolean") {
-        if (!misc.is_object(value)) {
-          throw Error("must be a map)");
-        }
-        // actual wasn't boolean, so coerce.
-        return !!value;
-      }
-      if (desired === "uuid") {
-        misc.assert_uuid(value);
-        return value;
-      }
-      return value;
-    }));
+      })
+    );
   }
 
   /*

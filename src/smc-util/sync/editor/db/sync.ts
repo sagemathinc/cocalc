@@ -1,5 +1,5 @@
 import { SyncDoc, SyncOpts0, SyncOpts } from "../generic/sync-doc";
-import { from_str } from "./doc";
+import { from_str, DBDocument } from "./doc";
 import { Document, DocType } from "../generic/types";
 
 export interface SyncDBOpts extends SyncOpts0 {
@@ -22,5 +22,10 @@ export class SyncDB extends SyncDoc {
       }
     };
     super(opts as SyncOpts);
+  }
+
+  get_one(arg?) {
+    // I know it is really of type DBDocument.
+    return (this.get_doc() as DBDocument).get_one(arg);
   }
 }
