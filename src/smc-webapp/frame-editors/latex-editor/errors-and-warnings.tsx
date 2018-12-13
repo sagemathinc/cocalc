@@ -74,7 +74,7 @@ const ITEM_STYLES = {
 
 interface item {
   line: string;
-  file: string;
+  file?: string;
   level: number;
   message?: string;
   content?: string;
@@ -93,7 +93,8 @@ class Item extends Component<ItemProps, {}> {
   edit_source(e: React.SyntheticEvent<any>): void {
     e.stopPropagation();
     const line: number = parseInt(this.props.item.get("line"));
-    const filename: string = this.props.item.get("file");
+    const filename = this.props.item.get("file");
+    if (!filename) return;
     this.props.actions.open_code_editor({
       line: line,
       file: filename,
@@ -109,19 +110,22 @@ class Item extends Component<ItemProps, {}> {
       return;
     }
     // https://github.com/sagemathinc/cocalc/issues/3413
-    const f = this.props.item.get("file");
-    const file_name = f ? `of ${path_split(f).tail}` : "";
+    const file = this.props.item.get("file");
 
-    return (
-      <div>
-        <a
-          onClick={e => this.edit_source(e)}
-          style={{ cursor: "pointer", float: "right" }}
-        >
-          Line {this.props.item.get("line")} {file_name}
-        </a>
-      </div>
-    );
+    if (file) {
+      return (
+        <div>
+          <a
+            onClick={e => this.edit_source(e)}
+            style={{ cursor: "pointer", float: "right" }}
+          >
+            Line {this.props.item.get("line")} of {path_split(file).tail}
+          </a>
+        </div>
+      );
+    } else {
+      return <div>Line {this.props.item.get("line")}</div>;
+    }
   }
 
   render_message(): React.ReactElement<any> | undefined {
