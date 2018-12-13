@@ -127,27 +127,23 @@ export class FrameTitleBar extends Component<Props, State> {
   }
   shouldComponentUpdate(next, state): boolean {
     return (
-      misc.is_different(
-        this.props,
-        next,
-        [
-          "active_id",
-          "id",
-          "deletable",
-          "is_full",
-          "is_only",
-          "read_only",
-          "has_unsaved_changes",
-          "has_uncommitted_changes",
-          "is_public",
-          "is_saving",
-          "is_paused",
-          "type",
-          "status",
-          "title",
-          "connection_status"
-        ]
-      ) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+      misc.is_different(this.props, next, [
+        "active_id",
+        "id",
+        "deletable",
+        "is_full",
+        "is_only",
+        "read_only",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "is_public",
+        "is_saving",
+        "is_paused",
+        "type",
+        "status",
+        "title",
+        "connection_status"
+      ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
 
@@ -357,6 +353,42 @@ export class FrameTitleBar extends Component<Props, State> {
       >
         <Icon name={"search-plus"} />
       </Button>
+    );
+  }
+
+  render_set_zoom(): Rendered {
+    if (!this.is_visible("set_zoom")) {
+      return;
+    }
+    return (
+      <>
+        <Button
+          key={"zoom-100"}
+          title={"Zoom to 100%"}
+          onClick={() => this.props.actions.set_zoom(1, this.props.id)}
+          bsSize={this.button_size()}
+        >
+          {"100%"}
+        </Button>
+
+        <Button
+          key={"zoom-125"}
+          title={"Zoom to 125"}
+          onClick={() => this.props.actions.set_zoom(1.25, this.props.id)}
+          bsSize={this.button_size()}
+        >
+          {"125%"}
+        </Button>
+
+        <Button
+          key={"zoom-150"}
+          title={"Zoom to 150%"}
+          onClick={() => this.props.actions.set_zoom(1.5, this.props.id)}
+          bsSize={this.button_size()}
+        >
+          {"150%"}
+        </Button>
+      </>
     );
   }
 
@@ -578,6 +610,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <ButtonGroup key={"zoom"}>
         {this.render_zoom_out()}
         {this.render_zoom_in()}
+        {this.render_set_zoom()}
       </ButtonGroup>
     );
   }

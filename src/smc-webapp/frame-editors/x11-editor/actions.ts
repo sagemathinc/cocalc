@@ -285,7 +285,9 @@ export class Actions extends BaseActions<X11EditorState> {
   ): void {
     const modal_wids = this.get_modal_wids();
     if (modal_wids.size > 0 && !modal_wids.has(wid)) {
-      this.set_error("Close any modal tabs before switching to a non-modal tab.");
+      this.set_error(
+        "Close any modal tabs before switching to a non-modal tab."
+      );
       return;
     }
     this.push_to_wid_history(wid);
@@ -579,5 +581,11 @@ export class Actions extends BaseActions<X11EditorState> {
       }
     });
     return wids;
+  }
+
+  // for X11, we just want to communicate the %-value
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
+    this.set_status(`Set zoom to ${percent}%`, 1500);
   }
 }

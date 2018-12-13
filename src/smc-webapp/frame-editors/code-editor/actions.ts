@@ -1020,7 +1020,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     open_new_tab(url);
   }
 
-  change_font_size(delta: number, id?: string): void {
+  set_zoom(zoom: number, id?: string) {
+    this.change_font_size(undefined, id, zoom);
+  }
+
+  /* zoom: 1=100%, 1.5=150%, ...*/
+  change_font_size(delta?: number, id?: string, zoom?: number): void {
+    if (delta == null && zoom == null) return;
     const local = this.store.get("local_view_state");
     if (!id) {
       id = local.get("active_id");
@@ -1032,14 +1038,30 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!node) {
       return;
     }
-    let font_size: number = node.get("font_size", get_default_font_size());
-    font_size += delta;
-    if (font_size < 2) {
-      font_size = 2;
+
+    // this is 100%
+    const default_font_size = get_default_font_size();
+    let font_size: number;
+    // either +/- delta or set the zoom factor
+    if (zoom != null) {
+      font_size = default_font_size * zoom;
+    } else if (delta != null) {
+      font_size = node.get("font_size", default_font_size);
+      font_size += delta;
+      if (font_size < 2) {
+        font_size = 2;
+      }
+    } else {
+      // to make typescript happy
+      return;
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    const percent = Math.round((font_size * 100) / 14);
+    this.set_status_font_size(font_size, default_font_size);
+  }
+
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
     this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
