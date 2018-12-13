@@ -108,14 +108,16 @@ class Item extends Component<ItemProps, {}> {
     if (!this.props.item.get("line")) {
       return;
     }
+    const f = this.props.item.get("file");
+    const file_name = f ? `of ${path_split(f).tail}` : "";
+
     return (
       <div>
         <a
           onClick={e => this.edit_source(e)}
           style={{ cursor: "pointer", float: "right" }}
         >
-          Line {this.props.item.get("line")} of{" "}
-          {path_split(this.props.item.get("file")).tail}
+          Line {this.props.item.get("line")} {file_name}
         </a>
       </div>
     );
