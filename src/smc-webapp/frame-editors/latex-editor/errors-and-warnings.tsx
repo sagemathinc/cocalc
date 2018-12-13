@@ -108,6 +108,7 @@ class Item extends Component<ItemProps, {}> {
     if (!this.props.item.get("line")) {
       return;
     }
+    // https://github.com/sagemathinc/cocalc/issues/3413
     const f = this.props.item.get("file");
     const file_name = f ? `of ${path_split(f).tail}` : "";
 
