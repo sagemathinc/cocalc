@@ -358,7 +358,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             <Row>
                 <Col sm={12}>
                     <SMC_Dropzone
-                        dropzone_handler     = {{}}
+                        dropzone_handler     = {{complete : => @props.actions.fetch_directory_listing()}}
                         project_id           = {@props.project_id}
                         current_path         = {@props.current_path}
                         show_header          = {false}
@@ -404,16 +404,23 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         </Fragment>
 
     render_filename_form: ->
+        onChange = =>
+            if @state.extension_warning
+                @setState(extension_warning : false)
+            else
+                @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)
+
         <form onSubmit={@submit_via_enter}>
             <FormGroup>
                 <FormControl
                     autoFocus
-                    ref         = 'project_new_filename'
+                    ref         = {'project_new_filename'}
                     value       = {@state.filename}
-                    type        = 'text'
+                    type        = {'text'}
                     disabled    = {@state.extension_warning}
-                    placeholder = 'Name your file, folder, or paste in a link...'
-                    onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
+                    placeholder = {'Name your file, folder, or a URL to download from...'}
+                    onChange    = {onChange}
+                />
             </FormGroup>
         </form>
 
@@ -481,31 +488,6 @@ exports.render_new = (project_id, dom_node, redux) ->
 exports.unmount = (dom_node) ->
     #console.log("unmount project_new")
     ReactDOM.unmountComponentAtNode(dom_node)
-
-FileUpload = rclass ({name}) ->
-    displayName : 'ProjectNew-FileUpload'
-
-    reduxProps :
-        "#{name}" :
-            current_path : rtypes.string
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    mixins : [ImmutablePureRenderMixin]
-
-    render: ->
-        <Row>
-            <Col sm={3}>
-                <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
-            </Col>
-            <Col sm={9}>
-                <SMC_Dropzone
-                    dropzone_handler     = {{}}
-                    project_id           = {@props.project_id}
-                    current_path         = {@props.current_path} />
-            </Col>
-        </Row>
 
 exports.ProjectNew = rclass ({name}) ->
     propTypes :
