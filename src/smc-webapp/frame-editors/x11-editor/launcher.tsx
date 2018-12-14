@@ -173,6 +173,11 @@ const APPS = {
     label: "Calibre",
     icon: "book",
     desc: "A powerful and easy to use e-book manager"
+  },
+  qgis: {
+    label: "QGIS",
+    icon: "globe",
+    decr: "QGIS is a user friendly Open Source Geographic Information System."
   }
 };
 
