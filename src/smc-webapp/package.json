@@ -17,7 +17,7 @@
     "@types/mathjax": "0.0.32",
     "@types/mocha": "^5.2.5",
     "@types/pdfjs-dist": "^0.1.2",
-    "@types/react": "^16.4.18",
+    "@types/react": "^16.7.13",
     "@types/react-bootstrap": "^0.32.14",
     "@types/react-dom": "^16.0.9",
     "@types/react-redux": "^5.0.21",
@@ -100,7 +100,7 @@
     "three": "^0.78.0",
     "timeago": "^1.6.3",
     "underscore": "^1.9.1",
-    "xterm": "^3.8.0",
+    "xterm": "^3.9.0",
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {

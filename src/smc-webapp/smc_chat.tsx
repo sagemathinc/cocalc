@@ -722,9 +722,8 @@ export class ChatLog extends Component<ChatLogProps> {
     if (not_showing) {
       const s = (
         <Alert bsStyle="warning" key="not_showing">
-          Hiding {not_showing} chats that do not match search for '{
-            this.props.search
-          }'.
+          Hiding {not_showing} chats that do not match search for '
+          {this.props.search}'.
         </Alert>
       );
       v.push(s);
@@ -1046,7 +1045,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             target="_blank"
           >
             LaTeX
-          </a>. Emoticons: {misc.emoticons}.
+          </a>
+          . Emoticons: {misc.emoticons}.
         </div>
       </Tip>
     );
