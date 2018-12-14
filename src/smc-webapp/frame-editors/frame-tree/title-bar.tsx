@@ -360,35 +360,30 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!this.is_visible("set_zoom")) {
       return;
     }
+
+    const zooms: Rendered[] = [100, 125, 150, 200].map(zoom => {
+      return (
+        <MenuItem
+          key={`zoom-${zoom}`}
+          eventKey={`zoom-${zoom}`}
+          onSelect={() =>
+            this.props.actions.set_zoom(zoom / 100, this.props.id)
+          }
+        >
+          {`${zoom}%`}
+        </MenuItem>
+      );
+    });
+
     return (
-      <>
-        <Button
-          key={"zoom-100"}
-          title={"Zoom to 100%"}
-          onClick={() => this.props.actions.set_zoom(1, this.props.id)}
-          bsSize={this.button_size()}
-        >
-          {"100%"}
-        </Button>
-
-        <Button
-          key={"zoom-125"}
-          title={"Zoom to 125"}
-          onClick={() => this.props.actions.set_zoom(1.25, this.props.id)}
-          bsSize={this.button_size()}
-        >
-          {"125%"}
-        </Button>
-
-        <Button
-          key={"zoom-150"}
-          title={"Zoom to 150%"}
-          onClick={() => this.props.actions.set_zoom(1.5, this.props.id)}
-          bsSize={this.button_size()}
-        >
-          {"150%"}
-        </Button>
-      </>
+      <DropdownButton
+        title={"Zoom"}
+        key={"zoom-levels"}
+        id={"zoom-levels"}
+        bsSize={this.button_size()}
+      >
+        {zooms}
+      </DropdownButton>
     );
   }
 
@@ -722,7 +717,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  // Button to reload the document
   render_reload(labels): Rendered {
     if (!this.is_visible("reload", true)) {
       return;
@@ -740,7 +734,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  // A "Help" info button
   render_help(labels: boolean): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
@@ -762,7 +755,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  // Button to restart an associated background service process
   render_restart(): Rendered {
     if (!this.is_visible("restart", true)) {
       return;
@@ -807,8 +799,6 @@ export class FrameTitleBar extends Component<Props, State> {
       icon = "save";
     }
 
-    // The funny style in the icon below is because the width changes slightly depending
-    // on which icon we are showing.
     return (
       <Button
         key={"save"}
@@ -1255,7 +1245,7 @@ export class FrameTitleBar extends Component<Props, State> {
 
     return (
       <>
-        <div style={style} id={`titlebar-${this.props.id}`}>
+        <div style={style} id={`titlebar-${this.props.id}`} className={'cc-frame-editor-title-bar'}>
           {this.render_control()}
           {this.props.connection_status
             ? this.render_connection_status()
