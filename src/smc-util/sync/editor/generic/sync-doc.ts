@@ -235,6 +235,7 @@ export class SyncDoc extends EventEmitter {
 
     // Success -- everything perfectly initialized with no issues.
     this.set_state("ready");
+    this.init_watch();
     this.emit("change"); // from nothing to something.
   }
 
@@ -773,15 +774,17 @@ export class SyncDoc extends EventEmitter {
     this.init_periodic_touch();
     log("file_use_interval");
     this.init_file_use_interval();
-    if (this.client.is_project()) {
-      log("load_from_disk");
-      await this.load_from_disk_if_newer();
-    }
 
     log("wait_until_fully_ready");
     await this.wait_until_fully_ready();
+
     this.assert_not_closed();
+
     if (this.client.is_project()) {
+      log("load_from_disk");
+      await this.load_from_disk_if_newer();
+
+      log("init autosave");
       this.init_project_autosave();
     } else {
       // Ensure file is undeleted when explicitly open.
@@ -1610,19 +1613,35 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
-    // NOTE: very important to completely do this.update_watch_path
-    // before this.save_to_disk below.
-    // If path isn't being properly watched, make it so.
-    if (x.project_id != null && this.watch_path !== x.path) {
-      //dbg("watch path")
-      await this.update_watch_path(x.path);
+    this.emit("metadata-change");
+  }
+
+  private async init_watch(): Promise<void> {
+    this.assert_is_ready();
+
+    if (!this.client.is_project()) {
+      return;
     }
 
-    if (x.save != null && x.save.state === "requested") {
+    // If path isn't being properly watched, make it so.
+    if (this.watch_path !== this.path) {
+      await this.update_watch_path(this.path);
+    }
+
+    await this.pending_save_to_disk();
+  }
+
+  private async pending_save_to_disk(): Promise<void> {
+    this.assert_is_ready();
+    if (!this.client.is_project()) {
+      return;
+    }
+
+    const x = this.syncstring_table.get_one();
+    // Check if there is a pending save-to-disk that is needed.
+    if (x != null && x.getIn(["save", "state"]) === "requested") {
       await this.save_to_disk();
     }
-
-    this.emit("metadata-change");
   }
 
   private async update_watch_path(path?: string): Promise<void> {
@@ -1643,8 +1662,10 @@ export class SyncDoc extends EventEmitter {
       dbg("watch_path already defined");
       return;
     }
-    dbg("opening watcher");
-    this.assert_is_ready();
+    dbg("opening watcher...");
+    if (this.state === "closed") {
+      throw Error("must not be closed");
+    }
     this.watch_path = path;
     if (!(await callback2(this.client.path_exists, { path }))) {
       // path does not exist

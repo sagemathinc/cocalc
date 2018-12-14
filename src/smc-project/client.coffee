@@ -39,6 +39,8 @@ fs     = require('fs')
 
 {EventEmitter} = require('events')
 
+{once} = require("smc-util/async-utils");
+
 async   = require('async')
 winston = require('winston')
 winston.remove(winston.transports.Console)
@@ -525,7 +527,11 @@ class exports.Client extends EventEmitter
     synctable_project: (project_id, query, options) =>
         # TODO: this is ONLY for syncstring tables...
         # Also, options are ignored -- since we use whatever was selected by the frontend.
-        return await require('./sync/open-synctables').get_synctable(query, @);
+        synctable = await require('./sync/open-synctables').get_synctable(query, @)
+        # To provide same API, must also wait until done initializing.
+        if synctable.get_state() != 'connected'
+            await once(synctable, 'connected')
+        return synctable
 
     # WARNING: making two of the exact same sync_string or sync_db will definitely
     # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
