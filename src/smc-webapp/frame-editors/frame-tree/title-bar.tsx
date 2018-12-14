@@ -437,15 +437,17 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     const labels = this.show_labels();
     return (
-      <Button
-        key={"download"}
-        title={"Download this file"}
-        bsSize={this.button_size()}
-        onClick={() => this.props.actions.download(this.props.id)}
-      >
-        <Icon name={"cloud-download"} />{" "}
-        {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
-      </Button>
+      <ButtonGroup>
+        <Button
+          key={"download"}
+          title={"Download this file"}
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.download(this.props.id)}
+        >
+          <Icon name={"cloud-download"} />{" "}
+          {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -739,19 +741,20 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        key={"help"}
-        title={"Show help for working with this type of document"}
-        bsSize={this.button_size()}
-        onClick={() =>
-          typeof this.props.actions.help === "function"
-            ? this.props.actions.help(this.props.type)
-            : undefined
-        }
-      >
-        <Icon name="question-circle" />{" "}
-        <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"help"}>
+        <Button
+          title={"Show help for working with this type of document"}
+          bsSize={this.button_size()}
+          onClick={() =>
+            typeof this.props.actions.help === "function"
+              ? this.props.actions.help(this.props.type)
+              : undefined
+          }
+        >
+          <Icon name="question-circle" />{" "}
+          <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -761,15 +764,16 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     let labels = this.show_labels();
     return (
-      <Button
-        key={"restart"}
-        title={"Restart service"}
-        bsSize={this.button_size()}
-        onClick={() => this.props.actions.restart()}
-      >
-        <Icon name="sync" />{" "}
-        {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
-      </Button>
+      <ButtonGroup key={"restart"}>
+        <Button
+          title={"Restart service"}
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.restart()}
+        >
+          <Icon name="sync" />{" "}
+          {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -840,17 +844,18 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        key={"format"}
-        onClick={() => this.props.actions.format(this.props.id)}
-        title={
-          "Run Prettier (or some other AST-based service) to canonically format this entire document"
-        }
-      >
-        <Icon name={FORMAT_SOURCE_ICON} />{" "}
-        <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"format"}>
+        <Button
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.format(this.props.id)}
+          title={
+            "Run Prettier (or some other AST-based service) to canonically format this entire document"
+          }
+        >
+          <Icon name={FORMAT_SOURCE_ICON} />{" "}
+          <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -859,15 +864,16 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        disabled={!!this.props.status}
-        bsSize={this.button_size()}
-        key={"build"}
-        onClick={() => this.props.actions.build(this.props.id, false)}
-        title={"Build project"}
-      >
-        <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"build"}>
+        <Button
+          disabled={!!this.props.status}
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.build(this.props.id, false)}
+          title={"Build project"}
+        >
+          <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -876,15 +882,16 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        disabled={!!this.props.status}
-        bsSize={this.button_size()}
-        key={"force-build"}
-        onClick={() => this.props.actions.force_build(this.props.id)}
-        title={"Force rebuild entire project"}
-      >
-        <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"force-build"}>
+        <Button
+          disabled={!!this.props.status}
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.force_build(this.props.id)}
+          title={"Force rebuild entire project"}
+        >
+          <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -893,15 +900,16 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        key={"clean"}
-        onClick={() => this.props.actions.clean(this.props.id)}
-        title={"Clean auxiliary build files"}
-      >
-        <Icon name={"trash"} />{" "}
-        <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"clean"}>
+        <Button
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.clean(this.props.id)}
+          title={"Clean auxiliary build files"}
+        >
+          <Icon name={"trash"} />{" "}
+          <VisibleMDLG>{this.show_labels() ? "Clean" : undefined}</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -910,14 +918,15 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        key={"word_count"}
-        onClick={() => this.props.actions.word_count(0, true)}
-        title={"Runs texcount"}
-      >
-        <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"word_count"}>
+        <Button
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.word_count(0, true)}
+          title={"Runs texcount"}
+        >
+          <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -951,22 +960,23 @@ export class FrameTitleBar extends Component<Props, State> {
       title = "Pause";
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        bsStyle={style}
-        key={"pause"}
-        onClick={() => {
-          if (this.props.is_paused) {
-            this.props.actions.unpause(this.props.id);
-          } else {
-            this.props.actions.pause(this.props.id);
-          }
-        }}
-        title={title}
-      >
-        <Icon name={icon} />
-        <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"pause"}>
+        <Button
+          bsSize={this.button_size()}
+          bsStyle={style}
+          onClick={() => {
+            if (this.props.is_paused) {
+              this.props.actions.unpause(this.props.id);
+            } else {
+              this.props.actions.pause(this.props.id);
+            }
+          }}
+          title={title}
+        >
+          <Icon name={icon} />
+          <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -975,14 +985,15 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        key={"edit_init_script"}
-        onClick={() => this.props.actions.edit_init_script(this.props.id)}
-        title={"Edit initialization script"}
-      >
-        <Icon name={"rocket"} />{" "}
-      </Button>
+      <ButtonGroup key={"edit_init_script"}>
+        <Button
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.edit_init_script(this.props.id)}
+          title={"Edit initialization script"}
+        >
+          <Icon name={"rocket"} />{" "}
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -991,16 +1002,17 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        disabled={this.state.close_and_halt_confirm}
-        bsSize={this.button_size()}
-        key={"close_and_halt"}
-        onClick={() => this.setState({ close_and_halt_confirm: true })}
-        title={"Close and halt server"}
-      >
-        <Icon name={"hand-stop-o"} />{" "}
-        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"close_and_halt"}>
+        <Button
+          disabled={this.state.close_and_halt_confirm}
+          bsSize={this.button_size()}
+          onClick={() => this.setState({ close_and_halt_confirm: true })}
+          title={"Close and halt server"}
+        >
+          <Icon name={"hand-stop-o"} />{" "}
+          <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -1009,15 +1021,16 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        key={"print"}
-        onClick={() => this.props.actions.print(this.props.id)}
-        title={"Print file to PDF"}
-      >
-        <Icon name={"print"} />{" "}
-        <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
-      </Button>
+      <ButtonGroup key={"print"}>
+        <Button
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.print(this.props.id)}
+          title={"Print file to PDF"}
+        >
+          <Icon name={"print"} />{" "}
+          <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
+        </Button>
+      </ButtonGroup>
     );
   }
 
@@ -1043,11 +1056,13 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!(this.props.is_only || this.props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
-      style = { maxHeight: "30px", overflow: "hidden", flex: 1 };
+      style = {
+        maxHeight: "30px",
+        flex: 1
+      };
     } else {
       style = {
         maxHeight: "34px",
-        overflow: "hidden",
         flex: 1,
         marginLeft: "2px"
       };
@@ -1091,7 +1106,11 @@ export class FrameTitleBar extends Component<Props, State> {
     }
 
     return (
-      <div style={style} key={"buttons"}>
+      <div
+        style={style}
+        key={"buttons"}
+        className={"cc-frame-tree-title-bar-buttons"}
+      >
         {r_join(w, <Space />)}
       </div>
     );
@@ -1245,7 +1264,11 @@ export class FrameTitleBar extends Component<Props, State> {
 
     return (
       <>
-        <div style={style} id={`titlebar-${this.props.id}`} className={'cc-frame-editor-title-bar'}>
+        <div
+          style={style}
+          id={`titlebar-${this.props.id}`}
+          className={"cc-frame-tree-title-bar"}
+        >
           {this.render_control()}
           {this.props.connection_status
             ? this.render_connection_status()

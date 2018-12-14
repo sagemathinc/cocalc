@@ -110,7 +110,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   componentWillUnmount(): void {
-    if (typeof(this.props.actions.blur) === 'function') {
+    if (typeof this.props.actions.blur === "function") {
       this.props.actions.blur();
     }
   }
@@ -223,7 +223,11 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
 
     const id: string = desc.get("id");
     return (
-      <div id={`frame-${id}`} className="smc-vfill">
+      <div
+        id={`frame-${id}`}
+        className="smc-vfill"
+        style={{ background: "white", zIndex: 1 }}
+      >
         <Leaf
           id={id}
           name={this.props.name}
