@@ -97,8 +97,9 @@ class exports.Client extends EventEmitter
         @_connected = false
 
         # Start listening for syncstrings that have been recently modified, so that we
-        # can open them and porivde filesystem and computational support.
-        @_init_recent_syncstrings_table()
+        # can open them and provide filesystem and computational support.
+        # TODO: delete this code.
+        ## @_init_recent_syncstrings_table()
 
         if kucalc.IN_KUCALC
             kucalc.init(@)
@@ -518,6 +519,13 @@ class exports.Client extends EventEmitter
         #    options           : undefined
         #    debounce_interval : 2000
         #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
+
+    # We leave in the project_id for consistency with the browser UI.
+    # And maybe someday we'll have tables managed across projects (?).
+    synctable_project: (project_id, query, options) =>
+        # TODO: this is ONLY for syncstring tables...
+        # Also, options are ignored -- since we use whatever was selected by the frontend.
+        return await require('./sync/open-synctables').get_synctable(query, @);
 
     # WARNING: making two of the exact same sync_string or sync_db will definitely
     # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,

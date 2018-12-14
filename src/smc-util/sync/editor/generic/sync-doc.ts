@@ -303,6 +303,10 @@ export class SyncDoc extends EventEmitter {
     this.emit(state);
   }
 
+  public get_state(): State {
+    return this.state;
+  }
+
   private assert_not_closed(): void {
     if (this.state === "closed") {
       throw Error("closed");
@@ -746,11 +750,8 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
-    /*
-    const log = (...args) => {
-      console.log(`init_all(${this.path})`, ...args);
-    };*/
-    const log = (..._) => {};
+    const log = this.client.dbg(`init_all(${this.path})`);
+    //const log = (..._) => {};
 
     // It is critical to do a quick initial touch so file gets
     // opened on the backend or syncstring gets created (otherwise,

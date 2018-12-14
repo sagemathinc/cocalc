@@ -14,6 +14,10 @@ import {
   SyncTable
 } from "../smc-util/sync/table";
 
+import { init_syncdoc } from "./sync-doc";
+
+import { register_synctable } from "./open-synctables";
+
 import { once } from "../smc-util/async-utils";
 
 const { is_array } = require("../smc-util/misc");
@@ -32,7 +36,7 @@ interface Channel {
   forEach: (Function) => void;
 }
 
-interface Client {}
+import { Client } from "../smc-util/sync/editor/generic/types";
 
 interface Primus {
   channel: (string) => Channel;
@@ -124,6 +128,13 @@ class SyncChannel {
       create_synctable = synctable_no_changefeed;
     }
     this.synctable = create_synctable(this.query, this.options, this.client);
+    if (this.query[this.synctable.table].string_id != null) {
+      register_synctable(this.query, this.synctable);
+    }
+    if (this.synctable.table === "syncstrings") {
+      this.log("init_synctable -- syncstrings: also initialize syncdoc...");
+      init_syncdoc(this.client, this.synctable, this.logger);
+    }
     this.synctable.on("saved-objects", this.handle_synctable_save.bind(this));
     this.log("created synctable -- waiting for connect");
     await once(this.synctable, "connected");
@@ -191,7 +202,7 @@ class SyncChannel {
       // so these changes get saved to the database.
       // When the backend is also making changes, we
       // may need to be very careful...
-      this.synctable.set(new_val, 'shallow', true);
+      this.synctable.set(new_val, "shallow", true);
     }
   }
 

@@ -134,9 +134,6 @@ export class SyncTable extends EventEmitter {
   }
 
   /* PUBLIC API */
-  public get_state(): string {
-    return this.state;
-  }
 
   /*
   Return true if there are changes to this synctable that
@@ -403,15 +400,17 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
-    // wait until some function until of this synctable is truthy (or throws an exception)
+    // wait until some function until of this synctable is truthy
+    // (not truthy includes "throw an exception")
     // (this might be exactly the same code as in the
-    // postgres-synctable.coffee SyncTable....)
+    // postgres-synctable.coffee SyncTable....?)
     // Waits until "until(this)" evaluates to something truthy
     // in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
     // Returns until(this) on success and raises Error('timeout') or
     // Error('closed') on failure.
 
     // The until function may be async.
+    // The timeout can be 0 to disable timeout.
 
     this.assert_not_closed();
     let x = await until(this);
@@ -473,6 +472,14 @@ export class SyncTable extends EventEmitter {
   private set_state(state: State): void {
     this.state = state;
     this.emit(state);
+  }
+
+  public get_state() : State {
+    return this.state;
+  }
+
+  public get_table() : string {
+    return this.table;
   }
 
   private set_throttle_changes(): void {
