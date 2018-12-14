@@ -10,7 +10,7 @@ const MAX_SAVE_TIME_S = 45; // how long to retry to save (and get no unsaved cha
 
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import {
   get_default_font_size,
   log_error,
@@ -961,7 +961,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
     this.setState({ is_saving: true });
     try {
-      await callback(this._syncstring.save_to_disk);
+      await this._syncstring.save_to_disk();
     } finally {
       this.update_save_status();
       this.setState({ is_saving: false });
@@ -1629,7 +1629,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     try {
       await retry_until_success({
         f: async () => {
-          await callback(this._syncstring._save);
+          await this._syncstring.save();
         },
         max_time: 10000,
         max_delay: 1500

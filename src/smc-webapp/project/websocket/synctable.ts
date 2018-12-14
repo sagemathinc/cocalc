@@ -48,5 +48,8 @@ export async function synctable_project(
   });
 
   await once(synctable, "project-ready");
+  synctable.once('closed', function() {
+    channel.end();
+  });
   return synctable;
 }
