@@ -164,6 +164,9 @@ export class SyncTable extends EventEmitter {
                immutable map from key to obj)
        - arg = array of keys; return map from key to obj
        - arg = single key; returns corresponding object
+
+    This is NOT a generic query mechanism.  SyncTable
+    is really best thought of as a key:value store!
   */
   public get(arg?): Map<string, any> | undefined {
     if (this.value_local == null) {
@@ -200,9 +203,8 @@ export class SyncTable extends EventEmitter {
         ? this.value_local.toSeq().first()
         : undefined;
     } else {
-      // TODO: make more efficient by not just getting everything!
-      const r = this.get(arg);
-      return r != null ? r.toSeq().first() : undefined;
+      // get only returns (at most) one object, so it's "get_one".
+      return this.get(arg);
     }
   }
 
@@ -1080,8 +1082,10 @@ export class SyncTable extends EventEmitter {
       }
     }
 
-    // It's possibly that nothing changed (e.g., typical case on reconnect!) so we check.
-    // If something really did change, we set the server state to what we just got, and
+    // It's possibly that nothing changed (e.g., typical case
+    // on reconnect!) so we check.
+    // If something really did change, we set the server
+    // state to what we just got, and
     // also inform listeners of which records changed (by giving keys).
     //console.log("update_all: changed_keys=", changed_keys)
     if (changed_keys.length !== 0) {
@@ -1096,11 +1100,47 @@ export class SyncTable extends EventEmitter {
     }
   }
 
+  /* Simulate incoming value as it would come from upstream via
+     a changefeed.  This is used, e.g., by project-based tables.
+     Important: new_val and old_val are plain JS objects, *not*
+     immutable maps.
+ */
+  public synthetic_change(
+    change: { new_val?: any; old_val?: any },
+    types: boolean = false
+  ): void {
+    this.assert_not_closed();
+    if (change.new_val == null) {
+      if (change.old_val != null) {
+        this.update_change(change, types); // delete
+        return;
+      }
+      return;
+    }
+    // Setting a new_val.  Our internal code assumes the changefeed
+    // provides complete objects. However, that is pretty wasteful
+    // in practice, and the project-based sync protocol doesn't
+    const key = this.obj_to_key(change.new_val);
+    // value_server part for typescript.
+    if (key != null && this.value_server != null) {
+      let server = this.value_server.get(key);
+      if (server != null) {
+        server = server.toJS();
+        for (let k in server) {
+          if (change.new_val[k] === undefined) {
+            change.new_val[k] = server[k];
+          }
+        }
+      }
+    }
+    this.update_change(change, types);
+  }
+
   /*
   Apply one incoming change from the database to the
   in-memory local synchronized table.
   */
-  private update_change(change): void {
+  private update_change(change, types: boolean = false): void {
     //console.log("_update_change", change)
     if (this.state === "closed") {
       // We might get a few more updates even after
@@ -1131,7 +1171,7 @@ export class SyncTable extends EventEmitter {
     const changed_keys: string[] = [];
     let conflict: boolean = false;
     if (change.new_val != null) {
-      conflict = this.handle_new_val(change.new_val, changed_keys);
+      conflict = this.handle_new_val(change.new_val, changed_keys, types);
     }
 
     if (
@@ -1157,7 +1197,13 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  private handle_new_val(val: any, changed_keys: string[]): boolean {
+  // - changed_keys gets mutated during this call
+  // - returns true only if there is a conflict (??)
+  private handle_new_val(
+    val: any,
+    changed_keys: string[],
+    types: boolean = false
+  ): boolean {
     if (this.value_local == null || this.value_server == null) {
       // to satisfy typescript.
       return false;
@@ -1166,7 +1212,10 @@ export class SyncTable extends EventEmitter {
     if (key == null) {
       return false;
     }
-    const new_val = fromJS(val);
+    let new_val = fromJS(val);
+    if (types) {
+      new_val = this.coerce_types(new_val);
+    }
     let local_val = this.value_local.get(key);
     let conflict = false;
     if (!new_val.equals(local_val)) {
@@ -1182,16 +1231,16 @@ export class SyncTable extends EventEmitter {
         // even though it was sent as a complete record.
         // We can compute the patch, since we know the
         // last server value.
-        new_val.map((v, k) => {
-          if (!immutable_is(v, server != null ? server.get(k) : undefined)) {
-            return (local_val = local_val.set(k, v));
+        new_val.forEach((v, k) => {
+          if (server == null || !immutable_is(v, server.get(k))) {
+            local_val = local_val.set(k, v);
           }
         });
         //console.log("#{this.table}: set #{k} to #{v}")
         if (server != null) {
-          server.map((_, k) => {
+          server.forEach((_, k) => {
             if (!new_val.has(k)) {
-              return (local_val = local_val.delete(k));
+              local_val = local_val.delete(k);
             }
           });
         }

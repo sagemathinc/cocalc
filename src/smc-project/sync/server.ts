@@ -186,8 +186,12 @@ class SyncChannel {
     if (!is_array(data)) {
       throw Error("data must be an array of set objects");
     }
-    for (let x of data) {
-      this.synctable.set(x, "shallow", true);
+    for (let new_val of data) {
+      // We use set instead of "this.synctable.synthetic_change({new_val}, true);"
+      // so these changes get saved to the database.
+      // When the backend is also making changes, we
+      // may need to be very careful...
+      this.synctable.set(new_val, 'shallow', true);
     }
   }
 

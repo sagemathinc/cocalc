@@ -256,9 +256,7 @@ export class SyncDoc extends EventEmitter {
     if (!side_effect) {
       x.time = this.client.server_time();
     }
-    console.log("set cursor table entry to ", JSON.stringify(locs));
     this.cursors_table.set(x, "none");
-    console.log("after set, ", JSON.stringify(this.cursors_table.get()));
   }
 
   private init_file_use_interval(): void {
@@ -748,34 +746,49 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
+    /*
+    const log = (...args) => {
+      console.log(`init_all(${this.path})`, ...args);
+    };*/
+    const log = (..._) => {};
+
     // It is critical to do a quick initial touch so file gets
     // opened on the backend or syncstring gets created (otherwise,
     // creation of various changefeeds below will FATAL fail).
+    log("touch");
     await this.touch(0);
     this.assert_not_closed();
+    log("syncstring_table");
     await this.init_syncstring_table();
     this.assert_not_closed();
+    log("patch_list, cursors, evaluator");
     await Promise.all([
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator()
     ]);
     this.assert_not_closed();
+    log("periodic_touch");
     this.init_periodic_touch();
+    log("file_use_interval");
     this.init_file_use_interval();
     if (this.client.is_project()) {
+      log("load_from_disk");
       await this.load_from_disk_if_newer();
     }
 
+    log("wait_until_fully_ready");
     await this.wait_until_fully_ready();
     this.assert_not_closed();
     if (this.client.is_project()) {
       this.init_project_autosave();
     } else {
       // Ensure file is undeleted when explicitly open.
+      log("undelete");
       await this.undelete();
       this.assert_not_closed();
     }
+    log("done");
   }
 
   private init_periodic_touch(): void {

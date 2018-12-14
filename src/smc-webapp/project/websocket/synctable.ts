@@ -27,7 +27,7 @@ export async function synctable_project(
   const channel = await api.synctable_channel(query, options);
   let first_data = true;
   channel.on("data", function(data) {
-    console.log(query, "data=", data);
+    //console.log("data=", data);
     if (!is_array(data)) {
       if (data != null && data.error != null) {
         throw Error(`synctable_project error - ${data.error}`);
@@ -35,8 +35,8 @@ export async function synctable_project(
       console.warn("data = ", data);
       throw Error("data must be an array");
     }
-    for (let x of data) {
-      synctable.set(x, "shallow", true);
+    for (let new_val of data) {
+      synctable.synthetic_change({new_val}, true);
     }
     if (first_data) {
       synctable.emit("project-ready");
