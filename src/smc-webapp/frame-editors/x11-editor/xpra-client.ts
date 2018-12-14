@@ -59,8 +59,8 @@ export class XpraClient extends EventEmitter {
   private server: XpraServer;
   public _ws_status: ConnectionStatus = "disconnected";
   private last_active: number = 0;
-  private touch_interval: number;
-  private idle_interval: number;
+  private touch_interval: any;  // TODO: really Timer
+  private idle_interval: any;   // TODO: really Timer
   private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
   private display: number;
 

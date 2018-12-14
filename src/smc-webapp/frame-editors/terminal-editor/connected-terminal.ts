@@ -77,7 +77,7 @@ export class Terminal {
   private last_active: number = 0;
   // conn = connection to project -- a primus websocket channel.
   private conn?: any;
-  private touch_interval: number;
+  private touch_interval: any;  // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
 
   public is_mounted: boolean = false;
   public element: HTMLElement;
