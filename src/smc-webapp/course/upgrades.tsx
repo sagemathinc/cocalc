@@ -102,9 +102,8 @@ export class StudentProjectUpgrades extends Component<
   upgrade_goal() {
     const goal = {};
     for (let quota in this.state.upgrades) {
-      var round_number;
       let val = this.state.upgrades[quota];
-      val = misc.parse_number_input(val, (round_number = false));
+      val = misc.parse_number_input(val, false);
       const { display_factor } = schema.PROJECT_UPGRADES.params[quota];
       goal[quota] = val / display_factor;
     }
@@ -137,8 +136,7 @@ export class StudentProjectUpgrades extends Component<
   }
 
   is_upgrade_input_valid(val, limit) {
-    let round_number;
-    const parsed_val = misc.parse_number_input(val, (round_number = false));
+    const parsed_val = misc.parse_number_input(val, false);
     if (parsed_val == null || parsed_val > Math.max(0, limit)) {
       // val=0 is always valid
       return false;
