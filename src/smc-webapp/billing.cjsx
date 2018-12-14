@@ -1701,7 +1701,7 @@ Invoice = rclass
         invoice = @props.invoice
         username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("#{window.app_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+        misc_page.download_file("#{window.app_base_url}/invoice/cocalc-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status: ->
         if @props.invoice.paid
