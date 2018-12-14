@@ -9,7 +9,17 @@ const { Icon } = require("r_misc");
 
 import { Actions } from "./actions";
 
-const APPS = {
+interface IAPPS {
+  [k: string]: {
+    icon: string;
+    desc: string;
+    label?: string;
+    command?: string;
+    args?: string[];
+  };
+}
+
+const APPS: IAPPS = {
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
     icon: "edit",
@@ -81,12 +91,13 @@ const APPS = {
       "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
     label: "RStudio"
   },
-  // octave: {
-  //   icon: "cc-icon-octave",
-  //   desc: "Scientific programming largely compatible with Matlab",
-  //   label: "Octave",
-  //   command: "/usr/bin/octave"
-  // },
+  octave: {
+    icon: "cc-icon-octave",
+    desc: "Scientific programming largely compatible with Matlab",
+    label: "Octave",
+    command: "octave",
+    args: ["--force-gui"]
+  },
   texmacs: {
     icon: "cc-icon-tex-file",
     desc:
@@ -177,7 +188,12 @@ const APPS = {
   qgis: {
     label: "QGIS",
     icon: "globe",
-    decr: "QGIS is a user friendly Open Source Geographic Information System."
+    desc: "A user friendly Open Source Geographic Information System."
+  },
+  ds9: {
+    icon: "star",
+    label: "SAOImage DS9",
+    desc: "An astronomical imaging and data visualization application."
   }
 };
 
