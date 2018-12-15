@@ -358,10 +358,8 @@ export class SyncTable extends EventEmitter {
     // and also kick off a save to the backend.
     if (!immutable_is(new_val, cur)) {
       this.value_local = this.value_local.set(id, new_val);
-      this.save();
-      // CRITICAL: other code assumes the key is *NOT*
-      // sent with this change event!
       this.emit_change([id]);
+      this.save();
     }
 
     return new_val;
@@ -422,7 +420,7 @@ export class SyncTable extends EventEmitter {
     const wait = cb => {
       let fail_timer: any = undefined;
       const done = (err, ret?) => {
-        this.removeListener("change", f);
+        this.removeListener("change-no-throttle", f);
         this.removeListener("close", f);
         if (fail_timer !== undefined) {
           clearTimeout(fail_timer);
@@ -445,7 +443,7 @@ export class SyncTable extends EventEmitter {
           done(undefined, x);
         }
       };
-      this.on("change", f);
+      this.on("change-no-throttle", f);
       this.on("close", f);
       if (timeout) {
         const fail = () => {
@@ -474,11 +472,11 @@ export class SyncTable extends EventEmitter {
     this.emit(state);
   }
 
-  public get_state() : State {
+  public get_state(): State {
     return this.state;
   }
 
-  public get_table() : string {
+  public get_table(): string {
     return this.table;
   }
 
@@ -499,7 +497,10 @@ export class SyncTable extends EventEmitter {
     this.set_throttle_changes();
 
     if (!this.throttle_changes) {
-      this.emit_change = changed_keys => this.emit("change", changed_keys);
+      this.emit_change = changed_keys => {
+        this.emit("change", changed_keys);
+        this.emit("change-no-throttle", changed_keys);
+      };
       return;
     }
 
@@ -517,10 +518,13 @@ export class SyncTable extends EventEmitter {
     };
     do_emit_changes = throttle(do_emit_changes, this.throttle_changes);
     this.emit_change = changed_keys => {
+      console.log("emit_change", changed_keys);
+      this.dbg("emit_change")(changed_keys);
       //console.log("#{this.table} -- queue changes", changed_keys)
       for (let key of changed_keys) {
         all_changed_keys[key] = true;
       }
+      this.emit("change-no-throttle", changed_keys);
       do_emit_changes();
     };
   }

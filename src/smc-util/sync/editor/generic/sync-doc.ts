@@ -321,6 +321,9 @@ export class SyncDoc extends EventEmitter {
   // Return underlying document, or undefined if document
   // hasn't been set yet.
   public get_doc(): Document {
+    if (this.doc == null) {
+      throw Error("doc must be set");
+    }
     return this.doc;
   }
 
@@ -332,7 +335,9 @@ export class SyncDoc extends EventEmitter {
   // Return string representation of this doc,
   // or exception if not yet ready.
   public to_str(): string {
-    this.assert_is_ready();
+    if (this.doc == null) {
+      throw Error("doc must be set");
+    }
     return this.doc.to_str();
   }
 
@@ -347,7 +352,7 @@ export class SyncDoc extends EventEmitter {
   // time specified, gives the version right now.
   // If not fully initialized, will return undefined
   public version(time?: Date): Document {
-    this.assert_is_ready();
+    this.assert_table_is_ready("patches");
     return this.patch_list.value(time);
   }
 
@@ -355,6 +360,7 @@ export class SyncDoc extends EventEmitter {
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
   public version_without(times: Date[]): Document {
+    this.assert_table_is_ready("patches");
     return this.patch_list.value(undefined, undefined, times);
   }
 
@@ -514,14 +520,14 @@ export class SyncDoc extends EventEmitter {
      sent is approximately the timestamp time.  Only not undefined
      when there is a significant difference. */
   public time_sent(time: Date): Date | undefined {
-    this.assert_is_ready();
+    this.assert_table_is_ready("patches");
     return this.patch_list.time_sent(time);
   }
 
   // Integer index of user who made the edit at given
   // point in time.
   public user_id(time: Date): number {
-    this.assert_is_ready();
+    this.assert_table_is_ready("patches");
     return this.patch_list.user_id(time);
   }
 
@@ -592,18 +598,17 @@ export class SyncDoc extends EventEmitter {
     is_read_only: boolean,
     size: number
   ): Promise<void> {
+    this.assert_table_is_ready("syncstring");
+    this.client.dbg(`set_initialized(${this.path})`)();
     const init = { time: this.client.server_time(), size, error };
-    return await callback2(this.client.query, {
-      query: {
-        syncstrings: {
-          string_id: this.string_id,
-          project_id: this.project_id,
-          path: this.path,
-          init,
-          read_only: is_read_only
-        }
-      }
+    this.syncstring_table.set({
+      string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
+      init,
+      read_only: is_read_only
     });
+    await this.syncstring_table.save();
   }
 
   /* List of timestamps of the versions of this string in the sync
@@ -611,7 +616,7 @@ export class SyncDoc extends EventEmitter {
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
   public versions(): Date[] {
-    this.assert_is_ready();
+    this.assert_table_is_ready("patches");
     const v: Date[] = [];
     const s: Map<string, any> | undefined = this.patches_table.get();
     if (s == null) {
@@ -630,7 +635,7 @@ export class SyncDoc extends EventEmitter {
      case the full history has been loaded.  The list of timestamps
      is sorted from oldest to newest. */
   public all_versions(): Date[] {
-    this.assert_is_ready();
+    this.assert_table_is_ready("patches");
     return this.patch_list.versions();
   }
 
@@ -775,15 +780,18 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
+    if (this.client.is_project()) {
+      log("load_from_disk");
+      // This sets initialized, which is needed to be fully ready.
+      await this.load_from_disk_if_newer();
+    }
+
     log("wait_until_fully_ready");
     await this.wait_until_fully_ready();
 
     this.assert_not_closed();
 
     if (this.client.is_project()) {
-      log("load_from_disk");
-      await this.load_from_disk_if_newer();
-
       log("init autosave");
       this.init_project_autosave();
     } else {
@@ -839,6 +847,13 @@ export class SyncDoc extends EventEmitter {
       await once(this.patches_table, "change");
     }
     this.emit("init");
+  }
+
+  private assert_table_is_ready(table: string): void {
+    const t = this[`${table}_table`];
+    if (t == null || t.get_state() != "connected") {
+      throw Error(`Table ${table} must be connected.`);
+    }
   }
 
   public assert_is_ready(): void {
@@ -953,7 +968,7 @@ export class SyncDoc extends EventEmitter {
         is_read_only = await this.file_is_read_only();
       }
     } catch (err) {
-      error = err.toString();
+      error = `${err.toString()} -- ${err.stack}`;
     }
 
     await this.set_initialized(error, is_read_only, size);
@@ -1617,8 +1632,6 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async init_watch(): Promise<void> {
-    this.assert_is_ready();
-
     if (!this.client.is_project()) {
       return;
     }
@@ -1632,7 +1645,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async pending_save_to_disk(): Promise<void> {
-    this.assert_is_ready();
+    this.assert_table_is_ready("syncstring");
     if (!this.client.is_project()) {
       return;
     }
@@ -1683,7 +1696,6 @@ export class SyncDoc extends EventEmitter {
 
   private handle_file_watcher_change(ctime: Date): void {
     const dbg = this.client.dbg("handle_file_watcher_change");
-    this.assert_is_ready();
     const time: number = ctime.valueOf();
     dbg(
       `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${
@@ -1784,7 +1796,7 @@ export class SyncDoc extends EventEmitter {
     expected_hash?: number;
     time?: number;
   }): Promise<void> {
-    this.assert_is_ready();
+    this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
     x.time = new Date().valueOf();
@@ -1795,7 +1807,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async set_read_only(read_only: boolean): Promise<void> {
-    this.assert_is_ready();
+    this.assert_table_is_ready("syncstring");
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("read_only", read_only)
     );
@@ -1803,7 +1815,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   public get_read_only(): boolean {
-    this.assert_is_ready();
+    this.assert_table_is_ready("syncstring");
     return this.syncstring_table_get_one().get("read_only");
   }
 
