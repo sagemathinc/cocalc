@@ -935,14 +935,15 @@ export class FrameTitleBar extends Component<Props, State> {
       return;
     }
     return (
-      <Button
-        bsSize={this.button_size()}
-        key={"kick_other_users_out"}
-        onClick={() => this.props.actions.kick_other_users_out(this.props.id)}
-        title={"Kick all other users out"}
-      >
-        <Icon name={"door-open"} />
-      </Button>
+      <ButtonGroup key={"kick_other_users_out"}>
+        <Button
+          bsSize={this.button_size()}
+          onClick={() => this.props.actions.kick_other_users_out(this.props.id)}
+          title={"Kick all other users out"}
+        >
+          <Icon name={"door-open"} />
+        </Button>
+      </ButtonGroup>
     );
   }
 
