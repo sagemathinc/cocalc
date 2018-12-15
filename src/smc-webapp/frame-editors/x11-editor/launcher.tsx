@@ -81,7 +81,7 @@ const APPS: IAPPS = {
     label: "nteract"
   },
   wxmaxima: {
-    icon: "shapes",
+    icon: "square-root-alt",
     desc: "A legendary computer algebra system",
     label: "Maxima"
   },
@@ -194,6 +194,12 @@ const APPS: IAPPS = {
     icon: "star",
     label: "SAOImage DS9",
     desc: "An astronomical imaging and data visualization application."
+  },
+  xcas: {
+    icon: "square-root-alt",
+    label: "Xcas",
+    desc:
+      "An interface to perform computer algebra, function graphs, interactive geometry (2-d and 3-d), spreadsheet and statistics, programmation."
   }
 };
 
