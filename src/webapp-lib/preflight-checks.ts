@@ -84,10 +84,10 @@ function preflight_check(): void {
       spec.buildID.length >= 8 &&
       spec.buildID.slice(0, 8) >= "20180903");
 
+  // 69 to 61 have issues, and 65beta4 (as of 2018-12-16) exhibits similar issues
   const buggyFF =
     spec.name === "Firefox" &&
-    59 <= spec.version &&
-    spec.version <= 61 &&
+    ((59 <= spec.version && spec.version <= 61) || spec.version == 65) &&
     !ff60esr;
 
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
@@ -113,9 +113,10 @@ function preflight_check(): void {
           <p style="font-weight:bold">
              You cannot use CoCac with your current browser, because of
              <a href="https://github.com/sagemathinc/cocalc/issues/2875">issue #2875</a> caused by
-             <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1453204">firefox issue #1453204</a>!
+             <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1453204">firefox issue #1453204</a>
+             or <a href="https://github.com/sagemathinc/cocalc/issues/3423">issue #3423</a>!
           </p>
-          <p>Either update to at least Firefox version 62,
+          <p>Either update to at least Firefox version 62 – but not version 65! –
              switch to a recent version of <a target="_blank" href='https://google.com/chrome'>Google Chrome</a>,
              or tweak your TSL settings (we wouldn't recommend that, though):
              <a href="https://tinyurl.com/y9hphj39">https://tinyurl.com/y9hphj39</a> and
