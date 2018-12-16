@@ -585,15 +585,17 @@ exports.SearchInput = rclass
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.element
         input_class     : rtypes.string  # className for the InputGroup element
+        disabled        : rtypes.bool
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
                misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
-                                                 'default_value',  'value', 'buttonAfter'])
+                                                 'default_value',  'value', 'buttonAfter', 'disabled'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
+        disabled  : false
 
     get_opts: ->
         ctrl_down : @state.ctrl_down
@@ -622,7 +624,7 @@ exports.SearchInput = rclass
             return @props.buttonAfter
         else
             s = if @state.value?.length > 0 then 'warning' else "default"
-            <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
+            <Button onClick={@clear_and_focus_search_input} bsStyle={s} disabled = {@props.disabled}>
                 <Icon name='times-circle' />
             </Button>
 
@@ -671,6 +673,7 @@ exports.SearchInput = rclass
                     onChange    = {=>@set_value(ReactDOM.findDOMNode(@refs.input).value)}
                     onKeyDown   = {@key_down}
                     onKeyUp     = {@key_up}
+                    disabled    = {@props.disabled}
                 />
                 <InputGroup.Button>
                     {@search_button()}

@@ -1881,11 +1881,13 @@ ProjectFilesSearch = rclass
         file_creation_error: rtypes.string
         num_files_displayed: rtypes.number
         public_view        : rtypes.bool.isRequired
+        disabled           : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
         selected_file_index : 0
         num_files_displayed : 0
+        disabled : false
 
     getInitialState: ->  # Miniterm functionality
         stdout : undefined
@@ -2031,6 +2033,7 @@ ProjectFilesSearch = rclass
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
                 on_clear    = {@on_clear}
+                disabled    = {@props.disabled}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -2049,9 +2052,11 @@ ProjectFilesNew = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
+        disabled      : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
+        disabled    : true
 
     new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
@@ -2084,9 +2089,12 @@ ProjectFilesNew = rclass
             @props.create_file()
 
     render: ->
-        <SplitButton id='new_file_dropdown'
+        <SplitButton
+            id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
-            onClick={@on_create_button_clicked} >
+            onClick={@on_create_button_clicked}
+            disabled={@props.disabled}
+        >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
@@ -2297,7 +2305,9 @@ exports.ProjectFiles = rclass ({name}) ->
             current_path  = {@props.current_path}
             actions       = {@props.actions}
             create_file   = {@create_file}
-            create_folder = {@create_folder} />
+            create_folder = {@create_folder}
+            disabled      = {@props.show_new}
+        />
 
     render_activity: ->
         <ActivityDisplay
@@ -2467,6 +2477,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     create_file         = {@create_file}
                     create_folder       = {@create_folder}
                     public_view         = {public_view}
+                    disabled            = {@props.show_new}
                 />
             </div>
             {<div
