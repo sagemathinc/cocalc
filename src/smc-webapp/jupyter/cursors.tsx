@@ -331,18 +331,18 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 
   shouldComponentUpdate(props, state) {
     return (
-      misc.is_different(
-        this.props,
-        props,
-        ["cursors", "user_map", "account_id"]
-      ) || this.state.n !== state.n
+      misc.is_different(this.props, props, [
+        "cursors",
+        "user_map",
+        "account_id"
+      ]) || this.state.n !== state.n
     );
   }
 
   componentDidMount() {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
-      CURSOR_TIME_S / 2 * 1000
+      (CURSOR_TIME_S / 2) * 1000
     );
   }
 
@@ -372,7 +372,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 
   render() {
     let C: any;
-    const now = misc.server_time();
+    const now = misc.server_time().valueOf();
     const v: any[] = [];
     if (this.props.codemirror != null) {
       C = PositionedCursor;
@@ -382,21 +382,26 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     if (this.props.cursors != null) {
       this.props.cursors.forEach((locs: any, account_id: any) => {
         const { color, name } = this.profile(account_id);
-        return locs.forEach(pos => {
-          if (now - pos.get("time") <= CURSOR_TIME_S * 1000) {
-            let left, left1;
-            if (account_id === this.props.account_id) {
-              // don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
+        locs.forEach(pos => {
+          const tm = pos.get("time");
+          if (tm == null) {
+            return;
+          }
+          const t = tm.valueOf();
+          if (now - t <= CURSOR_TIME_S * 1000) {
+            /* if (account_id === this.props.account_id) {
+              // Don't show our own cursor, we just haven't made this
+              // possible due to only keying by account_id.
               return;
-            }
+            }*/
             v.push(
               <C
                 key={v.length}
-                time={pos.get("time") - 0}
+                time={t}
                 color={color}
                 name={name}
-                line={(left = pos.get("y")) != null ? left : 0}
-                ch={(left1 = pos.get("x")) != null ? left1 : 0}
+                line={pos.get("y", 0)}
+                ch={pos.get("x", 0)}
                 codemirror={this.props.codemirror}
               />
             );

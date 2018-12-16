@@ -881,20 +881,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   _syncstring_cursor_activity(): void {
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
-    let cursors = Map();
+    let cursors : Map<string, List<Map<string,any>>> = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
-      if (account_id === this.redux.getStore("account").get_account_id()) {
-        // skip self.
-        // TODO: actually soon we should show own cursor...
-        return;
-      }
       info.get("locs").forEach(loc => {
-        let left;
         loc = loc.set("time", info.get("time"));
-        const locs = ((left = cursors.get(account_id)) != null
-          ? left
-          : List()
-        ).push(loc);
+        const locs = cursors.get(account_id, List()).push(loc);
         cursors = cursors.set(account_id, locs);
       });
     });
@@ -1935,3 +1926,4 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return undefined;
   }
 }
+

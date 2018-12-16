@@ -518,7 +518,7 @@ export class SyncTable extends EventEmitter {
     };
     do_emit_changes = throttle(do_emit_changes, this.throttle_changes);
     this.emit_change = changed_keys => {
-      console.log("emit_change", changed_keys);
+      //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
       //console.log("#{this.table} -- queue changes", changed_keys)
       for (let key of changed_keys) {

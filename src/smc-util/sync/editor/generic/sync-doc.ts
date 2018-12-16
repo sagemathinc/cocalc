@@ -129,6 +129,7 @@ export class SyncDoc extends EventEmitter {
 
   private cursors: boolean = false; // if true, also provide cursor tracking functionality
   private cursor_map: Map<string, any> = Map();
+  private cursor_last_time: Date = new Date(0);
 
   // doctype: object describing document constructor
   // (used by project to open file)
@@ -256,6 +257,9 @@ export class SyncDoc extends EventEmitter {
     };
     if (!side_effect) {
       x.time = this.client.server_time();
+    }
+    if (x.time != null) {
+      this.cursor_last_time = x.time;
     }
     this.cursors_table.set(x, "none");
   }
@@ -756,8 +760,8 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
-    const log = this.client.dbg(`init_all(${this.path})`);
-    //const log = (..._) => {};
+    //const log = this.client.dbg(`init_all(${this.path})`);
+    const log = (..._) => {};
 
     // It is critical to do a quick initial touch so file gets
     // opened on the backend or syncstring gets created (otherwise,
@@ -1130,7 +1134,15 @@ export class SyncDoc extends EventEmitter {
      of cursor positions, if cursors are enabled.
   */
   public get_cursors(): Map<string, any[]> {
-    return this.cursor_map;
+    const account_id: string = this.client.client_id();
+    let map = this.cursor_map;
+    if (
+      map.has(account_id) &&
+      this.cursor_last_time >= map.getIn([account_id, "time"])
+    ) {
+      map = map.delete(account_id);
+    }
+    return map;
   }
 
   /* Set settings map.  (no-op if not yet initialized
