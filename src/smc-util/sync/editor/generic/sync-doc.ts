@@ -345,13 +345,6 @@ export class SyncDoc extends EventEmitter {
     return this.doc.to_str();
   }
 
-  // Used for internal debug logging
-  /*
-  private dbg(f: string): Function {
-    return this.client.dbg(`SyncString(path='${this.path}').${f}:`);
-  }
-  */
-
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will return undefined
@@ -599,18 +592,18 @@ export class SyncDoc extends EventEmitter {
    */
   private async set_initialized(
     error: string,
-    is_read_only: boolean,
+    read_only: boolean,
     size: number
   ): Promise<void> {
     this.assert_table_is_ready("syncstring");
-    this.client.dbg(`set_initialized(${this.path})`)();
+    this.dbg("set_initialized")();
     const init = { time: this.client.server_time(), size, error };
     this.syncstring_table.set({
       string_id: this.string_id,
       project_id: this.project_id,
       path: this.path,
       init,
-      read_only: is_read_only
+      read_only
     });
     await this.syncstring_table.save();
   }
@@ -676,6 +669,7 @@ export class SyncDoc extends EventEmitter {
 
     delete this.cursor_map;
     delete this.users;
+    this.patch_update_queue = [];
 
     if (this.syncstring_table != null) {
       this.syncstring_table.close();
@@ -756,12 +750,17 @@ export class SyncDoc extends EventEmitter {
     await this.syncstring_table.wait(is_not_archived.bind(this), 120);
   }
 
+  // Used for internal debug logging
+  private dbg(f: string = ""): Function {
+    return this.client.dbg(`sync-doc("${this.path}").${f}`);
+    //return (..._) => {};
+  }
+
   private async init_all(): Promise<void> {
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
-    //const log = this.client.dbg(`init_all(${this.path})`);
-    const log = (..._) => {};
+    const log = this.dbg("init_all");
 
     // It is critical to do a quick initial touch so file gets
     // opened on the backend or syncstring gets created (otherwise,
@@ -788,6 +787,7 @@ export class SyncDoc extends EventEmitter {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
       await this.load_from_disk_if_newer();
+      log("done loading from disk");
     }
 
     log("wait_until_fully_ready");
@@ -825,30 +825,51 @@ export class SyncDoc extends EventEmitter {
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
   private async wait_until_fully_ready(): Promise<void> {
+    const dbg = this.dbg("wait_until_fully_ready");
+    dbg();
     this.assert_not_closed();
-    function is_fully_ready(t: SyncTable): any {
+    function is_init_and_not_archived(t: SyncTable): any {
       this.assert_not_closed();
       const tbl = t.get_one();
       if (tbl == null) {
+        dbg("null");
         return false;
       }
       // init must be set in table and archived must NOT be
       // set, so patches are loaded from blob store.
       const init = tbl.get("init");
       if (init && !tbl.get("archived")) {
+        dbg("good to go");
         return init.toJS();
       } else {
+        dbg("not init yet");
         return false;
       }
     }
-    const init = await this.syncstring_table.wait(is_fully_ready.bind(this), 0);
+    dbg("waiting for init...");
+    const init = await this.syncstring_table.wait(
+      is_init_and_not_archived.bind(this),
+      0
+    );
+    dbg("init done");
 
     if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
-      // wait for a change -- i.e., project loading the file from
-      // disk and making available...  Because init.size > 0, we know that
-      // there must be SOMETHING in the patches table once initialization is done.
-      // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-      await once(this.patches_table, "change");
+      dbg("waiting for patches for nontrivial file");
+      // normally this only happens in a later event loop,
+      // so force it now.
+      dbg("handling patch update queue since", this.patch_list.count());
+      await this.handle_patch_update_queue();
+      dbg("done handling, now ", this.patch_list.count());
+      if (this.patch_list.count() === 0) {
+        // wait for a change -- i.e., project loading the file from
+        // disk and making available...  Because init.size > 0, we know that
+        // there must be SOMETHING in the patches table once initialization is done.
+        // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
+        await once(this.patches_table, "change");
+        dbg("got patches_table change")
+        await this.handle_patch_update_queue();
+        dbg("handled update queue")
+      }
     }
     this.emit("init");
   }
@@ -944,9 +965,7 @@ export class SyncDoc extends EventEmitter {
 
   private async load_from_disk_if_newer(): Promise<void> {
     const last_changed = this.last_changed();
-    const dbg = this.client.dbg(
-      `syncstring.load_from_disk_if_newer('${this.path}')`
-    );
+    const dbg = this.dbg("load_from_disk_if_newer");
     let is_read_only: boolean = false;
     let size: number = 0;
     let error: string = "";
@@ -954,28 +973,27 @@ export class SyncDoc extends EventEmitter {
       dbg("check if path exists");
       if (await callback2(this.client.path_exists, { path: this.path })) {
         // the path exists
-        if (last_changed != null) {
-          dbg("edited before, so stat file");
-          const stats = await callback2(this.client.path_stat, {
-            path: this.path
-          });
-          if (stats.ctime > last_changed) {
-            dbg("disk file changed more recently than edits, so loading");
-            size = await this.load_from_disk();
-          } else {
-            dbg("stick with database version");
-          }
-        } else {
-          dbg("never edited before and path exists, so load from disk");
+        dbg("path exists -- stat file");
+        const stats = await callback2(this.client.path_stat, {
+          path: this.path
+        });
+        if (stats.ctime > last_changed) {
+          dbg("disk file changed more recently than edits, so loading");
           size = await this.load_from_disk();
+          dbg("loaded");
+        } else {
+          dbg("stick with database version");
         }
+        dbg("checking if read only");
         is_read_only = await this.file_is_read_only();
+        dbg("read_only", is_read_only);
       }
     } catch (err) {
       error = `${err.toString()} -- ${err.stack}`;
     }
 
     await this.set_initialized(error, is_read_only, size);
+    dbg("done");
   }
 
   private patch_table_query(cutoff?: Date) {
@@ -1175,30 +1193,36 @@ export class SyncDoc extends EventEmitter {
   unsaved changes when _save is done.
   */
   public async save(): Promise<void> {
+    const dbg = this.dbg("save");
     // We just keep trying while syncdoc is ready and there
     // are changes that have not been saved (due to this.doc
     // changing during the while loop!).
-    while (this.state === "ready" && !this.doc.is_equal(this.last)) {
+    if (this.doc == null || this.last == null) {
+      dbg("bug -- not ready");
+      throw Error("bug -- cannot save if doc and last are not initialized");
+    }
+    while (!this.doc.is_equal(this.last)) {
+      dbg("something to save");
       const doc = this.doc;
       // TODO: put in a delay if just saved too recently?
       //       Or maybe won't matter since not using database?
       if (this.handle_patch_update_queue_running) {
-        // wait until the update is done
+        dbg("wait until the update queue is done");
         await once(this, "handle_patch_update_queue_done");
         // but wait until next loop (so as to check that needed
         // and state still ready).
         continue;
       }
-      // Compute new patch and send it.
+      dbg("Compute new patch and send it.");
       await this.sync_remote_and_doc();
-      // Patch sent, now make a snapshot if we are due for one.
+      dbg("Patch sent, now make a snapshot if we are due for one.");
       this.snapshot_if_necessary();
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
       this.emit("user_change");
       if (doc.is_equal(this.doc)) {
-        // no change during loop.
+        dbg("no change during loop -- done!");
         return;
       }
     }
@@ -1670,7 +1694,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async update_watch_path(path?: string): Promise<void> {
-    const dbg = this.client.dbg(`update_watch_path('${path}')`);
+    const dbg = this.dbg("update_watch_path");
     if (this.file_watcher != null) {
       // clean up
       dbg("close");
@@ -1707,7 +1731,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private handle_file_watcher_change(ctime: Date): void {
-    const dbg = this.client.dbg("handle_file_watcher_change");
+    const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
       `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${
@@ -1753,7 +1777,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async handle_file_watcher_delete(): Promise<void> {
-    const dbg = this.client.dbg("handle_file_watcher_delete");
+    const dbg = this.dbg("handle_file_watcher_delete");
     this.assert_is_ready();
     dbg("delete: setting deleted=true and closing");
     this.from_str("");
@@ -1771,7 +1795,7 @@ export class SyncDoc extends EventEmitter {
 
   private async load_from_disk(): Promise<number> {
     const path = this.path;
-    const dbg = this.client.dbg(`syncstring.load_from_disk('${path}')`);
+    const dbg = this.dbg("load_from_disk");
     dbg();
     let exists: boolean = await callback2(this.client.path_exists, { path });
     let size: number;
@@ -1796,7 +1820,7 @@ export class SyncDoc extends EventEmitter {
         hash: hash_string(data)
       });
     }
-    // save new version (via from_str) to database.
+    // save new version (just set via from_str) to database.
     await this.save();
     return size;
   }
@@ -1893,7 +1917,7 @@ export class SyncDoc extends EventEmitter {
      state to change. */
   public async save_to_disk(): Promise<void> {
     this.assert_is_ready();
-    //dbg = this.dbg("save_to_disk(cb)")
+    //dbg = this.dbg("save_to_disk()")
     //dbg("initiating the save")
     if (!this.has_unsaved_changes()) {
       // no unsaved changes, so don't save --
@@ -2089,10 +2113,6 @@ export class SyncDoc extends EventEmitter {
     live version as a result.
   */
   private handle_patch_update(changed_keys): void {
-    if (this.state != "ready") {
-      return;
-    }
-
     //console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
     if (changed_keys == null || changed_keys.length === 0) {
       // this happens right now when we do a save.
@@ -2119,7 +2139,7 @@ export class SyncDoc extends EventEmitter {
   private async handle_patch_update_queue(): Promise<void> {
     try {
       this.handle_patch_update_queue_running = true;
-      while (this.patch_update_queue.length > 0 && this.state === "ready") {
+      while (this.patch_update_queue.length > 0) {
         const v: Patch[] = [];
         for (let key of this.patch_update_queue) {
           const x = this.patches_table.get(key);
@@ -2142,9 +2162,6 @@ export class SyncDoc extends EventEmitter {
         // NOTE: The below sync_remote_and_doc can sometimes
         // *cause* new entries to be added to this.patch_update_queue.
         await this.sync_remote_and_doc();
-        if (this.state !== "ready") {
-          return;
-        }
 
         if (this.patch_update_queue.length > 0) {
           // It is very important that next loop happen in a later
