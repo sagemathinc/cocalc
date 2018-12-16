@@ -200,6 +200,12 @@ const APPS: IAPPS = {
     label: "Xcas",
     desc:
       "An interface to perform computer algebra, function graphs, interactive geometry (2-d and 3-d), spreadsheet and statistics, programmation."
+  },
+  "gnome-system-monitor": {
+    icon: "heartbeat",
+    label: "System Monitor",
+    desc:
+      "Shows you what programs are running and how much processor time, memory, and disk space are being used."
   }
 };
 
