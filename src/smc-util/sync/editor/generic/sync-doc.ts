@@ -501,7 +501,7 @@ export class SyncDoc extends EventEmitter {
 
     // Explicit cast due to node vs browser typings.
     this.project_autosave_timer = <any>(
-      setInterval(this.save_to_disk, LOCAL_HUB_AUTOSAVE_S * 1000)
+      setInterval(this.save_to_disk.bind(this), LOCAL_HUB_AUTOSAVE_S * 1000)
     );
   }
 
@@ -735,8 +735,9 @@ export class SyncDoc extends EventEmitter {
       this.handle_syncstring_update.bind(this)
     );
 
-    // wait until syncstring is not archived -- if we open an
-    // older syncstring, the patches may be archived, and we have to wait until
+    // Wait until syncstring is not archived -- if we open an
+    // older syncstring, the patches may be archived,
+    // and we have to wait until
     // after they have been pulled from blob storage before
     // we init the patch table, load from disk, etc.
     function is_not_archived(): boolean {
@@ -866,9 +867,9 @@ export class SyncDoc extends EventEmitter {
         // there must be SOMETHING in the patches table once initialization is done.
         // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
         await once(this.patches_table, "change");
-        dbg("got patches_table change")
+        dbg("got patches_table change");
         await this.handle_patch_update_queue();
-        dbg("handled update queue")
+        dbg("handled update queue");
       }
     }
     this.emit("init");
@@ -1540,19 +1541,29 @@ export class SyncDoc extends EventEmitter {
        to indicate a save completed.
 
        NOTE: it is intentional that this.syncstring_save_state is not defined
-       the first tie this function is called, so that save-to-disk
+       the first time this function is called, so that save-to-disk
        with last save time gets emitted on initial load (which, e.g., triggers
        latex compilation properly in case of a .tex file).
     */
     if (state === "done" && this.syncstring_save_state !== "done") {
       this.emit("save-to-disk", time);
     }
+
+    if (
+      this.client.is_project() &&
+      this.syncstring_save_state !== "requested" &&
+      state === "requested"
+    ) {
+      // state just changed to requesting a save to disk... so do it.
+      this.save_to_disk();
+    }
+
     this.syncstring_save_state = state;
   }
 
   private async handle_syncstring_update(): Promise<void> {
-    //dbg = this.dbg("handle_syncstring_update")
-    //dbg()
+    const dbg = this.dbg("handle_syncstring_update");
+    dbg();
     if (this.state === "closed") {
       return;
     }
@@ -1564,18 +1575,16 @@ export class SyncDoc extends EventEmitter {
       this.handle_syncstring_save_state(x.save.state, x.save.time);
     }
 
-    //dbg(JSON.stringify(x))
-    // try {
+    dbg(JSON.stringify(x));
     // Below "x.users == null" works because the initial touch sets
     // only string_id and last_active, and nothing else.
     if (x == null || x.users == null) {
+      dbg("new_document");
       await this.handle_syncstring_update_new_document();
     } else {
+      dbg("update_existing");
       await this.handle_syncstring_update_existing_document(x, data);
     }
-    /*} catch (err) {
-      this.dbg("handle_syncstring_update")(`UNHANDLED ERROR -- ${err}`);
-    }*/
   }
 
   private async handle_syncstring_update_new_document(): Promise<void> {
@@ -1610,10 +1619,14 @@ export class SyncDoc extends EventEmitter {
     data: Map<string, any>
   ): Promise<void> {
     // Existing document.
-    if (x.archived) {
-      this.emit("load-time-estimate", { type: "archived", time: 4 });
-    } else {
-      this.emit("load-time-estimate", { type: "ready", time: 2 });
+
+    if (this.path == null) {
+      // We just opened the file -- emit a load time estimate.
+      if (x.archived) {
+        this.emit("load-time-estimate", { type: "archived", time: 3 });
+      } else {
+        this.emit("load-time-estimate", { type: "ready", time: 1 });
+      }
     }
     // TODO: handle doctype change here (?)
     this.last_snapshot = x.last_snapshot;
@@ -1647,21 +1660,6 @@ export class SyncDoc extends EventEmitter {
         users: this.users
       });
       await this.syncstring_table.save();
-    }
-
-    if (!this.client.is_project()) {
-      this.emit("metadata-change");
-      // not a project -- done.
-      return;
-    }
-    // For rest of this function, we are a project.
-
-    //dbg = this.dbg("_handle_syncstring_update('#{this.path}')")
-    //dbg("project only handling")
-    // Only done for project:
-    //this.assert_is_ready();
-    if (this.state === "closed") {
-      return;
     }
 
     this.emit("metadata-change");
@@ -1917,8 +1915,8 @@ export class SyncDoc extends EventEmitter {
      state to change. */
   public async save_to_disk(): Promise<void> {
     this.assert_is_ready();
-    //dbg = this.dbg("save_to_disk()")
-    //dbg("initiating the save")
+    const dbg = this.dbg("save_to_disk");
+    dbg("initiating the save");
     if (!this.has_unsaved_changes()) {
       // no unsaved changes, so don't save --
       // CRITICAL: this optimization is assumed by
@@ -2029,22 +2027,19 @@ export class SyncDoc extends EventEmitter {
     this.assert_is_ready();
 
     if (!this.has_unsaved_changes()) {
-      /* Browser client that has no unsaved changes,
+      /* Browser client has no unsaved changes,
          so don't need to save --
          CRITICAL: this optimization is assumed by autosave.
        */
       return;
     }
-    /* CRITICAL: First, we broadcast interest in the syncstring --
-       this will cause the relevant project (if it is running)
-       to open the syncstring (if closed), and hence be aware
-       that the client is requesting a save.  This is important
-       if the client and database have changes not saved to disk,
-       and the project stopped listening for activity on this
-       syncstring due to it not being touched (due to active
-       editing).  Not having this leads to a lot of "can't save"
-       errors. */
-    this.touch();
+    const x = this.syncstring_table.get_one();
+    if (x != null && x.getIn(["save", "state"]) === "requested") {
+      // Nothing to do -- save already requested, which is
+      // all the browser client has to do.
+      return;
+    }
+
     // string version of this doc
     const data: string = this.to_str();
     const expected_hash = hash_string(data);
