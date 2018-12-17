@@ -113,11 +113,17 @@ exports.OOMWarning = rclass ({name}) ->
     render: ->
         if not require('./customize').commercial
             return <span />
-        project_status = @props.project_map?.get(@props.project_id)?.get('status')
+        project = @props.project_map?.get(@props.project_id)
+        project_state = project?.get('state')?.get('state')
+        if project_state != 'running'
+            return <span />
+        project_status = project?.get('status')
         if not project_status?
             return <span />
         oom_kills = project_status.get('oom_kills') ? 0
         oom_dismissed = @props.oom_dismissed
+
+        # if DEBUG then console.log("oom_kills: #{oom_kills}, oom_dismissed: #{oom_dismissed}")
 
         if oom_kills <= oom_dismissed
             return <span />
@@ -140,7 +146,7 @@ exports.OOMWarning = rclass ({name}) ->
                     <a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>More information...</a>.
                 </div>
                 <div style={flex:'0'}>
-                    <Button onClick={=>@click(oom_kills)} pullRight={true}>Dismiss</Button>
+                    <Button onClick={=>@click(oom_kills)} pullright={"true"}>Dismiss</Button>
                 </div>
             </div>
         </Alert>
