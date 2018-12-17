@@ -14,7 +14,7 @@ const {
   DropdownButton,
   MenuItem
 } = require("react-bootstrap");
-
+import { get_default_font_size } from "../generic/client";
 const {
   r_join,
   Icon,
@@ -114,6 +114,7 @@ interface Props {
   status: string;
   title?: string;
   connection_status?: ConnectionStatus;
+  font_size?: number;
 }
 
 interface State {
@@ -142,7 +143,8 @@ export class FrameTitleBar extends Component<Props, State> {
         "type",
         "status",
         "title",
-        "connection_status"
+        "connection_status",
+        "font_size"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -375,9 +377,16 @@ export class FrameTitleBar extends Component<Props, State> {
       );
     });
 
+    const title =
+      this.props.font_size == null
+        ? "Zoom"
+        : `${Math.round(
+            (100 * this.props.font_size) / get_default_font_size()
+          )}%`;
+
     return (
       <DropdownButton
-        title={"Zoom"}
+        title={title}
         key={"zoom-levels"}
         id={"zoom-levels"}
         bsSize={this.button_size()}

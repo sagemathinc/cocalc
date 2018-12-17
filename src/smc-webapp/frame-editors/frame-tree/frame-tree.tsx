@@ -206,6 +206,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         status={this.props.status}
         title={desc.get("title")}
         connection_status={desc.get("connection_status")}
+        font_size={desc.get("font_size")}
       />
     );
   }
