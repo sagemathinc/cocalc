@@ -207,9 +207,17 @@ class exports.TaskActions extends Actions
         return
 
     save: =>
-        @setState(has_unsaved_changes:false)
-        @syncdb.save =>
-            @set_save_status()
+        if @_state == 'closed'
+            return
+        try
+            await @syncdb.save_to_disk()
+        catch err
+            if @_state == 'closed'  # expected to fail when closing
+                return
+            # somehow report that save to disk failed.
+            console.warn("Tasks save to disk failed ", err);
+        @set_save_status()
+        return
 
     new_task: =>
         # create new task positioned before the current task
@@ -347,10 +355,16 @@ class exports.TaskActions extends Actions
             @set_current_task(new_task_id)
 
     undo: =>
-        @syncdb?.undo()
+        if !@syncdb?
+            return
+        @syncdb.undo()
+        @syncdb.save()
 
     redo: =>
-        @syncdb?.redo()
+        if !@syncdb?
+            return
+        @syncdb.redo()
+        @syncdb.save()
 
     set_task_not_done: (task_id) =>
         task_id ?= @store.get('current_task_id')

@@ -99,7 +99,7 @@ export class API {
       query,
       options
     });
-    console.log("synctable_channel", query, options, channel_name);
+    // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
   }
 
