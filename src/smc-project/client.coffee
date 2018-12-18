@@ -525,13 +525,15 @@ class exports.Client extends EventEmitter
     # We leave in the project_id for consistency with the browser UI.
     # And maybe someday we'll have tables managed across projects (?).
     synctable_project: (project_id, query, options) =>
-        # TODO: this is ONLY for syncstring tables...
+        # TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
         # Also, options are ignored -- since we use whatever was selected by the frontend.
-        synctable = await require('./sync/open-synctables').get_synctable(query, @)
+        the_synctable = await require('./sync/open-synctables').get_synctable(query, @)
         # To provide same API, must also wait until done initializing.
-        if synctable.get_state() != 'connected'
-            await once(synctable, 'connected')
-        return synctable
+        if the_synctable.get_state() != 'connected'
+            await once(the_synctable, 'connected')
+        if the_synctable.get_state() != 'connected'
+            throw Error("Bug -- state of synctable must be connected " + JSON.stringify(query))
+        return the_synctable
 
     # WARNING: making two of the exact same sync_string or sync_db will definitely
     # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,

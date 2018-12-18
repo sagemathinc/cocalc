@@ -75,6 +75,9 @@ export class DBDocument implements Document {
     this.primary_key_part = this.primary_key_part.bind(this);
 
     this.primary_keys = new Set(primary_keys);
+    if (this.primary_keys.size === 0) {
+      throw Error('there must be at least one primary key');
+    }
     this.string_cols = new Set(string_cols);
     this.records = records;
     this.everything = everything == null ? this.init_everything() : everything;

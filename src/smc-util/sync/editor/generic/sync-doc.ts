@@ -31,7 +31,7 @@ const TOUCH_INTERVAL_M = 10;
    out this is what people expect.
    Set to 0 to disable. (But don't do that.) */
 const LOCAL_HUB_AUTOSAVE_S = 45;
-// const LOCAL_HUB_AUTOSAVE_S = 5
+// const LOCAL_HUB_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 2;
@@ -228,7 +228,7 @@ export class SyncDoc extends EventEmitter {
     try {
       await this.init_all();
     } catch (err) {
-      console.warn("SyncDoc init error -- ", err);
+      console.warn("SyncDoc init error -- ", err, err.stack);
       this.emit("error", err);
       this.close();
       return;
@@ -320,6 +320,12 @@ export class SyncDoc extends EventEmitter {
 
   public set_doc(value: Document): void {
     this.doc = value;
+  }
+
+  // Convenience function to avoid having to do
+  // get_doc and set_doc constantly.
+  public set(x: any): void {
+    this.doc = this.doc.set(x);
   }
 
   // Return underlying document, or undefined if document
@@ -778,6 +784,7 @@ export class SyncDoc extends EventEmitter {
       this.init_cursors(),
       this.init_evaluator()
     ]);
+
     this.assert_not_closed();
     log("periodic_touch");
     this.init_periodic_touch();
@@ -878,7 +885,9 @@ export class SyncDoc extends EventEmitter {
   private assert_table_is_ready(table: string): void {
     const t = this[`${table}_table`];
     if (t == null || t.get_state() != "connected") {
-      throw Error(`Table ${table} must be connected.`);
+      throw Error(
+        `Table ${table} must be connected.  string_id=${this.string_id}`
+      );
     }
   }
 
@@ -1432,6 +1441,8 @@ export class SyncDoc extends EventEmitter {
      If time1 undefined treated as +oo.
   */
   private get_patches(time0?: Date, time1?: Date): Patch[] {
+    this.assert_table_is_ready("patches");
+
     if (time0 == null) {
       time0 = this.last_snapshot;
     }
@@ -1440,10 +1451,11 @@ export class SyncDoc extends EventEmitter {
     // [string_id, timestamp, user_number].
     const m: Map<string, any> | undefined = this.patches_table.get();
     if (m == null) {
+      // won't happen because of assert above.
       throw Error("patches_table must be initialized");
     }
     const v: Patch[] = [];
-    m.map((x, _) => {
+    m.forEach((x, _) => {
       const p = this.process_patch(x, time0, time1);
       if (p != null) {
         return v.push(p);
@@ -1550,11 +1562,14 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (
+      this.state === "ready" &&
       this.client.is_project() &&
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
-      // state just changed to requesting a save to disk... so do it.
+      // state just changed to requesting a save to disk...
+      // so we do it (unless of course syncstring is still
+      // being initialized).
       this.save_to_disk();
     }
 

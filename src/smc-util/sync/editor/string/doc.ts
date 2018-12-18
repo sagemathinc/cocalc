@@ -24,4 +24,11 @@ export class StringDocument implements Document {
   public make_patch(other: StringDocument): CompressedPatch {
     return make_patch(this.value, other.value);
   }
+
+  public set(x : any) : StringDocument {
+    if (typeof x === 'string') {
+      return new StringDocument(x);
+    }
+    throw Error("x must be a string");
+  }
 }

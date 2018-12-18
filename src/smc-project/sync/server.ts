@@ -109,7 +109,7 @@ class SyncChannel {
   }
 
   private log(...args): void {
-    this.logger.debug(`SyncChannel ${this.query_string} -- `, ...args);
+    this.logger.debug(`SyncChannel('${this.name}', '${this.query_string}'): `, ...args);
   }
 
   private init_handlers(): void {
@@ -136,7 +136,7 @@ class SyncChannel {
       init_syncdoc(this.client, this.synctable, this.logger);
     }
     this.synctable.on("saved-objects", this.handle_synctable_save.bind(this));
-    this.log("created synctable -- waiting for connect");
+    this.log("created synctable -- waiting for connected state");
     await once(this.synctable, "connected");
     this.log("created synctable -- now connected");
     // broadcast synctable content to all connected clients.
@@ -187,13 +187,16 @@ class SyncChannel {
   }
 
   private handle_synctable_save(saved_objs): void {
+    if (saved_objs.length === 0) {
+      return;
+    }
     this.channel.forEach((spark: Spark) => {
       spark.write(saved_objs);
     });
   }
 
   private async handle_data(_: Spark, data: any): Promise<void> {
-    this.log("handle_data ", data);
+    this.log("handle_data ", (this.channel as any).channel, data);
     if (!is_array(data)) {
       throw Error("data must be an array of set objects");
     }

@@ -229,6 +229,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         cursors: true
       });
     } else if (this.doctype == "syncdb") {
+      if (
+        this.primary_keys == null ||
+        this.primary_keys.length == null ||
+        this.primary_keys.length <= 0
+      ) {
+        throw Error("primary_keys must be array of positive length");
+      }
       this._syncstring = syncdb2({
         project_id: this.project_id,
         path: this.path,
@@ -302,19 +309,24 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     string_cols?: string[],
     path?: string
   ): void {
+    if (primary_keys.length <= 0) {
+      throw Error("primary_keys must be array of positive length");
+    }
     const aux = aux_file(path || this.path, "syncdb");
     this._syncdb = syncdb2({
       project_id: this.project_id,
       path: aux,
-      primary_keys: primary_keys,
-      string_cols: string_cols
+      primary_keys,
+      string_cols
     });
     this._syncdb.once("error", err => {
       this.set_error(
         `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
       );
     });
-    this._syncdb.once("ready", () => {
+    this._syncdb.once("ready", async () => {
+      // TODO -- there is a race condition setting up tables; throwing in this delay makes it work.
+      // await delay(1000);
       this._syncdb_init = true;
       if (
         !this.store.get("is_loaded") &&
@@ -402,14 +414,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   private async close_syncstring(): Promise<void> {
-    if (this._syncstring == null) return;
     const s = this._syncstring;
-    delete this._syncstring;
-
-    // syncstring was initialized; be sure not to
-    // lose the very last change user made!
-    this.set_syncstring_to_codemirror();
-    await s.save();
+    if (s == null) return;
+    if (s.get_state() === 'ready') {
+      // syncstring was initialized; be sure not to
+      // lose the very last change user made!
+      this.set_syncstring_to_codemirror();
+      delete this._syncstring;
+      await s.save();
+    }
     s.close();
   }
 
@@ -417,10 +430,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._syncdb == null) return;
     const s = this._syncdb;
     delete this._syncdb;
-
     // syncstring was initialized; be sure not to
     // lose the very last change user made!
-    await s.save();
+    if (s.get_state() === 'ready') {
+      await s.save();
+    }
     s.close();
   }
 
@@ -881,7 +895,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   _syncstring_cursor_activity(): void {
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
-    let cursors : Map<string, List<Map<string,any>>> = Map();
+    let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
       info.get("locs").forEach(loc => {
         loc = loc.set("time", info.get("time"));
@@ -968,14 +982,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   async _do_save(): Promise<void> {
-    let that = this;
     try {
       this.set_status("Saving to disk...");
       await retry_until_success({
-        f: async function() {
-          /* evidently no fat arrow with async/await + typescript */
-          await that._try_to_save_to_disk();
-        },
+        f: async () => await this._try_to_save_to_disk(),
         max_time: MAX_SAVE_TIME_S * 1000,
         max_delay: 6000
       });
@@ -998,7 +1008,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   async save(explicit: boolean): Promise<void> {
-    if (this.is_public) {
+    if (this.is_public || !this.store.get("is_loaded")) {
       return;
     }
     // TODO: what about markdown, where do not want this...
@@ -1926,4 +1936,3 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return undefined;
   }
 }
-

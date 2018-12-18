@@ -38,7 +38,7 @@ export function apply_patch(patch: CompressedPatch, s: string): [string, boolean
     // If a patch is so corrupted it can't be parsed -- e.g., due to a bug in SMC -- we at least
     // want to make application the identity map (i.e., "best effort"), so
     // the document isn't completely unreadable!
-    console.warn(`apply_patch -- ${err}`);
+    console.warn(`apply_patch -- ${err}, ${JSON.stringify(patch)}`);
     return [s, false];
   }
   let clean = true;

@@ -531,7 +531,7 @@ export class SyncTable extends EventEmitter {
 
   private dbg(f?: string): Function {
     if (this.client.is_project()) {
-      return this.client.dbg(`SyncTable('${this.table}').${f}`);
+      return this.client.dbg(`SyncTable('${JSON.stringify(this.query)}').${f}`);
     }
     return () => {};
   }
@@ -567,9 +567,14 @@ export class SyncTable extends EventEmitter {
     const initval = await this.create_changefeed_connection();
     dbg("got changefeed, now initializing table data");
     this.init_changefeed_handlers();
-    this.update_all(initval);
+    const changed_keys = this.update_all(initval);
     dbg("setting state to connected");
     this.set_state("connected");
+
+    // NOTE: Can't emit change event until after
+    // switching state to connected, which is why
+    // we do it here.
+    this.emit_change(changed_keys);
   }
 
   private close_changefeed(): void {
@@ -971,20 +976,23 @@ export class SyncTable extends EventEmitter {
         }
         if (desired === "array") {
           if (!List.isList(value)) {
-            throw Error("must be a list");
+            value = fromJS(value);
+            if (!List.isList(value)) {
+              throw Error("must be an immutable.js list");
+            }
           }
           return value;
         }
         if (desired === "map") {
           if (!Map.isMap(value)) {
-            throw Error("must be a map");
+            value = fromJS(value);
+            if (!Map.isMap(value)) {
+              throw Error("must be an immutable.js map");
+            }
           }
           return value;
         }
         if (desired === "boolean") {
-          if (!misc.is_object(value)) {
-            throw Error("must be a map)");
-          }
           // actual wasn't boolean, so coerce.
           return !!value;
         }
@@ -1002,13 +1010,13 @@ export class SyncTable extends EventEmitter {
   This happens on initialization, and also if we
   disconnect and reconnect.
   */
-  private update_all(v: any[]): void {
-    let changed_keys, first_connect;
+  private update_all(v: any[]): any[] {
+    let changed_keys;
     const dbg = this.dbg("update_all");
 
     if (this.state === "closed") {
       // nothing to do -- just ignore updates from db
-      return;
+      throw Error("makes no sense to do update_all when state is closed.");
     }
 
     this.emit("before-change");
@@ -1024,13 +1032,13 @@ export class SyncTable extends EventEmitter {
 
     let conflict = false;
 
-    // Figure out what to change in our local view of the database query result.
+    // Figure out what to change in our local view of
+    // the database query result.
     if (this.value_local == null || this.value_server == null) {
       dbg(
         "easy case -- nothing has been initialized yet, so just set everything."
       );
       this.value_local = this.value_server = fromJS(x);
-      first_connect = true;
       changed_keys = keys(x); // of course all keys have been changed.
     } else {
       dbg("harder case -- everything has already been initialized.");
@@ -1042,7 +1050,7 @@ export class SyncTable extends EventEmitter {
       // what we just got from DB), make that change.
       // (Later we will possibly merge in the change
       // using the last known upstream database state.)
-      this.value_local.map((_, key: string) => {
+      this.value_local.forEach((_, key: string) => {
         if (this.value_local == null || this.value_server == null) {
           // to satisfy typescript.
           return;
@@ -1101,14 +1109,16 @@ export class SyncTable extends EventEmitter {
     //console.log("update_all: changed_keys=", changed_keys)
     if (changed_keys.length !== 0) {
       this.value_server = fromJS(x);
-      this.emit_change(changed_keys);
-    } else if (first_connect) {
-      // First connection and table is empty.
-      this.emit_change(changed_keys);
+      if (this.state === "connected") {
+        // when not yet connected, initial change is emitted
+        // by function that sets up the changefeed.
+        this.emit_change(changed_keys);
+      }
     }
     if (conflict) {
       this.save();
     }
+    return changed_keys;
   }
 
   /* Simulate incoming value as it would come from upstream via

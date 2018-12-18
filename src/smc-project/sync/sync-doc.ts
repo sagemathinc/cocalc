@@ -39,16 +39,23 @@ async function init_syncdoc_async(
     logger.debug("init_syncdoc -- ", ...args);
   }
 
-  log("waiting until syncstable is ready");
+  log("waiting until synctable is ready");
   await wait_until_synctable_ready(synctable, log);
   log("synctable ready.  Now getting type and opts");
   const { type, opts } = get_type_and_opts(synctable);
   opts.project_id = client.client_id();
   log("type = ", type);
-  log("opts = ", opts);
+  log("opts = ", JSON.stringify(opts));
   opts.client = client;
-  log("now creating syncdoc");
-  const syncdoc = create_syncdoc(type, opts);
+  log("now creating syncdoc...");
+  let syncdoc;
+  try {
+    syncdoc = create_syncdoc(type, opts);
+  } catch (err) {
+    log(`ERROR creating syncdoc -- ${err.toString()}`, err.stack);
+    // TODO: how to properly inform clients and deal with this?!
+    return;
+  }
   synctable.on("closed", function() {
     log("syncstring table closed, so closing syncdoc", opts.path);
     syncdoc.close();
@@ -106,7 +113,7 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
     }
     if (doctype.opts != null) {
       for (let k in doctype.opts) {
-        opts[k] = doctype[k];
+        opts[k] = doctype.opts[k];
       }
     }
     type = doctype.type;

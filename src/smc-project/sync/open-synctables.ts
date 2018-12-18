@@ -28,10 +28,7 @@ function key(query): string {
   return `${table}.${c.string_id}`;
 }
 
-export function register_synctable(
-  query: any,
-  synctable : SyncTable
-): void {
+export function register_synctable(query: any, synctable: SyncTable): void {
   const k = key(query);
   open_synctables[k] = synctable;
   synctable.on("closed", function() {
@@ -42,14 +39,11 @@ export function register_synctable(
   }
 }
 
-export async function get_synctable(
-  query,
-  client
-): Promise<SyncTable> {
-  const log = client.dbg("get_synctable");
-  log("open_synctables = ", Object.keys(open_synctables));
+export async function get_synctable(query, client): Promise<SyncTable> {
   const k = key(query);
-  log("query=", query, "k = ", k);
+  const log = client.dbg(`get_synctable(key=${k})`);
+  log("open_synctables = ", Object.keys(open_synctables));
+  log("query=", query);
   const s = open_synctables[k];
   if (s != null) {
     // easy - already have it.
@@ -62,7 +56,7 @@ export async function get_synctable(
   }
   log("waiting...");
   const synctable = await callback(f);
-  log("got the synctable!");
+  log(`got the synctable! ${JSON.stringify((synctable as any).query)}`);
   return synctable;
 }
 

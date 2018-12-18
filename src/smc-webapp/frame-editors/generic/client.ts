@@ -214,6 +214,9 @@ export function syncdb(opts: SyncDBOpts): any {
 import { SyncDB } from 'smc-util/sync/editor/db/sync';
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
+  if (opts.primary_keys.length <= 0) {
+    throw Error("primary_keys must be array of positive length");
+  }
   const opts1: any = opts;
   opts1.client = webapp_client;
   return new SyncDB(opts1);

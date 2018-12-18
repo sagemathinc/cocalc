@@ -20,6 +20,7 @@ export interface Document {
   make_patch(Document): CompressedPatch;
   is_equal(Document): boolean;
   to_str(): string;
+  set(any): Document;  // returns new document with result of set
 }
 
 export type CompressedPatch = any[];
