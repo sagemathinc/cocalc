@@ -131,6 +131,12 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
 
+  // TODO what's a and b ?
+  constructor(a, b) {
+    super(a, b);
+    this._projects_store_change = this._projects_store_change.bind(this);
+  }
+
   _init = () => {
     // If we are explicitly listed as a collaborator on this project,
     // watch for this to change, and if it does, close the project.
@@ -143,24 +149,27 @@ export class ProjectStore extends Store<ProjectStoreState> {
         : undefined) != null
     ) {
       // only do this if we are on project in the first place!
-      return projects.on("change", this._projects_store_collab_check);
+      return projects.on("change", this._projects_store_change);
     }
   };
 
   destroy = () => {
     let projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
-      projects_store.removeListener(
-        "change",
-        this._projects_store_collab_check
-      );
+      projects_store.removeListener("change", this._projects_store_change);
     }
   };
 
-  private _projects_store_collab_check(state): void {
-    if (state.getIn(["project_map", this.project_id]) == null) {
+  // constructor binds this callback, such that "this.project_id" works!
+  private _projects_store_change(state): void {
+    const change = state.getIn(["project_map", this.project_id]);
+    if (change == null) {
       // User has been removed from the project!
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
+    }
+    if (change != null) {
+      console.log(`ProjectStore ${this.project_id} change:`, change.toJS());
+      console.log(`Project state:`, change.getIn(['state', 'state']));
     }
   }
 
@@ -607,6 +616,7 @@ export function init(project_id: string, redux: AppRedux) {
   const actions = redux.createActions(name, ProjectActions);
   store.project_id = project_id;
   actions.project_id = project_id; // so actions can assume this is available on the object
+  store._init();
 
   const queries = misc.deep_copy(QUERIES);
   const create_table = function(table_name, q) {
