@@ -15,6 +15,7 @@ require('./editor_pdf')
 require('./stopwatch/register')
 require('./jupyter/register')
 require('./tasks/register')
+require('./cluster/register')
 
 require('./media-viewer/register')
 
