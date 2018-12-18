@@ -84,7 +84,7 @@
   "scripts": {
     "test": "(npm run testpg && npm run testapi && npm run testmisc && npm run testkucalc); rc=$?; ../scripts/mocha_clean.sh; exit $rc",
     "testpg": "echo 'TEST POSTGRES'; SMC_DB_RESET=true SMC_TEST=true time node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/postgres/*.coffee",
-    "testapi": "echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/ts-mocha -p ../tsconfig.json ${BAIL} --reporter ${REPORTER:-progress} test/api/*.coffee",
+    "testapi": "echo 'TEST API'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/ts-mocha -p ../tsconfig.json ${BAIL} --reporter ${REPORTER:-progress} test/api/messages.coffee",
     "testmisc": "echo 'TEST MISC'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc/*.coffee",
     "testkucalc": "echo 'TEST KUCALC'; SMC_DB_RESET=true SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/kucalc/*.coffee",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
