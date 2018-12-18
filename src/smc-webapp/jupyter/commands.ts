@@ -165,7 +165,7 @@ export function commands(actions: any) {
 
     "confirm restart kernel and run all cells": {
       m: "Restart and run all...",
-      i: 'forward',
+      i: "forward",
       f() {
         // TODO: async/await?
         actions.confirm_dialog({
@@ -180,19 +180,19 @@ export function commands(actions: any) {
               default: true
             }
           ],
-          cb(choice) {
+          async cb(choice) {
             if (choice === "Restart and run all cells") {
               actions.signal("SIGKILL");
-              actions.store.wait({
-                until(s) {
-                  s.get("backend_state") !== "running";
-                },
-                timeout: 3,
-                cb() {
-                  // TODO: handle error passed to cb
-                  actions.run_all_cells();
-                }
-              });
+              try {
+                await actions.store.wait(
+                  s => s.get("backend_state") !== "running",
+                  3
+                );
+              } catch (err) {
+                // TODO: handle exception?
+                console.warn(err);
+              }
+              actions.run_all_cells();
             }
           }
         });

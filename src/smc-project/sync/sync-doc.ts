@@ -14,6 +14,8 @@ import { SyncString } from "../smc-util/sync/editor/string/sync";
 import { SyncDoc } from "../smc-util/sync/editor/generic/sync-doc";
 import { Client } from "../smc-util/sync/editor/generic/types";
 import { once } from "../smc-util/async-utils";
+import { filename_extension } from "../smc-util/misc2";
+import { jupyter_backend } from "../jupyter/jupyter";
 
 export function init_syncdoc(
   client: Client,
@@ -60,6 +62,16 @@ async function init_syncdoc_async(
     log("syncstring table closed, so closing syncdoc", opts.path);
     syncdoc.close();
   });
+
+  // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
+  const ext = filename_extension(opts.path);
+  log("ext = ", ext);
+  switch (ext) {
+    case "sage-jupyter2":
+      log("activating jupyter backend");
+      jupyter_backend(syncdoc, client);
+      break;
+  }
 }
 
 async function wait_until_synctable_ready(

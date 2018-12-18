@@ -81,6 +81,7 @@ export class JupyterActions extends JupyterActions0 {
     this._initialize_manager_already_done = true;
 
     const dbg = this.dbg("initialize_manager");
+    dbg();
     let cells = this.store.get("cells");
     if (cells != null) {
       cells = cells.toJS();
@@ -489,7 +490,10 @@ export class JupyterActions extends JupyterActions0 {
         cell.input = orig_cell.get("input");
         cell.pos = orig_cell.get("pos");
       }
-      return this.syncdb.set(cell, save);
+      this.syncdb.set(cell);
+      if (save) {
+        this.syncdb.save();
+      }
     });
 
     handler.once("done", () => {
@@ -746,8 +750,11 @@ export class JupyterActions extends JupyterActions0 {
 
   _load_from_disk_if_newer = (cb: any) => {
     const dbg = this.dbg("load_from_disk_if_newer");
-    // Get ctime of last .ipynb file we explicitly saved.
-    const last_ipynb_save = this.syncdb._doc._syncstring_table
+    // Get ctime of last .ipynb file that we explicitly saved.
+
+    // TODO: breaking the syncdb typescript data hiding.  The right fix will be to move
+    // this info to a new ephemeral state table.
+    const last_ipynb_save = (this.syncdb as any).syncstring_table
       .get_one()
       .getIn(["save", "last_ipynb_save"], 0);
 
@@ -782,6 +789,7 @@ export class JupyterActions extends JupyterActions0 {
       type: "file",
       last_load: new Date().getTime()
     });
+    this.syncdb.save();
   };
 
   /* Determine timestamp of aux .ipynb file, and record it here,
@@ -795,7 +803,8 @@ export class JupyterActions extends JupyterActions0 {
 
       // This is ugly (i.e., how we get access), but I need to get this done.
       // This is the RIGHT place to save the info though.
-      this.syncdb._doc._set_save({ last_ipynb_save: stats.ctime.getTime() });
+      // TODO: move this state info to new ephemeral table.
+      (this.syncdb as any).set_save({ last_ipynb_save: stats.ctime.getTime() });
     } catch (err) {
       // no-op -- nothing to do.
       this.dbg("set_last_ipynb_save")(`error ${err}`);
@@ -804,20 +813,20 @@ export class JupyterActions extends JupyterActions0 {
 
   load_ipynb_file = (cb?: any, data_only = false) => {
     /*
-Read the ipynb file from disk.
+    Read the ipynb file from disk.
 
-- If data_only is false (the default), fully use the ipynb file to
-  set the syncdb's state.  We do this when opening a new file, or when
-  the file changes on disk (e.g., a git checkout or something).
-- If data_only is true, we load the ipynb file *only* to get "more output"
-  and base64 encoded (etc.) images, and store them in our in-memory
-  key:value store or cache.   We do this, because the file is the only
-  place that has this data (it is NOT in the syncdb).\
-*/
+  - If data_only is false (the default), fully use the ipynb file to
+    set the syncdb's state.  We do this when opening a new file, or when
+    the file changes on disk (e.g., a git checkout or something).
+  - If data_only is true, we load the ipynb file *only* to get "more output"
+    and base64 encoded (etc.) images, and store them in our in-memory
+    key:value store or cache.   We do this, because the file is the only
+    place that has this data (it is NOT in the syncdb).
+    */
     const dbg = this.dbg(`load_ipynb_file(data_only=${data_only})`);
     dbg("reading file");
     const path = this.store.get("path");
-    return this._client.path_read({
+    this._client.path_read({
       path,
       maxsize_MB: 50,
       cb: (err, content) => {

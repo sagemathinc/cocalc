@@ -21,10 +21,14 @@ export interface Document {
   is_equal(Document): boolean;
   to_str(): string;
   set(any): Document;  // returns new document with result of set
-  get(any?): any;      // returns result of get query on document
+  get(any?): any;      // returns result of get query on document (error for string)
+  get_one(any?): any;      // returns result of get_one query on document (error for string)
+  delete(any?) : Document; // delete something from Document (error for string)
 
   // optional info about what changed going from prev to this.
   changes(prev? : Document) : any;
+  // how many in this document (length of string number of records in db-doc, etc.)
+  public count() : number;
 }
 
 export type CompressedPatch = any[];

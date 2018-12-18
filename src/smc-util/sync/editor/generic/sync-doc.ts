@@ -52,6 +52,8 @@ import {
   reuse_in_flight_methods
 } from "../../../async-utils";
 
+import { wait } from "../../../async-wait";
+
 import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
 
 const { Evaluator } = require("../../../syncstring_evaluator");
@@ -320,7 +322,8 @@ export class SyncDoc extends EventEmitter {
   }
 
   public set_doc(value: Document): void {
-    if (value.is_equal(this.doc)) {  // no change.
+    if (value.is_equal(this.doc)) {
+      // no change.
       return;
     }
     this.doc = value;
@@ -329,12 +332,20 @@ export class SyncDoc extends EventEmitter {
 
   // Convenience function to avoid having to do
   // get_doc and set_doc constantly.
-  public set(x : any): void {
+  public set(x: any): void {
     this.set_doc(this.doc.set(x));
   }
 
-  public get(x ?: any): void {
+  public delete(x?: any): void {
+    this.set_doc(this.doc.delete(x));
+  }
+
+  public get(x?: any): void {
     return this.doc.get(x);
+  }
+
+  public get_one(x?: any): void {
+    return this.doc.get_one(x);
   }
 
   // Return underlying document, or undefined if document
@@ -358,6 +369,10 @@ export class SyncDoc extends EventEmitter {
       throw Error("doc must be set");
     }
     return this.doc.to_str();
+  }
+
+  public count(): number {
+    return this.doc.count();
   }
 
   // Version of the document at a given point in time; if no
@@ -409,13 +424,13 @@ export class SyncDoc extends EventEmitter {
   clients could implement a number of different undo strategies
   without impacting other clients code at all.
   */
-  public undo() : Document {
+  public undo(): Document {
     const prev = this._undo();
     this.set_doc(prev);
     return prev;
   }
 
-  public redo() : Document {
+  public redo(): Document {
     const next = this._redo();
     this.set_doc(next);
     return next;
@@ -933,7 +948,7 @@ export class SyncDoc extends EventEmitter {
   */
   public async wait(until: Function, timeout: number = 30): Promise<any> {
     await this.wait_until_ready();
-    return await this.patches_table.wait(until, timeout);
+    return await wait({ obj: this, until, timeout, change_event: "change" });
   }
 
   /* Delete the synchronized string and **all** patches from the database
@@ -2248,7 +2263,7 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  private emit_change() : void {
+  private emit_change(): void {
     this.emit("change", this.doc.changes(this.before_change));
     this.before_change = this.doc;
   }

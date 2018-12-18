@@ -30,9 +30,9 @@ import { Map, fromJS, List, is as immutable_is, Iterable } from "immutable";
 
 import { keys, throttle } from "underscore";
 
-import { callback } from "awaiting";
-
 import { callback2, once } from "../../async-utils";
+
+import { wait } from "../../async-wait";
 
 import { query_function } from "./query-function";
 
@@ -398,62 +398,12 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
-    // wait until some function until of this synctable is truthy
-    // (not truthy includes "throw an exception")
-    // (this might be exactly the same code as in the
-    // postgres-synctable.coffee SyncTable....?)
-    // Waits until "until(this)" evaluates to something truthy
-    // in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
-    // Returns until(this) on success and raises Error('timeout') or
-    // Error('closed') on failure.
-
-    // The until function may be async.
-    // The timeout can be 0 to disable timeout.
-
-    this.assert_not_closed();
-    let x = await until(this);
-    if (x) {
-      // Already true
-      return x;
-    }
-
-    const wait = cb => {
-      let fail_timer: any = undefined;
-      const done = (err, ret?) => {
-        this.removeListener("change-no-throttle", f);
-        this.removeListener("close", f);
-        if (fail_timer !== undefined) {
-          clearTimeout(fail_timer);
-          fail_timer = undefined;
-        }
-        cb(err, ret);
-      };
-      const f = async () => {
-        if (this.state === "closed") {
-          done("closed");
-          return;
-        }
-        try {
-          x = await until(this);
-        } catch (err) {
-          done(err);
-          return;
-        }
-        if (x) {
-          done(undefined, x);
-        }
-      };
-      this.on("change-no-throttle", f);
-      this.on("close", f);
-      if (timeout) {
-        const fail = () => {
-          done("timeout");
-        };
-        fail_timer = setTimeout(fail, 1000 * timeout);
-      }
-    };
-
-    return await callback(wait);
+    return await wait({
+      obj: this,
+      until,
+      timeout,
+      change_event: "change-no-throttle"
+    });
   }
 
   /* INTERNAL PRIVATE METHODS */

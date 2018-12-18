@@ -643,6 +643,10 @@ export class DBDocument implements Document {
     }
     return this.changed_keys(prev);
   }
+
+  public count() : number {
+    return this.size;
+  }
 }
 
 export function from_str(
