@@ -15,8 +15,8 @@ export class FakeSyncstring extends EventEmitter {
   }
 
   async init() {
-    await delay(0); // wait, so init can be listened to.
-    this.emit("init");
+    await delay(0); // wait, so 'ready' event can be listened to.
+    this.emit("ready");
   }
 
   close() {}
@@ -33,21 +33,26 @@ export class FakeSyncstring extends EventEmitter {
 
   redo() {}
 
-  get_read_only() {
-    return false;
-  }
-  has_uncommitted_changes() {
-    return false;
-  }
-  has_unsaved_changes() {
+  get_read_only(): boolean {
     return false;
   }
 
-  hash_of_saved_version() {
+  get_state(): string {
+    return "ready";
+  }
+
+  has_uncommitted_changes(): boolean {
+    return false;
+  }
+  has_unsaved_changes(): boolean {
+    return false;
+  }
+
+  hash_of_saved_version(): number {
     return 0;
   }
 
-  save_to_disk(cb) {
+  save_to_disk(cb): void {
     if (cb) {
       cb();
     }
