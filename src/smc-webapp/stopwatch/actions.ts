@@ -49,7 +49,6 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
   };
 
   _syncdb_change = (): void => {
-    console.log("_syncdb_change", this.syncdb.get());
     this.setState({
       timers: this.syncdb.get()
     });
@@ -116,13 +115,13 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
 
   undo = (): void => {
     if (this.syncdb) {
-      this.syncdb.undo();
+      this.syncdb.set_doc(this.syncdb.undo());
     }
   };
 
   redo = (): void => {
     if (this.syncdb) {
-      this.syncdb.redo();
+      this.syncdb.set_doc(this.syncdb.redo());
     }
   };
 };
