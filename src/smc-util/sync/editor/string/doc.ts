@@ -35,4 +35,10 @@ export class StringDocument implements Document {
   public get(_?: any) : any {
     throw Error("get queries on strings don't really have meaning");
   }
+
+  public changes(_? : StringDocument) : any {
+    // no-op (this is useful for other things, e.g., db-doc)
+    return;
+  }
+
 }

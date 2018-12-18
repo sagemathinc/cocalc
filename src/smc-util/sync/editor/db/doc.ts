@@ -28,7 +28,7 @@ type jsmap = { [field: string]: any };
 export type WhereCondition = { [field: string]: any };
 export type SetCondition = immutable.Map<string, any> | Map<string, any>;
 
-interface Changes {
+interface ChangeTracker {
   changes: immutable.Set<immutable.Map<string, any>>; // primary keys that changed
   from_db: Document; // DBDocument object where change tracking started.
 }
@@ -53,9 +53,8 @@ export class DBDocument implements Document {
   // TODO: describe
   private indexes: Indexes;
 
-  // Change tracking -- not used internally, but
-  // can be useful by client code.
-  private changes: Changes;
+  // Change tracking.
+  private change_tracker: ChangeTracker;
 
   public readonly size: number;
 
@@ -67,7 +66,7 @@ export class DBDocument implements Document {
     records: Records = immutable.List(),
     everything?: immutable.Set<number>,
     indexes?: Indexes,
-    changes?
+    change_tracker?: ChangeTracker
   ) {
     this.set = this.set.bind(this);
     this.delete_array = this.delete_array.bind(this);
@@ -76,14 +75,15 @@ export class DBDocument implements Document {
 
     this.primary_keys = new Set(primary_keys);
     if (this.primary_keys.size === 0) {
-      throw Error('there must be at least one primary key');
+      throw Error("there must be at least one primary key");
     }
     this.string_cols = new Set(string_cols);
     this.records = records;
     this.everything = everything == null ? this.init_everything() : everything;
     this.size = this.everything.size;
     this.indexes = indexes == null ? this.init_indexes() : indexes;
-    this.changes = changes == null ? this.init_changes() : changes;
+    this.change_tracker =
+      change_tracker == null ? this.init_change_tracker() : change_tracker;
   }
 
   // sorted immutable Set of i such that this.records.get(i) is defined.
@@ -126,7 +126,7 @@ export class DBDocument implements Document {
     return indexes;
   }
 
-  private init_changes(): Changes {
+  private init_change_tracker(): ChangeTracker {
     return { changes: immutable.Set(), from_db: this };
   }
 
@@ -376,7 +376,7 @@ export class DBDocument implements Document {
     }
     const { set, where } = this.parse(obj as Map<string, any>);
     const matches = this.select(where);
-    let { changes } = this.changes;
+    let { changes } = this.change_tracker;
     const first_match = matches != null ? matches.min() : undefined;
     if (first_match != null) {
       // edit the first existing record that matches
@@ -422,7 +422,7 @@ export class DBDocument implements Document {
           this.records.set(first_match, record),
           this.everything,
           this.indexes,
-          { changes, from_db: this.changes.from_db }
+          { changes, from_db: this.change_tracker.from_db }
         );
       } else {
         return this;
@@ -468,7 +468,7 @@ export class DBDocument implements Document {
         records,
         everything,
         indexes,
-        { changes, from_db: this.changes.from_db }
+        { changes, from_db: this.change_tracker.from_db }
       );
     }
   }
@@ -491,7 +491,7 @@ export class DBDocument implements Document {
       // no-op -- no data so deleting is trivial
       return this;
     }
-    let { changes } = this.changes;
+    let { changes } = this.change_tracker;
     const remove = this.select(where);
     if (remove.size === this.everything.size) {
       // actually deleting everything; easy special cases
@@ -504,7 +504,7 @@ export class DBDocument implements Document {
         undefined,
         undefined,
         undefined,
-        { changes, from_db: this.changes.from_db }
+        { changes, from_db: this.change_tracker.from_db }
       );
     }
 
@@ -561,7 +561,7 @@ export class DBDocument implements Document {
       records,
       everything,
       indexes,
-      { changes, from_db: this.changes.from_db }
+      { changes, from_db: this.change_tracker.from_db }
     );
   }
 
@@ -629,6 +629,19 @@ export class DBDocument implements Document {
     const k1 = immutable.Set(t1.map(this.primary_key_cols));
 
     return immutable.Set(k0.union(k1));
+  }
+
+  public changes(prev?: DBDocument): immutable.Set<Record> {
+    // CRITICAL TODO!  Make this efficient using this.change_tracker!!!
+    if (prev == null) {
+      return immutable.Set(
+        immutable
+          .Set(this.records)
+          .filter(x => x != null)
+          .map(this.primary_key_cols)
+      );
+    }
+    return this.changed_keys(prev);
   }
 }
 

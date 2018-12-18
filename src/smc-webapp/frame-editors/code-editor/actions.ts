@@ -886,7 +886,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _syncstring_metadata(): void {
     if (!this._syncstring) return; // need to check since this can get called by the close.
-    const read_only = this._syncstring.get_read_only();
+    const read_only = this._syncstring.is_read_only();
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });
     }

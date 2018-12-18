@@ -22,6 +22,9 @@ export interface Document {
   to_str(): string;
   set(any): Document;  // returns new document with result of set
   get(any?): any;      // returns result of get query on document
+
+  // optional info about what changed going from prev to this.
+  changes(prev? : Document) : any;
 }
 
 export type CompressedPatch = any[];

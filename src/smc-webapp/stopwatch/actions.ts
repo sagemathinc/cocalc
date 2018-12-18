@@ -115,13 +115,13 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
 
   undo = (): void => {
     if (this.syncdb) {
-      this.syncdb.set_doc(this.syncdb.undo());
+      this.syncdb.undo();
     }
   };
 
   redo = (): void => {
     if (this.syncdb) {
-      this.syncdb.set_doc(this.syncdb.redo());
+      this.syncdb.redo();
     }
   };
 };

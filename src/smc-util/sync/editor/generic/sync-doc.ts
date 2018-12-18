@@ -147,6 +147,7 @@ export class SyncDoc extends EventEmitter {
 
   private last: Document;
   private doc: Document;
+  private before_change?: Document;
 
   private last_user_change: Date = minutes_ago(60);
 
@@ -237,7 +238,7 @@ export class SyncDoc extends EventEmitter {
     // Success -- everything perfectly initialized with no issues.
     this.set_state("ready");
     this.init_watch();
-    this.emit("change"); // from nothing to something.
+    this.emit_change(); // from nothing to something.
   }
 
   /* Set this user's cursors to the given locs. */
@@ -323,7 +324,7 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     this.doc = value;
-    this.emit("change");
+    this.emit_change();
   }
 
   // Convenience function to avoid having to do
@@ -408,7 +409,19 @@ export class SyncDoc extends EventEmitter {
   clients could implement a number of different undo strategies
   without impacting other clients code at all.
   */
-  public undo(): Document {
+  public undo() : Document {
+    const prev = this._undo();
+    this.set_doc(prev);
+    return prev;
+  }
+
+  public redo() : Document {
+    const next = this._redo();
+    this.set_doc(next);
+    return next;
+  }
+
+  private _undo(): Document {
     this.assert_is_ready();
     let state = this.undo_state;
     if (state == null) {
@@ -447,7 +460,7 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public redo(): Document {
+  private _redo(): Document {
     this.assert_is_ready();
     const state = this.undo_state;
     if (state == null) {
@@ -1871,7 +1884,7 @@ export class SyncDoc extends EventEmitter {
     await this.syncstring_table.save();
   }
 
-  public get_read_only(): boolean {
+  public is_read_only(): boolean {
     this.assert_table_is_ready("syncstring");
     return this.syncstring_table_get_one().get("read_only");
   }
@@ -1947,7 +1960,7 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
-    if (this.get_read_only()) {
+    if (this.is_read_only()) {
       // save should fail if file is read only and there are changes
       throw Error("can't save readonly file with changes to disk");
     }
@@ -2231,7 +2244,12 @@ export class SyncDoc extends EventEmitter {
       // set to new version.
       this.last = this.doc = new_remote;
       this.emit("after-change");
-      this.emit("change");
+      this.emit_change();
     }
+  }
+
+  private emit_change() : void {
+    this.emit("change", this.doc.changes(this.before_change));
+    this.before_change = this.doc;
   }
 }

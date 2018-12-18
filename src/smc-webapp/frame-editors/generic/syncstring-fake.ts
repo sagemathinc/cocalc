@@ -33,7 +33,7 @@ export class FakeSyncstring extends EventEmitter {
 
   redo() {}
 
-  get_read_only(): boolean {
+  is_read_only(): boolean {
     return false;
   }
 

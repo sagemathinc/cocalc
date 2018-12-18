@@ -41,16 +41,11 @@ register_file_editor({
     });
     actions.syncdb = syncdb;
     actions.store = store;
-    syncdb.once("ready", err => {
-      if (err) {
-        const mesg = `Error opening '${path}' -- ${err}`;
-        console.warn(mesg);
-        alert_message({ type: "error", message: mesg });
-        return;
-      }
-      syncdb.on("change", actions._syncdb_change);
-      actions._syncdb_change();
+    syncdb.once("error", err => {
+      const message = `Stopwatch error '${path}' -- ${err}`;
+      alert_message({ type: "error", message });
     });
+    syncdb.on("change", actions._syncdb_change);
     return name;
   },
 

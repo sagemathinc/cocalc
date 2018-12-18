@@ -27,7 +27,7 @@ export async function synctable_project(
   const channel = await api.synctable_channel(query, options);
   let first_data = true;
   channel.on("data", function(data) {
-    console.log("recv: ", query, "channel=", channel.channel, "data=", data);
+    //console.log("recv: ", query, "channel=", channel.channel, "data=", data);
     if (!is_array(data)) {
       if (data != null && data.error != null) {
         throw Error(`synctable_project error - ${data.error}`);
@@ -44,7 +44,7 @@ export async function synctable_project(
     }
   });
   synctable.on("saved-objects", function(saved_objs) {
-    console.log("send: ", query, "channel=", channel.channel, "saved_objs=", saved_objs);
+    //console.log("send: ", query, "channel=", channel.channel, "saved_objs=", saved_objs);
     channel.write(saved_objs);
   });
 

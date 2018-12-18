@@ -38,7 +38,7 @@ class exports.TaskActions extends Actions
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
         @syncdb.once('change', @_ensure_positions_are_unique)
-        @syncdb.once('init', @_syncdb_metadata)
+        @syncdb.once('ready', @_syncdb_metadata)
         @syncdb.on('metadata-change', @_syncdb_metadata)
 
         @syncdb.once 'load-time-estimate', (est) => @setState(load_time_estimate: est)
@@ -262,6 +262,7 @@ class exports.TaskActions extends Actions
 
         obj.task_id = task_id
         @syncdb.set(obj)
+        @syncdb.save()  # after every change, we send to backend.
         if setState
             # also set state directly in the tasks object locally **immediately**; this would happen
             # eventually as a result of the syncdb set above.
