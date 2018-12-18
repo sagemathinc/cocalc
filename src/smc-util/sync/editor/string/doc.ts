@@ -31,4 +31,8 @@ export class StringDocument implements Document {
     }
     throw Error("x must be a string");
   }
+
+  public get(_?: any) : any {
+    throw Error("get queries on strings don't really have meaning");
+  }
 }

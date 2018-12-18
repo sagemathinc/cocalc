@@ -6,11 +6,12 @@ Register the time editor -- stopwatch
 
 let { register_file_editor } = require("../project_file");
 import { redux_name, Store, AppRedux } from "../app-framework";
-let { webapp_client } = require("../webapp_client");
 let { alert_message } = require("../alerts");
 
 let { EditorTime } = require("./editor");
 import { TimeActions, StopwatchEditorState } from "./actions";
+
+import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 
 register_file_editor({
   ext: ["time"],
@@ -21,7 +22,7 @@ register_file_editor({
 
   component: EditorTime,
 
-  init(path: string, redux: AppRedux, project_id: string) {
+  init(path: string, redux: AppRedux, project_id: string): string {
     const name = redux_name(project_id, path, this.is_public);
     if (redux.getActions(name) !== undefined) {
       return name; // already initialized
@@ -32,7 +33,7 @@ register_file_editor({
 
     actions._init(project_id, path);
 
-    const syncdb = webapp_client.sync_db({
+    const syncdb = new_syncdb({
       project_id,
       path,
       primary_keys: ["id"],
@@ -40,7 +41,7 @@ register_file_editor({
     });
     actions.syncdb = syncdb;
     actions.store = store;
-    syncdb.once("init", err => {
+    syncdb.once("ready", err => {
       if (err) {
         const mesg = `Error opening '${path}' -- ${err}`;
         console.warn(mesg);

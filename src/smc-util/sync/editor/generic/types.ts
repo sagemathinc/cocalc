@@ -21,6 +21,7 @@ export interface Document {
   is_equal(Document): boolean;
   to_str(): string;
   set(any): Document;  // returns new document with result of set
+  get(any?): any;      // returns result of get query on document
 }
 
 export type CompressedPatch = any[];

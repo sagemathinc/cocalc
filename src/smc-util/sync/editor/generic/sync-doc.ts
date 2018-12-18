@@ -319,13 +319,21 @@ export class SyncDoc extends EventEmitter {
   }
 
   public set_doc(value: Document): void {
+    if (value.is_equal(this.doc)) {  // no change.
+      return;
+    }
     this.doc = value;
+    this.emit("change");
   }
 
   // Convenience function to avoid having to do
   // get_doc and set_doc constantly.
-  public set(x: any): void {
-    this.doc = this.doc.set(x);
+  public set(x : any): void {
+    this.set_doc(this.doc.set(x));
+  }
+
+  public get(x ?: any): void {
+    return this.doc.get(x);
   }
 
   // Return underlying document, or undefined if document

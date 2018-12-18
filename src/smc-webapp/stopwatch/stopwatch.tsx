@@ -133,6 +133,7 @@ export class Stopwatch extends Component<StopwatchProps, any> {
   }
 
   render() {
+    console.log(this.props);
     if (this.props.compact) {
       return <div>{this.content()}</div>;
     } else {

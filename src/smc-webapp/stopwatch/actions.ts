@@ -49,11 +49,12 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
   };
 
   _syncdb_change = (): void => {
+    console.log("_syncdb_change", this.syncdb.get());
     this.setState({
       timers: this.syncdb.get()
     });
 
-    if (this.syncdb.count() === 0) {
+    if (this.syncdb.get_doc().size === 0) {
       this.add_stopwatch();
     }
   };
@@ -65,7 +66,7 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
 
   add_stopwatch = (): void => {
     let id = 1;
-    while (this.syncdb && this.syncdb.get_one({ id })) {
+    while (this.syncdb && this.syncdb.get_doc().get_one({ id })) {
       id += 1;
     }
     this._set({
