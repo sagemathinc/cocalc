@@ -34,9 +34,6 @@ export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter $
 # reset node env
 export NODE_ENV="$COPY_NODE_ENV"
 
-# set PATH to find smc-sage-server, needed by testapi
-PATH=$TRAVIS_BUILD_DIR/src/smc_pyutil/smc_pyutil/bin:$PATH
-
 # some hub tests
 cd $TRAVIS_BUILD_DIR/src/smc-hub/
 npm run testpg
