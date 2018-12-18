@@ -1290,6 +1290,48 @@ schema.system_notifications =
                 priority : true
                 done     : true
 
+schema.clusters =
+    primary_key: 'id'
+    fields:
+        id :
+            type     : 'string'
+            desc     : 'Unique cluster ID'
+        name :
+            type     : 'string'
+            desc     : 'Name given by user, can be changed later...'
+        master :  # ATTN: you can't use the name "primary" here, because it fails to create an index
+            type     : 'uuid'
+            desc     : 'Project ID of the main (master) node in the cluster'
+        size :
+            type     : 'number'
+            desc     : 'number of replica projects (nodes)'
+        config :
+            type     : 'map'
+            desc     : 'additional configuration (e.g. startup scripts for nodes, env-vars, etc.)'
+
+    pg_indexes : ['id', 'master']
+
+    user_query:
+        get :
+            pg_where : ['master = $::UUID':'project_id']
+            throttle_changes : 2000
+            fields :
+                id          : null
+                name        : null
+                master      : null
+                size        : null
+                config      : null
+        set :
+            fields :
+                id          : true
+                master      : 'project_write'
+                name        : true
+                size        : true
+                config      : true
+            required_fields :
+                id          : true
+                master      : true
+                size        : true
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
