@@ -48,8 +48,8 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 // Only import the types
-declare type ProjectStore = import("./project_store").ProjectStore
-declare type ProjectActions = import("./project_actions").ProjectActions
+declare type ProjectStore = import("./project_store").ProjectStore;
+declare type ProjectActions = import("./project_actions").ProjectActions;
 
 export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
@@ -323,9 +323,10 @@ export class AppRedux {
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
     }
     if (!this.hasProjectStore(project_id)) {
-      require("./project_store").init(project_id, this);
+      return require("./project_store").init(project_id, this);
+    } else {
+      return this.getStore(project_redux_name(project_id)) as any;
     }
-    return this.getStore(project_redux_name(project_id)) as any;
   };
 
   // TODO -- Typing: Type project Actions

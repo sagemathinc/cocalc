@@ -169,7 +169,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     }
     if (change != null) {
       console.log(`ProjectStore ${this.project_id} change:`, change.toJS());
-      console.log(`Project state:`, change.getIn(['state', 'state']));
+      console.log(`Project state:`, change.getIn(["state", "state"]));
     }
   }
 
@@ -605,10 +605,12 @@ function _sort_on_numerical_field(field, factor = 1) {
     );
 }
 
-export function init(project_id: string, redux: AppRedux) {
+export function init(project_id: string, redux: AppRedux): ProjectStore {
   const name = project_redux_name(project_id);
   if (redux.hasStore(name)) {
-    return;
+    const store: ProjectStore | undefined = redux.getStore(name);
+    // this makes TS happy. we already check that it exists due to "hasStore()"
+    if (store != null) return store;
   }
 
   // Initialize everything
@@ -655,4 +657,6 @@ export function init(project_id: string, redux: AppRedux) {
       create_table(table_name, q)
     );
   }
+
+  return store;
 }

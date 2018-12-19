@@ -45,7 +45,10 @@ class SessionManager
                     timeout : 0
                     cb      : cb
         ], (err) =>
-            @restore()
+            if err
+                console.warn("Error restoring session:", err)
+            else
+                @restore()
             @_initialized = true
         )
 
