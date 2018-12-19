@@ -153,6 +153,12 @@ const APPS = {
     command: "idea.sh",
     icon: "lightbulb"
   },
+  sqlitebrowser: {
+    label: "SQLite",
+    desc:
+      "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
+    icon: "database"
+  },
   avogadro: {
     label: "Avogadro",
     desc:
