@@ -121,6 +121,7 @@ exports.OOMWarning = rclass ({name}) ->
         if not project_status?
             return <span />
         oom_kills = project_status.get('oom_kills') ? 0
+        start_ts = project_status.get('start_ts')
         oom_dismissed = @props.oom_dismissed
 
         # if DEBUG then console.log("oom_kills: #{oom_kills}, oom_dismissed: #{oom_dismissed}")

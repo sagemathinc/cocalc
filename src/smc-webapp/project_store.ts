@@ -80,6 +80,7 @@ export interface ProjectStoreState {
   free_warning_closed: boolean; // Makes bottom height update
   free_warning_extra_shown: boolean;
   num_ghost_file_tabs: number;
+  oom_dismissed: number;
 
   // Project Files
   activity: any; // immutable,
@@ -168,8 +169,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
     }
     if (change != null) {
-      console.log(`ProjectStore ${this.project_id} change:`, change.toJS());
-      console.log(`Project state:`, change.getIn(["state", "state"]));
+      // console.log(`ProjectStore ${this.project_id} change:`, change.toJS());
+      const proj_state = change.getIn(["state", "state"]);
+      if (proj_state != null && proj_state != "running") {
+        // the project isn't running → reset oom_dismissed counter of OOMWarning
+        const actions = this.redux.getProjectActions(this.project_id);
+        if (actions != null) {
+          actions.setState({ oom_dismissed: 0 });
+        }
+      }
     }
   }
 
@@ -190,6 +198,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       free_warning_closed: false, // Makes bottom height update
       free_warning_extra_shown: false,
       num_ghost_file_tabs: 0,
+      oom_dismissed: 0,
 
       // Project Files
       activity: undefined,
