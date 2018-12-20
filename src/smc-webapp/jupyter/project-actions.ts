@@ -10,8 +10,7 @@ fully unit test it via mocking of components.
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
 
-
-const { callback_opts } = require("smc-util/async-utils"); // so also works on backend.
+const { callback2, once } = require("smc-util/async-utils");
 
 const async = require("async");
 const underscore = require("underscore");
@@ -100,43 +99,39 @@ export class JupyterActions extends JupyterActions0 {
       // used by jupyter.ts
       start_time: this._client.server_time() - 0
     });
-    this.syncdb.delete({ type: "nbconvert" }); // clear on init, since can't be running yet
+    this.syncdb.delete({ type: "nbconvert" });
+    // clear on init, since can't be running yet
 
     // Initialize info about available kernels
     this.init_kernel_info();
 
-    // We try once to load from disk.  If it fails, then a record with type:'fatal'
+    // We try once to load from disk.  If it fails, then
+    // a record with type:'fatal'
     // is created in the database; if it succeeds, that record is deleted.
     // Try again only when the file changes.
     this._first_load();
 
     // Listen for changes...
-    return this.syncdb.on("change", this._backend_syncdb_change);
+    this.syncdb.on("change", this._backend_syncdb_change);
   };
 
-  //@_sync_file_mode()
-
-  _first_load = () => {
+  _first_load = async () => {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
-    this._load_from_disk_if_newer(err => {
-      if (!err) {
-        dbg("loading worked");
-        return this._init_after_first_load();
-      } else {
-        dbg(`load failed -- ${err}; wait for one change and try again`);
-        const watcher = this._client.watch_file({
-          path: this.store.get("path"),
-          interval: 3000,
-          debounce: 1500
-        });
-        return watcher.once("change", () => {
-          dbg("file changed");
-          watcher.close();
-          return this._first_load();
-        });
-      }
-    });
+    try {
+      await this._load_from_disk_if_newer();
+    } catch (err) {
+      dbg(`load failed -- ${err}; wait for file change and try again`);
+      const path = this.store.get("path");
+      const watcher = this._client.watch_file({ path });
+      await once(watcher, "change");
+      dbg("file changed");
+      watcher.close();
+      this._first_load();
+      return;
+    }
+    dbg("loading worked");
+    this._init_after_first_load();
   };
 
   _init_after_first_load = () => {
@@ -151,7 +146,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this._state = "ready";
     this.ensure_there_is_a_cell();
-    return this.set_backend_state("ready");
+    this.set_backend_state("ready");
   };
 
   _backend_syncdb_change = (changes: any) => {
@@ -748,40 +743,38 @@ export class JupyterActions extends JupyterActions0 {
         )
     */
 
-  _load_from_disk_if_newer = (cb: any) => {
+  _load_from_disk_if_newer = async () => {
     const dbg = this.dbg("load_from_disk_if_newer");
     // Get ctime of last .ipynb file that we explicitly saved.
 
-    // TODO: breaking the syncdb typescript data hiding.  The right fix will be to move
+    // TODO: breaking the syncdb typescript data hiding.  The
+    // right fix will be to move
     // this info to a new ephemeral state table.
     const last_ipynb_save = (this.syncdb as any).syncstring_table
       .get_one()
       .getIn(["save", "last_ipynb_save"], 0);
 
     dbg(`syncdb last_ipynb_save=${last_ipynb_save}`);
-    this._client.path_stat({
-      path: this.store.get("path"),
-      cb: (err, stats) => {
-        dbg(`stats.ctime = ${stats != null ? stats.ctime : undefined}`);
-        if (err) {
-          // This err just means the file doesn't exist.
-          // We set the 'last load' to now in this case, since
-          // the frontend clients need to know that we
-          // have already scanned the disk.
-          this.set_last_load();
-          return typeof cb === "function" ? cb() : undefined;
-        } else {
-          const file_changed = stats.ctime.getTime() !== last_ipynb_save;
-          if (file_changed) {
-            dbg(".ipynb disk file changed since last load, so loading");
-            this.load_ipynb_file(cb);
-          } else {
-            dbg(".ipynb disk file NOT changed since last load, so NOT loading");
-            typeof cb === "function" ? cb() : undefined;
-          }
-        }
-      }
-    });
+    const path = this.store.get("path");
+    let stats;
+    try {
+      stats = await callback2(this._client.path_stat, { path });
+      dbg(`stats.ctime = ${stats.ctime}`);
+    } catch (err) {
+      // This err just means the file doesn't exist.
+      // We set the 'last load' to now in this case, since
+      // the frontend clients need to know that we
+      // have already scanned the disk.
+      this.set_last_load();
+      return;
+    }
+    const file_changed = stats.ctime.getTime() !== last_ipynb_save;
+    if (file_changed) {
+      dbg(".ipynb disk file changed since last load, so loading");
+      await this.load_ipynb_file();
+    } else {
+      dbg(".ipynb disk file NOT changed since last load, so NOT loading");
+    }
   };
 
   set_last_load = () => {
@@ -796,82 +789,63 @@ export class JupyterActions extends JupyterActions0 {
      so we know that we do not have to load exactly that file
      back from disk. */
   set_last_ipynb_save = async () => {
+    let stats;
     try {
-      const stats = await callback_opts(this._client.path_stat)({
+      stats = await callback2(this._client.path_stat, {
         path: this.store.get("path")
       });
-
-      // This is ugly (i.e., how we get access), but I need to get this done.
-      // This is the RIGHT place to save the info though.
-      // TODO: move this state info to new ephemeral table.
-      (this.syncdb as any).set_save({ last_ipynb_save: stats.ctime.getTime() });
     } catch (err) {
       // no-op -- nothing to do.
       this.dbg("set_last_ipynb_save")(`error ${err}`);
+      return;
     }
+
+    // This is ugly (i.e., how we get access), but I need to get this done.
+    // This is the RIGHT place to save the info though.
+    // TODO: move this state info to new ephemeral table.
+    (this.syncdb as any).set_save({ last_ipynb_save: stats.ctime.getTime() });
   };
 
-  load_ipynb_file = (cb?: any, data_only = false) => {
+  load_ipynb_file = async () => {
     /*
-    Read the ipynb file from disk.
-
-  - If data_only is false (the default), fully use the ipynb file to
+    Read the ipynb file from disk.  Fully use the ipynb file to
     set the syncdb's state.  We do this when opening a new file, or when
     the file changes on disk (e.g., a git checkout or something).
-  - If data_only is true, we load the ipynb file *only* to get "more output"
-    and base64 encoded (etc.) images, and store them in our in-memory
-    key:value store or cache.   We do this, because the file is the only
-    place that has this data (it is NOT in the syncdb).
     */
-    const dbg = this.dbg(`load_ipynb_file(data_only=${data_only})`);
+    const dbg = this.dbg(`load_ipynb_file`);
     dbg("reading file");
     const path = this.store.get("path");
-    this._client.path_read({
-      path,
-      maxsize_MB: 50,
-      cb: (err, content) => {
-        let error;
-        if (err) {
-          error = `Error reading ipynb file '${path}': ${err}.  Fix this to continue.`;
-          this.syncdb.set({ type: "fatal", error });
-          if (typeof cb === "function") {
-            cb(error);
-          }
-          return;
-        }
-
-        if (content.length === 0) {
-          // Blank file, e.g., when creating in CoCalc.
-          // This is good, works, etc. -- just clear state, including error.
-          this.syncdb.delete();
-          this.set_last_load();
-          if (typeof cb === "function") {
-            cb();
-          }
-          return;
-        }
-
-        // File is nontrivial -- parse and load.
-        try {
-          content = JSON.parse(content);
-        } catch (error1) {
-          err = error1;
-          error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
-          dbg(error);
-          if (!data_only) {
-            this.syncdb.set({ type: "fatal", error });
-          }
-          if (typeof cb === "function") {
-            cb(error);
-          }
-          return;
-        }
-        this.syncdb.delete({ type: "fatal" });
-        this.set_to_ipynb(content, data_only);
-        this.set_last_load();
-        return typeof cb === "function" ? cb() : undefined;
+    let content;
+    try {
+      content = callback2(this._client.path_read, { path, maxsize_MB: 50 });
+    } catch (err) {
+      let error;
+      if (err) {
+        error = `Error reading ipynb file '${path}': ${err}.  Fix this to continue.`;
+        this.syncdb.set({ type: "fatal", error });
+        throw Error(error);
       }
-    });
+    }
+    if (content.length === 0) {
+      // Blank file, e.g., when creating in CoCalc.
+      // This is good, works, etc. -- just clear state, including error.
+      this.syncdb.delete();
+      this.set_last_load();
+      return;
+    }
+
+    // File is nontrivial -- parse and load.
+    try {
+      content = JSON.parse(content);
+    } catch (err) {
+      const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
+      dbg(error);
+      this.syncdb.set({ type: "fatal", error });
+      throw Error(error);
+    }
+    this.syncdb.delete({ type: "fatal" });
+    this.set_to_ipynb(content);
+    this.set_last_load();
   };
 
   save_ipynb_file = (cb?: any) => {
