@@ -34,6 +34,7 @@ _             = require('underscore')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
+# TODO: Upgrade to v3 and Stripe Elements
 load_stripe = (cb) ->
     if Stripe?
         cb()
