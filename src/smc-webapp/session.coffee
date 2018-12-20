@@ -7,6 +7,7 @@ Initially only the simplest possible client-side implementation.
 {throttle} = require('underscore')
 misc = require('smc-util/misc')
 {webapp_client} = require('./webapp_client')
+misc_page = require('./misc_page')
 
 async = require('async')
 
@@ -21,6 +22,14 @@ class SessionManager
             webapp_client.once 'signed_in', =>
                 @init_local_storage()
         @save = throttle(@save, 1000)
+
+    load_url_target: =>
+        # **after** a possible session is restored,
+        # and project tabs are in correct order (or nothing is opened yet)
+        # we open up the URL target and put it into foreground
+        if misc_page.should_load_target_url()
+            require('./history').load_target(window.smc_target, true)
+            window.smc_target = ''
 
     init_local_storage: =>
         {APP_BASE_URL} = require('misc_page')
@@ -37,12 +46,10 @@ class SessionManager
             (cb) =>
                 @redux.getStore('account').wait
                     until   : (store) -> store.get('editor_settings')?
-                    timeout : 0
                     cb      : cb
             (cb) =>
                 @redux.getStore('projects').wait
                     until   : (store) -> store.get('project_map')?
-                    timeout : 0
                     cb      : cb
         ], (err) =>
             if err
@@ -50,6 +57,8 @@ class SessionManager
             else
                 @restore()
             @_initialized = true
+            # session restore done, one way or another ...
+            @load_url_target()
         )
 
     save: =>

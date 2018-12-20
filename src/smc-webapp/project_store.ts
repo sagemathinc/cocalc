@@ -144,11 +144,13 @@ export class ProjectStore extends Store<ProjectStoreState> {
     // This avoids leaving it open after we are removed, which is confusing,
     // given that all permissions have vanished.
     const projects: any = this.redux.getStore("projects"); // may not be available; for example when testing
+    // console.log("ProjectStore::_init project_map/project_id", this.project_id, projects.getIn(["project_map", this.project_id]));
     if (
       (projects != null
         ? projects.getIn(["project_map", this.project_id])
         : undefined) != null
     ) {
+      // console.log('ProjectStore::_init projects.on("change", ... )');
       // only do this if we are on project in the first place!
       return projects.on("change", this._projects_store_change);
     }
