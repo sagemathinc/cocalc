@@ -86,6 +86,7 @@
     "webpack-clean": "rm -rvf $SALVUS_ROOT/static/",
     "webpack-static": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static && CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors",
     "install-all": "scripts/smc-install-all",
+    "audit": "scripts/npm-audit-all",
     "make": "npm run install-all",
     "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static"
   },
