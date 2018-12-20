@@ -1,36 +1,26 @@
 /*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Session management
 
 Initially only the simplest possible client-side implementation.
 */
 
 const { throttle } = require("underscore");
-const misc = require("smc-util/misc");
 const { webapp_client } = require("./webapp_client");
 const misc_page = require("./misc_page");
+import { AppRedux } from "./app-framework";
 
 const async = require("async");
 
 exports.session_manager = (name, redux) => new SessionManager(name, redux);
 
-// TODO make this tighter
 interface IState {
-  [k: string]: any;
+  // project_id <=> filenames
+  [k: string]: string[];
 }
 
 class SessionManager {
   private name: string;
-  private redux: any; // does this have a type?
+  private redux: AppRedux;
   private _local_storage_name: string;
   private _local_storage_name_closed: string;
   private _state: IState[];
@@ -38,7 +28,7 @@ class SessionManager {
   private _state_closed: IState;
   private _initialized: boolean;
 
-  constructor(name, redux) {
+  constructor(name: string, redux: AppRedux) {
     // important: run init in any case in order to run @load_url_target,
     // but do not actually create a session if @name is '' or null/undefined
     this.load_url_target = this.load_url_target.bind(this);
@@ -71,17 +61,17 @@ class SessionManager {
     }
   }
 
-  load_url_target() {
+  load_url_target(): void {
     // **after** a possible session is restored,
     // and project tabs are in correct order (or nothing is opened yet)
     // we open up the URL target and put it into foreground
     if (misc_page.should_load_target_url()) {
       require("./history").load_target((window as any).smc_target, true);
-      return ((window as any).smc_target = "");
+      (window as any).smc_target = "";
     }
   }
 
-  init_local_storage() {
+  init_local_storage(): void {
     if (this.name) {
       const { APP_BASE_URL } = require("misc_page");
       const prefix = APP_BASE_URL ? `.${APP_BASE_URL}` : "";
@@ -95,7 +85,7 @@ class SessionManager {
     // defined (loaded from db) before trying to
     // restore open projects and their files.
     // Otherwise things will randomly fail.
-    return async.series(
+    async.series(
       [
         cb => {
           return this.redux.getStore("account").wait({
@@ -124,12 +114,12 @@ class SessionManager {
         }
         this._initialized = true;
         // session restore done, one way or another ...
-        return this.load_url_target();
+        this.load_url_target();
       }
     );
   }
 
-  save() {
+  save(): void {
     if (this._ignore || !this._initialized) {
       return;
     }
@@ -139,50 +129,49 @@ class SessionManager {
 
   // Call this right before closing a project to save its list of open files, so when the
   // file is re-opened they get opened too.
-  close_project(project_id) {
+  close_project(project_id): void {
     if (!this._initialized) {
       return;
     }
-    const open_files = __guard__(
-      this.redux.getProjectStore(project_id).get("open_files_order"),
-      x => x.toJS()
-    );
+    const open_files = this.redux
+      .getProjectStore(project_id)
+      .get("open_files_order")
+      .toJS();
+
     if (open_files == null) {
       return;
     }
     this._state_closed[project_id] = open_files;
-    return this._save_to_local_storage_closed();
+    this._save_to_local_storage_closed();
   }
 
-  _save_to_local_storage() {
+  _save_to_local_storage(): void {
     if (this._state == null || this._local_storage_name == null) {
       return;
     }
-    return (localStorage[this._local_storage_name] = JSON.stringify(
-      this._state
-    ));
+    localStorage[this._local_storage_name] = JSON.stringify(this._state);
   }
 
-  _save_to_local_storage_closed() {
+  _save_to_local_storage_closed(): void {
     if (this._state_closed == null || this._local_storage_name == null) {
       return;
     }
-    return (localStorage[this._local_storage_name_closed] = JSON.stringify(
+    localStorage[this._local_storage_name_closed] = JSON.stringify(
       this._state_closed
-    ));
+    );
   }
 
-  restore(project_id?: string) {
+  restore(project_id?: string): void {
     if (project_id != null) {
-      return this._restore_project(project_id);
+      this._restore_project(project_id);
     } else {
-      return this._restore_all();
+      this._restore_all();
     }
   }
 
   // Call right when you open a project.  It returns all files that should automatically
   // be opened, then removes that list from localStorage.  Returns undefined if nothing known.
-  _restore_project(project_id) {
+  _restore_project(project_id): void {
     if (this._state_closed == null || !this._initialized) {
       return;
     }
@@ -190,7 +179,7 @@ class SessionManager {
     delete this._state_closed[project_id];
     if (open_files != null && !this._ignore) {
       const project = this.redux.getProjectActions(project_id);
-      return Array.from(open_files).map(path =>
+      open_files.map(path =>
         project.open_file({
           path,
           foreground: false,
@@ -200,7 +189,7 @@ class SessionManager {
     }
   }
 
-  _restore_all() {
+  _restore_all(): void {
     if (this._local_storage_name == null) {
       return;
     }
@@ -215,8 +204,7 @@ class SessionManager {
     }
   }
 
-  _load_from_local_storage() {
-    let err;
+  _load_from_local_storage(): void {
     if (this._local_storage_name == null) {
       return;
     }
@@ -228,8 +216,7 @@ class SessionManager {
     if (s) {
       try {
         this._state = JSON.parse(s);
-      } catch (error) {
-        err = error;
+      } catch (err) {
         delete localStorage[this._local_storage_name];
         console.warn(err);
       }
@@ -238,17 +225,16 @@ class SessionManager {
     s = localStorage[this._local_storage_name_closed];
     if (s) {
       try {
-        return (this._state_closed = JSON.parse(s));
-      } catch (error1) {
-        err = error1;
+        this._state_closed = JSON.parse(s);
+      } catch (err) {
         delete localStorage[this._local_storage_name_closed];
-        return console.warn(err);
+        console.warn(err);
       }
     }
   }
 }
 
-const get_session_state = function(redux) {
+const get_session_state = function(redux: AppRedux): IState[] {
   const state: IState[] = [];
   redux
     .getStore("projects")
@@ -268,7 +254,7 @@ const get_session_state = function(redux) {
 // reset_first is currently not used.  If true, then you get *exactly* the
 // saved session; if not set (the default) the current state and the session are merged.
 const restore_session_state = function(
-  redux,
+  redux: AppRedux,
   state: IState[],
   reset_first?: boolean
 ): void {
@@ -279,7 +265,9 @@ const restore_session_state = function(
   if (state == null) {
     return;
   }
-  const page = redux.getActions("page");
+
+  // TODO how to type this a "PageAction" such that close_project_tab is known?
+  const page = redux.getActions("page") as any;
 
   if (reset_first) {
     redux
@@ -311,9 +299,3 @@ const restore_session_state = function(
     }
   });
 };
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
