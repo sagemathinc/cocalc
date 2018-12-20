@@ -1888,6 +1888,7 @@ class exports.Connection extends EventEmitter
         SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
         return new SyncDB2(opts)
 
+    # This now returns the new sync_db2 and sync_string2 objects.
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
             project_id : required

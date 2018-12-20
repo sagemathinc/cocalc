@@ -847,7 +847,7 @@ exports.open_existing_sync_document = (opts) ->
                 path       : opts.path
             if doctype.opts?
                 opts2 = misc.merge(opts2, doctype.opts)
-            doc = opts.client["sync_#{doctype.type}"](opts2)
+            doc = opts.client["sync_#{doctype.type}2"](opts2)
             opts.cb(undefined, doc)
 
 

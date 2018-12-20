@@ -44,7 +44,7 @@ templates = $("#webapp-editor-templates")
 class exports.HistoryEditor extends FileEditor
     constructor: (project_id, filename, content, opts) ->
         super(project_id, filename)
-        #if window.smc?
+        # if window.smc?
         #    window.h = @ # for debugging
         @_use_timeago = not redux.getStore('account').getIn(['other_settings', 'time_ago_absolute'])
         @init_paths()
@@ -93,7 +93,7 @@ class exports.HistoryEditor extends FileEditor
                     cb?(err)
                 else
                     @syncstring = syncstring
-                    @syncstring.once('connected', cb)
+                    @syncstring.once('ready', cb)
 
     init_ui: =>
         @render_slider()
@@ -110,9 +110,9 @@ class exports.HistoryEditor extends FileEditor
             @load_all.show()
 
         # only show button for reverting if not read only
-        @syncstring.wait_until_read_only_known (err) =>
-            if not @syncstring.get_read_only()
-                @element.find("a[href=\"#revert\"]").show()
+        await @syncstring.wait_until_read_only_known()
+        if not @syncstring.is_read_only()
+            @element.find("a[href=\"#revert\"]").show()
 
     close: () =>
         @remove()
@@ -186,9 +186,8 @@ class exports.HistoryEditor extends FileEditor
         @slider.show()
 
         @load_all.click () =>
-            @load_full_history (err) =>
-                if not err
-                    @load_all.hide()
+            await @load_full_history()
+            @load_all.hide()
 
         @forward_button.click () =>
             if @forward_button.hasClass("disabled")
@@ -558,22 +557,18 @@ class exports.HistoryEditor extends FileEditor
     hide: =>
         @view_doc?.hide()
 
-    load_full_history: (cb) =>
+    load_full_history: () =>
         if not @syncstring?
             return
         n = @syncstring.all_versions().length
-        @syncstring.load_full_history (err) =>
-            if err
-                cb?(err)
-            else
-                if @_diff_mode
-                    @resize_diff_slider()
-                else
-                    @resize_slider()
-                if @revision_num?
-                    num_added = @syncstring.all_versions().length - n
-                    @goto_revision(@revision_num + num_added)
-                cb?()
+        await @syncstring.load_full_history()
+        if @_diff_mode
+            @resize_diff_slider()
+        else
+            @resize_slider()
+        if @revision_num?
+            num_added = @syncstring.all_versions().length - n
+            @goto_revision(@revision_num + num_added)
 
 # Compute a line-level diff between two strings, which
 # is useful when showing a diff between two states.
