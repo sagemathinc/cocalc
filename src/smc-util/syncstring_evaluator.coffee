@@ -40,7 +40,7 @@ class exports.Evaluator
             if err
                 cb?(err)
             else
-                if @string._client.is_project()
+                if @string.client.is_project()
                     @_init_project_evaluator()
                 cb?()
 
@@ -53,8 +53,8 @@ class exports.Evaluator
                 string_id : @string._string_id
                 time      : {'>=': misc.server_seconds_ago(60)}
                 input     : null
-        @_inputs = @string._client.sync_table(query, undefined, 500)
-        @_inputs.once('connected', =>cb())
+        @_inputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 500)
+        cb?()
 
     _init_eval_outputs: (cb) =>
         query =
@@ -62,9 +62,9 @@ class exports.Evaluator
                 string_id : @string._string_id
                 time      : {'>=': misc.server_seconds_ago(60)}
                 output    : null
-        @_outputs = @string._client.sync_table(query, undefined, 500)
+        @_outputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 500)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
-        @_outputs.once('connected', =>cb())
+        cb?()
 
     close: () =>
         @_closed = true
@@ -83,7 +83,7 @@ class exports.Evaluator
         if @_closed
             opts.cb?("closed")
             return
-        time = @string._client.server_time()
+        time = @string.client.server_time()
         # Perturb time if it is <= last time when this client did an evaluation.
         # We do this so that the time below is different than anything else.
         # TODO: This is NOT 100% yet, due to multiple clients possibly starting
@@ -142,7 +142,7 @@ class exports.Evaluator
             @_outputs.on('change', handle_output)
 
     _execute_code_hook: (output_uuid) =>
-        dbg = @string._client.dbg("_execute_code_hook('#{output_uuid}')")
+        dbg = @string.client.dbg("_execute_code_hook('#{output_uuid}')")
         dbg()
         if @_closed
             dbg("closed")
@@ -186,7 +186,7 @@ class exports.Evaluator
         return hook
 
     _handle_input_change: (key) =>
-        dbg = @string._client.dbg('_handle_input_change')
+        dbg = @string.client.dbg('_handle_input_change')
         dbg("change: #{key}")
         if @_closed
             dbg("closed")
@@ -220,7 +220,7 @@ class exports.Evaluator
 
     # Runs only in the project
     _init_project_evaluator: () =>
-        dbg = @string._client.dbg('project_evaluator')
+        dbg = @string.client.dbg('project_evaluator')
         dbg('init')
         @_inputs.on 'change', (keys) =>
             for key in keys
@@ -237,7 +237,7 @@ class exports.Evaluator
 
     # Runs only in the project
     _evaluate_using_sage: (input, cb) =>
-        @_sage_session ?= @string._client.sage_session(path : @string._path)
+        @_sage_session ?= @string.client.sage_session(path : @string._path)
         # TODO: input also may have -- uuid, output_uuid, timeout
         if input.event == 'execute_code'
             input = misc.copy_with(input, ['code', 'data', 'preparse', 'event', 'id'])
@@ -254,4 +254,4 @@ class exports.Evaluator
                 output.error = err
             output.done = true
             cb(output)
-        @string._client.shell(input)
+        @string.client.shell(input)

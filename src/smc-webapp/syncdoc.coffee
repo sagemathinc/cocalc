@@ -90,16 +90,22 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
-        @_syncstring = webapp_client.sync_string
+        @_syncstring = webapp_client.sync_string2
             project_id    : @project_id
             path          : @filename
             cursors       : opts.cursors
 
-        @_syncstring.once 'init', =>
+        @_syncstring.once 'ready', =>
             @emit('connect')   # successful connection
-            @_syncstring.wait_until_read_only_known (err) =>  # first time open a file, have to look on disk to load it -- this ensures that is done
-                @_fully_loaded = true
-                opts.cb(err, @)
+            # first time open a file, have to look on disk to
+            # load it -- this ensures that is done
+            try
+                await @_syncstring.wait_until_read_only_known()
+            catch err
+                opts.cb(err)
+                return
+            @_fully_loaded = true
+            opts.cb(undefined, @)
 
         @_syncstring.on 'change', => # only when change is external
             @emit('sync')
@@ -127,10 +133,15 @@ class SynchronizedString extends AbstractSynchronizedDoc
         cb?()
 
     _save: (cb) =>
-        if not @_fully_loaded
+        if not @_fully_loaded or not @_syncstring?
             cb?()
             return
-        async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
+        try
+            await @_syncstring.save()
+            await @_syncstring.save_to_disk()
+            cb?()
+        catch err
+            cb?(err)
 
     save: (cb) =>
         misc.retry_until_success
@@ -218,99 +229,106 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @filename = '.smc/root' + @filename
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
-        @_syncstring = webapp_client.sync_string
+        @_syncstring = webapp_client.sync_string2
             id                 : id
             project_id         : @project_id
             path               : @filename
             cursors            : true
-            before_change_hook : @_set_syncstring_to_codemirror
-            after_change_hook  : @_set_codemirror_to_syncstring
+
+        @_syncstring.on 'before-change', @_set_syncstring_to_codemirror
+
+        @_syncstring.on 'after-change', @_set_codemirror_to_syncstring
 
         @_syncstring.once 'load-time-estimate', (est) ->
             # TODO: do something with this.
             #console.log 'load time estimate', est
 
-        # This is important to debounce since above hash/getValue grows linearly in size of
-        # document; also, we debounce instead of throttle, since we don't want to have this
+        # This is important to debounce since above hash/getValue
+        # grows linearly in size of document; also, we debounce
+        # instead of throttle, since we don't want to have this
         # slow down the user while they are typing.
         f = () =>
             if @_update_unsaved_uncommitted_changes()
-                # Check again in 5s no matter what if there are uncommitted changes, since otherwise
-                # there could be a stuck notification saying there are uncommitted changes.
+                # Check again in 5s no matter what if there are
+                # uncommitted changes, since otherwise
+                # there could be a stuck notification saying
+                # there are uncommitted changes.
                 setTimeout(f, 5000)
         update_unsaved_uncommitted_changes = underscore.debounce(f, 1500)
         @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
         #dbg = webapp_client.dbg("SynchronizedDocument2(path='#{@filename}')")
         #dbg("waiting for first change")
 
-        @_syncstring.once 'init', (err) =>
+        @_syncstring.once "error", (err) =>
             if @_closed
                 return
-            if err
-                if err.code == 'EACCES'
-                    err = "You do not have permission to read '#{@filename}'."
-                @editor.show_startup_message(err, 'danger')
+            if err.code == 'EACCES'
+                err = "You do not have permission to read '#{@filename}'."
+            @editor.show_startup_message(err, 'danger')
+            return
+
+        @_syncstring.once 'ready', =>
+            if @_closed
                 return
             # Now wait until read_only is *defined*, so backend file has been opened.
-            @_syncstring.wait_until_read_only_known (err) =>
+            await @_syncstring.wait_until_read_only_known()
+            if @_closed
+                return
+            @editor.show_content()
+            @editor._set(@_syncstring.to_str())
+            @_fully_loaded = true
+            @codemirror.setOption('readOnly', false)
+            @codemirror1.setOption('readOnly', false)
+            @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+            @codemirror1.clearHistory()
+
+            update_unsaved_uncommitted_changes()
+            @_update_read_only()
+
+            @_init_cursor_activity()
+
+            redux.getProjectActions(@project_id)?.log_opened_time(@filename)
+
+            @_syncstring.on 'change', =>
                 if @_closed
                     return
-                @editor.show_content()
-                @editor._set(@_syncstring.to_str())
-                @_fully_loaded = true
-                @codemirror.setOption('readOnly', false)
-                @codemirror1.setOption('readOnly', false)
-                @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-                @codemirror1.clearHistory()
+                #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.to_str(),400)}'")
+                #@_set_codemirror_to_syncstring()
+                @emit('sync')
 
+            @_syncstring.on 'metadata-change', =>
+                if @_closed
+                    return
                 update_unsaved_uncommitted_changes()
                 @_update_read_only()
 
-                @_init_cursor_activity()
+            @_syncstring.on 'deleted', =>
+                if @_closed
+                    return
+                redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
-                redux.getProjectActions(@project_id)?.log_opened_time(@filename)
+            @save_state_throttle = underscore.throttle(@sync, @opts.sync_interval, {leading:false})
 
-                @_syncstring.on 'change', =>
-                    if @_closed
-                        return
-                    #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.to_str(),400)}'")
-                    #@_set_codemirror_to_syncstring()
-                    @emit('sync')
+            @codemirror.on 'change', (instance, changeObj) =>
+                if @_closed
+                    return
+                if not @_setting_from_syncstring
+                    # console.log 'user_action = true'
+                    @_user_action = true
+                # console.log("change event - origin=", changeObj.origin)
+                if changeObj.origin?
+                    if changeObj.origin == 'undo'
+                        @on_undo?(instance, changeObj)
+                    if changeObj.origin == 'redo'
+                        @on_redo?(instance, changeObj)
+                    if changeObj.origin != 'setValue'
+                        @_last_change_time = new Date()
+                        @save_state_throttle?()
+                        @_syncstring.exit_undo_mode()
+                update_unsaved_uncommitted_changes()
 
-                @_syncstring.on 'metadata-change', =>
-                    if @_closed
-                        return
-                    update_unsaved_uncommitted_changes()
-                    @_update_read_only()
-
-                @_syncstring.on 'deleted', =>
-                    if @_closed
-                        return
-                    redux.getProjectActions(@editor.project_id).close_tab(@filename)
-
-                save_state = () => @_sync()
-                @save_state_throttle = underscore.throttle(save_state, @opts.sync_interval, {leading:false})
-
-                @codemirror.on 'change', (instance, changeObj) =>
-                    if @_closed
-                        return
-                    if not @_setting_from_syncstring
-                        # console.log 'user_action = true'
-                        @_user_action = true
-                    # console.log("change event - origin=", changeObj.origin)
-                    if changeObj.origin?
-                        if changeObj.origin == 'undo'
-                            @on_undo?(instance, changeObj)
-                        if changeObj.origin == 'redo'
-                            @on_redo?(instance, changeObj)
-                        if changeObj.origin != 'setValue'
-                            @_last_change_time = new Date()
-                            @save_state_throttle?()
-                            @_syncstring.exit_undo_mode()
-                    update_unsaved_uncommitted_changes()
-
-                @emit('connect')   # successful connection
-                @_init_cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
+            @emit('connect')   # successful connection
+            @_init_cb?()  # done initializing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
     _debug_sync_state: (info) =>
         console.log "--- #{info}"
@@ -366,15 +384,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
         return uncommitted_changes
 
     _update_read_only: =>
-        @editor.set_readonly_ui(@_syncstring.get_read_only())
+        @editor.set_readonly_ui(@_syncstring.is_read_only())
 
-    _sync: (cb) =>
+    sync: () =>
         if @codemirror?  # need not be defined, right when user closes the editor instance
             @_set_syncstring_to_codemirror()
-        @_syncstring.save(cb)
-
-    sync: (cb) =>
-        @_sync(cb)
+        await @_syncstring.save()
+        cb?()
 
     # per-session sync-aware undo
     undo: () =>
@@ -415,16 +431,22 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cb() # nothing to do -- not initialized/loaded yet...
             return
         @_set_syncstring_to_codemirror()
-        # Do save_to_disk immediately, then -- if any unsaved to backend changes, save those.  Finally, save to disk again.
-        # We do this so we succeed at saving to disk, in case file is being **immediately** closed right when saving to disk,
+        # Do save_to_disk immediately, then -- if any unsaved
+        # to backend changes, save those.  Finally, save to disk again.
+        # We do this so we succeed at saving to disk, in case
+        # file is being **immediately** closed right when saving to disk,
         # which happens on tab close.
-        async.series [@_syncstring.save_to_disk, @_syncstring.save, @_syncstring.save_to_disk], (err) =>
-            @_update_unsaved_uncommitted_changes()
-            if err
-                cb(err)
-            else
-                @_post_save_success?()  # hook so that derived classes can do things, e.g., make blobs permanent
-                cb()
+        try
+            await @_syncstring.save_to_disk()
+            await @_syncstring.save()
+            await @_syncstring.save_to_disk()
+        catch err
+            cb(err)
+            return
+        @_update_unsaved_uncommitted_changes()
+        @_post_save_success?()
+        # hook so that derived classes can do things, e.g., make blobs permanent
+        cb()
 
     delete_trailing_whitespace: =>
         cm = @focused_codemirror()
@@ -481,9 +503,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return locs
 
     _render_other_cursor: (account_id) =>
-        if account_id == webapp_client.account_id
+        #if account_id == webapp_client.account_id
             # nothing to do -- we don't draw our own cursor via this
-            return
+        #    return
         x = @_syncstring.get_cursors()?.get(account_id)
         #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
         # important: must use server time to compare, not local time.
