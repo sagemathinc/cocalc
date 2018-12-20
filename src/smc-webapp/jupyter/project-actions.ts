@@ -815,16 +815,13 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg(`load_ipynb_file`);
     dbg("reading file");
     const path = this.store.get("path");
-    let content;
+    let content : string;
     try {
-      content = callback2(this._client.path_read, { path, maxsize_MB: 50 });
+      content = await callback2(this._client.path_read, { path, maxsize_MB: 50 });
     } catch (err) {
-      let error;
-      if (err) {
-        error = `Error reading ipynb file '${path}': ${err}.  Fix this to continue.`;
-        this.syncdb.set({ type: "fatal", error });
-        throw Error(error);
-      }
+      const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.`;
+      this.syncdb.set({ type: "fatal", error });
+      throw Error(error);
     }
     if (content.length === 0) {
       // Blank file, e.g., when creating in CoCalc.
@@ -835,8 +832,9 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     // File is nontrivial -- parse and load.
+    let parsed_content;
     try {
-      content = JSON.parse(content);
+      parsed_content = JSON.parse(content);
     } catch (err) {
       const error = `Error parsing the ipynb file '${path}': ${err}.  You must fix the ipynb file somehow before continuing.`;
       dbg(error);
@@ -844,7 +842,7 @@ export class JupyterActions extends JupyterActions0 {
       throw Error(error);
     }
     this.syncdb.delete({ type: "fatal" });
-    this.set_to_ipynb(content);
+    this.set_to_ipynb(parsed_content);
     this.set_last_load();
   };
 

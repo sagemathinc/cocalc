@@ -28,7 +28,7 @@ export interface Document {
   // optional info about what changed going from prev to this.
   changes(prev? : Document) : any;
   // how many in this document (length of string number of records in db-doc, etc.)
-  public count() : number;
+  count() : number;
 }
 
 export type CompressedPatch = any[];
