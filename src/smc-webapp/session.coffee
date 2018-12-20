@@ -16,12 +16,15 @@ exports.session_manager = (name, redux) ->
 
 class SessionManager
     constructor: (@name, @redux) ->
+        # important: run init in any case in order to run @load_url_target,
+        # but do not actually create a session if @name is '' or null/undefined
         if webapp_client.is_signed_in()
             @init_local_storage()
         else
             webapp_client.once 'signed_in', =>
                 @init_local_storage()
-        @save = throttle(@save, 1000)
+        if @name
+            @save = throttle(@save, 1000)
 
     load_url_target: =>
         # **after** a possible session is restored,
@@ -32,11 +35,12 @@ class SessionManager
             window.smc_target = ''
 
     init_local_storage: =>
-        {APP_BASE_URL} = require('misc_page')
-        prefix = if APP_BASE_URL then ".#{APP_BASE_URL}" else ''
-        @_local_storage_name = "session#{prefix}.#{webapp_client.account_id}.#{@name}"
-        @_local_storage_name_closed = "closed-session#{prefix}.#{webapp_client.account_id}.#{@name}"
-        @_load_from_local_storage()
+        if @name
+            {APP_BASE_URL} = require('misc_page')
+            prefix = if APP_BASE_URL then ".#{APP_BASE_URL}" else ''
+            @_local_storage_name = "session#{prefix}.#{webapp_client.account_id}.#{@name}"
+            @_local_storage_name_closed = "closed-session#{prefix}.#{webapp_client.account_id}.#{@name}"
+            @_load_from_local_storage()
 
         # Wait until projects *and* accounts are
         # defined (loaded from db) before trying to
@@ -55,7 +59,8 @@ class SessionManager
             if err
                 console.warn("Error restoring session:", err)
             else
-                @restore()
+                if @name
+                    @restore()
             @_initialized = true
             # session restore done, one way or another ...
             @load_url_target()

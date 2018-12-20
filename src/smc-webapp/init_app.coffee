@@ -228,9 +228,11 @@ class PageActions extends Actions
         @setState(session : val)
         history.update_params()
 
-        # Make new session manager if necessary
-        if val
-            @_session_manager ?= require('./session').session_manager(val, redux)
+        # Make new session manager, but only register it if we have an actual session name!
+        if not @_session_manager
+            _sm = require('./session').session_manager(val, redux)
+            if val
+                @_session_manager = _sm
 
     save_session: =>
         @_session_manager?.save()

@@ -659,8 +659,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let url =
         (window.app_base_url != null ? window.app_base_url : "") +
         this._url_in_project(`files/${opts.path}`);
-      url += `?session=${misc.uuid().slice(0, 8)}`;
-      url += "&fullscreen=default";
+      url += "?session=&fullscreen=default";
       require("./misc_page").open_popup_window(url, {
         width: 800,
         height: 640
