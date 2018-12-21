@@ -1882,6 +1882,7 @@ class exports.Connection extends EventEmitter
             cursors           : false
             patch_interval    : 1000
             save_interval     : 2000
+            change_throttle   : undefined
             primary_keys      : required
             string_cols       : []
         opts.client = @

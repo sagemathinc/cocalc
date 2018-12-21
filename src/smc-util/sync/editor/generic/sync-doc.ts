@@ -91,6 +91,7 @@ export interface SyncOpts0 {
   file_use_interval?: number;
   string_id?: string;
   cursors?: boolean;
+  change_throttle?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -124,6 +125,8 @@ export class SyncDoc extends EventEmitter {
   private project_autosave_timer: number = 0;
 
   private periodically_touch_timer: number = 0;
+
+  private change_throttle: number = 0;
 
   // file_use_interval throttle: default is 60s for everything
   // except .sage-chat files, where it is 10s.
@@ -194,6 +197,7 @@ export class SyncDoc extends EventEmitter {
       "client",
       "patch_interval",
       "file_use_interval",
+      "change_throttle",
       "cursors",
       "doctype",
       "from_patch_str"
@@ -212,6 +216,10 @@ export class SyncDoc extends EventEmitter {
       "sync_remote_and_doc",
       "touch"
     ]);
+
+    if (this.change_throttle) {
+      this.emit_change = throttle(this.emit_change, this.change_throttle);
+    }
 
     this.setMaxListeners(100);
     this.init();
