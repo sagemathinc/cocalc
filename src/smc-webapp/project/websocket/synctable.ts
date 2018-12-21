@@ -27,7 +27,7 @@ export async function synctable_project(
   const channel = await api.synctable_channel(query, options);
   let first_data = true;
   channel.on("data", function(data) {
-    //console.log("recv: ", query, "channel=", channel.channel, "data=", data);
+    // console.log("recv: ", query, "channel=", channel.channel, "data=", data);
     if (!is_array(data)) {
       if (data != null && data.error != null) {
         throw Error(`synctable_project error - ${data.error}`);

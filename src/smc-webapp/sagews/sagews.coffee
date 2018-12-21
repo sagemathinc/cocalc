@@ -1227,14 +1227,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb    : undefined
         if @readonly
             opts.cb?({done:true, error:'readonly'})
-        else
-            if not @_syncstring?.evaluator?
-                opts.cb?({done:true, error:'closed'})
-                return
-            @_syncstring.evaluator.call
-                program : 'sage'
-                input   : opts.input
-                cb      : opts.cb
+            return
+        if not @_syncstring?.evaluator?
+            opts.cb?({done:true, error:'closed'})
+            return
+        @_syncstring.evaluator.call
+            program : 'sage'
+            input   : opts.input
+            cb      : opts.cb
         return
 
     status: (opts) =>
@@ -1258,7 +1258,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             id          : misc.uuid()
             output_uuid : opts.output_uuid
             timeout     : undefined
-
         @sage_call
             input :
                 event       : 'execute_code'
@@ -2091,9 +2090,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         done = =>
             cell.remove_cell_flag(FLAGS.running)
             cell.set_cell_flag(FLAGS.this_session)
-            setTimeout(cell.set_output_min_height, 1000) # wait a second, e.g., for async loading of images to finish
+            # wait a second, e.g., for async loading of images to finish
+            setTimeout(cell.set_output_min_height, 1000)
             @sync()
             opts.cb?()
+            delete opts.cb  # to be sure not called again.
 
         t0 = new Date()
         cleared_output = false
@@ -2102,7 +2103,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 cleared_output = true
                 cell.set_output([])
 
-        # Give the cell one second to get output from backend.  If not, then we clear output.
+        # Give the cell one second to get output from backend.
+        # If not, then we clear output.
         # These reduces "flicker", which makes things seem slow.
         setTimeout(clear_output, 1000)
         first_output = true

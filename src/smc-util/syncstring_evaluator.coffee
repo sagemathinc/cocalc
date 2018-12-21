@@ -53,7 +53,7 @@ class exports.Evaluator
                 string_id : @string.string_id
                 time      : {'>=': misc.server_seconds_ago(60)}
                 input     : null
-        @_inputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 500)
+        @_inputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 0)
         cb?()
 
     _init_eval_outputs: (cb) =>
@@ -62,7 +62,7 @@ class exports.Evaluator
                 string_id : @string.string_id
                 time      : {'>=': misc.server_seconds_ago(60)}
                 output    : null
-        @_outputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 500)
+        @_outputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 0)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
         cb?()
 
@@ -98,48 +98,48 @@ class exports.Evaluator
             user_id   : 0
             input     : misc.copy_without(opts, 'cb')
         @_inputs.save()  # root cause of https://github.com/sagemathinc/cocalc/issues/1589
-        if opts.cb?
-            # Listen for output until we receive a message with mesg.done true.
-            messages = {}
-            mesg_number = 0
-            send = (mesg) =>
-                if mesg.done
-                    @_outputs.removeListener('change', handle_output)
-                opts.cb?(mesg)
+        if not opts.cb?
+            return
+        # Listen for output until we receive a message with mesg.done true.
+        messages = {}
+        mesg_number = 0
+        send = (mesg) =>
+            if mesg.done
+                @_outputs.removeListener('change', handle_output)
+            opts.cb(mesg)
 
-            handle_output = (keys) =>
-                #console.log("handle_output #{misc.to_json(keys)}")
-                if @_closed
-                    opts.cb?("closed")
-                    return
-                for key in keys
-                    t = misc.from_json(key)
-                    if t[1] - time == 0  # we called opts.cb on output with the given timestamp
-                        mesg = @_outputs.get(key)?.get('output')?.toJS()
-                        if mesg?
-                            delete mesg.id # waste of space
-                            # This code is written under the assumption that messages may
-                            # arrive in somewhat random order.  We did this since RethinkDB
-                            # doesn't guarantee anything about the order of writes versus
-                            # when changes get pushed out.  That said, PostgreSQL **does** make
-                            # clear guarantees about when things happen, so this may
-                            # no longer be a problem.... (TODO).
-                            # E.g. this in a Sage worksheet:
-                            #    for i in range(20): print i; sys.stdout.flush()
-                            if t[2] == mesg_number     # t[2] is the sequence number of the message
-                                # Inform caller of result
-                                send(mesg)
-                                # Push out any messages that arrived earlier that are ready to send.
+        handle_output = (keys) =>
+            # console.log("handle_output #{misc.to_json(keys)}")
+            if @_closed
+                opts.cb?("closed")
+                return
+            for key in keys
+                t = misc.from_json(key)
+                if t[1] - time == 0  # we called opts.cb on output with the given timestamp
+                    mesg = @_outputs.get(key)?.get('output')?.toJS()
+                    if mesg?
+                        delete mesg.id # waste of space
+                        # This code is written under the assumption that messages may
+                        # arrive in somewhat random order.  This *DOES HAPPEN*, since
+                        # changes are output from the project by computing a diff of
+                        # a synctable, and then an array of objects sent out... and
+                        # the order in that diff is random.
+                        # E.g. this in a Sage worksheet would break:
+                        #    for i in range(20): print i; sys.stdout.flush()
+                        if t[2] == mesg_number     # t[2] is the sequence number of the message
+                            # Inform caller of result
+                            send(mesg)
+                            # Push out any messages that arrived earlier that are ready to send.
+                            mesg_number += 1
+                            while messages[mesg_number]?
+                                send(messages[mesg_number])
+                                delete messages[mesg_number]
                                 mesg_number += 1
-                                while messages[mesg_number]?
-                                    send(messages[mesg_number])
-                                    delete messages[mesg_number]
-                                    mesg_number += 1
-                            else
-                                # Put message in the queue of messages that arrived too early
-                                messages[t[2]] = mesg
+                        else
+                            # Put message in the queue of messages that arrived too early
+                            messages[t[2]] = mesg
 
-            @_outputs.on('change', handle_output)
+        @_outputs.on('change', handle_output)
 
     _execute_code_hook: (output_uuid) =>
         dbg = @string.client.dbg("_execute_code_hook('#{output_uuid}')")
@@ -162,8 +162,8 @@ class exports.Evaluator
             if n == -1   # corrupted
                 return
             output_line += stringify(misc.copy_without(mesg, ['id', 'event'])) + sagews.MARKERS.output
-            #dbg("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
-            if output_line.length > n - i
+            # dbg("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}', sync_line='#{content.slice(i,n)}'")
+            if output_line.length - 1 > n - i
                 dbg("sage_execute_code: initiating client didn't maintain sync promptly. fixing")
                 x = content.slice(0, i)
                 content = x + output_line + content.slice(n)
@@ -206,7 +206,7 @@ class exports.Evaluator
                     f x.input, (output) =>
                         if @_closed
                             return
-                        #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
+                        dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
                         hook?(output)
                         @_outputs.set({string_id:string_id, time:time, number:number, output:output})
                         @_outputs.save()

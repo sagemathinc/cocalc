@@ -321,12 +321,13 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public set_doc(value: Document): void {
-    if (value.is_equal(this.doc)) {
+  public set_doc(doc: Document): void {
+    if (doc.is_equal(this.doc)) {
       // no change.
       return;
     }
-    this.doc = value;
+    // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
+    this.doc = doc;
     this.emit_change();
   }
 
@@ -359,6 +360,7 @@ export class SyncDoc extends EventEmitter {
 
   // Set this doc from its string representation.
   public from_str(value: string): void {
+    // console.log(`sync-doc.from_str("${value}")`);
     this.doc = this._from_str(value);
   }
 
@@ -1262,7 +1264,9 @@ export class SyncDoc extends EventEmitter {
       dbg("Compute new patch and send it.");
       await this.sync_remote_and_doc();
       dbg("Patch sent, now make a snapshot if we are due for one.");
-      this.snapshot_if_necessary();
+      if (this.get_state() === "ready") {
+        this.snapshot_if_necessary();
+      }
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
@@ -2239,8 +2243,12 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
+    // First save any unsaved changes from our live version.
+    // Repeat this until changes stop, since there is an await
+    // in this loop, and user may make changes *during* that
+    // save_patch call, and we must not miss them.
     this.emit("before-change");
-    if (!this.last.is_equal(this.doc)) {
+    while (!this.last.is_equal(this.doc)) {
       // compute transformation from this.last to this.doc
       const patch = this.last.make_patch(this.doc); // must be nontrivial
       this.last = this.doc;
@@ -2253,9 +2261,11 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
+    // Now compute the global current state of the document,
+    // which is got by applying all patches in order.
     const new_remote = this.patch_list.value();
     if (!this.doc.is_equal(new_remote)) {
-      // There is a possibility that document changed, so
+      // There is a possibility that live document changed, so
       // set to new version.
       this.last = this.doc = new_remote;
       this.emit("after-change");

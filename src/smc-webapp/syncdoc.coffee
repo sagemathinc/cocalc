@@ -342,7 +342,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         #console.log '_set_syncstring_to_codemirror'
         #@_debug_sync_state('before')
         if not @_user_action
-            #console.log "not setting due to no user action"
+            # console.log "not setting due to no user action"
             # user has not explicitly done anything, so there should be no changes.
             return
         #console.log 'user action so setting'
@@ -386,7 +386,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     _update_read_only: =>
         @editor.set_readonly_ui(@_syncstring.is_read_only())
 
-    sync: () =>
+    sync: (cb) =>
         if @codemirror?  # need not be defined, right when user closes the editor instance
             @_set_syncstring_to_codemirror()
         await @_syncstring.save()

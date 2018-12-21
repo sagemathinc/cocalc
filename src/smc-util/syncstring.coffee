@@ -2126,6 +2126,10 @@ class SyncDoc extends EventEmitter
         @_sync_remote_and_doc_calling = true
         # ensure that our live @_doc equals what the user's editor shows in their browser (say)
         @_before_change_hook?()
+        # NOTE/WARNING: this code right here (and this function) *MIGHT BE* wrong in edge cases
+        # that can be hit with rapid changes (e.g., sage worksheets) -- see the fixed
+        # code in sync-doc.ts.  I'm not sure...  The problem may be much harder to hit
+        # since things are so throttled in this code...
         if not @_last.is_equal(@_doc)
             # compute transformation from _last to _doc
             patch = @_last.make_patch(@_doc) # must be nontrivial
