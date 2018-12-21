@@ -27,7 +27,7 @@ const { gofmt } = require("./gofmt");
 const misc = require("../smc-util/misc");
 const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // from project Jupyter
 
-import { callback } from "awaiting";
+import { once } from "../smc-util/async-utils";
 
 export async function run_prettier(
   client: any,
@@ -36,13 +36,9 @@ export async function run_prettier(
   logger: any
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
-  let syncstring = client.sync_string({ path, reference_only: true });
-  let doc;
-  if (syncstring == null || (doc = syncstring.get_doc()) == null) {
-    /* file not opened yet -- nothing to do. */
-    return { status: "ok", phase: "loading" };
-  }
-
+  const syncstring = client.sync_string2({ path });
+  await once(syncstring, "ready");
+  const doc = syncstring.get_doc();
   let pretty, math;
   let input = doc.to_str();
   if (options.parser === "markdown") {
@@ -58,7 +54,7 @@ export async function run_prettier(
     pretty = math_unescape(replace_math(pretty, math));
   }
   syncstring.from_str(pretty);
-  await callback(syncstring._save);
+  await syncstring.save();
   return { status: "ok" };
 }
 
