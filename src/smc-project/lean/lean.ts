@@ -1,7 +1,8 @@
 import { isEqual } from "underscore";
 
 import * as lean_client from "lean-client-js-node";
-import { callback, delay } from "awaiting";
+import { callback } from "awaiting";
+import { once } from "../smc-util/async-utils";
 import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
 
@@ -153,22 +154,8 @@ export class Lean extends EventEmitter {
       return;
     }
     // get the syncstring and start updating based on content
-    let s = undefined;
-    for (let i = 0; i < 60 && s === undefined; i++) {
-      s = this.client.sync_string({
-        path: path,
-        reference_only: true
-      });
-      if (s === undefined) {
-        this.dbg("register -- will try again", path);
-        await delay(1000);
-      }
-    }
-    if (s === undefined) {
-      this.dbg("register -- failed", path);
-      return; // failed to register
-    }
-    const syncstring = s as SyncString;
+    const syncstring = this.client.sync_string2({ path });
+    await once(syncstring, 'ready');
     const on_change = async () => {
       this.dbg("sync", path);
       if (syncstring._closed) {
