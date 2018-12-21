@@ -95,12 +95,16 @@ describe 'seconds2hms', ->
     d = 24 * h # one day
     it 'converts to short form', ->
         expect(s2hms(0)).toEqual '0s'
+        expect(s2hms(1.138)).toEqual '1.14s'
+        expect(s2hms(15.559)).toEqual '15.6s'
         expect(s2hms(60)).toEqual '1m0s'
         expect(s2hms(61)).toEqual '1m1s'
         expect(s2hms(3601)).toEqual '1h0m1s'
         expect(s2hms(7300)).toEqual '2h1m40s'
     it 'converts to long form', ->
         expect(s2hms(0, true)).toEqual '0 seconds'
+        expect(s2hms(1.138, true)).toEqual '1 second'
+        expect(s2hms(15.559, true)).toEqual '16 seconds'
         expect(s2hms(61, true)).toEqual '1 minute 1 second'
         expect(s2hms(3601, true)).toEqual '1 hour'
         expect(s2hms(7300, true)).toEqual '2 hours 1 minute'
