@@ -106,7 +106,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
-        window.s = @
 
     # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
     _init_cb: =>
@@ -858,6 +857,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
             @_syncstring.from_str(after)
+            @_syncstring.save()
 
     _process_sage_updates: (cm, start, stop) =>
         #dbg = (m) -> console.log("_process_sage_updates: #{m}")
@@ -2050,7 +2050,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 mesg[opts.mode] = opts.code
         opts.cell.append_output_message(mesg)
         setTimeout(opts.cell.set_output_min_height, 1000)
-        @sync()
+        setTimeout(@sync, 1)
 
     execute_cell_server_side: (opts) =>
         opts = defaults opts,
@@ -2112,7 +2112,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             code         : input
             output_uuid  : output_uuid
             cb           : (mesg) =>
-                if first_output  # we *always* clear the first time, even if we cleared above via the setTimeout.
+                if first_output
+                    # we *always* clear the first time, even if we
+                    # cleared above via the setTimeout.
                     first_output = false
                     clear_output()
                 cell.append_output_message(mesg)

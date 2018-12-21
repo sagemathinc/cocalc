@@ -51,7 +51,6 @@ class exports.Evaluator
         query =
             eval_inputs :
                 string_id : @string.string_id
-                time      : {'>=': misc.server_seconds_ago(60)}
                 input     : null
         @_inputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 0)
         cb?()
@@ -60,7 +59,6 @@ class exports.Evaluator
         query =
             eval_outputs :
                 string_id : @string.string_id
-                time      : {'>=': misc.server_seconds_ago(60)}
                 output    : null
         @_outputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 0)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
