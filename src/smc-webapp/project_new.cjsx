@@ -32,6 +32,7 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
 {SMC_Dropzone} = require('./smc-dropzone')
+{ProjectSettingsPanel} = require('./project/project-settings-support')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -76,22 +77,6 @@ PathLink = exports.PathLink = rclass
     render: ->
         <a style={@styles} onClick={@handle_click}>{if @props.path then @props.path else @props.default}</a>
 
-ProjectNewHeader = rclass
-    displayName : 'ProjectNew-ProjectNewHeader'
-
-    mixins : [ImmutablePureRenderMixin]
-
-    propTypes :
-        current_path : rtypes.string
-        actions      : rtypes.object.isRequired
-
-    render: ->
-        <h1 style={marginTop:"0px"}>
-            <Icon name='plus-circle' /> Create new files in<Space/>
-            <PathLink
-                path       = {@props.current_path}
-                actions    = {@props.actions} />
-        </h1>
 
 exports.NewFileButton = NewFileButton = rclass
     displayName : 'ProjectNew-ProjectNewFileButton'
@@ -306,12 +291,6 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             Close
         </Button>
 
-    render_header: ->
-        if @props.current_path?
-            <ProjectNewHeader
-                current_path = {@props.current_path}
-                actions      = {@props.actions} />
-
     render_error: ->
         error = @props.file_creation_error
         if error is 'not running'
@@ -424,20 +403,26 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </FormGroup>
         </form>
 
+
+    render_title: ->
+        if @props.current_path?
+            <span>Create new files in{' '}
+                <PathLink
+                    path       = {@props.current_path}
+                    actions    = {@props.actions}
+                />
+            </span>
+
     render: ->
-        <Fragment>
-            {@render_header() if @props.show_header}
-            <Row sm={3}>
-                <Col sm={10}>
-                    <h4><Icon name='plus-circle' /> Create a new file or directory</h4>
-                </Col>
-                <Col sm={2}>
-                  <CloseX2 close={@props.close} />
-                </Col>
-            </Row>
+        <ProjectSettingsPanel
+            show_header = {@props.show_header}
+            icon = {'plus-circle'}
+            title_el = {@render_title()}
+            close = {@props.close}
+        >
             <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
                 <Col sm={12}>
-                    <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
+                    <div style={color:"#666", paddingBottom:"5px"}>Name your file, folder or paste in a link</div>
                     <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
                         <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
                             {@render_filename_form()}
@@ -448,13 +433,13 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     </div>
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
-                    <h4 style={color:"#666"}>Select the type</h4>
+                    <div style={color:"#666", paddingBottom:"5px"}>Select the type</div>
                     <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
                         <Tip
-                            title='Download files from the Internet'
-                            icon = 'cloud'
-                            placement='bottom'
-                            tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}"
+                            title = {'Download files from the Internet'}
+                            icon = {'cloud'}
+                            placement = {'bottom'}
+                            tip = {"Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}"}
                         >
                             <NewFileButton
                                 icon     = {'cloud'}
@@ -467,7 +452,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                 </Col>
             </Row>
             {@render_upload()}
-        </Fragment>
+        </ProjectSettingsPanel>
 
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)

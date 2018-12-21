@@ -30,6 +30,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
 {Library} = require('./library')
+{ProjectSettingsPanel} = require('./project/project-settings-support')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -2242,26 +2243,18 @@ exports.ProjectFiles = rclass ({name}) ->
     render_library: () ->
         <Row>
             <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-                <Well style={backgroundColor: 'white'}>
-                    <Row>
-                        <Col sm={10}>
-                            <h4><Icon name='book' /> Library</h4>
-                        </Col>
-                        <Col sm={2}>
-                            <CloseX2 close={=>@props.actions.toggle_library(false)} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm={12}>
-                            <Library
-                                project_id={@props.project_id}
-                                name={@props.name}
-                                actions={@actions(name)}
-                                close={=>@props.actions.toggle_library(false)}
-                            />
-                        </Col>
-                    </Row>
-                </Well>
+                <ProjectSettingsPanel
+                    icon  = {'book'}
+                    title = {'Library'}
+                    close = {=>@props.actions.toggle_library(false)}
+                >
+                    <Library
+                        project_id={@props.project_id}
+                        name={@props.name}
+                        actions={@actions(name)}
+                        close={=>@props.actions.toggle_library(false)}
+                    />
+                </ProjectSettingsPanel>
             </Col>
         </Row>
 
@@ -2269,15 +2262,13 @@ exports.ProjectFiles = rclass ({name}) ->
         return if not @props.show_new
         <Row>
             <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-                <Well style={backgroundColor: 'white'}>
-                    <ProjectNewForm
-                        project_id={@props.project_id}
-                        name={@props.name}
-                        actions={@actions(name)}
-                        close={=>@props.actions.toggle_new(false)}
-                        show_header={false}
-                    />
-                </Well>
+                <ProjectNewForm
+                    project_id={@props.project_id}
+                    name={@props.name}
+                    actions={@actions(name)}
+                    close={=>@props.actions.toggle_new(false)}
+                    show_header={true}
+                />
             </Col>
         </Row>
 
@@ -2503,6 +2494,21 @@ exports.ProjectFiles = rclass ({name}) ->
             </div> if not public_view}
         </div>
 
+    render_project_files_buttons: (public_view) ->
+        <div style={flex: '1 0 auto', marginBottom:'15px', textAlign: 'right'}>
+            {if not public_view
+                <ProjectFilesButtons
+                    show_hidden  = {@props.show_hidden ? false}
+                    current_path = {@props.current_path}
+                    public_view  = {public_view}
+                    actions      = {@props.actions}
+                    show_new     = {@props.show_new}
+                    show_library = {@props.show_library}
+                    kucalc       = {@props.kucalc}
+                />
+            }
+        </div>
+
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -2523,6 +2529,12 @@ exports.ProjectFiles = rclass ({name}) ->
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
 
+        flex_row_style =
+            display: 'flex'
+            flexFlow: 'row wrap'
+            justifyContent: 'space-between'
+            alignItems: 'stretch'
+
         <div style={padding:'5px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
@@ -2530,23 +2542,18 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_control_row(public_view, visible_listing)}
             {@render_new()}
 
-            <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+            {if @props.show_library
+                <div style={flex_row_style}>
+                    {@render_project_files_buttons(public_view)}
+                </div>
+            }
+            {@render_library() if @props.show_library}
+
+            <div style={flex_row_style}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
                     {@render_files_actions(listing, public_view) if listing?}
                 </div>
-                <div style={flex: '1 0 auto', marginBottom:'15px', textAlign: 'right'}>
-                    {if not public_view
-                        <ProjectFilesButtons
-                            show_hidden  = {@props.show_hidden ? false}
-                            current_path = {@props.current_path}
-                            public_view  = {public_view}
-                            actions      = {@props.actions}
-                            show_new     = {@props.show_new}
-                            show_library = {@props.show_library}
-                            kucalc       = {@props.kucalc}
-                        />
-                    }
-                </div>
+                {@render_project_files_buttons(public_view) if not @props.show_library}
             </div>
 
             {if @props.checked_files.size > 0 and @props.file_action?
@@ -2555,7 +2562,6 @@ exports.ProjectFiles = rclass ({name}) ->
                 </Row>
             }
 
-            {@render_library() if @props.show_library}
             {### Only show the access error if there is not another error. ###}
             {@render_access_error() if public_view and not error}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
