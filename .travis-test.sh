@@ -39,7 +39,7 @@ cd $TRAVIS_BUILD_DIR/src/smc-hub/
 npm run testpg
 npm run testmisc
 npm run testkucalc
-# npm run testapi           # broken
+npm run testapi
 
 #cd $TRAVIS_BUILD_DIR/src/smc-project/; npm run test # also broken
 
