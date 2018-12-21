@@ -143,7 +143,7 @@ export class SyncDoc extends EventEmitter {
   private patches_table: SyncTable;
   private cursors_table: SyncTable;
 
-  private evaluator: any;
+  public evaluator: any;
 
   private patch_list: SortedPatchList;
 

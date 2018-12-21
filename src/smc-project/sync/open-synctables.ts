@@ -22,7 +22,9 @@ function key(query): string {
   const string_id = c.string_id;
   if (string_id == null) {
     throw Error(
-      "open-syncstring-tables is only for tables related to syncstrings (patches, cursors, etc.)"
+      "open-syncstring-tables is only for tables related to sync docs" +
+        "(patches, cursors, eval_inputs, eval_outputs, etc.): query=" +
+        JSON.stringify(query)
     );
   }
   return `${table}.${c.string_id}`;

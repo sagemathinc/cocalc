@@ -1228,10 +1228,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if @readonly
             opts.cb?({done:true, error:'readonly'})
         else
-            if not @_syncstring?._evaluator?
+            if not @_syncstring?.evaluator?
                 opts.cb?({done:true, error:'closed'})
                 return
-            @_syncstring._evaluator.call
+            @_syncstring.evaluator.call
                 program : 'sage'
                 input   : opts.input
                 cb      : opts.cb

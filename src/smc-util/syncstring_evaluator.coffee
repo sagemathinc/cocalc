@@ -50,7 +50,7 @@ class exports.Evaluator
     _init_eval_inputs: (cb) =>
         query =
             eval_inputs :
-                string_id : @string._string_id
+                string_id : @string.string_id
                 time      : {'>=': misc.server_seconds_ago(60)}
                 input     : null
         @_inputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 500)
@@ -59,7 +59,7 @@ class exports.Evaluator
     _init_eval_outputs: (cb) =>
         query =
             eval_outputs :
-                string_id : @string._string_id
+                string_id : @string.string_id
                 time      : {'>=': misc.server_seconds_ago(60)}
                 output    : null
         @_outputs = await @string.client.synctable_project(@string.project_id, query, [{ephemeral:true}], 500)
@@ -93,7 +93,7 @@ class exports.Evaluator
         @_last_time = time
 
         @_inputs.set
-            string_id : @string._string_id
+            string_id : @string.string_id
             time      : time
             user_id   : 0
             input     : misc.copy_without(opts, 'cb')
@@ -237,7 +237,7 @@ class exports.Evaluator
 
     # Runs only in the project
     _evaluate_using_sage: (input, cb) =>
-        @_sage_session ?= @string.client.sage_session(path : @string._path)
+        @_sage_session ?= @string.client.sage_session(path : @string.path)
         # TODO: input also may have -- uuid, output_uuid, timeout
         if input.event == 'execute_code'
             input = misc.copy_with(input, ['code', 'data', 'preparse', 'event', 'id'])
