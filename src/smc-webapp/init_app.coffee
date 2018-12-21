@@ -230,9 +230,9 @@ class PageActions extends Actions
 
         # Make new session manager, but only register it if we have an actual session name!
         if not @_session_manager
-            _sm = require('./session').session_manager(val, redux)
+            sm = require('./session').session_manager(val, redux)
             if val
-                @_session_manager = _sm
+                @_session_manager = sm
 
     save_session: =>
         @_session_manager?.save()
