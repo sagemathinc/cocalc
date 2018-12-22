@@ -6,7 +6,6 @@ interface Props {
   interval_s: number;
 }
 
-// Converted from https://github.com/andreypopp/react-fa
 export class TimeElapsed extends React.Component<Props> {
   private timer?: number;
 

@@ -5,6 +5,7 @@
 {React, rclass, rtypes} = require('./app-framework')
 {Icon} = require('./r_misc')
 misc = require('smc-util/misc')
+LS = require('misc/local-storage')
 
 # alert style, and derived oom alert style. we want to make sure we do not change one of them accidentally...
 alert_style = Object.freeze(
@@ -94,21 +95,33 @@ exports.OOMWarning = rclass ({name}) ->
     reduxProps :
         projects :
             project_map              : rtypes.immutable.Map
-        "#{name}" :
-            oom_dismissed            : rtypes.number
+
+    getInitialState: ->
+        val = LS.get([@props.project_id, 'oom_dismissed']) ? 0
+        deflt =
+            oom_dismissed : 0
+            start_ts : undefined
+        try
+            if val.indexOf(':') == -1
+                return deflt
+            [start_ts, oom_dismissed] = val.split(':')
+            return
+                start_ts      : Number.parseInt(start_ts)
+                oom_dismissed : Number.parseInt(oom_dismissed)
+        catch
+            return deflt
 
     propTypes :
         project_id : rtypes.string
 
-    getDefaultProps: ->
-        oom_dismissed : 0
-
-    shouldComponentUpdate: (nextProps) ->
+    shouldComponentUpdate: (nextProps, state) ->
         return @props.project_map?.get(@props.project_id) != nextProps.project_map?.get(nextProps.project_id) \
-            or @props.oom_dismissed != nextProps.oom_dismissed
+            or misc.is_different(@state, state, ['oom_dismissed', 'start_ts'])
 
-    click: (oom_kills) ->
-        @actions(name).setState(oom_dismissed: oom_kills)
+    click: (start_ts, oom_kills) ->
+        val = "#{start_ts}:#{oom_kills}"
+        LS.set([@props.project_id, 'oom_dismissed'], val)
+        @setState(oom_dismissed : oom_kills, 'start_ts': start_ts)
 
     render: ->
         if not require('./customize').commercial
@@ -122,20 +135,26 @@ exports.OOMWarning = rclass ({name}) ->
             return <span />
         oom_kills = project_status.get('oom_kills') ? 0
         start_ts = project_status.get('start_ts')
-        oom_dismissed = @props.oom_dismissed
 
-        # if DEBUG then console.log("oom_kills: #{oom_kills}, oom_dismissed: #{oom_dismissed}")
+        # if DEBUG then console.log("oom_kills: #{oom_kills}, oom_dismissed: #{@state.oom_dismissed}")
 
-        if oom_kills <= oom_dismissed
-            return <span />
+        # either if there is no dismissed start_ts or it matches the current one
+        if (oom_kills == 0) or (@state.start_ts != null and @state.start_ts == start_ts)
+            # and the number of oom kills is less or equal the number of dismissed ones
+            if oom_kills <= @state.oom_dismissed
+                return <span />
+        if @state.start_ts != start_ts
+            oom_dismissed = 0
+        else
+            oom_dismissed = @state.oom_dismissed
 
         # first time message is different from later ones
-        if @props.oom_dismissed == 0
-            msg = <span>WARNING: There {misc.plural(oom_kills, 'was', 'were')} {oom_kills} out-of-memory {misc.plural(oom_kills, 'situation')} in your project, because your calculations are too memory intensive.</span>
+        if oom_dismissed == 0
+            msg = <span>WARNING: There {misc.plural(oom_kills, 'was', 'were')} {oom_kills} out-of-memory {misc.plural(oom_kills, 'event')} in your project, because your calculations are too memory intensive.</span>
             style = 'info'
         else
             diff = oom_kills - oom_dismissed
-            msg = <span>WARNING: There {misc.plural(diff, 'was', 'were')} {diff} additional out-of-memory {misc.plural(diff, 'situation')} in your project.</span>
+            msg = <span>WARNING: There {misc.plural(diff, 'was', 'were')} {diff} additional out-of-memory {misc.plural(diff, 'event')} in your project.</span>
             style = 'danger'
 
         <Alert bsStyle={style} style={oom_alert_style}>
@@ -147,7 +166,7 @@ exports.OOMWarning = rclass ({name}) ->
                     <a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>More information...</a>.
                 </div>
                 <div style={flex:'0'}>
-                    <Button onClick={=>@click(oom_kills)} pullright={"true"}>Dismiss</Button>
+                    <Button onClick={=>@click(start_ts, oom_kills)} pullright={"true"}>Dismiss</Button>
                 </div>
             </div>
         </Alert>

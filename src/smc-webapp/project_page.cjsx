@@ -386,7 +386,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             free_warning_closed   : rtypes.bool     # Makes bottom height update
             num_ghost_file_tabs   : rtypes.number
             current_path          : rtypes.string
-            oom_dismissed         : rtypes.number
 
     propTypes :
         project_id : rtypes.string

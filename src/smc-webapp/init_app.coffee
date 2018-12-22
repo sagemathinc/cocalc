@@ -322,6 +322,8 @@ exports.recent_wakeup_from_standby = recent_wakeup_from_standby
 
 if DEBUG
     window.smc ?= {}
+    window.smc.misc = misc
+    window.smc.misc_page = require('./misc_page')
     window.smc.init_app =
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects
