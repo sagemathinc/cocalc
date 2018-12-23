@@ -84,7 +84,7 @@ export class SyncTable extends EventEmitter {
 
   // Our best guess as to the value of this query on the server,
   // according to queries and updates the server pushes to us.
-  private value_server?: Map<string, any>;
+  private value_server: Map<string, any> | null | undefined;
 
   // Not connected yet
   // disconnected <--> connected --> closed
@@ -101,13 +101,20 @@ export class SyncTable extends EventEmitter {
   // Also updated during init.
   private required_set_fields: { [key: string]: boolean } = {};
 
+  private coerce_types: boolean = false;
+
   constructor(
     query,
     options: any[],
     client: Client,
-    throttle_changes?: number
+    throttle_changes?: number,
+    coerce_types?: boolean
   ) {
     super();
+
+    if (coerce_types != undefined) {
+      this.coerce_types = coerce_types;
+    }
 
     if (misc.is_array(query)) {
       throw Error("must be a single query, not array of queries");
@@ -213,6 +220,15 @@ export class SyncTable extends EventEmitter {
   */
   public async save(): Promise<void> {
     this.assert_not_closed();
+
+    if (this.value_server == null) {
+      // can't save until server sends state.  We wait.
+      await once(this, "change-no-throttle");
+      if (this.value_server == null) {
+        throw Error("bug -- change should initialize value_server");
+      }
+    }
+
     // quick easy check for unsaved changes and
     // ready to be saved
     let has_unsaved_changes =
@@ -247,13 +263,13 @@ export class SyncTable extends EventEmitter {
   Returns updated value otherwise.
   Causes a save if their are changes.
 
-  types -- if true, use db schema to ensure types are correct,
-           converting if necessary.  This may **mutate** `changes`!
+  NOTE: we always use db schema to ensure types are correct,
+  converting if necessary.   This has a performance impact,
+  but is worth it for sanity's sake!
   */
   public set(
     changes: any,
-    merge: "deep" | "shallow" | "none" = "deep",
-    types: boolean = false
+    merge: "deep" | "shallow" | "none" = "deep"
   ): any {
     this.assert_not_closed();
 
@@ -273,9 +289,8 @@ export class SyncTable extends EventEmitter {
       console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
     }
 
-    if (types) {
-      changes = this.coerce_types(changes);
-    }
+    // For sanity!
+    changes = this.do_coerce_types(changes);
 
     // Ensure that each key is allowed to be set.
     if (this.client_query.set == null) {
@@ -479,9 +494,11 @@ export class SyncTable extends EventEmitter {
     };
   }
 
-  private dbg(f?: string): Function {
-    if (this.client.is_project()) {
-      return this.client.dbg(`SyncTable('${JSON.stringify(this.query)}').${f}`);
+  private dbg(_f?: string): Function {
+    if (false || this.client.is_project()) {
+      return this.client.dbg(
+        `SyncTable('${JSON.stringify(this.query)}').${_f}`
+      );
     }
     return () => {};
   }
@@ -868,7 +885,7 @@ export class SyncTable extends EventEmitter {
 
   // Return modified immutable Map, with all types coerced to be
   // as specified in the schema, if possible, or throw an exception.
-  private coerce_types(changes: Map<string, any>): Map<string, any> {
+  private do_coerce_types(changes: Map<string, any>): Map<string, any> {
     const t = schema.SCHEMA[this.table];
     if (t == null) {
       throw Error(`Missing schema for table ${this.table}`);
@@ -882,6 +899,10 @@ export class SyncTable extends EventEmitter {
         if (typeof field !== "string") {
           // satisfy typescript.
           return;
+        }
+        if (value == null) {
+          // do not coerce null types
+          return value;
         }
         const spec = fields[field];
         if (spec == null) {
@@ -961,17 +982,25 @@ export class SyncTable extends EventEmitter {
   disconnect and reconnect.
   */
   private update_all(v: any[]): any[] {
-    let changed_keys;
     const dbg = this.dbg("update_all");
+    dbg(v);
+
+    let changed_keys;
 
     if (this.state === "closed") {
       // nothing to do -- just ignore updates from db
       throw Error("makes no sense to do update_all when state is closed.");
     }
 
+    if (this.value_local != null && this.value_server != null) {
+      throw Error(
+        "update_all can't be called when local and server values already set"
+      );
+    }
+
     this.emit("before-change");
-    // Restructure the array of records in v as a mapping from the primary key
-    // to the corresponding record.
+    // Restructure the array of records in v as a mapping
+    // from the primary key to the corresponding record.
     const x = {};
     for (let y of v) {
       let key = this.obj_to_key(y);
@@ -980,76 +1009,26 @@ export class SyncTable extends EventEmitter {
       }
     }
 
-    let conflict = false;
-
-    // Figure out what to change in our local view of
-    // the database query result.
-    if (this.value_local == null || this.value_server == null) {
-      dbg(
-        "easy case -- nothing has been initialized yet, so just set everything."
-      );
-      this.value_local = this.value_server = fromJS(x);
-      changed_keys = keys(x); // of course all keys have been changed.
-    } else {
-      dbg("harder case -- everything has already been initialized.");
-      changed_keys = [];
-
-      // DELETE or CHANGED:
-      // First check through each key in our local view of the query
-      // and if the value differs from what is in the database (i.e.,
-      // what we just got from DB), make that change.
-      // (Later we will possibly merge in the change
-      // using the last known upstream database state.)
-      this.value_local.forEach((_, key: string) => {
-        if (this.value_local == null || this.value_server == null) {
-          // to satisfy typescript.
-          return;
-        }
-        if (x[key] != null) {
-          // update value we have locally
-          if (this.handle_new_val(x[key], changed_keys)) {
-            conflict = true;
-          }
-        } else {
-          // This is a value defined locally that does not exist
-          // on the remote serve.   It could be that the value
-          // was deleted when we weren't connected, in which case
-          // we should delete the value we have locally.  On the
-          // other hand, maybe the local value was newly set
-          // while we weren't connected, so we know it but the
-          // backend server doesn't, which case we should keep it,
-          // and set conflict=true, so it gets saved to the backend.
-
-          if (this.value_local.get(key).equals(this.value_server.get(key))) {
-            // The local value for this key was saved to the backend before
-            // we got disconnected, so there's definitely no need to try
-            // keep it around, given that the backend no longer has it
-            // as part of the query.  CRITICAL: This doesn't necessarily mean
-            // the value was deleted from the database, but instead that
-            // it doesn't satisfy the synctable query, e.g., it isn't one
-            // of the 150 most recent file_use notifications, or it isn't
-            // a patch that is at least as new as the newest snapshot.
-            //console.log("removing local value: #{key}")
-            this.value_local = this.value_local.delete(key);
-            changed_keys.push(key);
-          } else {
-            conflict = true;
-          }
-        }
-      });
-
-      // NEWLY ADDED:
-      // Next check through each key in what's on the remote database,
-      // and if the corresponding local key isn't defined, set its value.
-      // Here we are simply checking for newly added records.
-      for (let key in x) {
-        const val = x[key];
-        if (this.value_local.get(key) == null) {
-          this.value_local = this.value_local.set(key, fromJS(val));
-          changed_keys.push(key);
-        }
-      }
+    this.value_server = fromJS(x);
+    if (this.value_server == null) {
+      throw Error("bug -- make typescript happy");
     }
+
+    if (this.coerce_types) {
+      this.value_server = <Map<string, any>>(
+        this.value_server.map((value, _) => this.do_coerce_types(value))
+      );
+    }
+
+    if (this.value_local == null) {
+      // First time to initialize the table, so no local
+      // changes to worry about.
+      this.value_local = this.value_server;
+    }
+
+    changed_keys = keys(x); // of course all keys have been changed.
+
+    dbg("changed_keys = ", changed_keys);
 
     // It's possibly that nothing changed (e.g., typical case
     // on reconnect!) so we check.
@@ -1057,33 +1036,67 @@ export class SyncTable extends EventEmitter {
     // state to what we just got, and
     // also inform listeners of which records changed (by giving keys).
     //console.log("update_all: changed_keys=", changed_keys)
-    if (changed_keys.length !== 0) {
-      this.value_server = fromJS(x);
-      if (this.state === "connected") {
-        // when not yet connected, initial change is emitted
-        // by function that sets up the changefeed.
-        this.emit_change(changed_keys);
-      }
+    if (this.state === "connected") {
+      // When not yet connected, initial change is emitted
+      // by function that sets up the changefeed.  We are
+      // connected here, so we are responsible for emitting
+      // this change.
+      this.emit_change(changed_keys);
     }
-    if (conflict) {
+
+    if (this.value_local != this.value_server) {
+      // Setting to server state, but we had some local changes, so
+      // now is a good time to ensure they get saved.
       this.save();
     }
+
     return changed_keys;
   }
 
-  /* Simulate incoming value as it would come from upstream via
+  /* Call this when the changefeed connection to a backend
+     that maintains this table closes.  This will:
+
+   - clear our knowledge of the server value.
+   - delay doing any saves until we get an update
+     that properly restores the server value.
+  */
+  public disconnect(): void {
+    this.value_server = null;
+  }
+
+  /* Simulate incoming values as they would come from upstream via
      a changefeed.  This is used, e.g., by project-based tables.
      Important: new_val and old_val are plain JS objects, *not*
      immutable maps.
  */
-  public synthetic_change(
-    change: { new_val?: any; old_val?: any },
-    types: boolean = false
-  ): void {
+  public synthetic_change(data: { new_val?: any[]; old_val?: any[] }): void {
+    const dbg = this.dbg("synthetic_change");
+    dbg(data);
     this.assert_not_closed();
+    if (this.value_server == null) {
+      if (data.new_val == null) {
+        throw Error("new_val must be set");
+      }
+      this.update_all(data.new_val);
+      return;
+    }
+
+    if (data.old_val != null) {
+      for (let old_val of data.old_val) {
+        this.synthetic_change1({ old_val });
+      }
+    }
+    if (data.new_val != null) {
+      for (let new_val of data.new_val) {
+        this.synthetic_change1({ new_val });
+      }
+    }
+  }
+
+  private synthetic_change1(change: { new_val?: any; old_val?: any }): void {
     if (change.new_val == null) {
       if (change.old_val != null) {
-        this.update_change(change, types); // delete
+        this.update_change(change); // delete
         return;
       }
       return;
@@ -1104,14 +1117,14 @@ export class SyncTable extends EventEmitter {
         }
       }
     }
-    this.update_change(change, types);
+    this.update_change(change);
   }
 
   /*
   Apply one incoming change from the database to the
   in-memory local synchronized table.
   */
-  private update_change(change, types: boolean = false): void {
+  private update_change(change): void {
     //console.log("_update_change", change)
     if (this.state === "closed") {
       // We might get a few more updates even after
@@ -1142,7 +1155,7 @@ export class SyncTable extends EventEmitter {
     const changed_keys: string[] = [];
     let conflict: boolean = false;
     if (change.new_val != null) {
-      conflict = this.handle_new_val(change.new_val, changed_keys, types);
+      conflict = this.handle_new_val(change.new_val, changed_keys);
     }
 
     if (
@@ -1170,11 +1183,7 @@ export class SyncTable extends EventEmitter {
 
   // - changed_keys gets mutated during this call
   // - returns true only if there is a conflict (??)
-  private handle_new_val(
-    val: any,
-    changed_keys: string[],
-    types: boolean = false
-  ): boolean {
+  private handle_new_val(val: any, changed_keys: string[]): boolean {
     if (this.value_local == null || this.value_server == null) {
       // to satisfy typescript.
       return false;
@@ -1184,8 +1193,8 @@ export class SyncTable extends EventEmitter {
       return false;
     }
     let new_val = fromJS(val);
-    if (types) {
-      new_val = this.coerce_types(new_val);
+    if (this.coerce_types) {
+      new_val = this.do_coerce_types(new_val);
     }
     let local_val = this.value_local.get(key);
     let conflict = false;

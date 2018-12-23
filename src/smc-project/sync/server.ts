@@ -109,7 +109,10 @@ class SyncChannel {
   }
 
   private log(...args): void {
-    this.logger.debug(`SyncChannel('${this.name}', '${this.query_string}'): `, ...args);
+    this.logger.debug(
+      `SyncChannel('${this.name}', '${this.query_string}'): `,
+      ...args
+    );
   }
 
   private init_handlers(): void {
@@ -168,21 +171,21 @@ class SyncChannel {
 
   private send_synctable_all(spark: Spark): void {
     this.log("send_synctable_all");
-    const s = this.synctable_all();
-    if (s == null) {
+    const new_val = this.synctable_all();
+    if (new_val == null) {
       return;
     }
-    spark.write(s);
+    spark.write({ new_val });
   }
 
   private broadcast_synctable_all(): void {
     this.log("broadcast_synctable_all");
-    const s = this.synctable_all();
-    if (s == null) {
+    const new_val = this.synctable_all();
+    if (new_val == null) {
       return;
     }
     this.channel.forEach((spark: Spark) => {
-      spark.write(s);
+      spark.write({ new_val });
     });
   }
 
@@ -191,7 +194,7 @@ class SyncChannel {
       return;
     }
     this.channel.forEach((spark: Spark) => {
-      spark.write(saved_objs);
+      spark.write({ new_val: saved_objs });
     });
   }
 

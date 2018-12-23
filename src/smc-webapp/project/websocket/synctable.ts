@@ -17,40 +17,72 @@ export async function synctable_project(
 ): Promise<SyncTable> {
   // wake up the project
   client.touch_project({ project_id });
-  const synctable = synctable_no_database(
+  const api = (await client.project_websocket(project_id)).api;
+  const channel = await api.synctable_channel(query, options);
+  let initial_get_query: any[] = [];
+
+  function log(...args): void {
+    if ((channel as any).verbose) {
+      console.log(...args);
+    }
+  }
+
+  let synctable: undefined | SyncTable = undefined;
+
+  channel.on("data", function(data) {
+    /* Allowed messages:
+        {new_val?: [...], old_val?:[...]}
+      Nothing else yet.
+
+      TODO: old_val would be used for deleting, but sending deletes is not implemented YET.
+    */
+    log("recv: ", query, "channel=", channel.channel, "data=", data);
+    if (synctable === undefined) {
+      if (data == null || !is_array(data.new_val)) {
+        throw Error("first data must be {new_val:[...]}");
+      }
+      initial_get_query = data.new_val;
+    } else {
+      synctable.synthetic_change(data);
+    }
+  });
+
+  // Wait for initial data, which will initialize the initial_get_query array.
+  await once(channel, "data");
+
+  // Now create the synctable -- note here we pass in the initial_get_query:
+  synctable = synctable_no_database(
     query,
     options,
     client,
-    throttle_changes
+    throttle_changes,
+    initial_get_query
   );
-  const api = (await client.project_websocket(project_id)).api;
-  const channel = await api.synctable_channel(query, options);
-  let first_data = true;
-  channel.on("data", function(data) {
-    // console.log("recv: ", query, "channel=", channel.channel, "data=", data);
-    if (!is_array(data)) {
-      if (data != null && data.error != null) {
-        throw Error(`synctable_project error - ${data.error}`);
-      }
-      console.warn("data = ", data);
-      throw Error("data must be an array");
-    }
-    for (let new_val of data) {
-      synctable.synthetic_change({new_val}, true);
-    }
-    if (first_data) {
-      synctable.emit("project-ready");
-      first_data = false;
-    }
-  });
+
+  (synctable as any).channel = channel; // for dev only
+
   synctable.on("saved-objects", function(saved_objs) {
-    //console.log("send: ", query, "channel=", channel.channel, "saved_objs=", saved_objs);
+    log(
+      "send: ",
+      query,
+      "channel=",
+      channel.channel,
+      "saved_objs=",
+      saved_objs
+    );
     channel.write(saved_objs);
   });
 
-  await once(synctable, "project-ready");
-  synctable.once('closed', function() {
+  synctable.once("closed", function() {
     channel.end();
   });
+
+  channel.on("close", function() {
+    log("channel.close");
+    synctable.disconnect();
+  });
+
+  await once(synctable, "connected");
+
   return synctable;
 }

@@ -23,21 +23,24 @@ export function synctable_no_database(
   query,
   options,
   client: Client,
-  throttle_changes?: undefined | number
+  throttle_changes: undefined | number = undefined,
+  initial_get_query: any[] = []
 ): SyncTable {
   if (options == null) {
     options = [];
   }
-  const client2 = new ClientNoDatabase(client);
-  return new SyncTable(query, options, client2, throttle_changes);
+  const client2 = new ClientNoDatabase(client, initial_get_query);
+  return new SyncTable(query, options, client2, throttle_changes, true);
 }
 
 class ClientNoDatabase extends EventEmitter {
   private client: Client;
+  private initial_get_query: any[];
 
-  constructor(client) {
+  constructor(client, initial_get_query) {
     super();
 
+    this.initial_get_query = initial_get_query;
     bind_methods(this, ["query", "dbg", "query_cancel"]);
     this.client = client;
   }
@@ -63,9 +66,9 @@ class ClientNoDatabase extends EventEmitter {
       // set query
       opts.cb();
     } else {
-      // get query -- returns empty result.
+      // get query -- returns predetermined result (default: empty)
       const table = keys(opts.query)[0];
-      opts.cb(undefined, { query: { [table]: [] } });
+      opts.cb(undefined, { query: { [table]: this.initial_get_query } });
     }
   }
 
