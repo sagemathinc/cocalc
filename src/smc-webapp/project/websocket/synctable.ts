@@ -18,7 +18,6 @@ export async function synctable_project(
   // wake up the project
   client.touch_project({ project_id });
   const api = (await client.project_websocket(project_id)).api;
-  const channel = await api.synctable_channel(query, options);
   let initial_get_query: any[] = [];
 
   function log(...args): void {
@@ -27,9 +26,9 @@ export async function synctable_project(
     }
   }
 
+  let channel: any;
   let synctable: undefined | SyncTable = undefined;
-
-  channel.on("data", function(data) {
+  function handle_data(data) {
     /* Allowed messages:
         {new_val?: [...], old_val?:[...]}
       Nothing else yet.
@@ -45,7 +44,29 @@ export async function synctable_project(
     } else {
       synctable.synthetic_change(data);
     }
-  });
+  }
+
+  async function init_channel() {
+    channel = await api.synctable_channel(query, options);
+    if (synctable != undefined) {
+      (synctable as any).channel = channel; // for dev only
+    }
+    channel.on("data", handle_data);
+
+    // Channel close/open happens on brief network interruptions.  However,
+    // the messages are queued up, so that's fine and no special action is needed.
+    channel.on("close", function() {
+      console.log("close -- TODO!");
+    });
+
+    channel.on("open", function() {
+      channel.removeAllListeners();
+      channel.end();
+      init_channel();
+    });
+  }
+
+  await init_channel();
 
   // Wait for initial data, which will initialize the initial_get_query array.
   await once(channel, "data");
@@ -58,7 +79,6 @@ export async function synctable_project(
     throttle_changes,
     initial_get_query
   );
-
   (synctable as any).channel = channel; // for dev only
 
   synctable.on("saved-objects", function(saved_objs) {
@@ -74,12 +94,13 @@ export async function synctable_project(
   });
 
   synctable.once("closed", function() {
-    channel.end();
-  });
-
-  channel.on("close", function() {
-    log("channel.close");
-    synctable.disconnect();
+    channel.removeAllListeners();
+    try {
+      channel.end();
+    } catch {
+      // closing a project with open files closes the whole websocket *and*
+      // the channels at the same time, which causes an exception.
+    }
   });
 
   await once(synctable, "connected");

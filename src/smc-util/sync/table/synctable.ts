@@ -212,6 +212,16 @@ export class SyncTable extends EventEmitter {
     }
   }
 
+  private async wait_until_value_server(): Promise<void> {
+    if (this.value_server == null) {
+      // can't save until server sends state.  We wait.
+      await once(this, "init-value-server");
+      if (this.value_server == null) {
+        throw Error("bug -- change should initialize value_server");
+      }
+    }
+  }
+
   /*
   Ensure any unsent changes are sent to the backend.
   When this function returns there are no unsent changes,
@@ -220,14 +230,7 @@ export class SyncTable extends EventEmitter {
   */
   public async save(): Promise<void> {
     this.assert_not_closed();
-
-    if (this.value_server == null) {
-      // can't save until server sends state.  We wait.
-      await once(this, "change-no-throttle");
-      if (this.value_server == null) {
-        throw Error("bug -- change should initialize value_server");
-      }
-    }
+    await this.wait_until_value_server();
 
     // quick easy check for unsaved changes and
     // ready to be saved
@@ -267,10 +270,7 @@ export class SyncTable extends EventEmitter {
   converting if necessary.   This has a performance impact,
   but is worth it for sanity's sake!
   */
-  public set(
-    changes: any,
-    merge: "deep" | "shallow" | "none" = "deep"
-  ): any {
+  public set(changes: any, merge: "deep" | "shallow" | "none" = "deep"): any {
     this.assert_not_closed();
 
     if (!Map.isMap(changes)) {
@@ -462,7 +462,7 @@ export class SyncTable extends EventEmitter {
     this.set_throttle_changes();
 
     if (!this.throttle_changes) {
-      this.emit_change = changed_keys => {
+      this.emit_change = (changed_keys: string[]) => {
         this.emit("change", changed_keys);
         this.emit("change-no-throttle", changed_keys);
       };
@@ -495,11 +495,12 @@ export class SyncTable extends EventEmitter {
   }
 
   private dbg(_f?: string): Function {
-    if (false || this.client.is_project()) {
+    /*
+    if (this.client.is_project()) {
       return this.client.dbg(
         `SyncTable('${JSON.stringify(this.query)}').${_f}`
       );
-    }
+    }*/
     return () => {};
   }
 
@@ -726,18 +727,35 @@ export class SyncTable extends EventEmitter {
   the server hasn't been initialized.
   */
   private get_changes(): Changes | undefined {
-    if (this.value_server == null || this.value_local == null) {
+    return this.value_diff(this.value_server, this.value_local);
+  }
+
+  // a and b are actually maps from string to Map<string, any>.
+  private value_diff(
+    a: Map<string, any> | null | undefined,
+    b: Map<string, any> | null | undefined
+  ): Changes | undefined {
+    if (a == null || b == null) {
       return;
     }
     const changed = {};
-    this.value_local.map((new_val, key) => {
-      if (this.value_server == null || key == null) {
+    b.forEach((new_val, key) => {
+      if (a == null || key == null) {
         // because typescript doesn't know the callback is synchronous.
         return;
       }
-      const old_val = this.value_server.get(key);
+      const old_val = a.get(key);
       if (!new_val.equals(old_val)) {
-        return (changed[key] = { new_val, old_val });
+        changed[key] = { new_val, old_val };
+      }
+    });
+    a.forEach((new_val, key) => {
+      if (b == null || key == null || changed[key]) {
+        return;
+      }
+      const old_val = b.get(key);
+      if (!new_val.equals(old_val)) {
+        changed[key] = { new_val, old_val };
       }
     });
     return changed;
@@ -752,6 +770,7 @@ export class SyncTable extends EventEmitter {
   private async _save(): Promise<boolean> {
     //console.log("_save", this.table);
     await this.wait_until_ready_to_query_db();
+    await this.wait_until_value_server();
     if (this.state === "closed") {
       return false;
     }
@@ -982,20 +1001,15 @@ export class SyncTable extends EventEmitter {
   disconnect and reconnect.
   */
   private update_all(v: any[]): any[] {
-    const dbg = this.dbg("update_all");
-    dbg(v);
-
-    let changed_keys;
+    //const dbg = this.dbg("update_all");
 
     if (this.state === "closed") {
       // nothing to do -- just ignore updates from db
       throw Error("makes no sense to do update_all when state is closed.");
     }
 
-    if (this.value_local != null && this.value_server != null) {
-      throw Error(
-        "update_all can't be called when local and server values already set"
-      );
+    if (this.value_local != null || this.value_server != null) {
+      throw Error("update_all both value_local and value_server must be null");
     }
 
     this.emit("before-change");
@@ -1008,27 +1022,13 @@ export class SyncTable extends EventEmitter {
         x[key] = y;
       }
     }
+    const changed_keys = keys(x); // of course all keys have been changed.
 
-    this.value_server = fromJS(x);
+    this.value_local = this.value_server = fromJS(x);
     if (this.value_server == null) {
       throw Error("bug -- make typescript happy");
     }
 
-    if (this.coerce_types) {
-      this.value_server = <Map<string, any>>(
-        this.value_server.map((value, _) => this.do_coerce_types(value))
-      );
-    }
-
-    if (this.value_local == null) {
-      // First time to initialize the table, so no local
-      // changes to worry about.
-      this.value_local = this.value_server;
-    }
-
-    changed_keys = keys(x); // of course all keys have been changed.
-
-    dbg("changed_keys = ", changed_keys);
 
     // It's possibly that nothing changed (e.g., typical case
     // on reconnect!) so we check.
@@ -1044,24 +1044,8 @@ export class SyncTable extends EventEmitter {
       this.emit_change(changed_keys);
     }
 
-    if (this.value_local != this.value_server) {
-      // Setting to server state, but we had some local changes, so
-      // now is a good time to ensure they get saved.
-      this.save();
-    }
-
+    this.emit("init-value-server");
     return changed_keys;
-  }
-
-  /* Call this when the changefeed connection to a backend
-     that maintains this table closes.  This will:
-
-   - clear our knowledge of the server value.
-   - delay doing any saves until we get an update
-     that properly restores the server value.
-  */
-  public disconnect(): void {
-    this.value_server = null;
   }
 
   /* Simulate incoming values as they would come from upstream via
