@@ -1177,7 +1177,10 @@ export class SyncDoc extends EventEmitter {
     if (s == null) {
       throw Error("bug -- get should not return null once table initialized");
     }
-    s.map((locs: any[], k: string) => {
+    s.forEach((locs: any[], k: string) => {
+      if (locs == null) {
+        return;
+      }
       const u = JSON.parse(k);
       if (u != null) {
         this.cursor_map = this.cursor_map.set(this.users[u[1]], locs);
@@ -1196,10 +1199,18 @@ export class SyncDoc extends EventEmitter {
         continue;
       }
       const account_id = this.users[u[1]];
-      this.cursor_map = this.cursor_map.set(
-        account_id,
-        this.cursors_table.get(k)
-      );
+      const locs = this.cursors_table.get(k);
+      if (locs == null && !this.cursor_map.has(account_id)) {
+        // gone, and already gone.
+        continue;
+      }
+      if (locs != null) {
+        // changed
+        this.cursor_map = this.cursor_map.set(account_id, locs);
+      } else {
+        // deleted
+        this.cursor_map = this.cursor_map.delete(account_id);
+      }
       this.emit("cursor_activity", account_id);
     }
   }
