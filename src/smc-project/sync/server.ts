@@ -159,6 +159,22 @@ class SyncChannel {
         this.log("error handling command -- ", err, err.stack);
       }
     });
+
+    spark.on("close", () => {
+      this.log(
+        `spark event -- close connection ${spark.address.ip} -- ${spark.id}`
+      );
+    });
+    spark.on("end", () => {
+      this.log(
+        `spark event -- end connection ${spark.address.ip} -- ${spark.id}`
+      );
+    });
+    spark.on("open", () => {
+      this.log(
+        `spark event -- open connection ${spark.address.ip} -- ${spark.id}`
+      );
+    });
   }
 
   private synctable_all(): any[] | undefined {
@@ -193,9 +209,12 @@ class SyncChannel {
     if (saved_objs.length === 0) {
       return;
     }
+    let n = 0;
     this.channel.forEach((spark: Spark) => {
+      n += 1;
       spark.write({ new_val: saved_objs });
     });
+    this.log(`handle_synctable_save -- wrote data to ${n} sparks`);
   }
 
   private async handle_data(_: Spark, data: any): Promise<void> {
