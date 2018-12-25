@@ -1024,11 +1024,23 @@ export class SyncTable extends EventEmitter {
     }
     const changed_keys = keys(x); // of course all keys have been changed.
 
-    this.value_local = this.value_server = fromJS(x);
+    this.value_server = fromJS(x);
+
     if (this.value_server == null) {
       throw Error("bug -- make typescript happy");
     }
 
+    if (this.coerce_types) {
+      // Ensure all values are properly coerced, as specified
+      // in the database schema.  This is important, e.g., since
+      // when mocking the client db query, JSON is involved and
+      // timestamps are not parsed to Date objects.
+      this.value_server = <Map<string, any>>(
+        this.value_server.map((value, _) => this.do_coerce_types(value))
+      );
+    }
+
+    this.value_local = this.value_server;
 
     // It's possibly that nothing changed (e.g., typical case
     // on reconnect!) so we check.

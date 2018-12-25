@@ -8,62 +8,110 @@ const { is_array } = require("smc-util/misc");
 
 import { once } from "smc-util/async-utils";
 
+interface Data {
+  new_val?: any[];
+  old_val?: any[];
+}
+
 export async function synctable_project(
   project_id,
   query,
   options,
   client,
-  throttle_changes?: undefined | number
+  throttle_changes?: undefined | number,
 ): Promise<SyncTable> {
   // wake up the project
   client.touch_project({ project_id });
-  const api = (await client.project_websocket(project_id)).api;
   let initial_get_query: any[] = [];
 
-  function log(...args): void {
-    if ((channel as any).verbose) {
-      console.log(...args);
-    }
+  function log(..._args): void {
+    // console.log(query, ..._args);
   }
 
   let channel: any;
   let synctable: undefined | SyncTable = undefined;
-  function handle_data(data) {
+  const queued_messages: any[] = [];
+  let connected : boolean = false;
+  const options0 : any[] = [];
+  let queue_size = Infinity;  // "unlimited".
+
+  for (let option of options) {
+    if (option != null && option.queue_size != null) {
+      queue_size = option.queue_size;
+    } else {
+      options0.push(option);
+    }
+  }
+
+  function handle_data(data: Data): void {
     /* Allowed messages:
         {new_val?: [...], old_val?:[...]}
       Nothing else yet.
 
       TODO: old_val would be used for deleting, but sending deletes is not implemented YET.
     */
-    log("recv: ", query, "channel=", channel.channel, "data=", data);
+    log("recv: ", "data=", data);
     if (synctable === undefined) {
-      if (data == null || !is_array(data.new_val)) {
+      if (data == null || data.new_val == null || !is_array(data.new_val)) {
         throw Error("first data must be {new_val:[...]}");
       }
       initial_get_query = data.new_val;
     } else {
       synctable.synthetic_change(data);
     }
+    // Write any queued up messages to our new channel.
+    while (queued_messages.length > 0) {
+      const mesg = queued_messages.shift();
+      channel.write(mesg);
+    }
   }
 
-  async function init_channel() {
-    channel = await api.synctable_channel(query, options);
-    if (synctable != undefined) {
-      (synctable as any).channel = channel; // for dev only
+  function write_to_channel(mesg): void {
+    if (connected) {
+      channel.write(mesg);
+    } else {
+      queued_messages.push(mesg);
+      while (queued_messages.length > queue_size) {
+        queued_messages.shift();
+      }
     }
+  }
+
+  async function init_channel(): Promise<void> {
+    if (channel != null) {
+      end_channel();
+    }
+    const api = (await client.project_websocket(project_id)).api;
+    channel = await api.synctable_channel(query, options);
+    connected = true;
+
     channel.on("data", handle_data);
 
     // Channel close/open happens on brief network interruptions.  However,
     // the messages are queued up, so that's fine and no special action is needed.
     channel.on("close", function() {
-      console.log("close -- TODO!");
+      log("close");
+      connected = false;
     });
 
     channel.on("open", function() {
-      channel.removeAllListeners();
-      channel.end();
+      log("open");
       init_channel();
     });
+  }
+
+  function end_channel(): void {
+    if (channel == null) {
+      return;
+    }
+    channel.removeAllListeners();
+    try {
+      channel.end();
+    } catch {
+      // closing a project with open files closes the whole websocket *and*
+      // the channels at the same time, which causes an exception.
+    }
+    channel = undefined;
   }
 
   await init_channel();
@@ -74,33 +122,19 @@ export async function synctable_project(
   // Now create the synctable -- note here we pass in the initial_get_query:
   synctable = synctable_no_database(
     query,
-    options,
+    options0,
     client,
     throttle_changes,
     initial_get_query
   );
-  (synctable as any).channel = channel; // for dev only
 
   synctable.on("saved-objects", function(saved_objs) {
-    log(
-      "send: ",
-      query,
-      "channel=",
-      channel.channel,
-      "saved_objs=",
-      saved_objs
-    );
-    channel.write(saved_objs);
+    log("send: ", saved_objs);
+    write_to_channel(saved_objs);
   });
 
   synctable.once("closed", function() {
-    channel.removeAllListeners();
-    try {
-      channel.end();
-    } catch {
-      // closing a project with open files closes the whole websocket *and*
-      // the channels at the same time, which causes an exception.
-    }
+    end_channel();
   });
 
   await once(synctable, "connected");

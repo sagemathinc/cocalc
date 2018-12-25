@@ -1163,10 +1163,13 @@ export class SyncDoc extends EventEmitter {
     };
     // We make cursors an ephemeral table, since there is no
     // need to persist it to the database, obviously!
+    // Also, queue_size:1 makes it so only the last cursor position is
+    // saved, e.g., in case of disconnect and reconnect.
     this.cursors_table = await this.client.synctable_project(
       this.project_id,
       query,
-      [{ ephemeral: true }]
+      [{ ephemeral: true }, { queue_size: 1 }],
+      0
     );
     this.assert_not_closed();
 
