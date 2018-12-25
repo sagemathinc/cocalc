@@ -1009,7 +1009,13 @@ export class SyncTable extends EventEmitter {
     }
 
     if (this.value_local != null || this.value_server != null) {
-      throw Error("update_all both value_local and value_server must be null");
+      // TODO: we are throwing away any local changes.  This happens,
+      // e.g., on reconnect due to network dropping and coming back,
+      // but only when using database changefeeds, so basically situations
+      // where local exactly reflecting the database is most important...
+      // However, we *might* want to instead determine what has changed
+      // locally and set after doing this...
+      this.value_local = this.value_server = undefined;
     }
 
     this.emit("before-change");

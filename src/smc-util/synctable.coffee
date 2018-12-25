@@ -230,6 +230,7 @@ class Plug
 class SyncTable extends EventEmitter
     constructor: (_query, _options, _client, _debounce_interval, _throttle_changes, _cache_key) ->
         super()
+        throw Error("old SyncTable #{JSON.stringify(_query)} is deprecated!")
         @setMaxListeners(100)
         @_query = _query
         @_options = _options

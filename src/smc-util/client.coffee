@@ -1814,7 +1814,7 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
         return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
 
-    synctable2: (query, options, throttle_changes=undefined) =>
+    sync_table2: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
 
     synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
