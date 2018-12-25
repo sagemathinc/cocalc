@@ -527,12 +527,23 @@ export class SyncTable extends EventEmitter {
 
   private async create_changefeed(): Promise<void> {
     const dbg = this.dbg("create_changefeed");
-    if (this.state === "closed") {
+    if (this.state === "closed" as State) {
       dbg("closed so don't do anything ever again");
       return;
     }
     dbg("creating changefeed connection...");
-    const initval = await this.create_changefeed_connection();
+    let initval;
+    try {
+      initval = await this.create_changefeed_connection();
+    } catch (err) {
+      // Typically this happens if synctable closed while
+      // creating the connection...
+      this.close();
+      return;
+    }
+    if (this.state === "closed" as State) {
+      return;
+    }
     dbg("got changefeed, now initializing table data");
     this.init_changefeed_handlers();
     const changed_keys = this.update_all(initval);

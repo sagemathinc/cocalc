@@ -35,7 +35,15 @@ export abstract class Table {
     }
   }
 
-  set(changes: object, merge, cb): void {
-    this._table.set(changes, merge, cb);
+  async set(changes: object, merge, cb): Promise<void> {
+    let e : undefined | string = undefined;
+    try {
+      await this._table.set(changes, merge);
+    } catch (err) {
+      e = err.toString();
+    }
+    if (cb != null) {
+      cb(e);
+    }
   }
 }
