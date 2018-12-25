@@ -43,7 +43,6 @@ account = require('./account')
 
 {IS_MOBILE} = require('./feature')
 
-syncstring = require('smc-util/syncstring')
 
 class AbstractSynchronizedDoc extends EventEmitter
     file_path: () =>

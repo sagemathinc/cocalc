@@ -24,13 +24,11 @@ misc      = require('./misc')
 
 {SCHEMA, client_db} = require('smc-util/schema')
 
-syncstring = require('./syncstring')
-synctable  = require('./synctable')
-db_doc     = require('./db-doc')
+## TODO: this was for testing of sync -- now deprecated; will test sync in a different way.
 
-class exports.Client extends syncstring.TestBrowserClient1
+class exports.Client
     constructor: (_client_id=misc.uuid(), _debounce_interval=0) ->
-        super(_client_id, _debounce_interval)
+        # super(_client_id, _debounce_interval)
         # @db is our personal in-memory "database"
         # The keys are the database tables, and the values are
         # the entries in the tables.
@@ -261,35 +259,6 @@ class exports.Client extends syncstring.TestBrowserClient1
         return
 
     query_cancel: =>
-
-    sync_table: (query, options, debounce_interval=0) =>
-        debounce_interval = @_debounce_interval # hard coded for testing
-        return synctable.sync_table(query, options, @, debounce_interval, 0, false)
-
-    sync_string: (opts) =>
-        opts = defaults opts,
-            id                : undefined
-            project_id        : undefined
-            path              : undefined
-            file_use_interval : 'default'
-            cursors           : false
-            save_interval     : 0
-        opts.client = @
-        return new syncstring.SyncString(opts)
-
-    sync_db: (opts) =>
-        opts = defaults opts,
-            project_id      : required
-            path            : required
-            primary_keys    : required
-            string_cols     : undefined
-            cursors         : false
-            change_throttle : 0
-            save_interval   : 0
-        opts.client = @
-        return new db_doc.SyncDB(opts)
-
-
 
 
 

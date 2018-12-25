@@ -41,4 +41,3 @@ export function to_key(x: string[] | string | undefined): string | undefined {
     return x;
   }
 }
-

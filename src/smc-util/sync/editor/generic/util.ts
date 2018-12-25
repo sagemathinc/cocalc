@@ -63,3 +63,18 @@ export function patch_cmp(a: Patch, b: Patch): number {
 export function time_cmp(a: Date, b: Date): number {
   return a.valueOf() - b.valueOf();
 }
+
+
+// Do a 3-way **string** merge by computing patch that transforms
+// base to remote, then applying that patch to local.
+export function three_way_merge(opts: {
+  base: string;
+  local: string;
+  remote: string;
+}): string {
+  if (opts.base === opts.remote) {
+    // trivial special case...
+    return opts.local;
+  }
+  return dmp.patch_apply(dmp.patch_make(opts.base, opts.remote), opts.local)[0];
+}

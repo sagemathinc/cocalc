@@ -30,10 +30,10 @@ MAX_CONCURRENT = 75
 async = require('async')
 underscore = require('underscore')
 
-syncstring = require('./syncstring')
-synctable  = require('./synctable')
 synctable2 = require('./sync/table')
-db_doc = require('./db-doc')
+{synctable_project} = require('smc-webapp/project/websocket/synctable')
+SyncString2 = require('smc-util/sync/editor/string/sync').SyncString
+SyncDB2 = require('smc-util/sync/editor/db').SyncDB
 
 smc_version = require('./smc-version')
 
@@ -1811,9 +1811,6 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
-        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
-
     sync_table2: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
 
@@ -1825,27 +1822,13 @@ class exports.Connection extends EventEmitter
 
     # This is async! The returned synctable is fully initialized.
     synctable_project: (project_id, query, options, throttle_changes=undefined) =>
-        return await require('smc-webapp/project/websocket/synctable').synctable_project(project_id, query, options, @, throttle_changes)
+        return await synctable_project(project_id, query, options, @, throttle_changes)
 
     # this is async
     symmetric_channel: (name, project_id) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
             throw Error("project_id must be a valid uuid")
         return (await @project_websocket(project_id)).api.symmetric_channel(name)
-
-    sync_string: (opts) =>
-        opts = defaults opts,
-            id                 : undefined
-            project_id         : required
-            path               : required
-            file_use_interval  : 'default'
-            cursors            : false
-            patch_interval     : 1000
-            save_interval      : 2000
-            before_change_hook : undefined
-            after_change_hook  : undefined
-        opts.client = @
-        return new syncstring.SyncString(opts)
 
     sync_string2: (opts) =>
         opts = defaults opts,
@@ -1857,21 +1840,7 @@ class exports.Connection extends EventEmitter
             patch_interval    : 1000
             save_interval     : 2000
         opts.client = @
-        SyncString2 = require('smc-util/sync/editor/string/sync').SyncString;
         return new SyncString2(opts)
-
-    sync_db: (opts) =>
-        opts = defaults opts,
-            project_id      : required
-            path            : required
-            primary_keys    : required
-            string_cols     : undefined
-            cursors         : false
-            change_throttle : 500     # amount to throttle change events (in ms)
-            patch_interval  : 1000
-            save_interval   : 2000    # amount to debounce saves (in ms)
-        opts.client = @
-        return new db_doc.SyncDB(opts)
 
     sync_db2: (opts) =>
         opts = defaults opts,
@@ -1886,7 +1855,6 @@ class exports.Connection extends EventEmitter
             primary_keys      : required
             string_cols       : []
         opts.client = @
-        SyncDB2 = require('smc-util/sync/editor/db').SyncDB;
         return new SyncDB2(opts)
 
     # This now returns the new sync_db2 and sync_string2 objects.
@@ -1896,7 +1864,7 @@ class exports.Connection extends EventEmitter
             path       : required
             cb         : required  # cb(err, document)
         opts.client = @
-        db_doc.open_existing_sync_document(opts)
+        open_existing_sync_document(opts)
         return
 
     # If called on the fronted, will make the given file with the given action.
@@ -2073,4 +2041,35 @@ exports.issues_with_create_account = (mesg) ->
     return issues
 
 
+
+open_existing_sync_document = (opts) ->
+    opts = defaults opts,
+        client     : required
+        project_id : required
+        path       : required
+        cb         : required
+    opts.client.query
+        query :
+            syncstrings:
+                project_id : opts.project_id
+                path       : opts.path
+                doctype    : null
+        cb: (err, resp) ->
+            if err
+                opts.cb(err)
+                return
+            if resp.event == 'error'
+                opts.cb(resp.error)
+                return
+            if not resp.query?.syncstrings?
+                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
+                return
+            doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
+            opts2 =
+                project_id : opts.project_id
+                path       : opts.path
+            if doctype.opts?
+                opts2 = misc.merge(opts2, doctype.opts)
+            doc = opts.client["sync_#{doctype.type}2"](opts2)
+            opts.cb(undefined, doc)
 

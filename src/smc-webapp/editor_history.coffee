@@ -572,7 +572,7 @@ class exports.HistoryEditor extends FileEditor
 
 # Compute a line-level diff between two strings, which
 # is useful when showing a diff between two states.
-{dmp} = require('smc-util/syncstring')
+{dmp} = require('smc-util/sync/editor/generic/util')
 line_diff = (v0, v1) ->
     string_mapping = new misc.StringCharMapping()
     result =

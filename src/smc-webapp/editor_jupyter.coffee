@@ -64,7 +64,7 @@ stringify            = require('json-stable-stringify')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
-{dmp}                = require('smc-util/syncstring')
+{dmp}                = require('smc-util/sync/editor/generic/util')
 {webapp_client}      = require('./webapp_client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')

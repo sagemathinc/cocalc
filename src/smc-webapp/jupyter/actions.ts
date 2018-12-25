@@ -54,7 +54,9 @@ const { IPynbImporter } = require("./import-from-ipynb");
 // DEFAULT_KERNEL = "anaconda3";
 const DEFAULT_KERNEL = "sagemath";
 
-const syncstring = require("smc-util/syncstring");
+// Using require due to project import path issue... :-(
+// import { three_way_merge } from "smc-util/sync/editor/generic/util";
+const { three_way_merge } = require("smc-util/sync/editor/generic/util");
 
 const { instantiate_assistant } = require("../assistant/main");
 
@@ -241,7 +243,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  private async set_kernel_after_load() : Promise<void> {
+  private async set_kernel_after_load(): Promise<void> {
     // Browser Client: Wait until the .ipynb file has actually been parsed into
     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
     // then set the kernel, if necessary.
@@ -2055,7 +2057,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (remote == null || base == null || input == null) {
       return;
     }
-    const new_input = syncstring.three_way_merge({
+    const new_input = three_way_merge({
       base,
       local: input,
       remote
