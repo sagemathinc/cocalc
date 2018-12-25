@@ -29,7 +29,7 @@ class MonitorPublicPaths
             path        : null
             last_edited : null
             disabled    : null
-        @_table = @_client.sync_table(public_paths : [pattern])
+        @_table = @_client.sync_table2(public_paths : [pattern])
 
         dbg("initializing find updater to run every #{UPDATE_INTERVAL_S} seconds")
         dbg1 = @dbg("do_update")

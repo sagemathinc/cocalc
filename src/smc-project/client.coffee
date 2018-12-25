@@ -52,6 +52,7 @@ message    = require('smc-util/message')
 misc       = require('smc-util/misc')
 misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
+synctable2 = require('smc-util/sync/table')
 syncstring = require('smc-util/syncstring')
 db_doc     = require('smc-util/db-doc')
 schema     = require('smc-util/schema')
@@ -521,6 +522,9 @@ class exports.Client extends EventEmitter
         #    options           : undefined
         #    debounce_interval : 2000
         #return synctable.sync_table(opts.query, opts.options, @, opts.debounce_interval)
+
+    sync_table2: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable(query, options, @, throttle_changes)
 
     # We leave in the project_id for consistency with the browser UI.
     # And maybe someday we'll have tables managed across projects (?).
