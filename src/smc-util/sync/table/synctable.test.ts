@@ -48,17 +48,44 @@ class ClientTest extends EventEmitter {
 
 describe("creates a system_notifications SyncTable", () => {
   let synctable: SyncTable;
+  const notifications = [
+    {
+      id: "123e4567-e89b-12d3-a456-426655440000",
+      time: new Date(),
+      text: "This is a message.",
+      priority: "low",
+      done: false
+    },
+    {
+      id: "123e4567-e89b-12d3-a456-426655440001",
+      time: new Date(),
+      text: "This is a second message.",
+      priority: "high",
+      done: false
+    }
+  ];
   test("create the synctable", async () => {
-    const client = new ClientTest([
-      {
-        id: "123e4567-e89b-12d3-a456-426655440000",
-        time: new Date(),
-        text: "This is a message.",
-        priority: "low",
-        done: false
-      }
-    ]);
+    const client = new ClientTest(notifications);
     synctable = new SyncTable("system_notifications", [], client);
     await once(synctable, "connected");
+  });
+
+  test("get query the synctable", () => {
+    const x = synctable.get();
+    if (x == null) {
+      throw Error("must be defined since synctable is connected");
+    }
+    expect(x.toJS()).toEqual({
+      [notifications[0].id]: notifications[0],
+      [notifications[1].id]: notifications[1]
+    });
+  });
+
+  test("get_one query the synctable", () => {
+    const x = synctable.get_one();
+    if (x == null) {
+      throw Error("must be defined since synctable is connected");
+    }
+    expect(x.toJS()).toEqual(notifications[0]);
   });
 });
