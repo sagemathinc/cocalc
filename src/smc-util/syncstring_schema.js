@@ -329,7 +329,6 @@ schema.patches = {
   },
   user_query: {
     get: {
-      throttle_changes: 1000,
       fields: {
         string_id: null,
         time: null,
@@ -465,7 +464,6 @@ schema.cursors = {
   },
   user_query: {
     get: {
-      throttle_changes: 1000,
       fields: {
         string_id: null,
         user_id: null,

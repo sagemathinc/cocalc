@@ -6,6 +6,7 @@ import { keys } from "../../misc2";
 /* Basic Client class that we use for testing. */
 class ClientTest extends EventEmitter {
   private initial_get_query: any[];
+  public set_queries: any[] = [];
 
   constructor(initial_get_query) {
     super();
@@ -33,6 +34,7 @@ class ClientTest extends EventEmitter {
   public query(opts): void {
     if (opts.options && opts.options.length === 1 && opts.options[0].set) {
       // set query
+      this.set_queries.push(opts);
       opts.cb();
     } else {
       // get query -- returns predetermined result (default: empty)
@@ -46,7 +48,7 @@ class ClientTest extends EventEmitter {
   public alert_message(_): void {}
 }
 
-describe("creates a system_notifications SyncTable", () => {
+describe("tests a system_notifications SyncTable", () => {
   let synctable: SyncTable;
   const notifications = [
     {
@@ -64,9 +66,10 @@ describe("creates a system_notifications SyncTable", () => {
       done: false
     }
   ];
+  const client = new ClientTest(notifications);
   test("create the synctable", async () => {
-    const client = new ClientTest(notifications);
-    synctable = new SyncTable("system_notifications", [], client);
+    // last 0 is to disable change throttling, which messes up jest.
+    synctable = new SyncTable("system_notifications", [], client, 0);
     await once(synctable, "connected");
   });
 
@@ -109,11 +112,25 @@ describe("creates a system_notifications SyncTable", () => {
   });
 
   test("get_one query for other primary key", () => {
-    const x = synctable.get_one('foo');
-    expect(x).toBe(undefined)
+    const x = synctable.get_one("foo");
+    expect(x).toBe(undefined);
     // also the get is the same when there is an arg.
-    expect(x).toBe(synctable.get('foo'));
+    expect(x).toBe(synctable.get("foo"));
   });
 
+  test("does not have uncommitted changes", () => {
+    expect(synctable.has_uncommitted_changes()).toBe(false);
+  });
 
+  test("make change; then has uncommitted changes", () => {
+    expect(client.set_queries.length).toBe(0);
+    synctable.set({ id: notifications[1].id, priority: "medium" });
+    expect(synctable.has_uncommitted_changes()).toBe(true);
+  });
+
+  test("save change; then does not have uncommitted changes", async () => {
+    await synctable.save();
+    expect(client.set_queries.length).toBe(1);
+    expect(synctable.has_uncommitted_changes()).toBe(false);
+  });
 });
