@@ -88,4 +88,25 @@ describe("creates a system_notifications SyncTable", () => {
     }
     expect(x.toJS()).toEqual(notifications[0]);
   });
+
+  test("get_one query for one primary key", () => {
+    const x = synctable.get_one(notifications[0].id);
+    if (x == null) {
+      throw Error("must be defined since synctable is connected");
+    }
+    expect(x.toJS()).toEqual(notifications[0]);
+  });
+  
+  test("get_one query for other primary key", () => {
+    const x = synctable.get_one(notifications[1].id);
+    if (x == null) {
+      throw Error("must be defined since synctable is connected");
+    }
+    expect(x.toJS()).toEqual(notifications[1]);
+  });
+  
+  test("get_one query for other primary key", () => {
+    const x = synctable.get_one('foo');
+    expect(x).toBe(undefined)
+  });
 });
