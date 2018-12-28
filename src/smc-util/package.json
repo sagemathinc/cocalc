@@ -31,12 +31,15 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
+    "@types/jest": "^23.3.10",
     "coffee-coverage": "^0.6.3",
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
+    "jest": "^23.6.0",
     "mocha": "^2.3.3",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
-    "sinon": "^1.17.2"
+    "sinon": "^1.17.2",
+    "ts-jest": "^23.10.5"
   }
 }

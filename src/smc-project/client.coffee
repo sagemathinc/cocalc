@@ -408,7 +408,9 @@ class exports.Client extends EventEmitter
         )
 
     # Read file as a string from disk.
-    # If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
+    # If file is currently being written or read in this process, 
+    # will retry until it isn't, so we do not get an error and we 
+    # do NOT get silently corrupted data.
     path_read: (opts) =>
         opts = defaults opts,
             path       : required

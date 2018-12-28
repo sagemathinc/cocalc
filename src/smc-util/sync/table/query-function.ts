@@ -5,7 +5,8 @@ Determine function that does query.
 const async = require("async");
 
 const schema = require("../../schema");
-const misc = require("smc-util/misc");
+
+import { copy } from "../../misc2";
 
 export function query_function(
   client_query: Function,
@@ -31,7 +32,7 @@ export function query_function(
     const change_queue: { err: any; change: any }[] = [];
 
     function do_initial_read_query(cb: Function): void {
-      const opts2 = misc.copy(opts);
+      const opts2 = copy(opts);
       opts2.standby = true;
       opts2.changes = false;
       opts2.cb = function(err, resp): void {
@@ -52,7 +53,7 @@ export function query_function(
 
     function start_changefeed(cb: Function): void {
       let first_resp: boolean = true;
-      const opts2 = misc.copy(opts);
+      const opts2 = copy(opts);
       opts2.standby = false;
       opts2.changes = true;
       opts2.cb = function(err, change): void {
@@ -71,7 +72,7 @@ export function query_function(
       client_query(opts2);
     }
 
-    let f : Function;
+    let f: Function;
     if (db_standby === "unsafe") {
       /* If db_standby == 'unsafe', then we do not even require
          the changefeed to be working before doing the full query.

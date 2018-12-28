@@ -805,8 +805,8 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
-    //    return this.client.dbg(`sync-doc("${this.path}").${_f}`);
+    //return (..._) => {};
+    return this.client.dbg(`sync-doc("${this.path}").${_f}`);
   }
 
   private async init_all(): Promise<void> {
@@ -1814,41 +1814,17 @@ export class SyncDoc extends EventEmitter {
       }, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`
     );
     if (
-      time -
-        (this.save_to_disk_start_ctime != null
-          ? this.save_to_disk_start_ctime
-          : 0) >=
-      7 * 1000
+      this.save_to_disk_start_ctime == null ||
+      (this.save_to_disk_end_ctime != null &&
+        time - this.save_to_disk_end_ctime >= 7 * 1000)
     ) {
-      // last attempt to save was at least 7s ago, so definitely
-      // this change event was not caused by it.
-      dbg("load_from_disk since no recent save");
+      // Either we never saved to disk, or the last attempt
+      // to save was at least 7s ago, and it finished,
+      // so definitely this change event was not caused by it.
+      dbg("load_from_disk since no recent save to disk");
       this.load_from_disk();
       return;
     }
-    if (this.save_to_disk_end_ctime == null) {
-      // save event started less than 15s and isn't done.
-      // ignore this load.
-      dbg(
-        "unfinished this.save_to_disk just happened, so ignoring file change"
-      );
-      return;
-    }
-    if (this.save_to_disk_start_ctime == null) {
-      // this can't happen due to checks above, but it makes
-      // typescript happier.
-      return;
-    }
-    if (
-      this.save_to_disk_start_ctime <= time &&
-      time <= this.save_to_disk_end_ctime
-    ) {
-      // changed triggered during the save
-      dbg("change happened during this.save_to_disk, so ignoring file change");
-      return;
-    }
-    // Changed happened near to when there was a save... ignore.
-    dbg("happened too close to recent save, so ignoring");
   }
 
   private async handle_file_watcher_delete(): Promise<void> {
@@ -2165,7 +2141,7 @@ export class SyncDoc extends EventEmitter {
       this.assert_is_ready();
       const stat = await callback2(this.client.path_stat, { path });
       this.assert_is_ready();
-      this.save_to_disk_end_ctime = stat.ctime.valueOf();
+      this.save_to_disk_end_ctime = stat.ctime.valueOf() + 1500;
       await this.set_save({
         state: "done",
         error: "",
@@ -2185,7 +2161,6 @@ export class SyncDoc extends EventEmitter {
     live version as a result.
   */
   private handle_patch_update(changed_keys): void {
-    //console.log("_handle_patch_update #{misc.to_json(changed_keys)}")
     if (changed_keys == null || changed_keys.length === 0) {
       // this happens right now when we do a save.
       return;
