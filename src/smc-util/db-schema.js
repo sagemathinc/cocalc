@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -99,7 +92,7 @@ schema.stats =
 
 */
 
-const DEFAULT_FONT_SIZE = exports.DEFAULT_FONT_SIZE = 14;
+const DEFAULT_FONT_SIZE = (exports.DEFAULT_FONT_SIZE = 14);
 
 const misc = require("./misc");
 
@@ -385,7 +378,7 @@ schema.accounts = {
             obj[field] = obj[field].slice(0, 254);
           }
         }
-        return cb();
+        cb();
       }
     }
   }
@@ -470,13 +463,13 @@ schema.blobs = {
           cb("id must be specified");
           return;
         }
-        return database.get_blob({
+        database.get_blob({
           uuid: obj.id,
           cb(err, blob) {
             if (err) {
-              return cb(err);
+              cb(err);
             } else {
-              return cb(undefined, { id: obj.id, blob });
+              cb(undefined, { id: obj.id, blob });
             }
           }
         });
@@ -499,7 +492,7 @@ schema.blobs = {
         project_id: true
       },
       instead_of_change(database, old_val, new_val, account_id, cb) {
-        return database.save_blob({
+        database.save_blob({
           uuid: new_val.id,
           blob: new_val.blob,
           ttl: new_val.ttl,
@@ -749,7 +742,7 @@ schema.file_use = {
     set: {
       fields: {
         id(obj, db) {
-          return db.sha1(obj.project_id, obj.path);
+          db.sha1(obj.project_id, obj.path);
         },
         project_id: "project_write",
         path: true,
@@ -772,7 +765,7 @@ schema.file_use = {
         if (x != null && (x.edit >= recent || x.chat >= recent)) {
           db.touch({ project_id: obj.project_id, account_id });
         }
-        return typeof cb === "function" ? cb() : undefined;
+        typeof cb === "function" ? cb() : undefined;
       }
     }
   }
@@ -1154,7 +1147,7 @@ schema.projects = {
       },
 
       before_change(database, old_val, new_val, account_id, cb) {
-        return database._user_set_query_project_change_before(
+        database._user_set_query_project_change_before(
           old_val,
           new_val,
           account_id,
@@ -1163,7 +1156,7 @@ schema.projects = {
       },
 
       on_change(database, old_val, new_val, account_id, cb) {
-        return database._user_set_query_project_change_after(
+        database._user_set_query_project_change_after(
           old_val,
           new_val,
           account_id,
@@ -1237,7 +1230,7 @@ schema.project_invite_requests = {
         invite_requests: true
       },
       before_change(database, old_val, new_val, account_id, cb) {
-        return cb();
+        cb();
       }
     }
   } // actual function will be database._user... as below.
@@ -1753,7 +1746,9 @@ class ClientDB {
         .map(x => (typeof x === "string" ? x : JSON.stringify(x)))
         .join("");
     } catch (err) {
-      __guardMethod__(console, "warn", o => o.warn("args=", args));
+      if (console != null && console.warn != null) {
+        console.warn("args=", args);
+      }
       throw err;
     }
     return sha1(v);
@@ -1765,10 +1760,10 @@ class ClientDB {
   }
 
   _user_set_query_project_change_after(obj, old_val, new_val, cb) {
-    return cb();
+    cb();
   }
   _user_set_query_project_change_before(obj, old_val, new_val, cb) {
-    return cb();
+    cb();
   }
 
   primary_keys(table) {
@@ -1802,15 +1797,3 @@ class ClientDB {
 }
 
 exports.client_db = new ClientDB();
-
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
-  }
-}
