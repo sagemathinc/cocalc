@@ -8,6 +8,8 @@ TODO:
 silently swallowed in persistent mode...
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
+
 import {
   synctable_no_changefeed,
   synctable_no_database,
@@ -88,8 +90,11 @@ class SyncChannel {
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log("creating new sync channel");
+  }
+
+  public async init(): Promise<void> {
     this.init_handlers();
-    this.init_synctable();
+    return await this.init_synctable();
   }
 
   private init_options(options): void {
@@ -241,7 +246,11 @@ class SyncChannel {
 
 const sync_channels: { [name: string]: SyncChannel } = {};
 
-export async function sync_channel(
+function createKey(args): string {
+  return JSON.stringify([args[3], args[4]]);
+}
+
+async function sync_channel0(
   client: any,
   primus: any,
   logger: any,
@@ -261,6 +270,9 @@ export async function sync_channel(
       options,
       logger
     });
+    await sync_channels[name].init();
   }
   return name;
 }
+
+export const sync_channel = reuseInFlight(sync_channel0, { createKey });
