@@ -13,21 +13,32 @@ export class Changefeed extends EventEmitter {
   private id: string;
   private options: any;
 
-  constructor({ do_query, query_cancel, options, query, table }) {
+  constructor({
+    do_query,
+    query_cancel,
+    options,
+    query,
+    table
+  }: {
+    do_query: Function;
+    query_cancel: Function;
+    options: any;
+    table: string;
+    query: any;
+  }) {
     super();
     this.do_query = do_query;
     this.query_cancel = query_cancel;
     this.query = query;
     this.options = options;
     this.table = table;
-    this.handle_update = this.handle_update.bind(this);
   }
 
   // Query for state of the table, connects to the
   // changefeed, and return the initial state
   // of the table.  Throws an exception if anything
   // goes wrong.
-  async connect(): Promise<any> {
+  public async connect(): Promise<any> {
     if (this.state != "disconnected") {
       throw Error(
         `can only connect if state is 'disconnected' but it is ${this.state}`
@@ -35,7 +46,7 @@ export class Changefeed extends EventEmitter {
     }
     this.state = "connecting";
     const resp = await callback(this.run_the_query.bind(this));
-    if (this.state === "closed" as State) {
+    if (this.state === ("closed" as State)) {
       throw Error("closed");
     }
     if (resp.event === "query_cancel") {
@@ -50,7 +61,6 @@ export class Changefeed extends EventEmitter {
     return resp.query[this.table];
   }
 
-  // This is overloaded in the ChangefeedStandby derived class.
   private run_the_query(cb: Function): void {
     // This query_function gets called first on the
     // initial query, then repeatedly with each changefeed
@@ -68,7 +78,7 @@ export class Changefeed extends EventEmitter {
         // This calls cb the first time, and  calls
         // handle_changefeed_update ever after.
         f(err, resp);
-        f = this.handle_update;
+        f = this.handle_update.bind(this);
       }
     });
   }
@@ -78,11 +88,22 @@ export class Changefeed extends EventEmitter {
       this.close();
       return;
     }
-    if (err || (resp != null && resp.event === "query_cancel")) {
+    if (resp == null && err == null) {
+      err = "resp must not be null for non-error";
+    }
+    if (err || resp.event === "query_cancel") {
       this.close();
       return;
     }
-    this.emit("update", { new_val: resp.new_val, old_val: resp.old_val });
+    // Return just the new_val/old_val part of resp.
+    const x: { new_val?: any; old_val?: any } = {};
+    if (resp.new_val) {
+      x.new_val = resp.new_val;
+    }
+    if (resp.old_val) {
+      x.new_val = resp.old_val;
+    }
+    this.emit("update", x);
   }
 
   public close(): void {
@@ -94,6 +115,10 @@ export class Changefeed extends EventEmitter {
     }
     this.emit("close");
     this.removeAllListeners();
+  }
+
+  public get_state(): string {
+    return this.state;
   }
 }
 
