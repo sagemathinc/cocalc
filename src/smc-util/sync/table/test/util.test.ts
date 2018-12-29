@@ -1,4 +1,4 @@
-import { to_key } from "./util";
+import { to_key } from "../util";
 
 test('convert string to string key', () => {
   expect(to_key('foo')).toBe('foo')

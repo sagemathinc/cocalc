@@ -1,52 +1,6 @@
-import { EventEmitter } from "events";
-import { SyncTable } from "./synctable";
-import { bind_methods, once } from "../../async-utils";
-import { keys } from "../../misc2";
-
-/* Basic Client class that we use for testing. */
-class ClientTest extends EventEmitter {
-  private initial_get_query: any[];
-  public set_queries: any[] = [];
-
-  constructor(initial_get_query) {
-    super();
-
-    this.initial_get_query = initial_get_query;
-    bind_methods(this, ["query", "dbg", "query_cancel"]);
-  }
-
-  public is_project(): boolean {
-    return false;
-  }
-
-  public is_connected(): boolean {
-    return true;
-  }
-
-  public is_signed_in(): boolean {
-    return true;
-  }
-
-  public dbg(_: string): Function {
-    return console.log;
-  }
-
-  public query(opts): void {
-    if (opts.options && opts.options.length === 1 && opts.options[0].set) {
-      // set query
-      this.set_queries.push(opts);
-      opts.cb();
-    } else {
-      // get query -- returns predetermined result (default: empty)
-      const table = keys(opts.query)[0];
-      opts.cb(undefined, { query: { [table]: this.initial_get_query } });
-    }
-  }
-
-  public query_cancel(_): void {}
-
-  public alert_message(_): void {}
-}
+import { SyncTable } from "../synctable";
+import { once } from "../../../async-utils";
+import { ClientTest } from "./client-test";
 
 describe("tests public API of a system_notifications SyncTable", () => {
   let synctable: SyncTable;
@@ -70,6 +24,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
   test("create the synctable", async () => {
     // last 0 is to disable change throttling, which messes up jest.
     synctable = new SyncTable("system_notifications", [], client, 0);
+    expect(synctable.get_state()).toBe("disconnected");
     await once(synctable, "connected");
   });
 
@@ -153,6 +108,15 @@ describe("tests public API of a system_notifications SyncTable", () => {
     await p;
   });
 
+  test("a change event", async done => {
+    synctable.once("change", keys => {
+      expect(keys).toEqual(["123e4567-e89b-12d3-a456-426655440001"]);
+      done();
+    });
+    synctable.set({ id: notifications[1].id, priority: "medium" });
+    await synctable.save();
+  });
+
   test("closing the synctable", async () => {
     const n = client.set_queries.length;
     expect(synctable.get_state()).toBe("connected");
@@ -175,13 +139,13 @@ describe("tests public API of a system_notifications SyncTable", () => {
     await synctable.close();
     try {
       await synctable.wait(() => true);
-    } catch(err) {
-      expect(err.toString()).toContain('closed');
+    } catch (err) {
+      expect(err.toString()).toContain("closed");
     }
     try {
       await synctable.save();
-    } catch(err) {
-      expect(err.toString()).toContain('closed');
+    } catch (err) {
+      expect(err.toString()).toContain("closed");
     }
   });
 });

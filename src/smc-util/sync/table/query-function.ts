@@ -4,15 +4,14 @@ Determine function that does query.
 
 const async = require("async");
 
-const schema = require("../../schema");
-
+import { SCHEMA } from "../../schema";
 import { copy } from "../../misc2";
 
 export function query_function(
   client_query: Function,
   table: string
 ): Function {
-  const s = schema.SCHEMA[table];
+  const s = SCHEMA[table];
   if (s == null) {
     throw Error(`unknown table ${table}`);
   }
