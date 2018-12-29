@@ -36,16 +36,13 @@ export async function wait({
   timeout: number;
   change_event: string;
 }): Promise<any> {
-  let x = await until(obj);
-  if (x) {
-    // Already true -- done.
-    return x;
-  }
-
   function wait(cb): void {
     let fail_timer: any = undefined;
 
     function done(err, ret?): void {
+      if (cb === undefined) {
+        return;
+      }
       obj.removeListener(change_event, f);
       obj.removeListener("close", f);
 
@@ -54,6 +51,7 @@ export async function wait({
         fail_timer = undefined;
       }
       cb(err, ret);
+      cb = undefined;
     }
 
     async function f() {
@@ -61,6 +59,7 @@ export async function wait({
         done("closed");
         return;
       }
+      let x;
       try {
         x = await until(obj);
       } catch (err) {
@@ -81,6 +80,9 @@ export async function wait({
       };
       fail_timer = setTimeout(fail, 1000 * timeout);
     }
+
+    // It might already be true (even before event fires):
+    f();
   }
 
   return await callback(wait);

@@ -53,6 +53,8 @@ kucalc = require('./kucalc')
 
 blobs = require('./blobs')
 
+{get_syncdoc} = require('./sync/sync-doc')
+
 {defaults, required} = misc
 
 DEBUG = false
@@ -340,10 +342,15 @@ class exports.Client extends EventEmitter
         return the_synctable
 
     # WARNING: making two of the exact same sync_string or sync_db will definitely
-    # lead to corruption!  The backend code currently only makes these in _update_recent_syncstrings,
-    # right now, so we are OK.  Will need to improve this in the longrun!
+    # lead to corruption!
 
-    # Get the synchronized string with the given path.
+    # Get the synchronized doc with the given path.  Returns undefined
+    # if currently no such sync-doc.
+    syncdoc: (opts) =>
+        opts = defaults opts,
+            path : required
+        return get_syncdoc(opts.path)
+    ###
     sync_string2: (opts) =>
         opts = defaults opts,
             id                : undefined
@@ -370,6 +377,7 @@ class exports.Client extends EventEmitter
         opts.project_id = @project_id
         SyncDB2 = syncdb2.SyncDB;
         return new SyncDB2(opts)
+    ###
 
     symmetric_channel: (name) =>
         return require('./browser-websocket/symmetric_channel').symmetric_channel(name)
@@ -408,8 +416,8 @@ class exports.Client extends EventEmitter
         )
 
     # Read file as a string from disk.
-    # If file is currently being written or read in this process, 
-    # will retry until it isn't, so we do not get an error and we 
+    # If file is currently being written or read in this process,
+    # will retry until it isn't, so we do not get an error and we
     # do NOT get silently corrupted data.
     path_read: (opts) =>
         opts = defaults opts,

@@ -369,12 +369,10 @@ export class SyncTable extends EventEmitter {
           throw Error("merge must be one of 'deep', 'shallow', 'none'");
       }
     }
-    // If something changed, then change in our local store,
-    // and also kick off a save to the backend.
+    // If something changed, then change in our local store.
     if (!immutable_is(new_val, cur)) {
       this.value_local = this.value_local.set(id, new_val);
       this.emit_change([id]);
-      this.save();
     }
 
     return new_val;
@@ -527,7 +525,7 @@ export class SyncTable extends EventEmitter {
 
   private async create_changefeed(): Promise<void> {
     const dbg = this.dbg("create_changefeed");
-    if (this.state === "closed" as State) {
+    if (this.state === ("closed" as State)) {
       dbg("closed so don't do anything ever again");
       return;
     }
@@ -541,7 +539,7 @@ export class SyncTable extends EventEmitter {
       this.close();
       return;
     }
-    if (this.state === "closed" as State) {
+    if (this.state === ("closed" as State)) {
       return;
     }
     dbg("got changefeed, now initializing table data");

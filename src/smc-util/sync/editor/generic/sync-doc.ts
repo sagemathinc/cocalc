@@ -273,6 +273,7 @@ export class SyncDoc extends EventEmitter {
       this.cursor_last_time = x.time;
     }
     this.cursors_table.set(x, "none");
+    this.cursors_table.save();
   }
 
   private init_file_use_interval(): void {
@@ -1242,6 +1243,7 @@ export class SyncDoc extends EventEmitter {
       string_id: this.string_id,
       settings: obj
     });
+    this.syncstring_table.save();
   }
 
   // get settings object
@@ -1320,6 +1322,7 @@ export class SyncDoc extends EventEmitter {
     const x = this.syncstring_table_get_one().set("deleted", false);
     // Now write that as new version to table.
     this.syncstring_table.set(x);
+    this.syncstring_table.save();
   }
 
   // Promise resolves when save to the backend done
@@ -1358,6 +1361,7 @@ export class SyncDoc extends EventEmitter {
 
     //console.log 'saving patch with time ', time.valueOf()
     const x = this.patches_table.set(obj, "none");
+    await this.patches_table.save();
     const y = this.process_patch(x, undefined, undefined, patch);
     if (y != null) {
       this.patch_list.add([y]);
@@ -1571,6 +1575,7 @@ export class SyncDoc extends EventEmitter {
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("snapshot_interval", n)
     );
+    this.syncstring_table.save();
   }
 
   /* Check if any patches that just got confirmed as saved
@@ -1593,6 +1598,7 @@ export class SyncDoc extends EventEmitter {
         // offline, so clients could potentially discard it.
         obj.sent = now;
         this.patches_table.set(obj);
+        this.patches_table.save();
         if (oldest == null || obj.time < oldest) {
           oldest = obj.time;
         }
@@ -1686,6 +1692,7 @@ export class SyncDoc extends EventEmitter {
       doctype: JSON.stringify(this.doctype)
     };
     this.syncstring_table.set(obj);
+    this.syncstring_table.save();
     this.settings = Map();
     this.emit("metadata-change");
     this.emit("settings-change", this.settings);

@@ -36,8 +36,13 @@ export async function run_prettier(
   logger: any
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
-  const syncstring = client.sync_string2({ path });
-  await once(syncstring, "ready");
+  const syncstring = client.syncdoc({ path });
+  if (syncstring == null || syncstring.get_state() == 'closed') {
+    return { status: "error", error: "document not fully opened",  phase: "format"};
+  }
+  if (syncstring.get_state() != 'ready') {
+    await once(syncstring, "ready");
+  }
   const doc = syncstring.get_doc();
   let pretty, math;
   let input = doc.to_str();

@@ -27,6 +27,8 @@ import { once } from "../smc-util/async-utils";
 import { filename_extension } from "../smc-util/misc2";
 import { jupyter_backend } from "../jupyter/jupyter";
 
+const syncdocs : {[path:string] : SyncDoc}= {};
+
 export function init_syncdoc(
   client: Client,
   synctable: SyncTable,
@@ -40,6 +42,13 @@ export function init_syncdoc(
   }
   // It's the right type of table and not closed.  Now do the real setup work (without blocking).
   init_syncdoc_async(client, synctable, logger);
+}
+
+// If there is an already existing syncdoc for this path,
+// return it; otherwise, return undefined.  This is useful
+// for getting a reference to a syncdoc, e.g., for prettier.
+export function get_syncdoc(path: string) : SyncDoc | undefined {
+  return syncdocs[path];
 }
 
 async function init_syncdoc_async(
@@ -63,6 +72,7 @@ async function init_syncdoc_async(
   let syncdoc;
   try {
     syncdoc = create_syncdoc(type, opts);
+    syncdocs[opts.path] = syncdoc;
   } catch (err) {
     log(`ERROR creating syncdoc -- ${err.toString()}`, err.stack);
     // TODO: how to properly inform clients and deal with this?!

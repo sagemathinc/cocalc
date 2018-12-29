@@ -125,12 +125,31 @@ describe("tests a system_notifications SyncTable", () => {
   test("make change; then has uncommitted changes", () => {
     expect(client.set_queries.length).toBe(0);
     synctable.set({ id: notifications[1].id, priority: "medium" });
+    // Set does not cause a database write (via save).
+    expect(client.set_queries.length).toBe(0);
     expect(synctable.has_uncommitted_changes()).toBe(true);
   });
 
   test("save change; then does not have uncommitted changes", async () => {
     await synctable.save();
+    // Set causes a database write:
     expect(client.set_queries.length).toBe(1);
     expect(synctable.has_uncommitted_changes()).toBe(false);
+  });
+
+  test("waiting for a condition to be satisfied", async () => {
+    function satisfy_condition() {
+      synctable.set({ id: notifications[1].id, priority: "high" });
+      synctable.save();
+    }
+
+    function until(s) {
+      const priority = s.get(notifications[1].id).get("priority");
+      return priority === "high";
+    }
+
+    const p = synctable.wait(until);
+    satisfy_condition();
+    await p;
   });
 });
