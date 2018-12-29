@@ -96,5 +96,4 @@ describe("first test of the public API of the Changefeed class", () => {
     });
     changefeed.close();
   });
-
 });

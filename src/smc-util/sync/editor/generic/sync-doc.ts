@@ -56,7 +56,7 @@ import { wait } from "../../../async-wait";
 
 import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
 
-const { Evaluator } = require("../../../syncstring_evaluator");
+import { Evaluator } from "./evaluator";
 
 const {
   hash_string,
@@ -1142,7 +1142,8 @@ export class SyncDoc extends EventEmitter {
       // only use init_evaluator for sagews
       return;
     }
-    await callback(cb => (this.evaluator = new Evaluator(this, cb)));
+    this.evaluator = new Evaluator(this);
+    await this.evaluator.init();
   }
 
   private async init_cursors(): Promise<void> {
