@@ -148,6 +148,8 @@ export class SyncTable extends EventEmitter {
   (Always returns false when not yet initialized.)
   */
   public has_uncommitted_changes(): boolean {
+    this.assert_not_closed();
+
     if (this.value_server == null && this.value_local == null) {
       return false;
     }
@@ -173,6 +175,8 @@ export class SyncTable extends EventEmitter {
     is really best thought of as a key:value store!
   */
   public get(arg?): Map<string, any> | undefined {
+    this.assert_not_closed();
+
     if (this.value_local == null) {
       return;
     }
@@ -202,6 +206,8 @@ export class SyncTable extends EventEmitter {
   case (a so-called "wide" table?.)
   */
   public get_one(arg?): Map<string, any> | undefined {
+    this.assert_not_closed();
+
     if (arg == null) {
       return this.value_local != null
         ? this.value_local.toSeq().first()
@@ -230,6 +236,7 @@ export class SyncTable extends EventEmitter {
   */
   public async save(): Promise<void> {
     this.assert_not_closed();
+
     await this.wait_until_value_server();
 
     // quick easy check for unsaved changes and
@@ -378,7 +385,7 @@ export class SyncTable extends EventEmitter {
     return new_val;
   }
 
-  public close(fatal: boolean = false) {
+  public async close(fatal: boolean = false) : Promise<void> {
     if (this.state === "closed") {
       // already closed
       return;
@@ -393,7 +400,7 @@ export class SyncTable extends EventEmitter {
     if (!fatal) {
       // do a last attempt at a save (so we don't lose data),
       // then really close.
-      this._save(); // this will synchronously construct the last save and send it
+      await this.save(); // attempt last save to database.
     }
     /*
     The moment the sync part of _save is done, we remove listeners
@@ -403,6 +410,7 @@ export class SyncTable extends EventEmitter {
     do anything!!  That finality assumption is made
     elsewhere (e.g in smc-project/client.coffee)
     */
+
     this.close_changefeed();
     this.set_state("closed");
     this.removeAllListeners();
@@ -411,6 +419,8 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
+    this.assert_not_closed();
+
     return await wait({
       obj: this,
       until,

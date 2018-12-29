@@ -48,7 +48,7 @@ class ClientTest extends EventEmitter {
   public alert_message(_): void {}
 }
 
-describe("tests a system_notifications SyncTable", () => {
+describe("tests public API of a system_notifications SyncTable", () => {
   let synctable: SyncTable;
   const notifications = [
     {
@@ -151,5 +151,37 @@ describe("tests a system_notifications SyncTable", () => {
     const p = synctable.wait(until);
     satisfy_condition();
     await p;
+  });
+
+  test("closing the synctable", async () => {
+    const n = client.set_queries.length;
+    expect(synctable.get_state()).toBe("connected");
+    synctable.set({ id: notifications[1].id, priority: "low" });
+    expect(synctable.has_uncommitted_changes()).toBe(true);
+    synctable.close();
+    await once(synctable, "closed");
+    expect(client.set_queries.length).toBe(n + 1); // final save happened
+  });
+
+  test("closed synctable -- has the right state", () => {
+    expect(synctable.get_state()).toBe("closed");
+  });
+
+  test("closed synctable -- most public API functions throw an error", async () => {
+    expect(() => synctable.set({ priority: "medium" })).toThrow("closed");
+    expect(() => synctable.get()).toThrow("closed");
+    expect(() => synctable.get_one()).toThrow("closed");
+    expect(() => synctable.has_uncommitted_changes()).toThrow("closed");
+    await synctable.close();
+    try {
+      await synctable.wait(() => true);
+    } catch(err) {
+      expect(err.toString()).toContain('closed');
+    }
+    try {
+      await synctable.save();
+    } catch(err) {
+      expect(err.toString()).toContain('closed');
+    }
   });
 });
