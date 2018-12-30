@@ -9,21 +9,23 @@ describe("tests public API of a system_notifications SyncTable", () => {
       id: "123e4567-e89b-12d3-a456-426655440000",
       time: new Date(),
       text: "This is a message.",
-      priority: "low",
-      done: false
+      priority: "low"
     },
     {
       id: "123e4567-e89b-12d3-a456-426655440001",
       time: new Date(),
       text: "This is a second message.",
-      priority: "high",
-      done: false
+      priority: "high"
     }
   ];
   const client = new ClientTest(notifications);
+  const query = {
+    system_notifications: [{ id: null, time: null, text: null, priority: null }]
+  };
+
   test("create the synctable", async () => {
     // last 0 is to disable change throttling, which messes up jest.
-    synctable = new SyncTable("system_notifications", [], client, 0);
+    synctable = new SyncTable(query, [], client, 0);
     expect(synctable.get_state()).toBe("disconnected");
     await once(synctable, "connected");
   });
@@ -75,6 +77,14 @@ describe("tests public API of a system_notifications SyncTable", () => {
 
   test("does not have uncommitted changes", () => {
     expect(synctable.has_uncommitted_changes()).toBe(false);
+  });
+
+  test("making change to invalid field raises error", () => {
+    expect(() => synctable.set({ foobar: "medium" })).toThrow("coerce");
+  });
+
+  test("making change to field not in query (even though it is valid) raises error", () => {
+    expect(() => synctable.set({ done: true })).toThrow("coerce");
   });
 
   test("make change; then has uncommitted changes", () => {
@@ -148,4 +158,29 @@ describe("tests public API of a system_notifications SyncTable", () => {
       expect(err.toString()).toContain("closed");
     }
   });
+
+  // some errors...
+
+  test("try create synctable with an invalid query and get exception", () => {
+    const invalid_query = {
+      // invalid since missing id primary key.
+      system_notifications: [{ time: null, text: null, priority: null }]
+    };
+    expect(() => new SyncTable(invalid_query, [], client, 0)).toThrow(
+      "primary key"
+    );
+  });
+
+  test("try create synctable with another invalid query and get exception", () => {
+    const invalid_query = {
+      // invalid since extra foo key.
+      system_notifications: [{ id:null, foo:null, time: null, text: null, priority: null }]
+    };
+    expect(() => new SyncTable(invalid_query, [], client, 0)).toThrow(
+      "field in the schema"
+    );
+  });
+
+
+
 });

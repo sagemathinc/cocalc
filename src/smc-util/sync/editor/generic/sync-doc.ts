@@ -774,7 +774,7 @@ export class SyncDoc extends EventEmitter {
 
   private async init_syncstring_table(): Promise<void> {
     const query = {
-      syncstrings: {
+      syncstrings: [{
         string_id: this.string_id,
         project_id: this.project_id,
         path: this.path,
@@ -790,7 +790,7 @@ export class SyncDoc extends EventEmitter {
         doctype: null,
         archived: null,
         settings: null
-      }
+      }]
     };
 
     this.syncstring_table = await this.client.synctable_project(
@@ -1105,7 +1105,7 @@ export class SyncDoc extends EventEmitter {
 
     this.patches_table = await this.client.synctable_project(
       this.project_id,
-      { patches: this.patch_table_query(this.last_snapshot) },
+      { patches: [this.patch_table_query(this.last_snapshot)] },
       [{ ephemeral: false }],
       this.patch_interval
     );
@@ -1172,12 +1172,12 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     const query = {
-      cursors: {
+      cursors: [{
         string_id: this.string_id,
         user_id: null,
         locs: null,
         time: null
-      }
+      }]
     };
     // We make cursors an ephemeral table, since there is no
     // need to persist it to the database, obviously!

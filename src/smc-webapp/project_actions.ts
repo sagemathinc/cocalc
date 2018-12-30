@@ -53,6 +53,7 @@ const MAX_PROJECT_LOG_ENTRIES = 1000;
 export const QUERIES = {
   project_log: {
     query: {
+      id : null,
       project_id: null,
       account_id: null,
       time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}

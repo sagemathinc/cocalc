@@ -18,7 +18,7 @@ export async function synctable_project(
   query,
   options,
   client,
-  throttle_changes?: undefined | number,
+  throttle_changes?: undefined | number
 ): Promise<SyncTable> {
   // wake up the project
   client.touch_project({ project_id });
@@ -31,9 +31,9 @@ export async function synctable_project(
   let channel: any;
   let synctable: undefined | SyncTable = undefined;
   const queued_messages: any[] = [];
-  let connected : boolean = false;
-  const options0 : any[] = [];
-  let queue_size = Infinity;  // "unlimited".
+  let connected: boolean = false;
+  const options0: any[] = [];
+  let queue_size = Infinity; // "unlimited".
 
   for (let option of options) {
     if (option != null && option.queue_size != null) {
@@ -57,7 +57,7 @@ export async function synctable_project(
       }
       initial_get_query = data.new_val;
     } else {
-      if (synctable.get_state() == 'closed') {
+      if (synctable.get_state() == "closed") {
         return;
       }
       synctable.synthetic_change(data);

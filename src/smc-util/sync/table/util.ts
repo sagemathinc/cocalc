@@ -1,11 +1,12 @@
 /* Utility functions used by other code here. */
 
-import { copy, keys, is_array } from "../../misc2";
+import { copy, keys, is_array, deep_copy } from "../../misc2";
 const { SCHEMA } = require("../../schema");
 
 // Parse query description to allow for some convenient shortcuts
 // TODO: document them here!
 export function parse_query(query) {
+  query = deep_copy(query);
   // TODO: convert this to Typescript...
   if (typeof query === "string") {
     // name of a table -- get all fields

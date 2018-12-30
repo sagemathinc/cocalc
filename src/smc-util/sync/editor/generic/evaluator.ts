@@ -55,7 +55,6 @@ export class Evaluator {
   constructor(syncdoc: SyncDoc, client: Client) {
     this.syncdoc = syncdoc;
     this.client = client;
-    // (window as any).evaluator = this;
   }
 
   public async init(): Promise<void> {
@@ -87,19 +86,24 @@ export class Evaluator {
   }
 
   private dbg(_f): Function {
-    if (true || this.client.is_project()) {
+    /*
+    if (this.client.is_project()) {
       return this.client.dbg(`Evaluator.${_f}`);
-    } else {
-      return (..._) => {};
     }
+    */
+    return (..._) => {};
   }
 
   private async init_eval_inputs(): Promise<void> {
     const query = {
-      eval_inputs: {
-        string_id: this.syncdoc.get_string_id(),
-        input: null
-      }
+      eval_inputs: [
+        {
+          string_id: this.syncdoc.get_string_id(),
+          input: null,
+          time: null,
+          user_id: null
+        }
+      ]
     };
     this.inputs_table = await this.client.synctable_project(
       this.syncdoc.get_project_id(),
@@ -111,10 +115,14 @@ export class Evaluator {
 
   private async init_eval_outputs(): Promise<void> {
     const query = {
-      eval_outputs: {
-        string_id: this.syncdoc.get_string_id(),
-        output: null
-      }
+      eval_outputs: [
+        {
+          string_id: this.syncdoc.get_string_id(),
+          output: null,
+          time: null,
+          number: null
+        }
+      ]
     };
     this.outputs_table = await this.client.synctable_project(
       this.syncdoc.get_project_id(),
@@ -214,7 +222,7 @@ export class Evaluator {
           dbg("x is null");
           continue;
         }
-        const y = x.get('output');
+        const y = x.get("output");
         if (y == null) {
           dbg("y is null");
           continue;

@@ -36,6 +36,8 @@ import { wait } from "../../async-wait";
 
 import { query_function } from "./query-function";
 
+import { copy, is_array, is_object, len } from "../../misc2";
+
 const misc = require("../../misc");
 const schema = require("../../schema");
 
@@ -116,7 +118,7 @@ export class SyncTable extends EventEmitter {
       this.coerce_types = coerce_types;
     }
 
-    if (misc.is_array(query)) {
+    if (is_array(query)) {
       throw Error("must be a single query, not array of queries");
     }
 
@@ -185,7 +187,7 @@ export class SyncTable extends EventEmitter {
       return this.value_local;
     }
 
-    if (misc.is_array(arg)) {
+    if (is_array(arg)) {
       const x = {};
       for (let k of arg) {
         const key: string | undefined = to_key(k);
@@ -282,7 +284,7 @@ export class SyncTable extends EventEmitter {
 
     if (!Map.isMap(changes)) {
       changes = fromJS(changes);
-      if (!misc.is_object(changes)) {
+      if (!is_object(changes)) {
         throw Error(
           "type error -- changes must be an immutable.js Map or JS map"
         );
@@ -385,7 +387,7 @@ export class SyncTable extends EventEmitter {
     return new_val;
   }
 
-  public async close(fatal: boolean = false) : Promise<void> {
+  public async close(fatal: boolean = false): Promise<void> {
     if (this.state === "closed") {
       // already closed
       return;
@@ -656,7 +658,7 @@ export class SyncTable extends EventEmitter {
     // Check that the query is probably valid, and
     // record the table and schema
     const tables = keys(this.query);
-    if (misc.len(tables) !== 1) {
+    if (len(tables) !== 1) {
       throw Error("must query only a single table");
     }
     this.table = tables[0];
@@ -672,18 +674,30 @@ export class SyncTable extends EventEmitter {
     if (this.client_query == null) {
       throw Error(`no query schema allowing queries to ${this.table}`);
     }
-
-    if (!misc.is_array(this.query[this.table])) {
-      throw Error("must be a multi-document queries");
+    if (!is_array(this.query[this.table])) {
+      throw Error("must be a multi-document query");
     }
     this.primary_keys = schema.client_db.primary_keys(this.table);
-    // TODO: could put in more checks on validity of query here, using schema...
+    // Check that all primary keys are in the query.
     for (let primary_key of this.primary_keys) {
-      if (this.query[this.table][0][primary_key] == null) {
-        // must include each primary key in query
-        this.query[this.table][0][primary_key] = null;
+      if (this.query[this.table][0][primary_key] === undefined) {
+        throw Error(
+          `must include each primary key in query of table '${
+            this.table
+          }', but you missed '${primary_key}'`
+        );
       }
     }
+    // Check that all keys in the query are allowed by the schema.
+    for (let query_key of keys(this.query[this.table][0])) {
+      if (this.client_query.get.fields[query_key] === undefined) {
+        throw Error(
+          `every key in query of table '${this.table}' must` +
+            ` be a valid user get field in the schema but '${query_key}' is not`
+        );
+      }
+    }
+
     // Function this.to_key to extract primary key from object
     if (this.primary_keys.length === 1) {
       // very common case
@@ -928,10 +942,23 @@ export class SyncTable extends EventEmitter {
     if (t == null) {
       throw Error(`Missing schema for table ${this.table}`);
     }
-    const fields = t.fields;
+    const fields = copy(t.fields);
     if (fields == null) {
       throw Error(`Missing fields part of schema for table ${this.table}`);
     }
+    if (typeof this.query != "string") {
+      // explicit query (not just from schema)
+      let x = this.query[this.table];
+      if (is_array(x)) {
+        x = x[0];
+      }
+      for (let k in fields) {
+        if (x[k] === undefined) {
+          delete fields[k];
+        }
+      }
+    }
+
     return Map(
       changes.map((value, field) => {
         if (typeof field !== "string") {
@@ -944,7 +971,7 @@ export class SyncTable extends EventEmitter {
         }
         const spec = fields[field];
         if (spec == null) {
-          console.warn(changes, fields);
+          //console.warn(changes, fields);
           throw Error(
             `Cannot coerce: no field '${field}' in table ${this.table}`
           );
@@ -987,7 +1014,11 @@ export class SyncTable extends EventEmitter {
           if (!List.isList(value)) {
             value = fromJS(value);
             if (!List.isList(value)) {
-              throw Error(`field ${field} of table ${this.table} (value=${changes.get(field)}) must convert to an immutable.js List`);
+              throw Error(
+                `field ${field} of table ${this.table} (value=${changes.get(
+                  field
+                )}) must convert to an immutable.js List`
+              );
             }
           }
           return value;
@@ -996,7 +1027,11 @@ export class SyncTable extends EventEmitter {
           if (!Map.isMap(value)) {
             value = fromJS(value);
             if (!Map.isMap(value)) {
-              throw Error(`field ${field} of table ${this.table} (value=${changes.get(field)}) must convert to an immutable.js Map`);
+              throw Error(
+                `field ${field} of table ${this.table} (value=${changes.get(
+                  field
+                )}) must convert to an immutable.js Map`
+              );
             }
           }
           return value;

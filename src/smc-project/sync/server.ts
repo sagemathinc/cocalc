@@ -136,7 +136,7 @@ class SyncChannel {
       create_synctable = synctable_no_changefeed;
     }
     this.synctable = create_synctable(this.query, this.options, this.client);
-    if (this.query[this.synctable.table].string_id != null) {
+    if (this.query[this.synctable.table][0].string_id != null) {
       register_synctable(this.query, this.synctable);
     }
     if (this.synctable.table === "syncstrings") {
@@ -247,7 +247,7 @@ class SyncChannel {
 const sync_channels: { [name: string]: SyncChannel } = {};
 
 function createKey(args): string {
-  return JSON.stringify([args[3], args[4]]);
+  return stringify([args[3], args[4]]);
 }
 
 async function sync_channel0(
@@ -259,8 +259,10 @@ async function sync_channel0(
 ): Promise<string> {
   // stable identifier to this query with these options, across
   // project restart, etc:
-  const s = sha1(stringify([query, options]));
+  const x = stringify([query, options]);
+  const s = sha1(x);
   const name = `sync:${s}`;
+  logger.debug('sync_channel', x, name);
   if (sync_channels[name] === undefined) {
     sync_channels[name] = new SyncChannel({
       client,

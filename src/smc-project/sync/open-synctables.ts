@@ -7,6 +7,8 @@ import { callback } from "awaiting";
 
 import { SyncTable } from "../smc-util/sync/table";
 
+import { is_array } from "../smc-util/misc2";
+
 const open_synctables: { [key: string]: SyncTable } = {};
 const wait_for: { [key: string]: Function[] } = {};
 
@@ -15,19 +17,22 @@ function key(query): string {
   if (!table) {
     throw Error("no table in query");
   }
-  const c = query[table];
+  let c = query[table];
   if (c == null) {
     throw Error("invalid query format");
+  }
+  if (is_array(c)) {
+    c = c[0];
   }
   const string_id = c.string_id;
   if (string_id == null) {
     throw Error(
-      "open-syncstring-tables is only for tables related to sync docs" +
+      "open-syncstring-tables is only for queries with a specified string_id field" +
         "(patches, cursors, eval_inputs, eval_outputs, etc.): query=" +
         JSON.stringify(query)
     );
   }
-  return `${table}.${c.string_id}`;
+  return `${table}.${string_id}`;
 }
 
 export function register_synctable(query: any, synctable: SyncTable): void {
@@ -45,7 +50,7 @@ export async function get_synctable(query, client): Promise<SyncTable> {
   const k = key(query);
   const log = client.dbg(`get_synctable(key=${k})`);
   log("open_synctables = ", Object.keys(open_synctables));
-  log("query=", query);
+  log("key=", k, "query=", query);
   const s = open_synctables[k];
   if (s != null) {
     // easy - already have it.
