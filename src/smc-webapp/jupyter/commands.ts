@@ -4,6 +4,9 @@ Comprehensive list of Jupyter notebook (version 5) command,
    k : default keyboard shortcut for that command
 */
 
+// for now we also use require here (see comment in actions.ts)
+const { callback2 } = require("smc-util/async-utils");
+
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
 const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
@@ -184,10 +187,10 @@ export function commands(actions: any) {
             if (choice === "Restart and run all cells") {
               actions.signal("SIGKILL");
               try {
-                await actions.store.wait(
-                  s => s.get("backend_state") !== "running",
-                  3
-                );
+                await callback2(actions.store.wait, {
+                  until: s => s.get("backend_state") !== "running",
+                  timeout: 0
+                });
               } catch (err) {
                 // TODO: handle exception?
                 console.warn(err);

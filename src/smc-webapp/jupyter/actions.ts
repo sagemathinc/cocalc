@@ -29,7 +29,10 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
-const { retry_until_success } = require("smc-util/async-utils"); // so also works in project.
+
+// for now we also use require here, so also works in
+// project -- do not change willy nilly!
+const { callback2, retry_until_success } = require("smc-util/async-utils");
 
 import * as awaiting from "awaiting";
 
@@ -2484,7 +2487,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     try {
-      const choice = await this.store.wait(dialog_is_closed, 0);
+      const choice = await callback2(this.store.wait, {
+        until: dialog_is_closed,
+        timeout: 0
+      });
       opts.cb(choice);
     } catch (err) {
       console.warn("Error -- ", err); // TODO??!
