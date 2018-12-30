@@ -1,7 +1,7 @@
 import { isEqual } from "underscore";
 
 import * as lean_client from "lean-client-js-node";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { once } from "../smc-util/async-utils";
 import { reuseInFlight } from "async-await-utils/hof";
 import { EventEmitter } from "events";
@@ -154,8 +154,15 @@ export class Lean extends EventEmitter {
       return;
     }
     // get the syncstring and start updating based on content
-    const syncstring = this.client.sync_string2({ path });
-    await once(syncstring, 'ready');
+    let syncstring: any = undefined;
+    while (syncstring == null) { // todo change to be event driven!
+      syncstring = this.client.syncdoc({ path });
+      if (syncstring == null) {
+        await delay(1000);
+      } else if (syncstring.get_state() != "ready") {
+        await once(syncstring, "ready");
+      }
+    }
     const on_change = async () => {
       this.dbg("sync", path);
       if (syncstring._closed) {
