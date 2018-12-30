@@ -519,7 +519,7 @@ schema.eval_inputs = {
   fields: {
     string_id: {
       pg_type: "CHAR(40)",
-      desc: "id of the syncstring that this patch belongs to."
+      desc: "id of the syncdoc that this eval_inputs table."
     },
     time: {
       type: "timestamp",
@@ -527,7 +527,7 @@ schema.eval_inputs = {
     },
     user_id: {
       type: "integer",
-      desc: "id index of the user into the syncstrings users array",
+      desc: "id index of the user into the syncdoc users array",
       pg_check: "CHECK (user_id >= 0)"
     },
     input: {

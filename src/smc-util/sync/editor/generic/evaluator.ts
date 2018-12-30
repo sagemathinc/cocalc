@@ -19,10 +19,6 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
-// Ephemeral true makes more sense and puts less load on the system.
-// However, false is very useful for debugging.
-const EPHEMERAL : boolean = false;
-
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
@@ -59,7 +55,7 @@ export class Evaluator {
   constructor(syncdoc: SyncDoc, client: Client) {
     this.syncdoc = syncdoc;
     this.client = client;
-    //(window as any).evaluator = this;
+    // (window as any).evaluator = this;
   }
 
   public async init(): Promise<void> {
@@ -108,7 +104,7 @@ export class Evaluator {
     this.inputs_table = await this.client.synctable_project(
       this.syncdoc.get_project_id(),
       query,
-      [{ ephemeral: EPHEMERAL }],
+      [{ ephemeral: true }],
       0
     );
   }
@@ -123,7 +119,7 @@ export class Evaluator {
     this.outputs_table = await this.client.synctable_project(
       this.syncdoc.get_project_id(),
       query,
-      [{ ephemeral: EPHEMERAL }],
+      [{ ephemeral: true }],
       0
     );
     this.outputs_table.setMaxListeners(200); // in case of many evaluations at once.
@@ -155,6 +151,8 @@ export class Evaluator {
   public call(opts: { program: Program; input: Input; cb?: Function }): void {
     this.assert_not_closed();
     this.assert_is_browser();
+    const dbg = this.dbg("call");
+    dbg(opts.program, opts.input, opts.cb != undefined);
 
     let time = this.client.server_time();
     // Perturb time if it is <= last time when this client did an evaluation.
@@ -167,19 +165,20 @@ export class Evaluator {
     this.last_call_time = time;
 
     let user_id: number = this.syncdoc.get_my_user_id();
-
-    this.inputs_table.set({
+    const obj = {
       string_id: this.syncdoc.get_string_id(),
       time,
       user_id,
       input: copy_without(opts, "cb")
-    });
-
+    };
+    dbg(JSON.stringify(obj));
+    this.inputs_table.set(obj);
     // root cause of https://github.com/sagemathinc/cocalc/issues/1589
     this.inputs_table.save();
 
     if (opts.cb == null) {
-      // First and forget -- no need to listen for responses.
+      // Fire and forget -- no need to listen for responses.
+      dbg("no cb defined, so fire and forget");
       return;
     }
 
@@ -191,6 +190,7 @@ export class Evaluator {
     let mesg_number = 0;
 
     const send = mesg => {
+      dbg("send", mesg);
       if (mesg.done) {
         this.outputs_table.removeListener("change", handle_output);
       }
@@ -201,24 +201,28 @@ export class Evaluator {
 
     const handle_output = (keys: string[]) => {
       // console.log("handle_output #{to_json(keys)}")
+      dbg("handle_output", keys);
       this.assert_not_closed();
       for (let key of keys) {
         const t = from_json(key);
-        if (t[1].valueOf() != time) {
-          // not our eval
+        if (t[1].valueOf() != time.valueOf()) {
+          dbg("not our eval", t[1].valueOf(), time.valueOf());
           continue;
         }
         const x = this.outputs_table.get(key);
         if (x == null) {
+          dbg("x is null");
           continue;
         }
-        if (x.get("user_id") != user_id) {
-          // not our eval since not launched by us.
+        const y = x.get('output');
+        if (y == null) {
+          dbg("y is null");
           continue;
         }
-        const mesg = x.toJS();
+        dbg("y = ", JSON.stringify(y.toJS()));
+        const mesg = y.toJS();
         if (mesg == null) {
-          // probably never happens, but makes typescript happy.
+          dbg("probably never happens, but makes typescript happy.");
           continue;
         }
         // OK, we called opts.cb on output mesg with the given timestamp and user_id...
@@ -233,6 +237,7 @@ export class Evaluator {
         if (t[2] !== mesg_number) {
           // Not the next message, so put message in the
           // set of messages that arrived too early.
+          dbg("put message in holding", t[2], mesg_number);
           messages[t[2]] = mesg;
           continue;
         }
@@ -247,6 +252,7 @@ export class Evaluator {
         while (messages[mesg_number] != null) {
           send(messages[mesg_number]);
           delete messages[mesg_number];
+          mesg_number += 1;
         }
       }
     };
@@ -294,8 +300,12 @@ export class Evaluator {
       }
 
       dbg("browser client didn't maintain sync promptly. fixing");
-      dbg(`sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`);
-      dbg(`output_line='${output_line}', sync_line='${content.slice(i,n)}'`)
+      dbg(
+        `sage_execute_code: i=${i}, n=${n}, output_line.length=${
+          output_line.length
+        }`
+      );
+      dbg(`output_line='${output_line}', sync_line='${content.slice(i, n)}'`);
       const x = content.slice(0, i);
       content = x + output_line + content.slice(n);
       if (mesg.done) {
@@ -343,7 +353,7 @@ export class Evaluator {
       // ever supported, e.g., for maybe trimming old evals...)
       return;
     }
-    const input = r.get('input');
+    const input = r.get("input");
     if (input == null) {
       throw Error("input must be specified");
       return;
