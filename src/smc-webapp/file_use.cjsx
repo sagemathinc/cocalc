@@ -93,7 +93,8 @@ class FileUseActions extends Actions
     # Mark the action for the given file with the current timestamp (right now).
     # If zero is true, instead mark the timestamp as 0, basically indicating removal
     # of that marking for that user.
-    mark_file: (project_id, path, action, ttl='default', fix_path=true, timestamp=undefined) =>  # ttl in units of ms
+    mark_file: (project_id, path, action, ttl='default', fix_path=true,
+                timestamp=undefined) =>  # ttl in units of ms
         if fix_path
             # This changes .foo.txt.sage-chat to foo.txt.
             path = misc.original_path(path)
@@ -125,6 +126,7 @@ class FileUseActions extends Actions
         timestamp ?= webapp_client.server_time()
         timestamp = new Date(timestamp)
         obj   =
+            id         : sha1(project_id, path)
             project_id : project_id
             path       : path
             users      : {"#{account_id}":{"#{action}":timestamp}}

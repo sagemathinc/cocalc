@@ -894,7 +894,7 @@ export class SyncTable extends EventEmitter {
         throw err;
       }
 
-      console.warn(`_save('${this.table}') error:`, err);
+      console.warn(`_save('${this.table}') set query error:`, err, " query=", query);
       if (
         err
           .toString()

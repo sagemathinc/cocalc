@@ -59,8 +59,8 @@ class ProjectsActions extends Actions
         the_table?.set(obj)
         return
 
-    # set whether the "add collaborators" component is displayed for the given project
-    # in the project listing
+    # Set whether the "add collaborators" component is displayed
+    # for the given project in the project listing.
     set_add_collab: (project_id, enabled) =>
         add_collab = store.get('add_collab') ? immutable.Set()
         if enabled

@@ -88,7 +88,11 @@ export interface SyncOpts0 {
   path: string;
   client: Client;
   patch_interval?: number;
+
+  // file_use_interval defaults to 10000 for chat and 60000
+  // for everything else.  Specify 0 to disable.
   file_use_interval?: number;
+
   string_id?: string;
   cursors?: boolean;
   change_throttle?: number;
@@ -277,12 +281,21 @@ export class SyncDoc extends EventEmitter {
   }
 
   private init_file_use_interval(): void {
+    const is_chat = filename_extension(this.path) === "sage-chat";
+    if (this.file_use_interval == null) {
+      if (is_chat) {
+        this.file_use_interval = 10 * 1000;
+      } else {
+        this.file_use_interval = 60 * 1000;
+      }
+    }
+
     if (!this.file_use_interval || !this.client.is_user()) {
       // file_use_interval has to be set, and we only do
       // this for browser user.
       return;
     }
-    const is_chat = filename_extension(this.path) === "sage-chat";
+    //const dbg = this.dbg('init_file_use_interval')
     let action;
     if (is_chat) {
       action = "chat";
@@ -774,23 +787,25 @@ export class SyncDoc extends EventEmitter {
 
   private async init_syncstring_table(): Promise<void> {
     const query = {
-      syncstrings: [{
-        string_id: this.string_id,
-        project_id: this.project_id,
-        path: this.path,
-        deleted: null,
-        users: null,
-        last_snapshot: null,
-        snapshot_interval: null,
-        save: null,
-        last_active: null,
-        init: null,
-        read_only: null,
-        last_file_change: null,
-        doctype: null,
-        archived: null,
-        settings: null
-      }]
+      syncstrings: [
+        {
+          string_id: this.string_id,
+          project_id: this.project_id,
+          path: this.path,
+          deleted: null,
+          users: null,
+          last_snapshot: null,
+          snapshot_interval: null,
+          save: null,
+          last_active: null,
+          init: null,
+          read_only: null,
+          last_file_change: null,
+          doctype: null,
+          archived: null,
+          settings: null
+        }
+      ]
     };
 
     this.syncstring_table = await this.client.synctable_project(
@@ -1172,12 +1187,14 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     const query = {
-      cursors: [{
-        string_id: this.string_id,
-        user_id: null,
-        locs: null,
-        time: null
-      }]
+      cursors: [
+        {
+          string_id: this.string_id,
+          user_id: null,
+          locs: null,
+          time: null
+        }
+      ]
     };
     // We make cursors an ephemeral table, since there is no
     // need to persist it to the database, obviously!
