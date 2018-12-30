@@ -43,7 +43,7 @@ import { EventEmitter } from "events";
 import { throttle } from "underscore";
 import { Map, fromJS } from "immutable";
 
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 
 import {
   callback2,
@@ -111,11 +111,11 @@ export type State = "init" | "ready" | "closed";
 export class SyncDoc extends EventEmitter {
   private project_id: string; // project_id that contains the doc
   private path: string; // path of the file corresponding to the doc
+  private string_id: string;
+  private my_user_id: number;
 
   private client: Client;
   private _from_str: (string) => Document; // creates a doc from a string.
-  private string_id: string;
-  private my_user_id: number;
 
   // throttling of incoming upstream patches
   private patch_interval: number = 250;
@@ -322,6 +322,22 @@ export class SyncDoc extends EventEmitter {
 
   public get_state(): State {
     return this.state;
+  }
+
+  public get_project_id(): string {
+    return this.project_id;
+  }
+
+  public get_path(): string {
+    return this.path;
+  }
+
+  public get_string_id(): string {
+    return this.string_id;
+  }
+
+  public get_my_user_id(): number {
+    return this.my_user_id != null ? this.my_user_id : 0;
   }
 
   private assert_not_closed(): void {
@@ -1142,7 +1158,7 @@ export class SyncDoc extends EventEmitter {
       // only use init_evaluator for sagews
       return;
     }
-    this.evaluator = new Evaluator(this);
+    this.evaluator = new Evaluator(this, this.client);
     await this.evaluator.init();
   }
 
@@ -1562,14 +1578,6 @@ export class SyncDoc extends EventEmitter {
 
   public show_history(opts = {}): void {
     this.patch_list.show_history(opts);
-  }
-
-  public get_path(): string {
-    return this.path;
-  }
-
-  public get_project_id(): string {
-    return this.project_id;
   }
 
   public set_snapshot_interval(n: number): void {

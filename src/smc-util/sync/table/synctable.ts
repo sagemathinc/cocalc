@@ -987,7 +987,7 @@ export class SyncTable extends EventEmitter {
           if (!List.isList(value)) {
             value = fromJS(value);
             if (!List.isList(value)) {
-              throw Error("must be an immutable.js list");
+              throw Error(`field ${field} of table ${this.table} (value=${changes.get(field)}) must convert to an immutable.js List`);
             }
           }
           return value;
@@ -996,7 +996,7 @@ export class SyncTable extends EventEmitter {
           if (!Map.isMap(value)) {
             value = fromJS(value);
             if (!Map.isMap(value)) {
-              throw Error("must be an immutable.js map");
+              throw Error(`field ${field} of table ${this.table} (value=${changes.get(field)}) must convert to an immutable.js Map`);
             }
           }
           return value;

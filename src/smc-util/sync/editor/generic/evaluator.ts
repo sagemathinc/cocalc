@@ -1,10 +1,9 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ OTHER TODO:
+
+ make sure backend taking over works -- I might have made handle_output
+ too restrictive by setting user_id.
+
  */
 //##############################################################################
 //
@@ -20,366 +19,461 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
-import { SyncDoc } from "./sync-doc";
+// Ephemeral true makes more sense and puts less load on the system.
+// However, false is very useful for debugging.
+const EPHEMERAL : boolean = false;
 
-const async = require("async");
+import { SyncDoc } from "./sync-doc";
+import { SyncTable } from "../../table/synctable";
+import { to_key } from "../../table/util";
+import { Client } from "./types";
+
 const stringify = require("json-stable-stringify");
 
 const sagews = require("../../../sagews");
-const { from_json, to_json, copy_without } = require("../../../misc");
+const {
+  from_json,
+  to_json,
+  copy_without,
+  copy_with
+} = require("../../../misc");
 
-const { defaults, required } = misc;
+type State = "init" | "ready" | "closed";
+
+// What's supported so far.
+type Program = "sage" | "bash";
+
+// Object whose meaning depends on the program
+type Input = any;
 
 export class Evaluator {
   private syncdoc: SyncDoc;
+  private client: Client;
+  private inputs_table: SyncTable;
+  private outputs_table: SyncTable;
+  private sage_session: any;
+  private state: State = "init";
 
-  constructor(syncdoc: SyncDoc) {
+  private last_call_time: Date = new Date(0);
+
+  constructor(syncdoc: SyncDoc, client: Client) {
     this.syncdoc = syncdoc;
+    this.client = client;
+    //(window as any).evaluator = this;
   }
 
   public async init(): Promise<void> {
-    this._init_sync_tables(err => {
-      if (err) {
-        return typeof cb === "function" ? cb(err) : undefined;
-      } else {
-        if (this.syncdoc.client.is_project()) {
-          this._init_project_evaluator();
-        }
-        return typeof cb === "function" ? cb() : undefined;
-      }
-    });
+    // Initialize the inputs and outputs tables in parallel:
+    const i = this.init_eval_inputs();
+    const o = this.init_eval_outputs();
+    await Promise.all([i, o]);
+
+    if (this.client.is_project()) {
+      this.init_project_evaluator();
+    }
+    this.set_state("ready");
   }
 
-  _init_sync_tables(cb) {
-    return async.parallel(
-      [this._init_eval_inputs, this._init_eval_outputs],
-      err => cb(err)
-    );
+  public close(): void {
+    if (this.inputs_table != null) {
+      this.inputs_table.close();
+      delete this.inputs_table;
+    }
+    if (this.outputs_table != null) {
+      this.outputs_table.close();
+      delete this.outputs_table;
+    }
+    if (this.sage_session != null) {
+      this.sage_session.close();
+      delete this.sage_session;
+    }
+    this.set_state("closed");
   }
 
-  _init_eval_inputs = async cb => {
+  private dbg(_f): Function {
+    if (true || this.client.is_project()) {
+      return this.client.dbg(`Evaluator.${_f}`);
+    } else {
+      return (..._) => {};
+    }
+  }
+
+  private async init_eval_inputs(): Promise<void> {
     const query = {
       eval_inputs: {
-        string_id: this.syncdoc.string_id,
+        string_id: this.syncdoc.get_string_id(),
         input: null
       }
     };
-    this._inputs = await this.syncdoc.client.synctable_project(
-      this.syncdoc.project_id,
+    this.inputs_table = await this.client.synctable_project(
+      this.syncdoc.get_project_id(),
       query,
-      [{ ephemeral: true }],
+      [{ ephemeral: EPHEMERAL }],
       0
     );
-    return typeof cb === "function" ? cb() : undefined;
-  };
+  }
 
-  _init_eval_outputs = async cb => {
+  private async init_eval_outputs(): Promise<void> {
     const query = {
       eval_outputs: {
-        string_id: this.syncdoc.string_id,
+        string_id: this.syncdoc.get_string_id(),
         output: null
       }
     };
-    this._outputs = await this.syncdoc.client.synctable_project(
-      this.syncdoc.project_id,
+    this.outputs_table = await this.client.synctable_project(
+      this.syncdoc.get_project_id(),
       query,
-      [{ ephemeral: true }],
+      [{ ephemeral: EPHEMERAL }],
       0
     );
-    this._outputs.setMaxListeners(100); // in case of many evaluations at once.
-    return typeof cb === "function" ? cb() : undefined;
-  };
-
-  close() {
-    this._closed = true;
-    if (this._inputs != null) {
-      this._inputs.close();
-    }
-    delete this._inputs;
-    if (this._outputs != null) {
-      this._outputs.close();
-    }
-    delete this._outputs;
-    if (this._sage_session != null) {
-      this._sage_session.close();
-    }
-    return delete this._sage_session;
+    this.outputs_table.setMaxListeners(200); // in case of many evaluations at once.
   }
 
-  call(opts) {
-    opts = defaults(opts, {
-      program: required, // 'sage', 'bash'
-      input: required, // object whose meaning depends on the program
-      cb: undefined
-    });
-    if (this._closed) {
-      if (typeof opts.cb === "function") {
-        opts.cb("closed");
-      }
-      return;
+  private set_state(state: State): void {
+    this.state = state;
+  }
+
+  private assert_not_closed(): void {
+    if (this.state === "closed") {
+      throw Error("closed");
     }
-    let time = this.syncdoc.client.server_time();
+  }
+
+  private assert_is_project(): void {
+    if (!this.client.is_project()) {
+      throw Error("BUG -- this code should only run in the project.");
+    }
+  }
+
+  private assert_is_browser(): void {
+    if (this.client.is_project()) {
+      throw Error("BUG -- this code should only run in the web browser.");
+    }
+  }
+
+  // If given, cb below is called repeatedly with results as they appear.
+  public call(opts: { program: Program; input: Input; cb?: Function }): void {
+    this.assert_not_closed();
+    this.assert_is_browser();
+
+    let time = this.client.server_time();
     // Perturb time if it is <= last time when this client did an evaluation.
     // We do this so that the time below is different than anything else.
-    // TODO: This is NOT 100% yet, due to multiple clients possibly starting
-    // different evaluations simultaneously.
-    if (this._last_time != null && time <= this._last_time) {
-      time = new Date(this._last_time - 0 + 1); // one millesecond later
+    if (time <= this.last_call_time) {
+      // slightly later
+      time = new Date(this.last_call_time.valueOf() + 1);
     }
-    this._last_time = time;
+    // make time be congruent to our uid
+    this.last_call_time = time;
 
-    this._inputs.set({
-      string_id: this.syncdoc.string_id,
+    let user_id: number = this.syncdoc.get_my_user_id();
+
+    this.inputs_table.set({
+      string_id: this.syncdoc.get_string_id(),
       time,
-      user_id: 0,
-      input: misc.copy_without(opts, "cb")
+      user_id,
+      input: copy_without(opts, "cb")
     });
-    this._inputs.save(); // root cause of https://github.com/sagemathinc/cocalc/issues/1589
+
+    // root cause of https://github.com/sagemathinc/cocalc/issues/1589
+    this.inputs_table.save();
+
     if (opts.cb == null) {
+      // First and forget -- no need to listen for responses.
       return;
     }
+
     // Listen for output until we receive a message with mesg.done true.
     const messages = {};
+
+    // output may appear in random order, so we use mesg_number
+    // to sort it out.
     let mesg_number = 0;
+
     const send = mesg => {
       if (mesg.done) {
-        this._outputs.removeListener("change", handle_output);
+        this.outputs_table.removeListener("change", handle_output);
       }
-      return opts.cb(mesg);
+      if (opts.cb != null) {
+        opts.cb(mesg);
+      }
     };
 
-    var handle_output = keys => {
-      // console.log("handle_output #{misc.to_json(keys)}")
-      if (this._closed) {
-        if (typeof opts.cb === "function") {
-          opts.cb("closed");
+    const handle_output = (keys: string[]) => {
+      // console.log("handle_output #{to_json(keys)}")
+      this.assert_not_closed();
+      for (let key of keys) {
+        const t = from_json(key);
+        if (t[1].valueOf() != time) {
+          // not our eval
+          continue;
         }
-        return;
+        const x = this.outputs_table.get(key);
+        if (x == null) {
+          continue;
+        }
+        if (x.get("user_id") != user_id) {
+          // not our eval since not launched by us.
+          continue;
+        }
+        const mesg = x.toJS();
+        if (mesg == null) {
+          // probably never happens, but makes typescript happy.
+          continue;
+        }
+        // OK, we called opts.cb on output mesg with the given timestamp and user_id...
+        delete mesg.id; // waste of space
+
+        // Messages may arrive in somewhat random order.  This *DOES HAPPEN*,
+        // since changes are output from the project by computing a diff of
+        // a synctable, and then an array of objects sent out... and
+        // the order in that diff is random.
+        // E.g. this in a Sage worksheet would break:
+        //    for i in range(20): print i; sys.stdout.flush()
+        if (t[2] !== mesg_number) {
+          // Not the next message, so put message in the
+          // set of messages that arrived too early.
+          messages[t[2]] = mesg;
+          continue;
+        }
+
+        // Finally, the right message to handle next.
+        // Inform caller of result
+        send(mesg);
+        mesg_number += 1;
+
+        // Then, push out any messages that arrived earlier
+        // that are ready to send.
+        while (messages[mesg_number] != null) {
+          send(messages[mesg_number]);
+          delete messages[mesg_number];
+        }
       }
-      return (() => {
-        const result = [];
-        for (let key of keys) {
-          const t = misc.from_json(key);
-          if (t[1] - time === 0) {
-            // we called opts.cb on output with the given timestamp
-            const mesg = __guard__(
-              __guard__(this._outputs.get(key), x1 => x1.get("output")),
-              x => x.toJS()
-            );
-            if (mesg != null) {
-              delete mesg.id; // waste of space
-              // This code is written under the assumption that messages may
-              // arrive in somewhat random order.  This *DOES HAPPEN*, since
-              // changes are output from the project by computing a diff of
-              // a synctable, and then an array of objects sent out... and
-              // the order in that diff is random.
-              // E.g. this in a Sage worksheet would break:
-              //    for i in range(20): print i; sys.stdout.flush()
-              if (t[2] === mesg_number) {
-                // t[2] is the sequence number of the message
-                // Inform caller of result
-                send(mesg);
-                // Push out any messages that arrived earlier that are ready to send.
-                mesg_number += 1;
-                result.push(
-                  (() => {
-                    const result1 = [];
-                    while (messages[mesg_number] != null) {
-                      send(messages[mesg_number]);
-                      delete messages[mesg_number];
-                      result1.push((mesg_number += 1));
-                    }
-                    return result1;
-                  })()
-                );
-              } else {
-                // Put message in the queue of messages that arrived too early
-                result.push((messages[t[2]] = mesg));
-              }
-            } else {
-              result.push(undefined);
-            }
-          } else {
-            result.push(undefined);
-          }
-        }
-        return result;
-      })();
     };
 
-    return this._outputs.on("change", handle_output);
+    this.outputs_table.on("change", handle_output);
   }
 
-  _execute_code_hook(output_uuid) {
-    const dbg = this.syncdoc.client.dbg(`_execute_code_hook('${output_uuid}')`);
+  private execute_sage_code_hook(output_uuid: string): Function {
+    this.assert_is_project();
+    const dbg = this.dbg(`execute_sage_code_hook('${output_uuid}')`);
     dbg();
-    if (this._closed) {
-      dbg("closed");
-      return;
-    }
+    this.assert_not_closed();
 
+    // We track the output_line from within this project, and compare
+    // to what is set in the document (by the user).  If they go out
+    // of sync for a while, we fill in the result.
+    // TODO: since it's now possible to know whether or not users are
+    // connected... maybe we could use that instead?
     let output_line = sagews.MARKERS.output;
-    var process = mesg => {
-      dbg(`processing mesg '${misc.to_json(mesg)}'`);
+
+    let hook = mesg => {
+      dbg(`processing mesg '${to_json(mesg)}'`);
       let content = this.syncdoc.to_str();
       let i = content.indexOf(sagews.MARKERS.output + output_uuid);
       if (i === -1) {
-        // no cell anymore -- do nothing further
-        process = undefined;
+        // no cell anymore, so do nothing further right now.
         return;
       }
       i += 37;
       const n = content.indexOf("\n", i);
       if (n === -1) {
-        // corrupted
+        // corrupted? -- don't try further right now.
         return;
       }
+      // This is what the frontend also does:
       output_line +=
-        stringify(misc.copy_without(mesg, ["id", "event"])) +
-        sagews.MARKERS.output;
-      // dbg("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}', sync_line='#{content.slice(i,n)}'")
-      if (output_line.length - 1 > n - i) {
-        dbg(
-          "sage_execute_code: initiating client didn't maintain sync promptly. fixing"
-        );
-        const x = content.slice(0, i);
-        content = x + output_line + content.slice(n);
-        if (mesg.done) {
-          let j = x.lastIndexOf(sagews.MARKERS.cell);
-          if (j !== -1) {
-            j = x.lastIndexOf("\n", j);
-            const cell_id = x.slice(j + 2, j + 38);
-            //dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
-            const S = sagews.sagews(content);
-            S.remove_cell_flag(cell_id, sagews.FLAGS.running);
-            S.set_cell_flag(cell_id, sagews.FLAGS.this_session);
-            ({ content } = S);
-          }
-        }
-        //dbg("removing a cell flag: after='#{content}'")
-        this.syncdoc.from_str(content);
-        return this.syncdoc.save();
+        stringify(copy_without(mesg, ["id", "event"])) + sagews.MARKERS.output;
+
+      if (output_line.length - 1 <= n - i) {
+        // Things are looking fine (at least, the line is longer enough).
+        // TODO: try instead comparing actual content, not just length?
+        // Or maybe don't... since this stupid code will all get deleted anyways
+        // when we rewrite sagews.
+        return;
       }
+
+      dbg("browser client didn't maintain sync promptly. fixing");
+      dbg(`sage_execute_code: i=${i}, n=${n}, output_line.length=${output_line.length}`);
+      dbg(`output_line='${output_line}', sync_line='${content.slice(i,n)}'`)
+      const x = content.slice(0, i);
+      content = x + output_line + content.slice(n);
+      if (mesg.done) {
+        let j = x.lastIndexOf(sagews.MARKERS.cell);
+        if (j !== -1) {
+          j = x.lastIndexOf("\n", j);
+          const cell_id = x.slice(j + 2, j + 38);
+          //dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
+          const S = sagews.sagews(content);
+          S.remove_cell_flag(cell_id, sagews.FLAGS.running);
+          S.set_cell_flag(cell_id, sagews.FLAGS.this_session);
+          content = S.content;
+        }
+      }
+      //dbg("removing a cell flag: after='#{content}'")
+      this.syncdoc.from_str(content);
+      this.syncdoc.save();
     };
 
-    const hook = mesg => {
-      return setTimeout(
-        () => (typeof process === "function" ? process(mesg) : undefined),
-        5000
-      );
+    return mesg => {
+      setTimeout(() => hook(mesg), 5000);
     };
-    return hook;
   }
 
-  _handle_input_change(key) {
-    let number, string_id, time;
-    const dbg = this.syncdoc.client.dbg("_handle_input_change");
+  private handle_input_change(key: string): void {
+    this.assert_not_closed();
+    this.assert_is_project();
+
+    const dbg = this.dbg("handle_input_change");
     dbg(`change: ${key}`);
-    if (this._closed) {
-      dbg("closed");
+
+    const t = from_json(key);
+    let number, string_id, time;
+    const id = ([string_id, time, number] = [t[0], t[1], 0]);
+    if (this.outputs_table.get(to_key(id)) != null) {
+      dbg("already being handled");
       return;
     }
-    const t = misc.from_json(key);
-    const id = ([string_id, time, number] = [t[0], t[1], 0]);
-    if (this._outputs.get(JSON.stringify(id)) == null) {
-      dbg(`no outputs with key ${misc.to_json(id)}`);
-      const x = __guardMethod__(
-        __guard__(this._inputs.get(key), x1 => x1.get("input")),
-        "toJS",
-        o => o.toJS()
-      ); // could be deleting a key!
-      if (x == null) {
-        return;
-      }
-      if (x.program != null && x.input != null) {
-        const f = this[`_evaluate_using_${x.program}`];
-        if (f != null) {
-          let hook;
-          if (x.input.event === "execute_code" && x.input.output_uuid != null) {
-            hook = this._execute_code_hook(x.input.output_uuid);
-          }
-          return f(x.input, output => {
-            if (this._closed) {
-              return;
-            }
-            dbg(`got output='${misc.to_json(output)}'; id=${misc.to_json(id)}`);
-            if (typeof hook === "function") {
-              hook(output);
-            }
-            this._outputs.set({ string_id, time, number, output });
-            this._outputs.save();
-            return (number += 1);
-          });
-        } else {
-          this._outputs.set({
-            string_id,
-            time,
-            number,
-            output: misc.to_json({
-              error: `no program '${x.program}'`,
-              done: true
-            })
-          });
-          return this._outputs.save();
+    dbg(`no outputs yet with key ${to_json(id)}`);
+    const r = this.inputs_table.get(key);
+    if (r == null) {
+      dbg("deleting from input?");
+      throw Error("deleting from input not implemented");
+      // happens when deleting from input table (if that is
+      // ever supported, e.g., for maybe trimming old evals...)
+      return;
+    }
+    const input = r.get('input');
+    if (input == null) {
+      throw Error("input must be specified");
+      return;
+    }
+    const x = input.toJS();
+    dbg("x = ", x);
+    if (x == null) {
+      throw Error("BUG: can't happen");
+      return;
+    }
+    if (x.program == null || x.input == null) {
+      this.outputs_table.set({
+        string_id,
+        time,
+        number,
+        output: {
+          error: "must specify both program and input",
+          done: true
         }
-      } else {
-        this._outputs.set({
+      });
+      this.outputs_table.save();
+      return;
+    }
+
+    let f;
+    switch (x.program) {
+      case "sage":
+        f = this.evaluate_using_sage;
+        break;
+      case "shell":
+        f = this.evaluate_using_shell;
+        break;
+      default:
+        this.outputs_table.set({
           string_id,
           time,
           number,
-          output: misc.to_json({
-            error: "must specify program and input",
+          output: {
+            error: `no program '${x.program}'`,
             done: true
-          })
+          }
         });
-        return this._outputs.save();
-      }
+        this.outputs_table.save();
+        return;
     }
+    f = f.bind(this);
+
+    let hook: Function;
+    if (
+      x.program === "sage" &&
+      x.input.event === "execute_code" &&
+      x.input.output_uuid != null
+    ) {
+      hook = this.execute_sage_code_hook(x.input.output_uuid);
+    } else {
+      // no op
+      hook = _ => {};
+    }
+
+    f(x.input, output => {
+      this.assert_not_closed();
+
+      dbg(`got output='${to_json(output)}'; id=${to_json(id)}`);
+      hook(output);
+      this.outputs_table.set({ string_id, time, number, output });
+      this.outputs_table.save();
+      number += 1;
+    });
   }
 
   // Runs only in the project
-  _init_project_evaluator() {
-    const dbg = this.syncdoc.client.dbg("project_evaluator");
+  private init_project_evaluator(): void {
+    this.assert_is_project();
+
+    const dbg = this.dbg("init_project_evaluator");
     dbg("init");
-    this._inputs.on("change", keys => {
-      return keys.map(key => this._handle_input_change(key));
+    this.inputs_table.on("change", keys => {
+      for (let key of keys) {
+        this.handle_input_change(key);
+      }
     });
-    // CRITICAL: it's very important to handle all the inputs that may have happened just moments before
-    // this object got created.  Why, since the first one is the user trying to frickin' evaluate a cell
-    // in their worksheet to start things running... and they do that usually moments before the worksheet
-    // gets opened on the backend; if we don't do the following, then often this is missed, and great
-    // confusion and frustration ensues.
-    dbg("handle any pending evaluations");
-    return this._inputs.get().forEach((val, key) => {
-      this._handle_input_change(key);
-    });
-  }
-
-  // Runs only in the project
-  _evaluate_using_sage(input, cb) {
-    if (this._sage_session == null) {
-      this._sage_session = this.syncdoc.client.sage_session({
-        path: this.syncdoc.path
+    /* CRITICAL: it's very important to handle all the inputs
+       that may have happened just moments before
+       this object got created.  Why? The first input is
+       the user trying to frickin' evaluate a cell
+       in their worksheet to start things running... and they
+       might somehow do that moments before the worksheet
+       gets opened on the backend; if we don't do the
+       following, then often this eval is missed, and
+       confusion and frustration ensues. */
+    const v = this.inputs_table.get();
+    if (v != null) {
+      dbg(`handle ${v.size} pending evaluations`);
+      v.forEach((_, key) => {
+        if (key != null) {
+          this.handle_input_change(key);
+        }
       });
     }
-    // TODO: input also may have -- uuid, output_uuid, timeout
-    if (input.event === "execute_code") {
-      input = misc.copy_with(input, [
-        "code",
-        "data",
-        "preparse",
-        "event",
-        "id"
-      ]);
-    }
-    return this._sage_session.call({
-      input,
-      cb
-    });
   }
 
   // Runs only in the project
-  _evaluate_using_shell(input, cb) {
+  private evaluate_using_sage(input: Input, cb: Function): void {
+    this.assert_is_project();
+    const dbg = this.dbg("evaluate_using_sage");
+    dbg();
+
+    if (this.sage_session == null) {
+      dbg("get a sage session");
+      // This happens only in the project, where client
+      // has a sage_session method.
+      this.sage_session = (this.client as any).sage_session({
+        path: this.syncdoc.get_path()
+      });
+    }
+
+    // TODO: input also may have -- uuid, output_uuid, timeout
+    if (input.event === "execute_code") {
+      input = copy_with(input, ["code", "data", "preparse", "event", "id"]);
+    }
+    dbg("send code to sage", to_json(input));
+    this.sage_session.call({ input, cb });
+  }
+
+  // Runs only in the project
+  private evaluate_using_shell(input: Input, cb: Function): void {
+    this.assert_is_project();
+    const dbg = this.dbg("evaluate_using_shell");
+    dbg();
+
     input.cb = (err, output) => {
       if (output == null) {
         output = {};
@@ -388,25 +482,8 @@ export class Evaluator {
         output.error = err;
       }
       output.done = true;
-      return cb(output);
+      cb(output);
     };
-    return this.syncdoc.client.shell(input);
-  }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
+    (this.client as any).shell(input);
   }
 }

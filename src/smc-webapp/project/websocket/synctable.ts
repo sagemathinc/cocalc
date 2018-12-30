@@ -57,6 +57,9 @@ export async function synctable_project(
       }
       initial_get_query = data.new_val;
     } else {
+      if (synctable.get_state() == 'closed') {
+        return;
+      }
       synctable.synthetic_change(data);
     }
     // Write any queued up messages to our new channel.
