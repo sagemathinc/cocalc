@@ -742,7 +742,7 @@ schema.file_use = {
     set: {
       fields: {
         id(obj, db) {
-          db.sha1(obj.project_id, obj.path);
+          return db.sha1(obj.project_id, obj.path);
         },
         project_id: "project_write",
         path: true,
