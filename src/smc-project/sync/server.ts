@@ -232,8 +232,9 @@ class SyncChannel {
       // so these changes get saved to the database.
       // When the backend is also making changes, we
       // may need to be very careful...
-      this.synctable.set(new_val, "shallow", true);
+      this.synctable.set(new_val, "shallow");
     }
+    await this.synctable.save();
   }
 
   public close(): void {

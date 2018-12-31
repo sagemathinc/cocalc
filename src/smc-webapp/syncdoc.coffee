@@ -125,7 +125,8 @@ class SynchronizedString extends AbstractSynchronizedDoc
             return cur
 
     sync: (cb) =>
-        @_syncstring.save(cb)
+        await @_syncstring.save()
+        cb?()
 
     _connect: (cb) =>
         # no op

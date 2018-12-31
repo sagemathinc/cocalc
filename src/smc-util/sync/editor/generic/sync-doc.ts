@@ -1300,6 +1300,7 @@ export class SyncDoc extends EventEmitter {
   */
   public async save(): Promise<void> {
     const dbg = this.dbg("save");
+    dbg();
     // We just keep trying while syncdoc is ready and there
     // are changes that have not been saved (due to this.doc
     // changing during the while loop!).
