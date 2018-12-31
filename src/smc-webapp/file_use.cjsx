@@ -173,7 +173,7 @@ class FileUseStore extends Store
 
     _process_users: (y) =>
         users = y.users
-        if not users?
+        if not users? or not @_account_id   # account_id **must** be known, or get wrong notify below....
             return
         # make into list of objects
         v = []
