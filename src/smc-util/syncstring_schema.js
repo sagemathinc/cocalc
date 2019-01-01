@@ -146,10 +146,11 @@ schema.syncstrings = {
           err
         ) {
           if (!err) {
-            db.unarchive_patches({ string_id: obj.string_id }); // do NOT block on this - archived field changes when done, which notifies clients.
-            return cb();
+            // only calls cb once patch is unarchived, since new sync
+            // rewrite doesn't use changefeed on database.
+            db.unarchive_patches({ string_id: obj.string_id, cb });
           } else {
-            return cb(err);
+            cb(err);
           }
         });
       }
