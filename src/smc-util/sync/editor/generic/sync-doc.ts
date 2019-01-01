@@ -2005,18 +2005,20 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("save_to_disk");
     dbg("initiating the save");
     if (!this.has_unsaved_changes()) {
-      // no unsaved changes, so don't save --
+      dbg("no unsaved changes, so don't save")
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
       return;
     }
 
     if (this.is_read_only()) {
+      dbg("read only, so don't save")
       // save should fail if file is read only and there are changes
       throw Error("can't save readonly file with changes to disk");
     }
 
     if (this.deleted) {
+      dbg("deleted, so don't save")
       // nothing to do -- no need to attempt to save if file
       // is already deleted
       return;
@@ -2025,22 +2027,20 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
+    dbg("sending any changes over network");
     await this.save();
 
-    // Now do actual save to the *disk*.
-    await this.save_to_disk_1();
-  }
+    dbg(".save done; now do actual save to the *disk*.");
+    this.assert_is_ready();
 
-  // Auxiliary function 1 for saving to disk:
-  private async save_to_disk_1(): Promise<void> {
+    await this.save_to_disk_aux();
+    dbg("now wait for the save to disk to finish");
     this.assert_is_ready();
-    await this.save_to_disk_2();
-    this.assert_is_ready();
-    await this.wait_for_save_done();
+    await this.wait_for_save_to_disk_done();
   }
 
   // wait for save.state to change to state.
-  private async wait_for_save_done(): Promise<void> {
+  private async wait_for_save_to_disk_done(): Promise<void> {
     function until(table): boolean {
       return table.get_one().getIn(["save", "state"]) === "done";
     }
@@ -2095,7 +2095,7 @@ export class SyncDoc extends EventEmitter {
      The project sets the state to saving, does the save
      to disk, then sets the state to done.
   */
-  private async save_to_disk_2(): Promise<void> {
+  private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready();
 
     if (this.client.is_user()) {

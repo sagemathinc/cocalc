@@ -61,7 +61,14 @@ export function patch_cmp(a: Patch, b: Patch): number {
 }
 
 export function time_cmp(a: Date, b: Date): number {
-  return a.valueOf() - b.valueOf();
+  const t = a.valueOf() - b.valueOf();
+  if (t < 0) {
+    return -1;
+  } else if (t > 0) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 
