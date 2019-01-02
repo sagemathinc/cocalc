@@ -717,8 +717,8 @@ ProjectControlPanel = rclass
         </LabeledRow>
 
     render_uptime: ->
-        # start_ts is e.g. 1508576664416
-        start_ts = @props.project.getIn(['status', 'start_ts'])
+        # time is e.g. 1508576664416, set by kucalc project manager
+        start_ts = @props.project.getIn(['status', 'time'])
         return if not start_ts?
         return if @props.project.getIn(['state', 'state']) != 'running'
 
