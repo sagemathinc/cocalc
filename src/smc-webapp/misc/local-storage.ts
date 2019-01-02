@@ -29,7 +29,7 @@ function make_key(keys: string[] | string): string {
 
 // returns the deleted value or undefined in case of a problem
 export function del<T>(keys: string[] | string): T | undefined {
-    const key = make_key(keys);
+  const key = make_key(keys);
   try {
     const val = get<T>(key);
     delete LS[key];

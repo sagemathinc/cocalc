@@ -169,15 +169,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // User has been removed from the project!
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
     }
-    if (change != null) {
-      // console.log(`ProjectStore ${this.project_id} change:`, change.toJS());
-      // const proj_state = change.getIn(["state", "state"]);
-      // if (proj_state != null && proj_state != "running") {
-      //   const actions = this.redux.getProjectActions(this.project_id);
-      //   if (actions != null) {
-      //   }
-      // }
-    }
   }
 
   getInitialState = () => {
