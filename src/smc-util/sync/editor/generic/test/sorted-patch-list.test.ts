@@ -3,13 +3,19 @@
 */
 
 import { SortedPatchList } from "../sorted-patch-list";
+import { make_patch } from "../util";
+import { StringDocument } from "../../string/doc";
+
+function from_str(s : string) : StringDocument {
+  return new StringDocument(s);
+}
 
 describe("Test empty sorted patch list -- call all public methods", () => {
   let patches: SortedPatchList;
 
-  it("creates a sorted patch list with from_str the identify function", () => {
-    patches = new SortedPatchList(s => s);
-    expect(patches.value()).toBe("");
+  it("creates a sorted patch list", () => {
+    patches = new SortedPatchList(from_str);
+    expect(patches.value().to_str()).toBe("");
   });
 
   it("calls next_available_time to get next time cong to 3 mod 10", () => {
@@ -22,11 +28,11 @@ describe("Test empty sorted patch list -- call all public methods", () => {
   });
 
   it("gets the current value (empty string)", () => {
-    expect(patches.value()).toBe("");
+    expect(patches.value().to_str()).toBe("");
   });
 
   it("gets the current value without cache", () => {
-    expect(patches.value_no_cache()).toBe("");
+    expect(patches.value_no_cache().to_str()).toBe("");
   });
 
   it("validates snapshots (triviality)", () => {
@@ -71,7 +77,60 @@ describe("Test empty sorted patch list -- call all public methods", () => {
 
   it("close it, and check that it is seriously broken", () => {
     patches.close();
-    expect(() => patches.versions()).toThrow("Cannot read property") ;
+    expect(() => patches.versions()).toThrow("Cannot read property");
+  });
+});
+
+describe("Test non-empty sorted patch list -- call all public methods", () => {
+  let patches: SortedPatchList;
+
+  it("creates a sorted patch list", () => {
+    patches = new SortedPatchList(from_str);
+    expect(patches.value().to_str()).toBe("");
   });
 
+  const patch = {
+    time: new Date("2019-01-03T20:33:47.360Z"),
+    patch: make_patch("", "CoCalc"),
+    user_id: 0
+  };
+  it("adds a patch", () => {
+    patches.add([patch]);
+  });
+
+  it("gets the current value", () => {
+    expect(patches.value().to_str()).toBe("CoCalc");
+  });
+
+  it("gets the current value again (will use a cache)", () => {
+    expect(patches.value().to_str()).toBe("CoCalc");
+  });
+
+  it("gets the current value without cache", () => {
+    expect(patches.value_no_cache().to_str()).toBe("CoCalc");
+  });
+
+  it("gets id of user who made edit at time (error since no edits)", () => {
+    expect(patches.user_id(patch.time)).toBe(patch.user_id);
+  });
+
+  it("gets time sent of a patch (undefined since not yet sent)", () => {
+    expect(patches.time_sent(patch.time)).toBe(undefined);
+  });
+
+  it("gets patch at time (error since no patches)", () => {
+    expect(patches.patch(patch.time).patch).toEqual(patch.patch);
+  });
+
+  it("list of versions", () => {
+    expect(patches.versions()).toEqual([patch.time]);
+  });
+
+  it("most recent patch", () => {
+    expect(patches.newest_patch_time()).toEqual(patch.time);
+  });
+
+  it("number of patch", () => {
+    expect(patches.count()).toBe(1);
+  });
 });
