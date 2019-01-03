@@ -34,7 +34,7 @@ const LOCAL_HUB_AUTOSAVE_S = 45;
 // const LOCAL_HUB_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
-const MAX_FILE_SIZE_MB = 2;
+const MAX_FILE_SIZE_MB = 5;
 
 type XPatch = any;
 
@@ -837,8 +837,10 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
-    //return this.client.dbg(`sync-doc("${this.path}").${_f}`);
+    if (!this.client.is_project()) {
+      return (..._) => {};
+    }
+    return this.client.dbg(`sync-doc("${this.path}").${_f}`);
   }
 
   private async init_all(): Promise<void> {
@@ -2005,20 +2007,20 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("save_to_disk");
     dbg("initiating the save");
     if (!this.has_unsaved_changes()) {
-      dbg("no unsaved changes, so don't save")
+      dbg("no unsaved changes, so don't save");
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
       return;
     }
 
     if (this.is_read_only()) {
-      dbg("read only, so don't save")
+      dbg("read only, so don't save");
       // save should fail if file is read only and there are changes
       throw Error("can't save readonly file with changes to disk");
     }
 
     if (this.deleted) {
-      dbg("deleted, so don't save")
+      dbg("deleted, so don't save");
       // nothing to do -- no need to attempt to save if file
       // is already deleted
       return;
@@ -2027,11 +2029,12 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    dbg("sending any changes over network");
-    await this.save();
-
-    dbg(".save done; now do actual save to the *disk*.");
-    this.assert_is_ready();
+    if (!this.client.is_project()) {
+      dbg("browser client -- sending any changes over network");
+      await this.save();
+      dbg("save done; now do actual save to the *disk*.");
+      this.assert_is_ready();
+    }
 
     await this.save_to_disk_aux();
     dbg("now wait for the save to disk to finish");

@@ -39,10 +39,11 @@ export class SortedPatchList extends EventEmitter {
 
   public close(): void {
     this.removeAllListeners();
+    delete this.from_str;
     delete this.patches;
     delete this.times;
-    delete this.cache;
     delete this.versions_cache;
+    delete this.cache;
     delete this.all_snapshot_times;
   }
 
@@ -347,7 +348,7 @@ export class SortedPatchList extends EventEmitter {
   // VERY Slow -- only for consistency checking purposes and debugging.
   // If snapshots=false, don't use snapshots.
   public value_no_cache(
-    time: Date | undefined,
+    time?: Date,
     snapshots: boolean = true
   ): Document {
     let value: Document = this.from_str(""); // default in case no snapshots
@@ -419,23 +420,30 @@ export class SortedPatchList extends EventEmitter {
     }
   }
 
-  // integer index of user who made the edit at given point in time.
+  // integer index of user who made the patch at given point in time.
+  // Throws an exception if there is no patch at that point in time.
   public user_id(time): number {
     const x = this.patch(time);
     if (x == null) {
-      throw Error(`no edit at ${time}`);
+      throw Error(`no patch at ${time}`);
     }
     return x.user_id;
   }
 
+  // Returns time when patch was sent out, or undefined if not yet sent.
+  // Throws an exception if there is no patch at that point in time.
   public time_sent(time): Date | undefined {
-    const x = this.patch(time);
-    return x == null ? undefined : x.sent;
+    return this.patch(time).sent;
   }
 
-  // Patch at a given point in time
-  public patch(time): Patch | undefined {
-    return this.times[time.valueOf()];
+  // Patch at a given point in time.
+  // Throws an exception if there is no patch at that point in time.
+  public patch(time): Patch {
+    const p = this.times[time.valueOf()];
+    if (p == null) {
+      throw Error(`no patch at ${time}`);
+    }
+    return p;
   }
 
   public versions(): Date[] {
@@ -505,7 +513,9 @@ export class SortedPatchList extends EventEmitter {
      is >= 2*interval, we would make a snapshot at the patch
      that is interval steps forward from the most recent
      snapshot.  This function does not MAKE a snapshot; it just
-     returns the time at which we must plan to make a snapshot. */
+     returns the time at which we must plan to make a snapshot.
+     Returns undefined if do NOT need to make a snapshot soon.
+     */
   public time_of_unmade_periodic_snapshot(interval: number): Date | undefined {
     const n = this.patches.length - 1;
     if (n < 2 * interval) {
@@ -545,6 +555,8 @@ export class SortedPatchList extends EventEmitter {
     return v;
   }
 
+  /* Return the most recent time of a patch, or undefined if
+     there are no patches. */
   public newest_patch_time(): Date | undefined {
     if (this.patches.length === 0) {
       return;
