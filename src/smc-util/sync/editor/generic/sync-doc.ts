@@ -1658,12 +1658,15 @@ export class SyncDoc extends EventEmitter {
       this.emit("save-to-disk", time);
     }
 
+    const dbg = this.dbg("handle_syncstring_save_state");
+    dbg();
     if (
       this.state === "ready" &&
       this.client.is_project() &&
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
+      dbg("requesting save to disk -- calling save_to_disk");
       // state just changed to requesting a save to disk...
       // so we do it (unless of course syncstring is still
       // being initialized).
@@ -2029,7 +2032,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (!this.client.is_project()) {
+    if (this.client.is_user()) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2038,8 +2041,10 @@ export class SyncDoc extends EventEmitter {
 
     await this.save_to_disk_aux();
     dbg("now wait for the save to disk to finish");
-    this.assert_is_ready();
-    await this.wait_for_save_to_disk_done();
+    if (this.client.is_user()) {
+      this.assert_is_ready();
+      await this.wait_for_save_to_disk_done();
+    }
   }
 
   // wait for save.state to change to state.
@@ -2106,7 +2111,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     try {
-      await this.save_to_disk_project();
+      return await this.save_to_disk_project();
     } catch (err) {
       this.emit("save_to_disk_project", err);
       throw err;
@@ -2155,14 +2160,14 @@ export class SyncDoc extends EventEmitter {
       // No actual save to disk needed; still we better
       // record this fact in table in case it
       // isn't already recorded
-      await this.set_save({ state: "done", error: "", hash });
+      this.set_save({ state: "done", error: "", hash });
       return;
     }
 
     const path = this.path;
     if (!path) {
       const err = "cannot save without path";
-      await this.set_save({ state: "done", error: err });
+      this.set_save({ state: "done", error: err });
       throw Error(err);
     }
 
@@ -2179,13 +2184,13 @@ export class SyncDoc extends EventEmitter {
       const stat = await callback2(this.client.path_stat, { path });
       this.assert_is_ready();
       this.save_to_disk_end_ctime = stat.ctime.valueOf() + 1500;
-      await this.set_save({
+      this.set_save({
         state: "done",
         error: "",
         hash: hash_string(data)
       });
     } catch (err) {
-      await this.set_save({ state: "done", error: JSON.stringify(err) });
+      this.set_save({ state: "done", error: JSON.stringify(err) });
       throw err;
     }
   }
