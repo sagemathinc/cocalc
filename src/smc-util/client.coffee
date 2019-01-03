@@ -2000,10 +2000,10 @@ class exports.Connection extends EventEmitter
             opts.cb?()
             return
         # Throttle -- so if this function is called with the same project_id
-        # twice in 60s, it's ignored (to avoid unnecessary network traffic).
+        # twice in 20s, it's ignored (to avoid unnecessary network traffic).
         @_touch_project_throttle ?= {}
         last = @_touch_project_throttle[opts.project_id]
-        if last? and new Date().valueOf() - last <= 60000
+        if last? and new Date().valueOf() - last <= 20000
             opts.cb?()
             return
         @_touch_project_throttle[opts.project_id] = new Date().valueOf()

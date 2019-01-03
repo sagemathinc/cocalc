@@ -2612,9 +2612,9 @@ class exports.Client extends EventEmitter
                 f = @database.ensure_connection_to_project
                 if f?
                     dbg("also create socket connection (so project can query db, etc.)")
-                    f(mesg.project_id, cb)
-                else
-                    cb()
+                    # We do NOT block on this -- it can take a while.
+                    f(mesg.project_id)
+                cb()
         ], (err) =>
             if err
                 dbg("failed -- #{err}")

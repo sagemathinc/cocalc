@@ -10,7 +10,7 @@ import { to_user_string } from "smc-util/misc2";
 
 import { query as client_query } from "./frame-editors/generic/client";
 
-import { callback_opts } from "smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -53,7 +53,7 @@ const MAX_PROJECT_LOG_ENTRIES = 1000;
 export const QUERIES = {
   project_log: {
     query: {
-      id : null,
+      id: null,
       project_id: null,
       account_id: null,
       time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
@@ -262,10 +262,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  // Records in the backend database that we are actively using this project.
+  // Records in the backend database that we are actively
+  // using this project and wakes up the project.
   // This resets the idle timeout, among other things.
+  // This is throttled, so multiple calls are spaced out.
   touch = async (): Promise<void> => {
-    await callback_opts(webapp_client.touch_project)({
+    await callback2(webapp_client.touch_project, {
       project_id: this.project_id
     });
   };
@@ -2414,8 +2416,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for PUBLIC PATHS
-     */
+   * Actions for PUBLIC PATHS
+   */
   set_public_path(
     path,
     opts: {
@@ -2459,8 +2461,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for Project Search
-     */
+   * Actions for Project Search
+   */
 
   toggle_search_checkbox_subdirectories() {
     let store = this.get_store();

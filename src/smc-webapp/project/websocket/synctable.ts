@@ -6,7 +6,7 @@ import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 const { is_array } = require("smc-util/misc");
 
-import { once } from "smc-util/async-utils";
+import { once, retry_until_success } from "smc-util/async-utils";
 
 interface Data {
   new_val?: any[];
@@ -20,8 +20,13 @@ export async function synctable_project(
   client,
   throttle_changes?: undefined | number
 ): Promise<SyncTable> {
-  // wake up the project
-  client.touch_project({ project_id });
+  // This mainly makes sure that some hub is connected to
+  // the project, so the project can do DB queries.
+  await retry_until_success({
+    max_delay: 5000,
+    f: () => client.touch_project({ project_id })
+  });
+
   let initial_get_query: any[] = [];
 
   function log(..._args): void {
