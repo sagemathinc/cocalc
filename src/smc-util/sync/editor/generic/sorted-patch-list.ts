@@ -117,7 +117,7 @@ export class SortedPatchList extends EventEmitter {
       }
     }
 
-    if (oldest !== undefined) {
+    if (oldest != null) {
       // invalidate anything cached back to oldest.
       this.cache.invalidate(oldest);
     }
