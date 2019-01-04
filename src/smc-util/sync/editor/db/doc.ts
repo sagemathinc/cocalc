@@ -26,7 +26,9 @@ type Indexes = immutable.Map<string, Index>;
 type jsmap = { [field: string]: any };
 
 export type WhereCondition = { [field: string]: any };
-export type SetCondition = immutable.Map<string, any> | Map<string, any>;
+export type SetCondition =
+  | immutable.Map<string, any>
+  | { [field: string]: any };
 
 interface ChangeTracker {
   changes: immutable.Set<immutable.Map<string, any>>; // primary keys that changed
@@ -644,10 +646,27 @@ export class DBDocument implements Document {
     return this.changed_keys(prev);
   }
 
-  public count() : number {
+  public count(): number {
     return this.size;
   }
 }
+
+/*
+The underlying string representation has one JSON object
+per line.  The order doesn't matter.
+
+WARNING: The primary keys and string cols are NOT stored
+in the string representation!  That is metadata that must
+somehow be tracked separately.  (Maybe this should be changed).
+
+You can't store null since null is used to signify deleting
+(in set queries). You can't store undefined or Date objects
+due to JSON.
+
+Also, note that the primary_keys and string_cols are string[]
+rather than Set of strings, which is annoyingly inconsistent
+with DBDocument above.
+*/
 
 export function from_str(
   s: string,
