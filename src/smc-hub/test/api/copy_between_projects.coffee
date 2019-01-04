@@ -45,7 +45,7 @@ describe 'testing copy between projects -- ', ->
 
 
     it "creates file in source project", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'write_text_file_to_project'
             body  :
@@ -58,7 +58,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "copies file to a private target", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'copy_path_between_projects'
             body  :
@@ -71,7 +71,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "reads target file 1", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'read_text_file_from_project'
             body  :
@@ -84,7 +84,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "creates folder with text file in source project", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'write_text_file_to_project'
             body  :
@@ -97,7 +97,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "copies src with directory and file", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'copy_path_between_projects'
             body  :
@@ -110,7 +110,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "reads target file 2", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'read_text_file_from_project'
             body  :
@@ -123,7 +123,7 @@ describe 'testing copy between projects -- ', ->
 
     it "copies file to directory", (done) ->
         # src:'B2/doc2.txt' tgt:'DIR3/ result:'DIR3/doc2.txt'
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'copy_path_between_projects'
             body  :
@@ -137,7 +137,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "reads target file 3", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'read_text_file_from_project'
             body  :
@@ -151,7 +151,7 @@ describe 'testing copy between projects -- ', ->
 
     it "copies directory to directory", (done) ->
         # src:'B2/' tgt:'DIR4/ result:'DIR4/doc2.txt'
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'copy_path_between_projects'
             body  :
@@ -165,7 +165,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "reads target file 4", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'read_text_file_from_project'
             body  :
@@ -188,7 +188,7 @@ describe 'testing copy between projects -- ', ->
 
     it "copies a public file to different target dir", (done) ->
         # src:'B2/doc2.txt'(public) tgt:'FOO/abc.txt'
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'copy_public_path_between_projects'
             body  :
@@ -201,7 +201,7 @@ describe 'testing copy between projects -- ', ->
                 done(err)
 
     it "reads copied public file", (done) ->
-        @timeout(15000)
+        @timeout(25000)
         api.call
             event : 'read_text_file_from_project'
             body  :
