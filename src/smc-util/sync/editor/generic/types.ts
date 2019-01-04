@@ -73,12 +73,6 @@ export interface Client {
   write_file: (opts: { path: string; data: string; cb: Function }) => void;
   watch_file: (opts: { path: string }) => FileWatcher;
 
-  synctable2: (
-    query: any,
-    options: any,
-    throttle_changes?: number
-  ) => SyncTable;
-
   synctable_project: (
     project_id: string,
     query: any,

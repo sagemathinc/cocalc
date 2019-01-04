@@ -99,7 +99,7 @@ export function uuids_of_linked_files(doc): string[] {
 }
 
 export class SageWS {
-  private content: string;
+  public content: string;
 
   constructor(content: string) {
     this.content = content;

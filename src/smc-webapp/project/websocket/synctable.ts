@@ -30,8 +30,9 @@ export async function synctable_project(
   let initial_get_query: any[] = [];
 
   function log(..._args): void {
-    // console.log(query, ..._args);
+    //console.log('synctable_project', query, ..._args);
   }
+  log(project_id, options);
 
   let channel: any;
   let synctable: undefined | SyncTable = undefined;

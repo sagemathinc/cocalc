@@ -19,14 +19,14 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
+const stringify = require("json-stable-stringify");
+
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
 import { Client } from "./types";
+import { sagews, MARKERS, FLAGS } from "../../../sagews";
 
-const stringify = require("json-stable-stringify");
-
-const sagews = require("../../../sagews");
 const {
   from_json,
   to_json,
@@ -279,12 +279,12 @@ export class Evaluator {
     // of sync for a while, we fill in the result.
     // TODO: since it's now possible to know whether or not users are
     // connected... maybe we could use that instead?
-    let output_line = sagews.MARKERS.output;
+    let output_line = MARKERS.output;
 
     let hook = mesg => {
       dbg(`processing mesg '${to_json(mesg)}'`);
       let content = this.syncdoc.to_str();
-      let i = content.indexOf(sagews.MARKERS.output + output_uuid);
+      let i = content.indexOf(MARKERS.output + output_uuid);
       if (i === -1) {
         // no cell anymore, so do nothing further right now.
         return;
@@ -297,13 +297,13 @@ export class Evaluator {
       }
       // This is what the frontend also does:
       output_line +=
-        stringify(copy_without(mesg, ["id", "event"])) + sagews.MARKERS.output;
+        stringify(copy_without(mesg, ["id", "event"])) + MARKERS.output;
 
       if (output_line.length - 1 <= n - i) {
         // Things are looking fine (at least, the line is longer enough).
         // TODO: try instead comparing actual content, not just length?
         // Or maybe don't... since this stupid code will all get deleted anyways
-        // when we rewrite sagews.
+        // when we rewrite sagews handling.
         return;
       }
 
@@ -317,14 +317,14 @@ export class Evaluator {
       const x = content.slice(0, i);
       content = x + output_line + content.slice(n);
       if (mesg.done) {
-        let j = x.lastIndexOf(sagews.MARKERS.cell);
+        let j = x.lastIndexOf(MARKERS.cell);
         if (j !== -1) {
           j = x.lastIndexOf("\n", j);
           const cell_id = x.slice(j + 2, j + 38);
           //dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
-          const S = sagews.sagews(content);
-          S.remove_cell_flag(cell_id, sagews.FLAGS.running);
-          S.set_cell_flag(cell_id, sagews.FLAGS.this_session);
+          const S = sagews(content);
+          S.remove_cell_flag(cell_id, FLAGS.running);
+          S.set_cell_flag(cell_id, FLAGS.this_session);
           content = S.content;
         }
       }

@@ -16,11 +16,6 @@ in projects, and behaves slightly differently in each case.
    sent field of patches that weren't saved. */
 const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
 
-/* Client -- when it has this syncstring open and connected
-   -- will touch the syncstring every so often so that it
-   stays opened in the local hub, when the local hub is running. */
-const TOUCH_INTERVAL_M = 10;
-
 /* How often the local hub will autosave this file to disk if
    it has it open and there are unsaved changes.  This is very
    important since it ensures that a user that edits a file but
@@ -62,8 +57,7 @@ const {
   hash_string,
   is_date,
   ISO_to_Date,
-  minutes_ago,
-  server_minutes_ago
+  minutes_ago
 } = require("../../../misc");
 
 const schema = require("../../../schema");
@@ -127,8 +121,6 @@ export class SyncDoc extends EventEmitter {
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
   private project_autosave_timer: number = 0;
-
-  private periodically_touch_timer: number = 0;
 
   private change_throttle: number = 0;
 
@@ -217,8 +209,7 @@ export class SyncDoc extends EventEmitter {
       "save_to_disk",
       "load_from_disk",
       "handle_patch_update_queue",
-      "sync_remote_and_doc",
-      "touch"
+      "sync_remote_and_doc"
     ]);
 
     if (this.change_throttle) {
@@ -241,7 +232,11 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed();
 
     try {
+      const t0 = new Date();
       await this.init_all();
+      console.log(  // TODO remove at some point.
+        `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
+      );
     } catch (err) {
       console.warn("SyncDoc init error -- ", err, err.stack);
       this.emit("error", err);
@@ -258,7 +253,7 @@ export class SyncDoc extends EventEmitter {
   /* Set this user's cursors to the given locs. */
   public set_cursor_locs(locs: any[], side_effect: boolean = false): void {
     if (this.cursors_table == null) {
-      return;
+      throw Error("cursors are not enabled");
     }
     const x: {
       string_id: string;
@@ -417,7 +412,7 @@ export class SyncDoc extends EventEmitter {
 
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
-  // If not fully initialized, will return undefined
+  // If not fully initialized, will throw exception.
   public version(time?: Date): Document {
     this.assert_table_is_ready("patches");
     return this.patch_list.value(time);
@@ -431,12 +426,12 @@ export class SyncDoc extends EventEmitter {
     return this.patch_list.value(undefined, undefined, times);
   }
 
-  public revert(version: Date): void {
-    const doc = this.version(version);
-    if (doc == null) {
-      throw Error(`no document with version ${version}`);
-    }
-    this.set_doc(doc);
+  // Revert document to what it was at the given point in time.
+  // There doesn't have to be a patch at exactly that point in
+  // time -- if there isn't it just uses the patch before that
+  // point in time.
+  public revert(time: Date): void {
+    this.set_doc(this.version(time));
   }
 
   /* Undo/redo public api.
@@ -616,55 +611,10 @@ export class SyncDoc extends EventEmitter {
     }
     const t = this.syncstring_table.get_one();
     if (t == null) {
-      throw Error("syncstring_table must have an entry");
+      // project has not initialized it yet.
+      return Map();
     }
     return t;
-  }
-
-  /* Indicate active interest in syncstring; only updates time
-     if last_active is at least min_age_m=5 minutes old (so
-     this can be safely called frequently without too much load).
-     We do *NOT* use "this.syncstring_table.set(...)" below
-     because it is critical to be able to do the touch
-     before this.syncstring_table gets initialized, since
-     otherwise the initial open a file will be very slow. */
-  public async touch(min_age_m: number = 5): Promise<void> {
-    let last_active: Date | undefined = undefined;
-    if (this.client.is_project()) {
-      return;
-    }
-    if (min_age_m > 0) {
-      // if min_age_m is 0 always try to do it immediately;
-      // if > 0 check what it was:
-      if (this.syncstring_table != null) {
-        const t = this.syncstring_table_get_one();
-        if (t != null) {
-          last_active = t.get("last_active");
-          if (
-            last_active != null &&
-            last_active > server_minutes_ago(min_age_m)
-          ) {
-            // recently active, so nothing to do.
-            return;
-          }
-        }
-      }
-    }
-    // Now actually do the set.
-    // NOTE: it is important to set here, since this is when syncstring
-    // is often first created
-    await callback2(this.client.query, {
-      query: {
-        syncstrings: {
-          string_id: this.string_id,
-          project_id: this.project_id,
-          path: this.path,
-          deleted: this.deleted,
-          last_active: this.client.server_time(),
-          doctype: JSON.stringify(this.doctype)
-        }
-      }
-    });
   }
 
   /* The project calls set_initialized once it has checked for
@@ -685,7 +635,8 @@ export class SyncDoc extends EventEmitter {
       project_id: this.project_id,
       path: this.path,
       init,
-      read_only
+      read_only,
+      last_active: this.client.server_time()
     });
     await this.syncstring_table.save();
   }
@@ -740,10 +691,6 @@ export class SyncDoc extends EventEmitter {
     // what happened and can respond to it.
     this.removeAllListeners();
 
-    if (this.periodically_touch_timer) {
-      clearInterval(this.periodically_touch_timer as any);
-      this.periodically_touch_timer = 0;
-    }
     if (this.project_autosave_timer) {
       clearInterval(this.project_autosave_timer as any);
       this.project_autosave_timer = 0;
@@ -785,7 +732,33 @@ export class SyncDoc extends EventEmitter {
     delete this.settings;
   }
 
+  // TODO: We **have** to do this on the client, since the backend
+  // **security model** for accessing the patches table only
+  // knows the string_id, but not the project_id/path.  Thus
+  // there is no way currently to know whether or not the client
+  // has access to the patches, and hence the patches table
+  // query fails.  This costs significant time -- a roundtrip
+  // and write to the database -- whenever the user opens a file.
+  // This fix should be to change the patches schema somehow
+  // to have the user also provide the project_id and path, thus
+  // proving they have access to the sha1 hash (string_id), but
+  // don't actually use the project_id and path as columns in
+  // the table.  This requires some new idea I guess of virtual
+  // fields....
+  private async ensure_syncstring_exists_in_db(): Promise<void> {
+    await callback2(this.client.query, {
+      query: {
+        syncstrings: {
+          string_id: this.string_id,
+          project_id: this.project_id,
+          path: this.path
+        }
+      }
+    });
+  }
+
   private async init_syncstring_table(): Promise<void> {
+    const dbg = this.dbg("init_syncstring_table");
     const query = {
       syncstrings: [
         {
@@ -808,11 +781,13 @@ export class SyncDoc extends EventEmitter {
       ]
     };
 
+    dbg("getting table...");
     this.syncstring_table = await this.client.synctable_project(
       this.project_id,
       query,
       [{ ephemeral: false }]
     );
+    dbg("waiting for, then handling the first update...");
     await this.handle_syncstring_update();
     this.syncstring_table.on(
       "change",
@@ -832,12 +807,16 @@ export class SyncDoc extends EventEmitter {
         return false;
       }
     }
+    dbg("waiting for syncstring to be not archived");
     await this.syncstring_table.wait(is_not_archived.bind(this), 120);
   }
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
     if (!this.client.is_project()) {
+      /*return (...args) => {
+        console.log("sync-doc", _f, ...args);
+      };*/
       return (..._) => {};
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
@@ -849,12 +828,11 @@ export class SyncDoc extends EventEmitter {
     }
     const log = this.dbg("init_all");
 
-    // It is critical to do a quick initial touch so file gets
-    // opened on the backend or syncstring gets created (otherwise,
-    // creation of various changefeeds below will FATAL fail).
-    log("touch");
-    await this.touch(0);
     this.assert_not_closed();
+    if (!this.client.is_project()) {
+      log("ensure syncstring exists in database");
+      await this.ensure_syncstring_exists_in_db();
+    }
     log("syncstring_table");
     await this.init_syncstring_table();
     this.assert_not_closed();
@@ -864,10 +842,7 @@ export class SyncDoc extends EventEmitter {
       this.init_cursors(),
       this.init_evaluator()
     ]);
-
     this.assert_not_closed();
-    log("periodic_touch");
-    this.init_periodic_touch();
     log("file_use_interval");
     this.init_file_use_interval();
 
@@ -893,21 +868,6 @@ export class SyncDoc extends EventEmitter {
       this.assert_not_closed();
     }
     log("done");
-  }
-
-  private init_periodic_touch(): void {
-    if (!this.client.is_user() || this.periodically_touch_timer) {
-      return;
-    }
-    this.touch(1);
-    // touch every few minutes while syncstring is open, so that project
-    // (if open) keeps its side open
-    this.periodically_touch_timer = <any>(
-      setInterval(
-        () => this.touch(TOUCH_INTERVAL_M / 2),
-        1000 * 60 * TOUCH_INTERVAL_M
-      )
-    );
   }
 
   // wait until the syncstring table is ready to be
@@ -1110,6 +1070,8 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async init_patch_list(): Promise<void> {
+    const dbg = this.dbg("init_patch_list");
+    dbg();
     this.assert_not_closed();
 
     // CRITICAL: note that handle_syncstring_update checks whether
@@ -1120,6 +1082,7 @@ export class SyncDoc extends EventEmitter {
 
     const patch_list = new SortedPatchList(this._from_str);
 
+    dbg("opening the table...");
     this.patches_table = await this.client.synctable_project(
       this.project_id,
       { patches: [this.patch_table_query(this.last_snapshot)] },
@@ -1128,13 +1091,16 @@ export class SyncDoc extends EventEmitter {
     );
     this.assert_not_closed();
 
+    dbg("adding patches");
     patch_list.add(this.get_patches());
 
     const doc = patch_list.value();
     this.last = this.doc = doc;
     this.patches_table.on("change", this.handle_patch_update.bind(this));
     this.patches_table.on("before-change", () => this.emit("before-change"));
+    this.patches_table.on("saved", this.handle_offline.bind(this));
     this.patch_list = patch_list;
+    dbg("done");
 
     /*
       TODO/CRITICAL: We are temporarily disabling same-user
@@ -1143,16 +1109,14 @@ export class SyncDoc extends EventEmitter {
       be way worse than the 1 in a million issue
       that this addresses.  This only address the *same*
       account being used simultaneously on the same file
-      by multiple people which isn't something users should
-      ever do (but they do in big demos).
+      by multiple people. which isn't something users should
+      ever do (but they might do in big public demos?).
 
       this.patch_list.on 'overwrite', (t) =>
           * ensure that any outstanding save is done
           this.patches_table.save () =>
               this.check_for_timestamp_collision(t)
     */
-
-    this.patches_table.on("saved", this.handle_offline.bind(this));
   }
 
   /*
@@ -1171,23 +1135,28 @@ export class SyncDoc extends EventEmitter {
     */
 
   private async init_evaluator(): Promise<void> {
+    const dbg = this.dbg("init_evaluator");
     if (filename_extension(this.path) !== "sagews") {
-      // only use init_evaluator for sagews
+      dbg("done -- only use init_evaluator for sagews");
       return;
     }
+    dbg("creating the evaluator and waiting for init");
     this.evaluator = new Evaluator(this, this.client);
     await this.evaluator.init();
+    dbg("done");
   }
 
   private async init_cursors(): Promise<void> {
+    const dbg = this.dbg("init_cursors");
     if (!this.client.is_user()) {
-      // only users care about cursors.
+      dbg("done -- only users care about cursors.");
       return;
     }
     if (!this.cursors) {
-      // do not care about cursors for this syncdoc.
+      dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
+    dbg("getting cursors ephemeral table");
     const query = {
       cursors: [
         {
@@ -1213,6 +1182,7 @@ export class SyncDoc extends EventEmitter {
     // cursors now initialized; first initialize the
     // local this._cursor_map, which tracks positions
     // of cursors by account_id:
+    dbg("loading initial state");
     const s = this.cursors_table.get();
     if (s == null) {
       throw Error("bug -- get should not return null once table initialized");
@@ -1227,6 +1197,7 @@ export class SyncDoc extends EventEmitter {
       }
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
+    dbg("done");
   }
 
   private handle_cursors_change(keys): void {
@@ -1270,16 +1241,15 @@ export class SyncDoc extends EventEmitter {
     return map;
   }
 
-  /* Set settings map.  (no-op if not yet initialized
-     -- thus DO NOT call until initialized...)
-  */
-  public set_settings(obj): void {
+  /* Set settings map.
+   */
+  public async set_settings(obj): Promise<void> {
     this.assert_is_ready();
     this.syncstring_table.set({
       string_id: this.string_id,
       settings: obj
     });
-    this.syncstring_table.save();
+    await this.syncstring_table.save();
   }
 
   // get settings object
@@ -1353,13 +1323,13 @@ export class SyncDoc extends EventEmitter {
     return time;
   }
 
-  undelete(): void {
+  async undelete(): Promise<void> {
     this.assert_not_closed();
     // Version with deleted set to false:
     const x = this.syncstring_table_get_one().set("deleted", false);
     // Now write that as new version to table.
     this.syncstring_table.set(x);
-    this.syncstring_table.save();
+    await this.syncstring_table.save();
   }
 
   // Promise resolves when save to the backend done
@@ -1600,11 +1570,11 @@ export class SyncDoc extends EventEmitter {
     this.patch_list.show_history(opts);
   }
 
-  public set_snapshot_interval(n: number): void {
+  public async set_snapshot_interval(n: number): Promise<void> {
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("snapshot_interval", n)
     );
-    this.syncstring_table.save();
+    await this.syncstring_table.save();
   }
 
   /* Check if any patches that just got confirmed as saved
@@ -1691,8 +1661,6 @@ export class SyncDoc extends EventEmitter {
     }
 
     dbg(JSON.stringify(x));
-    // Below "x.users == null" works because the initial touch sets
-    // only string_id and last_active, and nothing else.
     if (x == null || x.users == null) {
       dbg("new_document");
       await this.handle_syncstring_update_new_document();
@@ -1721,10 +1689,11 @@ export class SyncDoc extends EventEmitter {
       last_snapshot: this.last_snapshot,
       users: this.users,
       deleted: this.deleted,
-      doctype: JSON.stringify(this.doctype)
+      doctype: JSON.stringify(this.doctype),
+      last_active: this.client.server_time()
     };
     this.syncstring_table.set(obj);
-    this.syncstring_table.save();
+    await this.syncstring_table.save();
     this.settings = Map();
     this.emit("metadata-change");
     this.emit("settings-change", this.settings);
@@ -2047,7 +2016,7 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  // wait for save.state to change to state.
+  // wait for save.state to change state.
   private async wait_for_save_to_disk_done(): Promise<void> {
     function until(table): boolean {
       return table.get_one().getIn(["save", "state"]) === "done";
@@ -2063,7 +2032,6 @@ export class SyncDoc extends EventEmitter {
         await this.syncstring_table.wait(until, 10);
       } catch (err) {
         // timed out after 10s
-        await this.touch(0); // get backend attention!
         throw Error("timed out");
       }
       if (this.state != "ready" || this.deleted) {
@@ -2072,7 +2040,6 @@ export class SyncDoc extends EventEmitter {
       const err = this.syncstring_table_get_one().getIn(["save", "error"]);
       if (err) {
         last_err = err;
-        await this.touch(0); // get backend attention!
         throw Error(err);
       }
       // done, with no error.

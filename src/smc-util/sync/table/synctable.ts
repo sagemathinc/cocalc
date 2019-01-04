@@ -138,7 +138,6 @@ export class SyncTable extends EventEmitter {
 
     // So only ever runs once at a time.
     this.save = reuseInFlight(this.save.bind(this));
-
     this.first_connect();
   }
 
@@ -505,12 +504,14 @@ export class SyncTable extends EventEmitter {
   }
 
   private dbg(_f?: string): Function {
-    /*
+    /* return (...args) => {
+      console.log(`synctable("${this.table}").${_f}: `, ...args);
+    };*/
     if (this.client.is_project()) {
       return this.client.dbg(
         `SyncTable('${JSON.stringify(this.query)}').${_f}`
       );
-    }*/
+    }
     return () => {};
   }
 
@@ -546,10 +547,11 @@ export class SyncTable extends EventEmitter {
     try {
       initval = await this.create_changefeed_connection();
     } catch (err) {
+      dbg("failed to create changefeed", err.toString());
       // Typically this happens if synctable closed while
       // creating the connection...
       this.close();
-      return;
+      throw err;
     }
     if (this.state === ("closed" as State)) {
       return;
@@ -894,7 +896,12 @@ export class SyncTable extends EventEmitter {
         throw err;
       }
 
-      console.warn(`_save('${this.table}') set query error:`, err, " query=", query);
+      console.warn(
+        `_save('${this.table}') set query error:`,
+        err,
+        " query=",
+        query
+      );
       if (
         err
           .toString()

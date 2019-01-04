@@ -1,5 +1,5 @@
 /*
-Moch client class that we use for testing. 
+Minimal client class that we use for testing.
 */
 
 import { EventEmitter } from "events";
@@ -39,7 +39,7 @@ export class ClientTest extends EventEmitter {
       this.set_queries.push(opts);
       opts.cb();
     } else {
-      // get query -- returns predetermined result (default: empty)
+      // get query -- returns predetermined result
       const table = keys(opts.query)[0];
       opts.cb(undefined, { query: { [table]: this.initial_get_query } });
     }
