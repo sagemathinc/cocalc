@@ -232,11 +232,11 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed();
 
     try {
-      const t0 = new Date();
+      //const t0 = new Date();
       await this.init_all();
-      console.log(  // TODO remove at some point.
-        `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
-      );
+      //console.log(  // TODO remove at some point.
+      //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
+      //);
     } catch (err) {
       console.warn("SyncDoc init error -- ", err, err.stack);
       this.emit("error", err);

@@ -54,13 +54,13 @@ export class Client extends EventEmitter implements Client0 {
     //return (..._) => {};
   }
 
-  public mark_file(opts: {
+  public mark_file(_opts: {
     project_id: string;
     path: string;
     action: string;
     ttl: number;
   }): void {
-    console.log("mark_file", opts);
+    //console.log("mark_file", opts);
   }
 
   public log_error(opts: {
