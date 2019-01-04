@@ -374,11 +374,11 @@ export class SyncDoc extends EventEmitter {
     this.set_doc(this.doc.delete(x));
   }
 
-  public get(x?: any): void {
+  public get(x?: any): any {
     return this.doc.get(x);
   }
 
-  public get_one(x?: any): void {
+  public get_one(x?: any): any {
     return this.doc.get_one(x);
   }
 
@@ -1230,6 +1230,9 @@ export class SyncDoc extends EventEmitter {
      of cursor positions, if cursors are enabled.
   */
   public get_cursors(): Map<string, any[]> {
+    if (this.cursors_table == null) {
+      throw Error("cursors are not enabled");
+    }
     const account_id: string = this.client.client_id();
     let map = this.cursor_map;
     if (
@@ -1241,7 +1244,8 @@ export class SyncDoc extends EventEmitter {
     return map;
   }
 
-  /* Set settings map.
+  /* Set settings map.  Used for custom configuration just for
+     this one file, e.g., overloading the spell checker language.
    */
   public async set_settings(obj): Promise<void> {
     this.assert_is_ready();
@@ -1323,7 +1327,7 @@ export class SyncDoc extends EventEmitter {
     return time;
   }
 
-  async undelete(): Promise<void> {
+  public async undelete(): Promise<void> {
     this.assert_not_closed();
     // Version with deleted set to false:
     const x = this.syncstring_table_get_one().set("deleted", false);
@@ -1952,7 +1956,7 @@ export class SyncDoc extends EventEmitter {
      or undefined if the document isn't loaded yet.
      (TODO: write faster version of this for syncdb, which
      avoids converting to a string, which is a waste of time.) */
-  hash_of_live_version(): number | undefined {
+  public hash_of_live_version(): number | undefined {
     if (this.state !== "ready") {
       return;
     }
