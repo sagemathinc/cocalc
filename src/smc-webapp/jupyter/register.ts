@@ -39,13 +39,13 @@ export function register() {
 
       const syncdb = new_syncdb({
         project_id,
-        path : sync_path,
-        change_throttle: 5, // our UI/React can handle more rapid updates; plus we want output FAST.
-        patch_interval: 5,
-        save_interval: 500,
+        path: sync_path,
+        change_throttle: 0, // our UI/React can handle more rapid updates; plus we want output FAST.
+        patch_interval: 0,
         primary_keys: ["type", "id"],
         string_cols: ["input"],
-        cursors: true
+        cursors: true,
+        persistent: true
       });
 
       actions._init(project_id, path, syncdb, store, webapp_client);

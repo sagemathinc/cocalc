@@ -164,7 +164,6 @@ interface SyncstringOpts {
   before_change_hook?: Function;
   after_change_hook?: Function;
   fake?: boolean; // if true make a fake syncstring with a similar API, but does nothing. (Used to make code more uniform.)
-  save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
 }
 
@@ -185,6 +184,7 @@ interface SyncstringOpts2 {
   cursors?: boolean;
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
+  persistent?: boolean;
 }
 
 import { SyncString } from 'smc-util/sync/editor/string/sync';
@@ -204,6 +204,7 @@ interface SyncDBOpts {
   change_throttle?: number; // amount to throttle change events (in ms)
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
+  persistent?: boolean;
 }
 
 export function syncdb(opts: SyncDBOpts): any {

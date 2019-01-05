@@ -93,7 +93,7 @@ export interface SyncOpts0 {
   change_throttle?: number;
 
   // persistent backend session in project, so only close
-  // backend when explicitly requested?
+  // backend when explicitly requested:
   persistent?: boolean;
 }
 
@@ -120,13 +120,16 @@ export class SyncDoc extends EventEmitter {
   private client: Client;
   private _from_str: (string) => Document; // creates a doc from a string.
 
-  // throttling of incoming upstream patches
+  // Throttling of incoming upstream patches from project to client.
   private patch_interval: number = 250;
 
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
   private project_autosave_timer: number = 0;
 
+  // throttling of change events -- e.g., is useful for course
+  // editor where we have hundreds of changes and the UI gets
+  // overloaded unless we throttle and group them.
   private change_throttle: number = 0;
 
   // file_use_interval throttle: default is 60s for everything
@@ -778,13 +781,15 @@ export class SyncDoc extends EventEmitter {
   // don't actually use the project_id and path as columns in
   // the table.  This requires some new idea I guess of virtual
   // fields....
+  // Also, this also establishes the correct doctype.
   private async ensure_syncstring_exists_in_db(): Promise<void> {
     await callback2(this.client.query, {
       query: {
         syncstrings: {
           string_id: this.string_id,
           project_id: this.project_id,
-          path: this.path
+          path: this.path,
+          doctype: JSON.stringify(this.doctype)
         }
       }
     });
@@ -874,10 +879,8 @@ export class SyncDoc extends EventEmitter {
     const log = this.dbg("init_all");
 
     this.assert_not_closed();
-    if (!this.client.is_project()) {
-      log("ensure syncstring exists in database");
-      await this.ensure_syncstring_exists_in_db();
-    }
+    log("ensure syncstring exists in database");
+    await this.ensure_syncstring_exists_in_db();
     log("syncstring_table");
     await this.init_syncstring_table();
     this.assert_not_closed();
@@ -2030,7 +2033,13 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("save_to_disk");
     dbg("initiating the save");
     if (!this.has_unsaved_changes()) {
-      dbg("no unsaved changes, so don't save");
+      dbg(
+        "no unsaved changes, so don't save",
+        " saved hash = ",
+        this.hash_of_saved_version(),
+        "  live hash = ",
+        this.hash_of_live_version()
+      );
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
       return;

@@ -8,16 +8,6 @@ This is mainly responsible for:
 
 */
 
-// CRITICAL: It's critical that those only close when the user explicitly
-// kills them, or the project is closed.
-/*
-const NEVER_CLOSE_SYNCSTRING_EXTENSIONS = {
-    sagews          : true,
-    'sage-jupyter2' : true
-};
-
-*/
-
 import { SyncTable } from "../smc-util/sync/table";
 import { SyncDB } from "../smc-util/sync/editor/db/sync";
 import { SyncString } from "../smc-util/sync/editor/string/sync";

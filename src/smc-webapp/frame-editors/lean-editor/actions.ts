@@ -99,9 +99,6 @@ export class Actions extends BaseActions<LeanEditorState> {
     const api = await project_api(this.project_id);
     this.channel = await api.lean_channel(this.path);
     const channel: any = this.channel;
-    if (this._syncstring != null) {
-      this._syncstring.touch(); // so the backend project will "care" about this file.
-    }
     channel.on("close", () => {
       channel.removeAllListeners();
       channel.conn.once("open", async () => {

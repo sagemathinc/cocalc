@@ -219,7 +219,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
-        save_interval: 500,
         patch_interval: 500
       });
     } else if (this.doctype == "syncstring") {
