@@ -108,7 +108,7 @@ export class Evaluator {
     this.inputs_table = await this.client.synctable_project(
       this.syncdoc.get_project_id(),
       query,
-      [{ ephemeral: true }],
+      [{ ephemeral: true, persistent: true }],
       0
     );
   }
@@ -127,7 +127,7 @@ export class Evaluator {
     this.outputs_table = await this.client.synctable_project(
       this.syncdoc.get_project_id(),
       query,
-      [{ ephemeral: true }],
+      [{ ephemeral: true, persistent: true  }],
       0
     );
     this.outputs_table.setMaxListeners(200); // in case of many evaluations at once.

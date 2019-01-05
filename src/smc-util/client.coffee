@@ -1839,6 +1839,7 @@ class exports.Connection extends EventEmitter
             cursors           : false
             patch_interval    : 1000
             save_interval     : 2000
+            persistent        : false
         opts.client = @
         return new SyncString2(opts)
 
@@ -1854,6 +1855,7 @@ class exports.Connection extends EventEmitter
             change_throttle   : undefined
             primary_keys      : required
             string_cols       : []
+            persistent        : false
         opts.client = @
         return new SyncDB2(opts)
 

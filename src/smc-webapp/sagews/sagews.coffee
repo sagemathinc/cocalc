@@ -101,6 +101,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
             cm_foldOptions  : foldOptions
+            persistent      : true   # so sage session **not** killed when everybody closes the tab.
 
         super(editor, opts0)
 

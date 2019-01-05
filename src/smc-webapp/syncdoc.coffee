@@ -194,6 +194,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cm_foldOptions  : undefined
             static_viewer   : undefined # must be considered now due to es6 classes
             allow_javascript_eval : true   # used only by sage worksheets, which derive from this -- but we have to put this here due to super being called.
+            persistent : false
 
         if @opts.static_viewer?
             return
@@ -234,6 +235,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             project_id : @project_id
             path       : @filename
             cursors    : true
+            persistent : @opts.persistent
 
         @_syncstring.on 'before-change', @_set_syncstring_to_codemirror
 

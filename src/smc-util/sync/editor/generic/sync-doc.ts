@@ -91,6 +91,10 @@ export interface SyncOpts0 {
   string_id?: string;
   cursors?: boolean;
   change_throttle?: number;
+
+  // persistent backend session in project, so only close
+  // backend when explicitly requested?
+  persistent?: boolean;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -181,6 +185,8 @@ export class SyncDoc extends EventEmitter {
   private save_to_disk_start_ctime: number | undefined;
   private save_to_disk_end_ctime: number | undefined;
 
+  private persistent: boolean = false;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -198,7 +204,8 @@ export class SyncDoc extends EventEmitter {
       "change_throttle",
       "cursors",
       "doctype",
-      "from_patch_str"
+      "from_patch_str",
+      "persistent"
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -207,11 +214,11 @@ export class SyncDoc extends EventEmitter {
     this._from_str = opts.from_str;
 
     reuse_in_flight_methods(this, [
-      /*"save",
+      "save",
       "save_to_disk",
       "load_from_disk",
       "handle_patch_update_queue",
-      "sync_remote_and_doc" */
+      "sync_remote_and_doc"
     ]);
 
     if (this.change_throttle) {
@@ -783,6 +790,22 @@ export class SyncDoc extends EventEmitter {
     });
   }
 
+  private async synctable(
+    query,
+    options: any[],
+    throttle_changes?: undefined | number
+  ): Promise<SyncTable> {
+    if (this.persistent) {
+      options = options.concat([{ persistent: true }]);
+    }
+    return await this.client.synctable_project(
+      this.project_id,
+      query,
+      options,
+      throttle_changes
+    );
+  }
+
   private async init_syncstring_table(): Promise<void> {
     const dbg = this.dbg("init_syncstring_table");
     const query = {
@@ -808,11 +831,7 @@ export class SyncDoc extends EventEmitter {
     };
 
     dbg("getting table...");
-    this.syncstring_table = await this.client.synctable_project(
-      this.project_id,
-      query,
-      [{ ephemeral: false }]
-    );
+    this.syncstring_table = await this.synctable(query, [{ ephemeral: false }]);
     dbg("waiting for, then handling the first update...");
     await this.handle_syncstring_update();
     this.syncstring_table.on(
@@ -839,11 +858,11 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
     if (!this.client.is_project()) {
-      return (...args) => {
+      return (..._) => {};
+      /*return (...args) => {
         console.log("sync-doc", _f, ...args);
-      };
+      };*/
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
   }
@@ -1110,8 +1129,7 @@ export class SyncDoc extends EventEmitter {
     const patch_list = new SortedPatchList(this._from_str);
 
     dbg("opening the table...");
-    this.patches_table = await this.client.synctable_project(
-      this.project_id,
+    this.patches_table = await this.synctable(
       { patches: [this.patch_table_query(this.last_snapshot)] },
       [{ ephemeral: false }],
       this.patch_interval
@@ -1198,8 +1216,7 @@ export class SyncDoc extends EventEmitter {
     // need to persist it to the database, obviously!
     // Also, queue_size:1 makes it so only the last cursor position is
     // saved, e.g., in case of disconnect and reconnect.
-    this.cursors_table = await this.client.synctable_project(
-      this.project_id,
+    this.cursors_table = await this.synctable(
       query,
       [{ ephemeral: true }, { queue_size: 1 }],
       0

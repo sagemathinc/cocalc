@@ -22,7 +22,7 @@ import { register_synctable } from "./open-synctables";
 
 import { once } from "../smc-util/async-utils";
 
-const { is_array } = require("../smc-util/misc");
+const { is_array, deep_copy, len } = require("../smc-util/misc2");
 
 type Query = { [key: string]: any };
 
@@ -61,13 +61,21 @@ class SyncChannel {
   private options: any[] = [];
   private query_string: string;
   private channel: Channel;
-  private closed : boolean = false;
+  private closed: boolean = false;
 
   // If true, do not use a database at all, even on the backend.
   // Table is reset any time this object is created.  This is
   // useful, e.g., for tracking user cursor locations or other
   // ephemeral state.
   private ephemeral: boolean = false;
+
+  // If true, do not close even if all clients have disconnected.
+  // This is used to keep sessions running, even when all browsers
+  // have closed, e.g., state for Sage worksheets, jupyter
+  // notebooks, etc., where user may want to close their browser
+  // (or just drop a connection temporarily) while a persistent stateful
+  // session continues running.
+  private persistent: boolean = false;
 
   constructor({
     client,
@@ -91,7 +99,7 @@ class SyncChannel {
     this.init_options(options);
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
-    this.log("creating new sync channel");
+    this.log(`creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`);
   }
 
   public async init(): Promise<void> {
@@ -103,13 +111,20 @@ class SyncChannel {
     if (options == null) {
       return;
     }
-    for (let option of options) {
+    for (let option of deep_copy(options)) {
+      // deep_copy so do not mutate input options.
       if (typeof option != "object" || option == null) {
         throw Error("invalid options");
       }
-      if (option.ephemeral != null) {
-        this.ephemeral = option.ephemeral;
-      } else {
+      for (let x of ["ephemeral", "persistent"]) {
+        // options that are only for project websocket tables.
+        if (option[x] != null) {
+          this[x] = option[x];
+          delete option[x];
+        }
+      }
+      if (len(option) > 0) {
+        // remaining synctable/database options.
         this.options.push(option);
       }
     }
@@ -228,9 +243,12 @@ class SyncChannel {
 
   /* Check if we should close, e.g., due to no connected clients. */
   private check_if_should_close(): void {
-    if (this.closed) return;
+    if (this.closed || this.persistent) {
+      // don't bother if either already closed, or the persistent option is set.
+      return;
+    }
     let n = 0;
-    this.channel.forEach((spark : Spark) => {
+    this.channel.forEach((spark: Spark) => {
       console.log(`existing connection ${spark.id}`);
       n += 1;
     });
