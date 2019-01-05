@@ -87,12 +87,17 @@ export async function synctable_project(
   }
 
   async function init_channel(): Promise<void> {
-    if (channel != null) {
-      end_channel();
-    }
+    const previous_channel = channel;
+
     const api = (await client.project_websocket(project_id)).api;
     channel = await api.synctable_channel(query, options);
     connected = true;
+
+    if (previous_channel != null) {
+      // Only close previous channel once the new one has been created.
+      // Otherwise, the project will close up everything too soon.
+      end_channel(previous_channel);
+    }
 
     channel.on("data", handle_data);
 
@@ -107,9 +112,10 @@ export async function synctable_project(
       log("open");
       init_channel();
     });
+
   }
 
-  function end_channel(): void {
+  function end_channel(channel): void {
     if (channel == null) {
       return;
     }
@@ -120,7 +126,6 @@ export async function synctable_project(
       // closing a project with open files closes the whole websocket *and*
       // the channels at the same time, which causes an exception.
     }
-    channel = undefined;
   }
 
   await init_channel();
@@ -143,7 +148,8 @@ export async function synctable_project(
   });
 
   synctable.once("closed", function() {
-    end_channel();
+    end_channel(channel);
+    channel = undefined;
   });
 
   await once(synctable, "connected");

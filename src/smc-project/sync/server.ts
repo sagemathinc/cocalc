@@ -36,6 +36,7 @@ interface Spark {
 interface Channel {
   on: (string, Function) => void;
   forEach: (Function) => void;
+  destroy: Function;
 }
 
 import { Client } from "../smc-util/sync/editor/generic/types";
@@ -60,6 +61,7 @@ class SyncChannel {
   private options: any[] = [];
   private query_string: string;
   private channel: Channel;
+  private closed : boolean = false;
 
   // If true, do not use a database at all, even on the backend.
   // Table is reset any time this object is created.  This is
@@ -70,10 +72,10 @@ class SyncChannel {
   constructor({
     client,
     primus,
-    name,
     query,
     options,
-    logger
+    logger,
+    name
   }: {
     client: Client;
     primus: Primus;
@@ -82,9 +84,9 @@ class SyncChannel {
     options: any;
     logger: Logger;
   }) {
+    this.name = name;
     this.client = client;
     this.logger = logger;
-    this.name = name;
     this.query = query;
     this.init_options(options);
     this.query_string = stringify(query); // used only for logging
@@ -169,11 +171,13 @@ class SyncChannel {
       this.log(
         `spark event -- close connection ${spark.address.ip} -- ${spark.id}`
       );
+      this.check_if_should_close();
     });
     spark.on("end", () => {
       this.log(
         `spark event -- end connection ${spark.address.ip} -- ${spark.id}`
       );
+      this.check_if_should_close();
     });
     spark.on("open", () => {
       this.log(
@@ -222,6 +226,22 @@ class SyncChannel {
     this.log(`handle_synctable_save -- wrote data to ${n} sparks`);
   }
 
+  /* Check if we should close, e.g., due to no connected clients. */
+  private check_if_should_close(): void {
+    if (this.closed) return;
+    let n = 0;
+    this.channel.forEach((spark : Spark) => {
+      console.log(`existing connection ${spark.id}`);
+      n += 1;
+    });
+    if (n === 0) {
+      this.log("check_if_should_close -- ", n, " closing");
+      this.close();
+    } else {
+      this.log("check_if_should_close -- ", n, " do not close");
+    }
+  }
+
   private async handle_data(_: Spark, data: any): Promise<void> {
     this.log("handle_data ", (this.channel as any).channel, data);
     if (!is_array(data)) {
@@ -237,11 +257,26 @@ class SyncChannel {
     await this.synctable.save();
   }
 
-  public close(): void {
+  public async close(): Promise<void> {
+    this.log("close");
+    if (this.closed) {
+      return;
+    }
+    this.closed = true;
     // TODO.
     // will want to close and cleanup a channel if there are
     // no connected sparks for at least k minutes...
     // Except for compute (sagews, ipynb), it will be different.
+    delete sync_channels[this.name];
+    this.channel.destroy();
+    delete this.channel;
+    await this.synctable.close();
+    delete this.synctable;
+    delete this.client;
+    delete this.logger;
+    delete this.query;
+    delete this.query_string;
+    delete this.options;
   }
 }
 
@@ -263,7 +298,7 @@ async function sync_channel0(
   const x = stringify([query, options]);
   const s = sha1(x);
   const name = `sync:${s}`;
-  logger.debug('sync_channel', x, name);
+  logger.debug("sync_channel", x, name);
   if (sync_channels[name] === undefined) {
     sync_channels[name] = new SyncChannel({
       client,

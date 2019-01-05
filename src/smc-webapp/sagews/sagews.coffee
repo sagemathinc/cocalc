@@ -102,7 +102,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             sync_interval   : opts.sync_interval
             cm_foldOptions  : foldOptions
 
-        super editor, opts0
+        super(editor, opts0)
 
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)

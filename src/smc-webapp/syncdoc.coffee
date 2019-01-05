@@ -230,10 +230,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = webapp_client.sync_string2
-            id                 : id
-            project_id         : @project_id
-            path               : @filename
-            cursors            : true
+            id         : id
+            project_id : @project_id
+            path       : @filename
+            cursors    : true
 
         @_syncstring.on 'before-change', @_set_syncstring_to_codemirror
 

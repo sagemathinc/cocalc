@@ -682,6 +682,15 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
+  private init_table_close_handlers(): void {
+    for (let x of ["syncstring", "patches", "cursors"]) {
+      const t = this[`${x}_table`];
+      if (t != null) {
+        t.on("close", () => this.close());
+      }
+    }
+  }
+
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
   public async close(): Promise<void> {
@@ -860,6 +869,7 @@ export class SyncDoc extends EventEmitter {
       this.init_evaluator()
     ]);
     this.assert_not_closed();
+    this.init_table_close_handlers();
     log("file_use_interval");
     this.init_file_use_interval();
 
@@ -1247,8 +1257,11 @@ export class SyncDoc extends EventEmitter {
      of cursor positions, if cursors are enabled.
   */
   public get_cursors(): Map<string, any[]> {
-    if (this.cursors_table == null) {
+    if (!this.cursors) {
       throw Error("cursors are not enabled");
+    }
+    if (this.cursors_table == null) {
+      return Map(); // not loaded yet -- so no info yet.
     }
     const account_id: string = this.client.client_id();
     let map = this.cursor_map;
