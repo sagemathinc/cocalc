@@ -69,13 +69,13 @@ export class Evaluator {
     this.set_state("ready");
   }
 
-  public close(): void {
+  public async close(): Promise<void> {
     if (this.inputs_table != null) {
-      this.inputs_table.close();
+      await this.inputs_table.close();
       delete this.inputs_table;
     }
     if (this.outputs_table != null) {
-      this.outputs_table.close();
+      await this.outputs_table.close();
       delete this.outputs_table;
     }
     if (this.sage_session != null) {

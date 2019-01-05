@@ -143,3 +143,12 @@ export function bind_methods(obj: any, method_names: string[]): void {
     obj[method_name] = obj[method_name].bind(obj);
   }
 }
+
+// Cancel pending throttle or debounce, where f is the
+// output of underscore.throttle (or debounce).  Safe to call
+// with f null or a normal function.
+export function cancel_scheduled(f : any) : void {
+  if (f != null && f.cancel != null) {
+    f.cancel();
+  }
+}

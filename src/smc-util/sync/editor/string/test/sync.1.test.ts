@@ -4,7 +4,7 @@ import { once } from "../../../../async-utils";
 import { a_txt } from "./data";
 
 describe("create syncstring and test doing some edits", () => {
-  const { client_id, project_id, path, init_queries } = a_txt();
+  const { client_id, project_id, path, init_queries, string_id } = a_txt();
   const client = new Client(init_queries, client_id);
   let syncstring: SyncString;
   const v = [
@@ -13,7 +13,7 @@ describe("create syncstring and test doing some edits", () => {
     "CoCalc -- Collaborative Calculation"
   ];
 
-  it("creates the syncstring and makes a change", async () => {
+  it("creates the syncstring and wait until ready", async () => {
     syncstring = new SyncString({ project_id, path, client, cursors: true });
     expect(syncstring.get_state()).toBe("init");
     await once(syncstring, "ready");
@@ -42,7 +42,7 @@ describe("create syncstring and test doing some edits", () => {
       syncstring.set_doc(syncstring.undo());
       let e = v[v.length - i - 2];
       if (e === undefined) {
-        e = '';
+        e = "";
       }
       expect(syncstring.to_str()).toEqual(e);
       expect(syncstring.in_undo_mode()).toBe(true);
@@ -74,8 +74,63 @@ describe("create syncstring and test doing some edits", () => {
     expect(syncstring.versions().length).toBe(v.length);
   });
 
-  it("close and clean up", () => {
-    syncstring.close();
+  it("gets info about patch at a given point in time", () => {
+    const t = syncstring.versions()[1];
+    expect(syncstring.account_id(t)).toEqual(client_id);
+
+    // time sent is not set since patch wasn't made offline.
+    expect(syncstring.time_sent(t)).toBe(undefined);
+
+    expect(syncstring.user_id(t)).toEqual(1);
+  });
+
+  it("last_changed is the time of the last version", () => {
+    const vers = syncstring.versions();
+    expect(syncstring.last_changed()).toEqual(vers[vers.length - 1]);
+  });
+
+  it("test setting and getting cursors", () => {
+    expect(syncstring.get_cursors().toJS()).toEqual({});
+    syncstring.set_cursor_locs([{ x: 2, y: 3 }, { x: 8, y: 12 }]);
+    // Still empty, since we don't include our own cursors.
+    expect(syncstring.get_cursors().toJS()).toEqual({});
+    // Temporarily change our client_id so we can
+    // see the cursor we set.
+    const f = client.client_id;
+    client.client_id = () => "";
+    const x = syncstring.get_cursors().toJS();
+    expect(x).toEqual({
+      [client_id]: {
+        locs: [{ x: 2, y: 3 }, { x: 8, y: 12 }],
+        string_id,
+        time: x[client_id].time,
+        user_id: 1
+      }
+    });
+    client.client_id = f;
+  });
+
+  it("is not read only", () => {
+    expect(syncstring.is_read_only()).toBe(false);
+  });
+
+  it("save to disk", async () => {
+    expect(syncstring.has_unsaved_changes()).toBe(true);
+    const promise = syncstring.save_to_disk();
+    // Mock: we set save to done in the syncstring
+    // table, otherwise the promise will never resolve.
+    (syncstring as any).set_save({
+      state: "done",
+      error: "",
+      hash: syncstring.hash_of_live_version()
+    });
+    (syncstring as any).syncstring_table.emit("change-no-throttle");
+    await promise;
+    expect(syncstring.has_unsaved_changes()).toBe(false);
+  });
+
+  it("close and clean up", async () => {
+    await syncstring.close();
     expect(syncstring.get_state()).toBe("closed");
   });
 });

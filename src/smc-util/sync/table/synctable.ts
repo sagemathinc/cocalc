@@ -30,7 +30,7 @@ import { Map, fromJS, List, is as immutable_is, Iterable } from "immutable";
 
 import { keys, throttle } from "underscore";
 
-import { callback2, once } from "../../async-utils";
+import { callback2,cancel_scheduled, once } from "../../async-utils";
 
 import { wait } from "../../async-wait";
 
@@ -80,6 +80,7 @@ export class SyncTable extends EventEmitter {
   private options: any[];
   private client: Client;
   private throttle_changes?: number;
+  private throttled_emit_changes?: Function;
 
   // The value of this query locally.
   private value_local?: Map<string, any>;
@@ -397,6 +398,12 @@ export class SyncTable extends EventEmitter {
       // still in use by possibly multiple clients
       return;
     }
+
+    if (this.throttled_emit_changes != null) {
+      cancel_scheduled(this.throttled_emit_changes);
+      delete this.throttled_emit_changes;
+    }
+
     this.client.removeListener("disconnected", this.disconnected);
     if (!fatal) {
       // do a last attempt at a save (so we don't lose data),
@@ -490,7 +497,7 @@ export class SyncTable extends EventEmitter {
       this.emit("change", keys(all_changed_keys));
       all_changed_keys = {};
     };
-    do_emit_changes = throttle(do_emit_changes, this.throttle_changes);
+    this.throttled_emit_changes = throttle(do_emit_changes, this.throttle_changes);
     this.emit_change = changed_keys => {
       //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
@@ -499,11 +506,14 @@ export class SyncTable extends EventEmitter {
         all_changed_keys[key] = true;
       }
       this.emit("change-no-throttle", changed_keys);
-      do_emit_changes();
+      if (this.throttled_emit_changes != null) {
+        this.throttled_emit_changes();
+      }
     };
   }
 
   private dbg(_f?: string): Function {
+    return (..._) => {};
     /* return (...args) => {
       console.log(`synctable("${this.table}").${_f}: `, ...args);
     };*/

@@ -121,7 +121,9 @@ export class Client extends EventEmitter implements Client0 {
     return true;
   }
 
-  public query_cancel(_): void {}
+  public query_cancel(_): void {
+    
+  }
 
   public alert_message(_): void {}
 

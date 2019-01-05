@@ -430,7 +430,9 @@ export class SortedPatchList extends EventEmitter {
     return x.user_id;
   }
 
-  // Returns time when patch was sent out, or undefined if not yet sent.
+  // Returns time when patch was sent out, or undefined.  This is
+  // ONLY set if the patch was sent at a significantly different
+  // time than when it was created, e.g., due to it being offline.
   // Throws an exception if there is no patch at that point in time.
   public time_sent(time): Date | undefined {
     return this.patch(time).sent;

@@ -42,6 +42,7 @@ import { delay } from "awaiting";
 
 import {
   callback2,
+  cancel_scheduled,
   once,
   retry_until_success,
   reuse_in_flight_methods
@@ -127,6 +128,7 @@ export class SyncDoc extends EventEmitter {
   // file_use_interval throttle: default is 60s for everything
   // except .sage-chat files, where it is 10s.
   private file_use_interval: number;
+  private throttled_file_use?: Function;
 
   private cursors: boolean = false; // if true, also provide cursor tracking functionality
   private cursor_map: Map<string, any> = Map();
@@ -205,11 +207,11 @@ export class SyncDoc extends EventEmitter {
     this._from_str = opts.from_str;
 
     reuse_in_flight_methods(this, [
-      "save",
+      /*"save",
       "save_to_disk",
       "load_from_disk",
       "handle_patch_update_queue",
-      "sync_remote_and_doc"
+      "sync_remote_and_doc" */
     ]);
 
     if (this.change_throttle) {
@@ -319,8 +321,9 @@ export class SyncDoc extends EventEmitter {
         ttl: this.file_use_interval
       });
     };
+    this.throttled_file_use = throttle(file_use, this.file_use_interval, true);
 
-    this.on("user_change", throttle(file_use, this.file_use_interval, true));
+    this.on("user_change", this.throttled_file_use as any);
   }
 
   private set_state(state: State): void {
@@ -591,8 +594,9 @@ export class SyncDoc extends EventEmitter {
 
   /* Approximate time when patch with given timestamp was
      actually sent to the server; returns undefined if time
-     sent is approximately the timestamp time.  Only not undefined
-     when there is a significant difference. */
+     sent is approximately the timestamp time.  Only defined
+     when there is a significant difference, due to editing
+     when offline! */
   public time_sent(time: Date): Date | undefined {
     this.assert_table_is_ready("patches");
     return this.patch_list.time_sent(time);
@@ -680,7 +684,7 @@ export class SyncDoc extends EventEmitter {
 
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
-  public close(): void {
+  public async close(): Promise<void> {
     if (this.state === "closed") {
       return;
     }
@@ -690,6 +694,19 @@ export class SyncDoc extends EventEmitter {
     // must be after this.emit('close') above, so they know
     // what happened and can respond to it.
     this.removeAllListeners();
+
+    if (this.throttled_file_use != null) {
+      // Cancel any pending file_use calls.
+      cancel_scheduled(this.throttled_file_use);
+      (this.throttled_file_use as any).cancel();
+      delete this.throttled_file_use;
+    }
+
+    if (this.emit_change != null) {
+      // Cancel any pending change emit calls.
+      cancel_scheduled(this.emit_change);
+      delete this.emit_change;
+    }
 
     if (this.project_autosave_timer) {
       clearInterval(this.project_autosave_timer as any);
@@ -701,12 +718,12 @@ export class SyncDoc extends EventEmitter {
     this.patch_update_queue = [];
 
     if (this.syncstring_table != null) {
-      this.syncstring_table.close();
+      await this.syncstring_table.close();
       delete this.syncstring_table;
     }
 
     if (this.patches_table != null) {
-      this.patches_table.close();
+      await this.patches_table.close();
       delete this.patches_table;
     }
 
@@ -716,7 +733,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.cursors_table != null) {
-      this.cursors_table.close();
+      await this.cursors_table.close();
       delete this.cursors_table;
     }
 
@@ -725,7 +742,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.evaluator != null) {
-      this.evaluator.close();
+      await this.evaluator.close();
       delete this.evaluator;
     }
 
@@ -813,11 +830,11 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
+    return (..._) => {};
     if (!this.client.is_project()) {
-      /*return (...args) => {
+      return (...args) => {
         console.log("sync-doc", _f, ...args);
-      };*/
-      return (..._) => {};
+      };
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
   }
@@ -1300,7 +1317,7 @@ export class SyncDoc extends EventEmitter {
       await this.sync_remote_and_doc();
       dbg("Patch sent, now make a snapshot if we are due for one.");
       if (this.get_state() === "ready") {
-        this.snapshot_if_necessary();
+        await this.snapshot_if_necessary();
       }
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
@@ -2022,39 +2039,47 @@ export class SyncDoc extends EventEmitter {
 
   // wait for save.state to change state.
   private async wait_for_save_to_disk_done(): Promise<void> {
+    const dbg = this.dbg("wait_for_save_to_disk_done");
+    dbg();
     function until(table): boolean {
-      return table.get_one().getIn(["save", "state"]) === "done";
+      const done = table.get_one().getIn(["save", "state"]) === "done";
+      dbg("checking... done=", done);
+      return done;
     }
 
     let last_err = undefined;
-    async function f(): Promise<void> {
+    const f = async () => {
+      dbg("f");
       if (this.state != "ready" || this.deleted) {
-        // not ready or deleted - no longer trying to save.
+        dbg("not ready or deleted - no longer trying to save.");
         return;
       }
       try {
+        dbg("waiting until done...");
         await this.syncstring_table.wait(until, 10);
       } catch (err) {
-        // timed out after 10s
+        dbg("timed out after 10s");
         throw Error("timed out");
       }
       if (this.state != "ready" || this.deleted) {
+        dbg("not ready or deleted - no longer trying to save.");
         return;
       }
       const err = this.syncstring_table_get_one().getIn(["save", "error"]);
       if (err) {
+        dbg("error", err);
         last_err = err;
         throw Error(err);
       }
-      // done, with no error.
+      dbg("done, with no error.");
       last_err = undefined;
       return;
-    }
+    };
     await retry_until_success({
       f,
       max_tries: 4
     });
-    if (this.state != "ready") {
+    if (this.state != "ready" || this.deleted) {
       return;
     }
     if (last_err && typeof this.client.log_error === "function") {

@@ -24,7 +24,7 @@
     "json-stable-stringify": "^1.0.1",
     "prop-types": "^15.5.10",
     "sha1": "^1.1.1",
-    "underscore": "^1.8.3",
+    "underscore": "^1.9.1",
     "uuid": "^3.0.1"
   },
   "repository": {

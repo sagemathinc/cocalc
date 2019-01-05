@@ -40,15 +40,14 @@ export async function wait({
     let fail_timer: any = undefined;
 
     function done(err, ret?): void {
-      if (cb === undefined) {
-        return;
-      }
       obj.removeListener(change_event, f);
       obj.removeListener("close", f);
-
       if (fail_timer !== undefined) {
         clearTimeout(fail_timer);
         fail_timer = undefined;
+      }
+      if (cb === undefined) {
+        return;
       }
       cb(err, ret);
       cb = undefined;
