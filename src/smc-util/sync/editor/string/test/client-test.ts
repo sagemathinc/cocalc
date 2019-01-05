@@ -50,7 +50,9 @@ export class Client extends EventEmitter implements Client0 {
   }
 
   public dbg(_f: string): Function {
-    return (...args) => { console.log(_f, ...args); }
+    return (...args) => {
+      console.log(_f, ...args);
+    };
     //return (..._) => {};
   }
 
@@ -121,9 +123,7 @@ export class Client extends EventEmitter implements Client0 {
     return true;
   }
 
-  public query_cancel(_): void {
-    
-  }
+  public query_cancel(_): void {}
 
   public alert_message(_): void {}
 

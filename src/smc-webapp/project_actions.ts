@@ -471,7 +471,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ default_filename: next });
   }
 
-  set_activity(opts) {
+  async set_activity(opts) : Promise<void> {
     opts = defaults(opts, {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
@@ -486,8 +486,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // If there is activity it's also a good opportunity to
     // express that we are interested in this project.
     try {
-      this.touch();
-    } catch (err) {}
+      await this.touch();
+    } catch (err) {
+      // nonfatal.
+      console.warn(`unable to touch ${this.project_id} -- ${err}`);
+    }
 
     let x =
       store.get("activity") != null ? store.get("activity").toJS() : undefined;

@@ -43,10 +43,14 @@ There's actually a completely separate client
 that runs in the browser and one on the project,
 but anything that has the following interface
 might work... */
-export interface Client {
+import { EventEmitter } from "events";
+
+export interface Client extends EventEmitter {
   server_time: () => Date;
   is_user: () => boolean;
   is_project: () => boolean;
+  is_connected: () => boolean;
+  is_signed_in: () => boolean;
   dbg: (desc: string) => Function;
   mark_file: (
     opts: {

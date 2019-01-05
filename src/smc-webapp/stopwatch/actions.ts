@@ -60,7 +60,7 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
 
   _set = (obj: Timer): void => {
     this.syncdb.set(obj);
-    this.syncdb.save(); // save to file on disk
+    this.syncdb.save_to_disk();
   };
 
   add_stopwatch = (): void => {

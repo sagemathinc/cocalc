@@ -252,7 +252,7 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       console.warn("SyncDoc init error -- ", err, err.stack);
       this.emit("error", err);
-      this.close();
+      await this.close();
       return;
     }
 
@@ -782,7 +782,22 @@ export class SyncDoc extends EventEmitter {
   // the table.  This requires some new idea I guess of virtual
   // fields....
   // Also, this also establishes the correct doctype.
+
+  // Since this MUST succeed before doing anything else, we
+  // keep trying until either it does, or this document is closed.
   private async ensure_syncstring_exists_in_db(): Promise<void> {
+    // Wait until connected, if necessary.
+    if (!this.client.is_connected()) {
+      await once(this.client, "connected");
+    }
+
+    if (this.client.is_user() && !this.client.is_signed_in()) {
+      await once(this.client, "signed_in");
+    }
+
+    if (this.state == ("closed" as State)) return;
+
+    // Do the write query.
     await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -863,11 +878,11 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
+    return (..._) => {};
     if (!this.client.is_project()) {
-      return (..._) => {};
-      /*return (...args) => {
+      return (...args) => {
         console.log("sync-doc", _f, ...args);
-      };*/
+      };
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
   }

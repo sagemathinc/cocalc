@@ -4,10 +4,13 @@ Create a singleton websocket connection directly to a particular project.
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
-const { retry_until_success } = require("smc-util/async-utils"); // so also works on backend.
+const { callback2, once, retry_until_success } = require("smc-util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
+
+const { webapp_client } = require("../../webapp_client");
+const { redux } = require("../../app-framework");
 
 const connections = {};
 
@@ -38,6 +41,29 @@ async function connection_to_project0(project_id: string): Promise<any> {
       if (READING_PRIMUS_JS) {
         throw Error("currently reading one already");
       }
+
+      if (!webapp_client.is_signed_in()) {
+        // At least wait until main client is signed in, since nothing
+        // will work until that is the case anyways.
+        await once(webapp_client, "signed_in");
+      }
+
+      // also check if the project is supposedly running and if not wait for it to be.
+      const projects = redux.getStore("projects");
+      if (projects == null) {
+        throw Error("projects store must exist");
+      }
+
+      if (projects.get_state(project_id) != "running") {
+        // Encourage project to start running, if it isn't already...
+        await callback2(webapp_client.touch_project, { project_id });
+        await callback2(projects.wait, {
+          until: () => projects.get_state(project_id) == "running"
+        });
+      }
+
+      // Now project is thought to be running, so maybe this will work:
+
       try {
         READING_PRIMUS_JS = true;
 
@@ -70,9 +96,8 @@ async function connection_to_project0(project_id: string): Promise<any> {
         //console.log("success!");
       }
     },
-    max_time: 1000 * 60 * 30,
-    start_delay: 250,
-    max_delay: 1500,
+    start_delay: 300,
+    max_delay: 3000,
     factor: 1.2
     //log: (...x) => {
     //  console.log("retry primus:", ...x);

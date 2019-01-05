@@ -211,7 +211,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _init_syncstring(): void {
     if (this.doctype == "none") {
-      // TODO: this is obviously probably broken.
       this._syncstring = <SyncString>syncstring({
         project_id: this.project_id,
         path: this.path,
@@ -297,6 +296,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.set_reload("save_to_disk");
     });
 
+    this._syncstring.once("error", err => {
+      this.set_error(
+        `Fatal error opening ${
+          this.path
+        } -- ${err}.  Please try reopening the file again.`
+      );
+    });
+
+    this._syncstring.once("closed", () => {
+      this.close();
+    });
+
     this._init_has_unsaved_changes();
   }
 
@@ -323,6 +334,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
       );
     });
+
+    this._syncdb.once("closed", () => {
+      this.close();
+    });
+
     this._syncdb.once("ready", async () => {
       // TODO -- there is a race condition setting up tables; throwing in this delay makes it work.
       // await delay(1000);
@@ -415,7 +431,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   private async close_syncstring(): Promise<void> {
     const s = this._syncstring;
     if (s == null) return;
-    if (s.get_state() === 'ready') {
+    if (s.get_state() === "ready") {
       // syncstring was initialized; be sure not to
       // lose the very last change user made!
       this.set_syncstring_to_codemirror();
@@ -431,7 +447,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     delete this._syncdb;
     // syncstring was initialized; be sure not to
     // lose the very last change user made!
-    if (s.get_state() === 'ready') {
+    if (s.get_state() === "ready") {
       await s.save();
     }
     s.close();

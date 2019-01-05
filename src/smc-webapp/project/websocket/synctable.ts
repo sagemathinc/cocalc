@@ -20,6 +20,12 @@ export async function synctable_project(
   client,
   throttle_changes?: undefined | number
 ): Promise<SyncTable> {
+  // console.log("synctable_project options", options);
+  function log(..._args): void {
+    //console.log("synctable", query, ..._args);
+  }
+
+  log("touch project...");
   // This mainly makes sure that some hub is connected to
   // the project, so the project can do DB queries.
   await retry_until_success({
@@ -28,11 +34,6 @@ export async function synctable_project(
   });
 
   let initial_get_query: any[] = [];
-
-  // console.log("synctable_project options", options);
-  function log(..._args): void {
-    // console.log(query, ..._args);
-  }
 
   let channel: any;
   let synctable: undefined | SyncTable = undefined;
@@ -90,10 +91,13 @@ export async function synctable_project(
     if (channel != null) {
       end_channel();
     }
+    log("init_channel", "get api");
     const api = (await client.project_websocket(project_id)).api;
+    log("init_channel", "get channel");
     channel = await api.synctable_channel(query, options);
     connected = true;
 
+    log("init_channel", "setup handlers");
     channel.on("data", handle_data);
 
     // Channel close/open happens on brief network interruptions.  However,
@@ -123,18 +127,20 @@ export async function synctable_project(
     channel = undefined;
   }
 
+  log("Initialize the channel...");
   await init_channel();
 
-  // Wait for initial data, which will initialize the initial_get_query array.
+  log("Wait for initial data...")
+  // This data will initialize the initial_get_query array below.
   await once(channel, "data");
 
-  // Now create the synctable -- note here we pass in the initial_get_query:
+  log("Now create the synctable...");
   synctable = synctable_no_database(
     query,
     options0,
     client,
     throttle_changes,
-    initial_get_query
+    initial_get_query // -- note here we pass in the initial_get_query
   );
 
   synctable.on("saved-objects", function(saved_objs) {

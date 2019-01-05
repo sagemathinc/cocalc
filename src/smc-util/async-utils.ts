@@ -40,8 +40,8 @@ export function callback_opts(f: Function) {
 
 interface RetryUntilSuccess<T> {
   f: () => Promise<T>; // an async function that takes no input.
-  start_delay?: number; // delay (in ms) before calling second time.
-  max_delay?: number; // delay at most this amount between calls
+  start_delay?: number; // milliseconds -- delay before calling second time.
+  max_delay?: number; // milliseconds -- delay at most this amount between calls
   max_tries?: number; // maximum number of times to call f
   max_time?: number; // milliseconds -- don't call f again if the call would start after this much time from first call
   factor?: number; // multiply delay by this each time
@@ -78,6 +78,7 @@ export async function retry_until_success<T>(
     try {
       return await opts.f();
     } catch (exc) {
+      //console.warn('retry_until_success', exc);
       if (opts.log !== undefined) {
         opts.log("failed ", exc);
       }
