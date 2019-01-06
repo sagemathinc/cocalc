@@ -48,7 +48,8 @@ async function connection_to_project0(project_id: string): Promise<any> {
         await once(webapp_client, "signed_in");
       }
 
-      // also check if the project is supposedly running and if not wait for it to be.
+      // also check if the project is supposedly running and if
+      // not wait for it to be.
       const projects = redux.getStore("projects");
       if (projects == null) {
         throw Error("projects store must exist");
@@ -63,7 +64,6 @@ async function connection_to_project0(project_id: string): Promise<any> {
       }
 
       // Now project is thought to be running, so maybe this will work:
-
       try {
         READING_PRIMUS_JS = true;
 

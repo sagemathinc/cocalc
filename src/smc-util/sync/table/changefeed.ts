@@ -47,7 +47,7 @@ export class Changefeed extends EventEmitter {
     this.state = "connecting";
     const resp = await callback(this.run_the_query.bind(this));
     if (this.state === ("closed" as State)) {
-      throw Error("closed");
+      throw Error("after running query, changefeed state is 'closed'");
     }
     if (resp.event === "query_cancel") {
       throw Error("query-cancel");
@@ -84,14 +84,21 @@ export class Changefeed extends EventEmitter {
   }
 
   private handle_update(err, resp): void {
-    if (this.state !== "connected") {
-      this.close();
-      return;
+    if (this.state != "connected") {
+      if (this.state == "closed") {
+        // expected, since last updates after query cancel may get through...
+        return;
+      }
+      //console.warn("handle_update", this.table, this.query, err, resp);
+      throw Error(
+        `changefeed bug -- handle_update called when state "${this.state}"`
+      );
     }
     if (resp == null && err == null) {
       err = "resp must not be null for non-error";
     }
     if (err || resp.event === "query_cancel") {
+      //if (err) console.warn("closing changefeed due to err", err);
       this.close();
       return;
     }

@@ -142,7 +142,7 @@ describe("tests public API of a system_notifications SyncTable", () => {
   });
 
   test("closed synctable -- most public API functions throw an error", async () => {
-    expect(() => synctable.set({ priority: "medium" })).toThrow("closed");
+    expect(() => synctable.set({ priority: "medium" })).toThrow("may only set when synctable is connected");
     expect(() => synctable.get()).toThrow("closed");
     expect(() => synctable.get_one()).toThrow("closed");
     expect(() => synctable.has_uncommitted_changes()).toThrow("closed");

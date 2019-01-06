@@ -280,8 +280,6 @@ export class SyncTable extends EventEmitter {
   but is worth it for sanity's sake!
   */
   public set(changes: any, merge: "deep" | "shallow" | "none" = "deep"): any {
-    this.assert_not_closed();
-
     if (!Map.isMap(changes)) {
       changes = fromJS(changes);
       if (!is_object(changes)) {
@@ -290,6 +288,12 @@ export class SyncTable extends EventEmitter {
         );
       }
     }
+
+    if (this.state != "connected") {
+      // console.warn("set issue", this.table, changes.toJS());
+      throw Error("may only set when synctable is connected");
+    }
+
     if (this.value_local == null) {
       this.value_local = Map({});
     }
@@ -519,7 +523,8 @@ export class SyncTable extends EventEmitter {
   }
 
   private dbg(_f?: string): Function {
-    // return (..._) => {};
+    return () => {};
+    /*
     return (...args) => {
       console.log(`synctable("${this.table}").${_f}: `, ...args);
     };
@@ -529,6 +534,7 @@ export class SyncTable extends EventEmitter {
       );
     }
     return () => {};
+    */
   }
 
   private async connect(): Promise<void> {
@@ -1350,6 +1356,7 @@ export class SyncTable extends EventEmitter {
 
   private assert_not_closed(): void {
     if (this.state === "closed") {
+      //console.trace();
       throw Error("closed");
     }
   }

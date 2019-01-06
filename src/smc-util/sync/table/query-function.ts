@@ -4,6 +4,8 @@ Determine function that does query.
 
 const async = require("async");
 
+import { delay } from "awaiting";
+
 import { SCHEMA } from "../../schema";
 import { copy } from "../../misc2";
 
@@ -34,15 +36,20 @@ export function query_function(
       const opts2 = copy(opts);
       opts2.standby = true;
       opts2.changes = false;
-      opts2.cb = function(err, resp): void {
+      opts2.cb = async function(err, resp): Promise<void> {
         opts.cb(err, resp);
-        read_done = true;
         if (!err) {
-          while (change_queue.length > 0) {
-            const x = change_queue.shift();
-            if (x == null) break; // make typescript happy.
-            const { err, change } = x;
-            opts.cb(err, change);
+          read_done = true;
+          if (change_queue.length > 0) {
+            // CRITICAL: delay, since these must be pushed out in a later event loop.
+            // Without this delay, there will be many random failures.
+            await delay(0);
+            while (change_queue.length > 0) {
+              const x = change_queue.shift();
+              if (x == null) break; // make typescript happy.
+              const { err, change } = x;
+              opts.cb(err, change);
+            }
           }
         }
         cb(err);
@@ -56,15 +63,14 @@ export function query_function(
       opts2.standby = false;
       opts2.changes = true;
       opts2.cb = function(err, change): void {
-        if (first_resp) {
-          first_resp = false;
-          cb(err, change);
-          return;
-        }
         if (read_done) {
           opts.cb(err, change);
         } else {
           change_queue.push({ err, change });
+        }
+        if (first_resp) {
+          first_resp = false;
+          cb(err);
         }
       };
       opts2.options = opts2.options.concat({ only_changes: true });

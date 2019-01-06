@@ -250,8 +250,14 @@ export class SyncDoc extends EventEmitter {
       //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
       //);
     } catch (err) {
-      console.warn("SyncDoc init error -- ", err, err.stack);
-      this.emit("error", err);
+      // completely normal that this could happen - it means
+      // that we closed the file before finished opening it...
+      //console.warn("SyncDoc init error -- ", err, err.stack);
+      if (this.state != 'closed') {
+        // Error NOT caused by closing during the init_all, so we
+        // report it.
+        this.emit("error", err);
+      }
       await this.close();
       return;
     }
@@ -363,6 +369,7 @@ export class SyncDoc extends EventEmitter {
 
   private assert_not_closed(): void {
     if (this.state === "closed") {
+      //console.trace();
       throw Error("closed");
     }
   }
