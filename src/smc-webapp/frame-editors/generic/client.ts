@@ -178,6 +178,10 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
+import { DataServer } from 'smc-util/sync/editor/generic/sync-doc';
+
+import { SyncString } from 'smc-util/sync/editor/string/sync';
+
 interface SyncstringOpts2 {
   project_id: string;
   path: string;
@@ -185,9 +189,8 @@ interface SyncstringOpts2 {
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
   persistent?: boolean;
+  data_server?: DataServer;
 }
-
-import { SyncString } from 'smc-util/sync/editor/string/sync';
 
 export function syncstring2(opts: SyncstringOpts2): SyncString {
   const opts1: any = opts;
@@ -205,6 +208,7 @@ interface SyncDBOpts {
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
   persistent?: boolean;
+  data_server?: DataServer;
 }
 
 export function syncdb(opts: SyncDBOpts): any {

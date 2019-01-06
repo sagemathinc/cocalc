@@ -49,12 +49,19 @@ export class Evaluator {
   private outputs_table: SyncTable;
   private sage_session: any;
   private state: State = "init";
+  private table_options: any[] = [];
+  private create_synctable: Function;
 
   private last_call_time: Date = new Date(0);
 
-  constructor(syncdoc: SyncDoc, client: Client) {
+  constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
     this.syncdoc = syncdoc;
     this.client = client;
+    this.create_synctable = create_synctable;
+    if (this.syncdoc.data_server == "project") {
+      // options only supported for project...
+      this.table_options = [{ ephemeral: true, persistent: true }];
+    }
   }
 
   public async init(): Promise<void> {
@@ -105,10 +112,9 @@ export class Evaluator {
         }
       ]
     };
-    this.inputs_table = await this.client.synctable_project(
-      this.syncdoc.get_project_id(),
+    this.inputs_table = await this.create_synctable(
       query,
-      [{ ephemeral: true, persistent: true }],
+      this.table_options,
       0
     );
   }
@@ -124,10 +130,9 @@ export class Evaluator {
         }
       ]
     };
-    this.outputs_table = await this.client.synctable_project(
-      this.syncdoc.get_project_id(),
+    this.outputs_table = await this.create_synctable(
       query,
-      [{ ephemeral: true, persistent: true  }],
+      this.table_options,
       0
     );
     this.outputs_table.setMaxListeners(200); // in case of many evaluations at once.

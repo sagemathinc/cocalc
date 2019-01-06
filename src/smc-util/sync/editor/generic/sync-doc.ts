@@ -78,6 +78,9 @@ import { SortedPatchList } from "./sorted-patch-list";
 
 import { patch_cmp } from "./util";
 
+export type State = "init" | "ready" | "closed";
+export type DataServer = "project" | "database";
+
 export interface SyncOpts0 {
   project_id: string;
   path: string;
@@ -95,6 +98,9 @@ export interface SyncOpts0 {
   // persistent backend session in project, so only close
   // backend when explicitly requested:
   persistent?: boolean;
+
+  // which data/changefeed server to use
+  data_server?: DataServer;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -108,8 +114,6 @@ export interface UndoState {
   without: Date[];
   final?: CompressedPatch;
 }
-
-export type State = "init" | "ready" | "closed";
 
 export class SyncDoc extends EventEmitter {
   private project_id: string; // project_id that contains the doc
@@ -189,6 +193,7 @@ export class SyncDoc extends EventEmitter {
   private save_to_disk_end_ctime: number | undefined;
 
   private persistent: boolean = false;
+  public readonly data_server: DataServer = "project";
 
   constructor(opts: SyncOpts) {
     super();
@@ -208,7 +213,8 @@ export class SyncDoc extends EventEmitter {
       "cursors",
       "doctype",
       "from_patch_str",
-      "persistent"
+      "persistent",
+      "data_server"
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -253,7 +259,7 @@ export class SyncDoc extends EventEmitter {
       // completely normal that this could happen - it means
       // that we closed the file before finished opening it...
       //console.warn("SyncDoc init error -- ", err, err.stack);
-      if (this.state != 'closed') {
+      if (this.state != "closed") {
         // Error NOT caused by closing during the init_all, so we
         // report it.
         this.emit("error", err);
@@ -822,15 +828,26 @@ export class SyncDoc extends EventEmitter {
     options: any[],
     throttle_changes?: undefined | number
   ): Promise<SyncTable> {
-    if (this.persistent) {
+    if (this.persistent && this.data_server == 'project') {
       options = options.concat([{ persistent: true }]);
     }
-    return await this.client.synctable_project(
-      this.project_id,
-      query,
-      options,
-      throttle_changes
-    );
+    switch (this.data_server) {
+      case "project":
+        return await this.client.synctable_project(
+          this.project_id,
+          query,
+          options,
+          throttle_changes
+        );
+      case "database":
+        return await this.client.synctable_database(
+          query,
+          options,
+          throttle_changes
+        );
+      default:
+        throw Error(`uknown server ${this.data_server}`);
+    }
   }
 
   private async init_syncstring_table(): Promise<void> {
@@ -858,7 +875,7 @@ export class SyncDoc extends EventEmitter {
     };
 
     dbg("getting table...");
-    this.syncstring_table = await this.synctable(query, [{ ephemeral: false }]);
+    this.syncstring_table = await this.synctable(query, []);
     dbg("waiting for, then handling the first update...");
     await this.handle_syncstring_update();
     this.syncstring_table.on(
@@ -1156,7 +1173,7 @@ export class SyncDoc extends EventEmitter {
     dbg("opening the table...");
     this.patches_table = await this.synctable(
       { patches: [this.patch_table_query(this.last_snapshot)] },
-      [{ ephemeral: false }],
+      [],
       this.patch_interval
     );
     this.assert_not_closed();
@@ -1211,7 +1228,7 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     dbg("creating the evaluator and waiting for init");
-    this.evaluator = new Evaluator(this, this.client);
+    this.evaluator = new Evaluator(this, this.client, this.synctable.bind(this));
     await this.evaluator.init();
     dbg("done");
   }
@@ -1241,9 +1258,15 @@ export class SyncDoc extends EventEmitter {
     // need to persist it to the database, obviously!
     // Also, queue_size:1 makes it so only the last cursor position is
     // saved, e.g., in case of disconnect and reconnect.
+    let options;
+    if(this.data_server == 'project') {
+      options = [{ ephemeral: true }, { queue_size: 1 }]
+    } else {
+      options = [];
+    }
     this.cursors_table = await this.synctable(
       query,
-      [{ ephemeral: true }, { queue_size: 1 }],
+      options,
       0
     );
     this.assert_not_closed();

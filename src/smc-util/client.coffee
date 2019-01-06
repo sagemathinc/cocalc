@@ -42,6 +42,7 @@ misc    = require("./misc")
 
 client_aggregate = require('./client-aggregate')
 
+{once} = require('./async-utils')
 
 {validate_client_query} = require('./schema-validate')
 
@@ -1814,6 +1815,12 @@ class exports.Connection extends EventEmitter
     sync_table2: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
 
+    # This is async! The returned synctable is fully initialized.
+    synctable_database: (query, options, throttle_changes=undefined) =>
+        s = this.sync_table2(query, options, throttle_changes)
+        await once(s, 'connected')
+        return s
+
     synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable_no_changefeed(query, options, @, throttle_changes)
 
@@ -1840,6 +1847,7 @@ class exports.Connection extends EventEmitter
             patch_interval    : 1000
             save_interval     : 2000
             persistent        : false
+            data_server       : undefined
         opts.client = @
         return new SyncString2(opts)
 
@@ -1856,6 +1864,8 @@ class exports.Connection extends EventEmitter
             primary_keys      : required
             string_cols       : []
             persistent        : false
+            data_server       : undefined
+        console.log "new SyncDB2, ", JSON.stringify(opts)
         opts.client = @
         return new SyncDB2(opts)
 
@@ -1864,6 +1874,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : required
+            data_server : undefined
             cb         : required  # cb(err, document)
         opts.client = @
         open_existing_sync_document(opts)
@@ -2052,12 +2063,13 @@ exports.issues_with_create_account = (mesg) ->
     return issues
 
 
-
+# This is mainly used for TimeTravel view...
 open_existing_sync_document = (opts) ->
     opts = defaults opts,
         client     : required
         project_id : required
         path       : required
+        data_server : undefined
         cb         : required
     opts.client.query
         query :
@@ -2079,6 +2091,8 @@ open_existing_sync_document = (opts) ->
             opts2 =
                 project_id : opts.project_id
                 path       : opts.path
+            if opts.data_server
+                opts2.data_server = opts.data_server
             if doctype.opts?
                 opts2 = misc.merge(opts2, doctype.opts)
             doc = opts.client["sync_#{doctype.type}2"](opts2)

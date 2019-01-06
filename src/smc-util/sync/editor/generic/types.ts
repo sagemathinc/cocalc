@@ -84,6 +84,12 @@ export interface Client extends EventEmitter {
     throttle_changes?: number
   ) => Promise<SyncTable>;
 
+  synctable_database: (
+    query: any,
+    options: any,
+    throttle_changes?: number
+  ) => Promise<SyncTable>;
+
   // account_id or project_id
   client_id: () => string;
 }
