@@ -885,8 +885,8 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
     if (!this.client.is_project()) {
+      return (..._) => {};
       return (...args) => {
         console.log("sync-doc", _f, ...args);
       };

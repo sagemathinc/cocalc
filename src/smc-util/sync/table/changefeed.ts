@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 
 type State = "closed" | "disconnected" | "connecting" | "connected";
 
@@ -12,6 +12,7 @@ export class Changefeed extends EventEmitter {
   private table: string;
   private id: string;
   private options: any;
+  private handle_update_queue: { err?: any; resp?: any }[] = [];
 
   constructor({
     do_query,
@@ -58,7 +59,20 @@ export class Changefeed extends EventEmitter {
     // Successfully completed query
     this.id = resp.id;
     this.state = "connected";
+    this.process_queue_next_tick();
     return resp.query[this.table];
+  }
+
+  // Wait a tick, then process the queue of messages that
+  // arrived during initialization.
+  private async process_queue_next_tick(): Promise<void> {
+    await delay(0);
+    while (this.state != "closed" && this.handle_update_queue.length > 0) {
+      const x = this.handle_update_queue.shift();
+      if (x != null) {
+        this.handle_update(x.err, x.resp);
+      }
+    }
   }
 
   private run_the_query(cb: Function): void {
@@ -89,10 +103,10 @@ export class Changefeed extends EventEmitter {
         // expected, since last updates after query cancel may get through...
         return;
       }
-      //console.warn("handle_update", this.table, this.query, err, resp);
-      throw Error(
-        `changefeed bug -- handle_update called when state "${this.state}"`
-      );
+      // This can and does happen when updates appear immediately
+      // after the first initial state is set (in run_the_query).
+      this.handle_update_queue.push({ err, resp });
+      return;
     }
     if (resp == null && err == null) {
       err = "resp must not be null for non-error";
@@ -115,6 +129,7 @@ export class Changefeed extends EventEmitter {
 
   public close(): void {
     this.state = "closed";
+    delete this.handle_update_queue;
     if (this.id != null) {
       // stop listening for future updates
       this.query_cancel({ id: this.id });

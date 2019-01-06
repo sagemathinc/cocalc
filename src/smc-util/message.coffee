@@ -2505,7 +2505,19 @@ API message2
             init  : required
             desc  : 'id of project to touch'
     desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things."
-    
+
+# client --> hub
+API message2
+    event        : 'disconnect_from_project'
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project to disconnect from'
+    desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development."
+
 
 # client <-- hub
 message
