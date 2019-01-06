@@ -54,7 +54,7 @@ export class Changefeed extends EventEmitter {
       throw Error("query-cancel");
     }
     if (resp.query == null || resp.query[this.table] == null) {
-      throw Error("got no data");
+      throw Error(`${this.table} changefeed init -- no error and no data`);
     }
     // Successfully completed query
     this.id = resp.id;

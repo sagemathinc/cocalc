@@ -36,6 +36,7 @@ export function query_function(
       const opts2 = copy(opts);
       opts2.standby = true;
       opts2.changes = false;
+      let cb_called : boolean = false;
       opts2.cb = async function(err, resp): Promise<void> {
         opts.cb(err, resp);
         if (!err) {
@@ -52,7 +53,10 @@ export function query_function(
             }
           }
         }
-        cb(err);
+        if (!cb_called) {
+          cb_called = true;
+          cb(err);
+        }
       };
       client_query(opts2);
     }

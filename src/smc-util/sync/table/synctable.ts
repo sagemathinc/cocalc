@@ -23,6 +23,8 @@ export function set_debug(x: boolean): void {
   DEBUG = x;
 }
 
+import { delay } from "awaiting";
+
 import { global_cache_decref } from "./global-cache";
 
 import { EventEmitter } from "events";
@@ -600,10 +602,21 @@ export class SyncTable extends EventEmitter {
   private async create_changefeed_connection(): Promise<any[]> {
     // For tables where always being perfectly 100% up to date is
     // critical, which is many of them (e.g., patches, projects).
-    this.close_changefeed();
-    this.changefeed = new Changefeed(this.changefeed_options());
-    await this.wait_until_ready_to_query_db();
-    return await this.changefeed.connect();
+    while (true) {
+      this.close_changefeed();
+      this.changefeed = new Changefeed(this.changefeed_options());
+      await this.wait_until_ready_to_query_db();
+      try {
+        return await this.changefeed.connect();
+      } catch (err) {
+        // This can happen because we might suddenly NOT be ready
+        // to query db immediately after we are ready...
+        console.warn(
+          `${this.table} -- failed to connect -- ${err}; will retry`
+        );
+        await delay(1000);
+      }
+    }
   }
 
   private async wait_until_ready_to_query_db(): Promise<void> {

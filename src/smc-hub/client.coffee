@@ -2601,7 +2601,7 @@ class exports.Client extends EventEmitter
                     cb()
 
     mesg_disconnect_from_project: (mesg) =>
-        dbg = @dbg('mesg_touch_project')
+        dbg = @dbg('mesg_disconnect_from_project')
         @_check_project_access mesg.project_id, (err) =>
             if err
                 dbg("failed -- #{err}")
