@@ -267,9 +267,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // This resets the idle timeout, among other things.
   // This is throttled, so multiple calls are spaced out.
   touch = async (): Promise<void> => {
-    await callback2(webapp_client.touch_project, {
-      project_id: this.project_id
-    });
+    try {
+      await callback2(webapp_client.touch_project, {
+        project_id: this.project_id
+      });
+    } catch (err) {
+      // nonfatal.
+      console.warn(`unable to touch ${this.project_id} -- ${err}`);
+    }
   };
 
   _ensure_project_is_open(cb): void {
@@ -471,7 +476,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ default_filename: next });
   }
 
-  async set_activity(opts) : Promise<void> {
+  async set_activity(opts): Promise<void> {
     opts = defaults(opts, {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
@@ -485,12 +490,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // If there is activity it's also a good opportunity to
     // express that we are interested in this project.
-    try {
-      await this.touch();
-    } catch (err) {
-      // nonfatal.
-      console.warn(`unable to touch ${this.project_id} -- ${err}`);
-    }
+    this.touch();
 
     let x =
       store.get("activity") != null ? store.get("activity").toJS() : undefined;
@@ -1329,17 +1329,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
-          return (
-            !projects_store ||
-            projects_store.wait({
-              until: s => (s as any).get_my_group(this.project_id),
-              timeout: 30,
-              cb: (err, group) => {
-                my_group = group;
-                return cb(err);
-              }
-            })
-          );
+          if (projects_store == null) {
+            cb("projects_store not yet initialized");
+            return;
+          }
+          projects_store.wait({
+            until: s => (s as any).get_my_group(this.project_id),
+            timeout: 30,
+            cb: (err, group) => {
+              my_group = group;
+              cb(err);
+            }
+          });
         },
         cb => {
           store = this.get_store();
@@ -1350,7 +1351,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           if (path == null) {
             path = store.get("current_path");
           }
-          return get_directory_listing({
+          get_directory_listing({
             project_id: this.project_id,
             path,
             hidden: true,
@@ -1358,7 +1359,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             group: my_group,
             cb: (err, listing) => {
               the_listing = listing;
-              return cb(err);
+              cb(err);
             }
           });
         }
@@ -2787,7 +2788,7 @@ if (prom_client.enabled) {
   );
 }
 
-var get_directory_listing = function(opts) {
+function get_directory_listing(opts) {
   let method, prom_dir_listing_start, prom_labels, state, time0, timeout;
   opts = defaults(opts, {
     project_id: required,
@@ -2901,4 +2902,4 @@ var get_directory_listing = function(opts) {
       }
     }
   });
-};
+}

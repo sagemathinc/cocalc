@@ -30,7 +30,7 @@ import { Map, fromJS, List, is as immutable_is, Iterable } from "immutable";
 
 import { keys, throttle } from "underscore";
 
-import { callback2,cancel_scheduled, once } from "../../async-utils";
+import { callback2, cancel_scheduled, once } from "../../async-utils";
 
 import { wait } from "../../async-wait";
 
@@ -443,7 +443,10 @@ export class SyncTable extends EventEmitter {
     try {
       await this.connect();
     } catch (err) {
-      console.warn("failed to connect -- ", err);
+      console.warn(
+        `synctable: failed to connect (table=${this.table}), error=${err}`,
+        this.query
+      );
       this.close(true);
     }
   }
@@ -497,7 +500,10 @@ export class SyncTable extends EventEmitter {
       this.emit("change", keys(all_changed_keys));
       all_changed_keys = {};
     };
-    this.throttled_emit_changes = throttle(do_emit_changes, this.throttle_changes);
+    this.throttled_emit_changes = throttle(
+      do_emit_changes,
+      this.throttle_changes
+    );
     this.emit_change = changed_keys => {
       //console.log("emit_change", changed_keys);
       this.dbg("emit_change")(changed_keys);
@@ -513,10 +519,10 @@ export class SyncTable extends EventEmitter {
   }
 
   private dbg(_f?: string): Function {
-    return (..._) => {};
-    /* return (...args) => {
+    // return (..._) => {};
+    return (...args) => {
       console.log(`synctable("${this.table}").${_f}: `, ...args);
-    };*/
+    };
     if (this.client.is_project()) {
       return this.client.dbg(
         `SyncTable('${JSON.stringify(this.query)}').${_f}`
