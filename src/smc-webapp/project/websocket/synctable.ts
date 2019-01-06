@@ -22,7 +22,7 @@ export async function synctable_project(
 ): Promise<SyncTable> {
   // console.log("synctable_project options", options);
   function log(..._args): void {
-    //console.log("synctable", query, ..._args);
+    console.log("synctable", query, ..._args);
   }
 
   log("touch project...");
@@ -69,9 +69,11 @@ export async function synctable_project(
       }
       synctable.synthetic_change(data);
     }
-    // Write any queued up messages to our new channel.
+
+    // Write any queued up messages to our channel.
     while (queued_messages.length > 0) {
       const mesg = queued_messages.shift();
+      log("sending queued mesg: ", mesg);
       channel.write(mesg);
     }
   }
@@ -94,7 +96,7 @@ export async function synctable_project(
     log("init_channel", "get api");
     const api = (await client.project_websocket(project_id)).api;
     log("init_channel", "get channel");
-    channel = await api.synctable_channel(query, options);
+    channel = await api.sync_channel(query, options);
     connected = true;
 
     log("init_channel", "setup handlers");

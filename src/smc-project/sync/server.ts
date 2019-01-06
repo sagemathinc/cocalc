@@ -99,7 +99,11 @@ class SyncChannel {
     this.init_options(options);
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
-    this.log(`creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`);
+    this.log(
+      `creating new sync channel (persistent=${this.persistent}, ephemeral=${
+        this.ephemeral
+      })`
+    );
   }
 
   public async init(): Promise<void> {
@@ -281,10 +285,6 @@ class SyncChannel {
       return;
     }
     this.closed = true;
-    // TODO.
-    // will want to close and cleanup a channel if there are
-    // no connected sparks for at least k minutes...
-    // Except for compute (sagews, ipynb), it will be different.
     delete sync_channels[this.name];
     this.channel.destroy();
     delete this.channel;
@@ -296,12 +296,31 @@ class SyncChannel {
     delete this.query_string;
     delete this.options;
   }
+
+  public async reload() : Promise<void> {
+    this.log("reload");
+  }
 }
 
 const sync_channels: { [name: string]: SyncChannel } = {};
 
 function createKey(args): string {
   return stringify([args[3], args[4]]);
+}
+
+function channel_name(query: any): string {
+  // stable identifier to this query across
+  // project restart, etc:...
+
+  // can't have options be part of id, since then multiple
+  // synctables on same data, and they are not in sync!
+
+  //const x = stringify([query, options]);
+
+  const x = stringify(query);
+  const s = sha1(x);
+  const name = `sync:${s}`;
+  return name;
 }
 
 async function sync_channel0(
@@ -311,12 +330,8 @@ async function sync_channel0(
   query: any,
   options: any
 ): Promise<string> {
-  // stable identifier to this query with these options, across
-  // project restart, etc:
-  const x = stringify([query, options]);
-  const s = sha1(x);
-  const name = `sync:${s}`;
-  logger.debug("sync_channel", x, name);
+  const name = channel_name(query);
+  logger.debug("sync_channel", query, name);
   if (sync_channels[name] === undefined) {
     sync_channels[name] = new SyncChannel({
       client,
@@ -332,3 +347,28 @@ async function sync_channel0(
 }
 
 export const sync_channel = reuseInFlight(sync_channel0, { createKey });
+
+export async function sync_call(
+  _client: any,
+  _primus: any,
+  logger: any,
+  query: any,
+  mesg: any
+): Promise<string> {
+  logger.debug("sync_call", query, mesg);
+  const name = channel_name(query);
+  const s = sync_channels[name];
+  if (s == null) {
+    return "not open";
+  }
+  switch (mesg.cmd) {
+    case "close":
+      await s.close();
+      return "successfully closed";
+    case "reload":
+      await s.reload();
+      return "reloaded";
+    default:
+      throw Error(`unknown command ${mesg.cmd}`);
+  }
+}
