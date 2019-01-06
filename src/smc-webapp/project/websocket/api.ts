@@ -13,10 +13,7 @@ export class API {
     this.conn = conn;
   }
 
-  async call(mesg: object, timeout_ms?: number): Promise<any> {
-    if (timeout_ms === undefined) {
-      timeout_ms = 30000;
-    }
+  async call(mesg: object, timeout_ms: number = 0): Promise<any> {
     const resp = await callback(call, this.conn, mesg, timeout_ms);
     if (resp != null && resp.status === "error") {
       throw Error(resp.error);
@@ -29,22 +26,28 @@ export class API {
   }
 
   async prettier(path: string, options: any): Promise<any> {
-    return await this.call({ cmd: "prettier", path: path, options: options });
+    return await this.call(
+      { cmd: "prettier", path: path, options: options },
+      15000
+    );
   }
 
   async prettier_string(str: string, options: any): Promise<any> {
-    return await this.call({
-      cmd: "prettier_string",
-      str: str,
-      options: options
-    });
+    return await this.call(
+      {
+        cmd: "prettier_string",
+        str: str,
+        options: options
+      },
+      15000
+    );
   }
 
   async jupyter(
     path: string,
     endpoint: string,
-    query?: any,
-    timeout_ms?: number
+    query: any = undefined,
+    timeout_ms: number = 20000
   ): Promise<any> {
     return await this.call(
       { cmd: "jupyter", path, endpoint, query },
@@ -123,11 +126,14 @@ export class API {
 
 function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
   let done: boolean = false;
-  let timer = setTimeout(function() {
-    if (done) return;
-    done = true;
-    cb("timeout");
-  }, timeout_ms);
+  let timer: any = 0;
+  if (timeout_ms) {
+    timer = setTimeout(function() {
+      if (done) return;
+      done = true;
+      cb("timeout");
+    }, timeout_ms);
+  }
 
   const t = new Date().valueOf();
   conn.writeAndWait(mesg, function(resp) {
@@ -138,7 +144,9 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
       return;
     }
     done = true;
-    clearTimeout(timer);
+    if (timer) {
+      clearTimeout(timer);
+    }
     cb(undefined, resp);
   });
 }

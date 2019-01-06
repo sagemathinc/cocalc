@@ -34,6 +34,8 @@ export function init_websocket_api(
         //logger.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
+        console.trace();
+        logger.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
       }
     });
