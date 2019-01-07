@@ -80,7 +80,7 @@ export class SyncTable extends EventEmitter {
   private client_query: any;
   private primary_keys: string[];
   private options: any[];
-  private client: Client;
+  public client: Client;
   private throttle_changes?: number;
   private throttled_emit_changes?: Function;
 
@@ -960,18 +960,6 @@ export class SyncTable extends EventEmitter {
     if (this.value_server == null || this.value_local == null) {
       // should not happen
       return false;
-    }
-    // success: each change in the query that committed
-    // successfully to the database; we can safely set
-    // this.value_server (for each value) as long as
-    // it didn't change in the meantime.
-    for (let k in changed) {
-      const v = changed[k];
-      if (immutable_is(this.value_server.get(k), v.old_val)) {
-        // immutable.is since either could be undefined
-        //console.log "setting this.value_server[#{k}] =", v.new_val?.toJS()
-        this.value_server = this.value_server.set(k, v.new_val);
-      }
     }
     // return true if there are new unsaved changes:
     return !at_start.equals(this.value_local);

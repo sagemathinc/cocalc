@@ -37,17 +37,18 @@ export async function synctable_project(
 
   let channel: any;
   let synctable: undefined | SyncTable = undefined;
-  const queued_messages: any[] = [];
-  let connected: boolean = false;
   const options0: any[] = [];
-  let queue_size = Infinity; // "unlimited".
+
+  let connected: boolean = false;
+  function set_connected(state : boolean) : void {
+    connected = state;
+    if (synctable != null) {
+      synctable.client.set_connected(state);
+    }
+  }
 
   for (let option of options) {
-    if (option != null && option.queue_size != null) {
-      queue_size = option.queue_size;
-    } else {
-      options0.push(option);
-    }
+    options0.push(option);
   }
 
   function handle_data(data: Data): void {
@@ -69,24 +70,13 @@ export async function synctable_project(
       }
       synctable.synthetic_change(data);
     }
-
-    // Write any queued up messages to our channel.
-    while (queued_messages.length > 0) {
-      const mesg = queued_messages.shift();
-      log("sending queued mesg: ", mesg);
-      channel.write(mesg);
-    }
   }
 
   function write_to_channel(mesg): void {
-    if (connected) {
-      channel.write(mesg);
-    } else {
-      queued_messages.push(mesg);
-      while (queued_messages.length > queue_size) {
-        queued_messages.shift();
-      }
+    if (!connected) {
+      throw Error("cannot write to channel when it is not connected");
     }
+    channel.write(mesg);
   }
 
   async function init_channel(): Promise<void> {
@@ -97,16 +87,15 @@ export async function synctable_project(
     const api = (await client.project_websocket(project_id)).api;
     log("init_channel", "get channel");
     channel = await api.synctable_channel(query, options);
-    connected = true;
+    set_connected(true);
 
     log("init_channel", "setup handlers");
     channel.on("data", handle_data);
 
-    // Channel close/open happens on brief network interruptions.  However,
-    // the messages are queued up, so that's fine and no special action is needed.
+    // Channel close/open happens on brief network interruptions.
     channel.on("close", function() {
       log("close");
-      connected = false;
+      set_connected(false);
     });
 
     channel.on("open", function() {
@@ -144,6 +133,7 @@ export async function synctable_project(
     throttle_changes,
     initial_get_query // -- note here we pass in the initial_get_query
   );
+  synctable.client.set_connected(connected);
 
   synctable.on("saved-objects", function(saved_objs) {
     log("send: ", saved_objs);

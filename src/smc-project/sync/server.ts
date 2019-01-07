@@ -178,6 +178,7 @@ class SyncTableChannel {
   }
 
   private new_connection(spark: Spark): void {
+    if (this.closed) return;
     // Now handle the connection
     this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
     this.send_synctable_all(spark);
@@ -211,6 +212,7 @@ class SyncTableChannel {
   }
 
   private synctable_all(): any[] | undefined {
+    if (this.closed) return;
     const all = this.synctable.get();
     if (all === undefined) {
       return;
@@ -219,6 +221,7 @@ class SyncTableChannel {
   }
 
   private send_synctable_all(spark: Spark): void {
+    if (this.closed) return;
     this.log("send_synctable_all");
     const new_val = this.synctable_all();
     if (new_val == null) {
@@ -228,6 +231,7 @@ class SyncTableChannel {
   }
 
   private broadcast_synctable_all(): void {
+    if (this.closed) return;
     this.log("broadcast_synctable_all");
     const new_val = this.synctable_all();
     if (new_val == null) {
@@ -239,6 +243,7 @@ class SyncTableChannel {
   }
 
   private handle_synctable_save(saved_objs): void {
+    if (this.closed) return;
     if (saved_objs.length === 0) {
       return;
     }
@@ -270,6 +275,7 @@ class SyncTableChannel {
   }
 
   private async handle_data(_: Spark, data: any): Promise<void> {
+    if (this.closed) return;
     this.log("handle_data ", (this.channel as any).channel, data);
     if (!is_array(data)) {
       throw Error("data must be an array of set objects");

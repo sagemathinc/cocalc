@@ -36,6 +36,7 @@ export function synctable_no_database(
 class ClientNoDatabase extends EventEmitter {
   private client: Client;
   private initial_get_query: any[];
+  private connected : boolean = true;
 
   constructor(client, initial_get_query) {
     super();
@@ -45,16 +46,25 @@ class ClientNoDatabase extends EventEmitter {
     this.client = client;
   }
 
+  public set_connected(connected: boolean): void {
+    const event = connected && this.connected != connected;
+    this.connected = connected;
+    if (event) {
+      this.emit("signed_in");
+      this.emit("connected");
+    }
+  }
+
   public is_project(): boolean {
     return this.client.is_project();
   }
 
   public is_connected(): boolean {
-    return true;
+    return this.connected;
   }
 
   public is_signed_in(): boolean {
-    return true;
+    return this.connected;
   }
 
   public dbg(s: string): Function {
@@ -63,8 +73,12 @@ class ClientNoDatabase extends EventEmitter {
 
   public query(opts): void {
     if (opts.options && opts.options.length === 1 && opts.options[0].set) {
-      // set query
-      opts.cb();
+      if (this.connected) {
+        // set query -- totally ignore.
+        opts.cb();
+      } else {
+        opts.cb("disconnected");
+      }
     } else {
       // get query -- returns predetermined result (default: empty)
       const table = keys(opts.query)[0];
