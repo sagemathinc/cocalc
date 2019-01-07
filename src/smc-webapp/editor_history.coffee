@@ -88,6 +88,7 @@ class exports.HistoryEditor extends FileEditor
         webapp_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
+            persistent : @ext == 'ipynb' or @ext == 'sagews'  # ugly for now...
             cb         : (err, syncstring) =>
                 if err
                     cb?(err)

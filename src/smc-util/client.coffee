@@ -1875,6 +1875,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             data_server : undefined
+            persistent : false
             cb         : required  # cb(err, document)
         opts.client = @
         open_existing_sync_document(opts)
@@ -2070,6 +2071,7 @@ open_existing_sync_document = (opts) ->
         project_id : required
         path       : required
         data_server : undefined
+        persistent : false
         cb         : required
     opts.client.query
         query :
@@ -2093,6 +2095,8 @@ open_existing_sync_document = (opts) ->
                 path       : opts.path
             if opts.data_server
                 opts2.data_server = opts.data_server
+            if opts.persistent
+                opts2.persistent = opts.persistent
             if doctype.opts?
                 opts2 = misc.merge(opts2, doctype.opts)
             doc = opts.client["sync_#{doctype.type}2"](opts2)
