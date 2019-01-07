@@ -96,7 +96,7 @@ export async function synctable_project(
     log("init_channel", "get api");
     const api = (await client.project_websocket(project_id)).api;
     log("init_channel", "get channel");
-    channel = await api.sync_channel(query, options);
+    channel = await api.synctable_channel(query, options);
     connected = true;
 
     log("init_channel", "setup handlers");

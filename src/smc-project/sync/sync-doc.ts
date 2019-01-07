@@ -157,3 +157,27 @@ function create_syncdoc(type, opts): SyncDoc {
       throw Error(`unknown syncdoc type ${type}`);
   }
 }
+
+
+export async function syncdoc_call(
+  path: string,
+  logger: any,
+  mesg: any
+): Promise<string> {
+  logger.debug("syncdoc_call", path, mesg);
+  const doc = get_syncdoc(path);
+  if (doc == null) {
+    logger.debug("syncdoc_call -- not open: ", path);
+    return "not open";
+  }
+  switch (mesg.cmd) {
+    case "close":
+      logger.debug("syncdoc_call -- now closing: ", path);
+      await doc.close();
+      logger.debug("syncdoc_call -- closed: ", path);
+      return "successfully closed";
+    default:
+      throw Error(`unknown command ${mesg.cmd}`);
+  }
+}
+

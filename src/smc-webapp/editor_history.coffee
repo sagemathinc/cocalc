@@ -88,7 +88,6 @@ class exports.HistoryEditor extends FileEditor
         webapp_client.open_existing_sync_document
             project_id : @project_id
             path       : @_path
-            data_server : "database"
             cb         : (err, syncstring) =>
                 if err
                     cb?(err)

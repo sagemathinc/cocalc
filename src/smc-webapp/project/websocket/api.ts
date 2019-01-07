@@ -93,35 +93,27 @@ export class API {
   }
 
   // Get the sync *channel* for the given SyncTable project query.
-  async sync_channel(
+  async synctable_channel(
     query: { [field: string]: any },
-    options?: { [field: string]: any }[]
+    options: { [field: string]: any }[]
   ): Promise<Channel> {
     const channel_name = await this.call({
-      cmd: "sync_channel",
+      cmd: "synctable_channel",
       query,
       options
     });
-    // console.log("sync_channel", query, options, channel_name);
+    // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
   }
 
   // Command-response API for synctables.
-  //   - mesg = {cmd:'reload'} -- reloads state via database query
   //   - mesg = {cmd:'close'} -- closes the synctable, even if persistent.
-  async sync_call(
-    query: { [field: string]: any }, // this identifies the synctable.
-    mesg, // payload
+  async syncdoc_call(
+    path: string,
+    mesg: { [field: string]: any },
     timeout_ms: number = 30000 // ms timeout for call
   ): Promise<any> {
-    return await this.call(
-      {
-        cmd: "sync_call",
-        query,
-        mesg
-      },
-      timeout_ms
-    );
+    return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
   }
 
   // Do a request/response command to the lean server.

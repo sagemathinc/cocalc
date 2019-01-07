@@ -52,7 +52,7 @@ interface Logger {
 import * as stringify from "fast-json-stable-stringify";
 const { sha1 } = require("smc-util-node/misc_node");
 
-class SyncChannel {
+class SyncTableChannel {
   private synctable: SyncTable;
   private client: Client;
   private logger: Logger;
@@ -135,8 +135,9 @@ class SyncChannel {
   }
 
   private log(...args): void {
+    if (this.closed) return;
     this.logger.debug(
-      `SyncChannel('${this.name}', '${this.query_string}'): `,
+      `SyncTableChannel('${this.name}', '${this.query_string}'): `,
       ...args
     );
   }
@@ -157,6 +158,10 @@ class SyncChannel {
       create_synctable = synctable_no_changefeed;
     }
     this.synctable = create_synctable(this.query, this.options, this.client);
+
+    // if the synctable closes, then the channel should also close.
+    this.synctable.once("closed", this.close.bind(this));
+
     if (this.query[this.synctable.table][0].string_id != null) {
       register_synctable(this.query, this.synctable);
     }
@@ -280,60 +285,54 @@ class SyncChannel {
   }
 
   public async close(): Promise<void> {
-    this.log("close");
-    if (this.closed) {
-      return;
-    }
+    if (this.closed) return;
     this.closed = true;
-    delete sync_channels[this.name];
+    delete synctable_channels[this.name];
     this.channel.destroy();
     delete this.channel;
-    await this.synctable.close();
-    delete this.synctable;
     delete this.client;
     delete this.logger;
     delete this.query;
     delete this.query_string;
     delete this.options;
+    await this.synctable.close();
+    delete this.synctable;
   }
 
-  public async reload() : Promise<void> {
-    this.log("reload");
-  }
 }
 
-const sync_channels: { [name: string]: SyncChannel } = {};
+const synctable_channels: { [name: string]: SyncTableChannel } = {};
 
 function createKey(args): string {
   return stringify([args[3], args[4]]);
 }
 
-function channel_name(query: any): string {
-  // stable identifier to this query across
-  // project restart, etc:...
-
-  // can't have options be part of id, since then multiple
-  // synctables on same data, and they are not in sync!
-
-  //const x = stringify([query, options]);
-
-  const x = stringify(query);
-  const s = sha1(x);
-  const name = `sync:${s}`;
-  return name;
+function channel_name(query: any, options:any[]): string {
+  // stable identifier to this query + options across
+  // project restart, etc.   We first make the options
+  // as canonical as we can:
+  const opts = {};
+  for (let x of options) {
+    for(let key in x) {
+      opts[key] = x[key];
+    }
+  }
+  const y = stringify([query, opts]);
+  const s = sha1(y);
+  return `sync:${s}`;
 }
 
-async function sync_channel0(
+async function synctable_channel0(
   client: any,
   primus: any,
   logger: any,
   query: any,
-  options: any
+  options: any[]
 ): Promise<string> {
-  const name = channel_name(query);
-  logger.debug("sync_channel", query, name);
-  if (sync_channels[name] === undefined) {
-    sync_channels[name] = new SyncChannel({
+  const name = channel_name(query, options);
+  logger.debug("synctable_channel", query, name);
+  if (synctable_channels[name] === undefined) {
+    synctable_channels[name] = new SyncTableChannel({
       client,
       primus,
       name,
@@ -341,34 +340,9 @@ async function sync_channel0(
       options,
       logger
     });
-    await sync_channels[name].init();
+    await synctable_channels[name].init();
   }
   return name;
 }
 
-export const sync_channel = reuseInFlight(sync_channel0, { createKey });
-
-export async function sync_call(
-  _client: any,
-  _primus: any,
-  logger: any,
-  query: any,
-  mesg: any
-): Promise<string> {
-  logger.debug("sync_call", query, mesg);
-  const name = channel_name(query);
-  const s = sync_channels[name];
-  if (s == null) {
-    return "not open";
-  }
-  switch (mesg.cmd) {
-    case "close":
-      await s.close();
-      return "successfully closed";
-    case "reload":
-      await s.reload();
-      return "reloaded";
-    default:
-      throw Error(`unknown command ${mesg.cmd}`);
-  }
-}
+export const synctable_channel = reuseInFlight(synctable_channel0, { createKey });

@@ -139,12 +139,13 @@ export class Client extends EventEmitter implements Client0 {
   }
 
   async synctable_database(
-    query: any,
-    options: any,
-    throttle_changes?: number
+    _query: any,
+    _options: any,
+    _throttle_changes?: number
   ): Promise<SyncTable> {
     throw Error("not implemented");
   }
+  
   // account_id or project_id
   public client_id(): string {
     return this._client_id;
