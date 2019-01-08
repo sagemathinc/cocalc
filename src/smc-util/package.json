@@ -31,10 +31,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "coffee-coverage": "^0.6.3",
+    "coffee-coverage": "^3.0.1",
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
-    "mocha": "^2.3.3",
+    "mocha": "^5.2.0",
     "should": "^7.1.1",
     "should-sinon": "0.0.3",
     "sinon": "^1.17.2"
