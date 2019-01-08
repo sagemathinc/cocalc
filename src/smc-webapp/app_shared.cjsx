@@ -156,6 +156,24 @@ exports.NotificationBell = rclass
     getDefaultProps: ->
         active : false
 
+    componentDidUpdate: (prevProps) ->
+        if (prevProps.count || 0) < (@props.count || 0)
+            @new_desktop_notification("new file activity")
+
+    new_desktop_notification: (message) ->
+        if ((not window) or (window["Notification"] == undefined))
+            console.error("This browser does not support desktop notification")
+            return
+        if (Notification.permission == "granted")
+            # If it's okay let's create a notification
+            new Notification(message)
+        # Otherwise, we need to ask the user for permission
+        else if (Notification.permission != "denied")
+            Notification.requestPermission().then (permission) ->
+                # If the user accepts, let's create a notification
+                if permission == "granted"
+                    new Notification(message)
+
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['count', 'active'])
 
