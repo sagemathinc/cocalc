@@ -30,7 +30,7 @@ export function synctable_no_changefeed(
     options = [];
   }
   const client2 = new ClientNoChangefeed(client);
-  return new SyncTable(query, options, client2, throttle_changes);
+  return new SyncTable(query, options, client2, throttle_changes, true, true);
 }
 
 class ClientNoChangefeed extends EventEmitter {

@@ -2305,9 +2305,10 @@ export class SyncDoc extends EventEmitter {
       this.patch_update_queue.push(key);
     }
 
-    // Clear patch update_queue in a later event loop.
+    dbg("Clear patch update_queue in a later event loop...");
     await delay(1);
-    this.handle_patch_update_queue();
+    await this.handle_patch_update_queue();
+    dbg("done");
   }
 
   /*
@@ -2315,9 +2316,11 @@ export class SyncDoc extends EventEmitter {
   their timestamp gets added to this.patch_update_queue.
   */
   private async handle_patch_update_queue(): Promise<void> {
+    const dbg = this.dbg("handle_patch_update_queue");
     try {
       this.handle_patch_update_queue_running = true;
       while (this.patch_update_queue.length > 0) {
+        dbg("queue size = ", this.patch_update_queue.length);
         const v: Patch[] = [];
         for (let key of this.patch_update_queue) {
           const x = this.patches_table.get(key);
@@ -2328,6 +2331,7 @@ export class SyncDoc extends EventEmitter {
             // create ourselves.
             if (t && !this.my_patches[`${t.valueOf()}`]) {
               const p = this.process_patch(x);
+              dbg(`patch=${JSON.stringify(p)}`);
               if (p != null) {
                 v.push(p);
               }
@@ -2339,7 +2343,9 @@ export class SyncDoc extends EventEmitter {
 
         // NOTE: The below sync_remote_and_doc can sometimes
         // *cause* new entries to be added to this.patch_update_queue.
+        dbg("waiting for remote and doc to sync...");
         await this.sync_remote_and_doc();
+        dbg("remote and doc now synced");
 
         if (this.patch_update_queue.length > 0) {
           // It is very important that next loop happen in a later
@@ -2347,16 +2353,17 @@ export class SyncDoc extends EventEmitter {
           // in this.handle_patch_update_queue above from causing
           // sync_remote_and_doc to get called from within itself,
           // due to synctable changes being emited on save.
+          dbg("wait for next event loop");
           await delay(1);
-        } else {
-          // OK, done and nothing in the queue
-          // Notify save() to try again -- it may have
-          // paused waiting for this to clear.
-          this.emit("handle_patch_update_queue_done");
         }
       }
     } finally {
+      // OK, done and nothing in the queue
+      // Notify save() to try again -- it may have
+      // paused waiting for this to clear.
+      dbg("done");
       this.handle_patch_update_queue_running = false;
+      this.emit("handle_patch_update_queue_done");
     }
   }
 

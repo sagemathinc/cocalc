@@ -15,7 +15,7 @@ export async function synctable_project(
 ): Promise<SyncTable> {
   // console.log("synctable_project options", options);
   function log(..._args): void {
-    //console.log("synctable", query, ..._args);
+    // console.log("synctable", query, ..._args);
   }
 
   log("touch project...");

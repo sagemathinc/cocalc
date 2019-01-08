@@ -103,6 +103,14 @@ export class SyncTable extends EventEmitter {
   // The version of each record.
   private versions: { [key: string]: number } = {};
 
+  // The inital version is only used in the project, where we
+  // just assume the clock is right.  If this were totally
+  // off/changed, then clients would get confused -- until they
+  // close and open the file or refresh their browser.  It might
+  // be better to switch to storing the current version number
+  // on disk.
+  private initial_version: number = new Date().valueOf();
+
   // disconnected <--> connected --> closed
   private state: State;
   private table: string;
@@ -118,18 +126,23 @@ export class SyncTable extends EventEmitter {
   private required_set_fields: { [key: string]: boolean } = {};
 
   private coerce_types: boolean = false;
+  private no_changefeed: boolean = false;
 
   constructor(
     query,
     options: any[],
     client: Client,
     throttle_changes?: number,
-    coerce_types?: boolean
+    coerce_types?: boolean,
+    no_changefeed?: boolean
   ) {
     super();
 
     if (coerce_types != undefined) {
       this.coerce_types = coerce_types;
+    }
+    if (no_changefeed != undefined) {
+      this.no_changefeed = no_changefeed;
     }
 
     if (is_array(query)) {
@@ -821,8 +834,12 @@ export class SyncTable extends EventEmitter {
     // Send our changes to the server.
     const query: any[] = [];
     const timed_changes: TimedChange[] = [];
+    const proposed_keys: string[] = [];
     const changes = copy(this.changes);
     for (let key in this.changes) {
+      if (this.versions[key] === 0) {
+        proposed_keys.push(key);
+      }
       const x = this.value.get(key);
       if (x == null) {
         throw Error("delete is not implemented");
@@ -852,30 +869,45 @@ export class SyncTable extends EventEmitter {
     }
     this.emit("timed-changes", timed_changes);
 
-    try {
-      await callback2(this.client.query, {
-        query,
-        options: [{ set: true }], // force it to be a set query
-        timeout: 30
-      });
-    } catch (err) {
-      if (is_fatal(err)) {
-        console.warn("FATAL doing set", this.table, err);
-        this.close(true);
-        throw err;
+    if (!this.no_changefeed) {
+      try {
+        await callback2(this.client.query, {
+          query,
+          options: [{ set: true }], // force it to be a set query
+          timeout: 30
+        });
+      } catch (err) {
+        if (is_fatal(err)) {
+          console.warn("FATAL doing set", this.table, err);
+          this.close(true);
+          throw err;
+        }
+        console.warn(
+          `_save('${this.table}') set query error:`,
+          err,
+          " query=",
+          query
+        );
+        return true;
       }
-      console.warn(
-        `_save('${this.table}') set query error:`,
-        err,
-        " query=",
-        query
-      );
-      return true;
     }
+
     if (this.get_state() == "closed") return false;
     if (this.value == null) {
       // should not happen
       return false;
+    }
+
+    if (this.no_changefeed) {
+      // Not using changefeeds, so have to depend on other mechanisms
+      // to update state.  Wait until changes to proposed keys are
+      // acknowledged by their version being assigned.
+      try {
+        await this.wait_until_versions_are_updated(proposed_keys, 5000);
+      } catch (err) {
+        // took too long -- try again to send and receive changes.
+        return true;
+      }
     }
 
     // Record that we successfully sent these changes
@@ -886,6 +918,31 @@ export class SyncTable extends EventEmitter {
     }
 
     return !misc.is_equal(changes, this.changes);
+  }
+
+  // TODO: rewrite in event driven non-hack way!
+  private async wait_until_versions_are_updated(
+    proposed_keys: string[],
+    timeout_ms: number
+  ): Promise<void> {
+    const t0 = new Date().valueOf();
+    while (true) {
+      let done = true;
+      if (new Date().valueOf() - t0 >= timeout_ms) {
+        throw Error("timeout");
+      }
+      for (let key of proposed_keys) {
+        if (this.versions[key] === 0) {
+          // still 0.
+          done = false;
+          await delay(50);
+          break;
+        }
+      }
+      if (done) {
+        return;
+      }
+    }
   }
 
   // Return modified immutable Map, with all types coerced to be
@@ -1024,7 +1081,7 @@ export class SyncTable extends EventEmitter {
       if (key != null) {
         x[key] = y;
         // initialize all version numbers
-        this.versions[key] = 1;
+        this.versions[key] = this.initial_version;
       }
     }
     const changed_keys = keys(x); // of course all keys have been changed.
@@ -1096,7 +1153,7 @@ export class SyncTable extends EventEmitter {
 
   public apply_changes_to_browser_client(changes: VersionedChange[]): void {
     const dbg = this.dbg("apply_changes_to_browser_client");
-    dbg(changes);
+    dbg("got ", changes.length, "changes");
     this.assert_not_closed();
     if (this.value == null) {
       // initializing the synctable.
@@ -1119,9 +1176,10 @@ export class SyncTable extends EventEmitter {
         continue;
       }
       if (this.handle_new_val(new_val, false)) {
-        this.versions[key] = version;
         changed_keys.push(key);
       }
+      // Update our version to the new version.
+      this.versions[key] = version;
     }
 
     if (changed_keys.length > 0) {
@@ -1164,7 +1222,7 @@ export class SyncTable extends EventEmitter {
 
   private increment_version(key: string): number {
     if (this.versions[key] == null) {
-      this.versions[key] = 1;
+      this.versions[key] = this.initial_version;
     } else {
       this.versions[key] += 1;
     }

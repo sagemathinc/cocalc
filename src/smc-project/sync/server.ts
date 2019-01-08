@@ -235,9 +235,6 @@ class SyncTableChannel {
 
   /* Check if we should close, e.g., due to no connected clients. */
   private check_if_should_close(): void {
-    // TODO
-    return; // disabling for now, maybe need a timeout or save all the version numbers in database (??).
-
     if (this.closed || this.persistent) {
       // don't bother if either already closed, or the persistent option is set.
       return;

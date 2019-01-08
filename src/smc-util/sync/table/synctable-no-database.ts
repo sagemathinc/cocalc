@@ -30,7 +30,7 @@ export function synctable_no_database(
     options = [];
   }
   const client2 = new ClientNoDatabase(client, initial_get_query);
-  return new SyncTable(query, options, client2, throttle_changes, true);
+  return new SyncTable(query, options, client2, throttle_changes, true, true);
 }
 
 class ClientNoDatabase extends EventEmitter {
