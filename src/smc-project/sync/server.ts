@@ -13,7 +13,8 @@ import { reuseInFlight } from "async-await-utils/hof";
 import {
   synctable_no_changefeed,
   synctable_no_database,
-  SyncTable
+  SyncTable,
+  VersionedChange
 } from "../smc-util/sync/table";
 
 import { init_syncdoc } from "./sync-doc";
@@ -22,7 +23,7 @@ import { register_synctable } from "./open-synctables";
 
 import { once } from "../smc-util/async-utils";
 
-const { is_array, deep_copy, len } = require("../smc-util/misc2");
+const { deep_copy, len } = require("../smc-util/misc2");
 
 type Query = { [key: string]: any };
 
@@ -169,26 +170,32 @@ class SyncTableChannel {
       this.log("init_synctable -- syncstrings: also initialize syncdoc...");
       init_syncdoc(this.client, this.synctable, this.logger);
     }
-    this.synctable.on("saved-objects", this.handle_synctable_save.bind(this));
+
+    this.synctable.on(
+      "versioned-changes",
+      this.send_versioned_changes_to_browsers.bind(this)
+    );
+
     this.log("created synctable -- waiting for connected state");
     await once(this.synctable, "connected");
     this.log("created synctable -- now connected");
+
     // broadcast synctable content to all connected clients.
-    this.broadcast_synctable_all();
+    this.broadcast_synctable_to_browsers();
   }
 
   private new_connection(spark: Spark): void {
     if (this.closed) return;
     // Now handle the connection
     this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
-    this.send_synctable_all(spark);
+    this.send_synctable_to_browser(spark);
 
-    spark.on("data", async data => {
+    spark.on("data", async mesg => {
       try {
-        await this.handle_data(spark, data);
+        await this.handle_mesg_from_browser(spark, mesg);
       } catch (err) {
-        spark.write({ error: `error handling command -- ${err}` });
-        this.log("error handling command -- ", err, err.stack);
+        spark.write({ error: `error handling mesg -- ${err}` });
+        this.log("error handling mesg -- ", err, err.stack);
       }
     });
 
@@ -211,52 +218,26 @@ class SyncTableChannel {
     });
   }
 
-  private synctable_all(): any[] | undefined {
+  private send_synctable_to_browser(spark: Spark): void {
     if (this.closed) return;
-    const all = this.synctable.get();
-    if (all === undefined) {
-      return;
-    }
-    return all.valueSeq().toJS();
+    this.log("send_synctable_to_browser");
+    spark.write({ init: this.synctable.initial_version_for_browser_client() });
   }
 
-  private send_synctable_all(spark: Spark): void {
+  private broadcast_synctable_to_browsers(): void {
     if (this.closed) return;
-    this.log("send_synctable_all");
-    const new_val = this.synctable_all();
-    if (new_val == null) {
-      return;
-    }
-    spark.write({ new_val });
-  }
-
-  private broadcast_synctable_all(): void {
-    if (this.closed) return;
-    this.log("broadcast_synctable_all");
-    const new_val = this.synctable_all();
-    if (new_val == null) {
-      return;
-    }
+    this.log("broadcast_synctable_to_browsers");
+    const x = { init: this.synctable.initial_version_for_browser_client() };
     this.channel.forEach((spark: Spark) => {
-      spark.write({ new_val });
+      spark.write(x);
     });
-  }
-
-  private handle_synctable_save(saved_objs): void {
-    if (this.closed) return;
-    if (saved_objs.length === 0) {
-      return;
-    }
-    let n = 0;
-    this.channel.forEach((spark: Spark) => {
-      n += 1;
-      spark.write({ new_val: saved_objs });
-    });
-    this.log(`handle_synctable_save -- wrote data to ${n} sparks`);
   }
 
   /* Check if we should close, e.g., due to no connected clients. */
   private check_if_should_close(): void {
+    // TODO
+    return; // disabling for now, maybe need a timeout or save all the version numbers in database (??).
+
     if (this.closed || this.persistent) {
       // don't bother if either already closed, or the persistent option is set.
       return;
@@ -274,20 +255,30 @@ class SyncTableChannel {
     }
   }
 
-  private async handle_data(_: Spark, data: any): Promise<void> {
+  private async handle_mesg_from_browser(
+    _spark: Spark,
+    mesg: any
+  ): Promise<void> {
     if (this.closed) return;
-    this.log("handle_data ", (this.channel as any).channel, data);
-    if (!is_array(data)) {
-      throw Error("data must be an array of set objects");
+    this.log("handle_mesg_from_browser ", (this.channel as any).channel, mesg);
+    if (mesg == null) {
+      throw Error("mesg must not be null");
     }
-    for (let new_val of data) {
-      // We use set instead of "this.synctable.synthetic_change({new_val}, true);"
-      // so these changes get saved to the database.
-      // When the backend is also making changes, we
-      // may need to be very careful...
-      this.synctable.set(new_val, "shallow");
+    if (mesg.timed_changes != null) {
+      this.synctable.apply_changes_from_browser_client(mesg.timed_changes);
     }
     await this.synctable.save();
+  }
+
+  private send_versioned_changes_to_browsers(
+    versioned_changes: VersionedChange[]
+  ): void {
+    if (this.closed) return;
+    this.log("send_versioned_changes_to_browsers");
+    const x = { versioned_changes };
+    this.channel.forEach((spark: Spark) => {
+      spark.write(x);
+    });
   }
 
   public async close(): Promise<void> {
@@ -304,7 +295,6 @@ class SyncTableChannel {
     await this.synctable.close();
     delete this.synctable;
   }
-
 }
 
 const synctable_channels: { [name: string]: SyncTableChannel } = {};
@@ -313,13 +303,13 @@ function createKey(args): string {
   return stringify([args[3], args[4]]);
 }
 
-function channel_name(query: any, options:any[]): string {
+function channel_name(query: any, options: any[]): string {
   // stable identifier to this query + options across
   // project restart, etc.   We first make the options
   // as canonical as we can:
   const opts = {};
   for (let x of options) {
-    for(let key in x) {
+    for (let key in x) {
       opts[key] = x[key];
     }
   }
@@ -351,4 +341,6 @@ async function synctable_channel0(
   return name;
 }
 
-export const synctable_channel = reuseInFlight(synctable_channel0, { createKey });
+export const synctable_channel = reuseInFlight(synctable_channel0, {
+  createKey
+});

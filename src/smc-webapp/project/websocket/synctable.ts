@@ -4,14 +4,7 @@ Synctable that uses the project websocket rather than the database.
 
 import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
-const { is_array } = require("smc-util/misc");
-
 import { once, retry_until_success } from "smc-util/async-utils";
-
-interface Data {
-  new_val?: any[];
-  old_val?: any[];
-}
 
 export async function synctable_project(
   project_id,
@@ -33,49 +26,45 @@ export async function synctable_project(
     f: () => client.touch_project({ project_id })
   });
 
-  let initial_get_query: any[] = [];
-
   let channel: any;
-  let synctable: undefined | SyncTable = undefined;
-  const options0: any[] = [];
+
+  log("Now create the synctable...");
+  const synctable: SyncTable = synctable_no_database(
+    query,
+    options,
+    client,
+    throttle_changes,
+    []
+  );
 
   let connected: boolean = false;
-  function set_connected(state : boolean) : void {
+  function set_connected(state: boolean): void {
     connected = state;
     if (synctable != null) {
       synctable.client.set_connected(state);
     }
   }
+  set_connected(false);
 
-  for (let option of options) {
-    options0.push(option);
-  }
-
-  function handle_data(data: Data): void {
-    /* Allowed messages:
-        {new_val?: [...], old_val?:[...]}
-      Nothing else yet.
-
-      TODO: old_val would be used for deleting, but sending deletes is not implemented YET.
-    */
-    log("recv: ", "data=", data);
-    if (synctable === undefined) {
-      if (data == null || data.new_val == null || !is_array(data.new_val)) {
-        throw Error("first data must be {new_val:[...]}");
-      }
-      initial_get_query = data.new_val;
-    } else {
-      if (synctable.get_state() == "closed") {
-        return;
-      }
-      synctable.synthetic_change(data);
+  function handle_mesg_from_project(mesg): void {
+    log("handle_mesg_from_project: ", mesg);
+    if (synctable.get_state() == "closed") return;
+    if (mesg == null) {
+      throw Error("mesg must not be null");
+    }
+    if (mesg.init != null) {
+      synctable.init_browser_client(mesg.init);
+    }
+    if (mesg.versioned_changes != null) {
+      synctable.apply_changes_to_browser_client(mesg.versioned_changes);
     }
   }
 
-  function write_to_channel(mesg): void {
+  function send_mesg_to_project(mesg): void {
     if (!connected) {
       throw Error("cannot write to channel when it is not connected");
     }
+    log("send_mesg_to_project", mesg);
     channel.write(mesg);
   }
 
@@ -90,7 +79,7 @@ export async function synctable_project(
     set_connected(true);
 
     log("init_channel", "setup handlers");
-    channel.on("data", handle_data);
+    channel.on("data", handle_mesg_from_project);
 
     // Channel close/open happens on brief network interruptions.
     channel.on("close", function() {
@@ -118,32 +107,20 @@ export async function synctable_project(
     channel = undefined;
   }
 
-  log("Initialize the channel...");
-  await init_channel();
-
-  log("Wait for initial data...")
-  // This data will initialize the initial_get_query array below.
-  await once(channel, "data");
-
-  log("Now create the synctable...");
-  synctable = synctable_no_database(
-    query,
-    options0,
-    client,
-    throttle_changes,
-    initial_get_query // -- note here we pass in the initial_get_query
-  );
-  synctable.client.set_connected(connected);
-
-  synctable.on("saved-objects", function(saved_objs) {
-    log("send: ", saved_objs);
-    write_to_channel(saved_objs);
+  synctable.on("timed-changes", function(timed_changes) {
+    send_mesg_to_project({ timed_changes });
   });
 
   synctable.once("closed", function() {
     end_channel();
   });
 
+  log("Initialize the channel...");
+  await init_channel();
+
+  log("Wait for initial data...");
+  // This data will initialize the synctable.
+  await once(channel, "data");
   await once(synctable, "connected");
 
   return synctable;

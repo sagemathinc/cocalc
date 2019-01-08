@@ -38,7 +38,7 @@ import { wait } from "../../async-wait";
 
 import { query_function } from "./query-function";
 
-import { copy, is_array, is_object, len, cmp_Date } from "../../misc2";
+import { copy, is_array, is_object, len } from "../../misc2";
 
 const misc = require("../../misc");
 const schema = require("../../schema");
@@ -56,6 +56,16 @@ export interface Client extends EventEmitter {
   alert_message: Function;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
+}
+
+export interface VersionedChange {
+  obj: { [key: string]: any };
+  version: number;
+}
+
+export interface TimedChange {
+  obj: { [key: string]: any };
+  time: number; // ms since epoch
 }
 
 function is_fatal(err): boolean {
@@ -88,7 +98,7 @@ export class SyncTable extends EventEmitter {
 
   // Which records we have changed (and when, by server time),
   // that haven't been sent to the backend.
-  private changes: { [key: string]: Date } = {};
+  private changes: { [key: string]: number } = {};
 
   // The version of each record.
   private versions: { [key: string]: number } = {};
@@ -282,7 +292,7 @@ export class SyncTable extends EventEmitter {
         );
       }
     }
-
+    ``;
     if (DEBUG) {
       console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
     }
@@ -303,40 +313,40 @@ export class SyncTable extends EventEmitter {
     });
 
     // Determine the primary key's value
-    let id: string | undefined = this.obj_to_key(changes);
-    if (id == null) {
+    let key: string | undefined = this.obj_to_key(changes);
+    if (key == null) {
       // attempt to compute primary key if it is a computed primary key
-      let id0 = this.computed_primary_key(changes);
-      id = to_key(id0);
-      if (id == null && this.primary_keys.length === 1) {
+      let key0 = this.computed_primary_key(changes);
+      key = to_key(key0);
+      if (key == null && this.primary_keys.length === 1) {
         // use a "random" primary key from existing data
-        id0 = id = this.value.keySeq().first();
+        key0 = key = this.value.keySeq().first();
       }
-      if (id == null) {
+      if (key == null) {
         throw Error(
           `must specify primary key ${this.primary_keys.join(
             ","
           )}, have at least one record, or have a computed primary key`
         );
       }
-      // Now id is defined
+      // Now key is defined
       if (this.primary_keys.length === 1) {
-        changes = changes.set(this.primary_keys[0], id0);
+        changes = changes.set(this.primary_keys[0], key0);
       } else if (this.primary_keys.length > 1) {
-        if (id0 == null) {
+        if (key0 == null) {
           // to satisfy typescript.
           throw Error("bug -- computed primary key must be an array");
         }
         let i = 0;
         for (let pk of this.primary_keys) {
-          changes = changes.set(pk, id0[i]);
+          changes = changes.set(pk, key0[i]);
           i += 1;
         }
       }
     }
 
     // Get the current value
-    const cur = this.value.get(id);
+    const cur = this.value.get(key);
     let new_val;
 
     if (cur == null) {
@@ -374,10 +384,18 @@ export class SyncTable extends EventEmitter {
     }
 
     // Something changed:
-    this.value = this.value.set(id, new_val);
-    this.changes[id] = this.client.server_time();
-    this.versions[id] = 0; // now unknown
-    this.emit_change([id]);
+    this.value = this.value.set(key, new_val);
+    this.changes[key] = this.client.server_time().valueOf();
+    if (this.client.is_project()) {
+      // project assigns versions
+      const version = this.increment_version(key);
+      const obj = new_val.toJS();
+      this.emit("versioned-changes", [{obj, version}]);
+    } else {
+      // browser gets them assigned...
+      this.null_version(key);
+    }
+    this.emit_change([key]);
 
     return new_val;
   }
@@ -805,7 +823,7 @@ export class SyncTable extends EventEmitter {
 
     // Send our changes to the server.
     const query: any[] = [];
-    const saved_objs: any[] = [];
+    const timed_changes: TimedChange[] = [];
     const changes = copy(this.changes);
     for (let key in this.changes) {
       const x = this.value.get(key);
@@ -833,9 +851,9 @@ export class SyncTable extends EventEmitter {
         qobj[k] = x.get(k);
       }
       query.push({ [this.table]: qobj });
-      saved_objs.push({ obj, time: this.changes[key] });
+      timed_changes.push({ obj, time: this.changes[key] });
     }
-    this.emit("saved-objects", saved_objs);
+    this.emit("timed-changes", timed_changes);
 
     try {
       await callback2(this.client.query, {
@@ -865,7 +883,7 @@ export class SyncTable extends EventEmitter {
 
     // Record that we successfully sent these changes
     for (let key in changes) {
-      if (cmp_Date(changes[key], this.changes[key]) === 0) {
+      if (changes[key] == this.changes[key]) {
         delete this.changes[key];
       }
     }
@@ -992,7 +1010,6 @@ export class SyncTable extends EventEmitter {
   This happens on initialization, and also if we
   disconnect and reconnect.
   */
-  // TODO
   private update_all(v: any[]): any[] {
     //const dbg = this.dbg("update_all");
 
@@ -1009,30 +1026,27 @@ export class SyncTable extends EventEmitter {
       let key = this.obj_to_key(y);
       if (key != null) {
         x[key] = y;
+        // initialize all version numbers
+        this.versions[key] = 1;
       }
     }
     const changed_keys = keys(x); // of course all keys have been changed.
 
+    this.value = fromJS(x);
     if (this.value == null) {
-      this.value = fromJS(x);
-      if (this.value == null) {
-        throw Error("bug");
-      }
-      if (this.coerce_types) {
-        // Ensure all values are properly coerced, as specified
-        // in the database schema.  This is important, e.g., since
-        // when mocking the client db query, JSON is involved and
-        // timestamps are not parsed to Date objects.
-        this.value = <Map<string, Map<string, any>>>this.value.map((val, _) => {
-          if (val == null) {
-            throw Error("val must not be null");
-          }
-          return this.do_coerce_types(val);
-        });
-      }
-    } else {
-      // updating on reconnect.
-      // TODO
+      throw Error("bug");
+    }
+    if (this.coerce_types) {
+      // Ensure all values are properly coerced, as specified
+      // in the database schema.  This is important, e.g., since
+      // when mocking the client db query, JSON is involved and
+      // timestamps are not parsed to Date objects.
+      this.value = <Map<string, Map<string, any>>>this.value.map((val, _) => {
+        if (val == null) {
+          throw Error("val must not be null");
+        }
+        return this.do_coerce_types(val);
+      });
     }
 
     // It's possibly that nothing changed (e.g., typical case
@@ -1053,17 +1067,43 @@ export class SyncTable extends EventEmitter {
     return changed_keys;
   }
 
-  public apply_changes_to_browser_client(
-    changes: {
-      obj: { [key: string]: any };
-      version: number;
-    }[]
-  ): void {
+  public initial_version_for_browser_client(): VersionedChange[] {
+    if (this.value == null) {
+      throw Error("value must not be null");
+    }
+    const x: VersionedChange[] = [];
+    this.value.forEach((val, key) => {
+      if (val == null) {
+        throw Error("val must be non-null");
+      }
+      const obj = val.toJS();
+      if (obj == null) {
+        throw Error("obj must be non-null");
+      }
+      if (key == null) {
+        throw Error("key must not be null");
+      }
+      const version = this.versions[key];
+      if (version == null) {
+        throw Error("version must not be null");
+      }
+
+      x.push({ obj, version });
+    });
+    return x;
+  }
+
+  public init_browser_client(changes: VersionedChange[]): void {
+    this.apply_changes_to_browser_client(changes);
+  }
+
+  public apply_changes_to_browser_client(changes: VersionedChange[]): void {
     const dbg = this.dbg("apply_changes_to_browser_client");
     dbg(changes);
     this.assert_not_closed();
     if (this.value == null) {
-      throw Error("value must be set");
+      // initializing the synctable.
+      this.value = Map();
     }
 
     this.emit("before-change");
@@ -1080,13 +1120,59 @@ export class SyncTable extends EventEmitter {
         // nothing further to do.
         continue;
       }
-      this.handle_new_val(obj, changed_keys);
-      this.versions[key] = version;
+      if (this.handle_new_val(obj)) {
+        this.versions[key] = version;
+        changed_keys.push(key);
+      }
     }
 
     if (changed_keys.length > 0) {
       this.emit_change(changed_keys);
     }
+  }
+
+  public apply_changes_from_browser_client(changes: TimedChange[]): void {
+    const changed_keys = [];
+    const versioned_changes: VersionedChange[] = [];
+    for (let change of changes) {
+      const { obj, time } = change;
+      if (obj == null) {
+        throw Error("obj must not be null");
+      }
+      const key = this.obj_to_key(obj);
+      if (key == null) {
+        throw Error("object results in null key");
+      }
+      const cur_time = this.changes[key];
+      if (cur_time != null && cur_time > time) {
+        // We already have a more recent update to this object.
+        continue;
+      }
+      if (this.handle_new_val(obj)) {
+        let version = this.increment_version(key);
+        this.changes[key] = time;
+        versioned_changes.push({ obj, version });
+      }
+    }
+    if (changed_keys.length > 0) {
+      this.emit_change(changed_keys);
+    }
+    if (versioned_changes.length> 0) {
+      this.emit("versioned-changes", versioned_changes);
+    }
+  }
+
+  private increment_version(key : string) : number {
+    if (this.versions[key] == null) {
+      this.versions[key] = 1;
+    } else {
+      this.versions[key] += 1;
+    }
+    return this.versions[key];
+  }
+
+  private null_version(key : string) : void {
+    this.versions[key] = 0;
   }
 
   /*
@@ -1107,7 +1193,10 @@ export class SyncTable extends EventEmitter {
     this.emit("before-change");
     const changed_keys: string[] = [];
     if (change.new_val != null) {
-      this.handle_new_val(change.new_val, changed_keys);
+      const key = this.handle_new_val(change.new_val);
+      if (key != null) {
+        changed_keys.push(key);
+      }
     }
 
     if (
@@ -1129,9 +1218,8 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  // - changed_keys gets mutated during this call
-  // - returns true only if there is a conflict (??)
-  private handle_new_val(obj: any, changed_keys: string[]): void {
+  // - returns key only if obj actually changed things.
+  private handle_new_val(obj: any): string | undefined {
     if (this.value == null) {
       // to satisfy typescript.
       throw Error("value must be initialized");
@@ -1150,8 +1238,9 @@ export class SyncTable extends EventEmitter {
     let cur_val = this.value.get(key);
     if (!new_val.equals(cur_val)) {
       this.value = this.value.set(key, new_val);
-      changed_keys.push(key);
+      return key;
     }
+    return undefined;
   }
 
   /*
