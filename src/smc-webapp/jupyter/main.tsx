@@ -2,7 +2,7 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 const { ErrorDisplay, Loading } = require("../r_misc");
 // React components that implement parts of the Jupyter notebook.
@@ -200,24 +200,27 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
+  render_loading(): Rendered {
+    return (
+      <Loading
+        style={{
+          fontSize: "24pt",
+          textAlign: "center",
+          marginTop: "15px",
+          color: "#888"
+        }}
+      />
+    );
+  }
+
   render_cells() {
     if (
       this.props.cell_list == null ||
       this.props.font_size == null ||
       this.props.cm_options == null ||
-      this.props.kernels == null ||
-      this.props.check_select_kernel_init == false
+      this.props.kernels == null
     ) {
-      return (
-        <Loading
-          style={{
-            fontSize: "24pt",
-            textAlign: "center",
-            marginTop: "15px",
-            color: "#888"
-          }}
-        />
-      );
+      return this.render_loading();
     }
     return (
       <CellList
@@ -424,8 +427,13 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_main() {
-    const ks = this.props.show_kernel_selector;
-    if (ks == true) {
+    console.log("render_main", {
+      check_select_kernel_init: this.props.check_select_kernel_init,
+      show_kernel_selector: this.props.show_kernel_selector
+    });
+    if (!this.props.check_select_kernel_init) {
+      return this.render_loading();
+    } else if (this.props.show_kernel_selector) {
       return this.render_select_kernel();
     } else {
       return (

@@ -396,7 +396,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     this.update_select_kernel_data();
     this.check_select_kernel();
-    this.setState({ check_select_kernel_init: true });
   };
 
   set_error = (err: any): void => {
@@ -3199,6 +3198,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.hide_select_kernel();
       }
     }
+    this.setState({ check_select_kernel_init: true });
   };
 
   update_select_kernel_data = (): void => {
