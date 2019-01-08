@@ -67,6 +67,10 @@ class ClientNoDatabase extends EventEmitter {
     return this.connected;
   }
 
+  public server_time(): Date {
+    return this.client.server_time();
+  }
+
   public dbg(s: string): Function {
     return this.client.dbg(s);
   }

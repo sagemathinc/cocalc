@@ -48,4 +48,8 @@ export class ClientTest extends EventEmitter {
   public query_cancel(_): void {}
 
   public alert_message(_): void {}
+
+  public server_time(): Date {
+    return new Date();
+  ; }
 }

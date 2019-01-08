@@ -73,6 +73,10 @@ class ClientNoChangefeed extends EventEmitter {
     return this.client.is_signed_in();
   }
 
+  public server_time(): Date {
+    return this.client.server_time();
+  }
+
   public dbg(s: string): Function {
     return this.client.dbg(s);
   }

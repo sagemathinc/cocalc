@@ -142,9 +142,9 @@ describe("tests public API of a system_notifications SyncTable", () => {
   });
 
   test("closed synctable -- most public API functions throw an error", async () => {
-    expect(() => synctable.set({ priority: "medium" })).toThrow("may only set when synctable is connected");
+    expect(() => synctable.set({ priority: "medium" })).toThrow("can't set until table is initialized");
     expect(() => synctable.get()).toThrow("closed");
-    expect(() => synctable.get_one()).toThrow("closed");
+    expect(() => synctable.get_one()).toThrow("table not yet initialized");
     expect(() => synctable.has_uncommitted_changes()).toThrow("closed");
     await synctable.close();
     try {
