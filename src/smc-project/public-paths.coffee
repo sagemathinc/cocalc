@@ -51,7 +51,7 @@ class MonitorPublicPaths
         delete @_interval
 
     update: (cb) =>
-        if not @_table?
+        if not @_table? or @_table.get_state() != "connected"
             cb()
             return
         d = @dbg('update')

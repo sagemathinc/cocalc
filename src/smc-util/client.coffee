@@ -1865,7 +1865,6 @@ class exports.Connection extends EventEmitter
             string_cols       : []
             persistent        : false
             data_server       : undefined
-        console.log "new SyncDB2, ", JSON.stringify(opts)
         opts.client = @
         return new SyncDB2(opts)
 

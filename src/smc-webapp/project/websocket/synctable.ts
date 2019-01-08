@@ -54,6 +54,7 @@ export async function synctable_project(
     }
     if (mesg.init != null) {
       synctable.init_browser_client(mesg.init);
+      synctable.emit("init_browser_client");
     }
     if (mesg.versioned_changes != null) {
       synctable.apply_changes_to_browser_client(mesg.versioned_changes);
@@ -118,10 +119,9 @@ export async function synctable_project(
   log("Initialize the channel...");
   await init_channel();
 
-  log("Wait for initial data...");
   // This data will initialize the synctable.
-  await once(channel, "data");
-  await once(synctable, "connected");
+  log("Wait for initial data");
+  await once(synctable, "init_browser_client");
 
   return synctable;
 }

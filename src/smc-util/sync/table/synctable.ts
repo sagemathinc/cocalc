@@ -176,9 +176,7 @@ export class SyncTable extends EventEmitter {
     This is NOT a generic query mechanism.  SyncTable
     is really best thought of as a key:value store!
   */
-  public get(
-    arg?
-  ): Map<string, any> | Map<string, Map<string, any>> | undefined {
+  public get(arg?): Map<string, any> | undefined {
     this.assert_not_closed();
 
     if (this.value == null) {
@@ -292,7 +290,6 @@ export class SyncTable extends EventEmitter {
         );
       }
     }
-    ``;
     if (DEBUG) {
       console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
     }
@@ -390,7 +387,7 @@ export class SyncTable extends EventEmitter {
       // project assigns versions
       const version = this.increment_version(key);
       const obj = new_val.toJS();
-      this.emit("versioned-changes", [{obj, version}]);
+      this.emit("versioned-changes", [{ obj, version }]);
     } else {
       // browser gets them assigned...
       this.null_version(key);
@@ -1111,7 +1108,8 @@ export class SyncTable extends EventEmitter {
 
     for (let change of changes) {
       const { obj, version } = change;
-      const key = this.obj_to_key(obj);
+      const new_val = this.do_coerce_types(fromJS(obj));
+      const key = this.obj_to_key(new_val);
       if (key == null) {
         throw Error("object results in null key");
       }
@@ -1120,7 +1118,7 @@ export class SyncTable extends EventEmitter {
         // nothing further to do.
         continue;
       }
-      if (this.handle_new_val(obj)) {
+      if (this.handle_new_val(new_val, false)) {
         this.versions[key] = version;
         changed_keys.push(key);
       }
@@ -1132,14 +1130,15 @@ export class SyncTable extends EventEmitter {
   }
 
   public apply_changes_from_browser_client(changes: TimedChange[]): void {
-    const changed_keys = [];
+    const changed_keys: string[] = [];
     const versioned_changes: VersionedChange[] = [];
     for (let change of changes) {
       const { obj, time } = change;
       if (obj == null) {
         throw Error("obj must not be null");
       }
-      const key = this.obj_to_key(obj);
+      const new_val = this.do_coerce_types(fromJS(obj));
+      const key = this.obj_to_key(new_val); // must have been coerced!
       if (key == null) {
         throw Error("object results in null key");
       }
@@ -1148,21 +1147,22 @@ export class SyncTable extends EventEmitter {
         // We already have a more recent update to this object.
         continue;
       }
-      if (this.handle_new_val(obj)) {
+      if (this.handle_new_val(new_val, false)) {
         let version = this.increment_version(key);
         this.changes[key] = time;
-        versioned_changes.push({ obj, version });
+        versioned_changes.push({ obj: new_val.toJS(), version });
+        changed_keys.push(key);
       }
     }
     if (changed_keys.length > 0) {
       this.emit_change(changed_keys);
     }
-    if (versioned_changes.length> 0) {
+    if (versioned_changes.length > 0) {
       this.emit("versioned-changes", versioned_changes);
     }
   }
 
-  private increment_version(key : string) : number {
+  private increment_version(key: string): number {
     if (this.versions[key] == null) {
       this.versions[key] = 1;
     } else {
@@ -1171,7 +1171,7 @@ export class SyncTable extends EventEmitter {
     return this.versions[key];
   }
 
-  private null_version(key : string) : void {
+  private null_version(key: string): void {
     this.versions[key] = 0;
   }
 
@@ -1219,21 +1219,21 @@ export class SyncTable extends EventEmitter {
   }
 
   // - returns key only if obj actually changed things.
-  private handle_new_val(obj: any): string | undefined {
+  private handle_new_val(obj: any, coerce: boolean = true): string | undefined {
     if (this.value == null) {
       // to satisfy typescript.
       throw Error("value must be initialized");
-    }
-    const key = this.obj_to_key(obj);
-    if (key == null) {
-      throw Error("key must not be null");
     }
     let new_val = fromJS(obj);
     if (new_val == null) {
       throw Error("new_val must not be null");
     }
-    if (this.coerce_types) {
+    if (coerce && this.coerce_types) {
       new_val = this.do_coerce_types(new_val);
+    }
+    const key = this.obj_to_key(new_val);
+    if (key == null) {
+      throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
     if (!new_val.equals(cur_val)) {

@@ -828,7 +828,7 @@ export class SyncDoc extends EventEmitter {
     options: any[],
     throttle_changes?: undefined | number
   ): Promise<SyncTable> {
-    if (this.persistent && this.data_server == 'project') {
+    if (this.persistent && this.data_server == "project") {
       options = options.concat([{ persistent: true }]);
     }
     switch (this.data_server) {
@@ -902,7 +902,7 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
+    //return (..._) => {};
     if (!this.client.is_project()) {
       return (..._) => {};
       /*return (...args) => {
@@ -1229,7 +1229,11 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     dbg("creating the evaluator and waiting for init");
-    this.evaluator = new Evaluator(this, this.client, this.synctable.bind(this));
+    this.evaluator = new Evaluator(
+      this,
+      this.client,
+      this.synctable.bind(this)
+    );
     await this.evaluator.init();
     dbg("done");
   }
@@ -1260,16 +1264,12 @@ export class SyncDoc extends EventEmitter {
     // Also, queue_size:1 makes it so only the last cursor position is
     // saved, e.g., in case of disconnect and reconnect.
     let options;
-    if(this.data_server == 'project') {
-      options = [{ ephemeral: true }, { queue_size: 1 }]
+    if (this.data_server == "project") {
+      options = [{ ephemeral: true }, { queue_size: 1 }];
     } else {
       options = [];
     }
-    this.cursors_table = await this.synctable(
-      query,
-      options,
-      0
-    );
+    this.cursors_table = await this.synctable(query, options, 0);
     this.assert_not_closed();
 
     // cursors now initialized; first initialize the
@@ -2078,6 +2078,13 @@ export class SyncDoc extends EventEmitter {
     this.assert_is_ready();
     const dbg = this.dbg("save_to_disk");
     dbg("initiating the save");
+    /* dbg(`live="${this.to_str()}"`);
+    this.show_history({log:dbg});
+    const x = this.patches_table.get();
+    if (x != null) {
+      dbg(`patches_table=${JSON.stringify(x.toJS())}`);
+    }
+    */
     if (!this.has_unsaved_changes()) {
       dbg(
         "no unsaved changes, so don't save",
@@ -2283,14 +2290,14 @@ export class SyncDoc extends EventEmitter {
     It handles update of the remote version, updating our
     live version as a result.
   */
-  private handle_patch_update(changed_keys): void {
+  private async handle_patch_update(changed_keys): Promise<void> {
     if (changed_keys == null || changed_keys.length === 0) {
       // this happens right now when we do a save.
       return;
     }
 
-    //dbg = this.dbg("_handle_patch_update")
-    //dbg(new Date(), changed_keys)
+    const dbg = this.dbg("handle_patch_update");
+    dbg(changed_keys);
     if (this.patch_update_queue == null) {
       this.patch_update_queue = [];
     }
@@ -2299,7 +2306,8 @@ export class SyncDoc extends EventEmitter {
     }
 
     // Clear patch update_queue in a later event loop.
-    setTimeout(this.handle_patch_update_queue.bind(this), 1);
+    await delay(1);
+    this.handle_patch_update_queue();
   }
 
   /*
