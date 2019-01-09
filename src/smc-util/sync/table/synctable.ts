@@ -933,9 +933,9 @@ export class SyncTable extends EventEmitter {
       }
       if (len(proposed_keys) > 0) {
         const elapsed_ms = new Date().valueOf() - start_ms;
-        const keys : string[] = await once(
+        const keys: string[] = await once(
           this,
-          "update-versions",
+          "increased-versions",
           timeout_ms - elapsed_ms
         );
         for (let key of keys) {
@@ -948,6 +948,10 @@ export class SyncTable extends EventEmitter {
   // Return modified immutable Map, with all types coerced to be
   // as specified in the schema, if possible, or throw an exception.
   private do_coerce_types(changes: Map<string, any>): Map<string, any> {
+    if (!this.coerce_types) {
+      // no-op if coerce_types isn't set.
+      return changes;
+    }
     const t = schema.SCHEMA[this.table];
     if (t == null) {
       throw Error(`Missing schema for table ${this.table}`);
@@ -1085,7 +1089,7 @@ export class SyncTable extends EventEmitter {
       }
     }
     const changed_keys = keys(x); // of course all keys have been changed.
-    this.emit("update-versions", changed_keys);
+    this.emit("increased-versions", changed_keys);
 
     this.value = fromJS(x);
     if (this.value == null) {
@@ -1157,13 +1161,13 @@ export class SyncTable extends EventEmitter {
     dbg("got ", changes.length, "changes");
     this.assert_not_closed();
     if (this.value == null) {
-      // initializing the synctable.
+      // initializing the synctable for the first time.
       this.value = Map();
     }
 
     this.emit("before-change");
     const changed_keys: string[] = [];
-
+    const increased_versions: string[] = [];
     for (let change of changes) {
       const { obj, version } = change;
       const new_val = this.do_coerce_types(fromJS(obj));
@@ -1177,11 +1181,16 @@ export class SyncTable extends EventEmitter {
         continue;
       }
       if (this.handle_new_val(new_val, false)) {
+        // really did make a change.
         changed_keys.push(key);
       }
-      // Update our version to the new version.
+      // Update our version number to the newer version.
       this.versions[key] = version;
-      this.emit("update-versions", [key]);
+      increased_versions.push(key);
+    }
+
+    if (increased_versions.length > 0) {
+      this.emit("increased-versions", increased_versions);
     }
 
     if (changed_keys.length > 0) {
@@ -1228,13 +1237,12 @@ export class SyncTable extends EventEmitter {
     } else {
       this.versions[key] += 1;
     }
-    this.emit("update-versions", [key]);
+    this.emit("increased-versions", [key]);
     return this.versions[key];
   }
 
   private null_version(key: string): void {
     this.versions[key] = 0;
-    this.emit("update-versions", [key]);
   }
 
   /*
