@@ -404,7 +404,9 @@ export class SyncTable extends EventEmitter {
 
     for (let field in this.required_set_fields) {
       if (!new_val.has(field)) {
-        throw Error(`missing required set field ${field} of table ${this.table}`);
+        throw Error(
+          `missing required set field ${field} of table ${this.table}`
+        );
       }
     }
 
@@ -556,18 +558,17 @@ export class SyncTable extends EventEmitter {
   }
 
   private dbg(_f?: string): Function {
-    return () => {};
+    /* return () => {};
     return (...args) => {
       console.log(`synctable("${this.table}").${_f}: `, ...args);
     };
-    /*
+    */
     if (this.client.is_project()) {
       return this.client.dbg(
         `SyncTable('${JSON.stringify(this.query)}').${_f}`
       );
     }
     return () => {};
-    */
   }
 
   private async connect(): Promise<void> {
@@ -971,7 +972,7 @@ export class SyncTable extends EventEmitter {
     }
 
     const is_done = len(this.changes) === 0;
-    dbg("done? ", is_done)
+    dbg("done? ", is_done);
     return !is_done;
   }
 
@@ -1269,6 +1270,8 @@ export class SyncTable extends EventEmitter {
   }
 
   public apply_changes_from_browser_client(changes: TimedChange[]): void {
+    const dbg = this.dbg("apply_changes_from_browser_client");
+    dbg("project <-- changes -- client", JSON.stringify(changes));
     const changed_keys: string[] = [];
     const versioned_changes: VersionedChange[] = [];
     for (let change of changes) {
@@ -1283,11 +1286,26 @@ export class SyncTable extends EventEmitter {
       }
       const cur_time = this.changes[key];
       if (cur_time != null && cur_time > time) {
+        dbg("already have a more recent version");
         // We already have a more recent update to this object.
+        // We push that new version out again, just in case.
+        if (this.value == null) {
+          throw Error("value must not be null");
+        }
+        let obj = this.value.get(key);
+        if (obj == null) {
+          throw Error(`there must be an object in this.value with key ${key}`);
+        }
+        obj = obj.toJS();
+        const version = this.versions[key];
+        if (version == null) {
+          throw Error(`object with key ${key} must have a version`);
+        }
+        versioned_changes.push({ obj, version });
         continue;
       }
       if (this.handle_new_val(new_val, false)) {
-        let version = this.increment_version(key);
+        const version = this.increment_version(key);
         this.changes[key] = time;
         versioned_changes.push({ obj: new_val.toJS(), version });
         changed_keys.push(key);
@@ -1299,6 +1317,7 @@ export class SyncTable extends EventEmitter {
     if (versioned_changes.length > 0) {
       this.emit("versioned-changes", versioned_changes);
     }
+    dbg("project -- versioned --> clients", JSON.stringify(versioned_changes));
   }
 
   private increment_version(key: string): number {

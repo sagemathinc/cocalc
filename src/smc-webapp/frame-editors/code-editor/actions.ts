@@ -435,10 +435,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // syncstring was initialized; be sure not to
       // lose the very last change user made!
       this.set_syncstring_to_codemirror();
-      delete this._syncstring;
-      await s.save();
     }
-    s.close();
+    delete this._syncstring;
+    s.close(); // this should save synctables in syncstring
   }
 
   private async close_syncdb(): Promise<void> {
