@@ -335,7 +335,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes a file tab
   // Also closes file references.
-  close_tab(path): void {
+  // path not always defined, see #3440
+  close_tab(path: string | undefined): void {
+    if (path == null) return;
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -2413,8 +2415,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for PUBLIC PATHS
-     */
+   * Actions for PUBLIC PATHS
+   */
   set_public_path(
     path,
     opts: {
@@ -2458,8 +2460,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for Project Search
-     */
+   * Actions for Project Search
+   */
 
   toggle_search_checkbox_subdirectories() {
     let store = this.get_store();
