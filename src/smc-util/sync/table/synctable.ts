@@ -135,7 +135,7 @@ export class SyncTable extends EventEmitter {
   // entirely externally (using events).
   // This is used by the synctables that are managed
   // entirely by the project (e.g., sync-doc support).
-  private no_changefeed: boolean = false;
+  private no_db_set: boolean = false;
 
   constructor(
     query,
@@ -143,15 +143,15 @@ export class SyncTable extends EventEmitter {
     client: Client,
     throttle_changes?: number,
     coerce_types?: boolean,
-    no_changefeed?: boolean
+    no_db_set?: boolean
   ) {
     super();
 
     if (coerce_types != undefined) {
       this.coerce_types = coerce_types;
     }
-    if (no_changefeed != undefined) {
-      this.no_changefeed = no_changefeed;
+    if (no_db_set != undefined) {
+      this.no_db_set = no_db_set;
     }
 
     if (is_array(query)) {
@@ -586,7 +586,7 @@ export class SyncTable extends EventEmitter {
     }
 
     // 2. Now actually setup the changefeed.
-    // (Even if this.no_changefeed is set, this still may do
+    // (Even if this.no_db_set is set, this still may do
     // an initial query to the database.  However, the changefeed
     // does nothing further.)
     dbg("actually setup changefeed");
@@ -864,8 +864,9 @@ export class SyncTable extends EventEmitter {
       }
       const obj = x.toJS();
 
-      if (!this.no_changefeed) {
-        // qobj is the db query version of obj, or at least the part of it that expresses what changed.
+      if (!this.no_db_set) {
+        // qobj is the db query version of obj, or at least the part
+        // of it that expresses what changed.
         const qobj = {};
         // Set the primary key part:
         if (this.primary_keys.length === 1) {
@@ -910,7 +911,7 @@ export class SyncTable extends EventEmitter {
     }
     this.emit("timed-changes", timed_changes);
 
-    if (!this.no_changefeed) {
+    if (!this.no_db_set) {
       try {
         const value = this.value;
         await callback2(this.client.query, {
@@ -941,7 +942,7 @@ export class SyncTable extends EventEmitter {
       return false;
     }
 
-    if (this.no_changefeed) {
+    if (this.no_db_set) {
       // Not using changefeeds, so have to depend on other mechanisms
       // to update state.  Wait until changes to proposed keys are
       // acknowledged by their version being assigned.
