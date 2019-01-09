@@ -1,7 +1,5 @@
 /*
  * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
  * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS205: Consider reworking code to avoid use of IIFEs
@@ -259,7 +257,7 @@ export class CourseActions extends Actions<CourseState> {
     ) {
       return;
     }
-    return this.syncdb.set(obj);
+    this.syncdb.set(obj);
   }
 
   // Get one object from @syncdb as a Javascript object (or undefined)
@@ -271,7 +269,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   set_tab(tab) {
-    return this.setState({ tab });
+    this.setState({ tab });
   }
 
   save() {
@@ -284,7 +282,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     const id = this.set_activity({ desc: "Saving..." });
     this.setState({ saving: true });
-    return this.syncdb.save(err => {
+    this.syncdb.save(err => {
       this.clear_activity(id);
       this.setState({ saving: false });
       this.setState({
@@ -293,9 +291,9 @@ export class CourseActions extends Actions<CourseState> {
       });
       if (err) {
         this.set_error(`Error saving -- ${err}`);
-        return this.setState({ show_save_button: true });
+        this.setState({ show_save_button: true });
       } else {
-        return this.setState({ show_save_button: false });
+        this.setState({ show_save_button: false });
       }
     });
   }
@@ -337,7 +335,7 @@ export class CourseActions extends Actions<CourseState> {
     if (!cur.equals(t)) {
       // something definitely changed
       this.setState(t);
-      return this.setState({
+      this.setState({
         unsaved:
           this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
       });
@@ -363,7 +361,7 @@ export class CourseActions extends Actions<CourseState> {
     if (!this._last_collaborator_state.equals(users)) {
       this.configure_all_projects();
     }
-    return (this._last_collaborator_state = users);
+    this._last_collaborator_state = users;
   }
 
   _init_who_pay() {
@@ -407,17 +405,17 @@ export class CourseActions extends Actions<CourseState> {
       num += 1;
     });
     if (institute_pay && num > 0) {
-      return this.set_pay_choice("institute", true);
+      this.set_pay_choice("institute", true);
     }
   }
 
   // PUBLIC API
   set_error(error) {
     if (error === "") {
-      return this.setState({ error });
+      this.setState({ error });
     } else {
       let left;
-      return this.setState({
+      this.setState({
         error: (
           ((left = __guard__(this.get_store(), x => x.get("error"))) != null
             ? left
@@ -464,9 +462,9 @@ export class CourseActions extends Actions<CourseState> {
 
   clear_activity(id?) {
     if (id != null) {
-      return this.set_activity({ id }); // clears for this id
+      this.set_activity({ id }); // clears for this id
     } else {
-      return this.setState({ activity: {} });
+      this.setState({ activity: {} });
     }
   }
 
@@ -474,30 +472,30 @@ export class CourseActions extends Actions<CourseState> {
   set_title(title) {
     this._set({ title, table: "settings" });
     this.set_all_student_project_titles(title);
-    return this.set_shared_project_title();
+    this.set_shared_project_title();
   }
 
   set_description(description) {
     this._set({ description, table: "settings" });
     this.set_all_student_project_descriptions(description);
-    return this.set_shared_project_description();
+    this.set_shared_project_description();
   }
 
   set_pay_choice(type, value) {
-    return this._set({ [`${type}_pay`]: value, table: "settings" });
+    this._set({ [`${type}_pay`]: value, table: "settings" });
   }
 
   set_upgrade_goal(upgrade_goal) {
-    return this._set({ upgrade_goal, table: "settings" });
+    this._set({ upgrade_goal, table: "settings" });
   }
 
   set_allow_collabs(allow_collabs) {
     this._set({ allow_collabs, table: "settings" });
-    return this.configure_all_projects();
+    this.configure_all_projects();
   }
 
   set_email_invite(body) {
-    return this._set({ email_invite: body, table: "settings" });
+    this._set({ email_invite: body, table: "settings" });
   }
 
   // return the default title and description of the shared project.
@@ -525,7 +523,7 @@ export class CourseActions extends Actions<CourseState> {
     }
 
     const { title } = this.shared_project_settings();
-    return this.redux
+    this.redux
       .getActions("projects")
       .set_project_title(shared_id, title);
   }
@@ -538,7 +536,7 @@ export class CourseActions extends Actions<CourseState> {
     }
 
     const { description } = this.shared_project_settings();
-    return this.redux
+    this.redux
       .getActions("projects")
       .set_project_description(shared_id, description);
   }
@@ -556,7 +554,7 @@ export class CourseActions extends Actions<CourseState> {
     if (!shared_project_id) {
       return; // no shared project
     }
-    return __guardMethod__(
+    __guardMethod__(
       this.redux.getActions("projects"),
       action + "_project",
       (o, m) => o[m](shared_project_id)
@@ -591,7 +589,7 @@ export class CourseActions extends Actions<CourseState> {
       if (!student.get("deleted")) {
         const account_id = student.get("account_id");
         if (account_id != null) {
-          return (student_account_ids[account_id] = true);
+          student_account_ids[account_id] = true;
         }
       }
     });
@@ -617,7 +615,7 @@ export class CourseActions extends Actions<CourseState> {
     // Ensure every course project user is on the shared project
     course_project_users.map((_, account_id) => {
       if (!shared_project_users.get(account_id)) {
-        return actions.invite_collaborator(shared_project_id, account_id);
+        actions.invite_collaborator(shared_project_id, account_id);
       }
     });
     // Ensure every student is on the shared project
@@ -630,7 +628,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // set the shared project id in our syncdb
   _set_shared_project_id(project_id) {
-    return this._set({
+    this._set({
       table: "settings",
       shared_project_id: project_id
     });
@@ -651,15 +649,15 @@ export class CourseActions extends Actions<CourseState> {
     let x: any = this.shared_project_settings();
     x.token = misc.uuid();
     this.redux.getActions("projects").create_project(x);
-    return this.redux
+    this.redux
       .getStore("projects")
       .wait_until_project_created(x.token, 30, (err, project_id) => {
         this.clear_activity(id);
         if (err) {
-          return this.set_error(`error creating shared project -- ${err}`);
+          this.set_error(`error creating shared project -- ${err}`);
         } else {
           this._set_shared_project_id(project_id);
-          return this.configure_shared_project();
+          this.configure_shared_project();
         }
       });
   }
@@ -672,7 +670,7 @@ export class CourseActions extends Actions<CourseState> {
       pay,
       table: "settings"
     });
-    return this.set_all_student_project_course_info(pay);
+    this.set_all_student_project_course_info(pay);
   }
 
   // Takes an item_name and the id of the time
@@ -699,7 +697,7 @@ export class CourseActions extends Actions<CourseState> {
     } else {
       adjusted = expanded_items.add(item_id);
     }
-    return this.setState({ [field_name]: adjusted });
+    this.setState({ [field_name]: adjusted });
   }
 
   // Students
@@ -715,7 +713,7 @@ export class CourseActions extends Actions<CourseState> {
       this.syncdb.set(x);
     }
     const f = (student_id, cb) => {
-      return async.series(
+      async.series(
         [
           cb => {
             const store = this.get_store();
@@ -723,7 +721,7 @@ export class CourseActions extends Actions<CourseState> {
               cb("store not defined");
               return;
             }
-            return store.wait({
+            store.wait({
               until: (store: CourseStore) => store.get_student(student_id),
               timeout: 60,
               cb
@@ -736,7 +734,7 @@ export class CourseActions extends Actions<CourseState> {
               cb("store not defined");
               return;
             }
-            return store.wait({
+            store.wait({
               until: (store: CourseStore) =>
                 store.get_student(student_id).get("project_id"),
               timeout: 60,
@@ -752,14 +750,14 @@ export class CourseActions extends Actions<CourseState> {
         students.length
       } student projects (do not close the course until done)`
     });
-    return async.mapLimit(student_ids, PARALLEL_LIMIT, f, err => {
+    async.mapLimit(student_ids, PARALLEL_LIMIT, f, err => {
       this.set_activity({ id });
       if (err) {
         this.set_error(`error creating student projects -- ${err}`);
       }
       // after adding students, always run configure all projects,
       // to ensure everything is set properly
-      return this.configure_all_projects();
+      this.configure_all_projects();
     });
   }
 
@@ -777,7 +775,7 @@ export class CourseActions extends Actions<CourseState> {
       student_id: student.get("student_id"),
       table: "students"
     });
-    return this.configure_all_projects(); // since they may get removed from shared project, etc.
+    this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
   undelete_student(student) {
@@ -791,7 +789,7 @@ export class CourseActions extends Actions<CourseState> {
       student_id: student.get("student_id"),
       table: "students"
     });
-    return this.configure_all_projects(); // since they may get added back to shared project, etc.
+    this.configure_all_projects(); // since they may get added back to shared project, etc.
   }
 
   // Some students might *only* have been added using their email address, but they
@@ -809,20 +807,20 @@ export class CourseActions extends Actions<CourseState> {
       if (!student.get("account_id") && !student.get("deleted")) {
         const email = student.get("email_address");
         v[email] = student_id;
-        return s.push(email);
+        s.push(email);
       }
     });
     if (s.length > 0) {
-      return webapp_client.user_search({
+      webapp_client.user_search({
         query: s.join(","),
         limit: s.length,
         cb: (err, result) => {
           if (err) {
-            return console.warn(
+            console.warn(
               `lookup_nonregistered_students: search error -- ${err}`
             );
           } else {
-            return result.map(x =>
+            result.map(x =>
               this._set({
                 account_id: x.account_id,
                 table: "students",
@@ -849,7 +847,7 @@ export class CourseActions extends Actions<CourseState> {
     } else {
       is_descending = false;
     }
-    return this.setState({
+    this.setState({
       active_student_sort: { column_name, is_descending }
     });
   }
@@ -874,7 +872,7 @@ export class CourseActions extends Actions<CourseState> {
       student_id: student.get("student_id"),
       table: "students"
     });
-    return this.configure_all_projects(); // since they may get removed from shared project, etc.
+    this.configure_all_projects(); // since they may get removed from shared project, etc.
   }
 
   // Student projects
@@ -895,7 +893,7 @@ export class CourseActions extends Actions<CourseState> {
       this._create_student_project_queue.push(student);
     }
     if (!this._creating_student_project) {
-      return this._process_create_student_project_queue();
+      this._process_create_student_project_queue();
     }
   }
 
@@ -924,7 +922,7 @@ export class CourseActions extends Actions<CourseState> {
       description: store.get("settings").get("description"),
       token
     });
-    return this.redux
+    this.redux
       .getStore("projects")
       .wait_until_project_created(token, 30, (err, project_id) => {
         this.clear_activity(id);
@@ -947,7 +945,7 @@ export class CourseActions extends Actions<CourseState> {
         queue.shift();
         if (queue.length > 0) {
           // do next one
-          return this._process_create_student_project_queue();
+          this._process_create_student_project_queue();
         }
       });
   }
@@ -1076,10 +1074,10 @@ export class CourseActions extends Actions<CourseState> {
       // TODO: should really wait until users is defined, which is a supported thing to do on stores!
       return;
     }
-    return users.map((_, account_id) => {
+    users.map((_, account_id) => {
       const x = users_of_student_project.get(account_id);
       if (x != null && !x.get("hide")) {
-        return this.redux
+        this.redux
           .getActions("projects")
           .set_project_hide(account_id, student_project_id, true);
       }
@@ -1094,7 +1092,7 @@ export class CourseActions extends Actions<CourseState> {
     const title = `${store.get_student_name(student_id)} - ${store
       .get("settings")
       .get("title")}`;
-    return this.redux
+    this.redux
       .getActions("projects")
       .set_project_title(student_project_id, title);
   }
@@ -1142,7 +1140,7 @@ export class CourseActions extends Actions<CourseState> {
       // Anyway this is just nuts, but whatever. It needs to be rewritten.
       const clear_state = () => {
         window.clearInterval(this.prev_interval_id);
-        return this.setState({ action_all_projects_state: "any" });
+        this.setState({ action_all_projects_state: "any" });
       };
 
       this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
@@ -1211,7 +1209,7 @@ export class CourseActions extends Actions<CourseState> {
       x.get_students().map(student => {
         const student_project_id = student.get("project_id");
         if (student_project_id != null) {
-          return this.redux
+          this.redux
             .getActions("projects")
             .set_project_description(student_project_id, description);
         }
@@ -1232,14 +1230,14 @@ export class CourseActions extends Actions<CourseState> {
         table: "settings"
       });
     }
-    return store.get_students().map(student => {
+    store.get_students().map(student => {
       const student_project_id = student.get("project_id");
       // account_id: might not be known when student first added, or if student
       // hasn't joined smc yet so there is no id.
       const student_account_id = student.get("account_id");
       const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
       if (student_project_id != null) {
-        return this.redux
+        this.redux
           .getActions("projects")
           .set_project_course_info(
             student_project_id,
@@ -1310,7 +1308,7 @@ export class CourseActions extends Actions<CourseState> {
           .remove_collaborator(student_project_id, student_account_id);
       }
       this.redux.getActions("projects").delete_project(student_project_id);
-      return this._set({
+      this._set({
         create_project: null,
         project_id: null,
         table: "students",
@@ -1354,7 +1352,7 @@ export class CourseActions extends Actions<CourseState> {
     for (let student_id of ids) {
       this.delete_project(student_id);
     }
-    return this.set_activity({ id });
+    this.set_activity({ id });
   }
 
   // Delete the shared project, removing students too.
@@ -1387,7 +1385,7 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     // make the course itself forget about the shared project:
-    return this._set({
+    this._set({
       table: "settings",
       shared_project_id: ""
     });
@@ -1451,14 +1449,13 @@ export class CourseActions extends Actions<CourseState> {
         }
         return cb(err);
       };
-      return webapp_client.project_set_quotas(x);
+      webapp_client.project_set_quotas(x);
     };
     const ids = store.get_student_ids();
     if (ids == undefined) {
       return;
     }
-    return (
-      async.mapSeries(ids),
+    async.mapSeries(ids,
       f,
       err => {
         if (err) {
@@ -1476,14 +1473,14 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     student = store.get_student(student);
-    return this._set({
+    this._set({
       note,
       table: "students",
       student_id: student.get("student_id")
     });
   }
 
-  _collect_path(path) {
+  _collect_path(path): string | undefined {
     const store = this.get_store();
     if (store == undefined) {
       return;
@@ -1510,7 +1507,7 @@ export class CourseActions extends Actions<CourseState> {
     // folder where we copy the assignment to
     const target_path = path;
 
-    return this._set({
+    this._set({
       path,
       collect_path,
       graded_path,
@@ -1526,7 +1523,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     assignment = store.get_assignment(assignment);
-    return this._set({
+    this._set({
       deleted: true,
       assignment_id: assignment.get("assignment_id"),
       table: "assignments"
@@ -1539,7 +1536,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     assignment = store.get_assignment(assignment);
-    return this._set({
+    this._set({
       deleted: false,
       assignment_id: assignment.get("assignment_id"),
       table: "assignments"
@@ -1659,7 +1656,7 @@ export class CourseActions extends Actions<CourseState> {
     } else {
       is_descending = false;
     }
-    return this.setState({
+    this.setState({
       active_assignment_sort: { column_name, is_descending }
     });
   }
@@ -1681,11 +1678,11 @@ export class CourseActions extends Actions<CourseState> {
     if (typeof due_date !== "string") {
       due_date = due_date != null ? due_date.toISOString() : undefined; // using strings instead of ms for backward compatibility.
     }
-    return this._set_assignment_field(assignment, "due_date", due_date);
+    this._set_assignment_field(assignment, "due_date", due_date);
   }
 
   set_assignment_note(assignment, note) {
-    return this._set_assignment_field(assignment, "note", note);
+    this._set_assignment_field(assignment, "note", note);
   }
 
   set_peer_grade(assignment, config) {
@@ -1698,7 +1695,7 @@ export class CourseActions extends Actions<CourseState> {
       const v = config[k];
       cur[k] = v;
     }
-    return this._set_assignment_field(assignment, "peer_grade", cur);
+    this._set_assignment_field(assignment, "peer_grade", cur);
   }
 
   set_skip(assignment, step, value) {
@@ -1707,7 +1704,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     assignment = store.get_assignment(assignment); // just in case is an id
-    return this._set_assignment_field(
+    this._set_assignment_field(
       assignment.get("assignment_id"),
       `skip_${step}`,
       !!value
@@ -1716,6 +1713,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // Synchronous function that makes the peer grading map for the given
   // assignment, if it hasn't already been made.
+  // Return undefined or mapping of peer grades
   update_peer_assignment(assignment) {
     let left;
     const store = this.get_store();
@@ -1751,7 +1749,7 @@ export class CourseActions extends Actions<CourseState> {
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_collect", err);
       if (err) {
-        return this.set_error(`copy from student: ${err}`);
+        this.set_error(`copy from student: ${err}`);
       }
     };
     const store = this.get_store();
@@ -1779,10 +1777,10 @@ export class CourseActions extends Actions<CourseState> {
         id,
         desc: `Copying assignment from ${student_name}`
       });
-      return async.series(
+      async.series(
         [
           cb => {
-            return webapp_client.copy_path_between_projects({
+            webapp_client.copy_path_between_projects({
               src_project_id: student_project_id,
               src_path: assignment.get("target_path"),
               target_project_id: store.get("course_project_id"),
@@ -1797,7 +1795,7 @@ export class CourseActions extends Actions<CourseState> {
           cb => {
             // write their name to a file
             const name = store.get_student_name(student, true);
-            return webapp_client.write_text_file_to_project({
+            webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: target_path + `/STUDENT - ${name.simple}.txt`,
               content: `This student is ${name.full}.`,
@@ -1828,7 +1826,7 @@ export class CourseActions extends Actions<CourseState> {
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_return_graded", err);
       if (err) {
-        return this.set_error(`return to student: ${err}`);
+        this.set_error(`return to student: ${err}`);
       }
     };
     const store = this.get_store();
@@ -1854,7 +1852,7 @@ export class CourseActions extends Actions<CourseState> {
 
     if (student_project_id == null) {
       // nothing to do
-      return this.clear_activity(id);
+      this.clear_activity(id);
     } else {
       let peer_graded;
       this.set_activity({
@@ -1869,7 +1867,7 @@ export class CourseActions extends Actions<CourseState> {
         peer_graded = false;
       }
       src_path += `/${student.get("student_id")}`;
-      return async.series(
+      async.series(
         [
           cb => {
             let content;
@@ -1898,7 +1896,7 @@ Your assignment was peer graded by other students.
 You can find the comments they made in the folders below.\
 `;
             }
-            return webapp_client.write_text_file_to_project({
+            webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: src_path + "/GRADE.md",
               content,
@@ -1906,7 +1904,7 @@ You can find the comments they made in the folders below.\
             });
           },
           cb => {
-            return webapp_client.copy_path_between_projects({
+            webapp_client.copy_path_between_projects({
               src_project_id: store.get("course_project_id"),
               src_path,
               target_project_id: student_project_id,
@@ -1921,7 +1919,7 @@ You can find the comments they made in the folders below.\
           cb => {
             if (peer_graded) {
               // Delete GRADER file
-              return webapp_client.exec({
+              webapp_client.exec({
                 project_id: student_project_id,
                 command: "rm ./*/GRADER*.txt",
                 timeout: 60,
@@ -1930,7 +1928,7 @@ You can find the comments they made in the folders below.\
                 cb
               });
             } else {
-              return cb(null);
+              cb(null);
             }
           }
         ],
@@ -1949,7 +1947,7 @@ You can find the comments they made in the folders below.\
     });
     const error = err => {
       this.clear_activity(id);
-      return this.set_error(`return to student: ${err}`);
+      this.set_error(`return to student: ${err}`);
     };
     const store = this.get_store();
     if (store == null || !this._store_is_initialized()) {
@@ -1994,7 +1992,7 @@ You can find the comments they made in the folders below.\
       }
       const n = misc.mswalltime();
       this.return_assignment_to_student(assignment, student_id);
-      return store.wait({
+      store.wait({
         timeout: 60 * 15,
         until: (store: CourseStore) =>
           store.last_copied("return_graded", assignment, student_id) >= n,
@@ -2002,7 +2000,7 @@ You can find the comments they made in the folders below.\
           if (err) {
             errors += `\n ${err}`;
           }
-          return cb();
+          cb();
         }
       });
     };
@@ -2012,9 +2010,9 @@ You can find the comments they made in the folders below.\
       f,
       () => {
         if (errors) {
-          return error(errors);
+          error(errors);
         } else {
-          return this.clear_activity(id);
+          this.clear_activity(id);
         }
       }
     );
@@ -2043,7 +2041,7 @@ You can find the comments they made in the folders below.\
         x[student_id].error = err;
       }
       obj[type] = x;
-      return this._set(obj);
+      this._set(obj);
     }
   }
 
@@ -2103,7 +2101,7 @@ You can find the comments they made in the folders below.\
         delete y.start;
         x[student.get("student_id")] = y;
         obj[type] = x;
-        return this._set(obj);
+        this._set(obj);
       }
     }
   }
@@ -2132,7 +2130,7 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_assignment", err);
       if (err) {
-        return this.set_error(`copy to student: ${err}`);
+        this.set_error(`copy to student: ${err}`);
       }
     };
     let store = this.get_store();
@@ -2151,7 +2149,7 @@ You can find the comments they made in the folders below.\
     let student_project_id = student.get("project_id");
     const student_id = student.get("student_id");
     const src_path = assignment.get("path");
-    return async.series(
+    async.series(
       [
         cb => {
           if (student_project_id == null) {
@@ -2165,7 +2163,7 @@ You can find the comments they made in the folders below.\
               cb("no store");
               return;
             }
-            return store.wait({
+            store.wait({
               until: (store: CourseStore) =>
                 store.get_student_project_id(student_id),
               cb: (err, x) => {
@@ -2174,18 +2172,18 @@ You can find the comments they made in the folders below.\
               }
             });
           } else {
-            return cb();
+            cb();
           }
         },
         cb => {
           if (create_due_date_file) {
-            return this.copy_assignment_create_due_date_file(
+            this.copy_assignment_create_due_date_file(
               assignment,
               store,
               cb
             );
           } else {
-            return cb();
+            cb();
           }
         },
         cb => {
@@ -2197,7 +2195,7 @@ You can find the comments they made in the folders below.\
             console.warn(student_name, " failed to receieve files.");
             return;
           }
-          return webapp_client.copy_path_between_projects({
+          webapp_client.copy_path_between_projects({
             src_project_id: store.get("course_project_id"),
             src_path,
             target_project_id: student_project_id,
@@ -2211,7 +2209,7 @@ You can find the comments they made in the folders below.\
         }
       ],
       err => {
-        return finish(err);
+        finish(err);
       }
     );
   }
@@ -2237,18 +2235,18 @@ You can find the comments they made in the folders below.\
       due_date_fn
     };
 
-    return webapp_client.write_text_file_to_project({
+    webapp_client.write_text_file_to_project({
       project_id: locals.project_id,
       path: locals.path,
       content: locals.content,
       cb: err => {
         this.clear_activity(locals.due_id);
         if (err) {
-          return cb(
+          cb(
             `Problem writing ${due_date_fn} file ('${err}'). Try again...`
           );
         } else {
-          return cb();
+          cb();
         }
       }
     });
@@ -2259,19 +2257,19 @@ You can find the comments they made in the folders below.\
     switch (type) {
       case "assigned":
         // create_due_date_file = true
-        return this.copy_assignment_to_student(assignment_id, student_id, {
+        this.copy_assignment_to_student(assignment_id, student_id, {
           create_due_date_file: true
         });
       case "collected":
-        return this.copy_assignment_from_student(assignment_id, student_id);
+        this.copy_assignment_from_student(assignment_id, student_id);
       case "graded":
-        return this.return_assignment_to_student(assignment_id, student_id);
+        this.return_assignment_to_student(assignment_id, student_id);
       case "peer-assigned":
-        return this.peer_copy_to_student(assignment_id, student_id);
+        this.peer_copy_to_student(assignment_id, student_id);
       case "peer-collected":
-        return this.peer_collect_from_student(assignment_id, student_id);
+        this.peer_collect_from_student(assignment_id, student_id);
       default:
-        return this.set_error(`copy_assignment -- unknown type: ${type}`);
+        this.set_error(`copy_assignment -- unknown type: ${type}`);
     }
   }
 
@@ -2286,13 +2284,13 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received it" : ""
     }`;
     const short_desc = "copy to student";
-    return async.series([
+    async.series([
       cb => {
-        return this.copy_assignment_create_due_date_file(assignment, store, cb);
+        this.copy_assignment_create_due_date_file(assignment, store, cb);
       },
       () => {
         // by default, doesn't create the due file
-        return this._action_all_students(
+        this._action_all_students(
           assignment,
           new_only,
           this.copy_assignment_to_student,
@@ -2311,7 +2309,7 @@ You can find the comments they made in the folders below.\
       new_only ? "from whom we have not already copied it" : ""
     }`;
     const short_desc = "copy from student";
-    return this._action_all_students(
+    this._action_all_students(
       assignment,
       new_only,
       this.copy_assignment_from_student,
@@ -2326,7 +2324,7 @@ You can find the comments they made in the folders below.\
       new_only ? "who have not already received their copy" : ""
     }`;
     const short_desc = "copy to student for peer grading";
-    return this._action_all_students(
+    this._action_all_students(
       assignment,
       new_only,
       this.peer_copy_to_student,
@@ -2341,7 +2339,7 @@ You can find the comments they made in the folders below.\
       new_only ? "from whom we have not already copied it" : ""
     }`;
     const short_desc = "copy peer grading from students";
-    return this._action_all_students(
+    this._action_all_students(
       assignment,
       new_only,
       this.peer_collect_from_student,
@@ -2364,7 +2362,7 @@ You can find the comments they made in the folders below.\
     const error = err => {
       this.clear_activity(id);
       err = `${short_desc}: ${err}`;
-      return this.set_error(err);
+      this.set_error(err);
     };
     const store = this.get_store();
     if (store == null || !this._store_is_initialized()) {
@@ -2390,27 +2388,27 @@ You can find the comments they made in the folders below.\
       }
       const n = misc.mswalltime();
       action(assignment, student_id, { overwrite });
-      return store.wait({
+      store.wait({
         timeout: 60 * 15,
         until: () => store.last_copied(step, assignment, student_id) >= n,
         cb: err => {
           if (err) {
             errors += `\n ${err}`;
           }
-          return cb();
+          cb();
         }
       });
     };
 
-    return async.mapLimit(
+    async.mapLimit(
       store.get_student_ids({ deleted: false }),
       PARALLEL_LIMIT,
       f,
       () => {
         if (errors) {
-          return error(errors);
+          error(errors);
         } else {
-          return this.clear_activity(id);
+          this.clear_activity(id);
         }
       }
     );
@@ -2428,7 +2426,7 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_peer_assignment", err);
       if (err) {
-        return this.set_error(`copy peer-grading to student: ${err}`);
+        this.set_error(`copy peer-grading to student: ${err}`);
       }
     };
     const store = this.get_store();
@@ -2519,9 +2517,9 @@ You can find the comments they made in the folders below.\
       cb: err => {
         if (!err) {
           // now copy actual stuff to grade
-          return async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
+          async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
         } else {
-          return finish(err);
+          finish(err);
         }
       }
     });
@@ -2540,7 +2538,7 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this._finish_copy(assignment, student, "last_peer_collect", err);
       if (err) {
-        return this.set_error(`collecting peer-grading of a student: ${err}`);
+        this.set_error(`collecting peer-grading of a student: ${err}`);
       }
     };
     const store = this.get_store();
@@ -2581,11 +2579,11 @@ You can find the comments they made in the folders below.\
       const target_path = `${assignment.get(
         "collect_path"
       )}-peer-grade/${our_student_id}/${student_id}`;
-      return async.series(
+      async.series(
         [
           cb => {
             // copy the files over from the student who did the peer grading
-            return webapp_client.copy_path_between_projects({
+            webapp_client.copy_path_between_projects({
               src_project_id: s.get("project_id"),
               src_path,
               target_project_id: store.get("course_project_id"),
@@ -2598,7 +2596,7 @@ You can find the comments they made in the folders below.\
           cb => {
             // write local file identifying the grader
             const name = store.get_student_name(student_id, true);
-            return webapp_client.write_text_file_to_project({
+            webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: target_path + `/GRADER - ${name.simple}.txt`,
               content: `The student who did the peer grading is named ${
@@ -2610,7 +2608,7 @@ You can find the comments they made in the folders below.\
           cb => {
             // write local file identifying student being graded
             const name = store.get_student_name(student, true);
-            return webapp_client.write_text_file_to_project({
+            webapp_client.write_text_file_to_project({
               project_id: store.get("course_project_id"),
               path: target_path + `/STUDENT - ${name.simple}.txt`,
               content: `This student is ${name.full}.`,
@@ -2622,7 +2620,7 @@ You can find the comments they made in the folders below.\
       );
     };
 
-    return async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
+    async.mapLimit(peers, PARALLEL_LIMIT, f, finish);
   }
 
   // This doesn't really stop it yet, since that's not supported by the backend.
@@ -2645,7 +2643,7 @@ You can find the comments they made in the folders below.\
         type = "last_peer_collect";
         break;
     }
-    return this._stop_copy(assignment_id, student_id, type);
+    this._stop_copy(assignment_id, student_id, type);
   }
 
   open_assignment(type, assignment_id, student_id) {
@@ -2695,13 +2693,13 @@ You can find the comments they made in the folders below.\
       return;
     }
     // Now open it
-    return this.redux.getProjectActions(proj).open_directory(path);
+    this.redux.getProjectActions(proj).open_directory(path);
   }
 
   // Handouts
   add_handout(path) {
     const target_path = path; // folder where we copy the handout to
-    return this._set({
+    this._set({
       path,
       target_path,
       table: "handouts",
@@ -2715,7 +2713,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     handout = store.get_handout(handout);
-    return this._set({
+    this._set({
       deleted: true,
       handout_id: handout.get("handout_id"),
       table: "handouts"
@@ -2728,7 +2726,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     handout = store.get_handout(handout);
-    return this._set({
+    this._set({
       deleted: false,
       handout_id: handout.get("handout_id"),
       table: "handouts"
@@ -2741,7 +2739,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     handout = store.get_handout(handout);
-    return this._set({
+    this._set({
       [name]: val,
       table: "handouts",
       handout_id: handout.get("handout_id")
@@ -2749,7 +2747,7 @@ You can find the comments they made in the folders below.\
   }
 
   set_handout_note(handout, note) {
-    return this._set_handout_field(handout, "note", note);
+    this._set_handout_field(handout, "note", note);
   }
 
   _handout_finish_copy(handout, student, err) {
@@ -2775,7 +2773,7 @@ You can find the comments they made in the folders below.\
         status_map[student_id].error = err;
       }
       (obj as any).status = status_map;
-      return this._set(obj);
+      this._set(obj);
     }
   }
 
@@ -2831,7 +2829,7 @@ You can find the comments they made in the folders below.\
         delete student_status.start;
         status[student.get("student_id")] = student_status;
         (obj as any).status = status;
-        return this._set(obj);
+        this._set(obj);
       }
     }
   }
@@ -2855,7 +2853,7 @@ You can find the comments they made in the folders below.\
       this.clear_activity(id);
       this._handout_finish_copy(handout, student, err);
       if (err) {
-        return this.set_error(`copy to student: ${err}`);
+        this.set_error(`copy to student: ${err}`);
       }
     };
     let store = this.get_store();
@@ -2875,7 +2873,7 @@ You can find the comments they made in the folders below.\
     const student_id = student.get("student_id");
     const course_project_id = store.get("course_project_id");
     const src_path = handout.get("path");
-    return async.series(
+    async.series(
       [
         cb => {
           if (student_project_id == null) {
@@ -2889,16 +2887,16 @@ You can find the comments they made in the folders below.\
               cb("no store");
               return;
             }
-            return store.wait({
+            store.wait({
               until: (store: CourseStore) =>
                 store.get_student_project_id(student_id),
               cb: (err, x) => {
                 student_project_id = x;
-                return cb(err);
+                cb(err);
               }
             });
           } else {
-            return cb();
+            cb();
           }
         },
         cb => {
@@ -2906,7 +2904,7 @@ You can find the comments they made in the folders below.\
             id,
             desc: `Copying files to ${student_name}'s project`
           });
-          return webapp_client.copy_path_between_projects({
+          webapp_client.copy_path_between_projects({
             src_project_id: course_project_id,
             src_path,
             target_project_id: student_project_id,
@@ -2920,7 +2918,7 @@ You can find the comments they made in the folders below.\
         }
       ],
       err => {
-        return finish(err);
+        finish(err);
       }
     );
   }
@@ -2936,7 +2934,7 @@ You can find the comments they made in the folders below.\
     const error = err => {
       this.clear_activity(id);
       err = `${short_desc}: ${err}`;
-      return this.set_error(err);
+      this.set_error(err);
     };
     const store = this.get_store();
     if (store == null || !this._store_is_initialized()) {
@@ -2953,27 +2951,27 @@ You can find the comments they made in the folders below.\
       }
       const n = misc.mswalltime();
       this.copy_handout_to_student(handout, student_id, overwrite);
-      return store.wait({
+      store.wait({
         timeout: 60 * 15,
         until: () => store.handout_last_copied(handout, student_id) >= n,
         cb: err => {
           if (err) {
             errors += `\n ${err}`;
           }
-          return cb();
+          cb();
         }
       });
     };
 
-    return async.mapLimit(
+    async.mapLimit(
       store.get_student_ids({ deleted: false }),
       PARALLEL_LIMIT,
       f,
       () => {
         if (errors) {
-          return error(errors);
+          error(errors);
         } else {
-          return this.clear_activity(id);
+          this.clear_activity(id);
         }
       }
     );
@@ -3001,7 +2999,7 @@ You can find the comments they made in the folders below.\
       return;
     }
     // Now open it
-    return this.redux.getProjectActions(proj).open_directory(path);
+    this.redux.getProjectActions(proj).open_directory(path);
   }
 }
 
