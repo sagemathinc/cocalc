@@ -1235,6 +1235,32 @@ OtherSettings = rclass
             Display timestamps as absolute points in time – otherwise they are relative to the current time.
         </Checkbox>
 
+    render_desktop_notifications: ->
+        if ((not window) or (window["Notification"] == undefined))
+            # browser doesn't support notifications
+            return null
+
+        on_change = (e) =>
+            if e.target.checked
+                if Notification.permission == "denied"
+                    require('./alerts').alert_message
+                        type     : "error"
+                        message  : "You blocked notifications earlier. You have to enable them in your browser settings (most likely, click on the icon at the left side of the URL bar)"
+                else
+                    Notification.requestPermission().then (permission) =>
+                        if permission == "granted"
+                            @on_change('desktop_notifications', true)
+            else
+                @on_change('desktop_notifications', false)
+
+        <Checkbox
+            checked  = {!!@props.other_settings.get('desktop_notifications')}
+            ref      = {'desktop_notifications'}
+            onChange = {on_change}
+        >
+            Show desktop notifications (small popup boxes) for new activities.
+        </Checkbox>
+
     render_katex: ->
         <Checkbox
             checked  = {!!@props.other_settings.get('katex')}
@@ -1322,6 +1348,7 @@ OtherSettings = rclass
             {@render_first_steps()}
             {@render_global_banner()}
             {@render_time_ago_absolute()}
+            {@render_desktop_notifications()}
             {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}

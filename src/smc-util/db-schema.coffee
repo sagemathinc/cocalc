@@ -280,6 +280,7 @@ schema.accounts =
                     newsletter        : false
                     time_ago_absolute : false
                     no_free_warnings  : false   # if true, do not show warning when using non-member projects
+                    desktop_notifications : false  # if true, html5 desktop notifications will pop up
                 first_name      : ''
                 last_name       : ''
                 terminal        :

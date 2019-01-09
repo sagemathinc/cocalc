@@ -25,6 +25,7 @@
 {COLORS} = require('smc-util/theme')
 {webapp_client} = require('./webapp_client')
 misc = require('smc-util/misc')
+misc_page = require('./misc_page')
 
 {HelpPage} = require('./r_help')
 {ProjectsPage} = require('./projects')
@@ -157,22 +158,32 @@ exports.NotificationBell = rclass
         active : false
 
     componentDidUpdate: (prevProps) ->
-        if (prevProps.count || 0) < (@props.count || 0)
-            @new_desktop_notification("new file activity")
+        prev = (prevProps.count || 0)
+        curr = (@props.count || 0)
+        diff =  curr - prev
+        if diff > 0
+            @new_desktop_notification("#{diff} new #{misc.plural(diff, 'activity', 'activities')}")
 
     new_desktop_notification: (message) ->
         if ((not window) or (window["Notification"] == undefined))
             console.error("This browser does not support desktop notification")
             return
+
+        enabled = !!redux.getStore('account').getIn(['other_settings', 'desktop_notifications'])
+        if DEBUG then console.log("NotificationBell/desktop notifications enabled:", enabled)
+        return if not enabled
+
+        icon = "#{misc_page.BASE_URL}/share/favicon-32x32.png"
+
         if (Notification.permission == "granted")
             # If it's okay let's create a notification
-            new Notification(message)
+            new Notification("new file activity", { body: message, icon: icon})
         # Otherwise, we need to ask the user for permission
         else if (Notification.permission != "denied")
             Notification.requestPermission().then (permission) ->
                 # If the user accepts, let's create a notification
                 if permission == "granted"
-                    new Notification(message)
+                    new Notification("new file activity",  { body: message, icon: icon})
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['count', 'active'])
