@@ -80,7 +80,9 @@ describe("tests public API of a system_notifications SyncTable", () => {
   });
 
   test("making change to invalid field raises error", () => {
-    expect(() => synctable.set({ foobar: "medium" })).toThrow("coerce");
+    expect(() => synctable.set({ foobar: "medium" })).toThrow(
+      "Cannot coerce: no field 'foobar' in table system_notifications"
+    );
   });
 
   test("making change to field not in query (even though it is valid) raises error", () => {
@@ -142,7 +144,9 @@ describe("tests public API of a system_notifications SyncTable", () => {
   });
 
   test("closed synctable -- most public API functions throw an error", async () => {
-    expect(() => synctable.set({ priority: "medium" })).toThrow("can't set until table is initialized");
+    expect(() => synctable.set({ priority: "medium" })).toThrow(
+      "can't set until table is initialized"
+    );
     expect(() => synctable.get()).toThrow("closed");
     expect(() => synctable.get_one()).toThrow("table not yet initialized");
     expect(() => synctable.has_uncommitted_changes()).toThrow("closed");
@@ -174,13 +178,12 @@ describe("tests public API of a system_notifications SyncTable", () => {
   test("try create synctable with another invalid query and get exception", () => {
     const invalid_query = {
       // invalid since extra foo key.
-      system_notifications: [{ id:null, foo:null, time: null, text: null, priority: null }]
+      system_notifications: [
+        { id: null, foo: null, time: null, text: null, priority: null }
+      ]
     };
     expect(() => new SyncTable(invalid_query, [], client, 0)).toThrow(
       "field in the schema"
     );
   });
-
-
-
 });

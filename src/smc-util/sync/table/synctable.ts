@@ -125,7 +125,7 @@ export class SyncTable extends EventEmitter {
   // Also updated during init.
   private required_set_fields: { [key: string]: boolean } = {};
 
-  private coerce_types: boolean = false;
+  private coerce_types: boolean = true;
   private no_changefeed: boolean = false;
 
   constructor(
