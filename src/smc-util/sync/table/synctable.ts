@@ -834,11 +834,11 @@ export class SyncTable extends EventEmitter {
     // Send our changes to the server.
     const query: any[] = [];
     const timed_changes: TimedChange[] = [];
-    const proposed_keys: string[] = [];
+    const proposed_keys: { [key: string]: boolean } = {};
     const changes = copy(this.changes);
     for (let key in this.changes) {
       if (this.versions[key] === 0) {
-        proposed_keys.push(key);
+        proposed_keys[key] = true;
       }
       const x = this.value.get(key);
       if (x == null) {
@@ -920,27 +920,27 @@ export class SyncTable extends EventEmitter {
     return !misc.is_equal(changes, this.changes);
   }
 
-  // TODO: rewrite in event driven non-hack way!
   private async wait_until_versions_are_updated(
-    proposed_keys: string[],
+    proposed_keys: { [key: string]: boolean },
     timeout_ms: number
   ): Promise<void> {
-    const t0 = new Date().valueOf();
-    while (true) {
-      let done = true;
-      if (new Date().valueOf() - t0 >= timeout_ms) {
-        throw Error("timeout");
-      }
-      for (let key of proposed_keys) {
-        if (this.versions[key] === 0) {
-          // still 0.
-          done = false;
-          await delay(50);
-          break;
+    const start_ms = new Date().valueOf();
+    while (len(proposed_keys) > 0) {
+      for (let key in proposed_keys) {
+        if (this.versions[key] > 0) {
+          delete proposed_keys[key];
         }
       }
-      if (done) {
-        return;
+      if (len(proposed_keys) > 0) {
+        const elapsed_ms = new Date().valueOf() - start_ms;
+        const keys : string[] = await once(
+          this,
+          "update-versions",
+          timeout_ms - elapsed_ms
+        );
+        for (let key of keys) {
+          delete proposed_keys[key];
+        }
       }
     }
   }
@@ -1085,6 +1085,7 @@ export class SyncTable extends EventEmitter {
       }
     }
     const changed_keys = keys(x); // of course all keys have been changed.
+    this.emit("update-versions", changed_keys);
 
     this.value = fromJS(x);
     if (this.value == null) {
@@ -1180,6 +1181,7 @@ export class SyncTable extends EventEmitter {
       }
       // Update our version to the new version.
       this.versions[key] = version;
+      this.emit("update-versions", [key]);
     }
 
     if (changed_keys.length > 0) {
@@ -1226,11 +1228,13 @@ export class SyncTable extends EventEmitter {
     } else {
       this.versions[key] += 1;
     }
+    this.emit("update-versions", [key]);
     return this.versions[key];
   }
 
   private null_version(key: string): void {
     this.versions[key] = 0;
+    this.emit("update-versions", [key]);
   }
 
   /*

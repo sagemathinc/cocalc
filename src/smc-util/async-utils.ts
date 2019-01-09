@@ -108,13 +108,43 @@ import { EventEmitter } from "events";
 
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event. */
-export async function once(obj: EventEmitter, event: string): Promise<any> {
+export async function once(
+  obj: EventEmitter,
+  event: string,
+  timeout_ms: number = 0
+): Promise<any> {
+  if (timeout_ms > 0) { // just to keep both versions more readable...
+    return once_with_timeout(obj, event, timeout_ms);
+  }
   let val: any[] = [];
   function wait(cb: Function): void {
     obj.once(event, function(...args): void {
       val = args;
       cb();
     });
+  }
+  await awaiting.callback(wait);
+  return val;
+}
+
+async function once_with_timeout(
+  obj: EventEmitter,
+  event: string,
+  timeout_ms: number
+): Promise<any> {
+  let val: any[] = [];
+  function wait(cb: Function): void {
+    function fail() : void {
+      obj.removeListener(event, handler);
+      cb("timeout");
+    }
+    const timer = setTimeout(fail, timeout_ms);
+    function handler(...args): void {
+      clearTimeout(timer);
+      val = args;
+      cb();
+    }
+    obj.once(event, handler);
   }
   await awaiting.callback(wait);
   return val;
@@ -148,7 +178,7 @@ export function bind_methods(obj: any, method_names: string[]): void {
 // Cancel pending throttle or debounce, where f is the
 // output of underscore.throttle (or debounce).  Safe to call
 // with f null or a normal function.
-export function cancel_scheduled(f : any) : void {
+export function cancel_scheduled(f: any): void {
   if (f != null && f.cancel != null) {
     f.cancel();
   }
