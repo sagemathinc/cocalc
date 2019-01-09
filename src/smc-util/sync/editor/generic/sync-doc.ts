@@ -1347,6 +1347,8 @@ export class SyncDoc extends EventEmitter {
     this.assert_is_ready();
     this.syncstring_table.set({
       string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
       settings: obj
     });
     await this.syncstring_table.save();

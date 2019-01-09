@@ -95,6 +95,7 @@ export class SyncTable extends EventEmitter {
 
   // Immutable map -- the value of this synctable.
   private value?: Map<string, Map<string, any>>;
+  private last_save: Map<string, Map<string, any>> = Map();
 
   // Which records we have changed (and when, by server time),
   // that haven't been sent to the backend.
@@ -118,14 +119,22 @@ export class SyncTable extends EventEmitter {
   private emit_change: Function;
   public reference_count: number = 0;
   public cache_key: string | undefined;
-  // Which fields the user is allowed to set.
-  // Gets updaed during init.
+  // Which fields the user is allowed to set/change.
+  // Gets updated during init.
   private set_fields: string[] = [];
   // Which fields *must* be included in any set query.
   // Also updated during init.
   private required_set_fields: { [key: string]: boolean } = {};
 
+  // Coerce types and generally do strong checking of all
+  // types using the schema.  Do this unless you have a very
+  // good reason not to!
   private coerce_types: boolean = true;
+
+  // If set, then the table is assumed to be managed
+  // entirely externally (using events).
+  // This is used by the synctables that are managed
+  // entirely by the project (e.g., sync-doc support).
   private no_changefeed: boolean = false;
 
   constructor(
@@ -393,6 +402,12 @@ export class SyncTable extends EventEmitter {
       return new_val;
     }
 
+    for (let field in this.required_set_fields) {
+      if (!new_val.has(field)) {
+        throw Error(`missing required set field ${field} of table ${this.table}`);
+      }
+    }
+
     // Something changed:
     this.value = this.value.set(key, new_val);
     this.changes[key] = this.client.server_time().valueOf();
@@ -571,6 +586,9 @@ export class SyncTable extends EventEmitter {
     }
 
     // 2. Now actually setup the changefeed.
+    // (Even if this.no_changefeed is set, this still may do
+    // an initial query to the database.  However, the changefeed
+    // does nothing further.)
     dbg("actually setup changefeed");
     await this.create_changefeed();
 
@@ -846,36 +864,61 @@ export class SyncTable extends EventEmitter {
       }
       const obj = x.toJS();
 
-      const qobj = {}; // qobj is the db query version of obj.
-      // Set the primary key part:
-      if (this.primary_keys.length === 1) {
-        qobj[this.primary_keys[0]] = key;
-      } else {
-        // unwrap compound primary key
-        let v = JSON.parse(key);
-        let i = 0;
-        for (let primary_key of this.primary_keys) {
-          qobj[primary_key] = v[i];
-          i += 1;
+      if (!this.no_changefeed) {
+        // qobj is the db query version of obj, or at least the part of it that expresses what changed.
+        const qobj = {};
+        // Set the primary key part:
+        if (this.primary_keys.length === 1) {
+          qobj[this.primary_keys[0]] = key;
+        } else {
+          // unwrap compound primary key
+          let v = JSON.parse(key);
+          let i = 0;
+          for (let primary_key of this.primary_keys) {
+            qobj[primary_key] = v[i];
+            i += 1;
+          }
         }
-      }
+        // Can only send set_field sets to the database.  Of these,
+        // only send what actually changed.
+        const prev = this.last_save.get(key);
+        for (let k of this.set_fields) {
+          if (!x.has(k)) continue;
+          if (prev == null) {
+            qobj[k] = obj[k];
+            continue;
+          }
 
-      // Can only send set_field sets to the database.
-      for (let k of this.set_fields) {
-        qobj[k] = x.get(k);
+          // Convert to List to get a clean way to *compare* no
+          // matter whether they are immutable.js objects or not!
+          const a = List([x.get(k)]);
+          const b = List([prev.get(k)]);
+          if (!a.equals(b)) {
+            qobj[k] = obj[k];
+          }
+        }
+
+        for (let k in this.required_set_fields) {
+          if (qobj[k] == null) {
+            qobj[k] = obj[k];
+          }
+        }
+
+        query.push({ [this.table]: qobj });
       }
-      query.push({ [this.table]: qobj });
       timed_changes.push({ obj, time: this.changes[key] });
     }
     this.emit("timed-changes", timed_changes);
 
     if (!this.no_changefeed) {
       try {
+        const value = this.value;
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
           timeout: 30
         });
+        this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
         if (is_fatal(err)) {
           console.warn("FATAL doing set", this.table, err);
@@ -960,6 +1003,20 @@ export class SyncTable extends EventEmitter {
     if (fields == null) {
       throw Error(`Missing fields part of schema for table ${this.table}`);
     }
+    let specs;
+    if (t.virtual != null) {
+      const x = schema.SCHEMA[t.virtual];
+      if (x == null) {
+        throw Error(`invalid virtual table spec for ${this.table}`);
+      }
+      specs = copy(x.fields);
+      if (specs == null) {
+        throw Error(`invalid virtual table spec for ${this.table}`);
+      }
+    } else {
+      specs = fields;
+    }
+
     if (typeof this.query != "string") {
       // explicit query (not just from schema)
       let x = this.query[this.table];
@@ -983,13 +1040,13 @@ export class SyncTable extends EventEmitter {
           // do not coerce null types
           return value;
         }
-        const spec = fields[field];
-        if (spec == null) {
+        if (fields[field] == null) {
           //console.warn(changes, fields);
           throw Error(
             `Cannot coerce: no field '${field}' in table ${this.table}`
           );
         }
+        const spec = specs[field];
         let desired: string | undefined = spec.type || spec.pg_type;
         if (desired == null) {
           throw Error(`Cannot coerce: no type info for field ${field}`);
@@ -1095,6 +1152,7 @@ export class SyncTable extends EventEmitter {
     if (this.value == null) {
       throw Error("bug");
     }
+    this.last_save = this.value;
     if (this.coerce_types) {
       // Ensure all values are properly coerced, as specified
       // in the database schema.  This is important, e.g., since
