@@ -709,7 +709,7 @@ export class SyncTable extends EventEmitter {
   }
 
   private disconnected(why: string): void {
-    const dbg = this.dbg("_disconnected");
+    const dbg = this.dbg("disconnected");
     dbg(`why=${why}`);
     if (this.state === "disconnected") {
       dbg("already disconnected");
@@ -831,6 +831,8 @@ export class SyncTable extends EventEmitter {
         true -- new changes appeared during the _save that need to be saved.
   */
   private async _save(): Promise<boolean> {
+    const dbg = this.dbg("_save");
+    dbg();
     if (this.get_state() == "closed") return false;
     if (this.client_query.set == null) {
       // Nothing to do -- can never set anything for this table.
@@ -840,8 +842,10 @@ export class SyncTable extends EventEmitter {
       return false;
     }
     //console.log("_save", this.table);
+    dbg("waiting for network");
     await this.wait_until_ready_to_query_db();
     if (this.get_state() == "closed") return false;
+    dbg("waiting for value");
     await this.wait_until_value();
     if (this.get_state() == "closed") return false;
     if (len(this.changes) === 0) return false;
@@ -909,11 +913,13 @@ export class SyncTable extends EventEmitter {
       }
       timed_changes.push({ obj, time: this.changes[key] });
     }
+    dbg("sending timed-changes", timed_changes);
     this.emit("timed-changes", timed_changes);
 
     if (!this.no_db_set) {
       try {
         const value = this.value;
+        dbg("doing database query");
         await callback2(this.client.query, {
           query,
           options: [{ set: true }], // force it to be a set query
@@ -921,6 +927,7 @@ export class SyncTable extends EventEmitter {
         });
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
+        dbg("db query failed", err);
         if (is_fatal(err)) {
           console.warn("FATAL doing set", this.table, err);
           this.close(true);
@@ -947,21 +954,25 @@ export class SyncTable extends EventEmitter {
       // to update state.  Wait until changes to proposed keys are
       // acknowledged by their version being assigned.
       try {
+        dbg("waiting until versions are updated");
         await this.wait_until_versions_are_updated(proposed_keys, 5000);
       } catch (err) {
+        dbg("waiting for versions timed out / failed");
         // took too long -- try again to send and receive changes.
         return true;
       }
     }
 
-    // Record that we successfully sent these changes
+    dbg("Record that we successfully sent these changes");
     for (let key in changes) {
       if (changes[key] == this.changes[key]) {
         delete this.changes[key];
       }
     }
 
-    return !misc.is_equal(changes, this.changes);
+    const is_done = len(this.changes) === 0;
+    dbg("done? ", is_done)
+    return !is_done;
   }
 
   private async wait_until_versions_are_updated(
