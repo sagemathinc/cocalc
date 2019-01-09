@@ -152,10 +152,8 @@ export const ProjectRow = rclass<ReactProps>(
     };
 
     handle_click = e => {
-      if (
-        window.getSelection().toString() ===
-        this.state.selection_at_last_mouse_down
-      ) {
+      const cur_sel = window.getSelection().toString();
+      if (this.state && cur_sel === this.state.selection_at_last_mouse_down) {
         this.open_project_from_list(e);
       }
     };
