@@ -380,7 +380,7 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public set_doc(doc: Document, exit_undo_mode : boolean = true): void {
+  public set_doc(doc: Document, exit_undo_mode: boolean = true): void {
     if (exit_undo_mode) this.undo_state = undefined;
     if (doc.is_equal(this.doc)) {
       // no change.
@@ -2088,7 +2088,7 @@ export class SyncDoc extends EventEmitter {
     // ... and save that to patches table
     const time = this.next_patch_time();
     this.commit_patch(time, patch);
-    this.save();  // so eventually also gets sent out.
+    this.save(); // so eventually also gets sent out.
     return true;
   }
 

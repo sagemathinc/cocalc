@@ -24,7 +24,7 @@ const connections = {};
 // I'm too tired to do this right at the moment.
 let READING_PRIMUS_JS = false;
 
-async function start_project(project_id : string) {
+async function start_project(project_id: string) {
   // also check if the project is supposedly running and if
   // not wait for it to be.
   const projects = redux.getStore("projects");
@@ -40,7 +40,6 @@ async function start_project(project_id : string) {
     });
   }
 }
-
 
 async function connection_to_project0(project_id: string): Promise<any> {
   if (project_id == null || project_id.length != 36) {
@@ -125,6 +124,28 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }));
   conn.api = new API(conn);
   conn.verbose = false;
+
+  // Given conn a state API, which is very handy for my use.
+  conn.state = "offline";
+  conn.once("open", () => {
+    conn.state = "online";
+    conn.emit("state", conn.state);
+  });
+  conn.on("online", () => {
+    conn.state = "online";
+    conn.emit("state", conn.state);
+  });
+  conn.on("offline", () => {
+    conn.state = "offline";
+    conn.emit("state", conn.state);
+  });
+  conn.on("destroy", () => {
+    conn.state = "destroyed";
+    conn.emit("state", conn.state);
+  });
+
+  // And also some nice logging to the console about what is going on:
+
   conn.on("open", function() {
     console.log(`project websocket: connected to ${project_id}`);
   });

@@ -1829,7 +1829,7 @@ class exports.Connection extends EventEmitter
 
     # This is async! The returned synctable is fully initialized.
     synctable_project: (project_id, query, options, throttle_changes=undefined) =>
-        return await synctable_project(project_id, query, options, @, throttle_changes)
+        return await synctable_project(project_id:project_id, query:query, options:options, client:@, throttle_changes:throttle_changes)
 
     # this is async
     symmetric_channel: (name, project_id) =>
