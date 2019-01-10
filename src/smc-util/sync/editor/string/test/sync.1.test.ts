@@ -39,7 +39,7 @@ describe("create syncstring and test doing some edits", () => {
 
   it("undo it all", () => {
     for (let i = 0; i < v.length; i++) {
-      syncstring.set_doc(syncstring.undo());
+      syncstring.undo();
       let e = v[v.length - i - 2];
       if (e === undefined) {
         e = "";
@@ -47,21 +47,20 @@ describe("create syncstring and test doing some edits", () => {
       expect(syncstring.to_str()).toEqual(e);
       expect(syncstring.in_undo_mode()).toBe(true);
     }
-    // we made lots of changes with undo/redo, but didn't
-    // save as new commits!
-    expect(syncstring.versions().length).toBe(v.length);
+    // we made lots of changes with undo/redo, and these
+    // automatically result in new commits.
+    expect(syncstring.versions().length).toBe(2*v.length);
   });
 
   it("redo it all (undo mode state continues from above)", () => {
     expect(syncstring.in_undo_mode()).toBe(true);
     for (let i = 0; i < v.length; i++) {
-      syncstring.set_doc(syncstring.redo());
+      syncstring.redo();
       expect(syncstring.to_str()).toEqual(v[i]);
     }
     syncstring.exit_undo_mode();
     expect(syncstring.in_undo_mode()).toBe(false);
-    // correct, since no saves.
-    expect(syncstring.versions().length).toBe(v.length);
+    expect(syncstring.versions().length).toBe(3*v.length);
   });
 
   it("revert to each past point in time", () => {
@@ -70,8 +69,8 @@ describe("create syncstring and test doing some edits", () => {
       syncstring.revert(vers[i]);
       expect(syncstring.to_str()).toEqual(v[i]);
     }
-    // correct, since no saves.
-    expect(syncstring.versions().length).toBe(v.length);
+    // correct, since no commits.
+    expect(syncstring.versions().length).toBe(3*v.length);
   });
 
   it("gets info about patch at a given point in time", () => {
