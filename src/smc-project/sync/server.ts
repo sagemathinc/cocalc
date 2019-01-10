@@ -110,7 +110,7 @@ class SyncTableChannel {
 
   public async init(): Promise<void> {
     this.init_handlers();
-    return await this.init_synctable();
+    await this.init_synctable();
   }
 
   private init_options(options): void {
@@ -185,10 +185,22 @@ class SyncTableChannel {
     this.broadcast_synctable_to_browsers();
   }
 
-  private new_connection(spark: Spark): void {
-    if (this.closed) return;
+  private async new_connection(spark: Spark): Promise<void> {
     // Now handle the connection
     this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
+    if (this.closed) return;
+    if (this.synctable.get_state() == 'closed') {
+      throw Error("BUG -- this shouldn't happen");
+    }
+    if (this.synctable.get_state() == 'disconnected') {
+      // Because synctable is being initialized for the first time,
+      // or it temporarily disconnected (e.g., lost hub), and is
+      // trying to reconnect.  So just wait for it to connect.
+      await once(this.synctable, "connected");
+    }
+
+    // Now that table is connected, we can send initial mesg to browser
+    // with table state.
     this.send_synctable_to_browser(spark);
 
     spark.on("data", async mesg => {
@@ -322,7 +334,7 @@ async function synctable_channel0(
   options: any[]
 ): Promise<string> {
   const name = channel_name(query, options);
-  logger.debug("synctable_channel", query, name);
+  logger.debug("synctable_channel", JSON.stringify(query), name);
   if (synctable_channels[name] === undefined) {
     synctable_channels[name] = new SyncTableChannel({
       client,

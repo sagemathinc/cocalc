@@ -1241,10 +1241,61 @@ export class SyncTable extends EventEmitter {
   }
 
   public init_browser_client(changes: VersionedChange[]): void {
-    this.apply_changes_to_browser_client(changes);
+    const dbg = this.dbg("init_browser_client");
+    dbg(`applying ${changes.length} versioned changes`);
+    // The value before doing init (which happens precisely when project
+    // synctable is reset). See note below.
+    const before = this.value;
+    const received_keys = this.apply_changes_to_browser_client(changes);
+    if (before != null) {
+      before.forEach((_, key) => {
+        if (key == null || received_keys[key]) return; // received as part of init
+        if (this.changes[key] && this.versions[key] == 0) return; // not event sent yet
+        // This key was known and confirmed sent before init, but
+        // didn't get sent back this time.  So it was lost somehow,
+        // e.g., due to not getting saved to the database and the project
+        // (or table in the project) getting restarted.
+        dbg(`found lost: key=${key}`);
+        // So we will try to send out it again.
+        if (!this.changes[key]) {
+          this.changes[key] = this.client.server_time().valueOf();
+        }
+        // So we don't view it as having any known version
+        // assigned by project, since the project lost it.
+        this.null_version(key);
+      });
+      if (len(this.changes) > 0) {
+        this.save(); // kick off a save of our unsaved lost work back to the project.
+      }
+    }
+    /*
+    NOTE: The problem solved here is the following.  Imagine the project
+    synctable is killed, and it has acknowledge a change C from a
+    web browser client, but has NOT saved that change to the central
+    postgreSQL database (or someday, maybe a local SQLite database).
+    Then when the project synctable is resurrected, it uses the database
+    for its initial state, and it knows nothing about C.  The
+    browser thinks that C has been successfully written and broadcast
+    to everybody, so the browser doesn't send C again.  The result is
+    that the browser and the project would be forever out of sync.
+    Note that we only care about lost changes that some browser knows
+    about -- if no browser knows about them, then the fact they are
+    lost won't break sync.  Also, for file editing, data is regularly
+    saved to disk, so if the browser sends a change that is lost due to
+    the project being killed before writing to the database, then the
+    browser terminates too, then that change is completely lost.  However,
+    everybody will start again with at least the last version of the file
+    **saved to disk,** which is basically what people may expect as a
+    worst case.
+
+    The solution to the above problem is to look at what key:value pairs
+    we know about that the project didn't just send back to us.  If there
+    are any that were reported as committed, but they vanished, then we
+    set them as unsent and send them again.
+    */
   }
 
-  public apply_changes_to_browser_client(changes: VersionedChange[]): void {
+  public apply_changes_to_browser_client(changes: VersionedChange[]):  { [key: string]: boolean } {
     const dbg = this.dbg("apply_changes_to_browser_client");
     dbg("got ", changes.length, "changes");
     this.assert_not_closed();
@@ -1256,6 +1307,7 @@ export class SyncTable extends EventEmitter {
     this.emit("before-change");
     const changed_keys: string[] = [];
     const increased_versions: string[] = [];
+    const received_keys: { [key: string]: boolean } = {};
     for (let change of changes) {
       const { obj, version } = change;
       const new_val = this.do_coerce_types(fromJS(obj));
@@ -1263,6 +1315,7 @@ export class SyncTable extends EventEmitter {
       if (key == null) {
         throw Error("object results in null key");
       }
+      received_keys[key] = true;
       const cur_version = this.versions[key] ? this.versions[key] : 0;
       if (cur_version > version) {
         // nothing further to do.
@@ -1284,6 +1337,7 @@ export class SyncTable extends EventEmitter {
     if (changed_keys.length > 0) {
       this.emit_change(changed_keys);
     }
+    return received_keys;
   }
 
   public apply_changes_from_browser_client(changes: TimedChange[]): void {
