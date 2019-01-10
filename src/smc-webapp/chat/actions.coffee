@@ -123,9 +123,8 @@ class ChatActions extends Actions
 
     # Make sure verything is sent to the project **and** then saved to disk.
     save: =>
-        await @syncdb.save()
-        await delay(1000)
-        await @syncdb.save_to_disk()
+        @syncdb.commit()
+        @syncdb.save_to_disk()
 
     set_to_last_input: =>
         @setState(input:@store.get('last_sent'))

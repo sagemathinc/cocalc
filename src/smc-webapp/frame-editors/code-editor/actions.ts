@@ -444,11 +444,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._syncdb == null) return;
     const s = this._syncdb;
     delete this._syncdb;
-    // syncstring was initialized; be sure not to
-    // lose the very last change user made!
-    if (s.get_state() === "ready") {
-      await s.save();
-    }
     s.close();
   }
 
@@ -1228,9 +1223,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.terminals.focus(id);
   }
 
-  syncstring_save(): void {
+  syncstring_commit(): void {
     if (this._syncstring != null) {
-      this._syncstring.save();
+      this._syncstring.commit();
     }
     this.update_save_status();
   }
@@ -1299,7 +1294,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.setValueNoJump(value, true);
     cm.focus();
     this.set_syncstring_to_codemirror();
-    this._syncstring.save();
+    this._syncstring.commit();
   }
 
   // per-session sync-aware redo
@@ -1320,7 +1315,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.setValueNoJump(value, true);
     cm.focus();
     this.set_syncstring_to_codemirror();
-    this._syncstring.save();
+    this._syncstring.commit();
   }
 
   _cm_exec(id: string, command: string): void {
@@ -1568,7 +1563,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();
-      this._syncstring.save();
+      this._syncstring.commit();
     }
   }
 
@@ -1642,13 +1637,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.set_status("Ensuring your latest changes are saved...");
     this.set_syncstring_to_codemirror();
     try {
-      await retry_until_success({
-        f: async () => {
-          await this._syncstring.save();
-        },
-        max_time: 10000,
-        max_delay: 1500
-      });
+      await this._syncstring.save();
       return true;
     } catch (err) {
       this.set_error(`Error saving to server: \n${err}`);

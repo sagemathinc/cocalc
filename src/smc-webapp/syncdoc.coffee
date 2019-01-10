@@ -125,6 +125,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
             return cur
 
     sync: (cb) =>
+        @_syncstring.commit()
         await @_syncstring.save()
         cb?()
 
@@ -137,6 +138,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
             cb?()
             return
         try
+            @_syncstring.commit()
             await @_syncstring.save()
             await @_syncstring.save_to_disk()
             cb?()
@@ -391,6 +393,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     sync: (cb) =>
         if @codemirror?  # need not be defined, right when user closes the editor instance
             @_set_syncstring_to_codemirror()
+        @_syncstring.commit()
         await @_syncstring.save()
         cb?()
 
@@ -440,6 +443,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         # which happens on tab close.
         try
             await @_syncstring.save_to_disk()
+            @_syncstring.commit()
             await @_syncstring.save()
             await @_syncstring.save_to_disk()
         catch err

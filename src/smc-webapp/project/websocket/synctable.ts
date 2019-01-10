@@ -15,7 +15,7 @@ export async function synctable_project(
 ): Promise<SyncTable> {
   // console.log("synctable_project options", options);
   function log(..._args): void {
-    // console.log("synctable", query, ..._args);
+    console.log("synctable", query, ..._args);
   }
 
   log("touch project...");
@@ -66,7 +66,8 @@ export async function synctable_project(
       throw Error("cannot write to channel when it is not connected");
     }
     log("send_mesg_to_project", mesg);
-    channel.write(mesg);
+    const t = channel.write(mesg);
+    log("send_mesg_to_project", t);
   }
 
   async function init_channel(): Promise<void> {

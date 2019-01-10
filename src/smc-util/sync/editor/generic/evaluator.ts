@@ -335,7 +335,7 @@ export class Evaluator {
       }
       //dbg("removing a cell flag: after='#{content}'")
       this.syncdoc.from_str(content);
-      this.syncdoc.save();
+      this.syncdoc.commit();
     };
 
     return mesg => {

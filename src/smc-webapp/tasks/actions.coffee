@@ -270,7 +270,7 @@ class exports.TaskActions extends Actions
 
         obj.task_id = task_id
         @syncdb.set(obj)
-        @syncdb.save()  # after every change, we send to backend.
+        @syncdb.commit()
         if setState
             # also set state directly in the tasks object locally **immediately**; this would happen
             # eventually as a result of the syncdb set above.
@@ -358,13 +358,13 @@ class exports.TaskActions extends Actions
         if !@syncdb?
             return
         @syncdb.undo()
-        @syncdb.save()
+        @syncdb.commit()
 
     redo: =>
         if !@syncdb?
             return
         @syncdb.redo()
-        @syncdb.save()
+        @syncdb.commit()
 
     set_task_not_done: (task_id) =>
         task_id ?= @store.get('current_task_id')

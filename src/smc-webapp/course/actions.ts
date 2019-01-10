@@ -260,7 +260,7 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
     this.syncdb.set(obj);
-    this.syncdb.save();
+    this.syncdb.commit();
   }
 
   // Get one object from @syncdb as a Javascript object (or undefined)
@@ -721,7 +721,7 @@ export class CourseActions extends Actions<CourseState> {
       x.student_id = student_id;
       this.syncdb.set(x);
     }
-    this.syncdb.save();
+    this.syncdb.commit();
     const f = (student_id, cb) => {
       return async.series(
         [

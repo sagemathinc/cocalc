@@ -380,7 +380,8 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public set_doc(doc: Document): void {
+  public set_doc(doc: Document, exit_undo_mode : boolean = true): void {
+    if (exit_undo_mode) this.undo_state = undefined;
     if (doc.is_equal(this.doc)) {
       // no change.
       return;
@@ -462,11 +463,10 @@ export class SyncDoc extends EventEmitter {
 
   /* Undo/redo public api.
   Calling this.undo and this.redo returns the version of
-  the document after the undo or redo operation, but does
-  NOT otherwise change anything! The caller can then do what
-  they please with that output (e.g., update the UI).
-  The one state change is that the first time calling this.undo
-  or this.redo switches into undo/redo state in which additional
+  the document after the undo or redo operation, and records
+  a commit changing to that.
+  The first time calling this.undo switches into undo
+  state in which additional
   calls to undo/redo move up and down the stack of changes made
   by this user during this session.
 
@@ -479,21 +479,23 @@ export class SyncDoc extends EventEmitter {
 
   Finally, undo of a past patch by definition means "the state
   of the document" if that patch was not applied.  The impact
-  of undo is NOT that the patch is removed from the patch history;
-  instead it just returns a document here that the client can
-  do something with, which may result in future patches.   Thus
-  clients could implement a number of different undo strategies
-  without impacting other clients code at all.
+  of undo is NOT that the patch is removed from the patch history.
+  Instead, it records a new patch that is what would have happened
+  had we replayed history with the patches being undone not there.
+
+  Doing any set_doc explicitly exits undo mode automatically.
   */
   public undo(): Document {
     const prev = this._undo();
-    this.set_doc(prev);
+    this.set_doc(prev, false);
+    this.commit();
     return prev;
   }
 
   public redo(): Document {
     const next = this._redo();
-    this.set_doc(next);
+    this.set_doc(next, false);
+    this.commit();
     return next;
   }
 
@@ -904,10 +906,10 @@ export class SyncDoc extends EventEmitter {
   private dbg(_f: string = ""): Function {
     //return (..._) => {};
     if (!this.client.is_project()) {
-      return (..._) => {};
-      /*return (...args) => {
+      //return (..._) => {};
+      return (...args) => {
         console.log("sync-doc", _f, ...args);
-      };*/
+      };
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
   }
@@ -1361,7 +1363,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   /*
-  Save current live syncdoc to backend.  It's safe to
+  Commits and saves current live syncdoc to backend.  It's safe to
   call this frequently or multiple times at once, since
   it is wrapped in reuseInFlight in the constructor.
 
@@ -1369,8 +1371,6 @@ export class SyncDoc extends EventEmitter {
   saving.
 
   Save any changes we have as a new patch.
-  Returns true if there are potentially
-  unsaved changes when _save is done.
   */
   public async save(): Promise<void> {
     const dbg = this.dbg("save");
@@ -1382,6 +1382,7 @@ export class SyncDoc extends EventEmitter {
       dbg("bug -- not ready");
       throw Error("bug -- cannot save if doc and last are not initialized");
     }
+    await this.patches_table.save();
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
       const doc = this.doc;
@@ -1434,8 +1435,7 @@ export class SyncDoc extends EventEmitter {
     await this.syncstring_table.save();
   }
 
-  // Promise resolves when save to the backend done
-  private async save_patch(time: Date, patch: XPatch): Promise<void> {
+  private commit_patch(time: Date, patch: XPatch): void {
     this.assert_not_closed();
     const obj: any = {
       // version for database
@@ -1453,7 +1453,7 @@ export class SyncDoc extends EventEmitter {
     if (this.deleted) {
       // file was deleted but now change is being made, so undelete it.
       // TODO: maybe change to explicit user request!
-      await this.undelete();
+      this.undelete();
     }
     if (this.save_patch_prev != null) {
       // timestamp of last saved patch during this session
@@ -1470,7 +1470,6 @@ export class SyncDoc extends EventEmitter {
 
     //console.log 'saving patch with time ', time.valueOf()
     const x = this.patches_table.set(obj, "none");
-    await this.patches_table.save();
     const y = this.process_patch(x, undefined, undefined, patch);
     if (y != null) {
       this.patch_list.add([y]);
@@ -1975,6 +1974,7 @@ export class SyncDoc extends EventEmitter {
       dbg(`got it -- length=${size}`);
       this.from_str(data);
       // we also know that this is the version on disk, so we update the hash
+      this.commit();
       await this.set_save({
         state: "done",
         error: "",
@@ -2074,6 +2074,24 @@ export class SyncDoc extends EventEmitter {
     return this.patches_table.has_uncommitted_changes();
   }
 
+  // Commit any changes to the live document to
+  // history as a new patch.  Returns true if there
+  // were changes and false otherwise.   This works
+  // fine offline, and does not wait until anything
+  // is saved to the network, etc.
+  public commit(): boolean {
+    if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
+      return false;
+    }
+    const patch = this.last.make_patch(this.doc); // must be nontrivial
+    this.last = this.doc;
+    // ... and save that to patches table
+    const time = this.next_patch_time();
+    this.commit_patch(time, patch);
+    this.save();  // so eventually also gets sent out.
+    return true;
+  }
+
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   public async save_to_disk(): Promise<void> {
@@ -2093,7 +2111,9 @@ export class SyncDoc extends EventEmitter {
         " saved hash = ",
         this.hash_of_saved_version(),
         "  live hash = ",
-        this.hash_of_live_version()
+        this.hash_of_live_version(),
+        "  num patches = ",
+        (this.patches_table.get() as any).size
       );
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
@@ -2376,7 +2396,7 @@ export class SyncDoc extends EventEmitter {
     been sent out.
     */
   private async sync_remote_and_doc(): Promise<void> {
-    if (this.last == null || this.doc == null) {
+    if (this.last == null || this.doc == null || this.state != "ready") {
       return;
     }
 
@@ -2386,15 +2406,11 @@ export class SyncDoc extends EventEmitter {
     // save_patch call, and we must not miss them.
     this.emit("before-change");
     while (!this.last.is_equal(this.doc)) {
-      // compute transformation from this.last to this.doc
-      const patch = this.last.make_patch(this.doc); // must be nontrivial
-      this.last = this.doc;
-      // ... and save that to patch table since there
-      // is a nontrivial change
-      const time = this.next_patch_time();
-      await this.save_patch(time, patch);
-      if (this.state !== "ready") {
-        return;
+      if (this.commit()) {
+        await this.patches_table.save();
+        if (this.state != "ready") {
+          return;
+        }
       }
     }
 

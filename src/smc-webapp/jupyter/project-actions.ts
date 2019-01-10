@@ -782,7 +782,7 @@ export class JupyterActions extends JupyterActions0 {
       type: "file",
       last_load: new Date().getTime()
     });
-    this.syncdb.save();
+    this.syncdb.commit();
   };
 
   /* Determine timestamp of aux .ipynb file, and record it here,

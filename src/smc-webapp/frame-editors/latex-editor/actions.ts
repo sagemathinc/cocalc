@@ -809,7 +809,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     // I deleted the insane time:now in this syncdb set, since that would seem to generate
     // an insane amount of traffic (and I'm surprised it wouldn't generate a feedback loop)!
     this._syncdb.set({ key: "build_command", value: command });
-    this._syncdb.save();
+    this._syncdb.commit();
     this.setState({ build_command: fromJS(command) });
   }
 }

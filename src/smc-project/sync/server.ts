@@ -30,11 +30,12 @@ type Query = { [key: string]: any };
 interface Spark {
   address: { ip: string };
   id: string;
-  write: (string) => void;
+  write: (string) => boolean;
   on: (string, Function) => void;
 }
 
 interface Channel {
+  write: (string) => boolean;
   on: (string, Function) => void;
   forEach: (Function) => void;
   destroy: Function;
@@ -228,9 +229,7 @@ class SyncTableChannel {
     if (this.closed) return;
     this.log("broadcast_synctable_to_browsers");
     const x = { init: this.synctable.initial_version_for_browser_client() };
-    this.channel.forEach((spark: Spark) => {
-      spark.write(x);
-    });
+    this.channel.write(x);
   }
 
   /* Check if we should close, e.g., due to no connected clients. */
@@ -256,8 +255,10 @@ class SyncTableChannel {
     _spark: Spark,
     mesg: any
   ): Promise<void> {
-    if (this.closed) return;
     this.log("handle_mesg_from_browser ", (this.channel as any).channel, mesg);
+    if (this.closed) {
+      throw Error("received mesg from browser AFTER close");
+    }
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
@@ -273,9 +274,7 @@ class SyncTableChannel {
     if (this.closed) return;
     this.log("send_versioned_changes_to_browsers");
     const x = { versioned_changes };
-    this.channel.forEach((spark: Spark) => {
-      spark.write(x);
-    });
+    this.channel.write(x);
   }
 
   public async close(): Promise<void> {

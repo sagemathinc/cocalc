@@ -205,7 +205,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       return;
     }
     this.props.actions.set_syncstring_to_codemirror();
-    this.props.actions.syncstring_save();
+    this.props.actions.syncstring_commit();
   }
 
   safari_hack(): void {
@@ -344,7 +344,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
         this.props.actions.setState({ has_unsaved_changes: true });
-        return this.props.actions.exit_undo_mode();
+        this.props.actions.exit_undo_mode();
       }
     });
 

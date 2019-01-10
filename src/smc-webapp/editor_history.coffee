@@ -228,7 +228,7 @@ class exports.HistoryEditor extends FileEditor
             if not time?
                 return
             @syncstring.revert(time)
-            @syncstring.save()
+            @syncstring.commit()
             open_file()
             @syncstring.emit('change')
 

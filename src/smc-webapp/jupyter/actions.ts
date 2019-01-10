@@ -861,7 +861,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             ) {
               // No longer relevant -- see https://github.com/sagemathinc/cocalc/issues/1742
               this.syncdb.delete({ type: "fatal" });
-              this.syncdb.save();
+              this.syncdb.commit();
             }
             break;
           case "nbconvert":
@@ -1040,7 +1040,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //@dbg("_set")("obj=#{misc.to_json(obj)}")
     this.syncdb.set(obj);
     if (save) {
-      this.syncdb.save();
+      this.syncdb.commit();
     }
     // ensure that we update locally immediately for our own changes.
     this._syncdb_change(
@@ -1061,7 +1061,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     this.syncdb.delete(obj);
     if (save) {
-      this.syncdb.save();
+      this.syncdb.commit();
     }
     this._syncdb_change(immutable.fromJS([{ type: obj.type, id: obj.id }]));
   };
@@ -1070,7 +1070,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       return;
     }
-    this.syncdb.save();
+    this.syncdb.commit();
   };
 
   save = async () => {
@@ -2701,6 +2701,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     importer.close();
 
+    this.syncdb.commit();
     await this.syncdb.save();
     if (typeof this.ensure_backend_kernel_setup === "function") {
       this.ensure_backend_kernel_setup();
@@ -2720,7 +2721,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       state: "start",
       error: null
     });
-    this.syncdb.save();
+    this.syncdb.commit();
   };
 
   show_nbconvert_dialog = (to: any) => {
