@@ -123,6 +123,8 @@ export class Client extends EventEmitter implements Client0 {
     return true;
   }
 
+  public touch_project(_): void {}
+
   public query_cancel(_): void {}
 
   public alert_message(_): void {}
@@ -145,7 +147,7 @@ export class Client extends EventEmitter implements Client0 {
   ): Promise<SyncTable> {
     throw Error("not implemented");
   }
-  
+
   // account_id or project_id
   public client_id(): string {
     return this._client_id;

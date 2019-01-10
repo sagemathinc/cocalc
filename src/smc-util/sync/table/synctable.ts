@@ -56,6 +56,7 @@ export interface Client extends EventEmitter {
   alert_message: Function;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
+  touch_project: (opts: any) => void;
 }
 
 export interface VersionedChange {
@@ -137,13 +138,17 @@ export class SyncTable extends EventEmitter {
   // entirely by the project (e.g., sync-doc support).
   private no_db_set: boolean = false;
 
+  // Set only for some tables.
+  private project_id?: string;
+
   constructor(
     query,
     options: any[],
     client: Client,
     throttle_changes?: number,
     coerce_types?: boolean,
-    no_db_set?: boolean
+    no_db_set?: boolean,
+    project_id?: string
   ) {
     super();
 
@@ -152,6 +157,9 @@ export class SyncTable extends EventEmitter {
     }
     if (no_db_set != undefined) {
       this.no_db_set = no_db_set;
+    }
+    if (project_id != undefined) {
+      this.project_id = project_id;
     }
 
     if (is_array(query)) {
@@ -421,10 +429,19 @@ export class SyncTable extends EventEmitter {
     } else {
       // browser gets them assigned...
       this.null_version(key);
+      // also touch to indicate activity and make sure project running,
+      // in some cases.
+      this.touch_project();
     }
     this.emit_change([key]);
 
     return new_val;
+  }
+
+  private touch_project(): void {
+    if (this.project_id !== undefined) {
+      this.client.touch_project({ project_id: this.project_id });
+    }
   }
 
   public async close(fatal: boolean = false): Promise<void> {

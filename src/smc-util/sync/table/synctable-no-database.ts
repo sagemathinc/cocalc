@@ -24,19 +24,28 @@ export function synctable_no_database(
   options,
   client: Client,
   throttle_changes: undefined | number = undefined,
-  initial_get_query: any[] = []
+  initial_get_query: any[] = [],
+  project_id?: string
 ): SyncTable {
   if (options == null) {
     options = [];
   }
   const client2 = new ClientNoDatabase(client, initial_get_query);
-  return new SyncTable(query, options, client2, throttle_changes, true, true);
+  return new SyncTable(
+    query,
+    options,
+    client2,
+    throttle_changes,
+    true,
+    true,
+    project_id
+  );
 }
 
 class ClientNoDatabase extends EventEmitter {
   private client: Client;
   private initial_get_query: any[];
-  private connected : boolean = true;
+  private connected: boolean = true;
 
   constructor(client, initial_get_query) {
     super();
@@ -57,6 +66,10 @@ class ClientNoDatabase extends EventEmitter {
 
   public is_project(): boolean {
     return this.client.is_project();
+  }
+
+  public touch_project(opts) : void {
+    this.client.touch_project(opts);
   }
 
   public is_connected(): boolean {

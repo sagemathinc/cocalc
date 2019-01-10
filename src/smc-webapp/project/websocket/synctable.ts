@@ -6,6 +6,8 @@ import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 import { once, retry_until_success } from "smc-util/async-utils";
 
+//import { start_project } from "./connect";
+
 export async function synctable_project(
   project_id,
   query,
@@ -15,7 +17,7 @@ export async function synctable_project(
 ): Promise<SyncTable> {
   // console.log("synctable_project options", options);
   function log(..._args): void {
-    console.log("synctable", query, ..._args);
+    //console.log("synctable", query, ..._args);
   }
 
   log("touch project...");
@@ -34,7 +36,8 @@ export async function synctable_project(
     options,
     client,
     throttle_changes,
-    []
+    [],
+    project_id
   );
 
   let connected: boolean = false;
@@ -62,6 +65,8 @@ export async function synctable_project(
   }
 
   function send_mesg_to_project(mesg): void {
+    //console.log("send_mesg_to_project", mesg);
+
     if (!connected) {
       throw Error("cannot write to channel when it is not connected");
     }
@@ -83,7 +88,7 @@ export async function synctable_project(
     log("init_channel", "setup handlers");
     channel.on("data", handle_mesg_from_project);
 
-    // Channel close/open happens on brief network interruptions.
+    // Channel close/open happens on network interruptions.
     channel.on("close", function() {
       log("close");
       set_connected(false);

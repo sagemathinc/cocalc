@@ -4,7 +4,11 @@ Create a singleton websocket connection directly to a particular project.
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
-const { callback2, once, retry_until_success } = require("smc-util/async-utils"); // so also works on backend.
+const {
+  callback2,
+  once,
+  retry_until_success
+} = require("smc-util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
@@ -19,6 +23,24 @@ const connections = {};
 // of the target, hence causing multiple projects to have the same websocket.
 // I'm too tired to do this right at the moment.
 let READING_PRIMUS_JS = false;
+
+async function start_project(project_id : string) {
+  // also check if the project is supposedly running and if
+  // not wait for it to be.
+  const projects = redux.getStore("projects");
+  if (projects == null) {
+    throw Error("projects store must exist");
+  }
+
+  if (projects.get_state(project_id) != "running") {
+    // Encourage project to start running, if it isn't already...
+    await callback2(webapp_client.touch_project, { project_id });
+    await callback2(projects.wait, {
+      until: () => projects.get_state(project_id) == "running"
+    });
+  }
+}
+
 
 async function connection_to_project0(project_id: string): Promise<any> {
   if (project_id == null || project_id.length != 36) {
@@ -48,20 +70,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
         await once(webapp_client, "signed_in");
       }
 
-      // also check if the project is supposedly running and if
-      // not wait for it to be.
-      const projects = redux.getStore("projects");
-      if (projects == null) {
-        throw Error("projects store must exist");
-      }
-
-      if (projects.get_state(project_id) != "running") {
-        // Encourage project to start running, if it isn't already...
-        await callback2(webapp_client.touch_project, { project_id });
-        await callback2(projects.wait, {
-          until: () => projects.get_state(project_id) == "running"
-        });
-      }
+      await start_project(project_id);
 
       // Now project is thought to be running, so maybe this will work:
       try {
@@ -108,7 +117,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // However, we don't want to overwrite the usual global window.Primus.
   const conn = (connections[project_id] = Primus.connect({
     reconnect: {
-      max: 3000,
+      max: 5000,
       min: 1000,
       factor: 1.3,
       retries: 1000
@@ -119,7 +128,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   conn.on("open", function() {
     console.log(`project websocket: connected to ${project_id}`);
   });
-  conn.on("reconnect", function() {
+  conn.on("reconnect", async function() {
     console.log(`project websocket: trying to reconnect to ${project_id}`);
   });
   return conn;

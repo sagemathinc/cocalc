@@ -51,5 +51,7 @@ export class ClientTest extends EventEmitter {
 
   public server_time(): Date {
     return new Date();
-  ; }
+  }
+
+  public touch_project(_): void {}
 }

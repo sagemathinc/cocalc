@@ -577,3 +577,7 @@ class exports.Client extends EventEmitter
         dbg(opts.sha1)
         opts.cb?('get_blob: not implemented')
 
+
+    # no-op
+    touch_project: (opts) =>
+        opts.cb?()
