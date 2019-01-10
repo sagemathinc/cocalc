@@ -904,7 +904,8 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    //return (..._) => {};
+    return (..._) => {};
+    /*
     if (!this.client.is_project()) {
       return (..._) => {};
       return (...args) => {
@@ -912,6 +913,7 @@ export class SyncDoc extends EventEmitter {
       };
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
+    */
   }
 
   private async init_all(): Promise<void> {

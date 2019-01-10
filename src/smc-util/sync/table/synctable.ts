@@ -575,17 +575,18 @@ export class SyncTable extends EventEmitter {
   }
 
   private dbg(_f?: string): Function {
-    /* return () => {};
+    return () => {};
+    /*
     return (...args) => {
       console.log(`synctable("${this.table}").${_f}: `, ...args);
     };
-    */
     if (this.client.is_project()) {
       return this.client.dbg(
         `SyncTable('${JSON.stringify(this.query)}').${_f}`
       );
     }
     return () => {};
+    */
   }
 
   private async connect(): Promise<void> {
