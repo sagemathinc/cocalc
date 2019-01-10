@@ -206,6 +206,11 @@ const APPS: IAPPS = {
     label: "System Monitor",
     desc:
       "Shows you what programs are running and how much processor time, memory, and disk space are being used."
+  },
+  gedit: {
+    icon: "edit",
+    label: "Gedit",
+    desc: "The GNOME text editor"
   }
 };
 
