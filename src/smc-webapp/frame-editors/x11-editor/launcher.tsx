@@ -207,6 +207,17 @@ const APPS: IAPPS = {
     desc:
       "Shows you what programs are running and how much processor time, memory, and disk space are being used."
   }
+ // TODO doesn't work
+ // , Rcmdr: {
+ //   icon: "cc-icon-r",
+ //   desc: "A basic-statistics GUI for R",
+ //   label: "Rcmdr",
+ //   command: "sh",
+ //   args: [
+ //     "-c",
+ //     "'env R_DEFAULT_PACKAGES=\"Rcmdr\" R --no-save --no-restore --quiet'"
+ //   ]
+ // }
 };
 
 function sort_apps(k): string {
