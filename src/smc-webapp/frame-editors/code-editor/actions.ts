@@ -247,7 +247,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this._syncstring.once("ready", err => {
       if (err) {
         this.set_error(
-          `Fatal error opening file -- ${err}.  Please try reopening the file again.`
+          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
         );
         return;
       }
@@ -300,7 +300,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.set_error(
         `Fatal error opening ${
           this.path
-        } -- ${err}.  Please try reopening the file again.`
+        } -- ${err}\nFix this, then try opening the file again.`
       );
     });
 
@@ -331,7 +331,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
     this._syncdb.once("error", err => {
       this.set_error(
-        `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
+        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
       );
     });
 

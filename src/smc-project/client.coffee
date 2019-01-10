@@ -451,7 +451,7 @@ class exports.Client extends EventEmitter
                                 cb(err)
                             else if size > opts.maxsize_MB * 1000000
                                 dbg("file is too big!")
-                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB); try opening it in a Terminal with vim instead or write to help@sagemath.com")
+                                cb("file '#{opts.path}' size (=#{size/1000000}MB) too large (must be at most #{opts.maxsize_MB}MB); try opening it in a Terminal with vim instead or write to help@cocalc.com")
                             else
                                 dbg("file is fine")
                                 cb()

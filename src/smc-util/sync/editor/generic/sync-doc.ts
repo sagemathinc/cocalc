@@ -940,7 +940,15 @@ export class SyncDoc extends EventEmitter {
     if (this.client.is_project()) {
       log("load_from_disk");
       // This sets initialized, which is needed to be fully ready.
-      await this.load_from_disk_if_newer();
+      // We keep trying this load from disk until sync-doc is closed
+      // or it succeeds.  It may fail if, e.g., the file is too
+      // large or is not readable by the user. They are informed to
+      // fix the problem... and once they do (and wait up to 10s),
+      // this will finish.
+      await retry_until_success({
+        f: this.init_load_from_disk.bind(this),
+        max_delay: 10000
+      });
       log("done loading from disk");
     }
 
@@ -961,12 +969,32 @@ export class SyncDoc extends EventEmitter {
     log("done");
   }
 
+  private init_error(): string | undefined {
+    const x = this.syncstring_table.get_one();
+    if (x != null && x.get("init") != null) {
+      return x.get("init").get("error");
+    }
+    return undefined;
+  }
+
   // wait until the syncstring table is ready to be
   // used (so extracted from archive, etc.),
   private async wait_until_fully_ready(): Promise<void> {
     const dbg = this.dbg("wait_until_fully_ready");
     dbg();
     this.assert_not_closed();
+
+    if (this.client.is_user() && this.init_error()) {
+      // init is set and is in error state.  Give the backend a few seconds
+      // to try to fix this error before giving up.  The browser client
+      // can close and open the file to retry this (as instructed).
+      try {
+        await this.syncstring_table.wait(() => !this.init_error(), 5);
+      } catch(err) {
+        // fine -- let the code below deal with this problem...
+      }
+    }
+
     function is_init_and_not_archived(t: SyncTable): any {
       this.assert_not_closed();
       const tbl = t.get_one();
@@ -991,6 +1019,9 @@ export class SyncDoc extends EventEmitter {
       0
     );
     dbg("init done");
+    if (init.error) {
+      throw Error(init.error);
+    }
 
     if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
       dbg("waiting for patches for nontrivial file");
@@ -1104,7 +1135,18 @@ export class SyncDoc extends EventEmitter {
     this.set_read_only(await this.file_is_read_only());
   }
 
-  private async load_from_disk_if_newer(): Promise<void> {
+  private async init_load_from_disk(): Promise<void> {
+    if (this.state == "closed") {
+      // stop trying, no error -- this is assumed
+      // in a retry_until_success elsewhere.
+      return;
+    }
+    if (await this.load_from_disk_if_newer()) {
+      throw Error("failed to load from disk");
+    }
+  }
+
+  private async load_from_disk_if_newer(): Promise<boolean> {
     const last_changed = this.last_changed();
     const dbg = this.dbg("load_from_disk_if_newer");
     let is_read_only: boolean = false;
@@ -1135,6 +1177,7 @@ export class SyncDoc extends EventEmitter {
 
     await this.set_initialized(error, is_read_only, size);
     dbg("done");
+    return !!error;
   }
 
   private patch_table_query(cutoff?: Date) {

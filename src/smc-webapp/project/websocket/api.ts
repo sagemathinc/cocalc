@@ -101,7 +101,7 @@ export class API {
       cmd: "synctable_channel",
       query,
       options
-    });
+    }, 10000);
     // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
   }
