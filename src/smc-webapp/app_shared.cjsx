@@ -34,6 +34,7 @@ misc_page = require('./misc_page')
 {FileUsePage} = require('./file_use')
 {AdminPage} = require('admin/page')
 {show_announce_end} = require('./redux_account')
+underscore = require('underscore')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -162,28 +163,37 @@ exports.NotificationBell = rclass
         curr = (@props.count || 0)
         diff =  curr - prev
         if diff > 0
-            @new_desktop_notification("#{diff} new #{misc.plural(diff, 'activity', 'activities')}")
+            @new_desktop_notification?()
 
-    new_desktop_notification: (message) ->
-        if ((not window) or (window["Notification"] == undefined))
-            console.error("This browser does not support desktop notification")
-            return
-
-        enabled = !!redux.getStore('account').getIn(['other_settings', 'desktop_notifications'])
-        if DEBUG then console.log("NotificationBell/desktop notifications enabled:", enabled)
-        return if not enabled
-
-        icon = "#{misc_page.BASE_URL}/share/favicon-32x32.png"
-
-        if (Notification.permission == "granted")
-            # If it's okay let's create a notification
-            new Notification("new file activity", { body: message, icon: icon})
-        # Otherwise, we need to ask the user for permission
-        else if (Notification.permission != "denied")
-            Notification.requestPermission().then (permission) ->
-                # If the user accepts, let's create a notification
-                if permission == "granted"
-                    new Notification("new file activity",  { body: message, icon: icon})
+    componentDidMount: () ->
+        _notify = () ->
+            if ((not window) or (window["Notification"] == undefined))
+                # If the browser does not support desktop notifications.
+                console.error("This browser does not support desktop notification")
+                return
+            enabled = !!redux.getStore('account').getIn(['other_settings', 'desktop_notifications'])
+            if DEBUG
+                console.log("NotificationBell/desktop notifications enabled:", enabled)
+            if not enabled
+                # If the user has not enabled desktop notifications in their user settings.
+                return
+            if Notification.permission != "granted"
+                # If the browser says notifications are not allowed.
+                return
+            if document["hidden"] == false
+                # If the tab is currently active, then we probably shouldn't shout at the user.
+                return
+            notifications = redux.getStore('file_use').get_all_unseen()
+            if notifications.length == 0
+                # If there is nothing to notify.
+                # This could happen if the user cleared their notifications while this
+                # function was being throttled.
+                return
+            icon = "#{misc_page.BASE_URL}/share/favicon-32x32.png"
+            # TODO: use notifications array to display more detailed information (preview chat messages?)
+            diff = notifications.length
+            new Notification("New notifications", { body: "#{diff} new #{misc.plural(diff, 'activity', 'activities')}", icon: icon})
+        @new_desktop_notification = underscore.throttle(_notify,60000)
 
     shouldComponentUpdate: (next) ->
         return misc.is_different(@props, next, ['count', 'active'])
