@@ -13,7 +13,7 @@ export class API {
     this.conn = conn;
   }
 
-  async call(mesg: object, timeout_ms: number = 0): Promise<any> {
+  async call(mesg: object, timeout_ms: number): Promise<any> {
     const resp = await callback(call, this.conn, mesg, timeout_ms);
     if (resp != null && resp.status === "error") {
       throw Error(resp.error);
@@ -22,7 +22,7 @@ export class API {
   }
 
   async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call({ cmd: "listing", path: path, hidden: hidden });
+    return await this.call({ cmd: "listing", path: path, hidden: hidden }, 15000);
   }
 
   async prettier(path: string, options: any): Promise<any> {
@@ -68,7 +68,7 @@ export class API {
       cmd: "terminal",
       path: path,
       options
-    });
+    }, 60000);
     //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
   }
@@ -78,7 +78,7 @@ export class API {
     const channel_name = await this.call({
       cmd: "lean_channel",
       path: path
-    });
+    }, 60000);
     return this.conn.channel(channel_name);
   }
 
@@ -88,7 +88,7 @@ export class API {
       cmd: "x11_channel",
       path,
       display
-    });
+    }, 60000);
     return this.conn.channel(channel_name);
   }
 
@@ -125,11 +125,14 @@ export class API {
     return await this.call({ cmd: "lean", opts }, timeout_ms);
   }
 
+  // I think this isn't used.  It was going to support
+  // sync_channel, but obviously a more nuanced protocol
+  // was required.
   async symmetric_channel(name: string): Promise<Channel> {
     const channel_name = await this.call({
       cmd: "symmetric_channel",
       name
-    });
+    }, 30000);
     return this.conn.channel(channel_name);
   }
 }
