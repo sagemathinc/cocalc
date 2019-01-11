@@ -206,7 +206,7 @@ export class Lean extends EventEmitter {
     if (!syncstring._closed) {
       on_change();
     }
-    syncstring.on("close", () => {
+    syncstring.on("closed", () => {
       this.unregister(path);
     });
   }

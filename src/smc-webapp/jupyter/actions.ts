@@ -329,10 +329,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
   };
 
-  close = (): void => {
+  close = async (): Promise<void> => {
     if (this._state === "closed") {
       return;
     }
+    // ensure save to disk happens:
+    //   - it will automatically happen for the sync-doc file, but
+    //     we also need it for the ipynb file... as ipynb is unique
+    //     in having two formats.
+    await this.save();
+
     this.set_local_storage("cur_id", this.store.get("cur_id"));
     this._state = "closed";
     this.syncdb.close();
@@ -839,6 +845,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   __syncdb_change = (changes: any): void => {
+    if (this.syncdb == null) {
+      return;
+    }
     const do_init = this._is_project && this._state === "init";
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;

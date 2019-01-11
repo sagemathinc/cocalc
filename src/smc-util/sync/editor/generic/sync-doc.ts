@@ -722,6 +722,9 @@ export class SyncDoc extends EventEmitter {
     if (this.state === "closed") {
       return;
     }
+    if (this.client.is_user()) {
+      await this.save_to_disk();
+    }
     this.set_state("closed");
     this.emit("close");
 

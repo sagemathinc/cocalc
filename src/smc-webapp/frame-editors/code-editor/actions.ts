@@ -1521,6 +1521,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
+    if (this._state == "closed") return;
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
     const lang = (this.store.get("settings") as Map<string, any>).get("spell");

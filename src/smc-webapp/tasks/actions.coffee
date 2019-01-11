@@ -105,11 +105,15 @@ class exports.TaskActions extends Actions
         @syncdb.on('connected',       @set_save_status)
 
     _syncdb_metadata: =>
+        if not @syncdb? or not @store?  # may happen during close
+            return
         read_only = @syncdb.is_read_only()
         if read_only != @store.get('read_only')
             @setState(read_only: read_only)
 
     _syncdb_change: (changes) =>
+        if not @syncdb? or not @store?  # may happen during close
+            return
         tasks = @store.get('tasks') ? immutable.Map()
         changes.forEach (x) =>
             task_id = x.get('task_id')

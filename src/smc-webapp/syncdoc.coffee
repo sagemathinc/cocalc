@@ -523,6 +523,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     # Move the cursor with given color to the given pos.
     draw_other_cursors: (account_id, locs) =>
+        if not @codemirror? # can happen right when closing.
+            return
         # ensure @_cursors is defined; this is map from key to ...?
         #console.log("draw_other_cursors(#{account_id}, #{misc.to_json(locs)})")
         @_cursors ?= {}
