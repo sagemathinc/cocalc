@@ -398,7 +398,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             return
         tabs = []
         @props.open_files_order.map (path, index) =>
-            tabs.push(@file_tab(path, index))
+            if path?  # see https://github.com/sagemathinc/cocalc/issues/3450
+                tabs.push(@file_tab(path, index))
         if @props.num_ghost_file_tabs == 0
             return tabs
 
