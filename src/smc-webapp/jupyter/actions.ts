@@ -219,6 +219,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // state, all user tab completions, widget state, etc.
     this.init_project_conn();
 
+    this.syncdb.once("ready", () => {
+      // Stupid hack for now -- this just causes some activity so
+      // that the syncdb syncs.
+      // This should not be necessary, and may indicate a bug in the sync layer?
+      this.syncdb.set({ type: "user", id: 0, time: new Date().valueOf() });
+      this.syncdb.commit();
+    });
+
     // Put an entry in the project log once the jupyter notebook gets opened.
     // NOTE: Obviously, the project does NOT need to put entries in the log.
     this.syncdb.once("change", () =>
@@ -987,7 +995,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _set = (obj: any, save : boolean = true) => {
+  _set = (obj: any, save: boolean = true) => {
     if (this._state === "closed") {
       return;
     }
@@ -1240,7 +1248,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  run_code_cell = (id: any, save : boolean = true) => {
+  run_code_cell = (id: any, save: boolean = true) => {
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
 
@@ -2499,11 +2507,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  set_trust_notebook = (trust: any, save : boolean = true) => {
-    return this._set({
-      type: "settings",
-      trust: !!trust
-    }, save); // case to bool
+  set_trust_notebook = (trust: any, save: boolean = true) => {
+    return this._set(
+      {
+        type: "settings",
+        trust: !!trust
+      },
+      save
+    ); // case to bool
   };
 
   insert_image = (): void => {
