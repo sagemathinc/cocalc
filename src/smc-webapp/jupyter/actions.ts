@@ -67,6 +67,8 @@ import { JupyterKernelInterface } from "./project-interface";
 
 import { connection_to_project } from "../project/websocket/connect";
 
+import { CursorManager } from "./cursor-manager";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -88,7 +90,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _introspect_request?: any;
   private _is_project: any;
   private _key_handler: any;
-  private _last_cursors?: any;
   private _last_start?: any;
   private assistant_actions: any;
   private path: string;
@@ -96,6 +97,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private set_save_status: any;
   private update_keyboard_shortcuts: any;
   private project_conn: any;
+  private cursor_manager?: CursorManager;
 
   protected _client: any;
   protected _file_watcher: any;
@@ -225,6 +227,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     // project doesn't care about cursors, but browser clients do:
     this.syncdb.on("cursor_activity", this._syncdb_cursor_activity);
+    this.cursor_manager = new CursorManager();
 
     // this initializes actions+store for the assistant
     // this is also only a UI specific action
@@ -968,64 +971,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _syncdb_cursor_activity = (): void => {
-    let cells_before;
-    let cells = (cells_before = this.store.get("cells"));
-    const next_cursors = this.syncdb.get_cursors();
-    next_cursors.forEach((info, account_id) => {
-      const last_info =
-        this._last_cursors != null
-          ? this._last_cursors.get(account_id)
-          : undefined;
-      if (last_info != null ? last_info.equals(info) : undefined) {
-        // no change for this particular users, so nothing further to do
-        return;
-      }
-      // delete old cursor locations
-      if (last_info != null) {
-        last_info.get("locs").forEach(loc => {
-          let left: any;
-          const id = loc.get("id");
-          const cell = cells.get(id);
-          if (cell == null) {
-            return;
-          }
-          const cursors =
-            (left = cell.get("cursors")) != null ? left : immutable.Map();
-          if (cursors.has(account_id)) {
-            cells = cells.set(
-              id,
-              cell.set("cursors", cursors.delete(account_id))
-            );
-            return false; // nothing further to do
-          }
-        });
-      }
-
-      // set new cursors
-      return info.get("locs").forEach(loc => {
-        let left, left1;
-        const id = loc.get("id");
-        let cell = cells.get(id);
-        if (cell == null) {
-          return;
-        }
-        let cursors =
-          (left = cell.get("cursors")) != null ? left : immutable.Map();
-        loc = loc.set("time", info.get("time")).delete("id");
-        const locs = ((left1 = cursors.get(account_id)) != null
-          ? left1
-          : immutable.List()
-        ).push(loc);
-        cursors = cursors.set(account_id, locs);
-        cell = cell.set("cursors", cursors);
-        cells = cells.set(id, cell);
-      });
-    });
-
-    this._last_cursors = next_cursors;
-
-    if (cells !== cells_before) {
+  private _syncdb_cursor_activity = (): void => {
+    if (
+      this.store == null ||
+      this.syncdb == null ||
+      this.cursor_manager == null
+    )
+      return;
+    const cells = this.cursor_manager.process(
+      this.store.get("cells"),
+      this.syncdb.get_cursors()
+    );
+    if (cells != null) {
       this.setState({ cells });
     }
   };
