@@ -894,7 +894,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _syncstring_metadata(): void {
-    if (!this._syncstring) return; // need to check since this can get called by the close.
+    // need to check since this can get called by the close.
+    if (!this._syncstring) return;
     const read_only = this._syncstring.is_read_only();
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });
@@ -902,6 +903,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _syncstring_cursor_activity(): void {
+    // need to check since this can get called by the close.
+    if (!this._syncstring) return;
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
