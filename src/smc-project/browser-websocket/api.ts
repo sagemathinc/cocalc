@@ -34,6 +34,8 @@ export function init_websocket_api(
         //logger.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
+        console.trace();
+        logger.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
       }
     });
@@ -75,6 +77,10 @@ async function handle_api_call(
       return await lean_channel(client, primus, logger, data.path);
     case "x11_channel":
       return await x11_channel(client, primus, logger, data.path, data.display);
+    case "synctable_channel":
+      return await synctable_channel(client, primus, logger, data.query, data.options);
+    case "syncdoc_call":
+      return await syncdoc_call(data.path, logger, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, logger, data.name);
     default:
@@ -109,3 +115,7 @@ import { terminal } from "../terminal/server";
 import { lean, lean_channel } from "../lean/server";
 
 import { x11_channel } from "../x11/server";
+
+import { synctable_channel } from "../sync/server";
+
+import { syncdoc_call } from "../sync/sync-doc";
