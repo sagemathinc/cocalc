@@ -4,5 +4,6 @@ export interface Channel {
   end(): void;
   close(): void;
   connect(): void;
-  conn:any;
+  conn: any;
+  channel: string;
 }
