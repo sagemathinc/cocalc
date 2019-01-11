@@ -63,6 +63,7 @@ codemirror_associations =
     rmd    : 'rmd'
     rnw    : 'rnw'
     rtex   : 'rtex'
+    rs     : 'text/x-rustsrc'
     rst    : 'rst'
     rb     : 'text/x-ruby'
     ru     : 'text/x-ruby'
@@ -107,10 +108,14 @@ for ext, mode of codemirror_associations
             'fab fa-js-square'
         when 'text/typescript-jsx'    # would be nice to have proper TS...
             'fab fa-node-js'
+        when 'text/x-rustsrc'
+            'cog'
         else
             'fa-file-code-o'
+
     if ext in ['r', 'rmd']
         icon = 'cc-icon-r'
+
     file_associations[ext] =
         editor : 'codemirror'
         binary : false

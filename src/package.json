@@ -46,6 +46,7 @@
     "node-cjsx": "^1.0.0",
     "node-glob": "^1.2.0",
     "node-sass": "^4.8.2",
+    "prettier": "^1.15.3",
     "pug": "^2.0.1",
     "pug-loader": "^2.3.0",
     "react-test-renderer": "^16.5.2",

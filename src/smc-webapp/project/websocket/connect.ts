@@ -4,10 +4,17 @@ Create a singleton websocket connection directly to a particular project.
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
-const { retry_until_success } = require("smc-util/async-utils"); // so also works on backend.
+const {
+  callback2,
+  once,
+  retry_until_success
+} = require("smc-util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
+
+const { webapp_client } = require("../../webapp_client");
+const { redux } = require("../../app-framework");
 
 const connections = {};
 
@@ -16,6 +23,27 @@ const connections = {};
 // of the target, hence causing multiple projects to have the same websocket.
 // I'm too tired to do this right at the moment.
 let READING_PRIMUS_JS = false;
+
+async function start_project(project_id: string) {
+  // also check if the project is supposedly running and if
+  // not wait for it to be.
+  const projects = redux.getStore("projects");
+  if (projects == null) {
+    throw Error("projects store must exist");
+  }
+
+  if (projects.get_state(project_id) != "running") {
+    // Encourage project to start running, if it isn't already...
+    await callback2(webapp_client.touch_project, { project_id });
+    if (projects.get_my_group(project_id) == 'admin') {
+      // must be viewing as admin, so can't start as below.  Just touch and be done.
+      return;
+    }
+    await callback2(projects.wait, {
+      until: () => projects.get_state(project_id) == "running"
+    });
+  }
+}
 
 async function connection_to_project0(project_id: string): Promise<any> {
   if (project_id == null || project_id.length != 36) {
@@ -34,10 +62,21 @@ async function connection_to_project0(project_id: string): Promise<any> {
   let Primus;
 
   await retry_until_success({
+    // log: console.log,
     f: async function() {
       if (READING_PRIMUS_JS) {
         throw Error("currently reading one already");
       }
+
+      if (!webapp_client.is_signed_in()) {
+        // At least wait until main client is signed in, since nothing
+        // will work until that is the case anyways.
+        await once(webapp_client, "signed_in");
+      }
+
+      await start_project(project_id);
+
+      // Now project is thought to be running, so maybe this will work:
       try {
         READING_PRIMUS_JS = true;
 
@@ -70,9 +109,8 @@ async function connection_to_project0(project_id: string): Promise<any> {
         //console.log("success!");
       }
     },
-    max_time: 1000 * 60 * 30,
-    start_delay: 250,
-    max_delay: 1500,
+    start_delay: 300,
+    max_delay: 3000,
     factor: 1.2
     //log: (...x) => {
     //  console.log("retry primus:", ...x);
@@ -83,7 +121,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // However, we don't want to overwrite the usual global window.Primus.
   const conn = (connections[project_id] = Primus.connect({
     reconnect: {
-      max: 3000,
+      max: 5000,
       min: 1000,
       factor: 1.3,
       retries: 1000
@@ -91,10 +129,32 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }));
   conn.api = new API(conn);
   conn.verbose = false;
+
+  // Given conn a state API, which is very handy for my use.
+  conn.state = "offline";
+  conn.once("open", () => {
+    conn.state = "online";
+    conn.emit("state", conn.state);
+  });
+  conn.on("online", () => {
+    conn.state = "online";
+    conn.emit("state", conn.state);
+  });
+  conn.on("offline", () => {
+    conn.state = "offline";
+    conn.emit("state", conn.state);
+  });
+  conn.on("destroy", () => {
+    conn.state = "destroyed";
+    conn.emit("state", conn.state);
+  });
+
+  // And also some nice logging to the console about what is going on:
+
   conn.on("open", function() {
     console.log(`project websocket: connected to ${project_id}`);
   });
-  conn.on("reconnect", function() {
+  conn.on("reconnect", async function() {
     console.log(`project websocket: trying to reconnect to ${project_id}`);
   });
   return conn;
