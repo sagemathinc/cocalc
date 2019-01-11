@@ -1039,7 +1039,7 @@ exports.ProjectSettings = rclass ({name}) ->
         query = {}
         for k in misc.keys(require('smc-util/schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
-        @_table = webapp_client.sync_table({projects_admin : query})
+        @_table = webapp_client.sync_table2({projects_admin : query}, []);
         @_table.on 'change', =>
             @setState(admin_project : @_table.get(@props.project_id))
 

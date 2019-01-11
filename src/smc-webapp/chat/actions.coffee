@@ -5,6 +5,8 @@ immutable = require('immutable')
 {Actions} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
+{delay} = require('awaiting')
+
 # Sibling Libraries
 
 class ChatActions extends Actions
@@ -82,8 +84,8 @@ class ChatActions extends Actions
             event     : "chat"
             history   : [{author_id: sender_id, content:mesg, date:time_stamp}]
             date      : time_stamp
-        @syncdb.save()
         @setState(last_sent: mesg)
+        @save()
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
@@ -117,7 +119,12 @@ class ChatActions extends Actions
             history : [{author_id: author_id, content:mesg, date:time_stamp}].concat(message.get('history').toJS())
             editing : message.get('editing').set(author_id, null).toJS()
             date    : message.get('date').toISOString()
-        @syncdb.save()
+        @save()
+
+    # Make sure verything is sent to the project **and** then saved to disk.
+    save: =>
+        @syncdb.commit()
+        @syncdb.save_to_disk()
 
     set_to_last_input: =>
         @setState(input:@store.get('last_sent'))
