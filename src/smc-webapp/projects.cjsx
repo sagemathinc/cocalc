@@ -582,6 +582,8 @@ class ProjectsStore extends Store
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
+            if pay == true  # bug -- can delete this workaround in March 2019.
+                pay = new Date('2019-02-15')
             if pay
                 if webapp_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,
