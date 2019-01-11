@@ -1,6 +1,5 @@
 /*
  * decaffeinate suggestions:
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
@@ -265,7 +264,10 @@ export class CourseActions extends Actions<CourseState> {
     if (this.syncdb != null ? this.syncdb.is_closed() : undefined) {
       return;
     }
-    return __guard__(this.syncdb.get_one(obj), x => x.toJS());
+    const x = this.syncdb.get_one(obj);
+    if (x !== undefined) {
+      return x.toJS();
+    }
   }
 
   set_tab(tab) {
@@ -347,12 +349,15 @@ export class CourseActions extends Actions<CourseState> {
     if (store == null) {
       return;
     }
-    const users = __guard__(
-      state.getIn(["project_map", store.get("course_project_id"), "users"]),
-      x => x.keySeq()
-    );
-    if (users == null) {
+    let users = state.getIn([
+      "project_map",
+      store.get("course_project_id"),
+      "users"
+    ]);
+    if (users == undefined) {
       return;
+    } else {
+      users = users.keySeq();
     }
     if (this._last_collaborator_state == null) {
       this._last_collaborator_state = users;
@@ -392,13 +397,11 @@ export class CourseActions extends Actions<CourseState> {
         return;
       }
       const p = student.get("project_id");
-      if (
-        p == null ||
-        !__guard__(
-          projects_store.get_total_project_quotas(p),
-          x => x.member_host
-        )
-      ) {
+      let quotas: any = undefined;
+      if (p !== undefined) {
+        quotas = projects_store.get_total_project_quotas(p);
+      }
+      if (p == undefined || quotas == undefined || !quotas.member_host) {
         institute_pay = false;
         return false;
       }
@@ -414,15 +417,13 @@ export class CourseActions extends Actions<CourseState> {
     if (error === "") {
       this.setState({ error });
     } else {
-      let left;
+      let store = this.get_store();
+      let store_error: string = "";
+      if (store) {
+        store_error = store.get("error") || "";
+      }
       this.setState({
-        error: (
-          ((left = __guard__(this.get_store(), x => x.get("error"))) != null
-            ? left
-            : "") +
-          "\n" +
-          error
-        ).trim()
+        error: (store_error + "\n" + error).trim()
       });
     }
   }
@@ -445,9 +446,10 @@ export class CourseActions extends Actions<CourseState> {
       // course was closed
       return;
     }
-    let x = __guard__(store.get_activity(), x1 => x1.toJS());
-    if (x == null) {
-      x = {};
+    let activity = store.get_activity();
+    let x: any = {};
+    if (activity !== undefined) {
+      x = activity.toJS();
     }
     if (opts.desc == null) {
       delete x[opts.id];
@@ -523,9 +525,7 @@ export class CourseActions extends Actions<CourseState> {
     }
 
     const { title } = this.shared_project_settings();
-    this.redux
-      .getActions("projects")
-      .set_project_title(shared_id, title);
+    this.redux.getActions("projects").set_project_title(shared_id, title);
   }
 
   set_shared_project_description() {
@@ -554,11 +554,21 @@ export class CourseActions extends Actions<CourseState> {
     if (!shared_project_id) {
       return; // no shared project
     }
-    __guardMethod__(
-      this.redux.getActions("projects"),
-      action + "_project",
-      (o, m) => o[m](shared_project_id)
-    );
+    const projects_actions = this.redux.getActions("projects");
+    if (projects_actions == undefined) {
+      return;
+    }
+    switch (action) {
+      case "start":
+        projects_actions.start_project(shared_project_id);
+        break;
+      case "stop":
+        projects_actions.stop_project(shared_project_id);
+        break;
+      case "restart":
+        projects_actions.restart_project(shared_project_id);
+        break;
+    }
   }
 
   // configure the shared project so that it has everybody as collaborators
@@ -1106,18 +1116,20 @@ export class CourseActions extends Actions<CourseState> {
 
     // Returns undefined if no store.
     const act_on_student_projects = () => {
-      return __guard__(this.get_store(), x =>
-        x
-          .get_students()
-          .filter(student => {
-            return !student.get("deleted") && student.get("project_id") != null;
-          })
-          .map(student => {
-            return this.redux
-              .getActions("projects")
-              [action + "_project"](student.get("project_id"));
-          })
-      );
+      const store = this.get_store();
+      if (store == undefined) {
+        return;
+      }
+      store
+        .get_students()
+        .filter(student => {
+          return !student.get("deleted") && student.get("project_id") != null;
+        })
+        .map(student => {
+          return this.redux
+            .getActions("projects")
+            [action + "_project"](student.get("project_id"));
+        });
     };
     if (!act_on_student_projects()) {
       return;
@@ -1131,7 +1143,7 @@ export class CourseActions extends Actions<CourseState> {
       window.clearTimeout(this.prev_timeout_id);
       this.prev_timeout_id = 0;
     }
-    if (action === 'start') {
+    if (action === "start") {
       // action is start -- in this case we bizarely keep starting the
       // projects every 30s.  This is basically a no-op when already running,
       // so maybe not so bad.  (Do NOT do this for stop or restart, since
@@ -1143,7 +1155,10 @@ export class CourseActions extends Actions<CourseState> {
         this.setState({ action_all_projects_state: "any" });
       };
 
-      this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
+      this.prev_interval_id = window.setInterval(
+        act_on_student_projects,
+        30000
+      );
       this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
     }
 
@@ -1158,7 +1173,7 @@ export class CourseActions extends Actions<CourseState> {
     command: string,
     args?: string[],
     timeout?: number,
-    log?:Function,
+    log?: Function
   ): Promise<Result[]> {
     const store = this.get_store();
     if (store == null) {
@@ -1166,7 +1181,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     // calling start also deals with possibility that
     // it's in stop state.
-    this.action_all_student_projects('start');
+    this.action_all_student_projects("start");
     return await run_in_all_projects(
       store.get_student_project_ids(),
       command,
@@ -1178,43 +1193,49 @@ export class CourseActions extends Actions<CourseState> {
 
   set_all_student_project_titles(title) {
     const actions = this.redux.getActions("projects");
-    __guard__(this.get_store(), x =>
-      x.get_students().map((student, student_id) => {
-        const student_project_id = student.get("project_id");
-        const store = this.get_store();
-        if (store == undefined) {
-          return;
-        }
-        const project_title = `${store.get_student_name(
-          student_id
-        )} - ${title}`;
-        if (student_project_id != null) {
-          actions.set_project_title(student_project_id, project_title);
-        }
-      })
-    );
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+    store.get_students().map((student, student_id) => {
+      const student_project_id = student.get("project_id");
+      const store = this.get_store();
+      if (store == undefined) {
+        return;
+      }
+      const project_title = `${store.get_student_name(student_id)} - ${title}`;
+      if (student_project_id != null) {
+        actions.set_project_title(student_project_id, project_title);
+      }
+    });
   }
 
   configure_project_description(student_project_id) {
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
     this.redux
       .getActions("projects")
       .set_project_description(
         student_project_id,
-        __guard__(this.get_store(), x => x.getIn(["settings", "description"]))
+        store.getIn(["settings", "description"])
       );
   }
 
   set_all_student_project_descriptions(description) {
-    __guard__(this.get_store(), x =>
-      x.get_students().map(student => {
-        const student_project_id = student.get("project_id");
-        if (student_project_id != null) {
-          this.redux
-            .getActions("projects")
-            .set_project_description(student_project_id, description);
-        }
-      })
-    );
+    const store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+    store.get_students().map(student => {
+      const student_project_id = student.get("project_id");
+      if (student_project_id != null) {
+        this.redux
+          .getActions("projects")
+          .set_project_description(student_project_id, description);
+      }
+    });
   }
 
   set_all_student_project_course_info(pay?) {
@@ -1423,16 +1444,20 @@ export class CourseActions extends Actions<CourseState> {
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
   admin_upgrade_all_student_projects(quotas) {
-    if (
-      !__guard__(this.redux.getStore("account").get("groups"), x =>
-        x.contains("admin")
-      )
-    ) {
+    const account_store = this.redux.getStore("account");
+    if (account_store == undefined) {
+      return;
+    }
+    const group = account_store.get("groups");
+    if (group == undefined) {
+      return;
+    }
+    if (!group.contains("admin")) {
       console.warn("must be an admin to upgrade");
       return;
     }
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       console.warn("unable to get store");
       return;
     }
@@ -1455,16 +1480,13 @@ export class CourseActions extends Actions<CourseState> {
     if (ids == undefined) {
       return;
     }
-    async.mapSeries(ids,
-      f,
-      err => {
-        if (err) {
-          return console.warn(`FAIL -- ${err}`);
-        } else {
-          return console.log("SUCCESS");
-        }
+    async.mapSeries(ids, f, err => {
+      if (err) {
+        return console.warn(`FAIL -- ${err}`);
+      } else {
+        return console.log("SUCCESS");
       }
-    );
+    });
   }
 
   set_student_note(student, note) {
@@ -1686,11 +1708,11 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   set_peer_grade(assignment, config) {
-    let left;
-    const cur =
-      (left = __guard__(assignment.get("peer_grade"), x => x.toJS())) != null
-        ? left
-        : {};
+    let cur = {};
+    const peer_grade = assignment.get("peer_grade");
+    if (peer_grade !== undefined) {
+      cur = x.toJS();
+    }
     for (let k in config) {
       const v = config[k];
       cur[k] = v;
@@ -1958,9 +1980,12 @@ You can find the comments they made in the folders below.\
       return error("no assignment");
     }
     let errors = "";
-    const peer = __guard__(assignment.get("peer_grade"), x => x.get("enabled"));
-    const skip_grading =
-      (left = assignment.get("skip_grading")) != null ? left : false;
+    const peer_grade = assignment.get("peer_grade");
+    let peer = undefined;
+    if (peer_grade !== undefined) {
+      peer = peer_grade.get("enabled");
+    }
+    const skip_grading = !!assignment.get("skip_grading");
     const f = (student_id, cb) => {
       if (
         !store.last_copied(
@@ -2020,7 +2045,6 @@ You can find the comments they made in the folders below.\
 
   _finish_copy(assignment, student, type, err) {
     if (student != null && assignment != null) {
-      let left;
       const store = this.get_store();
       if (store == null) {
         return;
@@ -2031,10 +2055,8 @@ You can find the comments they made in the folders below.\
         table: "assignments",
         assignment_id: assignment.get("assignment_id")
       };
-      const x =
-        (left = __guard__(this._get_one(obj), x1 => x1[type])) != null
-          ? left
-          : {};
+      const one = this._get_one(obj);
+      const x = one && one[type] ? one[type] : {};
       const student_id = student.get("student_id");
       x[student_id] = { time: misc.mswalltime() };
       if (err) {
@@ -2050,7 +2072,7 @@ You can find the comments they made in the folders below.\
   // everything is in place to do the operation.
   _start_copy(assignment, student, type) {
     if (student != null && assignment != null) {
-      let left, left1;
+      let left1;
       const store = this.get_store();
       if (store == null) {
         return;
@@ -2061,11 +2083,9 @@ You can find the comments they made in the folders below.\
         table: "assignments",
         assignment_id: assignment.get("assignment_id")
       };
-      const x =
-        (left = __guard__(this._get_one(obj), x1 => x1[type])) != null
-          ? left
-          : {};
-      const y = (left1 = x[student.get("student_id")]) != null ? left1 : {};
+      const one = this._get_one(obj);
+      const x = one && one[type] ? one[type] : {};
+      const y = x[student.get("student_id")] || {};
       if (y.start != null && webapp_client.server_time() - y.start <= 15000) {
         return true; // never retry a copy until at least 15 seconds later.
       }
@@ -2089,15 +2109,16 @@ You can find the comments they made in the folders below.\
         table: "assignments",
         assignment_id: assignment.get("assignment_id")
       };
-      const x = __guard__(this._get_one(obj), x1 => x1[type]);
-      if (x == null) {
+      const one = this._get_one(obj);
+      const x = one ? one[type] : undefined;
+      if (x == undefined) {
         return;
       }
       const y = x[student.get("student_id")];
-      if (y == null) {
+      if (y == undefined) {
         return;
       }
-      if (y.start != null) {
+      if (y.start != undefined) {
         delete y.start;
         x[student.get("student_id")] = y;
         obj[type] = x;
@@ -2177,11 +2198,7 @@ You can find the comments they made in the folders below.\
         },
         cb => {
           if (create_due_date_file) {
-            this.copy_assignment_create_due_date_file(
-              assignment,
-              store,
-              cb
-            );
+            this.copy_assignment_create_due_date_file(assignment, store, cb);
           } else {
             cb();
           }
@@ -2242,9 +2259,7 @@ You can find the comments they made in the folders below.\
       cb: err => {
         this.clear_activity(locals.due_id);
         if (err) {
-          cb(
-            `Problem writing ${due_date_fn} file ('${err}'). Try again...`
-          );
+          cb(`Problem writing ${due_date_fn} file ('${err}'). Try again...`);
         } else {
           cb();
         }
@@ -2372,7 +2387,8 @@ You can find the comments they made in the folders below.\
       return error("no assignment");
     }
     let errors = "";
-    const peer = __guard__(assignment.get("peer_grade"), x => x.get("enabled"));
+    const peer_grade = assigment.get("peer_grade");
+    const peer = peer_grade ? peer_grade.get("enabled") : undefined;
     const prev_step = previous_step(step, peer);
     const f = (student_id, cb) => {
       if (
@@ -2763,10 +2779,8 @@ You can find the comments they made in the folders below.\
         table: "handouts",
         handout_id: handout.get("handout_id")
       };
-      const status_map =
-        (left = __guard__(this._get_one(obj), x => x.status)) != null
-          ? left
-          : {};
+      const one = this._get_one(obj);
+      const status_map = one && one.status ? one.status : {};
       const student_id = student.get("student_id");
       status_map[student_id] = { time: misc.mswalltime() };
       if (err) {
@@ -2787,12 +2801,9 @@ You can find the comments they made in the folders below.\
       student = store.get_student(student);
       handout = store.get_handout(handout);
       const obj = { table: "handouts", handout_id: handout.get("handout_id") };
-      const status_map =
-        (left = __guard__(this._get_one(obj), x => x.status)) != null
-          ? left
-          : {};
-      const student_status =
-        (left1 = status_map[student.get("student_id")]) != null ? left1 : {};
+      const one = this._get_one(obj);
+      const status_map = one && one.status ? one.status : {};
+      const student_status = status_map[student.get("student_id")] || {};
       if (
         student_status.start != null &&
         webapp_client.server_time() - student_status.start <= 15000
@@ -2817,12 +2828,13 @@ You can find the comments they made in the folders below.\
       student = store.get_student(student);
       handout = store.get_handout(handout);
       const obj = { table: "handouts", handout_id: handout.get("handout_id") };
-      const status = __guard__(this._get_one(obj), x => x.status);
-      if (status == null) {
+      const one = this._get_one(obj);
+      const status = one ? one.status : undefined;
+      if (status == undefined) {
         return;
       }
       const student_status = status[student.get("student_id")];
-      if (student_status == null) {
+      if (student_status == undefined) {
         return;
       }
       if (student_status.start != null) {
@@ -3000,22 +3012,5 @@ You can find the comments they made in the folders below.\
     }
     // Now open it
     this.redux.getProjectActions(proj).open_directory(path);
-  }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}
-function __guardMethod__(obj, methodName, transform) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
   }
 }
