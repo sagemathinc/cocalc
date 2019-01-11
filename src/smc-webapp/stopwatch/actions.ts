@@ -53,19 +53,20 @@ export let TimeActions = class TimeActions extends Actions<StopwatchEditorState>
       timers: this.syncdb.get()
     });
 
-    if (this.syncdb.count() === 0) {
+    if (this.syncdb.get_doc().size === 0) {
       this.add_stopwatch();
     }
   };
 
   _set = (obj: Timer): void => {
     this.syncdb.set(obj);
-    this.syncdb.save(); // save to file on disk
+    this.syncdb.commit();
+    this.syncdb.save_to_disk();
   };
 
   add_stopwatch = (): void => {
     let id = 1;
-    while (this.syncdb && this.syncdb.get_one({ id })) {
+    while (this.syncdb && this.syncdb.get_doc().get_one({ id })) {
       id += 1;
     }
     this._set({

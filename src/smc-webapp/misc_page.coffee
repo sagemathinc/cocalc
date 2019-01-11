@@ -23,7 +23,7 @@ $ = window.$
 
 {IS_MOBILE} = require('./feature')
 misc        = require('smc-util/misc')
-{dmp}       = require('smc-util/syncstring')
+{dmp}       = require('smc-util/sync/editor/generic/util')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
 theme       = require('smc-util/theme')
