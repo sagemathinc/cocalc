@@ -4,7 +4,7 @@ import { once } from "../../../../async-utils";
 import { a_txt } from "./data";
 
 describe("create syncstring and test doing some edits", () => {
-  const { client_id, project_id, path, init_queries, string_id } = a_txt();
+  const { client_id, project_id, path, init_queries } = a_txt();
   const client = new Client(init_queries, client_id);
   let syncstring: SyncString;
   const v = [
@@ -49,7 +49,7 @@ describe("create syncstring and test doing some edits", () => {
     }
     // we made lots of changes with undo/redo, and these
     // automatically result in new commits.
-    expect(syncstring.versions().length).toBe(2*v.length);
+    expect(syncstring.versions().length).toBe(2 * v.length);
   });
 
   it("redo it all (undo mode state continues from above)", () => {
@@ -60,7 +60,7 @@ describe("create syncstring and test doing some edits", () => {
     }
     syncstring.exit_undo_mode();
     expect(syncstring.in_undo_mode()).toBe(false);
-    expect(syncstring.versions().length).toBe(3*v.length);
+    expect(syncstring.versions().length).toBe(3 * v.length);
   });
 
   it("revert to each past point in time", () => {
@@ -70,7 +70,7 @@ describe("create syncstring and test doing some edits", () => {
       expect(syncstring.to_str()).toEqual(v[i]);
     }
     // correct, since no commits.
-    expect(syncstring.versions().length).toBe(3*v.length);
+    expect(syncstring.versions().length).toBe(3 * v.length);
   });
 
   it("gets info about patch at a given point in time", () => {
@@ -86,27 +86,6 @@ describe("create syncstring and test doing some edits", () => {
   it("last_changed is the time of the last version", () => {
     const vers = syncstring.versions();
     expect(syncstring.last_changed()).toEqual(vers[vers.length - 1]);
-  });
-
-  it("test setting and getting cursors", () => {
-    expect(syncstring.get_cursors().toJS()).toEqual({});
-    syncstring.set_cursor_locs([{ x: 2, y: 3 }, { x: 8, y: 12 }]);
-    // Still empty, since we don't include our own cursors.
-    expect(syncstring.get_cursors().toJS()).toEqual({});
-    // Temporarily change our client_id so we can
-    // see the cursor we set.
-    const f = client.client_id;
-    client.client_id = () => "";
-    const x = syncstring.get_cursors().toJS();
-    expect(x).toEqual({
-      [client_id]: {
-        locs: [{ x: 2, y: 3 }, { x: 8, y: 12 }],
-        string_id,
-        time: x[client_id].time,
-        user_id: 1
-      }
-    });
-    client.client_id = f;
   });
 
   it("is not read only", () => {
