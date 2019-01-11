@@ -24,7 +24,7 @@ export abstract class Table {
       // hack for now -- not running in browser (instead in testing server)
       return;
     }
-    this._table = require("../webapp_client").webapp_client.sync_table(
+    this._table = require("../webapp_client").webapp_client.sync_table2(
       this.query(),
       this.options ? this.options() : []
     );
@@ -35,7 +35,16 @@ export abstract class Table {
     }
   }
 
-  set(changes: object, merge, cb): void {
-    this._table.set(changes, merge, cb);
+  async set(changes: object, merge, cb): Promise<void> {
+    let e : undefined | string = undefined;
+    try {
+      this._table.set(changes, merge);
+      await this._table.save();
+    } catch (err) {
+      e = err.toString();
+    }
+    if (cb != null) {
+      cb(e);
+    }
   }
 }

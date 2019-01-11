@@ -38,7 +38,7 @@ export function apply_patch(patch: CompressedPatch, s: string): [string, boolean
     // If a patch is so corrupted it can't be parsed -- e.g., due to a bug in SMC -- we at least
     // want to make application the identity map (i.e., "best effort"), so
     // the document isn't completely unreadable!
-    console.warn(`apply_patch -- ${err}`);
+    console.warn(`apply_patch -- ${err}, ${JSON.stringify(patch)}`);
     return [s, false];
   }
   let clean = true;
@@ -61,5 +61,27 @@ export function patch_cmp(a: Patch, b: Patch): number {
 }
 
 export function time_cmp(a: Date, b: Date): number {
-  return a.valueOf() - b.valueOf();
+  const t = a.valueOf() - b.valueOf();
+  if (t < 0) {
+    return -1;
+  } else if (t > 0) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
+// Do a 3-way **string** merge by computing patch that transforms
+// base to remote, then applying that patch to local.
+export function three_way_merge(opts: {
+  base: string;
+  local: string;
+  remote: string;
+}): string {
+  if (opts.base === opts.remote) {
+    // trivial special case...
+    return opts.local;
+  }
+  return dmp.patch_apply(dmp.patch_make(opts.base, opts.remote), opts.local)[0];
 }

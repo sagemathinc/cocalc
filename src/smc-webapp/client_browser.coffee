@@ -122,7 +122,6 @@ class Connection extends client.Connection
         window.smc.sha1                = require('sha1')
         window.smc.schema              = require('smc-util/schema')
         # use to enable/disable verbose synctable logging
-        window.smc.synctable_debug     = require('smc-util/synctable').set_debug
         window.smc.idle_trigger        = => @emit('idle', 'away')
         window.smc.prom_client         = prom_client
         window.smc.redux               = require('./app-framework').redux

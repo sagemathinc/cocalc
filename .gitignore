@@ -20,6 +20,8 @@ node_modules
 *.sass-cache
 .vscode/
 .vs/
+err
+log
 
 src/cocalc-testcafe/package-lock.json
 
