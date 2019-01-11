@@ -29,7 +29,10 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
-const { retry_until_success } = require("smc-util/async-utils"); // so also works in project.
+
+// for now we also use require here, so also works in
+// project -- do not change willy nilly!
+const { callback2, retry_until_success } = require("smc-util/async-utils");
 
 import * as awaiting from "awaiting";
 
@@ -43,7 +46,7 @@ const keyboard = require("./keyboard");
 const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
-const {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
 
 // map project_id (string) -> kernels (immutable)
 let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
@@ -54,7 +57,9 @@ const { IPynbImporter } = require("./import-from-ipynb");
 // DEFAULT_KERNEL = "anaconda3";
 const DEFAULT_KERNEL = "sagemath";
 
-const syncstring = require("smc-util/syncstring");
+// Using require due to project import path issue... :-(
+// import { three_way_merge } from "smc-util/sync/editor/generic/util";
+const { three_way_merge } = require("smc-util/sync/editor/generic/util");
 
 const { instantiate_assistant } = require("../assistant/main");
 
@@ -109,7 +114,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public syncdb: any;
   public util: any; // TODO: check if this is used publicly
 
-  _init = (
+  _init = async (
     project_id: string,
     path: string,
     syncdb: any,
@@ -132,15 +137,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store.syncdb = syncdb;
     this.syncdb = syncdb;
     this._client = client;
-    this._is_project = client.is_project(); // the project client is designated to manage execution/conflict, etc.
+    // the project client is designated to manage execution/conflict, etc.
+    this._is_project = client.is_project();
     store._is_project = this._is_project;
     this._account_id = client.client_id(); // project or account's id
-
-    // this initializes actions+store for the assistant -- are "sub-actions" a thing?
-    if (!this._is_project) {
-      // this is also only a UI specific action
-      this.assistant_actions = instantiate_assistant(project_id, path);
-    }
 
     let font_size: any = this.store.get_local_storage("font_size");
     if (font_size == null) {
@@ -178,59 +178,59 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       max_output_length: 10000
     });
 
-    if (this._client) {
-      const do_set = () => {
-        return this.setState({
-          has_unsaved_changes:
-            this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
-          has_uncommitted_changes:
-            this.syncdb != null
-              ? this.syncdb.has_uncommitted_changes()
-              : undefined
-        });
-      };
-      const f = () => {
-        do_set();
-        return setTimeout(do_set, 3000);
-      };
-      this.set_save_status = underscore.debounce(f, 1500);
-      this.syncdb.on("metadata-change", this.set_save_status);
-      this.syncdb.on("connected", this.set_save_status);
-
-      // Also maintain read_only state.
-      this.syncdb.on("metadata-change", this.sync_read_only);
-      this.syncdb.on("connected", this.sync_read_only);
-
-      // Browser Client: Wait until the .ipynb file has actually been parsed into
-      // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
-      // then set the kernel, if necessary.
-      this.syncdb.wait({
-        until: s => !!s.get_one({ type: "file" }),
-        cb: () => this._syncdb_init_kernel()
-      });
-    }
-
     this.syncdb.on("change", this._syncdb_change);
 
-    if (!client.is_project()) {
-      // Only run this code when used on the frontend.
-      this.init_project_conn();
-
-      // Put an entry in the project log once the jupyter notebook gets opened.
-      // NOTE: Obviously, the project does NOT need to put entries in the log.
-      this.syncdb.once("change", () =>
-        this.redux.getProjectActions(project_id).log_opened_time(path)
-      );
-      // project doesn't care about cursors
-      this.syncdb.on("cursor_activity", this._syncdb_cursor_activity);
+    if (!this._is_project) {
+      this.init_client_only();
     }
+  };
 
-    if (
-      !client.is_project() &&
-      (typeof window !== "undefined" && window !== null
-        ? (window as any).$
-        : undefined) != null
-    ) {
+  // Only run this code on the browser frontend (not in project).
+  private async init_client_only(): Promise<void> {
+    const do_set = () => {
+      return this.setState({
+        has_unsaved_changes:
+          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
+        has_uncommitted_changes:
+          this.syncdb != null
+            ? this.syncdb.has_uncommitted_changes()
+            : undefined
+      });
+    };
+    const f = () => {
+      do_set();
+      return setTimeout(do_set, 3000);
+    };
+    this.set_save_status = underscore.debounce(f, 1500);
+    this.syncdb.on("metadata-change", this.set_save_status);
+    this.syncdb.on("connected", this.set_save_status);
+
+    // Also maintain read_only state.
+    this.syncdb.on("metadata-change", this.sync_read_only);
+    this.syncdb.on("connected", this.sync_read_only);
+
+    // Load kernel (once ipynb file loads).
+    this.set_kernel_after_load();
+
+    // Setup dedicated websocket to project
+    // TODO: might be replaced by an ephemeral table which broadcasts cpu
+    // state, all user tab completions, widget state, etc.
+    this.init_project_conn();
+
+    // Put an entry in the project log once the jupyter notebook gets opened.
+    // NOTE: Obviously, the project does NOT need to put entries in the log.
+    this.syncdb.once("change", () =>
+      this.redux.getProjectActions(this.project_id).log_opened_time(this.path)
+    );
+
+    // project doesn't care about cursors, but browser clients do:
+    this.syncdb.on("cursor_activity", this._syncdb_cursor_activity);
+
+    // this initializes actions+store for the assistant
+    // this is also only a UI specific action
+    this.assistant_actions = instantiate_assistant(this.project_id, this.path);
+
+    if (window != null && (window as any).$ != null) {
       // frontend browser client with jQuery
       this.set_jupyter_kernels(); // must be after setting project_id above.
 
@@ -242,9 +242,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       );
       this._commands = commands.commands(this);
 
-      return this.init_scroll_pos_hook();
+      this.init_scroll_pos_hook();
     }
-  };
+  }
+
+  private async set_kernel_after_load(): Promise<void> {
+    // Browser Client: Wait until the .ipynb file has actually been parsed into
+    // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
+    // then set the kernel, if necessary.
+    await this.syncdb.wait(s => !!s.get_one({ type: "file" }), 600);
+    this._syncdb_init_kernel();
+  }
 
   sync_read_only = (): void => {
     const a = this.store.get("read_only");
@@ -321,10 +329,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
   };
 
-  close = (): void => {
+  close = async (): Promise<void> => {
     if (this._state === "closed") {
       return;
     }
+    // ensure save to disk happens:
+    //   - it will automatically happen for the sync-doc file, but
+    //     we also need it for the ipynb file... as ipynb is unique
+    //     in having two formats.
+    await this.save();
+
     this.set_local_storage("cur_id", this.store.get("cur_id"));
     this._state = "closed";
     this.syncdb.close();
@@ -831,6 +845,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   __syncdb_change = (changes: any): void => {
+    if (this.syncdb == null) {
+      return;
+    }
     const do_init = this._is_project && this._state === "init";
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
@@ -853,6 +870,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             ) {
               // No longer relevant -- see https://github.com/sagemathinc/cocalc/issues/1742
               this.syncdb.delete({ type: "fatal" });
+              this.syncdb.commit();
             }
             break;
           case "nbconvert":
@@ -1029,9 +1047,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     //@dbg("_set")("obj=#{misc.to_json(obj)}")
-    this.syncdb.set(obj, save);
+    this.syncdb.set(obj);
+    if (save) {
+      this.syncdb.commit();
+    }
     // ensure that we update locally immediately for our own changes.
-    return this._syncdb_change(
+    this._syncdb_change(
       immutable.fromJS([misc.copy_with(obj, ["id", "type"])])
     );
   };
@@ -1047,17 +1068,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         throw CellDeleteProtectedException;
       }
     }
-    this.syncdb.delete(obj, save);
-    return this._syncdb_change(
-      immutable.fromJS([{ type: obj.type, id: obj.id }])
-    );
+    this.syncdb.delete(obj);
+    if (save) {
+      this.syncdb.commit();
+    }
+    this._syncdb_change(immutable.fromJS([{ type: obj.type, id: obj.id }]));
   };
 
   _sync = () => {
     if (this._state === "closed") {
       return;
     }
-    return this.syncdb.sync();
+    this.syncdb.commit();
   };
 
   save = async () => {
@@ -1073,7 +1095,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       await this._api_call("save_ipynb_file", {});
       // Now saves our custom-format syncdb to disk.
-      await awaiting.callback(this.syncdb.save);
+      await this.syncdb.save_to_disk();
     } catch (err) {
       if (err.toString().indexOf("no kernel with path") != -1) {
         // This means that the kernel simply hasn't been initialized yet.
@@ -1095,16 +1117,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  save_asap = (): void => {
+  save_asap = async (): Promise<void> => {
     if (this.syncdb != null) {
-      this.syncdb.save_asap(err => {
-        if (err) {
-          setTimeout(
-            () => (this.syncdb != null ? this.syncdb.save_asap() : undefined),
-            50
-          );
-        }
-      });
+      await this.syncdb.save();
     }
   };
 
@@ -1450,15 +1465,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_cursor_locs = (locs: any = [], side_effect?: any) => {
+    if (this.syncdb == null) {
+      // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
+      return;
+    }
     if (locs.length === 0) {
       // don't remove on blur -- cursor will fade out just fine
       return;
     }
     this._cursor_locs = locs; // remember our own cursors for splitting cell
-    // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
-    return this.syncdb != null
-      ? this.syncdb.set_cursor_locs(locs, side_effect)
-      : undefined;
+    this.syncdb.set_cursor_locs(locs, side_effect);
   };
 
   split_current_cell = (): void => {
@@ -2053,7 +2069,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (remote == null || base == null || input == null) {
       return;
     }
-    const new_input = syncstring.three_way_merge({
+    const new_input = three_way_merge({
       base,
       local: input,
       remote
@@ -2201,7 +2217,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // the corresponding dialog in
   // the file manager, so gives a step to confirm, etc.
   // The path may optionally be *any* file in this project.
-  file_action = (action_name: any, path?: any): void => {
+  file_action = async (action_name: any, path?: any): Promise<void> => {
     const a = this.redux.getProjectActions(this.store.get("project_id"));
     if (path == null) {
       path = this.store.get("path");
@@ -2216,9 +2232,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     if (action_name === "close_file") {
-      this.syncdb.save(() => {
-        return a.close_file(path);
-      });
+      await this.syncdb.save();
+      a.close_file(path);
       return;
     }
     if (action_name === "open_file") {
@@ -2468,26 +2483,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Display a confirmation dialog, then call opts.cb with the choice.
   // See confirm-dialog.cjsx for options.
-  confirm_dialog = (opts: any) => {
+  confirm_dialog = async (opts: any) => {
     this.blur_lock();
     this.setState({ confirm_dialog: opts });
-    return this.store.wait({
-      until: state => {
-        const c = state.get("confirm_dialog");
-        if (c == null) {
-          // deleting confirm_dialog prop is same as cancelling.
-          return "cancel";
-        } else {
-          return c.get("choice");
-        }
-      },
-      timeout: 0,
-      cb: (err: any, choice: any) => {
-        err = err; // TODO: use/handle this
-        this.focus_unlock();
-        return opts.cb(choice);
+    function dialog_is_closed(state): string | undefined {
+      const c = state.get("confirm_dialog");
+      if (c == null) {
+        // deleting confirm_dialog prop is same as cancelling.
+        return "cancel";
+      } else {
+        return c.get("choice");
       }
-    });
+    }
+    try {
+      const choice = await callback2(this.store.wait, {
+        until: dialog_is_closed,
+        timeout: 0
+      });
+      opts.cb(choice);
+    } catch (err) {
+      console.warn("Error -- ", err); // TODO??!
+    } finally {
+      this.focus_unlock();
+    }
   };
 
   close_confirm_dialog = (choice: any): void => {
@@ -2599,7 +2617,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await this._api_call("store", { key, value });
   };
 
-  set_to_ipynb = (ipynb: any, data_only = false) => {
+  set_to_ipynb = async (ipynb: any, data_only = false) => {
     /*
         set_to_ipynb - set from ipynb object.  This is
         mainly meant to be run on the backend in the project,
@@ -2639,11 +2657,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.reset_more_output();
         // clear the more output handler (only on backend)
       }
-      this.syncdb.delete(undefined, false); // completely empty database
+      this.syncdb.delete(); // completely empty database
       // preserve trust state across file updates/loads
       trust = this.store.get("trust");
       set = obj => {
-        return this.syncdb.set(obj, false);
+        this.syncdb.set(obj);
       };
     }
 
@@ -2692,29 +2710,27 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     importer.close();
 
-    return this.syncdb.sync(() => {
-      if (typeof this.ensure_backend_kernel_setup === "function") {
-        this.ensure_backend_kernel_setup();
-      }
-      return (this._state = "ready");
-    });
+    this.syncdb.commit();
+    await this.syncdb.save();
+    if (typeof this.ensure_backend_kernel_setup === "function") {
+      this.ensure_backend_kernel_setup();
+    }
+    this._state = "ready";
   };
 
   nbconvert = (args: any) => {
-    let needle;
-    if (
-      ((needle = this.store.getIn(["nbconvert", "state"])),
-      ["start", "run"].indexOf(needle) > -1)
-    ) {
+    const state = this.store.getIn(["nbconvert", "state"]);
+    if (state === "start" || state === "run") {
       // not allowed
       return;
     }
-    return this.syncdb.set({
+    this.syncdb.set({
       type: "nbconvert",
       args,
       state: "start",
       error: null
     });
+    this.syncdb.commit();
   };
 
   show_nbconvert_dialog = (to: any) => {
@@ -2876,7 +2892,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  add_attachment_to_cell = (id: any, path: any): void => {
+  add_attachment_to_cell = async (id: any, path: any): Promise<void> => {
     if (this.store.check_edit_protection(id, this)) {
       return;
     }
@@ -2886,27 +2902,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       .replace(/\(/g, "%28")
       .replace(/\)/g, "%29");
     this.set_cell_attachment(id, name, { type: "load", value: path });
-    this.store.wait({
-      until: () => {
-        return (
-          this.store.getIn(["cells", id, "attachments", name, "type"]) ===
-          "sha1"
-        );
-      },
-      cb: () => {
-        // This has to happen in the next render loop, since changing immediately
-        // can update before the attachments props are updated.
-        return setTimeout(
-          () =>
-            this.insert_input_at_cursor(
-              id,
-              this._attachment_markdown(name),
-              true
-            ),
-          10
-        );
-      }
-    });
+    await this.store.wait(
+      () =>
+        this.store.getIn(["cells", id, "attachments", name, "type"]) === "sha1",
+      0
+    );
+    // This has to happen in the next render loop, since changing immediately
+    // can update before the attachments props are updated.
+    await awaiting.delay(10);
+    this.insert_input_at_cursor(id, this._attachment_markdown(name), true);
   };
 
   delete_attachment_from_cell = (id: any, name: any) => {
@@ -3154,7 +3158,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.confirm_dialog({
       title: "Switch to the Classical Notebook?",
       body:
-        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" + JUPYTER_CLASSIC_MODERN + ")",
+        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
+        JUPYTER_CLASSIC_MODERN +
+        ")",
       choices: [
         { title: "Switch to Classical Notebook", style: "warning" },
         { title: "Continue using CoCalc Jupyter Notebook", default: true }

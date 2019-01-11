@@ -28,6 +28,11 @@ cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm test -- --ci
 #cd $TRAVIS_BUILD_DIR/src/smc-util/; npm test            # broken
 
 # selection of working smc-util tests
+# new sync code test
+cd $TRAVIS_BUILD_DIR/src/smc-util/sync/
+npx -q jest
+
+# synctable
 cd $TRAVIS_BUILD_DIR/src/smc-util/
 export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee
 
@@ -45,3 +50,5 @@ npm run testapi
 
 
 #npm run coveralls # TODO ... that's from the past, not sure if that could still work. primarily for the webapp, though.
+
+
