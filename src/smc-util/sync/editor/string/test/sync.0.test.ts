@@ -154,9 +154,9 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
     await syncstring.save_to_disk();
   });
 
-  it("close and clean up", () => {
+  it("close and clean up", async () => {
     expect(syncstring.get_state()).toBe("ready");
-    syncstring.close();
+    await syncstring.close();
     expect(syncstring.get_state()).toBe("closed");
   });
 });
