@@ -13,7 +13,9 @@ const { webapp_client } = require("../webapp_client");
 
 const { JupyterEditor } = require("./main");
 const { JupyterActions } = require("./actions");
-const { JupyterStore , initial_jupyter_store_state} = require("./store");
+const { JupyterStore, initial_jupyter_store_state } = require("./store");
+
+import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 
 export function register() {
   return register_file_editor({
@@ -32,17 +34,22 @@ export function register() {
       }
 
       const actions = redux.createActions(name, JupyterActions);
-      const store = redux.createStore(name, JupyterStore, initial_jupyter_store_state);
+      const store = redux.createStore(
+        name,
+        JupyterStore,
+        initial_jupyter_store_state
+      );
+      const sync_path = misc.meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
 
-      const syncdb = webapp_client.sync_db({
+      const syncdb = new_syncdb({
         project_id,
-        path: misc.meta_file(path, "jupyter2"), // a.ipynb --> ".a.ipynb.sage-jupyter2"
-        change_throttle: 5, // our UI/React can handle more rapid updates; plus we want output FAST.
-        patch_interval: 5,
-        save_interval: 1500,
+        path: sync_path,
+        change_throttle: 0, // our UI/React can handle more rapid updates; plus we want output FAST.
+        patch_interval: 0,
         primary_keys: ["type", "id"],
         string_cols: ["input"],
-        cursors: true
+        cursors: true,
+        persistent: true
       });
 
       actions._init(project_id, path, syncdb, store, webapp_client);

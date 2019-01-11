@@ -39,5 +39,3 @@ if window?
 
     client_browser = require('client_browser')
     exports.webapp_client = client_browser.connect()
-else
-    exports.webapp_client = new (require('smc-util/client-test').Client)()

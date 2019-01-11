@@ -22,8 +22,6 @@ import "react-image-crop/dist/ReactCrop.css";
 // per image.
 const AVATAR_SIZE: number = 160;
 
-import { callback } from "awaiting";
-
 interface ProfileImageSelectorProps {
   profile: ImmutableMap<any, any>;
   redux: any;
@@ -62,12 +60,9 @@ export class ProfileImageSelector extends Component<
 
   set_image = async (src: string) => {
     this.setState({ is_loading: true });
+    const table = this.props.redux.getTable("account");
     try {
-      await callback(
-        this.props.redux.getTable("account").set,
-        { profile: { image: src } },
-        "none"
-      );
+      await table.set({ profile: { image: src } }, "none");
     } catch (err) {
       if (this.is_mounted) {
         this.setState({ error: `${err}` });
