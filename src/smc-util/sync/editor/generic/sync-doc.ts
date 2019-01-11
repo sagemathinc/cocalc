@@ -35,7 +35,7 @@ type XPatch = any;
 
 import { EventEmitter } from "events";
 
-import { throttle } from "underscore";
+import { debounce, throttle } from "underscore";
 import { Map, fromJS } from "immutable";
 
 import { delay } from "awaiting";
@@ -1319,7 +1319,7 @@ export class SyncDoc extends EventEmitter {
     } else {
       options = [];
     }
-    this.cursors_table = await this.synctable(query, options, 0);
+    this.cursors_table = await this.synctable(query, options, 1000);
     this.assert_not_closed();
 
     // cursors now initialized; first initialize the
@@ -1340,6 +1340,8 @@ export class SyncDoc extends EventEmitter {
       }
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
+
+    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000)
     dbg("done");
   }
 
