@@ -1465,7 +1465,12 @@ export class SyncTable extends EventEmitter {
     }
     const key = this.obj_to_key(new_val);
     if (key == null) {
-      throw Error("key must not be null");
+      // This means the primary key is null or missing, which
+      // shouldn't happen.  Maybe it could in some edge case.
+      // For now, we shouldn't let this break everything, so:
+      console.warn(this.table, "handle_new_val: ignoring invalid new_val ", obj);
+      return undefined;
+      // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
     if (!new_val.equals(cur_val)) {
