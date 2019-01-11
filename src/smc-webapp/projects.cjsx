@@ -54,8 +54,13 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
-    # set whether the "add collaborators" component is displayed for the given project
-    # in the project listing
+    projects_table_set: (obj) =>
+        the_table = @redux.getTable('projects')
+        the_table?.set(obj)
+        return
+
+    # Set whether the "add collaborators" component is displayed
+    # for the given project in the project listing.
     set_add_collab: (project_id, enabled) =>
         add_collab = store.get('add_collab') ? immutable.Set()
         if enabled
@@ -100,7 +105,7 @@ class ProjectsActions extends Actions
             # title is already set as requested; nothing to do
             return
         # set in the Table
-        @redux.getTable('projects').set({project_id:project_id, title:title})
+        @projects_table_set({project_id:project_id, title:title})
         # create entry in the project's log
         @redux.getProjectActions(project_id).log
             event : 'set'
@@ -114,7 +119,7 @@ class ProjectsActions extends Actions
             # description is already set as requested; nothing to do
             return
         # set in the Table
-        @redux.getTable('projects').set({project_id:project_id, description:description})
+        @projects_table_set({project_id:project_id, description:description})
         # create entry in the project's log
         @redux.getProjectActions(project_id).log
             event       : 'set'
@@ -126,7 +131,7 @@ class ProjectsActions extends Actions
             fingerprint : required
             title       : required
             value       : required
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : opts.project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" :
@@ -140,7 +145,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             project_id  : required
             fingerprint : required
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : opts.project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" :
@@ -431,7 +436,7 @@ class ProjectsActions extends Actions
             upgrades = misc.copy(upgrades)
             for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
@@ -446,29 +451,29 @@ class ProjectsActions extends Actions
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     save_project: (project_id) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'save', time:webapp_client.server_time()}
 
     start_project: (project_id) ->
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'start', time:webapp_client.server_time()}
 
     stop_project: (project_id) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
         @redux.getProjectActions(project_id).log
             event : 'project_stop_requested'
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'close', time:webapp_client.server_time()}
 
     restart_project: (project_id) ->
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
         @redux.getProjectActions(project_id).log
@@ -476,7 +481,7 @@ class ProjectsActions extends Actions
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
@@ -485,14 +490,14 @@ class ProjectsActions extends Actions
     # Toggle whether or not project is hidden project
     toggle_hide_project: (project_id) =>
         account_id = @redux.getStore('account').get_account_id()
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
                     hide : not @redux.getStore('projects').is_hidden_from(project_id, account_id)
 
     delete_project: (project_id) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             deleted    : true
 
@@ -502,7 +507,7 @@ class ProjectsActions extends Actions
         if not is_deleted
             @clear_project_upgrades(project_id)
 
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             deleted    : not is_deleted
 

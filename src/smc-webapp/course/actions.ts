@@ -259,26 +259,29 @@ export class CourseActions extends Actions<CourseState> {
   _set(obj) {
     if (
       !this._loaded() ||
-      (this.syncdb != null ? this.syncdb.is_closed() : undefined)
+      (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
     ) {
       return;
     }
-    return this.syncdb.set(obj);
+    this.syncdb.set(obj);
+    this.syncdb.commit();
   }
 
   // Get one object from @syncdb as a Javascript object (or undefined)
   _get_one(obj) {
-    if (this.syncdb != null ? this.syncdb.is_closed() : undefined) {
+    if (
+      this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined
+    ) {
       return;
     }
     return __guard__(this.syncdb.get_one(obj), x => x.toJS());
   }
 
   set_tab(tab) {
-    return this.setState({ tab });
+    this.setState({ tab });
   }
 
-  save() {
+  async save(): Promise<void> {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -288,20 +291,19 @@ export class CourseActions extends Actions<CourseState> {
     }
     const id = this.set_activity({ desc: "Saving..." });
     this.setState({ saving: true });
-    return this.syncdb.save(err => {
+    try {
+      await this.syncdb.save_to_disk();
+      this.setState({ show_save_button: false });
+    } catch (err) {
+      this.set_error(`Error saving -- ${err}`);
+      this.setState({ show_save_button: true });
+      return;
+    } finally {
       this.clear_activity(id);
       this.setState({ saving: false });
-      this.setState({
-        unsaved:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
-      });
-      if (err) {
-        this.set_error(`Error saving -- ${err}`);
-        return this.setState({ show_save_button: true });
-      } else {
-        return this.setState({ show_save_button: false });
-      }
-    });
+      this.update_unsaved_changes();
+      setTimeout(this.update_unsaved_changes.bind(this), 1000);
+    }
   }
 
   _syncdb_change(changes) {
@@ -341,12 +343,9 @@ export class CourseActions extends Actions<CourseState> {
     if (!cur.equals(t)) {
       // something definitely changed
       this.setState(t);
-      this.setState({
-        unsaved:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
-      });
       this.grading_update(store, store.get("grading"));
     }
+    this.update_unsaved_changes();
   }
 
   _syncdb_cursor_activity = () => {
@@ -414,6 +413,14 @@ export class CourseActions extends Actions<CourseState> {
       return;
     }
   };
+
+  private update_unsaved_changes(): void {
+    if (this.syncdb == null) {
+      return;
+    }
+    const unsaved = this.syncdb.has_unsaved_changes();
+    this.setState({ unsaved });
+  }
 
   handle_projects_store_update(state) {
     const store = this.get_store();
@@ -784,6 +791,7 @@ export class CourseActions extends Actions<CourseState> {
       x.student_id = student_id;
       this.syncdb.set(x);
     }
+    this.syncdb.commit();
     const f = (student_id, cb) => {
       return async.series(
         [
@@ -1203,7 +1211,7 @@ export class CourseActions extends Actions<CourseState> {
       window.clearTimeout(this.prev_timeout_id);
       this.prev_timeout_id = 0;
     }
-    if (action === 'start') {
+    if (action === "start") {
       // action is start -- in this case we bizarely keep starting the
       // projects every 30s.  This is basically a no-op when already running,
       // so maybe not so bad.  (Do NOT do this for stop or restart, since
@@ -1215,7 +1223,10 @@ export class CourseActions extends Actions<CourseState> {
         return this.setState({ action_all_projects_state: "any" });
       };
 
-      this.prev_interval_id = window.setInterval(act_on_student_projects, 30000);
+      this.prev_interval_id = window.setInterval(
+        act_on_student_projects,
+        30000
+      );
       this.prev_timeout_id = window.setTimeout(clear_state, 300000); // 5 minutes
     }
 
@@ -1230,7 +1241,7 @@ export class CourseActions extends Actions<CourseState> {
     command: string,
     args?: string[],
     timeout?: number,
-    log?:Function,
+    log?: Function
   ): Promise<Result[]> {
     const store = this.get_store();
     if (store == null) {
@@ -1238,7 +1249,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     // calling start also deals with possibility that
     // it's in stop state.
-    this.action_all_student_projects('start');
+    this.action_all_student_projects("start");
     return await run_in_all_projects(
       store.get_student_project_ids(),
       command,

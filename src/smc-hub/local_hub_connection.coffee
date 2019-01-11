@@ -90,6 +90,12 @@ exports.connect_to_project = (project_id, database, compute_server, cb) ->
             winston.debug("connect_to_project: successfully ensured connection to #{project_id}")
         cb?(err)
 
+exports.disconnect_from_project = (project_id) ->
+    H = _local_hub_cache[project_id]
+    delete _local_hub_cache[project_id]
+    H?.free_resources()
+    return
+
 exports.all_local_hubs = () ->
     v = []
     for k, h of _local_hub_cache
