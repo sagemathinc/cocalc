@@ -276,6 +276,7 @@ export class SyncDoc extends EventEmitter {
 
   /* Set this user's cursors to the given locs. */
   public set_cursor_locs(locs: any[], side_effect: boolean = false): void {
+    if (this.state != "ready") return;
     if (this.cursors_table == null) {
       throw Error("cursors are not enabled");
     }
@@ -722,7 +723,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    if (this.client.is_user() && this.state == 'ready') {
+    if (this.client.is_user() && this.state == "ready") {
       await this.save_to_disk();
     }
     this.set_state("closed");
@@ -995,7 +996,7 @@ export class SyncDoc extends EventEmitter {
       // can close and open the file to retry this (as instructed).
       try {
         await this.syncstring_table.wait(() => !this.init_error(), 5);
-      } catch(err) {
+      } catch (err) {
         // fine -- let the code below deal with this problem...
       }
     }
@@ -1341,7 +1342,7 @@ export class SyncDoc extends EventEmitter {
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
 
-    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000)
+    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000);
     dbg("done");
   }
 
