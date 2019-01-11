@@ -29,7 +29,7 @@ class MonitorPublicPaths
             path        : null
             last_edited : null
             disabled    : null
-        @_table = @_client.sync_table(public_paths : [pattern])
+        @_table = @_client.sync_table2(public_paths : [pattern])
 
         dbg("initializing find updater to run every #{UPDATE_INTERVAL_S} seconds")
         dbg1 = @dbg("do_update")
@@ -51,7 +51,7 @@ class MonitorPublicPaths
         delete @_interval
 
     update: (cb) =>
-        if not @_table?
+        if not @_table? or @_table.get_state() != "connected"
             cb()
             return
         d = @dbg('update')
@@ -114,6 +114,7 @@ class MonitorPublicPaths
                 else
                     d('change -- update database table')
                     @_table.set({id:id, last_edited:new Date()}, 'deep', cb)
+                    @_table.save()  # and also cause change to get saved to database.
         ], (err) =>
             # ignore err
             cb?()

@@ -49,6 +49,12 @@ smc_version = require('smc-util/smc-version')
 # Define a component for working with the user's basic
 # account information.
 
+set_account_table = (obj) ->
+    table = redux.getTable('account')
+    if table?
+        table.set(obj)
+    return;
+
 # in a grid:   Title [text input]
 TextSetting = rclass
     displayName : 'Account-TextSetting'
@@ -175,7 +181,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    @props.redux.getTable('account').set(email_address: @state.email_address)
+                    set_account_table(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -249,7 +255,7 @@ NewsletterSetting = rclass
         redux          : rtypes.object
 
     on_change: (value) ->
-        @props.redux.getTable('account').set({"other_settings": {"newsletter" : value}})
+        set_account_table({"other_settings": {"newsletter" : value}})
 
     blog: ->
         {BLOG_URL} = require('smc-util/theme')
@@ -437,7 +443,7 @@ AccountSettings = rclass
 
     save_change: (evt, field) ->
         value = evt.target.value
-        @props.redux.getTable('account').set("#{field}": value)
+        set_account_table("#{field}": value)
 
     render_add_strategy_link: ->
         if not @state.add_strategy_link
@@ -760,7 +766,7 @@ ProfileSettings = rclass
         show_instructions : false
 
     onColorChange: (value) ->
-        @props.redux.getTable('account').set(profile : {color: value})
+        set_account_table(profile : {color: value})
 
     render_header: ->
         <h2>
@@ -803,7 +809,7 @@ TerminalSettings = rclass
         return @props.terminal != props.terminal
 
     handleChange: (obj) ->
-        @props.redux.getTable('account').set(terminal: obj)
+        set_account_table(terminal: obj)
 
     render_color_scheme: ->
         <LabeledRow label='Terminal color scheme'>
@@ -1096,9 +1102,9 @@ EditorSettings = rclass
 
     on_change: (name, val) ->
         if name == 'autosave' or name == 'font_size'
-            @props.redux.getTable('account').set("#{name}" : val)
+            set_account_table("#{name}" : val)
         else
-            @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
+            set_account_table(editor_settings:{"#{name}":val})
 
         if name == 'physical_keyboard'
             options = @get_keyboard_variant_options(val)
@@ -1171,7 +1177,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        @props.redux.getTable('account').set(evaluate_key : value)
+        set_account_table(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -1199,7 +1205,7 @@ OtherSettings = rclass
         is_stripe_customer : rtypes.bool
 
     on_change: (name, value) ->
-        @props.redux.getTable('account').set(other_settings:{"#{name}":value})
+        set_account_table(other_settings:{"#{name}":value})
 
     toggle_global_banner: (val) ->
         if val
