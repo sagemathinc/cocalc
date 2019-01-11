@@ -114,6 +114,7 @@ class MonitorPublicPaths
                 else
                     d('change -- update database table')
                     @_table.set({id:id, last_edited:new Date()}, 'deep', cb)
+                    @_table.save()  # and also cause change to get saved to database.
         ], (err) =>
             # ignore err
             cb?()

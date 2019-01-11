@@ -301,7 +301,8 @@ export class SyncTable extends EventEmitter {
     'none'   : do no merging at all -- just replace record completely
   Raises an exception if something goes wrong doing the set.
   Returns updated value otherwise.
-  Causes a save if their are changes.
+
+  DOES NOT causes a save.
 
   NOTE: we always use db schema to ensure types are correct,
   converting if necessary.   This has a performance impact,
