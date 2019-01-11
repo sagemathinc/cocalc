@@ -53,10 +53,11 @@ export class JupyterActions extends JupyterActions0 {
       throw Error(`invalid backend state '${state}'`);
     }
     this._backend_state = state;
-    return this._set({
+    this._set({
       type: "settings",
       backend_state: state
     });
+    this.save_asap();
   };
 
   set_kernel_state = (state: any, save = false) => {

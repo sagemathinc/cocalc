@@ -188,7 +188,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Only run this code on the browser frontend (not in project).
-  private async init_client_only(): Promise<void> {
+  private init_client_only(): void {
     const do_set = () => {
       return this.setState({
         has_unsaved_changes:

@@ -69,7 +69,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private log(..._args): void {
-    //console.log('SyncChannel', this.query, ..._args);
+    // console.log("SyncChannel", this.query, ..._args);
   }
 
   private async connect(): Promise<void> {
@@ -157,17 +157,22 @@ class SyncTableChannel extends EventEmitter {
 
   private handle_mesg_from_project(mesg): void {
     this.log("project --> client: ", mesg);
-    if (this.synctable == null) return; // can happen during close
+    if (this.synctable == null) {
+      this.log("project --> client: NO SYNCTABLE");
+      return; // can happen during close
+    }
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
     if (mesg.init != null) {
+      this.log("project --> client: init_browser_client")
       this.synctable.init_browser_client(mesg.init);
       // after init message, we are now initialized
       // and in the connected state.
       this.set_connected(true);
     }
     if (mesg.versioned_changes != null) {
+      this.log("project --> client: versioned_changes")
       this.synctable.apply_changes_to_browser_client(mesg.versioned_changes);
     }
   }
