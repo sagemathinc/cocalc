@@ -35,6 +35,10 @@ async function start_project(project_id: string) {
   if (projects.get_state(project_id) != "running") {
     // Encourage project to start running, if it isn't already...
     await callback2(webapp_client.touch_project, { project_id });
+    if (projects.get_my_group(project_id) == 'admin') {
+      // must be viewing as admin, so can't start as below.  Just touch and be done.
+      return;
+    }
     await callback2(projects.wait, {
       until: () => projects.get_state(project_id) == "running"
     });
@@ -58,6 +62,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   let Primus;
 
   await retry_until_success({
+    // log: console.log,
     f: async function() {
       if (READING_PRIMUS_JS) {
         throw Error("currently reading one already");
