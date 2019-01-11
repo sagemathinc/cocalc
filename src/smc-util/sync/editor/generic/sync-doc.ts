@@ -719,10 +719,10 @@ export class SyncDoc extends EventEmitter {
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
   public async close(): Promise<void> {
-    if (this.state === "closed") {
+    if (this.state == "closed") {
       return;
     }
-    if (this.client.is_user()) {
+    if (this.client.is_user() && this.state == 'ready') {
       await this.save_to_disk();
     }
     this.set_state("closed");
