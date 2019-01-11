@@ -1513,7 +1513,7 @@ export class SyncTable extends EventEmitter {
   private assert_not_closed(): void {
     if (this.state === "closed") {
       //console.trace();
-      throw Error("closed");
+      throw Error(`the synctable "${this.table}" must not be closed`);
     }
   }
 }
