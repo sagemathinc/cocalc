@@ -379,7 +379,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     } else {
       C = StaticPositionedCursor;
     }
-    if (this.props.cursors != null) {
+    if (this.props.cursors != null && this.props.user_map != null) {
       this.props.cursors.forEach((locs: any, account_id: any) => {
         const { color, name } = this.profile(account_id);
         locs.forEach(pos => {
