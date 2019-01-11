@@ -1,4 +1,4 @@
-import * as json_stable_stringify from "json-stable-stringify";
+const json_stable_stringify = require("json-stable-stringify");
 import { delay } from "awaiting";
 
 import { SyncTable } from "./synctable";
