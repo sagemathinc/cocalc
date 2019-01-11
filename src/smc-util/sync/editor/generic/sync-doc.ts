@@ -345,7 +345,7 @@ export class SyncDoc extends EventEmitter {
     };
     this.throttled_file_use = throttle(file_use, this.file_use_interval, true);
 
-    this.on("user_change", this.throttled_file_use as any);
+    this.on("user-change", this.throttled_file_use as any);
   }
 
   private set_state(state: State): void {
@@ -1435,6 +1435,7 @@ export class SyncDoc extends EventEmitter {
     await this.patches_table.save();
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
+      this.emit("user-change");
       const doc = this.doc;
       // TODO: put in a delay if just saved too recently?
       //       Or maybe won't matter since not using database?
@@ -1454,7 +1455,6 @@ export class SyncDoc extends EventEmitter {
       // Emit event since this syncstring was
       // changed locally (or we wouldn't have had
       // to save at all).
-      this.emit("user_change");
       if (doc.is_equal(this.doc)) {
         dbg("no change during loop -- done!");
         return;
@@ -2133,6 +2133,7 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
+    this.emit("user-change");
     const patch = this.last.make_patch(this.doc); // must be nontrivial
     this.last = this.doc;
     // ... and save that to patches table
