@@ -435,3 +435,26 @@ export function to_user_string(x: any): string {
       return JSON.stringify(x);
   }
 }
+
+export function is_array(obj: any): boolean {
+  return Object.prototype.toString.call(obj) === "[object Array]";
+}
+
+export let is_integer: Function = Number.isInteger;
+if (is_integer == null) {
+  is_integer = n => typeof n === "number" && n % 1 === 0;
+}
+
+export function is_string(obj: any): boolean {
+  return typeof obj === "string";
+}
+
+// An object -- this is more constraining that typeof(obj) == 'object', e.g., it does
+// NOT include Date.
+export function is_object(obj: any): boolean {
+  return Object.prototype.toString.call(obj) === "[object Object]";
+}
+
+export function is_date(obj: any): boolean {
+  return obj instanceof Date;
+}

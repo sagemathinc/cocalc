@@ -164,7 +164,6 @@ interface SyncstringOpts {
   before_change_hook?: Function;
   after_change_hook?: Function;
   fake?: boolean; // if true make a fake syncstring with a similar API, but does nothing. (Used to make code more uniform.)
-  save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
 }
 
@@ -179,6 +178,26 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
+import { DataServer } from 'smc-util/sync/editor/generic/sync-doc';
+
+import { SyncString } from 'smc-util/sync/editor/string/sync';
+
+interface SyncstringOpts2 {
+  project_id: string;
+  path: string;
+  cursors?: boolean;
+  save_interval?: number; // amount to debounce saves (in ms)
+  patch_interval?: number;
+  persistent?: boolean;
+  data_server?: DataServer;
+}
+
+export function syncstring2(opts: SyncstringOpts2): SyncString {
+  const opts1: any = opts;
+  opts1.client = webapp_client;
+  return new SyncString(opts1);
+}
+
 interface SyncDBOpts {
   project_id: string;
   path: string;
@@ -188,11 +207,24 @@ interface SyncDBOpts {
   change_throttle?: number; // amount to throttle change events (in ms)
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
+  persistent?: boolean;
+  data_server?: DataServer;
 }
 
 export function syncdb(opts: SyncDBOpts): any {
   const opts1: any = opts;
   return webapp_client.sync_db(opts1);
+}
+
+import { SyncDB } from 'smc-util/sync/editor/db/sync';
+
+export function syncdb2(opts: SyncDBOpts): SyncDB {
+  if (opts.primary_keys.length <= 0) {
+    throw Error("primary_keys must be array of positive length");
+  }
+  const opts1: any = opts;
+  opts1.client = webapp_client;
+  return new SyncDB(opts1);
 }
 
 interface QueryOpts {
@@ -259,3 +291,4 @@ import { API } from "smc-webapp/project/websocket/api";
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
 }
+
