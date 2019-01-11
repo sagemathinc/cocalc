@@ -68,7 +68,7 @@ class SyncTableChannel extends EventEmitter {
     this.connect();
   }
 
-  private log(..._args) : void {
+  private log(..._args): void {
     //console.log('SyncChannel', this.query, ..._args);
   }
 
@@ -149,12 +149,15 @@ class SyncTableChannel extends EventEmitter {
 
   private close(): void {
     this.clean_up_sockets();
-    this.synctable.close();
-    delete this.synctable;
+    if (this.synctable != null) {
+      this.synctable.close();
+      delete this.synctable;
+    }
   }
 
   private handle_mesg_from_project(mesg): void {
     this.log("project --> client: ", mesg);
+    if (this.synctable == null) return; // can happen during close
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
