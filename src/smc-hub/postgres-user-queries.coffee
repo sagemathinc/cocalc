@@ -1551,10 +1551,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     # There is no such syncstring with this id -- fail
                     cb("FATAL: no such syncstring")
                 else if account_id?
-                    # Attempt to write by a user browser client
+                    # Attempt to read or write by a user browser client
                     @_require_project_ids_in_groups(account_id, [x], ['owner', 'collaborator'], cb)
                 else if project_id?
-                    # Attempt to write by a *project*
+                    # Attempt to read or write by a *project*
                     if project_id == x
                         cb()
                     else
