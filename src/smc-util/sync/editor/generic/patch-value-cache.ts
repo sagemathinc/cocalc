@@ -2,7 +2,7 @@
 The PatchValueCache is used to cache values returned
 by SortedPatchList.value.  Caching is critical, since otherwise
 the client may have to apply hundreds of patches after ever
-few keystrokes, which would make SMC unusable.  Also, the
+few keystrokes, which would make CoCalc unusable.  Also, the
 history browser is very painful to use without caching.
 */
 
@@ -23,11 +23,7 @@ export class PatchValueCache {
 
   // Remove everything from the value cache that has timestamp >= time.
   // If time not defined, removes everything, thus emptying the cache.
-  public invalidate(time: Date | undefined): void {
-    if (time == null) {
-      this.cache = {};
-      return;
-    }
+  public invalidate(time: Date): void {
     const time0: number = time.valueOf();
     for (let time in this.cache) {
       if (parseInt(time) >= time0) {
@@ -60,7 +56,7 @@ export class PatchValueCache {
   // Include the given value at the given point in time, which should be
   // the output of this.value(time), and should involve applying all patches
   // up to this.patches[start-1].
-  public include(time: Date, value: any, start: number) {
+  public include(time: Date, value: Document, start: number) {
     this.cache[`${time.valueOf()}`] = {
       time,
       value,
@@ -107,7 +103,7 @@ export class PatchValueCache {
   /* Return cached entry corresponding to the given point in time.
      Here time must be either a new Date() object, or a number (ms since epoch).
      If there is nothing in the cache for the given time, returns undefined.
-     ** Do NOT mutate the returned value. **
+     ** YOU BETTER NOT mutate the returned value! **  It's not a copy!!
   */
   public get(time: Date | number): Entry | undefined {
     if (typeof time !== "number") {

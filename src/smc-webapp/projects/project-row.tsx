@@ -152,10 +152,11 @@ export const ProjectRow = rclass<ReactProps>(
     };
 
     handle_click = e => {
-      if (
-        window.getSelection().toString() ===
-        this.state.selection_at_last_mouse_down
-      ) {
+      const cur_sel = window.getSelection().toString();
+      // Check if user has highlighted some text.
+      // Do NOT open if the user seems to be trying to highlight text on the row
+      // eg. for copy pasting.
+      if (this.state && cur_sel === this.state.selection_at_last_mouse_down) {
         this.open_project_from_list(e);
       }
     };

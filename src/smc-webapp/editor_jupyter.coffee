@@ -64,7 +64,7 @@ stringify            = require('json-stable-stringify')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
-{dmp}                = require('smc-util/syncstring')
+{dmp}                = require('smc-util/sync/editor/generic/util')
 {webapp_client}      = require('./webapp_client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
@@ -1050,12 +1050,14 @@ class JupyterNotebook extends EventEmitter
                     # where Jupyter itself raises an exception.  So just ignore it
                     # (no cursor appearing temporarily is harmless).
 
-    _handle_dom_change: () =>
+    _handle_dom_change: (no_sync) =>
         if @state != 'ready'
             return
         new_ver = @dom.get(true)  # true = save any newly created images to blob store.
         @_last_dom = new_ver
         @syncstring.live(new_ver)
+        if no_sync
+            return
         @syncstring.sync () =>
             @update_save_state()
 
@@ -1148,7 +1150,7 @@ class JupyterNotebook extends EventEmitter
             # in a console on at least one open notebook, then open tmp/.break.ipynb.jupyter-sync
             # directly and corrupt it in all kinds of ways.
             if not @_parse_errors
-                @_handle_dom_change()
+                @_handle_dom_change(true)
 
     ipynb_timestamp: (cb) =>
         #dbg = @dbg("ipynb_timestamp")
