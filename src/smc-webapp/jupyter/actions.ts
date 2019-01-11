@@ -90,7 +90,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _introspect_request?: any;
   private _is_project: any;
   private _key_handler: any;
-  private _last_start?: any;
+  private _last_start?: number;
   private assistant_actions: any;
   private path: string;
   private project_id: string;
@@ -987,7 +987,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _set = (obj: any, save = true) => {
+  _set = (obj: any, save : boolean = true) => {
     if (this._state === "closed") {
       return;
     }
@@ -1199,8 +1199,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // in the future, might throw a CellWriteProtectedException. for now, just running is ok.
-  run_cell = (id: any): void => {
+  // in the future, might throw a CellWriteProtectedException.
+  // for now, just running is ok.
+  run_cell = (id: any, save: boolean = true): void => {
     let left: any;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -1223,10 +1224,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             this.introspect(code.slice(0, code.length - 1), 0);
             break;
           case "empty":
-            this.clear_cell(id);
+            this.clear_cell(id, save);
             break;
           case "execute":
-            this.run_code_cell(id);
+            this.run_code_cell(id, save);
             break;
         }
         break;
@@ -1234,14 +1235,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_md_cell_not_editing(id);
         break;
     }
-    this.save_asap();
+    if (save) {
+      this.save_asap();
+    }
   };
 
-  run_code_cell = (id: any, save = true) => {
+  run_code_cell = (id: any, save : boolean = true) => {
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
 
-    let start = this._client.server_time() - 0;
+    let start: number = this._client.server_time().valueOf();
     if (this._last_start != null && start <= this._last_start) {
       start = this._last_start + 1;
     }
@@ -1260,7 +1263,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-    return this.set_trust_notebook(true);
+    return this.set_trust_notebook(true, save);
   };
 
   clear_cell = (id: any, save = true) => {
@@ -1285,7 +1288,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   run_selected_cells = (): void => {
     const v = this.store.get_selected_cell_ids_list();
     for (let id of v) {
-      this.run_cell(id);
+      this.run_cell(id, false);
     }
     this.save_asap();
   };
@@ -1347,7 +1350,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   run_all_cells = (): void => {
     this.store.get("cell_list").forEach(id => {
-      this.run_cell(id);
+      this.run_cell(id, false);
     });
     this.save_asap();
   };
@@ -2496,11 +2499,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  set_trust_notebook = (trust: any) => {
+  set_trust_notebook = (trust: any, save : boolean = true) => {
     return this._set({
       type: "settings",
       trust: !!trust
-    }); // case to bool
+    }, save); // case to bool
   };
 
   insert_image = (): void => {
