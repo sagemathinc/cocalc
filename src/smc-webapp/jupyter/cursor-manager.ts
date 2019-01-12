@@ -53,10 +53,18 @@ export class CursorManager {
     return cells;
   }
 
-  public process(cells: iMap, cursors: iMap): iMap | undefined {
+  public process(cells: iMap | undefined | null, cursors: iMap): iMap | undefined {
+    if (cells == null) {
+      // cells need not be defined in which case, don't bother; see
+      // https://github.com/sagemathinc/cocalc/issues/3456
+      // HOWEVER -- this could should be reverted and cells should be
+      // required to be defined.  This can only be done once the Jupyter
+      // code is properly converted to typescript, which it is NOT yet.
+      return;
+    }
     const before = cells;
     cursors.forEach((info: iMap | undefined, account_id: string) => {
-      cells = this.process_one_user(info, account_id, cells);
+      cells = this.process_one_user(info, account_id, cells as iMap);  // we know cells defined.
     });
     this.last_cursors = cursors;
     if (cells.equals(before)) {
