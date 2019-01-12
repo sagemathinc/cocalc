@@ -193,7 +193,7 @@ HelpPageUsageSection = rclass
                 </div>
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
-                <a target='_blank' href='https://share.cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html'>
+                <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
                 More data...
                 </a>
                 <br/>
