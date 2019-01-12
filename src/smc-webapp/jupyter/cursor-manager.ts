@@ -21,7 +21,7 @@ export class CursorManager {
         locs.forEach(loc => {
           if (loc == null) return;
           const id: string | undefined = loc.get("id");
-          if (id == null) return;  // be super careful.
+          if (id == null) return; // be super careful.
           let cell: iMap | undefined = cells.get(id);
           if (cell == null) return;
           const cursors = cell.get("cursors", Map());
@@ -53,7 +53,9 @@ export class CursorManager {
     return cells;
   }
 
-  public process(cells: iMap, cursors: iMap): iMap | undefined {
+  public process(cells_arg: iMap | undefined, cursors: iMap): iMap | undefined {
+    if (cells_arg == null) return;
+    let cells: iMap = cells_arg;
     const before = cells;
     cursors.forEach((info: iMap | undefined, account_id: string) => {
       cells = this.process_one_user(info, account_id, cells);

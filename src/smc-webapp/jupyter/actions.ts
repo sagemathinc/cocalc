@@ -986,11 +986,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.cursor_manager == null
     )
       return;
-    const cells = this.cursor_manager.process(
-      this.store.get("cells"),
+    const cells = this.store.get("cells");
+    if (cells == null) return;
+    const cells_processed = this.cursor_manager.process(
+      cells,
       this.syncdb.get_cursors()
     );
-    if (cells != null) {
+    if (cells_processed != null) {
       this.setState({ cells });
     }
   };
