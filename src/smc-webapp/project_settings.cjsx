@@ -40,7 +40,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {User} = require('./users')
 
@@ -594,6 +594,7 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 
+
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -720,11 +721,12 @@ ProjectControlPanel = rclass
         start_ts = @props.project.getIn(['status', 'start_ts'])
         return if not start_ts?
         return if @props.project.getIn(['state', 'state']) != 'running'
-        delta_s = (misc.server_time().getTime() - start_ts) / 1000
-        uptime_str = misc.seconds2hms(delta_s, true)
+
         <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
             <span style={color:'#666'}>
-                 <Icon name='clock-o' /> project started <b>{uptime_str}</b> ago
+                 <Icon name='clock-o' /> project started <b>
+                     {<TimeElapsed start_ts={start_ts} />}
+                 </b> ago
             </span>
         </LabeledRow>
 
@@ -1037,7 +1039,7 @@ exports.ProjectSettings = rclass ({name}) ->
         query = {}
         for k in misc.keys(require('smc-util/schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
-        @_table = webapp_client.sync_table({projects_admin : query})
+        @_table = webapp_client.sync_table2({projects_admin : query}, []);
         @_table.on 'change', =>
             @setState(admin_project : @_table.get(@props.project_id))
 
