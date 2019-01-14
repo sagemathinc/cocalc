@@ -434,7 +434,7 @@ class ProjectsActions extends Actions
         if not merge
             # explicitly set every field not specified to 0
             upgrades = misc.copy(upgrades)
-            for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
+            for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
         @projects_table_set
             project_id : project_id
