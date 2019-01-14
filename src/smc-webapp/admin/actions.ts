@@ -1,6 +1,6 @@
 import { Actions } from "../app-framework";
 import { user_search, User } from "smc-webapp/frame-editors/generic/client";
-import { cmp } from "smc-webapp/frame-editors/generic/misc";
+import { cmp } from "smc-util/misc2";
 import { AdminStoreState } from "./store"
 
 function user_sort_key(user: User): string {
