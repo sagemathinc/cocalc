@@ -238,6 +238,8 @@ FileRow = rclass
             selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
+        if not @state? # see https://github.com/sagemathinc/cocalc/issues/3442
+            return
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
             foreground = misc.should_open_in_foreground(e)
             @props.actions.open_file
@@ -348,6 +350,8 @@ DirectoryRow = rclass
             selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
+        if not @state? # see https://github.com/sagemathinc/cocalc/issues/3442
+            return
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
             @props.actions.open_directory(@full_path())
             @props.actions.set_file_search('')

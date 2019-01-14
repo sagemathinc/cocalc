@@ -69,12 +69,8 @@ export interface TimedChange {
   time: number; // ms since epoch
 }
 
-function is_fatal(err): boolean {
-  return (
-    typeof err === "string" &&
-    err.slice(0, 5) === "FATAL" &&
-    err.indexOf("tracker") === -1
-  );
+function is_fatal(err: string): boolean {
+  return err.indexOf("FATAL") != -1;
 }
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -655,6 +651,7 @@ export class SyncTable extends EventEmitter {
   }
 
   private async create_changefeed_connection(): Promise<any[]> {
+    let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
       this.changefeed = new Changefeed(this.changefeed_options());
@@ -662,12 +659,20 @@ export class SyncTable extends EventEmitter {
       try {
         return await this.changefeed.connect();
       } catch (err) {
+        if (is_fatal(err.toString())) {
+          console.warn("FATAL creating initial changefeed", this.table, err);
+          this.close(true);
+          throw err;
+        }
         // This can happen because we might suddenly NOT be ready
         // to query db immediately after we are ready...
         console.warn(
           `${this.table} -- failed to connect -- ${err}; will retry`
         );
-        await delay(1000);
+        await delay(delay_ms);
+        if (delay_ms < 8000) {
+          delay_ms *= 1.3;
+        }
       }
     }
   }
@@ -948,7 +953,7 @@ export class SyncTable extends EventEmitter {
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
         dbg("db query failed", err);
-        if (is_fatal(err)) {
+        if (is_fatal(err.toString())) {
           console.warn("FATAL doing set", this.table, err);
           this.close(true);
           throw err;
@@ -1297,7 +1302,9 @@ export class SyncTable extends EventEmitter {
     */
   }
 
-  public apply_changes_to_browser_client(changes: VersionedChange[]):  { [key: string]: boolean } {
+  public apply_changes_to_browser_client(
+    changes: VersionedChange[]
+  ): { [key: string]: boolean } {
     const dbg = this.dbg("apply_changes_to_browser_client");
     dbg("got ", changes.length, "changes");
     this.assert_not_closed();
@@ -1465,7 +1472,16 @@ export class SyncTable extends EventEmitter {
     }
     const key = this.obj_to_key(new_val);
     if (key == null) {
-      throw Error("key must not be null");
+      // This means the primary key is null or missing, which
+      // shouldn't happen.  Maybe it could in some edge case.
+      // For now, we shouldn't let this break everything, so:
+      console.warn(
+        this.table,
+        "handle_new_val: ignoring invalid new_val ",
+        obj
+      );
+      return undefined;
+      // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
     if (!new_val.equals(cur_val)) {
@@ -1508,7 +1524,7 @@ export class SyncTable extends EventEmitter {
   private assert_not_closed(): void {
     if (this.state === "closed") {
       //console.trace();
-      throw Error("closed");
+      throw Error(`the synctable "${this.table}" must not be closed`);
     }
   }
 }

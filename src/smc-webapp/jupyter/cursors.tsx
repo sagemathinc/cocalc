@@ -4,7 +4,8 @@ React component that represents cursors of other users.
 
 // How long until another user's cursor is no longer displayed, if they don't move.
 // (NOTE: might take a little longer since we use a long interval.)
-const CURSOR_TIME_S = 15;
+const CURSOR_TIME_MS = 20000;
+const HIDE_NAME_TIMEOUT_MS = 3000;
 
 import { React, Component, rclass, rtypes, ReactDOM } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
@@ -30,7 +31,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
   }
   shouldComponentUpdate(nextProps, nextState) {
     if (this.props.time !== nextProps.time) {
-      this.show_name(2000);
+      this.show_name(HIDE_NAME_TIMEOUT_MS);
     }
     return (
       misc.is_different(this.props, nextProps, ["name", "color"]) ||
@@ -40,7 +41,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
 
   componentDidMount() {
     this._mounted = true;
-    return this._set_timer(2000);
+    return this._set_timer(HIDE_NAME_TIMEOUT_MS);
   }
 
   componentWillUnmount() {
@@ -89,9 +90,9 @@ export class Cursor extends Component<CursorProps, CursorState> {
           top: this.props.top
         }}
         onMouseEnter={() => this.show_name()}
-        onMouseLeave={() => this.show_name(2000)}
+        onMouseLeave={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
         onTouchStart={() => this.show_name()}
-        onTouchEnd={() => this.show_name(2000)}
+        onTouchEnd={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
       >
         <span
           style={{
@@ -342,7 +343,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
   componentDidMount() {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
-      (CURSOR_TIME_S / 2) * 1000
+      (CURSOR_TIME_MS / 2)
     );
   }
 
@@ -388,7 +389,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
             return;
           }
           const t = tm.valueOf();
-          if (now - t <= CURSOR_TIME_S * 1000) {
+          if (now - t <= CURSOR_TIME_MS) {
             /* if (account_id === this.props.account_id) {
               // Don't show our own cursor, we just haven't made this
               // possible due to only keying by account_id.

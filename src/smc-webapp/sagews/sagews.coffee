@@ -266,6 +266,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     get_all_cells: =>
         cm = @focused_codemirror()
+        if not cm?
+            return []
         cells = []
         top = undefined
         process_line = (n) =>

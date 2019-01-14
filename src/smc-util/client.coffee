@@ -1937,8 +1937,10 @@ class exports.Connection extends EventEmitter
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if not opts.changes and $?.post? and @_enable_post
+        if @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
+            # (NOTE: signed_in required because POST fails everything when
+            # user is not signed in.)
             @_post_query
                 query   : opts.query
                 options : opts.options
@@ -1947,7 +1949,12 @@ class exports.Connection extends EventEmitter
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
-                    console.warn("query err and is standby; try again without standby.")
+                    # Note, right when signing in this can fail, since
+                    # sign_in = got websocket sign in mesg, which is NOT
+                    # the same thing as setting up cookies. For security
+                    # reasons it is difficult to know exactly when the
+                    # remember-me cookie has been set.
+                    console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
                     opts.standby = false
                     @query(opts)
             return
