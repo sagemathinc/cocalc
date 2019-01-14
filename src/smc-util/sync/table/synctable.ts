@@ -651,6 +651,7 @@ export class SyncTable extends EventEmitter {
   }
 
   private async create_changefeed_connection(): Promise<any[]> {
+    let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
       this.changefeed = new Changefeed(this.changefeed_options());
@@ -668,7 +669,10 @@ export class SyncTable extends EventEmitter {
         console.warn(
           `${this.table} -- failed to connect -- ${err}; will retry`
         );
-        await delay(1000);
+        await delay(delay_ms);
+        if (delay_ms < 8000) {
+          delay_ms *= 1.3;
+        }
       }
     }
   }
