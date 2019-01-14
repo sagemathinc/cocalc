@@ -1949,6 +1949,11 @@ class exports.Connection extends EventEmitter
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
+                    # Note, right when signing in this can fail, since
+                    # sign_in = got websocket sign in mesg, which is NOT
+                    # the same thing as setting up cookies. For security
+                    # reasons it is difficult to know exactly when the
+                    # remember-me cookie has been set.
                     console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
                     opts.standby = false
                     @query(opts)
