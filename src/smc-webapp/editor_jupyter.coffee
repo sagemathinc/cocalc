@@ -64,7 +64,7 @@ stringify            = require('json-stable-stringify')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
-{dmp}                = require('smc-util/syncstring')
+{dmp}                = require('smc-util/sync/editor/generic/util')
 {webapp_client}      = require('./webapp_client')
 {redux}              = require('./app-framework')
 syncdoc              = require('./syncdoc')
@@ -1050,12 +1050,14 @@ class JupyterNotebook extends EventEmitter
                     # where Jupyter itself raises an exception.  So just ignore it
                     # (no cursor appearing temporarily is harmless).
 
-    _handle_dom_change: () =>
+    _handle_dom_change: (no_sync) =>
         if @state != 'ready'
             return
         new_ver = @dom.get(true)  # true = save any newly created images to blob store.
         @_last_dom = new_ver
         @syncstring.live(new_ver)
+        if no_sync
+            return
         @syncstring.sync () =>
             @update_save_state()
 
@@ -1148,7 +1150,7 @@ class JupyterNotebook extends EventEmitter
             # in a console on at least one open notebook, then open tmp/.break.ipynb.jupyter-sync
             # directly and corrupt it in all kinds of ways.
             if not @_parse_errors
-                @_handle_dom_change()
+                @_handle_dom_change(true)
 
     ipynb_timestamp: (cb) =>
         #dbg = @dbg("ipynb_timestamp")
@@ -1216,7 +1218,7 @@ class JupyterNotebook extends EventEmitter
 
     modern: () =>
         t = "<h3><i class='fa fa-exchange'></i> Switch to the CoCalc Jupyter Notebook</a></h3>"
-        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern' target='_blank'>More info and the latest status...</a>"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='" + require('smc-util/theme').JUPYTER_CLASSIC_MODERN + "' target='_blank'>More info and the latest status...</a>"
         t += "<br><hr>"
         t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to CoCalc Jupyter Notebook</a>"
         bootbox.alert(t)

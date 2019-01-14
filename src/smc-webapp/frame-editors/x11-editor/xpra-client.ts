@@ -59,8 +59,8 @@ export class XpraClient extends EventEmitter {
   private server: XpraServer;
   public _ws_status: ConnectionStatus = "disconnected";
   private last_active: number = 0;
-  private touch_interval: number;
-  private idle_interval: number;
+  private touch_interval: any;  // TODO: really Timer
+  private idle_interval: any;   // TODO: really Timer
   private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
   private display: number;
 
@@ -317,19 +317,12 @@ export class XpraClient extends EventEmitter {
   }
 
   window_create(surface: Surface): void {
-    if (surface.metadata["transient-for"]) {
-      surface.parent = this.client.findSurface(
-        surface.metadata["transient-for"]
-      );
-      if (!surface.parent) {
-        // gone
-        return;
-      }
+    if (surface.metadata["transient-for"] && surface.parent) {
       // modal window on top of existing (assumed!) root window
       this.client.rescale_children(surface.parent);
       this.emit("child:create", surface.parent.wid, surface.wid);
     } else {
-      this.emit("window:create", surface.wid, surface.metadata.title);
+      this.emit("window:create", surface.wid, surface.metadata.title, !!surface.metadata["modal"]);
     }
   }
 

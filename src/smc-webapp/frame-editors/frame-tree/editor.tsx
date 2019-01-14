@@ -13,7 +13,7 @@ import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 import { ErrorStyles } from "../frame-tree/types";
 
-import { copy, is_different } from "../generic/misc";
+import { copy, is_different } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 

@@ -1,8 +1,7 @@
 import * as React from "react";
-import { ReactDOM, Rendered } from "./app-framework";
+import { ReactDOM, Rendered, redux} from "./app-framework";
 import { Passports } from "./passports";
 import { List } from "immutable";
-import { redux } from "./app-framework";
 
 const { COLORS, UNIT, Icon, Loading } = require("./r_misc");
 const {
@@ -62,7 +61,8 @@ export class SignUp extends React.Component<Props, State> {
         ReactDOM.findDOMNode(this.refs.last_name).value,
         ReactDOM.findDOMNode(this.refs.email).value,
         ReactDOM.findDOMNode(this.refs.password).value,
-        this.state.user_token
+        this.state.user_token,
+        ReactDOM.findDOMNode(this.refs.question).value
       );
   };
 
@@ -185,6 +185,23 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
+  render_question() {
+    return (
+      <>
+        <span>What would you like to do with CoCalc? (optional)</span>
+        <FormGroup>
+          <FormControl
+            name="question"
+            ref="question"
+            type="text"
+            autoFocus={false}
+            placeholder="Enter some keywords"
+          />
+        </FormGroup>
+      </>
+    );
+  }
+
   render_button(): Rendered {
     return (
       <Button
@@ -213,6 +230,7 @@ export class SignUp extends React.Component<Props, State> {
           style={{ marginTop: 20, marginBottom: 20 }}
           onSubmit={this.make_account}
         >
+          {this.render_question()}
           {this.render_first_name()}
           {this.render_last_name()}
           {this.render_email()}

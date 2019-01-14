@@ -28,7 +28,7 @@ import { raw_url } from "../frame-tree/util";
 
 import { pdf_path } from "./util";
 
-import { encode_path } from "../generic/misc";
+import { encode_path } from "smc-util/misc2";
 
 const options = {
   max: MAX_PAGES,

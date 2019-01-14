@@ -12,7 +12,7 @@ import { readFile } from "./async-utils-node";
 
 const winston = require("winston");
 
-import { months_ago, to_json } from "../smc-webapp/frame-editors/generic/misc";
+import { months_ago, to_json } from "../smc-util/misc2";
 
 const misc_node = require("smc-util-node/misc_node");
 
@@ -167,7 +167,7 @@ export class BlobStore implements BlobStoreInterface {
     const router = express.Router();
     base += "blobs/";
 
-    router.get(base, (req, res) => {
+    router.get(base, (_, res) => {
       res.send(to_json(this.keys()));
     });
 

@@ -30,10 +30,10 @@ MAX_CONCURRENT = 75
 async = require('async')
 underscore = require('underscore')
 
-syncstring = require('./syncstring')
-synctable  = require('./synctable')
-synctable2 = require('./sync/synctable')
-db_doc = require('./db-doc')
+synctable2 = require('./sync/table')
+{synctable_project} = require('smc-webapp/project/websocket/synctable')
+SyncString2 = require('smc-util/sync/editor/string/sync').SyncString
+SyncDB2 = require('smc-util/sync/editor/db').SyncDB
 
 smc_version = require('./smc-version')
 
@@ -42,6 +42,7 @@ misc    = require("./misc")
 
 client_aggregate = require('./client-aggregate')
 
+{once} = require('./async-utils')
 
 {validate_client_query} = require('./schema-validate')
 
@@ -804,6 +805,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
+            usage_intent   : undefined
             get_api_key    : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
@@ -829,6 +831,7 @@ class exports.Connection extends EventEmitter
                 email_address   : opts.email_address
                 password        : opts.password
                 agreed_to_terms : opts.agreed_to_terms
+                usage_intent    : opts.usage_intent
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
@@ -1809,11 +1812,24 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
-        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
-
-    synctable2: (query, options, throttle_changes=undefined) =>
+    sync_table2: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_database: (query, options, throttle_changes=undefined) =>
+        s = this.sync_table2(query, options, throttle_changes)
+        await once(s, 'connected')
+        return s
+
+    synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_changefeed(query, options, @, throttle_changes)
+
+    synctable_no_database: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_database(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_project: (project_id, query, options, throttle_changes=undefined) =>
+        return await synctable_project(project_id:project_id, query:query, options:options, client:@, throttle_changes:throttle_changes)
 
     # this is async
     symmetric_channel: (name, project_id) =>
@@ -1821,40 +1837,47 @@ class exports.Connection extends EventEmitter
             throw Error("project_id must be a valid uuid")
         return (await @project_websocket(project_id)).api.symmetric_channel(name)
 
-    sync_string: (opts) =>
+    sync_string2: (opts) =>
         opts = defaults opts,
-            id                 : undefined
-            project_id         : required
-            path               : required
-            file_use_interval  : 'default'
-            cursors            : false
-            patch_interval     : 1000
-            save_interval      : 2000
-            before_change_hook : undefined
-            after_change_hook  : undefined
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            persistent        : false
+            data_server       : undefined
         opts.client = @
-        return new syncstring.SyncString(opts)
+        return new SyncString2(opts)
 
-    sync_db: (opts) =>
+    sync_db2: (opts) =>
         opts = defaults opts,
-            project_id      : required
-            path            : required
-            primary_keys    : required
-            string_cols     : undefined
-            cursors         : false
-            change_throttle : 500     # amount to throttle change events (in ms)
-            patch_interval  : 1000
-            save_interval   : 2000    # amount to debounce saves (in ms)
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            change_throttle   : undefined
+            primary_keys      : required
+            string_cols       : []
+            persistent        : false
+            data_server       : undefined
         opts.client = @
-        return new db_doc.SyncDB(opts)
+        return new SyncDB2(opts)
 
+    # This now returns the new sync_db2 and sync_string2 objects.
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
+            data_server : undefined
+            persistent : false
             cb         : required  # cb(err, document)
         opts.client = @
-        db_doc.open_existing_sync_document(opts)
+        open_existing_sync_document(opts)
         return
 
     # If called on the fronted, will make the given file with the given action.
@@ -1914,8 +1937,10 @@ class exports.Connection extends EventEmitter
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if not opts.changes and $?.post? and @_enable_post
+        if @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
+            # (NOTE: signed_in required because POST fails everything when
+            # user is not signed in.)
             @_post_query
                 query   : opts.query
                 options : opts.options
@@ -1924,7 +1949,12 @@ class exports.Connection extends EventEmitter
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
-                    console.warn("query err and is standby; try again without standby.")
+                    # Note, right when signing in this can fail, since
+                    # sign_in = got websocket sign in mesg, which is NOT
+                    # the same thing as setting up cookies. For security
+                    # reasons it is difficult to know exactly when the
+                    # remember-me cookie has been set.
+                    console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
                     opts.standby = false
                     @query(opts)
             return
@@ -1990,10 +2020,10 @@ class exports.Connection extends EventEmitter
             opts.cb?()
             return
         # Throttle -- so if this function is called with the same project_id
-        # twice in 60s, it's ignored (to avoid unnecessary network traffic).
+        # twice in 20s, it's ignored (to avoid unnecessary network traffic).
         @_touch_project_throttle ?= {}
         last = @_touch_project_throttle[opts.project_id]
-        if last? and new Date().valueOf() - last <= 60000
+        if last? and new Date().valueOf() - last <= 20000
             opts.cb?()
             return
         @_touch_project_throttle[opts.project_id] = new Date().valueOf()
@@ -2003,6 +2033,15 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    disconnect_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @call
+            allow_post  : true
+            message     : message.disconnect_from_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
 
 #################################################
 # Other account Management functionality shared between client and server
@@ -2031,4 +2070,41 @@ exports.issues_with_create_account = (mesg) ->
     return issues
 
 
+# This is mainly used for TimeTravel view...
+open_existing_sync_document = (opts) ->
+    opts = defaults opts,
+        client     : required
+        project_id : required
+        path       : required
+        data_server : undefined
+        persistent : false
+        cb         : required
+    opts.client.query
+        query :
+            syncstrings:
+                project_id : opts.project_id
+                path       : opts.path
+                doctype    : null
+        cb: (err, resp) ->
+            if err
+                opts.cb(err)
+                return
+            if resp.event == 'error'
+                opts.cb(resp.error)
+                return
+            if not resp.query?.syncstrings?
+                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
+                return
+            doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
+            opts2 =
+                project_id : opts.project_id
+                path       : opts.path
+            if opts.data_server
+                opts2.data_server = opts.data_server
+            if opts.persistent
+                opts2.persistent = opts.persistent
+            if doctype.opts?
+                opts2 = misc.merge(opts2, doctype.opts)
+            doc = opts.client["sync_#{doctype.type}2"](opts2)
+            opts.cb(undefined, doc)
 

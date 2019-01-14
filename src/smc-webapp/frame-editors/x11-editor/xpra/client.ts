@@ -67,7 +67,7 @@ export class Client {
   private activeWindow: number = 0;
   private lastActiveWindow: number = 0;
   private audioCodecs = { codecs: [] };
-  private ping_interval: number = 0;
+  private ping_interval: any = 0;   // really Timer type
 
   private layout: string = "";
   private variant: string = "";
@@ -314,8 +314,8 @@ export class Client {
         } else {
           surface.rescale(
             scale,
-            Math.round(width * 0.9),
-            Math.round(height * 0.9)
+            Math.round(width * 0.85),
+            Math.round(height * 0.85)
           );
         }
       }
@@ -415,8 +415,20 @@ export class Client {
 
         this.send("map-window", wid, x, y, w, h, props);
 
+        let parent : Surface | undefined = undefined;
+        if (metadata["transient-for"]) {
+          parent = this.findSurface(metadata["transient-for"]);
+          if (parent != null) {
+            // Flatten the tree structure (basically for simplicity).
+            // This is assumed right now in actions...
+            while (parent.parent !== undefined) {
+              parent = parent.parent;
+            }
+          }
+        }
+
         const surface = new Surface({
-          parent: undefined,
+          parent,
           wid,
           x,
           y,
@@ -424,7 +436,8 @@ export class Client {
           h,
           metadata,
           properties,
-          send: this.send
+          send: this.send,
+          is_overlay : false
         });
         this.surfaces[wid] = surface;
 
@@ -465,8 +478,7 @@ export class Client {
           return;
         }
 
-        // Go up to the root; I don't know if this is actually
-        // necessary in practice....
+        // Flatten the tree structure (same as above).
         while (parent.parent !== undefined) {
           parent = parent.parent;
           parentWid = parent.wid;
@@ -481,7 +493,8 @@ export class Client {
           h,
           metadata,
           properties,
-          send: this.send
+          send: this.send,
+          is_overlay : true
         });
 
         this.surfaces[wid] = surface;

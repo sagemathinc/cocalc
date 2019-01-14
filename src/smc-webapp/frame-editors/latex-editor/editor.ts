@@ -2,7 +2,7 @@
 Spec for editing LaTeX documents.
 */
 
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 
 import { createEditor } from "../frame-tree/editor";
 

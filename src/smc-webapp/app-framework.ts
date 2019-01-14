@@ -44,7 +44,8 @@ import { Table, TableConstructor } from "./app-framework/Table";
 
 import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 
-import { keys, is_valid_uuid_string } from "./frame-editors/generic/misc";
+// Relative import is temporary, until I figure this out -- needed for *project*
+import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
 import { AdminStore, AdminActions } from "./admin"
 

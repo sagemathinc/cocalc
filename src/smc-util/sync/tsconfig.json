@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
-    "types": ["node"],
+    "target": "es6",
+    "types": ["node", "jest"],
     "lib": ["es7"],
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-  },
+    "downlevelIteration": true,
+    "esModuleInterop": true
+  }
 }

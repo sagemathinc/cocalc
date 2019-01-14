@@ -4,7 +4,7 @@ Manages rendering a single page using either SVG or Canvas
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 import { NonloadedPage } from "./pdfjs-nonloaded-page";
 import { SVGPage } from "./pdfjs-svg-page";

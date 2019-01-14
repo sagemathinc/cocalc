@@ -6,11 +6,11 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
-import { to_user_string } from "./frame-editors/generic/misc";
+import { to_user_string } from "smc-util/misc2";
 
 import { query as client_query } from "./frame-editors/generic/client";
 
-import { callback_opts } from "smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -53,6 +53,7 @@ const MAX_PROJECT_LOG_ENTRIES = 1000;
 export const QUERIES = {
   project_log: {
     query: {
+      id: null,
       project_id: null,
       account_id: null,
       time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
@@ -261,12 +262,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  // Records in the backend database that we are actively using this project.
+  // Records in the backend database that we are actively
+  // using this project and wakes up the project.
   // This resets the idle timeout, among other things.
+  // This is throttled, so multiple calls are spaced out.
   touch = async (): Promise<void> => {
-    await callback_opts(webapp_client.touch_project)({
-      project_id: this.project_id
-    });
+    try {
+      await callback2(webapp_client.touch_project, {
+        project_id: this.project_id
+      });
+    } catch (err) {
+      // nonfatal.
+      console.warn(`unable to touch ${this.project_id} -- ${err}`);
+    }
   };
 
   _ensure_project_is_open(cb): void {
@@ -335,7 +343,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes a file tab
   // Also closes file references.
-  close_tab(path): void {
+  // path not always defined, see #3440
+  close_tab(path: string | undefined): void {
+    if (path == null) return;
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -468,7 +478,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ default_filename: next });
   }
 
-  set_activity(opts) {
+  async set_activity(opts): Promise<void> {
     opts = defaults(opts, {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
@@ -482,9 +492,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // If there is activity it's also a good opportunity to
     // express that we are interested in this project.
-    try {
-      this.touch();
-    } catch (err) {}
+    this.touch();
 
     let x =
       store.get("activity") != null ? store.get("activity").toJS() : undefined;
@@ -1323,17 +1331,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
-          return (
-            !projects_store ||
-            projects_store.wait({
-              until: s => (s as any).get_my_group(this.project_id),
-              timeout: 30,
-              cb: (err, group) => {
-                my_group = group;
-                return cb(err);
-              }
-            })
-          );
+          if (projects_store == null) {
+            cb("projects_store not yet initialized");
+            return;
+          }
+          projects_store.wait({
+            until: s => (s as any).get_my_group(this.project_id),
+            timeout: 30,
+            cb: (err, group) => {
+              my_group = group;
+              cb(err);
+            }
+          });
         },
         cb => {
           store = this.get_store();
@@ -1344,7 +1353,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           if (path == null) {
             path = store.get("current_path");
           }
-          return get_directory_listing({
+          get_directory_listing({
             project_id: this.project_id,
             path,
             hidden: true,
@@ -1352,7 +1361,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             group: my_group,
             cb: (err, listing) => {
               the_listing = listing;
-              return cb(err);
+              cb(err);
             }
           });
         }
@@ -2413,8 +2422,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for PUBLIC PATHS
-     */
+   * Actions for PUBLIC PATHS
+   */
   set_public_path(
     path,
     opts: {
@@ -2458,8 +2467,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for Project Search
-     */
+   * Actions for Project Search
+   */
 
   toggle_search_checkbox_subdirectories() {
     let store = this.get_store();
@@ -2781,7 +2790,7 @@ if (prom_client.enabled) {
   );
 }
 
-var get_directory_listing = function(opts) {
+function get_directory_listing(opts) {
   let method, prom_dir_listing_start, prom_labels, state, time0, timeout;
   opts = defaults(opts, {
     project_id: required,
@@ -2895,4 +2904,4 @@ var get_directory_listing = function(opts) {
       }
     }
   });
-};
+}

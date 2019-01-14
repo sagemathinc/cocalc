@@ -84,10 +84,11 @@ function preflight_check(): void {
       spec.buildID.length >= 8 &&
       spec.buildID.slice(0, 8) >= "20180903");
 
+  // 69 to 61 have issues, and 65 up until beta8 exhibits similar issues.
+  // 65 resolved in beta9. upstream: https://bugzilla.mozilla.org/show_bug.cgi?id=1514688
   const buggyFF =
     spec.name === "Firefox" &&
-    59 <= spec.version &&
-    spec.version <= 61 &&
+    (59 <= spec.version && spec.version <= 61) &&
     !ff60esr;
 
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {

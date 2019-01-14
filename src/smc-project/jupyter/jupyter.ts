@@ -23,7 +23,6 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
-import kernelspecs from "kernelspecs";
 import { exists, unlink } from "./async-utils-node";
 import * as pidusage from "pidusage";
 
@@ -38,6 +37,8 @@ const {
   len,
   is_array
 } = require("smc-util/misc");
+
+import { SyncDB } from "../smc-util/sync/editor/db/sync";
 
 const { key_value_store } = require("smc-util/key-value-store");
 
@@ -80,7 +81,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`
 });
 
-export function jupyter_backend(syncdb: any, client: any) {
+export function jupyter_backend(syncdb: SyncDB, client: any) {
   const dbg = client.dbg("jupyter_backend");
   dbg();
   const app_data = require("smc-webapp/app-framework");
@@ -89,7 +90,7 @@ export function jupyter_backend(syncdb: any, client: any) {
 
   // This path is the file we will watch for changes and save to, which is in the original
   // official ipynb format:
-  const path = original_path(syncdb._path);
+  const path = original_path(syncdb.get_path());
 
   const redux_name = app_data.redux_name(project_id, path);
   const store = app_data.redux.createStore(redux_name, JupyterStore);
@@ -97,7 +98,8 @@ export function jupyter_backend(syncdb: any, client: any) {
 
   actions._init(project_id, path, syncdb, store, client);
 
-  return syncdb.once("init", err => dbg(`syncdb init complete -- ${err}`));
+  syncdb.once("error", err => dbg(`syncdb ERROR -- ${err}`));
+  syncdb.once("ready", () => dbg("syncdb ready"));
 }
 
 // for interactive testing
@@ -167,7 +169,6 @@ export class JupyterKernel extends EventEmitter
   private _directory: string;
   private _filename: string;
   private _identity: string;
-  private _start_time: number;
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
@@ -195,7 +196,6 @@ export class JupyterKernel extends EventEmitter
     this._filename = tail;
     this._set_state("off");
     this._identity = uuid();
-    this._start_time = new Date().valueOf();
     this._execute_code_queue = [];
     if (_jupyter_kernels[this._path] !== undefined) {
       // This happens when we change the kernel for a given file, e.g., from python2 to python3.

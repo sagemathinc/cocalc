@@ -11,7 +11,7 @@ const { cm_options } = require("./cm_options");
 
 const get_cells = function(syncdb, version) {
   let cells = immutable.Map<any, any>();
-  const othercells = syncdb.get({ type: "cell" }, version);
+  const othercells = syncdb.version(version).get({ type: "cell" });
   if (othercells != null) {
     othercells.forEach((cell: any) => (cells = cells.set(cell.get("id"), cell)));
   }

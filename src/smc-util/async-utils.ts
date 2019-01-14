@@ -11,6 +11,7 @@ The two helpful async/await libraries I found are:
 */
 
 import * as awaiting from "awaiting";
+import { reuseInFlight } from "async-await-utils/hof";
 
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
@@ -39,8 +40,8 @@ export function callback_opts(f: Function) {
 
 interface RetryUntilSuccess<T> {
   f: () => Promise<T>; // an async function that takes no input.
-  start_delay?: number; // delay (in ms) before calling second time.
-  max_delay?: number; // delay at most this amount between calls
+  start_delay?: number; // milliseconds -- delay before calling second time.
+  max_delay?: number; // milliseconds -- delay at most this amount between calls
   max_tries?: number; // maximum number of times to call f
   max_time?: number; // milliseconds -- don't call f again if the call would start after this much time from first call
   factor?: number; // multiply delay by this each time
@@ -77,6 +78,7 @@ export async function retry_until_success<T>(
     try {
       return await opts.f();
     } catch (exc) {
+      //console.warn('retry_until_success', exc);
       if (opts.log !== undefined) {
         opts.log("failed ", exc);
       }
@@ -108,8 +110,12 @@ import { EventEmitter } from "events";
    Returns array of args emitted by that event. */
 export async function once(
   obj: EventEmitter,
-  event: string
+  event: string,
+  timeout_ms: number = 0
 ): Promise<any> {
+  if (timeout_ms > 0) { // just to keep both versions more readable...
+    return once_with_timeout(obj, event, timeout_ms);
+  }
   let val: any[] = [];
   function wait(cb: Function): void {
     obj.once(event, function(...args): void {
@@ -119,4 +125,61 @@ export async function once(
   }
   await awaiting.callback(wait);
   return val;
+}
+
+async function once_with_timeout(
+  obj: EventEmitter,
+  event: string,
+  timeout_ms: number
+): Promise<any> {
+  let val: any[] = [];
+  function wait(cb: Function): void {
+    function fail() : void {
+      obj.removeListener(event, handler);
+      cb("timeout");
+    }
+    const timer = setTimeout(fail, timeout_ms);
+    function handler(...args): void {
+      clearTimeout(timer);
+      val = args;
+      cb();
+    }
+    obj.once(event, handler);
+  }
+  await awaiting.callback(wait);
+  return val;
+}
+
+// Alternative to callback_opts that behaves like the
+// callback defined in awaiting.
+export async function callback2(f: Function, opts: any): Promise<any> {
+  function g(cb): void {
+    opts.cb = cb;
+    f(opts);
+  }
+  return await awaiting.callback(g);
+}
+
+export function reuse_in_flight_methods(
+  obj: any,
+  method_names: string[]
+): void {
+  for (let method_name of method_names) {
+    obj[method_name] = reuseInFlight(obj[method_name].bind(obj));
+  }
+}
+
+export function bind_methods(obj: any, method_names: string[]): void {
+  for (let method_name of method_names) {
+    obj[method_name] = obj[method_name].bind(obj);
+  }
+}
+
+// Cancel pending throttle or debounce, where f is the
+// output of underscore.throttle (or debounce).  Safe to call
+// with f null or a normal function.
+export function cancel_scheduled(f: any): void {
+  if (f != null && f.cancel != null) {
+    f.cancel();
+  }
 }

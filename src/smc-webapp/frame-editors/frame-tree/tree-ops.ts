@@ -4,7 +4,7 @@ Binary tree operations
 
 import { fromJS } from "immutable";
 import { FrameDirection, ImmutableFrameTree, SetMap } from "./types";
-import { len, uuid } from "../generic/misc";
+import { len, uuid } from "smc-util/misc2";
 
 export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
   const { id } = obj;

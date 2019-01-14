@@ -36,15 +36,13 @@ class exports.Watcher extends EventEmitter
     _listen: (curr, prev) =>
         if curr.dev == 0
             @emit('delete')
+            return
+        if @debounce
+            @_emit_when_stable(true)
         else
-            if @debounce
-                @_emit_when_stable(true)
-            else
-                fs.stat @path, (err, stats) =>
-                    if err
-                        @emit('change')
-                    else
-                        @emit('change', stats.ctime)
+            fs.stat @path, (err, stats) =>
+                if not err
+                    @emit('change', stats.ctime)
 
     _emit_when_stable: (first) =>
         ###
