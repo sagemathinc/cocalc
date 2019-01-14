@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS104: Avoid inline assignments
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //#############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -209,10 +202,10 @@ export class CourseActions extends Actions<CourseState> {
       this
     );
     this.open_handout = this.open_handout.bind(this);
-    if (this.name == null) {
+    if (this.name == undefined) {
       throw Error("@name must be defined");
     }
-    if (this.redux == null) {
+    if (this.redux == undefined) {
       throw Error("@redux must be defined");
     }
   }
@@ -222,7 +215,7 @@ export class CourseActions extends Actions<CourseState> {
   };
 
   _loaded() {
-    if (this.syncdb == null) {
+    if (this.syncdb == undefined) {
       this.set_error("attempt to set syncdb before loading");
       return false;
     }
@@ -231,14 +224,14 @@ export class CourseActions extends Actions<CourseState> {
 
   _store_is_initialized() {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     if (
       !(
-        store.get("students") != null &&
-        store.get("assignments") != null &&
-        store.get("settings") != null &&
+        store.get("students") != undefined &&
+        store.get("assignments") != undefined &&
+        store.get("settings") != undefined &&
         store.get("handouts")
       )
     ) {
@@ -252,7 +245,7 @@ export class CourseActions extends Actions<CourseState> {
   _set(obj) {
     if (
       !this._loaded() ||
-      (this.syncdb != null ? this.syncdb.is_closed() : undefined)
+      (this.syncdb != undefined ? this.syncdb.is_closed() : undefined)
     ) {
       return;
     }
@@ -261,7 +254,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // Get one object from @syncdb as a Javascript object (or undefined)
   _get_one(obj) {
-    if (this.syncdb != null ? this.syncdb.is_closed() : undefined) {
+    if (this.syncdb != undefined ? this.syncdb.is_closed() : undefined) {
       return;
     }
     const x = this.syncdb.get_one(obj);
@@ -276,7 +269,7 @@ export class CourseActions extends Actions<CourseState> {
 
   save() {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     } // e.g., if the course store object already gone due to closing course.
     if (store.get("saving")) {
@@ -289,7 +282,7 @@ export class CourseActions extends Actions<CourseState> {
       this.setState({ saving: false });
       this.setState({
         unsaved:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
+          this.syncdb != undefined ? this.syncdb.has_unsaved_changes() : undefined
       });
       if (err) {
         this.set_error(`Error saving -- ${err}`);
@@ -304,26 +297,26 @@ export class CourseActions extends Actions<CourseState> {
     // console.log('_syncdb_change', JSON.stringify(changes.toJS()))
     let t;
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const cur = (t = store.getState());
     changes.map(obj => {
       const table = obj.get("table");
-      if (table == null) {
+      if (table == undefined) {
         // no idea what to do with something that doesn't have table defined
         return;
       }
       const x = this.syncdb.get_one(obj);
       const key = primary_key[table];
-      if (x == null) {
+      if (x == undefined) {
         // delete
-        if (key != null) {
+        if (key != undefined) {
           t = t.set(table, t.get(table).delete(obj.get(key)));
         }
       } else {
         // edit or insert
-        if (key != null) {
+        if (key != undefined) {
           t = t.set(table, t.get(table).set(x.get(key), x));
         } else if (table === "settings") {
           t = t.set(table, t.get(table).merge(x.delete("table")));
@@ -339,14 +332,14 @@ export class CourseActions extends Actions<CourseState> {
       this.setState(t);
       this.setState({
         unsaved:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined
+          this.syncdb != undefined ? this.syncdb.has_unsaved_changes() : undefined
       });
     }
   }
 
   handle_projects_store_update(state) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     let users = state.getIn([
@@ -359,7 +352,7 @@ export class CourseActions extends Actions<CourseState> {
     } else {
       users = users.keySeq();
     }
-    if (this._last_collaborator_state == null) {
+    if (this._last_collaborator_state == undefined) {
       this._last_collaborator_state = users;
       return;
     }
@@ -373,7 +366,7 @@ export class CourseActions extends Actions<CourseState> {
     // pre-set either student_pay or institute_pay based on what the user has already done...?
     // This is only here for transition, and can be deleted in say May 2018.
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const settings = store.get("settings");
@@ -433,25 +426,25 @@ export class CourseActions extends Actions<CourseState> {
       id: undefined,
       desc: undefined
     });
-    if (opts.id == null && opts.desc == null) {
+    if (opts.id == undefined && opts.desc == undefined) {
       return;
     }
-    if (opts.id == null) {
+    if (opts.id == undefined) {
       this._activity_id =
-        (this._activity_id != null ? this._activity_id : 0) + 1;
+        (this._activity_id != undefined ? this._activity_id : 0) + 1;
       opts.id = this._activity_id;
     }
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       // course was closed
       return;
     }
-    let activity = store.get_activity();
+    let activity: any = store.get_activity();
     let x: any = {};
     if (activity !== undefined) {
       x = activity.toJS();
     }
-    if (opts.desc == null) {
+    if (opts.desc == undefined) {
       delete x[opts.id];
     } else {
       x[opts.id] = opts.desc;
@@ -463,7 +456,7 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   clear_activity(id?) {
-    if (id != null) {
+    if (id != undefined) {
       this.set_activity({ id }); // clears for this id
     } else {
       this.setState({ activity: {} });
@@ -503,12 +496,12 @@ export class CourseActions extends Actions<CourseState> {
   // return the default title and description of the shared project.
   shared_project_settings(title?) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return { title: undefined, description: undefined };
     }
     const x = {
       title: `Shared Project -- ${
-        title != null ? title : store.get("settings").get("title")
+        title != undefined ? title : store.get("settings").get("title")
       }`,
       description:
         store.get("settings").get("description") +
@@ -519,8 +512,8 @@ export class CourseActions extends Actions<CourseState> {
 
   set_shared_project_title() {
     const store = this.get_store();
-    const shared_id = store != null ? store.get_shared_project_id() : undefined;
-    if (store == null || !shared_id) {
+    const shared_id = store != undefined ? store.get_shared_project_id() : undefined;
+    if (store == undefined || !shared_id) {
       return;
     }
 
@@ -530,8 +523,8 @@ export class CourseActions extends Actions<CourseState> {
 
   set_shared_project_description() {
     const store = this.get_store();
-    const shared_id = store != null ? store.get_shared_project_id() : undefined;
-    if (store == null || !shared_id) {
+    const shared_id = store != undefined ? store.get_shared_project_id() : undefined;
+    if (store == undefined || !shared_id) {
       return;
     }
 
@@ -547,7 +540,7 @@ export class CourseActions extends Actions<CourseState> {
       throw Error("action must be start, stop or restart");
     }
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const shared_project_id = store.get_shared_project_id();
@@ -574,7 +567,7 @@ export class CourseActions extends Actions<CourseState> {
   // configure the shared project so that it has everybody as collaborators
   configure_shared_project() {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const shared_project_id = store.get_shared_project_id();
@@ -585,20 +578,20 @@ export class CourseActions extends Actions<CourseState> {
     // add collabs -- all collaborators on course project and all students
     const projects = this.redux.getStore("projects");
     const shared_project_users = projects.get_users(shared_project_id);
-    if (shared_project_users == null) {
+    if (shared_project_users == undefined) {
       return;
     }
     const course_project_users = projects.get_users(
       store.get("course_project_id")
     );
-    if (course_project_users == null) {
+    if (course_project_users == undefined) {
       return;
     }
     const student_account_ids = {};
     store.get_students().map((student, _) => {
       if (!student.get("deleted")) {
         const account_id = student.get("account_id");
-        if (account_id != null) {
+        if (account_id != undefined) {
           student_account_ids[account_id] = true;
         }
       }
@@ -647,7 +640,7 @@ export class CourseActions extends Actions<CourseState> {
   // create the globally shared project if it doesn't exist
   create_shared_project() {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     if (store.get_shared_project_id()) {
@@ -697,7 +690,7 @@ export class CourseActions extends Actions<CourseState> {
   ) {
     let adjusted;
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const field_name: any = `expanded_${item_name}s`;
@@ -727,7 +720,7 @@ export class CourseActions extends Actions<CourseState> {
         [
           cb => {
             const store = this.get_store();
-            if (store == null) {
+            if (store == undefined) {
               cb("store not defined");
               return;
             }
@@ -740,7 +733,7 @@ export class CourseActions extends Actions<CourseState> {
           cb => {
             this.create_student_project(student_id);
             const store = this.get_store();
-            if (store == null) {
+            if (store == undefined) {
               cb("store not defined");
               return;
             }
@@ -773,7 +766,7 @@ export class CourseActions extends Actions<CourseState> {
 
   delete_student(student) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     student = store.get_student(student);
@@ -790,7 +783,7 @@ export class CourseActions extends Actions<CourseState> {
 
   undelete_student(student) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     student = store.get_student(student);
@@ -807,7 +800,7 @@ export class CourseActions extends Actions<CourseState> {
   // we find any, we add in the account_id information about that student.
   lookup_nonregistered_students() {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       console.warn("lookup_nonregistered_students: store not initialized");
       return;
     }
@@ -848,7 +841,7 @@ export class CourseActions extends Actions<CourseState> {
   set_active_student_sort(column_name) {
     let is_descending;
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const current_column = store.getIn(["active_student_sort", "column_name"]);
@@ -864,7 +857,7 @@ export class CourseActions extends Actions<CourseState> {
 
   set_internal_student_info(student, info) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     student = store.get_student(student);
@@ -890,14 +883,14 @@ export class CourseActions extends Actions<CourseState> {
   // Create a single student project.
   create_student_project(student) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
-    if (store.get("students") == null || store.get("settings") == null) {
+    if (store.get("students") == undefined || store.get("settings") == undefined) {
       this.set_error("attempt to create when stores not yet initialized");
       return;
     }
-    if (this._create_student_project_queue == null) {
+    if (this._create_student_project_queue == undefined) {
       this._create_student_project_queue = [student];
     } else {
       this._create_student_project_queue.push(student);
@@ -914,7 +907,7 @@ export class CourseActions extends Actions<CourseState> {
     const queue = this._create_student_project_queue;
     const student = queue[0];
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const student_id = store.get_student(student).get("student_id");
@@ -944,7 +937,7 @@ export class CourseActions extends Actions<CourseState> {
           );
         } else {
           this._set({
-            create_project: null,
+            create_project: undefined,
             project_id,
             table: "students",
             student_id
@@ -968,22 +961,18 @@ export class CourseActions extends Actions<CourseState> {
     //console.log("configure_project_users", student_project_id, student_id)
     // Add student and all collaborators on this project to the project with given project_id.
     // users = who is currently a user of the student's project?
-    let left;
     const users = this.redux.getStore("projects").get_users(student_project_id); // immutable.js map
-    if (users == null) {
+    if (users == undefined) {
       // can't do anything if this isn't known...
       return;
     }
     // Define function to invite or add collaborator
     const s = this.get_store();
-    if (s == null) {
+    if (s == undefined) {
       return;
     }
     const { SITE_NAME } = require("smc-util/theme");
-    const SiteName =
-      (left = this.redux.getStore("customize").site_name) != null
-        ? left
-        : SITE_NAME;
+    const SiteName = this.redux.getStore("customize").site_name || SITE_NAME;
     let body = s.get_email_invite();
     const invite = x => {
       // console.log("invite", x, " to ", student_project_id);
@@ -1017,11 +1006,11 @@ export class CourseActions extends Actions<CourseState> {
     // Make sure the student is on the student's project:
     const student = s.get_student(student_id);
     const student_account_id = student.get("account_id");
-    if (student_account_id == null) {
+    if (student_account_id == undefined) {
       // no known account yet
       invite(student.get("email_address"));
     } else if (
-      (users != null ? users.get(student_account_id) : undefined) == null
+      (users != undefined ? users.get(student_account_id) : undefined) == undefined
     ) {
       // users might not be set yet if project *just* created
       invite(student_account_id);
@@ -1030,12 +1019,12 @@ export class CourseActions extends Actions<CourseState> {
     const course_collaborators = this.redux
       .getStore("projects")
       .get_users(s.get("course_project_id"));
-    if (course_collaborators == null) {
+    if (course_collaborators == undefined) {
       // console.log("projects store isn't sufficiently initialized yet...");
       return;
     }
     course_collaborators.map((_, account_id) => {
-      if (users.get(account_id) == null) {
+      if (users.get(account_id) == undefined) {
         invite(account_id);
       }
     });
@@ -1053,7 +1042,7 @@ export class CourseActions extends Actions<CourseState> {
       // Remove anybody extra on the student project
       users.map((_, account_id) => {
         if (
-          course_collaborators.get(account_id) == null &&
+          course_collaborators.get(account_id) == undefined &&
           account_id !== student_account_id
         ) {
           this.redux
@@ -1068,7 +1057,7 @@ export class CourseActions extends Actions<CourseState> {
     const users_of_student_project = this.redux
       .getStore("projects")
       .get_users(student_project_id);
-    if (users_of_student_project == null) {
+    if (users_of_student_project == undefined) {
       // e.g., not defined in admin view mode
       return;
     }
@@ -1080,13 +1069,13 @@ export class CourseActions extends Actions<CourseState> {
     const users = this.redux
       .getStore("projects")
       .get_users(store.get("course_project_id"));
-    if (users == null) {
+    if (users == undefined) {
       // TODO: should really wait until users is defined, which is a supported thing to do on stores!
       return;
     }
     users.map((_, account_id) => {
       const x = users_of_student_project.get(account_id);
-      if (x != null && !x.get("hide")) {
+      if (x != undefined && !x.get("hide")) {
         this.redux
           .getActions("projects")
           .set_project_hide(account_id, student_project_id, true);
@@ -1096,7 +1085,7 @@ export class CourseActions extends Actions<CourseState> {
 
   configure_project_title(student_project_id, student_id) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const title = `${store.get_student_name(student_id)} - ${store
@@ -1120,10 +1109,10 @@ export class CourseActions extends Actions<CourseState> {
       if (store == undefined) {
         return;
       }
-      store
+      return store
         .get_students()
         .filter(student => {
-          return !student.get("deleted") && student.get("project_id") != null;
+          return !student.get("deleted") && student.get("project_id") != undefined;
         })
         .map(student => {
           return this.redux
@@ -1176,7 +1165,7 @@ export class CourseActions extends Actions<CourseState> {
     log?: Function
   ): Promise<Result[]> {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return [];
     }
     // calling start also deals with possibility that
@@ -1204,7 +1193,7 @@ export class CourseActions extends Actions<CourseState> {
         return;
       }
       const project_title = `${store.get_student_name(student_id)} - ${title}`;
-      if (student_project_id != null) {
+      if (student_project_id != undefined) {
         actions.set_project_title(student_project_id, project_title);
       }
     });
@@ -1219,7 +1208,7 @@ export class CourseActions extends Actions<CourseState> {
       .getActions("projects")
       .set_project_description(
         student_project_id,
-        store.getIn(["settings", "description"])
+        (store as any).getIn(["settings", "description"])
       );
   }
 
@@ -1230,7 +1219,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     store.get_students().map(student => {
       const student_project_id = student.get("project_id");
-      if (student_project_id != null) {
+      if (student_project_id != undefined) {
         this.redux
           .getActions("projects")
           .set_project_description(student_project_id, description);
@@ -1240,10 +1229,10 @@ export class CourseActions extends Actions<CourseState> {
 
   set_all_student_project_course_info(pay?) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
-    if (pay == null) {
+    if (pay == undefined) {
       pay = store.get_pay();
     } else {
       this._set({
@@ -1257,7 +1246,7 @@ export class CourseActions extends Actions<CourseState> {
       // hasn't joined smc yet so there is no id.
       const student_account_id = student.get("account_id");
       const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
-      if (student_project_id != null) {
+      if (student_project_id != undefined) {
         this.redux
           .getActions("projects")
           .set_project_course_info(
@@ -1285,14 +1274,14 @@ export class CourseActions extends Actions<CourseState> {
     // - Set the title to [Student name] + [course title] and description to course description.
     // console.log("configure_project", student_id);
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
-    if (student_project_id == null) {
+    if (student_project_id == undefined) {
       student_project_id = store.getIn(["students", student_id, "project_id"]);
     }
     // console.log("configure_project", student_id, student_project_id);
-    if (student_project_id == null) {
+    if (student_project_id == undefined) {
       this.create_student_project(student_id);
     } else {
       // console.log("configure_project", student_project_id, "will config users");
@@ -1309,7 +1298,7 @@ export class CourseActions extends Actions<CourseState> {
 
   delete_project(student_id) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const student_project_id = store.getIn([
@@ -1330,8 +1319,8 @@ export class CourseActions extends Actions<CourseState> {
       }
       this.redux.getActions("projects").delete_project(student_project_id);
       this._set({
-        create_project: null,
-        project_id: null,
+        create_project: undefined,
+        project_id: undefined,
         table: "students",
         student_id
       });
@@ -1342,7 +1331,7 @@ export class CourseActions extends Actions<CourseState> {
     const id = this.set_activity({ desc: "Configuring all projects" });
     this.setState({ configure_projects: "Configuring projects" });
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       this.set_activity({ id });
       return;
     }
@@ -1362,7 +1351,7 @@ export class CourseActions extends Actions<CourseState> {
   delete_all_student_projects() {
     const id = this.set_activity({ desc: "Deleting all student projects..." });
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       this.set_activity({ id });
       return;
     }
@@ -1379,7 +1368,7 @@ export class CourseActions extends Actions<CourseState> {
   // Delete the shared project, removing students too.
   delete_shared_project() {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const shared_id = store.get_shared_project_id();
@@ -1416,7 +1405,7 @@ export class CourseActions extends Actions<CourseState> {
   // to get all the students to.
   upgrade_all_student_projects(upgrade_goal) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const plan = store.get_upgrade_plan(upgrade_goal);
@@ -1429,7 +1418,7 @@ export class CourseActions extends Actions<CourseState> {
     });
     for (let project_id in plan) {
       const upgrades = plan[project_id];
-      if (project_id != null) {
+      if (project_id != undefined) {
         // avoid race if projects are being created *right* when we try to upgrade them.
         this.redux
           .getActions("projects")
@@ -1491,7 +1480,7 @@ export class CourseActions extends Actions<CourseState> {
 
   set_student_note(student, note) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     student = store.get_student(student);
@@ -1541,7 +1530,7 @@ export class CourseActions extends Actions<CourseState> {
 
   delete_assignment(assignment) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     assignment = store.get_assignment(assignment);
@@ -1554,7 +1543,7 @@ export class CourseActions extends Actions<CourseState> {
 
   undelete_assignment(assignment) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     assignment = store.get_assignment(assignment);
@@ -1630,7 +1619,7 @@ export class CourseActions extends Actions<CourseState> {
 
   save_feedback = (assignment: AssignmentRecord, student: StudentRecord) => {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const active_feedback_edits = store.get("active_feedback_edits");
@@ -1666,7 +1655,7 @@ export class CourseActions extends Actions<CourseState> {
   set_active_assignment_sort(column_name) {
     let is_descending;
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const current_column = store.getIn([
@@ -1685,7 +1674,7 @@ export class CourseActions extends Actions<CourseState> {
 
   _set_assignment_field(assignment, name, val) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     assignment = store.get_assignment(assignment);
@@ -1698,7 +1687,7 @@ export class CourseActions extends Actions<CourseState> {
 
   set_due_date(assignment, due_date) {
     if (typeof due_date !== "string") {
-      due_date = due_date != null ? due_date.toISOString() : undefined; // using strings instead of ms for backward compatibility.
+      due_date = due_date != undefined ? due_date.toISOString() : undefined; // using strings instead of ms for backward compatibility.
     }
     this._set_assignment_field(assignment, "due_date", due_date);
   }
@@ -1711,7 +1700,7 @@ export class CourseActions extends Actions<CourseState> {
     let cur = {};
     const peer_grade = assignment.get("peer_grade");
     if (peer_grade !== undefined) {
-      cur = x.toJS();
+      cur = peer_grade.toJS();
     }
     for (let k in config) {
       const v = config[k];
@@ -1722,7 +1711,7 @@ export class CourseActions extends Actions<CourseState> {
 
   set_skip(assignment, step, value) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     assignment = store.get_assignment(assignment); // just in case is an id
@@ -1737,18 +1726,17 @@ export class CourseActions extends Actions<CourseState> {
   // assignment, if it hasn't already been made.
   // Return undefined or mapping of peer grades
   update_peer_assignment(assignment) {
-    let left;
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     assignment = store.get_assignment(assignment);
     let peers = assignment.getIn(["peer_grade", "map"]);
-    if (peers != null) {
+    if (peers != undefined) {
       return peers.toJS();
     }
-    const N =
-      (left = assignment.getIn(["peer_grade", "number"])) != null ? left : 1;
+    // N = 0 is not a valid setup so no need to worry for ||.
+    const N = assignment.getIn(["peer_grade", "number"]) || 1;
     const map = misc.peer_grading(store.get_student_ids(), N);
     this.set_peer_grade(assignment, { map });
     return map;
@@ -1775,7 +1763,7 @@ export class CourseActions extends Actions<CourseState> {
       }
     };
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     if (!this._store_is_initialized()) {
@@ -1789,7 +1777,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     const student_name = store.get_student_name(student);
     const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
+    if (student_project_id == undefined) {
       // nothing to do
       return this.clear_activity(id);
     } else {
@@ -1839,7 +1827,6 @@ export class CourseActions extends Actions<CourseState> {
   // where time >= now is the current time in milliseconds.
 
   return_assignment_to_student(assignment, student) {
-    let left;
     if (this._start_copy(assignment, student, "last_return_graded")) {
       return;
     }
@@ -1852,7 +1839,7 @@ export class CourseActions extends Actions<CourseState> {
       }
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return finish("store not yet initialized");
     }
     const grade = store.get_grade(assignment, student);
@@ -1869,10 +1856,9 @@ export class CourseActions extends Actions<CourseState> {
     // if skip_grading is true, this means there *might* no be a "grade" given,
     // but instead some grading inside the files or an external tool is used.
     // therefore, only create the grade file if this is false.
-    const skip_grading =
-      (left = assignment.get("skip_grading")) != null ? left : false;
+    const skip_grading = !!assignment.get("skip_grading")
 
-    if (student_project_id == null) {
+    if (student_project_id == undefined) {
       // nothing to do
       this.clear_activity(id);
     } else {
@@ -1897,17 +1883,17 @@ export class CourseActions extends Actions<CourseState> {
               content =
                 "Your instructor is doing grading outside CoCalc, or there is no grading for this assignment.";
             } else {
-              if (grade != null || peer_graded) {
+              if (grade != undefined || peer_graded) {
                 content = "Your grade on this assignment:";
               } else {
                 content = "";
               }
             }
             // write their grade to a file
-            if (grade != null) {
+            if (grade != undefined) {
               // likely undefined when skip_grading true & peer_graded true
               content += `\n\n    ${grade}`;
-              if (comments != null) {
+              if (comments != undefined) {
                 content += `\n\nInstructor comments:\n\n${comments}`;
               }
             }
@@ -1950,7 +1936,7 @@ You can find the comments they made in the folders below.\
                 cb
               });
             } else {
-              cb(null);
+              cb(undefined);
             }
           }
         ],
@@ -1961,7 +1947,6 @@ You can find the comments they made in the folders below.\
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
   return_assignment_to_all_students(assignment, new_only?) {
-    let left;
     const id = this.set_activity({
       desc: `Returning assignments to all students ${
         new_only ? "who have not already received it" : ""
@@ -1972,7 +1957,7 @@ You can find the comments they made in the folders below.\
       this.set_error(`return to student: ${err}`);
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return error("store not yet initialized");
     }
     assignment = store.get_assignment(assignment);
@@ -1981,7 +1966,7 @@ You can find the comments they made in the folders below.\
     }
     let errors = "";
     const peer_grade = assignment.get("peer_grade");
-    let peer = undefined;
+    let peer = false;
     if (peer_grade !== undefined) {
       peer = peer_grade.get("enabled");
     }
@@ -2044,9 +2029,9 @@ You can find the comments they made in the folders below.\
   }
 
   _finish_copy(assignment, student, type, err) {
-    if (student != null && assignment != null) {
+    if (student != undefined && assignment != undefined) {
       const store = this.get_store();
-      if (store == null) {
+      if (store == undefined) {
         return;
       }
       student = store.get_student(student);
@@ -2071,10 +2056,9 @@ You can find the comments they made in the folders below.\
   // to ensure that we aren't doing the same thing repeatedly, and that
   // everything is in place to do the operation.
   _start_copy(assignment, student, type) {
-    if (student != null && assignment != null) {
-      let left1;
+    if (student != undefined && assignment != undefined) {
       const store = this.get_store();
-      if (store == null) {
+      if (store == undefined) {
         return;
       }
       student = store.get_student(student);
@@ -2086,7 +2070,7 @@ You can find the comments they made in the folders below.\
       const one = this._get_one(obj);
       const x = one && one[type] ? one[type] : {};
       const y = x[student.get("student_id")] || {};
-      if (y.start != null && webapp_client.server_time() - y.start <= 15000) {
+      if (y.start != undefined && webapp_client.server_time() - y.start <= 15000) {
         return true; // never retry a copy until at least 15 seconds later.
       }
       y.start = misc.mswalltime();
@@ -2098,9 +2082,9 @@ You can find the comments they made in the folders below.\
   }
 
   _stop_copy(assignment, student, type) {
-    if (student != null && assignment != null) {
+    if (student != undefined && assignment != undefined) {
       const store = this.get_store();
-      if (store == null) {
+      if (store == undefined) {
         return;
       }
       student = store.get_student(student);
@@ -2155,7 +2139,7 @@ You can find the comments they made in the folders below.\
       }
     };
     let store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2173,14 +2157,14 @@ You can find the comments they made in the folders below.\
     async.series(
       [
         cb => {
-          if (student_project_id == null) {
+          if (student_project_id == undefined) {
             this.set_activity({
               id,
               desc: `${student_name}'s project doesn't exist, so creating it.`
             });
             this.create_student_project(student);
             store = this.get_store();
-            if (store == null) {
+            if (store == undefined) {
               cb("no store");
               return;
             }
@@ -2237,7 +2221,7 @@ You can find the comments they made in the folders below.\
     const due_date = store.get_due_date(assignment);
     const src_path = assignment.get("path");
     const due_date_fn = "DUE_DATE.txt";
-    if (due_date == null) {
+    if (due_date == undefined) {
       cb();
       return;
     }
@@ -2291,7 +2275,7 @@ You can find the comments they made in the folders below.\
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
   copy_assignment_to_all_students(assignment, new_only, overwrite) {
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       console.warn("store not yet initialized");
       return;
     }
@@ -2380,19 +2364,19 @@ You can find the comments they made in the folders below.\
       this.set_error(err);
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return error("store not yet initialized");
     }
     if (!(assignment = store.get_assignment(assignment))) {
       return error("no assignment");
     }
     let errors = "";
-    const peer_grade = assigment.get("peer_grade");
+    const peer_grade = assignment.get("peer_grade");
     const peer = peer_grade ? peer_grade.get("enabled") : undefined;
     const prev_step = previous_step(step, peer);
     const f = (student_id, cb) => {
       if (
-        prev_step != null &&
+        prev_step != undefined &&
         !store.last_copied(prev_step, assignment, student_id, true)
       ) {
         cb();
@@ -2433,7 +2417,6 @@ You can find the comments they made in the folders below.\
   // Copy the collected folders from some students to the given student for peer grading.
   // Assumes folder is non-empty
   peer_copy_to_student(assignment, student) {
-    let left;
     if (this._start_copy(assignment, student, "last_peer_assignment")) {
       return;
     }
@@ -2446,7 +2429,7 @@ You can find the comments they made in the folders below.\
       }
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2462,25 +2445,27 @@ You can find the comments they made in the folders below.\
     const peer_map = this.update_peer_assignment(assignment); // synchronous
 
     // list of student_id's
-    if (peer_map == null) {
+    if (peer_map == undefined) {
       // empty peer assignment for this student (maybe added late)
       return finish();
     }
 
     const peers = peer_map[student.get("student_id")];
-    if (peers == null) {
+    if (peers == undefined) {
       // empty peer assignment for this student (maybe added late)
       return finish();
     }
 
     const student_project_id = student.get("project_id");
 
-    let guidelines =
-      (left = assignment.getIn(["peer_grade", "guidelines"])) != null
-        ? left
-        : "Please grade this assignment.";
+    let guidelines = assignment.getIn(["peer_grade", "guidelines"]);
+    // Technically an instructor COULD enter "" (no guidelines)
+    // And we should respect that.
+    if (guidelines == undefined) {
+      guidelines = "Please grade this assignment.";
+    }
     const due_date = assignment.getIn(["peer_grade", "due_date"]);
-    if (due_date != null) {
+    if (due_date != undefined) {
       guidelines =
         `GRADING IS DUE ${new Date(due_date).toLocaleString()} \n\n ` +
         guidelines;
@@ -2558,7 +2543,7 @@ You can find the comments they made in the folders below.\
       }
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2576,7 +2561,7 @@ You can find the comments they made in the folders below.\
 
     // list of student_id of students that graded this student
     const peers = store.get_peers_that_graded_student(assignment, student);
-    if (peers == null) {
+    if (peers == undefined) {
       // empty peer assignment for this student (maybe added late)
       return finish();
     }
@@ -2666,13 +2651,13 @@ You can find the comments they made in the folders below.\
     // type = assigned, collected, graded
     let path, proj;
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const assignment = store.get_assignment(assignment_id);
     const student = store.get_student(student_id);
     const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
+    if (student_project_id == undefined) {
       this.set_error("open_assignment: student project not yet created");
       return;
     }
@@ -2704,7 +2689,7 @@ You can find the comments they made in the folders below.\
       default:
         this.set_error(`open_assignment -- unknown type: ${type}`);
     }
-    if (proj == null) {
+    if (proj == undefined) {
       this.set_error("no such project");
       return;
     }
@@ -2725,7 +2710,7 @@ You can find the comments they made in the folders below.\
 
   delete_handout(handout) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     handout = store.get_handout(handout);
@@ -2738,7 +2723,7 @@ You can find the comments they made in the folders below.\
 
   undelete_handout(handout) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     handout = store.get_handout(handout);
@@ -2751,7 +2736,7 @@ You can find the comments they made in the folders below.\
 
   _set_handout_field(handout, name, val) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     handout = store.get_handout(handout);
@@ -2767,10 +2752,9 @@ You can find the comments they made in the folders below.\
   }
 
   _handout_finish_copy(handout, student, err) {
-    if (student != null && handout != null) {
-      let left;
+    if (student != undefined && handout != undefined) {
       const store = this.get_store();
-      if (store == null) {
+      if (store == undefined) {
         return;
       }
       student = store.get_student(student);
@@ -2792,10 +2776,9 @@ You can find the comments they made in the folders below.\
   }
 
   _handout_start_copy(handout, student) {
-    if (student != null && handout != null) {
-      let left, left1;
+    if (student != undefined && handout != undefined) {
       const store = this.get_store();
-      if (store == null) {
+      if (store == undefined) {
         return;
       }
       student = store.get_student(student);
@@ -2805,7 +2788,7 @@ You can find the comments they made in the folders below.\
       const status_map = one && one.status ? one.status : {};
       const student_status = status_map[student.get("student_id")] || {};
       if (
-        student_status.start != null &&
+        student_status.start != undefined &&
         webapp_client.server_time() - student_status.start <= 15000
       ) {
         return true; // never retry a copy until at least 15 seconds later.
@@ -2820,9 +2803,9 @@ You can find the comments they made in the folders below.\
 
   // "Copy" of `stop_copying_assignment:`
   stop_copying_handout(handout, student) {
-    if (student != null && handout != null) {
+    if (student != undefined && handout != undefined) {
       const store = this.get_store();
-      if (store == null) {
+      if (store == undefined) {
         return;
       }
       student = store.get_student(student);
@@ -2837,7 +2820,7 @@ You can find the comments they made in the folders below.\
       if (student_status == undefined) {
         return;
       }
-      if (student_status.start != null) {
+      if (student_status.start != undefined) {
         delete student_status.start;
         status[student.get("student_id")] = student_status;
         (obj as any).status = status;
@@ -2869,7 +2852,7 @@ You can find the comments they made in the folders below.\
       }
     };
     let store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return finish("store not yet initialized");
     }
     if (!(student = store.get_student(student))) {
@@ -2888,14 +2871,14 @@ You can find the comments they made in the folders below.\
     async.series(
       [
         cb => {
-          if (student_project_id == null) {
+          if (student_project_id == undefined) {
             this.set_activity({
               id,
               desc: `${student_name}'s project doesn't exist, so creating it.`
             });
             this.create_student_project(student);
             store = this.get_store();
-            if (store == null) {
+            if (store == undefined) {
               cb("no store");
               return;
             }
@@ -2949,7 +2932,7 @@ You can find the comments they made in the folders below.\
       this.set_error(err);
     };
     const store = this.get_store();
-    if (store == null || !this._store_is_initialized()) {
+    if (store == undefined || !this._store_is_initialized()) {
       return error("store not yet initialized");
     }
     if (!(handout = store.get_handout(handout))) {
@@ -2991,7 +2974,7 @@ You can find the comments they made in the folders below.\
 
   open_handout(handout_id, student_id) {
     const store = this.get_store();
-    if (store == null) {
+    if (store == undefined) {
       return;
     }
     const handout = store.get_handout(handout_id);
@@ -3000,13 +2983,13 @@ You can find the comments they made in the folders below.\
     }
     const student = store.get_student(student_id);
     const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
+    if (student_project_id == undefined) {
       this.set_error("open_handout: student project not yet created");
       return;
     }
     const path = handout.get("target_path");
     const proj = student_project_id;
-    if (proj == null) {
+    if (proj == undefined) {
       this.set_error("no such project");
       return;
     }
