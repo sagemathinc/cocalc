@@ -31,7 +31,7 @@ IDEAS FOR LATER:
 
 */
 
-import {ProjectActions} from "./project_actions";
+import { ProjectActions } from "./project_actions";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
