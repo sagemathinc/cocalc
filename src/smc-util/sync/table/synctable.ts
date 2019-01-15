@@ -137,6 +137,8 @@ export class SyncTable extends EventEmitter {
   // Set only for some tables.
   private project_id?: string;
 
+  private last_has_uncommitted_changes?: boolean = undefined;
+
   constructor(
     query,
     options: any[],
@@ -277,11 +279,20 @@ export class SyncTable extends EventEmitter {
       }
       if (this.state === "connected") {
         if (!(await this._save())) {
+          this.update_has_uncommitted_changes();
           return;
         }
       }
       // else switched to something else (?), so
       // loop around and wait again for a change...
+    }
+  }
+
+  private update_has_uncommitted_changes() : void {
+    const cur = this.has_uncommitted_changes();
+    if (cur !== this.last_has_uncommitted_changes) {
+      this.emit('has-uncommitted-changes', cur);
+      this.last_has_uncommitted_changes = cur;
     }
   }
 
@@ -418,6 +429,7 @@ export class SyncTable extends EventEmitter {
     // Something changed:
     this.value = this.value.set(key, new_val);
     this.changes[key] = this.client.server_time().valueOf();
+    this.update_has_uncommitted_changes();
     if (this.client.is_project()) {
       // project assigns versions
       const version = this.increment_version(key);
@@ -495,6 +507,7 @@ export class SyncTable extends EventEmitter {
   private async first_connect(): Promise<void> {
     try {
       await this.connect();
+      this.update_has_uncommitted_changes();
     } catch (err) {
       console.warn(
         `synctable: failed to connect (table=${this.table}), error=${err}`,
@@ -994,6 +1007,7 @@ export class SyncTable extends EventEmitter {
         delete this.changes[key];
       }
     }
+    this.update_has_uncommitted_changes();
 
     const is_done = len(this.changes) === 0;
     dbg("done? ", is_done);
@@ -1266,6 +1280,7 @@ export class SyncTable extends EventEmitter {
         // So we will try to send out it again.
         if (!this.changes[key]) {
           this.changes[key] = this.client.server_time().valueOf();
+          this.update_has_uncommitted_changes();
         }
         // So we don't view it as having any known version
         // assigned by project, since the project lost it.
@@ -1387,6 +1402,7 @@ export class SyncTable extends EventEmitter {
       if (this.handle_new_val(new_val, false)) {
         const version = this.increment_version(key);
         this.changes[key] = time;
+        this.update_has_uncommitted_changes();
         versioned_changes.push({ obj: new_val.toJS(), version });
         changed_keys.push(key);
       }
