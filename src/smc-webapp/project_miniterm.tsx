@@ -1,9 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -124,7 +118,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     this._id = this._id + 1;
     const id = this._id;
     const start_time = new Date().getTime();
-    return webapp_client.exec({
+    webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,
       timeout: EXEC_TIMEOUT,
@@ -138,13 +132,13 @@ export class MiniTerminal extends React.Component<Props, State> {
           return;
         }
         if (err) {
-          return this.setState({ error: JSON.stringify(err), state: "edit" });
+          this.setState({ error: JSON.stringify(err), state: "edit" });
         } else if (
           output.exit_code !== 0 &&
           new Date().getTime() - start_time >= 0.98 * EXEC_TIMEOUT
         ) {
           // we get no other error except it takes a long time and the exit_code isn't 0.
-          return this.setState({
+          this.setState({
             state: "edit",
             error: `Miniterminal commands are limited to ${EXEC_TIMEOUT} seconds.\nFor longer or interactive commands,\nuse a full terminal.`
           });
@@ -180,7 +174,7 @@ export class MiniTerminal extends React.Component<Props, State> {
             stdout: output.stdout
           });
           if (!output.stderr) {
-            return this.setState({ input: "" });
+            this.setState({ input: "" });
           }
         }
       }
@@ -211,7 +205,7 @@ export class MiniTerminal extends React.Component<Props, State> {
           <a
             onClick={e => {
               e.preventDefault();
-              return this.setState({ stdout: "", error: "" });
+              this.setState({ stdout: "", error: "" });
             }}
             href=""
             style={{
@@ -236,7 +230,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     //     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
     //# e.persist(); window.e = e  # for debugging
     if (e.keyCode === 27) {
-      return this.setState({ input: "", stdout: "", error: "" });
+      this.setState({ input: "", stdout: "", error: "" });
     }
   }
 
@@ -248,7 +242,7 @@ export class MiniTerminal extends React.Component<Props, State> {
         <form
           onSubmit={e => {
             e.preventDefault();
-            return this.execute_command();
+            this.execute_command();
           }}
           style={{ marginBottom: "-10px" }}
         >
@@ -261,7 +255,7 @@ export class MiniTerminal extends React.Component<Props, State> {
                 placeholder="Terminal command..."
                 onChange={e => {
                   e.preventDefault();
-                  return this.setState({
+                  this.setState({
                     input: (ReactDOM.findDOMNode(this.refs.input) as any).value
                   });
                 }}
