@@ -2028,7 +2028,7 @@ ProjectFilesSearch = rclass
             />
             {@render_file_creation_error()}
             {@render_help_info()}
-            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+            <div style={position:'absolute', zIndex:2, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>
