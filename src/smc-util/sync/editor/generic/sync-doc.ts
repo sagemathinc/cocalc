@@ -912,16 +912,10 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
-    /*
     if (!this.client.is_project()) {
       return (..._) => {};
-      return (...args) => {
-        console.log("sync-doc", _f, ...args);
-      };
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
-    */
   }
 
   private async init_all(): Promise<void> {
@@ -2184,15 +2178,7 @@ export class SyncDoc extends EventEmitter {
     }
     */
     if (!this.has_unsaved_changes()) {
-      dbg(
-        "no unsaved changes, so don't save",
-        " saved hash = ",
-        this.hash_of_saved_version(),
-        "  live hash = ",
-        this.hash_of_live_version(),
-        "  num patches = ",
-        (this.patches_table.get() as any).size
-      );
+      dbg("no unsaved changes, so don't save");
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
       return;
