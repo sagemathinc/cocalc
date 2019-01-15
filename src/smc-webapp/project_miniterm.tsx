@@ -37,21 +37,21 @@ IDEAS FOR LATER:
 
 */
 
-let MiniTerminal;
-const { rclass, React, rtypes, ReactDOM } = require("./app-framework");
+import {ProjectActions} from "./project_actions";
+import * as React from "react";
+import * as ReactDOM from "react-dom";
+
 const {
   Button,
   FormControl,
   InputGroup,
-  FormGroup,
-  Row,
-  Col
+  FormGroup
 } = require("react-bootstrap");
-const { ErrorDisplay, Icon } = require("./r_misc");
+const { Icon } = require("./r_misc");
 
 const { webapp_client } = require("./webapp_client"); // used to run the command -- could change to use an action and the store.
 
-const output_style = {
+const output_style: React.CSSProperties = {
   position: "absolute",
   zIndex: 2,
   width: "93%",
@@ -77,23 +77,31 @@ const BAD_COMMANDS = {
 
 const EXEC_TIMEOUT = 10; // in seconds
 
-exports.MiniTerminal = MiniTerminal = rclass({
-  displayName: "MiniTerminal",
+interface Props {
+  current_path: string;
+  project_id?: string; // Undefined is = HOME
+  actions: ProjectActions;
+}
 
-  propTypes: {
-    project_id: rtypes.string.isRequired,
-    current_path: rtypes.string, // provided by the project store; undefined = HOME
-    actions: rtypes.object.isRequired
-  },
+interface State {
+  input: string;
+  state: "edit" | "run";
+  stdout?: string;
+  error?: string;
+}
 
-  getInitialState() {
-    return {
+export class MiniTerminal extends React.Component<Props, State> {
+  private _id: number = 0;
+
+  constructor(props) {
+    super(props);
+    this.state = {
       input: "",
       stdout: undefined,
       state: "edit", // 'edit' --> 'run' --> 'edit'
       error: undefined
     };
-  },
+  }
 
   execute_command() {
     this.setState({ stdout: "", error: "" });
@@ -113,9 +121,9 @@ exports.MiniTerminal = MiniTerminal = rclass({
     const input0 = input + '\necho $HOME "`pwd`"';
     this.setState({ state: "run" });
 
-    this._id = (this._id != null ? this._id : 0) + 1;
+    this._id = this._id + 1;
     const id = this._id;
-    const start_time = new Date();
+    const start_time = new Date().getTime();
     return webapp_client.exec({
       project_id: this.props.project_id,
       command: input0,
@@ -133,7 +141,7 @@ exports.MiniTerminal = MiniTerminal = rclass({
           return this.setState({ error: JSON.stringify(err), state: "edit" });
         } else if (
           output.exit_code !== 0 &&
-          new Date() - start_time >= 0.98 * EXEC_TIMEOUT
+          new Date().getTime() - start_time >= 0.98 * EXEC_TIMEOUT
         ) {
           // we get no other error except it takes a long time and the exit_code isn't 0.
           return this.setState({
@@ -177,7 +185,7 @@ exports.MiniTerminal = MiniTerminal = rclass({
         }
       }
     });
-  },
+  }
 
   render_button() {
     switch (this.state.state) {
@@ -194,7 +202,7 @@ exports.MiniTerminal = MiniTerminal = rclass({
           </Button>
         );
     }
-  },
+  }
 
   render_output(x, style) {
     if (x) {
@@ -220,7 +228,7 @@ exports.MiniTerminal = MiniTerminal = rclass({
         </pre>
       );
     }
-  },
+  }
 
   keydown(e) {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
@@ -230,7 +238,7 @@ exports.MiniTerminal = MiniTerminal = rclass({
     if (e.keyCode === 27) {
       return this.setState({ input: "", stdout: "", error: "" });
     }
-  },
+  }
 
   render() {
     // NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
@@ -254,7 +262,7 @@ exports.MiniTerminal = MiniTerminal = rclass({
                 onChange={e => {
                   e.preventDefault();
                   return this.setState({
-                    input: ReactDOM.findDOMNode(this.refs.input).value
+                    input: (ReactDOM.findDOMNode(this.refs.input) as any).value
                   });
                 }}
                 onKeyDown={this.keydown}
@@ -273,4 +281,4 @@ exports.MiniTerminal = MiniTerminal = rclass({
       </div>
     );
   }
-});
+}
