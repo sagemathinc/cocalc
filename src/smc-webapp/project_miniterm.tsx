@@ -45,7 +45,7 @@ const { Icon } = require("./r_misc");
 
 const { webapp_client } = require("./webapp_client"); // used to run the command -- could change to use an action and the store.
 
-const output_style: React.CSSProperties = {
+export const output_style: React.CSSProperties = {
   position: "absolute",
   zIndex: 2,
   width: "93%",
