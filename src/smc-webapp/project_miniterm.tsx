@@ -97,7 +97,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     };
   }
 
-  execute_command() {
+  execute_command = () => {
     this.setState({ stdout: "", error: "" });
     const input = this.state.input.trim();
     if (!input) {
@@ -224,7 +224,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     }
   }
 
-  keydown(e) {
+  keydown = (e) => {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
     // all null right now -- see
     //     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
