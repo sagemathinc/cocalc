@@ -7,6 +7,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
+import {is_valid_TLD} from "./valid-tld"
+
 const underscore = require("underscore");
 
 interface SplittedPath {
@@ -291,7 +293,7 @@ const reValidEmail = (function() {
 export function is_valid_email_address(email: string): boolean {
   // From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
   // but converted to Javascript; it's near the middle but claims to be exactly RFC822.
-  if (reValidEmail.test(email)) {
+  if (reValidEmail.test(email) && is_valid_TLD(email.slice(email.lastIndexOf('.') + 1))) {
     return true;
   } else {
     return false;
