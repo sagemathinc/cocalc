@@ -343,7 +343,6 @@ export class CodemirrorEditor extends Component<Props, State> {
     this.cm.on("change", (_, changeObj) => {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        this.props.actions.setState({ has_unsaved_changes: true });
         this.props.actions.exit_undo_mode();
       }
     });
