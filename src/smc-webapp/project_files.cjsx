@@ -36,7 +36,7 @@ STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.st
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
-{MiniTerminal}        = require('./project_miniterm')
+{MiniTerminal, output_style_searchbox}  = require('./project_miniterm')
 {file_associations}   = require('./file-associations')
 account               = require('./account')
 immutable             = require('immutable')
@@ -2042,7 +2042,7 @@ ProjectFilesSearch = rclass
             />
             {@render_file_creation_error()}
             {@render_help_info()}
-            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+            <div style={output_style_searchbox}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>
@@ -2292,7 +2292,9 @@ exports.ProjectFiles = rclass ({name}) ->
         <MiniTerminal
             current_path = {@props.current_path}
             project_id   = {@props.project_id}
-            actions      = {@props.actions} />
+            actions      = {@props.actions}
+            show_close_x = {false}
+        />
 
     render_new_file : ->
         <ProjectFilesNew
