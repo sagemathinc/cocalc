@@ -12,6 +12,7 @@ import { debounce } from "underscore";
 import { delay } from "awaiting";
 import {
   get_default_font_size,
+  log_error,
   public_get_text_file,
   prettier,
   syncstring,
@@ -950,6 +951,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       console.warn("save_to_disk", this.path, "ERROR", err);
       if (this._state !== "closed") {
         this.set_error(`${SAVE_ERROR} -- ${err} -- ${SAVE_WORKAROUND}`);
+        log_error({
+          string_id: this._syncstring ? this._syncstring._string_id : "",
+          path: this.path,
+          project_id: this.project_id,
+          error: "Error saving file -- has_unsaved_changes"
+        });
       }
     } finally {
       this.setState({ is_saving: false });
