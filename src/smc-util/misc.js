@@ -80,6 +80,9 @@ let apply_function_to_map_values,
   underscore;
 let _ = (underscore = require("underscore"));
 
+const { is_valid_email_address } = require("./misc2");
+exports.is_valid_email_address = is_valid_email_address;
+
 exports.RUNNING_IN_NODE =
   (typeof process !== "undefined" && process !== null
     ? process.title
@@ -894,34 +897,6 @@ exports.plural = function(number, singular, plural) {
 
 exports.git_author = (first_name, last_name, email_address) =>
   `${first_name} ${last_name} <${email_address}>`;
-
-const reValidEmail = (function() {
-  const sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]";
-  const sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]";
-  const sAtom =
-    "[^\\x00-\\x20\\x22\\x28\\x29\\x2c\\x2e\\x3a-\\x3c\\x3e\\x40\\x5b-\\x5d\\x7f-\\xff]+";
-  const sQuotedPair = "\\x5c[\\x00-\\x7f]";
-  const sDomainLiteral = `\\x5b(${sDtext}|${sQuotedPair})*\\x5d`;
-  const sQuotedString = `\\x22(${sQtext}|${sQuotedPair})*\\x22`;
-  const sDomain_ref = sAtom;
-  const sSubDomain = `(${sDomain_ref}|${sDomainLiteral})`;
-  const sWord = `(${sAtom}|${sQuotedString})`;
-  const sDomain = sSubDomain + "(\\x2e" + sSubDomain + ")*";
-  const sLocalPart = sWord + "(\\x2e" + sWord + ")*";
-  const sAddrSpec = sLocalPart + "\\x40" + sDomain; // complete RFC822 email address spec
-  const sValidEmail = `^${sAddrSpec}$`; // as whole string
-  return new RegExp(sValidEmail);
-})();
-
-exports.is_valid_email_address = function(email) {
-  // From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
-  // but converted to Javascript; it's near the middle but claims to be exactly RFC822.
-  if (reValidEmail.test(email)) {
-    return true;
-  } else {
-    return false;
-  }
-};
 
 // More canonical email address -- lower case and remove stuff between + and @.
 // This is mainly used for banning users.

@@ -1278,13 +1278,6 @@ describe "map_max is similar to map_min", ->
         e = {'x': 8, 'y': 0, 'z': 5}
         misc.map_max(a, b).should.eql e
 
-describe 'is_valid_email_address is', ->
-    valid = misc.is_valid_email_address
-    it "true for test@test.com", ->
-        valid('test@test.com').should.be.true()
-    it "false for blabla", ->
-        valid('blabla').should.be.false()
-
 describe 'separate_file_extension', ->
     sfe = misc.separate_file_extension
     it "splits filename.ext accordingly", ->
