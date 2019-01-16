@@ -68,13 +68,13 @@ const CONNECTION_STATUS_STYLE: CSS.Properties = {
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
     case "disconnected":
-      return "rgb(255, 165, 0)";
+      return "rgb(255, 0, 0)";
     case "connecting":
-      return "#aaa";
+      return "rgb(255, 165, 0)";
     case "connected":
       return "#666";
     default:
-      return "#888";
+      return "rgb(255, 165, 0)";
   }
 }
 
