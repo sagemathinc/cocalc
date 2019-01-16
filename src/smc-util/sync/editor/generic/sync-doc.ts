@@ -2469,33 +2469,42 @@ export class SyncDoc extends EventEmitter {
     been sent out.
     */
   private async sync_remote_and_doc(): Promise<void> {
-    if (this.last == null || this.doc == null || this.state != "ready") {
+    if (this.last == null || this.doc == null) {
       return;
     }
 
-    // First save any unsaved changes from our live version.
-    // Repeat this until changes stop, since there is an await
-    // in this loop, and user may make changes *during* that
-    // save_patch call, and we must not miss them.
-    this.emit("before-change");
-    while (!this.last.is_equal(this.doc)) {
-      if (this.commit()) {
-        await this.patches_table.save();
-        if (this.state != "ready") {
-          return;
+    if (this.state == "ready") {
+      // First save any unsaved changes from our live version.
+      // Repeat this until changes stop, since there is an await
+      // in this loop, and user may make changes *during* that
+      // save_patch call, and we must not miss them.
+      this.emit("before-change");
+      while (!this.last.is_equal(this.doc)) {
+        if (this.commit()) {
+          await this.patches_table.save();
+          if (this.state != "ready") {
+            return;
+          }
         }
       }
     }
 
-    // Now compute the global current state of the document,
+    // Compute the global current state of the document,
     // which is got by applying all patches in order.
+    // It is VERY important to do this, even if the
+    // document is not yet ready, since it is critical
+    // to properly set the state of this.doc to the value
+    // of the patch list (e.g., not doing this 100% breaks
+    // opening a file for the first time on cocalc-docker).
     const new_remote = this.patch_list.value();
     if (!this.doc.is_equal(new_remote)) {
       // There is a possibility that live document changed, so
       // set to new version.
       this.last = this.doc = new_remote;
-      this.emit("after-change");
-      this.emit_change();
+      if (this.state == "ready") {
+        this.emit("after-change");
+        this.emit_change();
+      }
     }
   }
 
