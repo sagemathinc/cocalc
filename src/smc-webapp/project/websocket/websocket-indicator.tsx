@@ -14,6 +14,11 @@ interface Props {
 
 export class WebsocketIndicator extends Component<Props, {}> {
   render(): Rendered {
+    if (this.props.state == "online") {
+      // show nothing when online for now, to reduce clutter.
+      // NOTE: stay consisten with title-bar.tsx's connection indicator.
+      return <span />;
+    }
     return (
       <span title={this.props.state}>
         <Icon
@@ -35,7 +40,8 @@ function color(state: WebsocketState | undefined): string {
       return "#666";
     case "offline": // trying to connect.
       return "rgb(255, 165, 0)";
-    default:  // don't know yet, so same as offline.
+    default:
+      // don't know yet, so same as offline.
       return "rgb(255, 165, 0)";
   }
 }

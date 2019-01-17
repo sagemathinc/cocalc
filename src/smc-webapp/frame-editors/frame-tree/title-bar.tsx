@@ -1069,6 +1069,12 @@ export class FrameTitleBar extends Component<Props, State> {
     ) {
       return;
     }
+    if (this.props.connection_status == 'connected') {
+      // To reduce clutter show nothing when connected.
+      // NOTE: Keep this consistent with
+      // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx
+      return;
+    }
     return (
       <span
         style={CONNECTION_STATUS_STYLE}
