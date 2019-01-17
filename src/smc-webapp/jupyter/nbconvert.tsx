@@ -276,6 +276,7 @@ export class NBConvert extends Component<NBConvertProps> {
       <a
         href="http://nbconvert.readthedocs.io/en/latest/usage.html"
         target="_blank"
+        rel="noopener"
         className="pull-right"
       >
         <Icon name="external-link" /> nbconvert documentation
@@ -319,6 +320,7 @@ export class NBConvert extends Component<NBConvertProps> {
           slideshows is{" "}
           <a
             target="_blank"
+            rel="noopener"
             href="https://github.com/sagemathinc/cocalc/issues/2569#issuecomment-350940928"
           >
             not yet implemented

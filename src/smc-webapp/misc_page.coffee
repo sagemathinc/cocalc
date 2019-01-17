@@ -1361,7 +1361,7 @@ exports.define_codemirror_extensions = () ->
                 title  = title.val().trim()
 
                 if target == "_blank"
-                    target = " target='_blank'"
+                    target = " target='_blank' rel='noopener'"
 
                 if title.length > 0
                     title = " title='#{title}'"
@@ -1880,7 +1880,7 @@ exports.open_new_tab = (url, popup=false, opts) ->
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
         if url
-            message = "Either enable popups for this website or <a href='#{url}' target='_blank'>click on this link</a>."
+            message = "Either enable popups for this website or <a href='#{url}' target='_blank' rel='noopener'>click on this link</a>."
         else
             message = "Enable popups for this website and try again."
         alert_message
