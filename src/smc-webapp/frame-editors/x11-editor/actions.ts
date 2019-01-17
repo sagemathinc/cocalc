@@ -587,6 +587,12 @@ export class Actions extends BaseActions<X11EditorState> {
     return wids;
   }
 
+  // for X11, we just want to communicate the %-value
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
+    this.set_status(`Set zoom to ${percent}%`, 1500);
+  }
+
   help(): void {
     open_new_tab(HELP_URL);
   }
