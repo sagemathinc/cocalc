@@ -2873,11 +2873,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       .replace(/\(/g, "%28")
       .replace(/\)/g, "%29");
     this.set_cell_attachment(id, name, { type: "load", value: path });
-    await this.store.wait(
-      () =>
+    await callback2(this.store.wait, {
+      until: () =>
         this.store.getIn(["cells", id, "attachments", name, "type"]) === "sha1",
-      0
-    );
+      timeout: 0
+    });
     // This has to happen in the next render loop, since changing immediately
     // can update before the attachments props are updated.
     await awaiting.delay(10);
