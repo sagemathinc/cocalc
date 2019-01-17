@@ -35,7 +35,7 @@ type XPatch = any;
 
 import { EventEmitter } from "events";
 
-import { debounce, throttle } from "underscore";
+import { debounce, throttle } from "lodash";
 import { Map, fromJS } from "immutable";
 
 import { delay } from "awaiting";
@@ -195,6 +195,8 @@ export class SyncDoc extends EventEmitter {
   private persistent: boolean = false;
   public readonly data_server: DataServer = "project";
 
+  private last_has_unsaved_changes?: boolean = undefined;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -344,7 +346,9 @@ export class SyncDoc extends EventEmitter {
         ttl: this.file_use_interval
       });
     };
-    this.throttled_file_use = throttle(file_use, this.file_use_interval, true);
+    this.throttled_file_use = throttle(file_use, this.file_use_interval, {
+      leading: true
+    });
 
     this.on("user-change", this.throttled_file_use as any);
   }
@@ -908,16 +912,10 @@ export class SyncDoc extends EventEmitter {
 
   // Used for internal debug logging
   private dbg(_f: string = ""): Function {
-    return (..._) => {};
-    /*
     if (!this.client.is_project()) {
       return (..._) => {};
-      return (...args) => {
-        console.log("sync-doc", _f, ...args);
-      };
     }
     return this.client.dbg(`sync-doc("${this.path}").${_f}`);
-    */
   }
 
   private async init_all(): Promise<void> {
@@ -972,6 +970,7 @@ export class SyncDoc extends EventEmitter {
       await this.undelete();
       this.assert_not_closed();
     }
+    this.update_has_unsaved_changes();
     log("done");
   }
 
@@ -1230,6 +1229,24 @@ export class SyncDoc extends EventEmitter {
     );
     this.assert_not_closed();
 
+    const update_has_unsaved_changes = debounce(
+      this.update_has_unsaved_changes.bind(this),
+      500,
+      { leading: true, trailing: true }
+    );
+
+    this.patches_table.on("has-uncommitted-changes", val => {
+      this.emit("has-uncommitted-changes", val);
+    });
+
+    this.on("change", () => {
+      update_has_unsaved_changes();
+    });
+
+    this.syncstring_table.on("change", () => {
+      update_has_unsaved_changes();
+    });
+
     dbg("adding patches");
     patch_list.add(this.get_patches());
 
@@ -1342,7 +1359,10 @@ export class SyncDoc extends EventEmitter {
     });
     this.cursors_table.on("change", this.handle_cursors_change.bind(this));
 
-    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000);
+    this.set_cursor_locs = debounce(this.set_cursor_locs.bind(this), 2000, {
+      leading: true,
+      trailing: true
+    });
     dbg("done");
   }
 
@@ -2158,15 +2178,7 @@ export class SyncDoc extends EventEmitter {
     }
     */
     if (!this.has_unsaved_changes()) {
-      dbg(
-        "no unsaved changes, so don't save",
-        " saved hash = ",
-        this.hash_of_saved_version(),
-        "  live hash = ",
-        this.hash_of_live_version(),
-        "  num patches = ",
-        (this.patches_table.get() as any).size
-      );
+      dbg("no unsaved changes, so don't save");
       // CRITICAL: this optimization is assumed by
       // autosave, etc.
       return;
@@ -2200,6 +2212,15 @@ export class SyncDoc extends EventEmitter {
     if (this.client.is_user()) {
       this.assert_is_ready();
       await this.wait_for_save_to_disk_done();
+    }
+    this.update_has_unsaved_changes();
+  }
+
+  private update_has_unsaved_changes(): void {
+    const cur = this.has_unsaved_changes();
+    if (cur !== this.last_has_unsaved_changes) {
+      this.emit("has-unsaved-changes", cur);
+      this.last_has_unsaved_changes = cur;
     }
   }
 
@@ -2448,33 +2469,42 @@ export class SyncDoc extends EventEmitter {
     been sent out.
     */
   private async sync_remote_and_doc(): Promise<void> {
-    if (this.last == null || this.doc == null || this.state != "ready") {
+    if (this.last == null || this.doc == null) {
       return;
     }
 
-    // First save any unsaved changes from our live version.
-    // Repeat this until changes stop, since there is an await
-    // in this loop, and user may make changes *during* that
-    // save_patch call, and we must not miss them.
-    this.emit("before-change");
-    while (!this.last.is_equal(this.doc)) {
-      if (this.commit()) {
-        await this.patches_table.save();
-        if (this.state != "ready") {
-          return;
+    if (this.state == "ready") {
+      // First save any unsaved changes from our live version.
+      // Repeat this until changes stop, since there is an await
+      // in this loop, and user may make changes *during* that
+      // save_patch call, and we must not miss them.
+      this.emit("before-change");
+      while (!this.last.is_equal(this.doc)) {
+        if (this.commit()) {
+          await this.patches_table.save();
+          if (this.state != "ready") {
+            return;
+          }
         }
       }
     }
 
-    // Now compute the global current state of the document,
+    // Compute the global current state of the document,
     // which is got by applying all patches in order.
+    // It is VERY important to do this, even if the
+    // document is not yet ready, since it is critical
+    // to properly set the state of this.doc to the value
+    // of the patch list (e.g., not doing this 100% breaks
+    // opening a file for the first time on cocalc-docker).
     const new_remote = this.patch_list.value();
     if (!this.doc.is_equal(new_remote)) {
       // There is a possibility that live document changed, so
       // set to new version.
       this.last = this.doc = new_remote;
-      this.emit("after-change");
-      this.emit_change();
+      if (this.state == "ready") {
+        this.emit("after-change");
+        this.emit_change();
+      }
     }
   }
 

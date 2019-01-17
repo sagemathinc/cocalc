@@ -6,6 +6,8 @@ import { React, Rendered, Component, redux } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
+import { SaveButton } from "./save-button";
+
 let close_style;
 const { debounce } = require("underscore");
 const {
@@ -23,10 +25,6 @@ const {
   VisibleMDLG,
   EditorFileInfoDropdown
 } = require("smc-webapp/r_misc");
-
-const {
-  UncommittedChanges
-} = require("smc-webapp/jupyter/uncommitted-changes");
 
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
@@ -70,13 +68,13 @@ const CONNECTION_STATUS_STYLE: CSS.Properties = {
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
     case "disconnected":
-      return "rgb(255, 165, 0)";
+      return "rgb(255, 0, 0)";
     case "connecting":
-      return "#aaa";
+      return "rgb(255, 165, 0)";
     case "connected":
       return "#666";
     default:
-      return "#888";
+      return "rgb(255, 165, 0)";
   }
 }
 
@@ -127,27 +125,23 @@ export class FrameTitleBar extends Component<Props, State> {
   }
   shouldComponentUpdate(next, state): boolean {
     return (
-      misc.is_different(
-        this.props,
-        next,
-        [
-          "active_id",
-          "id",
-          "deletable",
-          "is_full",
-          "is_only",
-          "read_only",
-          "has_unsaved_changes",
-          "has_uncommitted_changes",
-          "is_public",
-          "is_saving",
-          "is_paused",
-          "type",
-          "status",
-          "title",
-          "connection_status"
-        ]
-      ) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
+      misc.is_different(this.props, next, [
+        "active_id",
+        "id",
+        "deletable",
+        "is_full",
+        "is_only",
+        "read_only",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "is_public",
+        "is_saving",
+        "is_paused",
+        "type",
+        "status",
+        "title",
+        "connection_status"
+      ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
 
@@ -749,51 +743,24 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_save(labels: boolean): Rendered {
-    let icon, label;
     if (!this.is_visible("save")) {
       return;
     }
-    const disabled =
-      !this.props.has_unsaved_changes ||
-      this.props.read_only ||
-      this.props.is_public;
-    if (labels) {
-      if (this.props.is_public) {
-        label = "Public";
-      } else if (this.props.read_only) {
-        label = "Readonly";
-      } else {
-        label = "Save";
-      }
-    } else {
-      label = "";
-    }
-    if (this.props.is_saving) {
-      icon = "arrow-circle-o-left";
-    } else {
-      icon = "save";
-    }
-
-    // The funny style in the icon below is because the width changes slightly depending
-    // on which icon we are showing.
     return (
-      <Button
-        key={"save"}
-        title={"Save file to disk"}
-        bsStyle={"success"}
-        bsSize={this.button_size()}
-        disabled={disabled}
+      <SaveButton
+        key="save"
+        has_unsaved_changes={this.props.has_unsaved_changes}
+        has_uncommitted_changes={this.props.has_uncommitted_changes}
+        read_only={this.props.read_only}
+        is_public={this.props.is_public}
+        is_saving={this.props.is_saving}
+        no_labels={!labels}
+        size={this.button_size()}
         onClick={() => {
           this.props.actions.save(true);
           this.props.actions.focus(this.props.id);
         }}
-      >
-        <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
-        <VisibleMDLG>{label}</VisibleMDLG>
-        <UncommittedChanges
-          has_uncommitted_changes={this.props.has_uncommitted_changes}
-        />
-      </Button>
+      />
     );
   }
 

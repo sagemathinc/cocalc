@@ -23,6 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
+lodash = require('lodash')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
@@ -366,7 +367,7 @@ LogMessages = rclass
         cursor     : rtypes.string    # id of the cursor
 
     render_entries: ->
-        for x, i in @props.log
+        for x, i in lodash.sortBy(@props.log, (el) -> -el.time)
             <LogEntry
                 key             = {x.id}
                 cursor          = {@props.cursor==x.id}
@@ -489,7 +490,7 @@ exports.ProjectLog = rclass ({name}) ->
                             @process_log_entry(x)
                             break
             if new_log.length > 1
-                new_log.sort((a,b) -> misc.cmp(b.time, a.time))
+                new_log = lodash.sortBy(new_log, (el) -> -el.time)
                 # combine redundant subsequent events that differ only by time
                 v = []
                 for i in [1...new_log.length]

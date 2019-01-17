@@ -53,7 +53,6 @@ exports.RamWarning = rclass ({name}) ->
     reduxProps :
         projects :
             project_map              : rtypes.immutable.Map
-            get_total_project_quotas : rtypes.func
 
     propTypes :
         project_id : rtypes.string
@@ -64,16 +63,18 @@ exports.RamWarning = rclass ({name}) ->
     render: ->
         if not require('./customize').commercial
             return <span />
-        quotas = @props.get_total_project_quotas(@props.project_id)
         project_status = @props.project_map?.get(@props.project_id)?.get('status')
-        if not quotas?.memory? or not project_status?
+        if not project_status?
             return <span />
-        else
-            rss = project_status.get('memory')?.get('rss')
-            if not rss
-                return <span />
-            memory = Math.round(rss/1000)
-        if quotas.memory > memory + 100
+
+        rss = project_status.get('memory')?.get('rss')
+        limit = project_status.get('memory')?.get('limit')
+        if not rss or not limit
+            return <span />
+
+        rss_mb   = Math.round(rss/1000)
+        limit_mb = Math.round(limit/1000)
+        if limit_mb > rss_mb + 100
             return <span />
 
         <Alert bsStyle='danger' style={alert_style}>
