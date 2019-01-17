@@ -6,6 +6,8 @@ import { React, Rendered, Component, redux } from "../../app-framework";
 import { is_safari } from "../generic/browser";
 import * as CSS from "csstype";
 
+import { SaveButton } from "./save-button";
+
 let close_style;
 const { debounce } = require("underscore");
 const {
@@ -23,10 +25,6 @@ const {
   VisibleMDLG,
   EditorFileInfoDropdown
 } = require("smc-webapp/r_misc");
-
-const {
-  UncommittedChanges
-} = require("smc-webapp/jupyter/uncommitted-changes");
 
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
@@ -70,13 +68,13 @@ const CONNECTION_STATUS_STYLE: CSS.Properties = {
 function connection_status_color(status: ConnectionStatus): string {
   switch (status) {
     case "disconnected":
-      return "rgb(255, 165, 0)";
+      return "rgb(255, 0, 0)";
     case "connecting":
-      return "#aaa";
+      return "rgb(255, 165, 0)";
     case "connected":
       return "#666";
     default:
-      return "#888";
+      return "rgb(255, 165, 0)";
   }
 }
 
@@ -783,7 +781,6 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_save(labels: boolean): Rendered {
-    let icon, label;
     if (!this.is_visible("save")) {
       return;
     }
@@ -809,23 +806,20 @@ export class FrameTitleBar extends Component<Props, State> {
     }
 
     return (
-      <Button
-        key={"save"}
-        title={"Save file to disk"}
-        bsStyle={"success"}
-        bsSize={this.button_size()}
-        disabled={disabled}
+      <SaveButton
+        key="save"
+        has_unsaved_changes={this.props.has_unsaved_changes}
+        has_uncommitted_changes={this.props.has_uncommitted_changes}
+        read_only={this.props.read_only}
+        is_public={this.props.is_public}
+        is_saving={this.props.is_saving}
+        no_labels={!labels}
+        size={this.button_size()}
         onClick={() => {
           this.props.actions.save(true);
           this.props.actions.focus(this.props.id);
         }}
-      >
-        <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
-        <VisibleMDLG>{label}</VisibleMDLG>
-        <UncommittedChanges
-          has_uncommitted_changes={this.props.has_uncommitted_changes}
-        />
-      </Button>
+      />
     );
   }
 
@@ -1138,6 +1132,12 @@ export class FrameTitleBar extends Component<Props, State> {
       !this.props.connection_status ||
       !this.is_visible("connection_status", true)
     ) {
+      return;
+    }
+    if (this.props.connection_status == 'connected') {
+      // To reduce clutter show nothing when connected.
+      // NOTE: Keep this consistent with
+      // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx
       return;
     }
     return (
