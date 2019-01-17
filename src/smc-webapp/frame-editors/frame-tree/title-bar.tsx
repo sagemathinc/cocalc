@@ -16,7 +16,7 @@ const {
   DropdownButton,
   MenuItem
 } = require("react-bootstrap");
-
+import { get_default_font_size } from "../generic/client";
 const {
   r_join,
   Icon,
@@ -112,6 +112,7 @@ interface Props {
   status: string;
   title?: string;
   connection_status?: ConnectionStatus;
+  font_size?: number;
 }
 
 interface State {
@@ -140,7 +141,8 @@ export class FrameTitleBar extends Component<Props, State> {
         "type",
         "status",
         "title",
-        "connection_status"
+        "connection_status",
+        "font_size"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -351,6 +353,44 @@ export class FrameTitleBar extends Component<Props, State> {
       >
         <Icon name={"search-plus"} />
       </Button>
+    );
+  }
+
+  render_set_zoom(): Rendered {
+    if (!this.is_visible("set_zoom")) {
+      return;
+    }
+
+    const zooms: Rendered[] = [100, 125, 150, 200].map(zoom => {
+      return (
+        <MenuItem
+          key={`zoom-${zoom}`}
+          eventKey={`zoom-${zoom}`}
+          onSelect={() =>
+            this.props.actions.set_zoom(zoom / 100, this.props.id)
+          }
+        >
+          {`${zoom}%`}
+        </MenuItem>
+      );
+    });
+
+    const title =
+      this.props.font_size == null
+        ? "Zoom"
+        : `${Math.round(
+            (100 * this.props.font_size) / get_default_font_size()
+          )}%`;
+
+    return (
+      <DropdownButton
+        title={title}
+        key={"zoom-levels"}
+        id={"zoom-levels"}
+        bsSize={this.button_size()}
+      >
+        {zooms}
+      </DropdownButton>
     );
   }
 
@@ -572,6 +612,7 @@ export class FrameTitleBar extends Component<Props, State> {
       <ButtonGroup key={"zoom"}>
         {this.render_zoom_out()}
         {this.render_zoom_in()}
+        {this.render_set_zoom()}
       </ButtonGroup>
     );
   }
@@ -683,7 +724,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  // Button to reload the document
   render_reload(labels): Rendered {
     if (!this.is_visible("reload", true)) {
       return;
@@ -701,7 +741,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  // A "Help" info button
   render_help(labels: boolean): Rendered {
     if (!this.is_visible("help", true) || this.props.is_public) {
       return;
@@ -723,7 +762,6 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  // Button to restart an associated background service process
   render_restart(): Rendered {
     if (!this.is_visible("restart", true)) {
       return;
@@ -746,6 +784,27 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!this.is_visible("save")) {
       return;
     }
+    const disabled =
+      !this.props.has_unsaved_changes ||
+      this.props.read_only ||
+      this.props.is_public;
+    if (labels) {
+      if (this.props.is_public) {
+        label = "Public";
+      } else if (this.props.read_only) {
+        label = "Readonly";
+      } else {
+        label = "Save";
+      }
+    } else {
+      label = "";
+    }
+    if (this.props.is_saving) {
+      icon = "arrow-circle-o-left";
+    } else {
+      icon = "save";
+    }
+
     return (
       <SaveButton
         key="save"
@@ -785,8 +844,8 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"format"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.format(this.props.id)}
         title={
           "Run Prettier (or some other AST-based service) to canonically format this entire document"
@@ -804,9 +863,9 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
+        key={"build"}
         disabled={!!this.props.status}
         bsSize={this.button_size()}
-        key={"build"}
         onClick={() => this.props.actions.build(this.props.id, false)}
         title={"Build project"}
       >
@@ -821,9 +880,9 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
+        key={"force-build"}
         disabled={!!this.props.status}
         bsSize={this.button_size()}
-        key={"force-build"}
         onClick={() => this.props.actions.force_build(this.props.id)}
         title={"Force rebuild entire project"}
       >
@@ -838,8 +897,8 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"clean"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.clean(this.props.id)}
         title={"Clean auxiliary build files"}
       >
@@ -855,8 +914,8 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"word_count"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.word_count(0, true)}
         title={"Runs texcount"}
       >
@@ -871,8 +930,8 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"kick_other_users_out"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.kick_other_users_out(this.props.id)}
         title={"Kick all other users out"}
       >
@@ -896,9 +955,9 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
+        key={"pause"}
         bsSize={this.button_size()}
         bsStyle={style}
-        key={"pause"}
         onClick={() => {
           if (this.props.is_paused) {
             this.props.actions.unpause(this.props.id);
@@ -920,8 +979,8 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"edit_init_script"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.edit_init_script(this.props.id)}
         title={"Edit initialization script"}
       >
@@ -936,9 +995,9 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
+        key={"close_and_halt"}
         disabled={this.state.close_and_halt_confirm}
         bsSize={this.button_size()}
-        key={"close_and_halt"}
         onClick={() => this.setState({ close_and_halt_confirm: true })}
         title={"Close and halt server"}
       >
@@ -954,8 +1013,8 @@ export class FrameTitleBar extends Component<Props, State> {
     }
     return (
       <Button
-        bsSize={this.button_size()}
         key={"print"}
+        bsSize={this.button_size()}
         onClick={() => this.props.actions.print(this.props.id)}
         title={"Print file to PDF"}
       >
@@ -987,11 +1046,13 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!(this.props.is_only || this.props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
-      style = { maxHeight: "30px", overflow: "hidden", flex: 1 };
+      style = {
+        maxHeight: "30px",
+        flex: 1
+      };
     } else {
       style = {
         maxHeight: "34px",
-        overflow: "hidden",
         flex: 1,
         marginLeft: "2px"
       };
@@ -1035,7 +1096,11 @@ export class FrameTitleBar extends Component<Props, State> {
     }
 
     return (
-      <div style={style} key={"buttons"}>
+      <div
+        style={style}
+        key={"buttons"}
+        className={"cc-frame-tree-title-bar-buttons"}
+      >
         {r_join(w, <Space />)}
       </div>
     );
@@ -1195,7 +1260,11 @@ export class FrameTitleBar extends Component<Props, State> {
 
     return (
       <>
-        <div style={style} id={`titlebar-${this.props.id}`}>
+        <div
+          style={style}
+          id={`titlebar-${this.props.id}`}
+          className={"cc-frame-tree-title-bar"}
+        >
           {this.render_control()}
           {this.props.connection_status
             ? this.render_connection_status()
