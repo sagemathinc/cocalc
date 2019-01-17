@@ -34,7 +34,8 @@ npx -q jest
 
 # synctable
 cd $TRAVIS_BUILD_DIR/src/smc-util/
-export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/synctable-test.coffee
+export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/misc-test.coffee test/types.coffee test/key-value-store.coffee
+test/synctable-test.coffee
 
 # reset node env
 export NODE_ENV="$COPY_NODE_ENV"
