@@ -784,27 +784,6 @@ export class FrameTitleBar extends Component<Props, State> {
     if (!this.is_visible("save")) {
       return;
     }
-    const disabled =
-      !this.props.has_unsaved_changes ||
-      this.props.read_only ||
-      this.props.is_public;
-    if (labels) {
-      if (this.props.is_public) {
-        label = "Public";
-      } else if (this.props.read_only) {
-        label = "Readonly";
-      } else {
-        label = "Save";
-      }
-    } else {
-      label = "";
-    }
-    if (this.props.is_saving) {
-      icon = "arrow-circle-o-left";
-    } else {
-      icon = "save";
-    }
-
     return (
       <SaveButton
         key="save"
