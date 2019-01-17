@@ -34,8 +34,10 @@ export function init_websocket_api(
         //logger.debug("primus-api", "response", resp);
         done(resp);
       } catch (err) {
-        console.trace();
-        logger.debug("primus-api error stacktrack", err.stack, err);
+        // put this in for debugging...
+        // It's normal to sometimes get errors, e.g., when a Jupyter kernel 
+        // isn't yet available.
+        // console.trace(); logger.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
       }
     });

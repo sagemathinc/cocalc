@@ -2237,9 +2237,9 @@ exports.seconds2hms = seconds2hms = function(secs, longform, show_seconds) {
   if (longform == null) {
     longform = false;
   }
-  if (secs < 10) {
+  if (!longform && secs < 10) {
     s = round2(secs % 60);
-  } else if (secs < 60) {
+  } else if (!longform && secs < 60) {
     s = round1(secs % 60);
   } else {
     s = Math.round(secs % 60);

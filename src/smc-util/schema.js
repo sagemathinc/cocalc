@@ -58,4 +58,4 @@ exports.COMPUTE_STATES = require("./compute-states").COMPUTE_STATES;
 const upgrade_spec = require("./upgrade-spec");
 exports.PROJECT_UPGRADES = upgrade_spec.upgrades;
 
-exports.DEFAULT_QUOTAS = upgrade_spec;
+exports.DEFAULT_QUOTAS = upgrade_spec.DEFAULT_QUOTAS;

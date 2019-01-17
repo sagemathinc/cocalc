@@ -434,7 +434,7 @@ class ProjectsActions extends Actions
         if not merge
             # explicitly set every field not specified to 0
             upgrades = misc.copy(upgrades)
-            for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
+            for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
         @projects_table_set
             project_id : project_id
@@ -517,6 +517,7 @@ class ProjectsActions extends Actions
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
 
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
@@ -582,6 +583,8 @@ class ProjectsStore extends Store
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
+            if pay == true  # bug -- can delete this workaround in March 2019.
+                pay = new Date('2019-02-15')
             if pay
                 if webapp_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,

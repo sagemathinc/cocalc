@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-const SAVE_INTERVAL_MS = 300;
+const SAVE_DEBOUNCE_MS = 1500;
 
 import { delay } from "awaiting";
 
@@ -337,13 +337,12 @@ export class CodemirrorEditor extends Component<Props, State> {
     // After this only stuff that we use for the non-public version!
     const save_syncstring_debounce = debounce(
       () => this.save_syncstring(),
-      SAVE_INTERVAL_MS
+      SAVE_DEBOUNCE_MS
     );
 
     this.cm.on("change", (_, changeObj) => {
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        this.props.actions.setState({ has_unsaved_changes: true });
         this.props.actions.exit_undo_mode();
       }
     });

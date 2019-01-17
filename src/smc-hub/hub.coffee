@@ -503,7 +503,9 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_compute_server(cb)
         (cb) ->
-            if not program.dev
+            if not program.dev or process.env.USER.length == 32
+                # not in dev mode or in cocalc-docker, better not
+                # kill everything, or we kill ourself!
                 cb(); return
             # Whenever we start the dev server, we just assume
             # all projects are stopped, since assuming they are
