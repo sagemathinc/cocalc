@@ -113,7 +113,7 @@ export class KernelSelector extends Component<
     const descr: string | undefined = cocalc.get("description", "");
     if (url != null) {
       return (
-        <a href={url} target={"_blank"}>
+        <a href={url} target={"_blank"} rel={"noopener"}>
           {descr}
         </a>
       );

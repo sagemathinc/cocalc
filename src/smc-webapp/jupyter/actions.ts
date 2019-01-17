@@ -58,10 +58,6 @@ let jupyter_kernels = immutable.Map<string, Kernels>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
 
-// DEFAULT_KERNEL = 'python2'
-// DEFAULT_KERNEL = "anaconda3";
-const DEFAULT_KERNEL = "sagemath";
-
 // Using require due to project import path issue... :-(
 // import { three_way_merge } from "smc-util/sync/editor/generic/util";
 const { three_way_merge } = require("smc-util/sync/editor/generic/util");
