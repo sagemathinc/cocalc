@@ -71,7 +71,6 @@ describe "default", ->
         obj1 = extra: true
         obj2 = {}
         (-> d(obj1, obj2)).should.throw /got an unexpected argument 'extra'/
-        @console_trace_stub.calledOnce.should.be.false()
         #@console_debug_stub.getCall(0).args[0].should.match /(obj1={"extra":true}, obj2={})/
 
     it "doesn't raises exception if extra arguments are allowed", =>
@@ -86,8 +85,7 @@ describe "default", ->
         obj2 =
             r: required
         (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
-        @console_trace_stub.calledOnce.should.be.false()
-        #@console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
+        #@console_trace_stub.getCall(0).args[0].should.match /property 'r' must be specified/
 
     it "raises an exception if obj2 has a `required` property but is undefined in obj1", =>
         obj1 =
@@ -95,7 +93,6 @@ describe "default", ->
         obj2 =
             r: required
         (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
-        @console_trace_stub.calledOnce.should.be.false()
         #@console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
 
 
