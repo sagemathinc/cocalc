@@ -517,6 +517,7 @@ class ProjectsActions extends Actions
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
 
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
