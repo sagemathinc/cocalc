@@ -300,7 +300,10 @@ export class MiniTerminal extends React.Component<Props, State> {
                 }}
                 onKeyDown={this.keydown}
               />
-              <InputGroup.Button>{this.render_button()}</InputGroup.Button>
+              <InputGroup.Button>
+                {this.render_clear()}
+                {this.render_button()}
+              </InputGroup.Button>
             </InputGroup>
           </FormGroup>
         </form>
