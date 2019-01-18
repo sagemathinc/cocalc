@@ -17,9 +17,14 @@ const NAMES = {
   asciidoc: { ext: "asciidoc", display: "AsciiDoc" },
   slides: { ext: "slides.html", display: "Slides" },
   latex: { ext: "tex", display: "LaTeX", internal: true },
-  sagews: { ext: "sagews", display: "Sage Worksheet", internal: true, nolink: true },
+  sagews: {
+    ext: "sagews",
+    display: "Sage Worksheet",
+    internal: true,
+    nolink: true
+  },
   pdf: { ext: "pdf", display: "PDF" },
-  script: { ext: "txt", display: "Executable Script", internal: true },
+  script: { ext: "txt", display: "Executable Script", internal: true }
 };
 
 interface ErrorProps {
@@ -49,7 +54,10 @@ class Error extends Component<ErrorProps> {
   };
 
   render_time() {
-    const time = this.props.nbconvert != null ? this.props.nbconvert.get("time") : undefined;
+    const time =
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("time")
+        : undefined;
     if (time == null) {
       return;
     }
@@ -61,7 +69,10 @@ class Error extends Component<ErrorProps> {
   }
 
   render() {
-    const error = this.props.nbconvert != null ? this.props.nbconvert.get("error") : undefined;
+    const error =
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("error")
+        : undefined;
     if (!error) {
       return <span />;
     }
@@ -72,8 +83,8 @@ class Error extends Component<ErrorProps> {
       return (
         <span>
           <h3>Error</h3>
-          Running nbconvert failed with an error {this.render_time()}. Read the error log below,
-          update your Jupyter notebook, then try again.
+          Running nbconvert failed with an error {this.render_time()}. Read the
+          error log below, update your Jupyter notebook, then try again.
           <pre
             ref={node => (this.preNode = node)}
             style={{ maxHeight: "40vh", margin: "5px 30px" }}
@@ -129,7 +140,9 @@ export class NBConvert extends Component<NBConvertProps> {
     let ext: string;
     if (to === "script" && this.props.backend_kernel_info != null) {
       // special case where extension may be different
-      ext = this.props.backend_kernel_info.getIn(["language_info", "file_extension"], "").slice(1);
+      ext = this.props.backend_kernel_info
+        .getIn(["language_info", "file_extension"], "")
+        .slice(1);
       if (ext === "") {
         ext = "txt";
       }
@@ -153,13 +166,22 @@ export class NBConvert extends Component<NBConvertProps> {
   }
 
   render_result() {
-    if (this.props.nbconvert != null ? this.props.nbconvert.get("error") : undefined) {
-      return <Error actions={this.props.actions} nbconvert={this.props.nbconvert} />;
+    if (
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("error")
+        : undefined
+    ) {
+      return (
+        <Error actions={this.props.actions} nbconvert={this.props.nbconvert} />
+      );
     }
   }
 
   render_recent_run() {
-    let time = this.props.nbconvert != null ? this.props.nbconvert.get("time") : undefined;
+    let time =
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("time")
+        : undefined;
     if (time == null) {
       return;
     }
@@ -182,8 +204,7 @@ export class NBConvert extends Component<NBConvertProps> {
     );
     return (
       <div style={{ marginTop: "15px" }}>
-        Last exported {time}.
-        {this.render_cmd()}
+        Last exported {time}.{this.render_cmd()}
         {this.render_result()}
         <ButtonGroup>{this.render_download()}</ButtonGroup>
       </div>
@@ -196,7 +217,10 @@ export class NBConvert extends Component<NBConvertProps> {
     // change on the backend, as other code generates the cmd there. If this bugs you, refactor it!
     let cmd: any;
     const { tail = undefined } = misc.path_split(this.props.path) || {};
-    if (this.props.nbconvert_dialog != null && this.props.nbconvert_dialog.get("to") === "sagews") {
+    if (
+      this.props.nbconvert_dialog != null &&
+      this.props.nbconvert_dialog.get("to") === "sagews"
+    ) {
       cmd = shell_escape(["smc-ipynb2sagews", tail]);
     } else {
       const v = ["jupyter", "nbconvert"].concat(this.args());
@@ -208,7 +232,10 @@ export class NBConvert extends Component<NBConvertProps> {
   }
 
   render_started() {
-    const start = this.props.nbconvert != null ? this.props.nbconvert.get("start") : undefined;
+    const start =
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("start")
+        : undefined;
     if (start == null) {
       return;
     }
@@ -223,7 +250,10 @@ export class NBConvert extends Component<NBConvertProps> {
     if (this.props.nbconvert_dialog == null) {
       return;
     }
-    const state = this.props.nbconvert != null ? this.props.nbconvert.get("state") : undefined;
+    const state =
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("state")
+        : undefined;
     switch (state) {
       case "start":
         return (
@@ -256,7 +286,10 @@ export class NBConvert extends Component<NBConvertProps> {
     if (this.props.nbconvert_dialog == null) {
       return;
     }
-    const state = this.props.nbconvert != null ? this.props.nbconvert.get("state") : undefined;
+    const state =
+      this.props.nbconvert != null
+        ? this.props.nbconvert.get("state")
+        : undefined;
     return (
       <div>
         <Button
@@ -286,7 +319,9 @@ export class NBConvert extends Component<NBConvertProps> {
 
   target_name = () => {
     const to =
-      this.props.nbconvert_dialog != null ? this.props.nbconvert_dialog.get("to") : undefined;
+      this.props.nbconvert_dialog != null
+        ? this.props.nbconvert_dialog.get("to")
+        : undefined;
     if (to != null) {
       return NAMES[to] != null ? NAMES[to].display : undefined;
     } else {
@@ -301,7 +336,9 @@ export class NBConvert extends Component<NBConvertProps> {
   };
 
   slides_url = () => {
-    const base = misc.separate_file_extension(misc.path_split(this.props.path).tail).name;
+    const base = misc.separate_file_extension(
+      misc.path_split(this.props.path).tail
+    ).name;
     const name = base + ".slides.html#/";
     return `https://cocalc.com/${this.props.project_id}/server/18080/` + name;
   };
@@ -309,23 +346,28 @@ export class NBConvert extends Component<NBConvertProps> {
   render_slides_workaround() {
     // workaround until #2569 is fixed.
     return (
-      <Modal show={this.props.nbconvert_dialog != null} bsSize="large" onHide={this.close}>
+      <Modal
+        show={this.props.nbconvert_dialog != null}
+        bsSize="large"
+        onHide={this.close}
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             <Icon name="slideshare" /> Jupyter Notebook Slideshow
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Use View-->Slideshow to turn your Jupyter notebook into a slideshow. One click display of
-          slideshows is{" "}
+          Use View-->Slideshow to turn your Jupyter notebook into a slideshow.
+          One click display of slideshows is{" "}
           <a
             target="_blank"
             rel="noopener"
             href="https://github.com/sagemathinc/cocalc/issues/2569#issuecomment-350940928"
           >
             not yet implemented
-          </a>. However, you can start a slideshow by copying and pasting the following command in a
-          terminal in CoCalc (+New-->Terminal):
+          </a>
+          . However, you can start a slideshow by copying and pasting the
+          following command in a terminal in CoCalc (+New-->Terminal):
           <pre>{this.slides_command()}</pre>
           Then view your slides at
           <div style={{ textAlign: "center" }}>
@@ -343,7 +385,9 @@ export class NBConvert extends Component<NBConvertProps> {
 
   render() {
     const to =
-      this.props.nbconvert_dialog != null ? this.props.nbconvert_dialog.get("to") : undefined;
+      this.props.nbconvert_dialog != null
+        ? this.props.nbconvert_dialog.get("to")
+        : undefined;
     if (to == null) {
       return <span />;
     }
@@ -351,7 +395,11 @@ export class NBConvert extends Component<NBConvertProps> {
       return this.render_slides_workaround();
     }
     return (
-      <Modal show={this.props.nbconvert_dialog != null} bsSize="large" onHide={this.close}>
+      <Modal
+        show={this.props.nbconvert_dialog != null}
+        bsSize="large"
+        onHide={this.close}
+      >
         <Modal.Header closeButton>
           <Modal.Title>Download</Modal.Title>
         </Modal.Header>
