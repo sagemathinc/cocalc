@@ -19,6 +19,7 @@ import {
 import { SyncHighlight } from "./pdfjs-annotation";
 
 export const PAGE_GAP: number = 20;
+const BG_COL = "#525659";
 
 interface PageProps {
   actions: any;
@@ -38,11 +39,12 @@ export class Page extends Component<PageProps, {}> {
 
   shouldComponentUpdate(next_props: PageProps): boolean {
     return (
-      is_different(
-        this.props,
-        next_props,
-        ["n", "renderer", "scale", "sync_highlight"]
-      ) ||
+      is_different(this.props, next_props, [
+        "n",
+        "renderer",
+        "scale",
+        "sync_highlight"
+      ]) ||
       this.props.doc.pdfInfo.fingerprint !== next_props.doc.pdfInfo.fingerprint
     );
   }
@@ -81,6 +83,7 @@ export class Page extends Component<PageProps, {}> {
         style={{
           textAlign: "center",
           color: "white",
+          backgroundColor: BG_COL,
           height: `${PAGE_GAP}px`
         }}
       >
@@ -90,7 +93,8 @@ export class Page extends Component<PageProps, {}> {
   }
 
   click(event): void {
-    if (!this.props.actions.synctex_pdf_to_tex) {  // no support for synctex for whatever is using this.
+    if (!this.props.actions.synctex_pdf_to_tex) {
+      // no support for synctex for whatever is using this.
       return;
     }
     let x: number = event.nativeEvent.offsetX / this.props.scale;
@@ -127,10 +131,7 @@ export class Page extends Component<PageProps, {}> {
     return (
       <div>
         {this.render_page_number()}
-        <div
-          style={{ background: "#525659" }}
-          onDoubleClick={e => this.click(e)}
-        >
+        <div style={{ background: BG_COL }} onDoubleClick={e => this.click(e)}>
           {this.render_content()}
         </div>
       </div>
