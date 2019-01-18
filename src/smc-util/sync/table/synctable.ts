@@ -47,7 +47,7 @@ const schema = require("../../schema");
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
-  dbg: (string) => Function;
+  dbg: (str: string) => Function;
   query: (
     opts: { query: any; options?: any[]; timeout?: number; cb?: Function }
   ) => void;

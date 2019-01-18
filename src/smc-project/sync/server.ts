@@ -30,21 +30,21 @@ type Query = { [key: string]: any };
 interface Spark {
   address: { ip: string };
   id: string;
-  write: (string) => boolean;
-  on: (string, Function) => void;
+  write: (obj: any) => boolean;
+  on: (str: string, fn: Function) => void;
 }
 
 interface Channel {
-  write: (string) => boolean;
-  on: (string, Function) => void;
-  forEach: (Function) => void;
+  write: (obj: any) => boolean;
+  on: (str: string, fn: Function) => void;
+  forEach: (fn: Function) => void;
   destroy: Function;
 }
 
 import { Client } from "../smc-util/sync/editor/generic/types";
 
 interface Primus {
-  channel: (string) => Channel;
+  channel: (str: string) => Channel;
 }
 
 interface Logger {
@@ -189,10 +189,10 @@ class SyncTableChannel {
     // Now handle the connection
     this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
     if (this.closed) return;
-    if (this.synctable.get_state() == 'closed') {
+    if (this.synctable.get_state() == "closed") {
       throw Error("BUG -- this shouldn't happen");
     }
-    if (this.synctable.get_state() == 'disconnected') {
+    if (this.synctable.get_state() == "disconnected") {
       // Because synctable is being initialized for the first time,
       // or it temporarily disconnected (e.g., lost hub), and is
       // trying to reconnect.  So just wait for it to connect.

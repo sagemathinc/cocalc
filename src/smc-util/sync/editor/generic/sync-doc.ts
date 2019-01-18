@@ -104,7 +104,7 @@ export interface SyncOpts0 {
 }
 
 export interface SyncOpts extends SyncOpts0 {
-  from_str: (string) => Document;
+  from_str: (str: string) => Document;
   doctype: DocType;
 }
 
@@ -122,7 +122,7 @@ export class SyncDoc extends EventEmitter {
   private my_user_id: number;
 
   private client: Client;
-  private _from_str: (string) => Document; // creates a doc from a string.
+  private _from_str: (str: string) => Document; // creates a doc from a string.
 
   // Throttling of incoming upstream patches from project to client.
   private patch_interval: number = 250;
