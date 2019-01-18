@@ -1,3 +1,6 @@
+WARNING: This is signficantly out of date!
+============================================
+
 SMC's README_ gives a very high level overview of its architecture.  However,
 it doesn't really explain much about the implementation details--what
 technologies are used, how, and why.  This is in part because a lot of it has

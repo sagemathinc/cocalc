@@ -2,6 +2,8 @@
 X Window Editor Actions
 */
 
+const HELP_URL = "https://doc.cocalc.com/x11.html";
+
 // 15 minute idle timeout -- it's important to disconnect
 // the websocket to the xpra server, to avoid a massive
 // waste of bandwidth...
@@ -30,6 +32,8 @@ import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 
 const { alert_message } = require("smc-webapp/alerts");
+
+const { open_new_tab } = require("smc-webapp/misc_page");
 
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;
@@ -285,7 +289,9 @@ export class Actions extends BaseActions<X11EditorState> {
   ): void {
     const modal_wids = this.get_modal_wids();
     if (modal_wids.size > 0 && !modal_wids.has(wid)) {
-      this.set_error("Close any modal tabs before switching to a non-modal tab.");
+      this.set_error(
+        "Close any modal tabs before switching to a non-modal tab."
+      );
       return;
     }
     this.push_to_wid_history(wid);
@@ -579,5 +585,15 @@ export class Actions extends BaseActions<X11EditorState> {
       }
     });
     return wids;
+  }
+
+  // for X11, we just want to communicate the %-value
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
+    this.set_status(`Set zoom to ${percent}%`, 1500);
+  }
+
+  help(): void {
+    open_new_tab(HELP_URL);
   }
 }

@@ -104,7 +104,7 @@ export type CourseSettingsRecord = TypedMap<{
   description: string;
   email_invite: string;
   institute_pay: boolean;
-  pay: string | number | Date;
+  pay: string | Date;
   shared_project_id: string;
   student_pay: boolean;
   title: string;
@@ -246,7 +246,9 @@ export class CourseStore extends Store<CourseState> {
   }
 
   get_pay() {
-    return !!this.get("settings").get("pay");
+    const pay = this.get("settings").get("pay");
+    if(!pay) return "";
+    return pay;
   }
 
   get_allow_collabs() {

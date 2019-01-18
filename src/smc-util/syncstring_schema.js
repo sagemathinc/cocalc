@@ -494,8 +494,7 @@ schema.cursors = {
       required_fields: {
         string_id: true,
         user_id: true,
-        locs: true,
-        time: true
+        locs: true
       },
       check_hook(db, obj, account_id, project_id, cb) {
         // this verifies that user has write access to these cursors

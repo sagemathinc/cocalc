@@ -294,6 +294,7 @@ class exports.Client extends EventEmitter
 
         if mesg.event != 'pong'
             dbg("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+            # dbg("hub --> client (client=#{@id}): #{misc.trunc(JSON.stringify(mesg),1000)}")
 
         if mesg.id?
             start = @_messages.being_handled[mesg.id]
