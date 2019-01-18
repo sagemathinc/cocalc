@@ -122,7 +122,8 @@ BUILD_DATE    = date.toISOString()
 BUILD_TS      = date.getTime()
 GOOGLE_ANALYTICS = misc_node.GOOGLE_ANALYTICS
 CC_NOCLEAN    = !! process.env.CC_NOCLEAN
-KUCALC_MODE   = (!! process.env.KUCALC_MODE) and (process.env.KUCALC_MODE isnt 'false')
+COCALC_THEME  = process.env.COCALC_THEME ? 'cocalc'
+KUCALC_MODE   = COCALC_THEME == 'kucalc'
 
 # create a file base_url to set a base url
 BASE_URL      = misc_node.BASE_URL
@@ -150,6 +151,7 @@ console.log "INPUT            = #{INPUT}"
 console.log "OUTPUT           = #{OUTPUT}"
 console.log "GOOGLE_ANALYTICS = #{GOOGLE_ANALYTICS}"
 console.log "CC_NOCLEAN       = #{CC_NOCLEAN}"
+console.log "COCALC_THEME     = #{COCALC_THEME}"
 console.log "KUCALC_MODE      = #{KUCALC_MODE}"
 
 
