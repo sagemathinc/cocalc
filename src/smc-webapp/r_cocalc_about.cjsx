@@ -45,7 +45,7 @@ ABOUT_LINKS =
         link : <span>
                 Open CoCalc is licensed under the terms of the{' '}
                 <a href="https://www.gnu.org/licenses/agpl-3.0.de.html">GNU AGPL3 license</a>.{' '}
-                (see <a href="https://github.com/sagemathinc/cocalc/blob/master/LICENSE.md" target="_blank">License.md</a>)
+                (see <a href="https://github.com/sagemathinc/cocalc/blob/master/LICENSE.md" target="_blank" rel="noopener">License.md</a>)
                </span>
     trademark:
         icon : 'cc-icon-section'
@@ -76,10 +76,10 @@ CONNECT_LINKS =
         href : 'https://github.com/sagemathinc/cocalc'
         link : 'GitHub'
         text : <span>
-                 <a href='https://github.com/sagemathinc/cocalc/tree/master/src' target='_blank'>source code</a>,{' '}
-                 <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank'>bugs</a>
+                 <a href='https://github.com/sagemathinc/cocalc/tree/master/src' target='_blank' rel='noopener'>source code</a>,{' '}
+                 <a href='https://github.com/sagemathinc/cocalc/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20label%3AI-bug%20sort%3Acreated-asc%20-label%3Ablocked' target='_blank' rel='noopener'>bugs</a>
                  {' and '}
-                 <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank'>issues</a>
+                 <a href='https://github.com/sagemathinc/cocalc/issues' target='_blank' rel='noopener'>issues</a>
                </span>
 
 THIRD_PARTY =
@@ -98,11 +98,11 @@ THIRD_PARTY =
         href : 'http://www.scipy-lectures.org/'
         link : 'Scientific Python'
         text : <span>i.e.{' '}
-                    <a href='http://statsmodels.sourceforge.net/stable/' target='_blank'>Statsmodels</a>,{' '}
-                    <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank'>Pandas</a>,{' '}
-                    <a href='http://docs.sympy.org/latest/index.html' target='_blank'>SymPy</a>,{' '}
-                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank'>Scikit Learn</a>,{' '}
-                    <a href='http://www.nltk.org/' target='_blank'>NLTK</a> and many more
+                    <a href='http://statsmodels.sourceforge.net/stable/' target='_blank' rel='noopener'>Statsmodels</a>,{' '}
+                    <a href='http://pandas.pydata.org/pandas-docs/stable/' target='_blank' rel='noopener'>Pandas</a>,{' '}
+                    <a href='http://docs.sympy.org/latest/index.html' target='_blank' rel='noopener'>SymPy</a>,{' '}
+                    <a href='http://scikit-learn.org/stable/documentation.html' target='_blank' rel='noopener'>Scikit Learn</a>,{' '}
+                    <a href='http://www.nltk.org/' target='_blank' rel='noopener'>NLTK</a> and many more
                </span>
     octave :
         icon : 'cc-icon-octave'
