@@ -351,28 +351,33 @@ export class CourseActions extends Actions<CourseState> {
   _syncdb_cursor_activity = () => {
     const next_cursors = this.syncdb.get_cursors();
     // assignment_id → student_id → account_id
-    let grading_cursors = {};
+    const grading_cursors = {};
     next_cursors.forEach(function(info, account_id) {
       info.get("locs").forEach(function(loc) {
+        //console.log(
+        //  "course::_syncdb_cursor_activity loc:",
+        //  loc,
+        //  info,
+        //  account_id
+        //);
         switch (loc.get("type")) {
           case "grading":
-            var student_id = loc.get("student_id");
-            var assignment_id = loc.get("assignment_id");
-            var time = new Date(info.get("time"));
+            const student_id = loc.get("student_id");
+            const assignment_id = loc.get("assignment_id");
+            const time = new Date(info.get("time"));
             if (grading_cursors[assignment_id] == null) {
               grading_cursors[assignment_id] = {};
             }
             if (grading_cursors[assignment_id][student_id] == null) {
               grading_cursors[assignment_id][student_id] = {};
             }
-            return (grading_cursors[assignment_id][student_id][
-              account_id
-            ] = time);
+            grading_cursors[assignment_id][student_id][account_id] = time;
         }
+        return true;
       });
     });
-    grading_cursors = immutable.fromJS(grading_cursors);
-    this.grading_set_entry("cursors", grading_cursors);
+    const gci = immutable.fromJS(grading_cursors);
+    this.grading_set_entry("cursors", gci);
   };
 
   dispatch_payload = payload => {
