@@ -307,7 +307,7 @@ THIRD_PARTY =
                </span>
     julia :
         icon : 'cc-icon-julia'
-        href : 'http://docs.julialang.org/en/stable/manual/introduction/'
+        href : 'https://www.julialang.org/'
         link : 'Julia'
         text : 'programming language for numerical computing'
     octave :
