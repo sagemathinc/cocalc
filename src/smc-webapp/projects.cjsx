@@ -25,6 +25,7 @@ underscore = require('underscore')
 
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
+{once} = require('smc-util/async-utils')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
@@ -217,8 +218,6 @@ class ProjectsActions extends Actions
         webapp_client.create_project(opts)
 
     # Open the given project
-    #TODOJ: should not be in projects...
-    # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
             project_id     : required  # string  id of the project to open
@@ -226,6 +225,10 @@ class ProjectsActions extends Actions
             switch_to      : true      # bool    Whether or not to foreground it
             ignore_kiosk   : false     # bool    Ignore ?fullscreen=kiosk
             change_history : true      # bool    Whether or not to alter browser history
+        if not store.get_project(opts.project_id)?
+            # trying to open a not-known project -- maybe
+            # we have not yet loaded the full project list?
+            await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -434,7 +437,7 @@ class ProjectsActions extends Actions
         if not merge
             # explicitly set every field not specified to 0
             upgrades = misc.copy(upgrades)
-            for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
+            for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
         @projects_table_set
             project_id : project_id
@@ -517,6 +520,12 @@ class ProjectsActions extends Actions
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
 
+    load_all_projects: => # async
+        if store.get('load_all_projects_done')
+            return
+        await load_all_projects()  # function defined below
+        @setState(load_all_projects_done : true)
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
@@ -582,6 +591,8 @@ class ProjectsStore extends Store
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
+            if pay == true  # bug -- can delete this workaround in March 2019.
+                pay = new Date('2019-02-15')
             if pay
                 if webapp_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,
@@ -814,7 +825,37 @@ class ProjectsTable extends Table
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
 
-redux.createTable('projects', ProjectsTable)
+class ProjectsAllTable extends Table
+    query: ->
+        return 'projects_all'
+    _change: (table, keys) =>
+        actions.setState(project_map: table.get())
+
+# We define functions below that load all projects or just the recent
+# ones.  First we try loading the recent ones.  If this is *empty*,
+# then we try loading all projects.  Loading all projects is also automatically
+# called if there is any attempt to open a project that isn't recent.
+# Why? Because the load_all_projects query is **expensive**.
+
+all_projects_have_been_loaded = false
+load_all_projects = =>
+    if all_projects_have_been_loaded
+        return
+    all_projects_have_been_loaded = true
+    redux.removeTable('projects')
+    redux.createTable('projects', ProjectsAllTable)
+    await once(redux.getTable('projects')._table, 'connected')
+
+load_recent_projects = =>
+    redux.createTable('projects', ProjectsTable)
+    await once(redux.getTable('projects')._table, "connected")
+    if redux.getTable('projects')._table.get().size == 0
+        await load_all_projects()
+
+load_recent_projects()
+
+
+
 
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
@@ -1171,6 +1212,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             search            : rtypes.string
             selected_hashtags : rtypes.object
             show_all          : rtypes.bool
+            load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
 
@@ -1400,10 +1442,50 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 redux       = {redux} />
                         </Col>
                     </Row>
+                    <Row>
+                        <Col sm={12}>
+                            <LoadAllProjects
+                                done = {@props.load_all_projects_done}
+                                redux = {redux} />
+                        </Col>
+                    </Row>
                 </Well>
             </Grid>
             <Footer/>
         </div>
+
+LoadAllProjects = rclass
+    displayName: "LoadAllProjects"
+
+    propTypes:
+        done  : rtypes.bool
+        redux : rtypes.object
+
+    load: ->
+        @setState(loading : true)
+        await @props.redux.getActions('projects').load_all_projects()
+        @setState(loading : false)
+
+    render_loading: ->
+        if this.state?.loading
+            return <Loading />
+
+    render_button: ->
+        <Button
+            onClick={@load}
+            bsStyle='info'
+            bsSize='large'>
+            {@render_loading()}
+            Load projects older than 3 weeks...
+        </Button>
+
+    render: ->
+        if @props.done
+            return <span />
+        <div style={marginTop:'20px'}>
+            {@render_button()}
+        </div>
+
 
 exports.ProjectTitle = ProjectTitle = rclass
     displayName: 'Projects-ProjectTitle'

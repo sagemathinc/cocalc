@@ -33,6 +33,8 @@ exports.init = init = (path, redux, project_id) ->
         actions.store = store
         actions.init_from_syncdb()
         syncdb.on('change', actions._syncdb_change)
+        syncdb.on('has-uncommitted-changes', (val) => actions.setState({has_uncommitted_changes:val}))
+        syncdb.on('has-unsaved-changes', (val) => actions.setState({has_unsaved_changes:val}))
         redux.getProjectActions(project_id)?.log_opened_time(path)
 
     return name

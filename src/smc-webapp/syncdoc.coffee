@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+SAVE_DEBOUNCE_MS = 1500
+
 $        = window.$
 misc     = require('smc-util/misc')
 {defaults, required} = misc
@@ -311,7 +313,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     return
                 redux.getProjectActions(@editor.project_id).close_tab(@filename)
 
-            @save_state_debounce = underscore.debounce(@sync, 300)
+            @save_state_debounce = underscore.debounce(@sync, SAVE_DEBOUNCE_MS)
 
             @codemirror.on 'change', (instance, changeObj) =>
                 if @_closed

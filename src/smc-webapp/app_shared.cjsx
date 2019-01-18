@@ -31,7 +31,7 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
-{AdminPage} = require('admin/page')
+{AdminPage} = require('./admin')
 {show_announce_end} = require('./redux_account')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
