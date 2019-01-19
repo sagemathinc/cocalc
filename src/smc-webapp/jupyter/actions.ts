@@ -1248,6 +1248,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+
+
   run_code_cell = (id: any, save: boolean = true) => {
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
@@ -1362,6 +1364,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
     this.save_asap();
   };
+
+  clear_all_cell_run_state = (): void => {
+    this.store.get("cell_list").forEach(id => {
+      this.clear_cell(id, false);
+    });
+    this.save_asap();
+  }
 
   // Run all cells strictly above the current cursor position.
   run_all_above = (): void => {
@@ -2120,10 +2129,31 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ introspect: undefined });
   };
 
-  signal = (signal = "SIGINT"): void => {
+  signal = async (signal = "SIGINT"): Promise<void> => {
     // TODO: some setStates, awaits, and UI to reflect this happening...
-    this._api_call("signal", { signal: signal }, 5000);
+    await this._api_call("signal", { signal: signal }, 5000);
   };
+
+  restart = reuseInFlight(
+    async (): Promise<void> => {
+      if (this._state === "closed") {
+        return;
+      }
+      await this.signal("SIGKILL");
+      this.clear_all_cell_run_state();
+      await this.set_backend_kernel_info();
+    }
+  );
+
+  shutdown = reuseInFlight(
+    async (): Promise<void> => {
+      if (this._state === "closed") {
+        return;
+      }
+      await this.signal("SIGKILL");
+      this.clear_all_cell_run_state();
+    }
+  );
 
   set_backend_kernel_info = reuseInFlight(
     async (): Promise<void> => {
