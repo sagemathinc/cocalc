@@ -422,9 +422,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_error = (err: any): void => {
+    if (this._state === "closed") return;
     if (err == null) {
       this.setState({ error: undefined }); // delete from store
       return;
+    }
+    if (typeof err != "string") {
+      err = `${err}`;
     }
     const cur = this.store.get("error");
     // don't show the same error more than once
@@ -1248,8 +1252,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-
-
   run_code_cell = (id: any, save: boolean = true) => {
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
@@ -1290,6 +1292,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         output: null,
         exec_count: null,
         collapsed: null
+      },
+      save
+    );
+  };
+
+  clear_cell_run_state = (id: any, save = true) => {
+    if (this.store.check_edit_protection(id, this)) {
+      return;
+    }
+    return this._set(
+      {
+        type: "cell",
+        id,
+        state: null
       },
       save
     );
@@ -1367,10 +1383,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   clear_all_cell_run_state = (): void => {
     this.store.get("cell_list").forEach(id => {
-      this.clear_cell(id, false);
+      this.clear_cell_run_state(id, false);
     });
     this.save_asap();
-  }
+  };
 
   // Run all cells strictly above the current cursor position.
   run_all_above = (): void => {
@@ -2131,27 +2147,32 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   signal = async (signal = "SIGINT"): Promise<void> => {
     // TODO: some setStates, awaits, and UI to reflect this happening...
-    await this._api_call("signal", { signal: signal }, 5000);
+    try {
+      await this._api_call("signal", { signal: signal }, 5000);
+    } catch (err) {
+      this.set_error(err);
+    }
   };
 
   restart = reuseInFlight(
     async (): Promise<void> => {
-      if (this._state === "closed") {
-        return;
-      }
-      await this.signal("SIGKILL");
+      if (this._state === "closed") return;
       this.clear_all_cell_run_state();
+      await this.save_asap();
+      if (this._state === "closed") return;
+      await this.signal("SIGKILL");
+      if (this._state === "closed") return;
       await this.set_backend_kernel_info();
     }
   );
 
   shutdown = reuseInFlight(
     async (): Promise<void> => {
-      if (this._state === "closed") {
-        return;
-      }
+      if (this._state === "closed") return;
       await this.signal("SIGKILL");
+      if (this._state === "closed") return;
       this.clear_all_cell_run_state();
+      await this.save_asap();
     }
   );
 
@@ -2198,12 +2219,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_time: data.start_time
       });
     };
-    await retry_until_success({
-      max_time: 1000 * 60 * 30,
-      start_delay: 500,
-      max_delay: 3000,
-      f
-    });
+    try {
+      await retry_until_success({
+        max_time: 1000 * 60 * 30,
+        start_delay: 500,
+        max_delay: 3000,
+        f
+      });
+    } catch (err) {
+      this.set_error(err);
+    }
 
     // Update the codemirror editor options.
     this.set_cm_options();
@@ -2615,7 +2640,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     key: any,
     value: any
   ): Promise<void> => {
-    await this._api_call("store", { key, value });
+    try {
+      await this._api_call("store", { key, value });
+    } catch (err) {
+      this.set_error(err);
+    }
   };
 
   set_to_ipynb = async (ipynb: any, data_only = false) => {
@@ -2773,7 +2802,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       value = await this._api_call("store", { key });
     } catch (err) {
-      return; // TODO?
+      this.set_error(err);
+      return;
     }
     if (this._state === "closed") {
       return;
@@ -3106,7 +3136,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         throw new Error(`Unknown cell_type: '${cell_type}'`);
     }
     // console.log("FMT", cell_type, options, code);
-    const resp = await this._api_call_prettier(code, options);
+    let resp;
+    try {
+      resp = await this._api_call_prettier(code, options);
+    } catch (err) {
+      this.set_error(err);
+    }
     // console.log("FMT resp", resp);
 
     // we additionally trim the output, because prettier introduces a trailing newline
@@ -3179,11 +3214,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  close_and_halt = (): void => {
-    // Kill running session
-    this.signal("SIGKILL");
+  close_and_halt = async (): Promise<void> => {
     // Display the main file listing page
     this.file_open();
+    // Fully shutdown and save this fact.
+    await this.shutdown();
     // Close the file
     this.file_action("close_file");
   };
