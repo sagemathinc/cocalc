@@ -61,7 +61,7 @@ restart_sage_server = (cb) ->
 
 # Get a new connection to the Sage server.  If the server
 # isn't running, e.g., it was killed due to running out of memory,
-# so attempt to restart it and try to connect.
+# attempt to restart it and try to connect.
 exports.get_sage_socket = (cb) ->   # cb(err, socket)
     socket = undefined
     try_to_connect = (cb) ->
@@ -69,21 +69,21 @@ exports.get_sage_socket = (cb) ->   # cb(err, socket)
             if not err
                 socket = _socket
                 cb()
-            else
-                # Failed for some reason: try to restart one time, then try again.
-                # We do this because the Sage server can easily get killed due to out of memory conditions.
-                # But we don't constantly try to restart the server, since it can easily fail to start if
-                # there is something wrong with a local Sage install.
-                # Note that restarting the sage server doesn't impact currently running worksheets (they
-                # have their own process that isn't killed).
-                restart_sage_server (err) ->  # won't actually try to restart if called recently.
-                    if err
-                        cb(err)
-                        return
-                    # success at restarting sage server: *IMMEDIATELY* try to connect
-                    _get_sage_socket (err, _socket) ->
-                        socket = _socket
-                        cb(err)
+                return
+            # Failed for some reason: try to restart one time, then try again.
+            # We do this because the Sage server can easily get killed due to out of memory conditions.
+            # But we don't constantly try to restart the server, since it can easily fail to start if
+            # there is something wrong with a local Sage install.
+            # Note that restarting the sage server doesn't impact currently running worksheets (they
+            # have their own process that isn't killed).
+            restart_sage_server (err) ->  # won't actually try to restart if called recently.
+                if err
+                    cb(err)
+                    return
+                # success at restarting sage server: *IMMEDIATELY* try to connect
+                _get_sage_socket (err, _socket) ->
+                    socket = _socket
+                    cb(err)
 
     misc.retry_until_success
         f           : try_to_connect
@@ -154,6 +154,7 @@ class SageSession
         opts = defaults opts,
             client : required
             path   : required   # the path to the *worksheet* file
+        @dbg('constructor')()
         @_path = opts.path
         @_client = opts.client
         @_output_cb = {}

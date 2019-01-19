@@ -19,8 +19,10 @@ to a syncstring editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 
+
 const stringify = require("json-stable-stringify");
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { to_key } from "../../table/util";
@@ -55,6 +57,9 @@ export class Evaluator {
   private last_call_time: Date = new Date(0);
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
+    this.ensure_sage_session_running = reuseInFlight(
+      this.ensure_sage_session_running
+    );
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
@@ -93,12 +98,11 @@ export class Evaluator {
   }
 
   private dbg(_f): Function {
-    /*
     if (this.client.is_project()) {
       return this.client.dbg(`Evaluator.${_f}`);
+    } else {
+      return (..._) => {};
     }
-    */
-    return (..._) => {};
   }
 
   private async init_eval_inputs(): Promise<void> {
@@ -468,25 +472,29 @@ export class Evaluator {
     }
   }
 
+  // NOTE: this is reuseInFlight'd
+  private async ensure_sage_session_running(): Promise<void> {
+    if (this.sage_session != null) return;
+    this.dbg("ensure_sage_session_running")();
+    // This happens only in the project, where client
+    // has a sage_session method.
+    this.sage_session = (this.client as any).sage_session({
+      path: this.syncdoc.get_path()
+    });
+  }
+
   // Runs only in the project
-  private evaluate_using_sage(input: Input, cb: Function): void {
+  private async evaluate_using_sage(input: Input, cb: Function): Promise<void> {
     this.assert_is_project();
     const dbg = this.dbg("evaluate_using_sage");
     dbg();
-
-    if (this.sage_session == null) {
-      dbg("get a sage session");
-      // This happens only in the project, where client
-      // has a sage_session method.
-      this.sage_session = (this.client as any).sage_session({
-        path: this.syncdoc.get_path()
-      });
-    }
 
     // TODO: input also may have -- uuid, output_uuid, timeout
     if (input.event === "execute_code") {
       input = copy_with(input, ["code", "data", "preparse", "event", "id"]);
     }
+    dbg("ensure sage session is running");
+    await this.ensure_sage_session_running();
     dbg("send code to sage", to_json(input));
     this.sage_session.call({ input, cb });
   }
