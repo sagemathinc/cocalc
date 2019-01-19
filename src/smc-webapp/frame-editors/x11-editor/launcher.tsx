@@ -217,6 +217,11 @@ const APPS: IAPPS = {
     icon: "edit",
     label: "Gedit",
     desc: "The GNOME text editor"
+  },
+  cadabra2: {
+    icon: "square-root-alt",
+    label: "Cadabra 2",
+    desc: "A field-theory motivated approach to computer algebra"
   }
 };
 
