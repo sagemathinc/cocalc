@@ -216,19 +216,19 @@ class FileUseViewer extends React.Component<
             }
           }}
           on_up={() =>
-            this.setState({ cursor: Math.max(0, this.state.cursor - 1) })
+            this.setState(({ cursor }) => ({ cursor: Math.max(0, cursor - 1) }))
           }
           on_down={() =>
-            this.setState({
+            this.setState(({ cursor }) => ({
               cursor: Math.max(
                 0,
                 Math.min(
                   (this._visible_list != null ? this._visible_list.length : 0) -
                     1,
-                  this.state.cursor + 1
+                  cursor + 1
                 )
               )
-            })
+            }))
           }
         />
       </span>
@@ -466,4 +466,3 @@ function open_file_use_entry(info: any, redux: any) {
     })
   );
 }
-``;
