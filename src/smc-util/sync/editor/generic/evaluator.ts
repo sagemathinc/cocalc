@@ -22,6 +22,7 @@ may be used to enhance the experience of document editing.
 
 const stringify = require("json-stable-stringify");
 
+import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
@@ -481,6 +482,7 @@ export class Evaluator {
     this.sage_session = (this.client as any).sage_session({
       path: this.syncdoc.get_path()
     });
+    await callback(this.sage_session.init_socket)
   }
 
   // Runs only in the project

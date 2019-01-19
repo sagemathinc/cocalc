@@ -176,8 +176,8 @@ class SageSession
     is_running: () =>
         return @_socket?
 
-    _init_socket: (cb) =>
-        dbg = @dbg('_init_socket()')
+    init_socket: (cb) =>
+        dbg = @dbg('init_socket()')
         dbg()
         exports.get_sage_socket (err, socket) =>
             if err
@@ -240,7 +240,7 @@ class SageSession
                 dbg("restarting sage session")
                 if @_socket?
                     @close()
-                @_init_socket (err) =>
+                @init_socket (err) =>
                     if err
                         opts.cb?({error:err})
                     else
@@ -255,7 +255,7 @@ class SageSession
                         if @_socket?
                             cb()
                         else
-                            @_init_socket(cb)
+                            @init_socket(cb)
                     (cb) =>
                         if not opts.input.id?
                             opts.input.id = misc.uuid()
