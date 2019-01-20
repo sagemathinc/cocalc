@@ -1305,7 +1305,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       {
         type: "cell",
         id,
-        state: null
+        state: "done"
       },
       save
     );
@@ -2156,11 +2156,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   restart = reuseInFlight(
     async (): Promise<void> => {
-      if (this._state === "closed") return;
-      this.clear_all_cell_run_state();
-      await this.save_asap();
-      if (this._state === "closed") return;
       await this.signal("SIGKILL");
+      // Wait a little, since SIGKILL has to really happen on backend,
+      // and server has to respond and change state.
+      const not_running = (s): boolean => {
+        if (this._state === "closed") return true;
+        const t = s.get_one({ type: "settings" });
+        return t != null && t.get("backend_state") != "running";
+      };
+      await this.syncdb.wait(not_running, 30);
       if (this._state === "closed") return;
       await this.set_backend_kernel_info();
     }
@@ -2176,34 +2180,41 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   );
 
-  set_backend_kernel_info = reuseInFlight(
-    async (): Promise<void> => {
-      if (this._state === "closed") {
+  set_backend_kernel_info = async (): Promise<void> => {
+    if (this._state === "closed") {
+      return;
+    }
+
+    if (this._is_project) {
+      const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
+      if (
+        this._jupyter_kernel == null ||
+        this._jupyter_kernel.get_state() == "closed"
+      ) {
+        dbg("no Jupyter kernel defined");
         return;
       }
-
-      if (this._is_project) {
-        const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
-        if (this._jupyter_kernel == null) {
-          dbg("not defined");
-          return;
-        }
-        dbg("getting kernel_info...");
-        try {
-          this.setState({
-            backend_kernel_info: await this._jupyter_kernel.kernel_info()
-          });
-        } catch (err) {
-          dbg(`error = ${err}`);
-        }
-      } else {
-        await retry_until_success({
-          max_time: 120000,
-          start_delay: 1000,
-          max_delay: 10000,
-          f: this._fetch_backend_kernel_info_from_server
+      dbg("getting kernel_info...");
+      try {
+        this.setState({
+          backend_kernel_info: await this._jupyter_kernel.kernel_info()
         });
+      } catch (err) {
+        dbg(`error = ${err}`);
       }
+    } else {
+      await this._set_backend_kernel_info_client();
+    }
+  };
+
+  _set_backend_kernel_info_client = reuseInFlight(
+    async (): Promise<void> => {
+      await retry_until_success({
+        max_time: 120000,
+        start_delay: 1000,
+        max_delay: 10000,
+        f: this._fetch_backend_kernel_info_from_server
+      });
     }
   );
 
