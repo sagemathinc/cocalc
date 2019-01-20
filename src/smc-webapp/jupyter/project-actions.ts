@@ -25,7 +25,6 @@ export class JupyterActions extends JupyterActions0 {
   private _kernel_state: any;
   private _last_save_ipynb_file: any;
   private _manager_run_cell_queue: any;
-  private _run_again: any;
   private _run_nbconvert_lock: any;
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
@@ -495,26 +494,12 @@ export class JupyterActions extends JupyterActions0 {
 
     // INITIAL STATE THAT MUST BE DONE BEFORE ANYTHING ASYNC!
 
-    // if @_run_again[id] is set on completion of eval, then cell is run
-    // again; this is used only when re-running a cell currently running.
-    if (this._run_again != null) {
-      delete this._run_again[id];
-    }
-
     if (this._running_cells == null) {
       this._running_cells = {};
     }
 
     if (this._running_cells[id]) {
-      // The cell is already running, so we must ensure cell is
-      // not already running; this would happen if your run cell,
-      // change input while it is still running, then re-run.
-      if (this._run_again == null) {
-        this._run_again = {};
-      }
-      this._run_again[id] = true;
-      dbg("cell already queued to run in kernel, so cancel it before running again");
-      this._cancel_run(id);
+      dbg("cell already queued to run in kernel");
       return;
     }
 
@@ -574,9 +559,6 @@ export class JupyterActions extends JupyterActions0 {
       exec.close();
       if (this._running_cells != null) {
         delete this._running_cells[id];
-      }
-      if (this._run_again != null ? this._run_again[id] : undefined) {
-        return this.run_code_cell(id);
       }
     });
 

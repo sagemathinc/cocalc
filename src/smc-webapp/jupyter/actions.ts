@@ -1253,6 +1253,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_code_cell = (id: any, save: boolean = true) => {
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      return;
+    }
+    if (cell.get('state', 'done') != 'done') {
+      // already running -- stop it first somehow if you want to run it again...
+      return;
+    }
+
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
 
