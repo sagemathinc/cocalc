@@ -204,6 +204,7 @@ HelpPageUsageSection = rclass
 
 SUPPORT_LINKS =
     email_help :
+        show : HELP_EMAIL?
         commercial: true
         bold : true
         icon : 'envelope'
@@ -211,11 +212,13 @@ SUPPORT_LINKS =
         link : HELP_EMAIL
         text : 'Please include the URL link to the relevant project or file!'
     doc :
+        show : DOC_URL?
         icon : 'book'
         bold : true
         href : DOC_URL
         link : <span><SiteName/> manual</span>
     wiki :
+        show : WIKI_URL?
         icon : 'question-circle'
         bold : true
         href : WIKI_URL
@@ -225,6 +228,7 @@ SUPPORT_LINKS =
         href : 'https://doc.cocalc.com/teaching-instructors.html'
         link : <span>Instructor Guide: How to teach a course with <SiteName/></span>
     pricing :
+        show : PolicyPricingPageUrl?
         icon : 'money'
         href : PolicyPricingPageUrl
         link : 'Pricing and subscription options'
@@ -242,6 +246,7 @@ SUPPORT_LINKS =
         href : "#{BASE_URL}/doc/api.html"
         link :  <span><SiteName/> API</span>
     live_demo :
+        show : LIVE_DEMO_REQUEST?
         icon : 'comments-o'
         link : "Request a live demo about how to teach a course"
         href : LIVE_DEMO_REQUEST
@@ -261,6 +266,7 @@ CONNECT_LINKS =
         href : 'http://blog.sagemath.com/'
         link : 'News and updates on our blog'
     twitter :
+        show : TWITTER_HANDLE?
         icon : 'twitter-square'
         href : "https://twitter.com/#{TWITTER_HANDLE}"
         link : "Follow @#{TWITTER_HANDLE} on twitter"
@@ -269,6 +275,7 @@ CONNECT_LINKS =
         href : 'https://www.facebook.com/CoCalcOnline/'
         link : 'Like our facebook page'
     google_plus :
+        show : false
         icon : 'google-plus-square'
         href : 'https://plus.google.com/117696122667171964473/posts'
         link : <span>+1 our Google+ page</span>
@@ -375,6 +382,8 @@ LinkList = rclass
     render_links: ->
         {commercial} = require('./customize')
         for name, data of @props.links
+            if data.show? and (not data.show)
+                continue
             if data.commercial and not commercial
                 continue
             style = misc.copy(li_style)
