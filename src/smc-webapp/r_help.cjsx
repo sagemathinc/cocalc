@@ -36,7 +36,7 @@ misc = require('smc-util/misc')
 {Icon, Loading, Space, TimeAgo, UNIT, Footer} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, PolicyPricingPageUrl} = require('./customize')
 {RECENT_TIMES, RECENT_TIMES_KEY} = require('smc-util/schema')
-{COLORS, HELP_EMAIL, WIKI_URL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME} = require('smc-util/theme')
+{COLORS, HELP_EMAIL, WIKI_URL, DOC_URL, TWITTER_HANDLE, LIVE_DEMO_REQUEST, SITE_NAME, INCORPORATED} = require('smc-util/theme')
 {ComputeEnvironment} = require('./compute_environment')
 
 # List item style
@@ -363,8 +363,9 @@ ABOUT_LINKS =
     #        Education Grant program</a>
     #    </span>
     incorporated :
+        show : INCORPORATED?
         icon : 'gavel'
-        text : 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+        text : INCORPORATED
 
 
 LinkList = rclass
@@ -456,7 +457,7 @@ exports.HelpPage = HelpPage = rclass
                     <LinkList title='Connect' icon='plug' links={CONNECT_LINKS} />
                 </Row>
                 <Row style={marginTop:'20px'}>
-                    <ThirdPartySoftware />
+                    {<ThirdPartySoftware /> if require('./customize').commercial}
                     <HelpPageUsageSection />
                 </Row>
                 <Row>
