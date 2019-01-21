@@ -642,10 +642,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (i == null) {
       return;
     }
-    const cell_list = this.store.get("cell_list");
-    if (cell_list == null) {
-      return;
-    }
+    const cell_list = this.get_cell_list();
     if (i < 0) {
       i = 0;
     } else if (i >= cell_list.size) {
@@ -675,7 +672,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   select_all_cells = (): void => {
-    this.setState({ sel_ids: this.store.get("cell_list").toSet() });
+    this.setState({ sel_ids: this.get_cell_list().toSet() });
   };
 
   // select all cells from the currently focused one (where the cursor is -- cur_id)
@@ -697,7 +694,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       return;
     }
-    const v = this.store.get("cell_list").toJS();
+    const v = this.get_cell_list().toJS();
     for ([i, x] of misc.enumerate(v)) {
       if (x === id) {
         endpoint0 = i;
@@ -791,7 +788,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     const cell_list = cell_utils.sorted_cell_list(cells);
-    if (!cell_list.equals(this.store.get("cell_list"))) {
+    if (!cell_list.equals(this.get_cell_list())) {
       this.setState({ cell_list });
     }
   };
@@ -812,10 +809,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.reset_more_output(id); // free up memory locally
       if (old_cell != null) {
         obj = { cells: cells.delete(id) };
-        const cell_list = this.store.get("cell_list");
-        if (cell_list != null) {
-          obj.cell_list = cell_list.filter(x => x !== id);
-        }
+        const cell_list = this.get_cell_list();
+        obj.cell_list = cell_list.filter(x => x !== id);
         this.setState(obj);
       }
     } else {
@@ -935,7 +930,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const cur_id = this.store.get("cur_id");
     if (cur_id == null || this.store.getIn(["cells", cur_id]) == null) {
-      this.set_cur_id(__guard__(this.store.get("cell_list"), x => x.get(0)));
+      this.set_cur_id(this.get_cell_list().get(0));
     }
 
     if (this._is_project) {
@@ -1112,7 +1107,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // delta = -1 (above) or +1 (below)
     const pos = cell_utils.new_cell_pos(
       this.store.get("cells"),
-      this.store.get("cell_list"),
+      this.get_cell_list(),
       this.store.get("cur_id"),
       delta
     );
@@ -1170,7 +1165,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (delta === 0) {
       return;
     }
-    const v = __guard__(this.store.get("cell_list"), x => x.toJS());
+    const v = this.get_cell_list().toJS();
     const w = cell_utils.move_selected_cells(
       v,
       this.store.get_selected_cell_ids(),
@@ -1257,7 +1252,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cell == null) {
       return;
     }
-    if (cell.get('state', 'done') != 'done') {
+    if (cell.get("state", "done") != "done") {
       // already running -- stop it first somehow if you want to run it again...
       return;
     }
@@ -1344,11 +1339,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.run_selected_cells();
 
-    const cell_list = this.store.get("cell_list");
-    if (
-      (cell_list != null ? cell_list.get(cell_list.size - 1) : undefined) ===
-      last_id
-    ) {
+    const cell_list = this.get_cell_list();
+    if (cell_list.get(cell_list.size - 1) === last_id) {
       this.set_cur_id(last_id);
       const new_id = this.insert_cell(1);
       // this is ugly, but I don't know a better way; when the codemirror editor of
@@ -1384,17 +1376,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_all_cells = (): void => {
-    this.store.get("cell_list").forEach(id => {
+    this.get_cell_list().forEach(id => {
       this.run_cell(id, false);
     });
     this.save_asap();
   };
 
   clear_all_cell_run_state = (): void => {
-    this.store.get("cell_list").forEach(id => {
+    this.get_cell_list().forEach(id => {
       this.clear_cell_run_state(id, false);
     });
     this.save_asap();
+  };
+
+  private get_cell_list = (): immutable.List<any> => {
+    return this.store.get("cell_list", immutable.List([]));
   };
 
   // Run all cells strictly above the current cursor position.
@@ -1403,11 +1399,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (i == null) {
       return;
     }
-    for (let id of __guard__(this.store.get("cell_list"), x =>
-      x.toJS().slice(0, i)
-    )) {
-      this.run_cell(id);
+    const v: string[] = this.get_cell_list().toJS();
+    for (let id of v.slice(0, i)) {
+      this.run_cell(id, false);
     }
+
+    this.save_asap();
   };
 
   // Run all cells below (and *including*) the current cursor position.
@@ -1416,11 +1413,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (i == null) {
       return;
     }
-    for (let id of __guard__(this.store.get("cell_list"), x =>
-      x.toJS().slice(i)
-    )) {
-      this.run_cell(id);
+    const v: string[] = this.get_cell_list().toJS();
+    for (let id of v.slice(i)) {
+      this.run_cell(id, false);
     }
+
+    this.save_asap();
   };
 
   move_cursor_after_selected_cells = (): void => {
@@ -2697,7 +2695,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
     //dbg("kernel in ipynb: name='#{kernel}'")
 
-    const existing_ids = this.store.get("cell_list", immutable.List()).toJS();
+    const existing_ids = this.get_cell_list().toJS();
 
     if (data_only) {
       trust = undefined;
@@ -3204,10 +3202,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   format_all_cells = async (sync = true): Promise<void> => {
-    const all_cells = this.store.get("cell_list");
-    if (all_cells != null) {
-      await this.format_cells(all_cells.toJS(), sync);
-    }
+    const all_cells = this.get_cell_list();
+    await this.format_cells(all_cells.toJS(), sync);
   };
 
   switch_to_classical_notebook = () => {

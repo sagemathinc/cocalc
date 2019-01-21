@@ -71,7 +71,7 @@ export class JupyterActions extends JupyterActions0 {
   // Called exactly once when the manager first starts up after the store is initialized.
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
-  initialize_manager = () => {
+  initialize_manager = async () => {
     console.log("INITIALIZING MANAGER");
     if (this._initialize_manager_already_done) {
       console.log("DONE");
@@ -109,7 +109,7 @@ export class JupyterActions extends JupyterActions0 {
     // a record with type:'fatal'
     // is created in the database; if it succeeds, that record is deleted.
     // Try again only when the file changes.
-    this._first_load();
+    await this._first_load();
 
     // Listen for changes...
     this.syncdb.on("change", this._backend_syncdb_change);
@@ -127,7 +127,7 @@ export class JupyterActions extends JupyterActions0 {
       await once(watcher, "change");
       dbg("file changed");
       watcher.close();
-      this._first_load();
+      await this._first_load();
       return;
     }
     dbg("loading worked");
