@@ -325,18 +325,20 @@ export class SyncDoc extends EventEmitter {
       action = "edit";
     }
     const file_use = () => {
-      // We ONLY count this and record that the file was
-      // edited if there was an actual change record in the
-      // patches log, by this user, since last time.
-      let user_is_active: boolean = false;
-      for (let tm in this.my_patches) {
-        if (new Date(parseInt(tm)) > this.last_user_change) {
-          user_is_active = true;
-          break;
+      if (!is_chat) {
+        // We ONLY count this and record that the file was
+        // edited if there was an actual change record in the
+        // patches log, by this user, since last time.
+        let user_is_active: boolean = false;
+        for (let tm in this.my_patches) {
+          if (new Date(parseInt(tm)) > this.last_user_change) {
+            user_is_active = true;
+            break;
+          }
         }
-      }
-      if (!user_is_active) {
-        return;
+        if (!user_is_active) {
+          return;
+        }
       }
       this.last_user_change = new Date();
       this.client.mark_file({

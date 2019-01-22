@@ -73,6 +73,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private async connect(): Promise<void> {
+    if (this.synctable == null) return;
     this.set_connected(false);
     await retry_until_success({
       max_delay: 5000,
@@ -81,6 +82,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private set_connected(connected: boolean): void {
+    if (this.synctable == null) return;
     this.log("set_connected", connected);
     this.connected = connected;
     this.synctable.client.set_connected(connected);
