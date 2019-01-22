@@ -24,34 +24,39 @@ RETURNING p.project_id;
 const { DEFAULT_QUOTAS } = require("smc-util/upgrade-spec");
 const MAX_UPGRADES = require("smc-util/upgrade-spec").upgrades.max_per_project;
 
+interface Limit {
+  readonly member: number;
+  readonly nonmember: number;
+}
+
 // No matter what, every project gets SOME possibly tiny amount of guaranteed cpu.
 // This is important since otherwise projects will NOT start at all, e.g., if a paying
 // customer is using 100% of the cpu on the node (this will happen if their limits are
 // high and they have guaranteed cpu of about 1 or more).  The project will be so slow
 // it fails to start in time and times out.
-const MIN_POSSIBLE_CPU = Object.freeze({
+const MIN_POSSIBLE_CPU: Limit = Object.freeze({
   member: 0.05,
   nonmember: 0.02
 });
 
 // Min possible **guaranteed** RAM.
-const MIN_POSSIBLE_MEMORY = Object.freeze({
+const MIN_POSSIBLE_MEMORY: Limit = Object.freeze({
   member: 300,
   nonmember: 200
 });
 
 // lower bound for the RAM "limit"
 // in particular, we make sure member projects are above the free quota
-const MIN_MEMORY_LIMIT = Object.freeze({
+const MIN_MEMORY_LIMIT: Limit = Object.freeze({
   member: 1.5 * DEFAULT_QUOTAS.memory,
   nonmember: DEFAULT_QUOTAS.memory
 });
 
 type NumParser = (s: string | undefined) => number;
-type Str2Num = ((s: string) => number);
+type Str2Num = (s: string) => number;
 type NumParserGen = (fn: Str2Num) => NumParser;
 
-interface IQuota {
+interface Quota {
   network?: boolean;
   member_host?: boolean;
   disk_quota?: number;
@@ -63,13 +68,13 @@ interface IQuota {
   idle_timeout?: number;
 }
 
-interface IUsers {
+interface Users {
   [userid: string]: {
-    upgrades?: IQuota;
+    upgrades?: Quota;
   };
 }
 
-interface ISettings {
+interface Settings {
   network?: boolean;
   member_host?: boolean;
   disk_quota?: string;
@@ -80,19 +85,19 @@ interface ISettings {
   cpu_shares?: string;
 }
 
-exports.quota = function(settings_arg?: ISettings, users_arg?: IUsers) {
+exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
   // we want settings and users to be defined below and make sure the
   // arguments can't be modified
-  const settings: Readonly<ISettings> = Object.freeze(
+  const settings: Readonly<Settings> = Object.freeze(
     settings_arg == null ? {} : settings_arg
   );
 
-  const users: Readonly<IUsers> = Object.freeze(
+  const users: Readonly<Users> = Object.freeze(
     users_arg == null ? {} : users_arg
   );
 
   // new quota object, we modify it in-place below and return it.
-  const quota: IQuota = {
+  const quota: Quota = {
     network: false,
     member_host: false,
     disk_quota: DEFAULT_QUOTAS.disk_quota,
@@ -149,8 +154,8 @@ exports.quota = function(settings_arg?: ISettings, users_arg?: IUsers) {
   // name: of the computed quota, upgrade the quota config key,
   // parse_num for converting numbers, and factor for conversions
   const calc = function(
-    name: string, // keyof IQuota, but only the numeric ones
-    upgrade: string, // keyof ISettings, but only the numeric ones
+    name: string, // keyof Quota, but only the numeric ones
+    upgrade: string, // keyof Settings, but only the numeric ones
     parse_num: NumParser,
     factor?: number
   ) {
@@ -208,9 +213,9 @@ exports.quota = function(settings_arg?: ISettings, users_arg?: IUsers) {
   return quota;
 };
 
-// TODO name is <K extends keyof IQuota>, but that causes troubles ...
+// TODO name is <K extends keyof Quota>, but that causes troubles ...
 // at this point we already know that we only look for numeric properties and they're all != null
-const cap_lower_bound = function(quota: IQuota, name: string, MIN_SPEC) {
+const cap_lower_bound = function(quota: Quota, name: string, MIN_SPEC) {
   const cap = quota.member_host ? MIN_SPEC.member : MIN_SPEC.nonmember;
   return (quota[name] = Math.max(quota[name], cap));
 };
