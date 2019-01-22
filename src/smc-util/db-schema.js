@@ -1118,8 +1118,8 @@ schema.projects = {
   ],
 
   user_query: {
-    get: {
-      pg_where: "projects",
+    get: { // if you change the interval, change the text in projects.cjsx
+      pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1196,6 +1196,11 @@ schema.projects = {
     }
   }
 };
+
+// Same query above, but without the last_edited time constraint.
+schema.projects_all = misc.deep_copy(schema.projects);
+schema.projects_all.virtual = "projects";
+schema.projects_all.user_query.get.pg_where = ["projects"];
 
 // Table that enables set queries to the course field of a project.  Only
 // project owners are allowed to use this table.  The point is that this makes
