@@ -19,7 +19,7 @@ const {
   DropdownButton, */
   Alert
 } = require("react-bootstrap"); // TODO: import types
-import { TKernel } from "./util";
+import { Kernel } from "./util";
 const { COLORS } = require("smc-util/theme");
 
 const row_style: React.CSSProperties = {
@@ -33,7 +33,7 @@ const main_style: React.CSSProperties = {
   overflowX: "hidden"
 };
 
-interface IKernelSelectorProps {
+interface KernelSelectorProps {
   actions: any;
   site_name: string;
   kernel?: string;
@@ -42,16 +42,16 @@ interface IKernelSelectorProps {
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
   kernels_by_language?: OrderedMap<string, List<string>>;
-  closestKernel?: TKernel;
+  closestKernel?: Kernel;
 }
 
-interface IKernelSelectorState {}
+interface KernelSelectorState {}
 
 export class KernelSelector extends Component<
-  IKernelSelectorProps,
-  IKernelSelectorState
+  KernelSelectorProps,
+  KernelSelectorState
 > {
-  constructor(props: IKernelSelectorProps, context: any) {
+  constructor(props: KernelSelectorProps, context: any) {
     super(props, context);
     this.state = {};
   }

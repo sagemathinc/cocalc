@@ -23,7 +23,7 @@ const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
 const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
-import { TKernel, Kernels } from "./util";
+import { Kernel, Kernels } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
@@ -85,7 +85,7 @@ interface JupyterEditorProps {
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
   default_kernel?: string;
-  closestKernel?: TKernel;
+  closestKernel?: Kernel;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {

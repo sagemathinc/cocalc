@@ -15,7 +15,7 @@ import {
 } from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
-import { Kernels, TKernel } from "./util";
+import { Kernels, Kernel } from "./util";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -73,7 +73,7 @@ export interface JupyterStoreState {
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
   kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
   default_kernel?: string;
-  closestKernel?: TKernel;
+  closestKernel?: Kernel;
 }
 
 export const initial_jupyter_store_state: {

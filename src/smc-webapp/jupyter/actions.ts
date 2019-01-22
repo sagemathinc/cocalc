@@ -53,7 +53,7 @@ const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
 
 // map project_id (string) -> kernels (immutable)
-import { Kernels, TKernel } from "./util";
+import { Kernels, Kernel } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
@@ -3267,7 +3267,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     ] = this.store.get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
     // do we have a similar kernel?
-    let closestKernel: TKernel | undefined = undefined;
+    let closestKernel: Kernel | undefined = undefined;
     const kernel = this.store.get("kernel");
     const kernel_info = this.store.get_kernel_info(kernel);
     // unknown kernel, we try to find a close match
