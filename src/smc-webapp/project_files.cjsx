@@ -34,7 +34,7 @@ STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.st
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
-{MiniTerminal}        = require('./project_miniterm')
+{MiniTerminal, output_style}        = require('./project_miniterm')
 {file_associations}   = require('./file-associations')
 account               = require('./account')
 immutable             = require('immutable')
@@ -236,6 +236,8 @@ FileRow = rclass
             selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
+        if not @state? # see https://github.com/sagemathinc/cocalc/issues/3442
+            return
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
             foreground = misc.should_open_in_foreground(e)
             @props.actions.open_file
@@ -346,6 +348,8 @@ DirectoryRow = rclass
             selection_at_last_mouse_down : window.getSelection().toString()
 
     handle_click: (e) ->
+        if not @state? # see https://github.com/sagemathinc/cocalc/issues/3442
+            return
         if window.getSelection().toString() == @state.selection_at_last_mouse_down
             @props.actions.open_directory(@full_path())
             @props.actions.set_file_search('')
@@ -2024,7 +2028,7 @@ ProjectFilesSearch = rclass
             />
             {@render_file_creation_error()}
             {@render_help_info()}
-            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+            <div style={output_style}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>

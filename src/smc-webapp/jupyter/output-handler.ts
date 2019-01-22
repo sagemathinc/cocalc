@@ -95,8 +95,8 @@ export class OutputHandler extends EventEmitter {
   };
 
   _report_started = (): void => {
-    if (this._n > 0) {
-      // do nothing -- already getting output
+    if (this._state == 'closed' || this._n > 0) {
+      // do nothing -- already getting output or done.
       return;
     }
     this.emit("change", true);
@@ -109,6 +109,7 @@ export class OutputHandler extends EventEmitter {
     }
     this._opts.cell.start = (new Date() as any) - 0;
     this._opts.cell.state = "busy";
+    this.emit("change", true);
   };
 
   // Call error if an error occurs.  An appropriate error message is generated.

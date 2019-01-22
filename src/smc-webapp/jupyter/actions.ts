@@ -67,6 +67,8 @@ import { JupyterKernelInterface } from "./project-interface";
 
 import { connection_to_project } from "../project/websocket/connect";
 
+import { CursorManager } from "./cursor-manager";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -88,14 +90,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _introspect_request?: any;
   private _is_project: any;
   private _key_handler: any;
-  private _last_cursors?: any;
-  private _last_start?: any;
+  private _last_start?: number;
   private assistant_actions: any;
   private path: string;
   private project_id: string;
   private set_save_status: any;
   private update_keyboard_shortcuts: any;
   private project_conn: any;
+  private cursor_manager?: CursorManager;
 
   protected _client: any;
   protected _file_watcher: any;
@@ -186,7 +188,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Only run this code on the browser frontend (not in project).
-  private async init_client_only(): Promise<void> {
+  private init_client_only(): void {
     const do_set = () => {
       return this.setState({
         has_unsaved_changes:
@@ -217,6 +219,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // state, all user tab completions, widget state, etc.
     this.init_project_conn();
 
+    this.syncdb.once("ready", () => {
+      // Stupid hack for now -- this just causes some activity so
+      // that the syncdb syncs.
+      // This should not be necessary, and may indicate a bug in the sync layer?
+      this.syncdb.set({ type: "user", id: 0, time: new Date().valueOf() });
+      this.syncdb.commit();
+    });
+
     // Put an entry in the project log once the jupyter notebook gets opened.
     // NOTE: Obviously, the project does NOT need to put entries in the log.
     this.syncdb.once("change", () =>
@@ -225,6 +235,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     // project doesn't care about cursors, but browser clients do:
     this.syncdb.on("cursor_activity", this._syncdb_cursor_activity);
+    this.cursor_manager = new CursorManager();
 
     // this initializes actions+store for the assistant
     // this is also only a UI specific action
@@ -411,9 +422,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_error = (err: any): void => {
+    if (this._state === "closed") return;
     if (err == null) {
       this.setState({ error: undefined }); // delete from store
       return;
+    }
+    if (typeof err != "string") {
+      err = `${err}`;
     }
     const cur = this.store.get("error");
     // don't show the same error more than once
@@ -627,10 +642,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (i == null) {
       return;
     }
-    const cell_list = this.store.get("cell_list");
-    if (cell_list == null) {
-      return;
-    }
+    const cell_list = this.get_cell_list();
     if (i < 0) {
       i = 0;
     } else if (i >= cell_list.size) {
@@ -660,7 +672,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   select_all_cells = (): void => {
-    this.setState({ sel_ids: this.store.get("cell_list").toSet() });
+    this.setState({ sel_ids: this.get_cell_list().toSet() });
   };
 
   // select all cells from the currently focused one (where the cursor is -- cur_id)
@@ -682,7 +694,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       return;
     }
-    const v = this.store.get("cell_list").toJS();
+    const v = this.get_cell_list().toJS();
     for ([i, x] of misc.enumerate(v)) {
       if (x === id) {
         endpoint0 = i;
@@ -776,7 +788,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     const cell_list = cell_utils.sorted_cell_list(cells);
-    if (!cell_list.equals(this.store.get("cell_list"))) {
+    if (!cell_list.equals(this.get_cell_list())) {
       this.setState({ cell_list });
     }
   };
@@ -797,10 +809,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.reset_more_output(id); // free up memory locally
       if (old_cell != null) {
         obj = { cells: cells.delete(id) };
-        const cell_list = this.store.get("cell_list");
-        if (cell_list != null) {
-          obj.cell_list = cell_list.filter(x => x !== id);
-        }
+        const cell_list = this.get_cell_list();
+        obj.cell_list = cell_list.filter(x => x !== id);
         this.setState(obj);
       }
     } else {
@@ -920,7 +930,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const cur_id = this.store.get("cur_id");
     if (cur_id == null || this.store.getIn(["cells", cur_id]) == null) {
-      this.set_cur_id(__guard__(this.store.get("cell_list"), x => x.get(0)));
+      this.set_cur_id(this.get_cell_list().get(0));
     }
 
     if (this._is_project) {
@@ -968,69 +978,23 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _syncdb_cursor_activity = (): void => {
-    let cells_before;
-    let cells = (cells_before = this.store.get("cells"));
-    const next_cursors = this.syncdb.get_cursors();
-    next_cursors.forEach((info, account_id) => {
-      const last_info =
-        this._last_cursors != null
-          ? this._last_cursors.get(account_id)
-          : undefined;
-      if (last_info != null ? last_info.equals(info) : undefined) {
-        // no change for this particular users, so nothing further to do
-        return;
-      }
-      // delete old cursor locations
-      if (last_info != null) {
-        last_info.get("locs").forEach(loc => {
-          let left: any;
-          const id = loc.get("id");
-          const cell = cells.get(id);
-          if (cell == null) {
-            return;
-          }
-          const cursors =
-            (left = cell.get("cursors")) != null ? left : immutable.Map();
-          if (cursors.has(account_id)) {
-            cells = cells.set(
-              id,
-              cell.set("cursors", cursors.delete(account_id))
-            );
-            return false; // nothing further to do
-          }
-        });
-      }
-
-      // set new cursors
-      return info.get("locs").forEach(loc => {
-        let left, left1;
-        const id = loc.get("id");
-        let cell = cells.get(id);
-        if (cell == null) {
-          return;
-        }
-        let cursors =
-          (left = cell.get("cursors")) != null ? left : immutable.Map();
-        loc = loc.set("time", info.get("time")).delete("id");
-        const locs = ((left1 = cursors.get(account_id)) != null
-          ? left1
-          : immutable.List()
-        ).push(loc);
-        cursors = cursors.set(account_id, locs);
-        cell = cell.set("cursors", cursors);
-        cells = cells.set(id, cell);
-      });
-    });
-
-    this._last_cursors = next_cursors;
-
-    if (cells !== cells_before) {
+  private _syncdb_cursor_activity = (): void => {
+    if (
+      this.store == null ||
+      this.syncdb == null ||
+      this.cursor_manager == null
+    )
+      return;
+    const cells = this.cursor_manager.process(
+      this.store.get("cells"),
+      this.syncdb.get_cursors()
+    );
+    if (cells != null) {
       this.setState({ cells });
     }
   };
 
-  _set = (obj: any, save = true) => {
+  _set = (obj: any, save: boolean = true) => {
     if (this._state === "closed") {
       return;
     }
@@ -1143,7 +1107,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // delta = -1 (above) or +1 (below)
     const pos = cell_utils.new_cell_pos(
       this.store.get("cells"),
-      this.store.get("cell_list"),
+      this.get_cell_list(),
       this.store.get("cur_id"),
       delta
     );
@@ -1201,7 +1165,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (delta === 0) {
       return;
     }
-    const v = __guard__(this.store.get("cell_list"), x => x.toJS());
+    const v = this.get_cell_list().toJS();
     const w = cell_utils.move_selected_cells(
       v,
       this.store.get_selected_cell_ids(),
@@ -1242,8 +1206,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // in the future, might throw a CellWriteProtectedException. for now, just running is ok.
-  run_cell = (id: any): void => {
+  // in the future, might throw a CellWriteProtectedException.
+  // for now, just running is ok.
+  run_cell = (id: any, save: boolean = true): void => {
     let left: any;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -1266,10 +1231,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             this.introspect(code.slice(0, code.length - 1), 0);
             break;
           case "empty":
-            this.clear_cell(id);
+            this.clear_cell(id, save);
             break;
           case "execute":
-            this.run_code_cell(id);
+            this.run_code_cell(id, save);
             break;
         }
         break;
@@ -1277,14 +1242,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_md_cell_not_editing(id);
         break;
     }
-    this.save_asap();
+    if (save) {
+      this.save_asap();
+    }
   };
 
-  run_code_cell = (id: any, save = true) => {
+  run_code_cell = (id: any, save: boolean = true) => {
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      return;
+    }
+    if (cell.get("state", "done") != "done") {
+      // already running -- stop it first somehow if you want to run it again...
+      return;
+    }
+
     // We mark the start timestamp uniquely, so that the backend can sort
     // multiple cells with a simultaneous time to start request.
 
-    let start = this._client.server_time() - 0;
+    let start: number = this._client.server_time().valueOf();
     if (this._last_start != null && start <= this._last_start) {
       start = this._last_start + 1;
     }
@@ -1303,7 +1279,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-    return this.set_trust_notebook(true);
+    return this.set_trust_notebook(true, save);
   };
 
   clear_cell = (id: any, save = true) => {
@@ -1325,10 +1301,24 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
+  clear_cell_run_state = (id: any, save = true) => {
+    if (this.store.check_edit_protection(id, this)) {
+      return;
+    }
+    return this._set(
+      {
+        type: "cell",
+        id,
+        state: "done"
+      },
+      save
+    );
+  };
+
   run_selected_cells = (): void => {
     const v = this.store.get_selected_cell_ids_list();
     for (let id of v) {
-      this.run_cell(id);
+      this.run_cell(id, false);
     }
     this.save_asap();
   };
@@ -1349,11 +1339,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.run_selected_cells();
 
-    const cell_list = this.store.get("cell_list");
-    if (
-      (cell_list != null ? cell_list.get(cell_list.size - 1) : undefined) ===
-      last_id
-    ) {
+    const cell_list = this.get_cell_list();
+    if (cell_list.get(cell_list.size - 1) === last_id) {
       this.set_cur_id(last_id);
       const new_id = this.insert_cell(1);
       // this is ugly, but I don't know a better way; when the codemirror editor of
@@ -1389,10 +1376,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_all_cells = (): void => {
-    this.store.get("cell_list").forEach(id => {
-      this.run_cell(id);
+    this.get_cell_list().forEach(id => {
+      this.run_cell(id, false);
     });
     this.save_asap();
+  };
+
+  clear_all_cell_run_state = (): void => {
+    this.get_cell_list().forEach(id => {
+      this.clear_cell_run_state(id, false);
+    });
+    this.save_asap();
+  };
+
+  private get_cell_list = (): immutable.List<any> => {
+    return this.store.get("cell_list", immutable.List([]));
   };
 
   // Run all cells strictly above the current cursor position.
@@ -1401,11 +1399,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (i == null) {
       return;
     }
-    for (let id of __guard__(this.store.get("cell_list"), x =>
-      x.toJS().slice(0, i)
-    )) {
-      this.run_cell(id);
+    const v: string[] = this.get_cell_list().toJS();
+    for (let id of v.slice(0, i)) {
+      this.run_cell(id, false);
     }
+
+    this.save_asap();
   };
 
   // Run all cells below (and *including*) the current cursor position.
@@ -1414,11 +1413,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (i == null) {
       return;
     }
-    for (let id of __guard__(this.store.get("cell_list"), x =>
-      x.toJS().slice(i)
-    )) {
-      this.run_cell(id);
+    const v: string[] = this.get_cell_list().toJS();
+    for (let id of v.slice(i)) {
+      this.run_cell(id, false);
     }
+
+    this.save_asap();
   };
 
   move_cursor_after_selected_cells = (): void => {
@@ -2152,39 +2152,76 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ introspect: undefined });
   };
 
-  signal = (signal = "SIGINT"): void => {
+  signal = async (signal = "SIGINT"): Promise<void> => {
     // TODO: some setStates, awaits, and UI to reflect this happening...
-    this._api_call("signal", { signal: signal }, 5000);
+    try {
+      await this._api_call("signal", { signal: signal }, 5000);
+    } catch (err) {
+      this.set_error(err);
+    }
   };
 
-  set_backend_kernel_info = reuseInFlight(
+  restart = reuseInFlight(
     async (): Promise<void> => {
-      if (this._state === "closed") {
+      await this.signal("SIGKILL");
+      // Wait a little, since SIGKILL has to really happen on backend,
+      // and server has to respond and change state.
+      const not_running = (s): boolean => {
+        if (this._state === "closed") return true;
+        const t = s.get_one({ type: "settings" });
+        return t != null && t.get("backend_state") != "running";
+      };
+      await this.syncdb.wait(not_running, 30);
+      if (this._state === "closed") return;
+      await this.set_backend_kernel_info();
+    }
+  );
+
+  shutdown = reuseInFlight(
+    async (): Promise<void> => {
+      if (this._state === "closed") return;
+      await this.signal("SIGKILL");
+      if (this._state === "closed") return;
+      this.clear_all_cell_run_state();
+      await this.save_asap();
+    }
+  );
+
+  set_backend_kernel_info = async (): Promise<void> => {
+    if (this._state === "closed") {
+      return;
+    }
+
+    if (this._is_project) {
+      const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
+      if (
+        this._jupyter_kernel == null ||
+        this._jupyter_kernel.get_state() == "closed"
+      ) {
+        dbg("no Jupyter kernel defined");
         return;
       }
-
-      if (this._is_project) {
-        const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
-        if (this._jupyter_kernel == null) {
-          dbg("not defined");
-          return;
-        }
-        dbg("getting kernel_info...");
-        try {
-          this.setState({
-            backend_kernel_info: await this._jupyter_kernel.kernel_info()
-          });
-        } catch (err) {
-          dbg(`error = ${err}`);
-        }
-      } else {
-        await retry_until_success({
-          max_time: 120000,
-          start_delay: 1000,
-          max_delay: 10000,
-          f: this._fetch_backend_kernel_info_from_server
+      dbg("getting kernel_info...");
+      try {
+        this.setState({
+          backend_kernel_info: await this._jupyter_kernel.kernel_info()
         });
+      } catch (err) {
+        dbg(`error = ${err}`);
       }
+    } else {
+      await this._set_backend_kernel_info_client();
+    }
+  };
+
+  _set_backend_kernel_info_client = reuseInFlight(
+    async (): Promise<void> => {
+      await retry_until_success({
+        max_time: 120000,
+        start_delay: 1000,
+        max_delay: 10000,
+        f: this._fetch_backend_kernel_info_from_server
+      });
     }
   );
 
@@ -2200,12 +2237,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_time: data.start_time
       });
     };
-    await retry_until_success({
-      max_time: 1000 * 60 * 30,
-      start_delay: 500,
-      max_delay: 3000,
-      f
-    });
+    try {
+      await retry_until_success({
+        max_time: 1000 * 60 * 30,
+        start_delay: 500,
+        max_delay: 3000,
+        f
+      });
+    } catch (err) {
+      this.set_error(err);
+    }
 
     // Update the codemirror editor options.
     this.set_cm_options();
@@ -2539,11 +2580,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  set_trust_notebook = (trust: any) => {
-    return this._set({
-      type: "settings",
-      trust: !!trust
-    }); // case to bool
+  set_trust_notebook = (trust: any, save: boolean = true) => {
+    return this._set(
+      {
+        type: "settings",
+        trust: !!trust
+      },
+      save
+    ); // case to bool
   };
 
   insert_image = (): void => {
@@ -2614,7 +2658,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     key: any,
     value: any
   ): Promise<void> => {
-    await this._api_call("store", { key, value });
+    try {
+      await this._api_call("store", { key, value });
+    } catch (err) {
+      this.set_error(err);
+    }
   };
 
   set_to_ipynb = async (ipynb: any, data_only = false) => {
@@ -2647,7 +2695,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
     //dbg("kernel in ipynb: name='#{kernel}'")
 
-    const existing_ids = this.store.get("cell_list", immutable.List()).toJS();
+    const existing_ids = this.get_cell_list().toJS();
 
     if (data_only) {
       trust = undefined;
@@ -2772,7 +2820,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     try {
       value = await this._api_call("store", { key });
     } catch (err) {
-      return; // TODO?
+      this.set_error(err);
+      return;
     }
     if (this._state === "closed") {
       return;
@@ -2902,11 +2951,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       .replace(/\(/g, "%28")
       .replace(/\)/g, "%29");
     this.set_cell_attachment(id, name, { type: "load", value: path });
-    await this.store.wait(
-      () =>
+    await callback2(this.store.wait, {
+      until: () =>
         this.store.getIn(["cells", id, "attachments", name, "type"]) === "sha1",
-      0
-    );
+      timeout: 0
+    });
     // This has to happen in the next render loop, since changing immediately
     // can update before the attachments props are updated.
     await awaiting.delay(10);
@@ -3105,7 +3154,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         throw new Error(`Unknown cell_type: '${cell_type}'`);
     }
     // console.log("FMT", cell_type, options, code);
-    const resp = await this._api_call_prettier(code, options);
+    let resp;
+    try {
+      resp = await this._api_call_prettier(code, options);
+    } catch (err) {
+      this.set_error(err);
+    }
     // console.log("FMT resp", resp);
 
     // we additionally trim the output, because prettier introduces a trailing newline
@@ -3148,10 +3202,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   format_all_cells = async (sync = true): Promise<void> => {
-    const all_cells = this.store.get("cell_list");
-    if (all_cells != null) {
-      await this.format_cells(all_cells.toJS(), sync);
-    }
+    const all_cells = this.get_cell_list();
+    await this.format_cells(all_cells.toJS(), sync);
   };
 
   switch_to_classical_notebook = () => {
@@ -3178,11 +3230,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  close_and_halt = (): void => {
-    // Kill running session
-    this.signal("SIGKILL");
+  close_and_halt = async (): Promise<void> => {
     // Display the main file listing page
     this.file_open();
+    // Fully shutdown and save this fact.
+    await this.shutdown();
     // Close the file
     this.file_action("close_file");
   };
