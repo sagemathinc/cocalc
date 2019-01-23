@@ -116,7 +116,8 @@ async function connection_to_project0(project_id: string): Promise<any> {
     },
     start_delay: 300,
     max_delay: 3000,
-    factor: 1.2
+    factor: 1.2,
+    desc : 'connecting to project'
     //log: (...x) => {
     //  console.log("retry primus:", ...x);
     //}

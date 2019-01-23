@@ -985,7 +985,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             cb()
             return
         if schema.virtual
-            cb("table '#{table}' is virtual")
+            dbg("nothing to do -- table is virtual");
+            cb()
             return
         async.series([
             (cb) => @_update_table_schema_columns(table, cb)

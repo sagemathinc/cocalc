@@ -7,9 +7,13 @@ import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 import { once, retry_until_success } from "smc-util/async-utils";
 
 interface Client {
-  touch_project: (
-    { project_id, cb }: { project_id: string; cb?: Function }
-  ) => Promise<any>;
+  touch_project: ({
+    project_id,
+    cb
+  }: {
+    project_id: string;
+    cb?: Function;
+  }) => Promise<any>;
   project_websocket: (project_id: string) => Promise<any>;
   set_connected: (connected: boolean) => void;
 }
@@ -73,14 +77,17 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private async connect(): Promise<void> {
+    if (this.synctable == null) return;
     this.set_connected(false);
     await retry_until_success({
       max_delay: 5000,
-      f: this.attempt_to_connect.bind(this)
+      f: this.attempt_to_connect.bind(this),
+      desc: "webapp-synctable-connect"
     });
   }
 
   private set_connected(connected: boolean): void {
+    if (this.synctable == null) return;
     this.log("set_connected", connected);
     this.connected = connected;
     this.synctable.client.set_connected(connected);
@@ -165,14 +172,14 @@ class SyncTableChannel extends EventEmitter {
       throw Error("mesg must not be null");
     }
     if (mesg.init != null) {
-      this.log("project --> client: init_browser_client")
+      this.log("project --> client: init_browser_client");
       this.synctable.init_browser_client(mesg.init);
       // after init message, we are now initialized
       // and in the connected state.
       this.set_connected(true);
     }
     if (mesg.versioned_changes != null) {
-      this.log("project --> client: versioned_changes")
+      this.log("project --> client: versioned_changes");
       this.synctable.apply_changes_to_browser_client(mesg.versioned_changes);
     }
   }
