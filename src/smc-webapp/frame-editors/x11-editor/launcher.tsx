@@ -219,6 +219,7 @@ const APPS: IAPPS = {
     desc: "The GNOME text editor"
   },
   cadabra2: {
+    command: "cadabra2-gtk",
     icon: "square-root-alt",
     label: "Cadabra 2",
     desc: "A field-theory motivated approach to computer algebra"
