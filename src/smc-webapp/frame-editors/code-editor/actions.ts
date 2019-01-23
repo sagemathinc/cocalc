@@ -17,7 +17,8 @@ import {
   prettier,
   syncstring,
   syncdb2,
-  syncstring2
+  syncstring2,
+  ParserOptions
 } from "../generic/client";
 
 import { SyncDB } from "smc-util/sync/editor/db";
@@ -1604,7 +1605,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
 
     cm.focus();
-    let parser;
+    let parser: string;
+    let variant: string | undefined = undefined;
     switch (filename_extension(this.path)) {
       case "js":
       case "jsx":
@@ -1618,8 +1620,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         parser = "typescript";
         break;
       case "md":
-      case "rmd":
         parser = "markdown";
+        break;
+      case "rmd":
+        parser = "rmd"; // runs markdown + styler
         break;
       case "css":
         parser = "postcss";
@@ -1636,6 +1640,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         break;
       case "r":
         parser = "r";
+        variant = "styler"; // or "formatR"
         break;
       case "go":
         parser = "gofmt";
@@ -1661,8 +1666,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       default:
         return;
     }
-    const options = {
+    const options: ParserOptions = {
       parser,
+      variant,
       tabWidth: cm.getOption("tabSize"),
       useTabs: cm.getOption("indentWithTabs")
     };

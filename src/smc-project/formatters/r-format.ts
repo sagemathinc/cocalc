@@ -6,6 +6,7 @@ const { spawn } = require("child_process");
 
 interface ParserOptions {
   parser?: string;
+  variant?: "styler" | "formatR";
   tabWidth?: number;
   lineWidth?: number;
 }
@@ -14,23 +15,34 @@ function close(proc, cb): void {
   proc.on("close", code => cb(undefined, code));
 }
 
-function formatR(input_path: string) {
+function formatR(input_path: string, variant) {
   // in-place is fine, according to my tests
-  const expr = `suppressMessages(require(formatR)); tidy_source(source="${input_path}", file="${input_path}", indent=2, width.cutoff=80)`;
-  return spawn("R", ["--quiet", "--vanilla", "--no-save", "-e", expr]);
+  let expr: string | undefined;
+  variant = variant ? variant : "styler";
+  if (variant == "formatR") {
+    expr = `suppressMessages(require(formatR)); tidy_source(source="${input_path}", file="${input_path}", indent=2, width.cutoff=80)`;
+  } else if (variant == "styler") {
+    expr = `suppressMessages(require(styler)); styler::style_file("${input_path}")`;
+  }
+  if (expr != null) {
+    return spawn("R", ["--quiet", "--vanilla", "--no-save", "-e", expr]);
+  } else {
+    throw new Error(`formatR: unknown variant :'${variant}'`);
+  }
 }
 
 export async function r_format(
   input: string,
-  _: ParserOptions,
+  options: ParserOptions,
+  ext: string,
   logger: any
 ): Promise<string> {
   // create input temp file
-  const input_path: string = await callback(tmp.file);
+  const input_path: string = await callback(tmp.file, { postfix: `.${ext}` });
   await callback(writeFile, input_path, input);
 
   // spawn the R formatter
-  const r_formatter = formatR(input_path);
+  const r_formatter = formatR(input_path, options.variant);
 
   // stdout/err capture
   let stdout: string = "";

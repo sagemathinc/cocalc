@@ -37,16 +37,20 @@ export async function run_prettier(
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   const syncstring = client.syncdoc({ path });
-  if (syncstring == null || syncstring.get_state() == 'closed') {
-    return { status: "error", error: "document not fully opened",  phase: "format"};
+  if (syncstring == null || syncstring.get_state() == "closed") {
+    return {
+      status: "error",
+      error: "document not fully opened",
+      phase: "format"
+    };
   }
-  if (syncstring.get_state() != 'ready') {
+  if (syncstring.get_state() != "ready") {
     await once(syncstring, "ready");
   }
   const doc = syncstring.get_doc();
   let pretty, math;
   let input = doc.to_str();
-  if (options.parser === "markdown") {
+  if (options.parser === "markdown" || options.parser === "rmd") {
     [input, math] = remove_math(math_escape(input));
   }
   try {
@@ -55,7 +59,7 @@ export async function run_prettier(
     logger.debug(`run_prettier error: ${err.message}`);
     return { status: "error", phase: "format", error: err.message };
   }
-  if (options.parser === "markdown") {
+  if (options.parser === "markdown" || options.parser === "rmd") {
     pretty = math_unescape(replace_math(pretty, math));
   }
   syncstring.from_str(pretty);
@@ -70,7 +74,8 @@ export async function run_prettier_string(
   logger: any
 ): Promise<string> {
   let pretty;
-  logger.debug(`run_prettier options.parser: "${options.parser}"`);
+  let ext: string;
+  logger.debug(`run_prettier_string options="${misc.to_json(options)}"`);
   switch (options.parser) {
     case "latex":
       pretty = await latex_format(str, options);
@@ -79,7 +84,17 @@ export async function run_prettier_string(
       pretty = await python_format(str, options, logger);
       break;
     case "r":
-      pretty = await r_format(str, options, logger);
+    case "rmd":
+      // formatting cells in jupyter has no extension. Make sure it is .R!
+      ext = misc.filename_extension(path !== undefined ? path : "code.R");
+      // in case of Rmd, formulas are escaped (see above) and we format it first
+      if (ext.toLowerCase() === "rmd") {
+        ext = "Rmd";
+        const options2 = Object.assign({}, options, { parser: "markdown" });
+        str = prettier.format(str, options2);
+      }
+      // either format R code, or just the code-snippets inside of Rmd
+      pretty = await r_format(str, options, ext, logger);
       break;
     case "html-tidy":
     case "tidy":
@@ -92,7 +107,7 @@ export async function run_prettier_string(
       pretty = await bib_format(str, options, logger);
       break;
     case "clang-format":
-      const ext = misc.filename_extension(path !== undefined ? path : "");
+      ext = misc.filename_extension(path !== undefined ? path : "");
       pretty = await clang_format(str, options, ext, logger);
       break;
     case "gofmt":

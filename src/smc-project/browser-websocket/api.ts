@@ -8,9 +8,7 @@ All functionality here is of the form:
 */
 
 import { callback } from "awaiting";
-const {
-  callback_opts
-} = require("smc-util/async-utils");
+const { callback_opts } = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 
@@ -35,7 +33,7 @@ export function init_websocket_api(
         done(resp);
       } catch (err) {
         // put this in for debugging...
-        // It's normal to sometimes get errors, e.g., when a Jupyter kernel 
+        // It's normal to sometimes get errors, e.g., when a Jupyter kernel
         // isn't yet available.
         // console.trace(); logger.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
@@ -80,7 +78,13 @@ async function handle_api_call(
     case "x11_channel":
       return await x11_channel(client, primus, logger, data.path, data.display);
     case "synctable_channel":
-      return await synctable_channel(client, primus, logger, data.query, data.options);
+      return await synctable_channel(
+        client,
+        primus,
+        logger,
+        data.query,
+        data.options
+      );
     case "syncdoc_call":
       return await syncdoc_call(data.path, logger, data.mesg);
     case "symmetric_channel":

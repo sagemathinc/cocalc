@@ -118,8 +118,9 @@ export async function public_get_text_file(
   return await callback2(webapp_client.public_get_text_file, opts);
 }
 
-interface ParserOptions {
+export interface ParserOptions {
   parser: string;
+  variant?: string;
   tabWidth?: number;
   useTabs?: boolean;
 }
@@ -178,9 +179,9 @@ export function syncstring(opts: SyncstringOpts): any {
   return webapp_client.sync_string(opts1);
 }
 
-import { DataServer } from 'smc-util/sync/editor/generic/sync-doc';
+import { DataServer } from "smc-util/sync/editor/generic/sync-doc";
 
-import { SyncString } from 'smc-util/sync/editor/string/sync';
+import { SyncString } from "smc-util/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -216,7 +217,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from 'smc-util/sync/editor/db/sync';
+import { SyncDB } from "smc-util/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -291,4 +292,3 @@ import { API } from "smc-webapp/project/websocket/api";
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
 }
-
