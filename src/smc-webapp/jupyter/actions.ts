@@ -1057,8 +1057,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
+      // Export the ipynb file to disk.
       await this._api_call("save_ipynb_file", {});
-      // Now saves our custom-format syncdb to disk.
+      // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
       if (err.toString().indexOf("no kernel with path") != -1) {
@@ -2220,7 +2221,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         max_time: 120000,
         start_delay: 1000,
         max_delay: 10000,
-        f: this._fetch_backend_kernel_info_from_server
+        f: this._fetch_backend_kernel_info_from_server,
+        desc: 'jupyter:_set_backend_kernel_info_client'
       });
     }
   );
@@ -2242,7 +2244,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         max_time: 1000 * 60 * 30,
         start_delay: 500,
         max_delay: 3000,
-        f
+        f,
+        desc: 'jupyter:_fetch_backend_kernel_info_from_server'
       });
     } catch (err) {
       this.set_error(err);
