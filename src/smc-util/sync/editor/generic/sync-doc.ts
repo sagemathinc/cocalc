@@ -953,7 +953,8 @@ export class SyncDoc extends EventEmitter {
       // this will finish.
       await retry_until_success({
         f: this.init_load_from_disk.bind(this),
-        max_delay: 10000
+        max_delay: 10000,
+        desc: "syncdoc -- load_from_disk"
       });
       log("done loading from disk");
     }
@@ -2266,7 +2267,8 @@ export class SyncDoc extends EventEmitter {
     };
     await retry_until_success({
       f,
-      max_tries: 4
+      max_tries: 4,
+      desc: "wait_for_save_to_disk_done"
     });
     if (this.state != "ready" || this.deleted) {
       return;

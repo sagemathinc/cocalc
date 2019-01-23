@@ -2220,7 +2220,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         max_time: 120000,
         start_delay: 1000,
         max_delay: 10000,
-        f: this._fetch_backend_kernel_info_from_server
+        f: this._fetch_backend_kernel_info_from_server,
+        desc: 'jupyter:_set_backend_kernel_info_client'
       });
     }
   );
@@ -2242,7 +2243,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         max_time: 1000 * 60 * 30,
         start_delay: 500,
         max_delay: 3000,
-        f
+        f,
+        desc: 'jupyter:_fetch_backend_kernel_info_from_server'
       });
     } catch (err) {
       this.set_error(err);
