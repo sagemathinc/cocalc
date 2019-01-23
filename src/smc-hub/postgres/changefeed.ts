@@ -1,11 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- */
-/*
 The Changes class is a useful building block
 for making changefeeds.  It lets you watch when given
 columns change in a given table, and be notified
@@ -28,7 +21,6 @@ export class Changes extends EventEmitter {
   private _select: any;
   private _watch: any;
   private _where: any;
-  private dbg: Function;
 
   private _tgname: string;
   private _closed: boolean;
@@ -52,12 +44,13 @@ export class Changes extends EventEmitter {
     this._select = _select;
     this._watch = _watch;
     this._where = _where;
-    this.dbg = this._dbg("constructor");
-    this.dbg(
+
+    this._dbg("constructor")(
       `select=${misc.to_json(this._select)}, watch=${misc.to_json(
         this._watch
       )}, @_where=${misc.to_json(this._where)}`
     );
+
     try {
       this._init_where();
     } catch (e) {
@@ -81,30 +74,26 @@ export class Changes extends EventEmitter {
       // to reconnect, which only makes matters worse (as they panic and
       // requests pile up!).
       this._db.once("connect", this.close);
-      return typeof cb === "function" ? cb(undefined, this) : undefined;
+      typeof cb === "function" ? cb(undefined, this) : undefined;
     });
   }
 
-  _dbg(f: string): Function {
+  private _dbg(f: string): Function {
     return this._db._dbg(`Changes(table='${this._table}').${f}`);
   }
 
   // this breaks the changefeed -- client must recreate it; nothing further will work at all.
-  _fail(err) {
+  private _fail(err): void {
     if (this._closed) {
       return;
     }
-    const dbg = this._dbg("_fail");
-    dbg(`err='${err}'`);
+    this._dbg("_fail")(`err='${err}'`);
     this.emit("error", new Error(err));
     this.close();
   }
 
-  close(cb?: Function) {
+  public close(): void {
     if (this._closed) {
-      if (typeof cb === "function") {
-        cb();
-      }
       return;
     }
     this._closed = true;
@@ -112,96 +101,18 @@ export class Changes extends EventEmitter {
     this.removeAllListeners();
     this._db.removeListener(this._tgname, this._handle_change);
     this._db.removeListener("connect", this.close);
-    this._db._stop_listening(this._table, this._select, this._watch, cb);
+    this._db._stop_listening(this._table, this._select, this._watch);
     delete this._tgname;
     delete this._condition;
-    return typeof cb === "function" ? cb() : undefined;
   }
 
-  _old_val(result, action, mesg) {
-    // include only changed fields if action is 'update'
-    if (action === "update") {
-      const old_val = {};
-      for (let field in mesg[1]) {
-        const val = mesg[1][field];
-        const old = mesg[2][field];
-        if (val !== old) {
-          old_val[field] = old;
-        }
-      }
-      if (misc.len(old_val) > 0) {
-        return (result.old_val = old_val);
-      }
-    }
-  }
-
-  _handle_change(mesg) {
-    //console.log '_handle_change', mesg
-    if (mesg[0] === "DELETE") {
-      if (!this._match_condition(mesg[2])) {
-        return;
-      }
-      return this.emit("change", { action: "delete", old_val: mesg[2] });
-    } else {
-      let k, r, v;
-      const action = `${mesg[0].toLowerCase()}`;
-      if (!this._match_condition(mesg[1])) {
-        if (action !== "update") {
-          return;
-        }
-        for (k in mesg[1]) {
-          v = mesg[1][k];
-          if (mesg[2][k] == null) {
-            mesg[2][k] = v;
-          }
-          if (this._match_condition(mesg[2])) {
-            this.emit("change", { action: "delete", old_val: mesg[2] });
-          }
-          return;
-        }
-      }
-      if (this._watch.length === 0) {
-        r = { action, new_val: mesg[1] };
-        this._old_val(r, action, mesg);
-        this.emit("change", r);
-        return;
-      }
-      const where = {};
-      for (k in mesg[1]) {
-        v = mesg[1][k];
-        where[`${k} = $`] = v;
-      }
-      return this._db._query({
-        select: this._watch,
-        table: this._table,
-        where,
-        cb: one_result((err, result) => {
-          if (err) {
-            this._fail(err);
-            return;
-          }
-          if (result == null) {
-            // This happens when record isn't deleted, but some
-            // update results in the object being removed from our
-            // selection criterion... which we view as "delete".
-            this.emit("change", { action: "delete", old_val: mesg[1] });
-            return;
-          }
-          r = { action, new_val: misc.merge(result, mesg[1]) };
-          this._old_val(r, action, mesg);
-          return this.emit("change", r);
-        })
-      });
-    }
-  }
-
-  insert(where) {
+  public insert(where): void {
     const where0 = {};
     for (let k in where) {
       const v = where[k];
       where0[`${k} = $`] = v;
     }
-    return this._db._query({
+    this._db._query({
       select: this._watch.concat(misc.keys(this._select)),
       table: this._table,
       where: where0,
@@ -213,26 +124,105 @@ export class Changes extends EventEmitter {
           this._dbg("insert")("FAKE ERROR!");
           this._fail(err); // this is game over
           return;
-        } else {
-          for (let x of results) {
-            if (this._match_condition(x)) {
-              misc.map_mutate_out_undefined(x);
-              this.emit("change", { action: "insert", new_val: x });
-            }
+        }
+        for (let x of results) {
+          if (this._match_condition(x)) {
+            misc.map_mutate_out_undefined(x);
+            this.emit("change", { action: "insert", new_val: x });
           }
         }
       })
     });
   }
 
-  delete(where) : void {
+  public delete(where): void {
     // listener is meant to delete everything that *matches* the where, so
     // there is no need to actually do a query.
     this.emit("change", { action: "delete", old_val: where });
   }
 
-  _init_where() {
-    let w;
+  private _old_val(result, action, mesg): void {
+    if (action === "update") {
+      // include only changed fields if action is 'update'
+      const old_val = {};
+      for (let field in mesg[1]) {
+        const val = mesg[1][field];
+        const old = mesg[2][field];
+        if (val !== old) {
+          old_val[field] = old;
+        }
+      }
+      if (misc.len(old_val) > 0) {
+        result.old_val = old_val;
+      }
+    }
+  }
+
+  private _handle_change(mesg): void {
+    //console.log '_handle_change', mesg
+    if (mesg[0] === "DELETE") {
+      if (!this._match_condition(mesg[2])) {
+        return;
+      }
+      this.emit("change", { action: "delete", old_val: mesg[2] });
+      return;
+    }
+    let k, r, v;
+    const action = `${mesg[0].toLowerCase()}`;
+    if (!this._match_condition(mesg[1])) {
+      if (action !== "update") {
+        return;
+      }
+      for (k in mesg[1]) {
+        v = mesg[1][k];
+        if (mesg[2][k] == null) {
+          mesg[2][k] = v;
+        }
+        if (this._match_condition(mesg[2])) {
+          this.emit("change", { action: "delete", old_val: mesg[2] });
+        }
+        return; // TODO: This looks *very* suspicious -- it just seems
+                // more likely that this would be in the if statement.
+                // Once I figure out what the heck is going on here,
+                // fix or write a clear comment!
+      }
+    }
+    if (this._watch.length === 0) {
+      r = { action, new_val: mesg[1] };
+      this._old_val(r, action, mesg);
+      this.emit("change", r);
+      return;
+    }
+    const where = {};
+    for (k in mesg[1]) {
+      v = mesg[1][k];
+      where[`${k} = $`] = v;
+    }
+    this._db._query({
+      select: this._watch,
+      table: this._table,
+      where,
+      cb: one_result((err, result) => {
+        if (err) {
+          this._fail(err);
+          return;
+        }
+        if (result == null) {
+          // This happens when record isn't deleted, but some
+          // update results in the object being removed from our
+          // selection criterion... which we view as "delete".
+          this.emit("change", { action: "delete", old_val: mesg[1] });
+          return;
+        }
+        r = { action, new_val: misc.merge(result, mesg[1]) };
+        this._old_val(r, action, mesg);
+        this.emit("change", r);
+      })
+    });
+  }
+
+  private _init_where(): void {
+    let w: any[];
     if (typeof this._where === "function") {
       // user provided function
       this._match_condition = this._where;
@@ -245,7 +235,7 @@ export class Changes extends EventEmitter {
     }
 
     this._condition = {};
-    const add_condition = (field, op, val) => {
+    function add_condition(field, op, val) {
       let f, g;
       field = field.trim();
       if (field[0] === '"') {
@@ -262,7 +252,7 @@ export class Changes extends EventEmitter {
         if (op === "=" || op === "==") {
           // containment
           f = function(x) {
-            for (let v of Array.from(val)) {
+            for (let v of val) {
               if (x === v) {
                 return true;
               }
@@ -272,7 +262,7 @@ export class Changes extends EventEmitter {
         } else if (op === "!=" || op === "<>") {
           // not contained in
           f = function(x) {
-            for (let v of Array.from(val)) {
+            for (let v of val) {
               if (x === v) {
                 return false;
               }
@@ -297,10 +287,10 @@ export class Changes extends EventEmitter {
         g = misc.op_to_function(op);
         f = x => g(x, val);
       }
-      return (this._condition[field] = f);
+      this._condition[field] = f;
     };
 
-    for (let obj of Array.from(w)) {
+    for (let obj of w) {
       var found, i, op;
       if (misc.is_object(obj)) {
         for (let k in obj) {
@@ -318,7 +308,7 @@ export class Changes extends EventEmitter {
                        - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
                     */
           found = false;
-          for (op of Array.from(misc.operators)) {
+          for (op of misc.operators) {
             i = k.indexOf(op);
             if (i !== -1) {
               add_condition(k.slice(0, i).trim(), op, val);
@@ -332,7 +322,7 @@ export class Changes extends EventEmitter {
         }
       } else if (typeof obj === "string") {
         found = false;
-        for (op of Array.from(misc.operators)) {
+        for (op of misc.operators) {
           i = obj.indexOf(op);
           if (i !== -1) {
             add_condition(
@@ -355,7 +345,7 @@ export class Changes extends EventEmitter {
       delete this._condition;
     }
 
-    return (this._match_condition = obj => {
+    this._match_condition = obj => {
       //console.log '_match_condition', obj
       if (this._condition == null) {
         return true;
@@ -368,6 +358,6 @@ export class Changes extends EventEmitter {
         }
       }
       return true;
-    });
+    };
   }
 }
