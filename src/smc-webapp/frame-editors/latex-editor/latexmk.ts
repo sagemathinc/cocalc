@@ -25,9 +25,9 @@ export async function latexmk(
     status([command].concat(args).join(" "));
   }
   return await exec({
-    bash: true,    // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
+    bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
     allow_post: false, // definitely could take a long time to fully run latex
-    timeout: 60,
+    timeout: 4 * 60, // 4 minutes, on par with Overleaf
     command: command,
     args: args,
     project_id: project_id,

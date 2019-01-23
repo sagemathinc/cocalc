@@ -5,7 +5,6 @@ Comprehensive list of Jupyter notebook (version 5) command,
 */
 
 // for now we also use require here (see comment in actions.ts)
-const { callback2 } = require("smc-util/async-utils");
 
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
@@ -134,7 +133,7 @@ export function commands(actions: any) {
           ],
           cb(choice) {
             if (choice === "Restart") {
-              return actions.signal("SIGKILL");
+              return actions.restart();
             }
           }
         });
@@ -158,7 +157,7 @@ export function commands(actions: any) {
           ],
           cb(choice) {
             if (choice === "Restart and clear all outputs") {
-              actions.signal("SIGKILL");
+              actions.restart();
               return actions.clear_all_outputs();
             }
           }
@@ -185,16 +184,7 @@ export function commands(actions: any) {
           ],
           async cb(choice) {
             if (choice === "Restart and run all cells") {
-              actions.signal("SIGKILL");
-              try {
-                await callback2(actions.store.wait, {
-                  until: s => s.get("backend_state") !== "running",
-                  timeout: 0
-                });
-              } catch (err) {
-                // TODO: handle exception?
-                console.warn(err);
-              }
+              await actions.restart();
               actions.run_all_cells();
             }
           }
@@ -215,7 +205,7 @@ export function commands(actions: any) {
           ],
           cb(choice) {
             if (choice === "Shutdown") {
-              actions.signal("SIGKILL");
+              actions.shutdown();
             }
           }
         });
@@ -541,21 +531,21 @@ export function commands(actions: any) {
 
     "restart kernel": {
       m: "Restart kernel",
-      f: () => actions.signal("SIGKILL")
+      f: () => actions.restart()
     },
 
     "restart kernel and clear output": {
       m: "Restart kernel and clear output",
       f() {
-        actions.signal("SIGKILL");
+        actions.restart();
         actions.clear_all_outputs();
       }
     },
 
     "restart kernel and run all cells": {
       m: "Restart and run all",
-      f() {
-        actions.signal("SIGKILL");
+      async f() {
+        await actions.restart();
         actions.run_all_cells();
       }
     },
@@ -696,7 +686,7 @@ export function commands(actions: any) {
 
     "shutdown kernel": {
       m: "Shutdown kernel",
-      f: () => actions.signal("SIGKILL")
+      f: () => actions.shutdown()
     },
 
     "split cell at cursor": {
