@@ -89,7 +89,8 @@ describe 'basic use of cursors table  -- ', ->
                 expect(x).toEqual(cursors:{string_id:string_id, user_id:1, time:t[1], locs:[{x:3, y:15}]})
                 done(err)
 
-
+# cursors were backed by the DB, but they moved to projects and are ephemeral now
+# the acutal testing of cursors happens as part of the sync tests in smc-project
 describe 'access control tests on cursors table -- ', ->
     before(setup)
     after(teardown)
@@ -122,14 +123,6 @@ describe 'access control tests on cursors table -- ', ->
                 expect(x).toEqual(cursors:{string_id:string_id, user_id:0, time:t[0], locs:[{x:1, y:2}]})
                 done(err)
 
-    it 'fails to reads back as project (since no project access to cursors table!)', (done) ->
-        db.user_query
-            project_id : projects[0]
-            query      : {cursors:{string_id:string_id, user_id:0, time:t[0], locs:null}}
-            cb         : (err, x) ->
-                expect(err).toEqual("FATAL: get queries not allowed for table 'cursors'")
-                done()
-
     it 'fails to reads back as user not on project', (done) ->
         db.user_query
             account_id : accounts[1]
@@ -158,14 +151,6 @@ describe 'access control tests on cursors table -- ', ->
             query : {cursors:{string_id:string_id, time:t[1], user_id:0, locs:null}}
             cb    : (err) ->
                 expect(err).toEqual("FATAL: user must be an admin")
-                done()
-
-    it 'tries to write as different project and fails', (done) ->
-        db.user_query
-            project_id : projects[1]
-            query : {cursors:{string_id:string_id, time:t[1], user_id:0, locs:[{x:5,y:10}]}}
-            cb    : (err) ->
-                expect(err).toEqual("FATAL: user set queries not allowed for table 'cursors'")
                 done()
 
     it 'makes account1 an admin', (done) ->
@@ -197,14 +182,6 @@ describe 'access control tests on cursors table -- ', ->
             account_id : accounts[2]
             query      : {cursors:{string_id:string_id, user_id:0, time:t[0], locs:null}}
             cb         : done
-
-    it 'tries to write as same project and fails', (done) ->
-        db.user_query
-            project_id : projects[0]
-            query      : {cursors:{string_id:string_id, time:t[3], user_id:2, locs:[{x:20,y:25}]}}
-            cb         : (err) ->
-                expect(err).toEqual("FATAL: user set queries not allowed for table 'cursors'")
-                done()
 
     it 'tries to write non-array locs and fail', (done) ->
         db.user_query
