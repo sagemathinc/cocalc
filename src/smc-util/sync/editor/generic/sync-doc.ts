@@ -730,7 +730,13 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     if (this.client.is_user() && this.state == "ready") {
-      await this.save_to_disk();
+      try {
+        await this.save_to_disk();
+      } catch(err) {
+        // has to be non-fatal since we are closing the document,
+        // and of couse we need to clear up everything else.
+        // Do nothing here.
+      }
     }
     this.set_state("closed");
     this.emit("close");
@@ -1789,8 +1795,13 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  private handle_syncstring_save_state(state: string, time: Date): void {
-    /* This is used to make it possible to emit a
+  private async handle_syncstring_save_state(
+    state: string,
+    time: Date
+  ): Promise<void> {
+    // Called when the save state changes.
+
+    /* this.syncstring_save_state is used to make it possible to emit a
        'save-to-disk' event, whenever the state changes
        to indicate a save completed.
 
@@ -1802,7 +1813,6 @@ export class SyncDoc extends EventEmitter {
     if (state === "done" && this.syncstring_save_state !== "done") {
       this.emit("save-to-disk", time);
     }
-
     const dbg = this.dbg("handle_syncstring_save_state");
     dbg();
     if (
@@ -1811,14 +1821,19 @@ export class SyncDoc extends EventEmitter {
       this.syncstring_save_state !== "requested" &&
       state === "requested"
     ) {
+      this.syncstring_save_state = state; // only used in the if above
       dbg("requesting save to disk -- calling save_to_disk");
       // state just changed to requesting a save to disk...
       // so we do it (unless of course syncstring is still
       // being initialized).
-      this.save_to_disk();
+      try {
+        await this.save_to_disk();
+      } catch (err) {
+        dbg(`ERROR saving to disk in handle_syncstring_save_state-- ${err}`);
+      }
+    } else {
+      this.syncstring_save_state = state; // only used in the if above
     }
-
-    this.syncstring_save_state = state;
   }
 
   private async handle_syncstring_update(): Promise<void> {
@@ -1947,7 +1962,12 @@ export class SyncDoc extends EventEmitter {
     const x = this.syncstring_table.get_one();
     // Check if there is a pending save-to-disk that is needed.
     if (x != null && x.getIn(["save", "state"]) === "requested") {
-      await this.save_to_disk();
+      try {
+        await this.save_to_disk();
+      } catch (err) {
+        const dbg = this.dbg("pending_save_to_disk");
+        dbg(`ERROR saving to disk in pending_save_to_disk -- ${err}`);
+      }
     }
   }
 
@@ -1974,12 +1994,21 @@ export class SyncDoc extends EventEmitter {
       throw Error("must not be closed");
     }
     this.watch_path = path;
-    if (!(await callback2(this.client.path_exists, { path }))) {
-      // path does not exist
-      dbg(`write '${path}' to disk from syncstring in-memory database version`);
-      const data = this.to_str();
-      await callback2(this.client.write_file, { path, data });
-      dbg(`wrote '${path}' to disk`);
+    try {
+      if (!(await callback2(this.client.path_exists, { path }))) {
+        // path does not exist
+        dbg(
+          `write '${path}' to disk from syncstring in-memory database version`
+        );
+        const data = this.to_str();
+        await callback2(this.client.write_file, { path, data });
+        dbg(`wrote '${path}' to disk`);
+      }
+    } catch (err) {
+      // This should happen, e.g, if path is read only.
+      dbg(`could NOT write '${path}' to disk -- ${err}`);
+      // In this case, can't really setup a file watcher.
+      return;
     }
 
     dbg("now requesting to watch file");
@@ -2188,7 +2217,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.is_read_only()) {
-      dbg("read only, so don't save");
+      dbg("read only, so can't save to disk");
       // save should fail if file is read only and there are changes
       throw Error("can't save readonly file with changes to disk");
     }
@@ -2210,7 +2239,16 @@ export class SyncDoc extends EventEmitter {
       this.assert_is_ready();
     }
 
-    await this.save_to_disk_aux();
+    try {
+      await this.save_to_disk_aux();
+    } catch (err) {
+      const error = `save to disk failed -- ${err}`;
+      dbg(error);
+      if (this.client.is_project()) {
+        this.set_save({ error, state: "done" });
+      }
+    }
+
     dbg("now wait for the save to disk to finish");
     if (this.client.is_user()) {
       this.assert_is_ready();

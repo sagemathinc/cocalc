@@ -1057,8 +1057,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
+      // Export the ipynb file to disk.
       await this._api_call("save_ipynb_file", {});
-      // Now saves our custom-format syncdb to disk.
+      // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
       if (err.toString().indexOf("no kernel with path") != -1) {
