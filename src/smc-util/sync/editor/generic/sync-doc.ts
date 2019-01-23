@@ -597,6 +597,16 @@ export class SyncDoc extends EventEmitter {
     });
   }
 
+  private async save_to_disk_autosave(): Promise<void> {
+    const dbg = this.dbg("save_to_disk_autosave");
+    dbg();
+    try {
+      await this.save_to_disk();
+    } catch (err) {
+      dbg(`failed -- ${err}`);
+    }
+  }
+
   /* Make it so the local hub project will automatically save
      the file to disk periodically. */
   private init_project_autosave(): void {
@@ -613,7 +623,10 @@ export class SyncDoc extends EventEmitter {
 
     // Explicit cast due to node vs browser typings.
     this.project_autosave_timer = <any>(
-      setInterval(this.save_to_disk.bind(this), LOCAL_HUB_AUTOSAVE_S * 1000)
+      setInterval(
+        this.save_to_disk_autosave.bind(this),
+        LOCAL_HUB_AUTOSAVE_S * 1000
+      )
     );
   }
 
@@ -732,7 +745,7 @@ export class SyncDoc extends EventEmitter {
     if (this.client.is_user() && this.state == "ready") {
       try {
         await this.save_to_disk();
-      } catch(err) {
+      } catch (err) {
         // has to be non-fatal since we are closing the document,
         // and of couse we need to clear up everything else.
         // Do nothing here.
