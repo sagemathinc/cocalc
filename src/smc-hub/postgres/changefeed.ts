@@ -17,7 +17,7 @@ import { callback } from "awaiting";
 
 import { PostgreSQL, QuerySelect } from "./types";
 
-import { query, query_one } from "./changefeed-query";
+import { query } from "./changefeed-query";
 
 type WhereCondition = Function | object | object[];
 
@@ -142,7 +142,8 @@ export class Changes extends EventEmitter {
         db: this.db,
         select: this.watch.concat(misc.keys(this.select)),
         table: this.table,
-        where: where0
+        where: where0,
+        one : false
       });
     } catch (err) {
       this.fail(err); // this is game over
@@ -226,11 +227,12 @@ export class Changes extends EventEmitter {
     }
     let result: undefined | { [field: string]: any };
     try {
-      result = await query_one({
+      result = await query({
         db: this.db,
         select: this.watch,
         table: this.table,
-        where
+        where,
+        one:true
       });
     } catch (err) {
       this.fail(err);
