@@ -26,7 +26,7 @@ exports.LIVE_DEMO_REQUEST    = 'https://docs.google.com/forms/d/e/1FAIpQLSesDZkG
 exports.HELP_EMAIL           = 'help@sagemath.com'
 exports.TWITTER_HANDLE       = 'cocalc_com'   # without the @
 
-exports.INCORPORATED         = 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+exports.INCORPORATED         = 'SageMath, Inc. is a Delaware C Corporation that was incorporated Feb 2, 2015, founded on sustainable principles. The company has not and will not take Venture Capital funding or be acquired.'
 exports.BILLING_EMAIL        = 'billing@sagemath.com'
 exports.BILLING_ADDRESS      = '''
                                1212 East Barclay Court

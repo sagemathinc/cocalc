@@ -271,7 +271,8 @@ export class JupyterActions extends JupyterActions0 {
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
     if (current == null || current !== kernel) {
-      // Only set backend info if first time or kernel changed.
+      // Only set backend info if first time or kernel changed,
+      // and only for non-read-only kernels.
       // Otherwise, just stopping the kernel will start it running
       // again just to get this info.
       this.set_backend_kernel_info();
