@@ -249,7 +249,7 @@ export class SyncDoc extends EventEmitter {
   this SyncDoc.
   */
   private async init(): Promise<void> {
-    this.assert_not_closed();
+    this.assert_not_closed("init");
 
     try {
       //const t0 = new Date();
@@ -380,10 +380,10 @@ export class SyncDoc extends EventEmitter {
     return this.my_user_id != null ? this.my_user_id : 0;
   }
 
-  private assert_not_closed(): void {
+  private assert_not_closed(desc: string): void {
     if (this.state === "closed") {
       //console.trace();
-      throw Error("closed");
+      throw Error(`must not be closed -- ${desc}`);
     }
   }
 
@@ -507,7 +507,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private _undo(): Document {
-    this.assert_is_ready();
+    this.assert_is_ready("_undo");
     let state = this.undo_state;
     if (state == null) {
       // not in undo mode
@@ -546,7 +546,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private _redo(): Document {
-    this.assert_is_ready();
+    this.assert_is_ready("_redo");
     const state = this.undo_state;
     if (state == null) {
       // nothing to do but return latest live version
@@ -633,7 +633,7 @@ export class SyncDoc extends EventEmitter {
   // account_id of the user who made the edit at
   // the given point in time.
   public account_id(time: Date): string {
-    this.assert_is_ready();
+    this.assert_is_ready("account_id");
     return this.users[this.user_id(time)];
   }
 
@@ -945,19 +945,19 @@ export class SyncDoc extends EventEmitter {
     }
     const log = this.dbg("init_all");
 
-    this.assert_not_closed();
+    this.assert_not_closed("init_all -- before ensuring syncstring exists");
     log("ensure syncstring exists in database");
     await this.ensure_syncstring_exists_in_db();
     log("syncstring_table");
     await this.init_syncstring_table();
-    this.assert_not_closed();
+    this.assert_not_closed("init_all -- before init patch_list");
     log("patch_list, cursors, evaluator");
     await Promise.all([
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator()
     ]);
-    this.assert_not_closed();
+    this.assert_not_closed("init_all -- after init patch_list");
     this.init_table_close_handlers();
     log("file_use_interval");
     this.init_file_use_interval();
@@ -981,7 +981,7 @@ export class SyncDoc extends EventEmitter {
     log("wait_until_fully_ready");
     await this.wait_until_fully_ready();
 
-    this.assert_not_closed();
+    this.assert_not_closed("init_all -- after waiting until fully ready");
 
     if (this.client.is_project()) {
       log("init autosave");
@@ -990,7 +990,7 @@ export class SyncDoc extends EventEmitter {
       // Ensure file is undeleted when explicitly open.
       log("undelete");
       await this.undelete();
-      this.assert_not_closed();
+      this.assert_not_closed("init_all -- after undelete");
     }
     this.update_has_unsaved_changes();
     log("done");
@@ -1009,7 +1009,7 @@ export class SyncDoc extends EventEmitter {
   private async wait_until_fully_ready(): Promise<void> {
     const dbg = this.dbg("wait_until_fully_ready");
     dbg();
-    this.assert_not_closed();
+    this.assert_not_closed("wait_until_fully_ready");
 
     if (this.client.is_user() && this.init_error()) {
       // init is set and is in error state.  Give the backend a few seconds
@@ -1023,7 +1023,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     function is_init_and_not_archived(t: SyncTable): any {
-      this.assert_not_closed();
+      this.assert_not_closed("is_init_and_not_archived");
       const tbl = t.get_one();
       if (tbl == null) {
         dbg("null");
@@ -1080,14 +1080,14 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  public assert_is_ready(): void {
+  public assert_is_ready(desc: string): void {
     if (this.state !== "ready") {
-      throw Error("must be ready");
+      throw Error(`must be ready -- ${desc}`);
     }
   }
 
   public async wait_until_ready(): Promise<void> {
-    this.assert_not_closed();
+    this.assert_not_closed("wait_until_ready");
     if (this.state !== ("ready" as State)) {
       // wait for a state change to ready.
       await once(this, "ready");
@@ -1233,7 +1233,7 @@ export class SyncDoc extends EventEmitter {
   private async init_patch_list(): Promise<void> {
     const dbg = this.dbg("init_patch_list");
     dbg();
-    this.assert_not_closed();
+    this.assert_not_closed("init_patch_list - start");
 
     // CRITICAL: note that handle_syncstring_update checks whether
     // init_patch_list is done by testing whether this.patch_list is defined!
@@ -1249,7 +1249,7 @@ export class SyncDoc extends EventEmitter {
       [],
       this.patch_interval
     );
-    this.assert_not_closed();
+    this.assert_not_closed("init_patch_list -- after making synctable");
 
     const update_has_unsaved_changes = debounce(
       this.update_has_unsaved_changes.bind(this),
@@ -1360,7 +1360,7 @@ export class SyncDoc extends EventEmitter {
       options = [];
     }
     this.cursors_table = await this.synctable(query, options, 1000);
-    this.assert_not_closed();
+    this.assert_not_closed("init_cursors -- after making synctable");
 
     // cursors now initialized; first initialize the
     // local this._cursor_map, which tracks positions
@@ -1439,7 +1439,7 @@ export class SyncDoc extends EventEmitter {
      this one file, e.g., overloading the spell checker language.
    */
   public async set_settings(obj): Promise<void> {
-    this.assert_is_ready();
+    this.assert_is_ready("set_settings");
     this.syncstring_table.set({
       string_id: this.string_id,
       project_id: this.project_id,
@@ -1451,7 +1451,7 @@ export class SyncDoc extends EventEmitter {
 
   // get settings object
   public get_settings(): Map<string, any> {
-    this.assert_is_ready();
+    this.assert_is_ready("get_settings");
     return this.syncstring_table_get_one().get("settings", Map());
   }
 
@@ -1520,7 +1520,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   public async undelete(): Promise<void> {
-    this.assert_not_closed();
+    this.assert_not_closed("undelete");
     // Version with deleted set to false:
     const x = this.syncstring_table_get_one().set("deleted", false);
     // Now write that as new version to table.
@@ -1529,7 +1529,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private commit_patch(time: Date, patch: XPatch): void {
-    this.assert_not_closed();
+    this.assert_not_closed("commit_patch");
     const obj: any = {
       // version for database
       string_id: this.string_id,
@@ -1778,7 +1778,7 @@ export class SyncDoc extends EventEmitter {
   private async handle_offline(data): Promise<void> {
     //dbg = this.dbg("handle_offline")
     //dbg("data='#{misc.to_json(data)}'")
-    this.assert_not_closed();
+    this.assert_not_closed("handle_offline");
     const now: Date = this.client.server_time();
     let oldest: Date | undefined = undefined;
     for (let obj of data) {
@@ -2054,7 +2054,7 @@ export class SyncDoc extends EventEmitter {
 
   private async handle_file_watcher_delete(): Promise<void> {
     const dbg = this.dbg("handle_file_watcher_delete");
-    this.assert_is_ready();
+    this.assert_is_ready("handle_file_watcher_delete");
     dbg("delete: setting deleted=true and closing");
     this.from_str("");
     await this.save();
@@ -2212,7 +2212,7 @@ export class SyncDoc extends EventEmitter {
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   public async save_to_disk(): Promise<void> {
-    this.assert_is_ready();
+    this.assert_is_ready("save_to_disk - start");
     const dbg = this.dbg("save_to_disk");
     dbg("initiating the save");
     /* dbg(`live="${this.to_str()}"`);
@@ -2249,7 +2249,7 @@ export class SyncDoc extends EventEmitter {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
-      this.assert_is_ready();
+      this.assert_is_ready("save_to_disk - after save");
     }
 
     try {
@@ -2264,7 +2264,7 @@ export class SyncDoc extends EventEmitter {
 
     dbg("now wait for the save to disk to finish");
     if (this.client.is_user()) {
-      this.assert_is_ready();
+      this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
     }
     this.update_has_unsaved_changes();
@@ -2342,7 +2342,7 @@ export class SyncDoc extends EventEmitter {
      to disk, then sets the state to done.
   */
   private async save_to_disk_aux(): Promise<void> {
-    this.assert_is_ready();
+    this.assert_is_ready("save_to_disk_aux");
 
     if (this.client.is_user()) {
       return await this.save_to_disk_user();
@@ -2357,7 +2357,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async save_to_disk_user(): Promise<void> {
-    this.assert_is_ready();
+    this.assert_is_ready("save_to_disk_user");
 
     if (!this.has_unsaved_changes()) {
       /* Browser client has no unsaved changes,
@@ -2380,7 +2380,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async save_to_disk_project(): Promise<void> {
-    this.assert_is_ready();
+    this.assert_is_ready("save_to_disk_project");
 
     // check if on-disk version is same as in memory, in
     // which case no save is needed.
@@ -2418,9 +2418,9 @@ export class SyncDoc extends EventEmitter {
     this.save_to_disk_end_ctime = undefined;
     try {
       await callback2(this.client.write_file, { path, data });
-      this.assert_is_ready();
+      this.assert_is_ready("save_to_disk_project -- after write_file");
       const stat = await callback2(this.client.path_stat, { path });
-      this.assert_is_ready();
+      this.assert_is_ready("save_to_disk_project -- after path_state");
       this.save_to_disk_end_ctime = stat.ctime.valueOf() + 1500;
       this.set_save({
         state: "done",
