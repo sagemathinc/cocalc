@@ -69,11 +69,12 @@ class SyncTableChannel extends EventEmitter {
     this.init_synctable_handlers();
 
     this.connect = this.connect.bind(this);
+    this.log = this.log.bind(this);
     this.connect();
   }
 
   private log(..._args): void {
-    // console.log("SyncChannel", this.query, ..._args);
+    //console.log("SyncChannel", this.query, ..._args);
   }
 
   private async connect(): Promise<void> {
@@ -82,7 +83,8 @@ class SyncTableChannel extends EventEmitter {
     await retry_until_success({
       max_delay: 5000,
       f: this.attempt_to_connect.bind(this),
-      desc: "webapp-synctable-connect"
+      desc: "webapp-synctable-connect",
+      log: this.log
     });
   }
 
@@ -185,7 +187,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private send_mesg_to_project(mesg): void {
-    this.log("client <-- project: ", mesg);
+    this.log("project <-- client: ", mesg);
     if (
       !this.connected ||
       this.websocket == null ||

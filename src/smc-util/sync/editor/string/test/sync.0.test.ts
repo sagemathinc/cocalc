@@ -100,7 +100,7 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("check ready state", async () => {
-    syncstring.assert_is_ready();
+    syncstring.assert_is_ready('check ready state');
     await syncstring.wait_until_ready(); // trivial since already ready
   });
 

@@ -995,7 +995,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _set = (obj: any, save: boolean = true) => {
-    if (this._state === "closed") {
+    if (this._state === "closed" || this.store.get("read_only")) {
       return;
     }
     // check write protection regarding specific keys to be set
@@ -1023,7 +1023,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // might throw a CellDeleteProtectedException
   _delete = (obj: any, save = true) => {
-    if (this._state === "closed") {
+    if (this._state === "closed" || this.store.get("read_only")) {
       return;
     }
     // check: don't delete cells marked as deletable=false
@@ -1057,8 +1057,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
+      // Export the ipynb file to disk.
       await this._api_call("save_ipynb_file", {});
-      // Now saves our custom-format syncdb to disk.
+      // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
       if (err.toString().indexOf("no kernel with path") != -1) {
@@ -1104,6 +1105,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   insert_cell = (delta: any) => {
+    if (this.store.get("read_only")) return;
     // delta = -1 (above) or +1 (below)
     const pos = cell_utils.new_cell_pos(
       this.store.get("cells"),
@@ -1209,6 +1211,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
   run_cell = (id: any, save: boolean = true): void => {
+    if (this.store.get("read_only")) return;
     let left: any;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -2188,7 +2191,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   );
 
   set_backend_kernel_info = async (): Promise<void> => {
-    if (this._state === "closed") {
+    if (this._state === "closed" || this.syncdb.is_read_only()) {
       return;
     }
 
