@@ -3,11 +3,19 @@ Does the queries to update changefeeds, deduplicating across
 both all changefeeds and a small interval of time.
 */
 
+// set to false to completely disable for debugging/testing
 const THROTTLE: boolean = true;
 
-// When running unit tests, still throttle, but make it quick.
-// When running actual hub, throttle changefeed updates by 1 second.
-const THROTTLE_MS: number = process.env.SMC_TEST ? 10 : 1000;
+// 10ms when running unit tests, still throttle, but make it quick.
+// Otherwise, we default to 250ms, which is enough to be massively
+// useful, but also not noticed by user.
+let THROTTLE_MS: number = process.env.SMC_TEST ? 10 : 500;
+
+// THROTTLE_MS can be overridden the POSTGRES_THROTTLE_CHANGEFEED_MS
+// environment variable.
+if (process.env.POSTGRES_THROTTLE_CHANGEFEED_MS != null) {
+  THROTTLE_MS = parseInt(process.env.POSTGRES_THROTTLE_CHANGEFEED_MS);
+}
 
 import { EventEmitter } from "events";
 
@@ -54,7 +62,7 @@ class ThrottledTableQueue extends EventEmitter {
   }
 
   private dbg(f): Function {
-    return this.db._dbg(`ThrottledTableQueue.${f}`);
+    return this.db._dbg(`ThrottledTableQueue('${this.table}').${f}`);
   }
 
   public close(): void {
@@ -83,11 +91,9 @@ class ThrottledTableQueue extends EventEmitter {
       throw Error("trying to enqueue after close");
     }
     const k = key(query);
-    const dbg = this.dbg("enqueue")
-    dbg(k);
     this.queue[k] = query;
     if (this.process_timer == null) {
-      dbg('starting timer', this.interval_ms);
+      this.dbg('enqueue')(`will process queue in ${this.interval_ms}ms...`);
       this.process_timer = setTimeout(
         this.process_queue.bind(this),
         this.interval_ms
@@ -97,8 +103,8 @@ class ThrottledTableQueue extends EventEmitter {
   }
 
   private async process_queue(): Promise<void> {
-    const dbg = this.dbg("process_queue")
-    delete this.process_timer;  // it just fired
+    const dbg = this.dbg("process_queue");
+    delete this.process_timer; // it just fired
     // first time we just doing them one at a time.
     // Soon we will do ALL queries simultaneously as a single query.
     for (let k in this.queue) {
