@@ -13,36 +13,13 @@ import { EventEmitter } from "events";
 
 import * as misc from "smc-util/misc";
 
-//import { callback2 } from "smc-util/async-utils";
+import { callback } from "awaiting";
 
-const { one_result, all_results } = require("../postgres-base");
+import { PostgreSQL, QuerySelect } from "./types";
 
-type QuerySelect = object;
+import { query, query_one } from "./changefeed-query";
 
 type WhereCondition = Function | object | object[];
-
-type QueryWhere =
-  | { [field: string]: any }
-  | { [field: string]: any }[]
-  | string
-  | string[];
-
-interface PostgreSQL extends EventEmitter {
-  _dbg(desc: string): Function;
-  _stop_listening(table: string, select: QuerySelect, watch: string[]);
-  _query(opts: {
-    select: string | string[];
-    table: string;
-    where: QueryWhere;
-    cb: Function;
-  }): void;
-  _listen(
-    table: string,
-    select: QuerySelect,
-    watch: string[],
-    cb: Function
-  ): void;
-}
 
 type ChangeAction = "delete" | "insert" | "update";
 function parse_action(obj: string): ChangeAction {
@@ -77,10 +54,9 @@ export class Changes extends EventEmitter {
     select: QuerySelect,
     watch: string[],
     where: WhereCondition,
-    cb
+    cb: Function
   ) {
     super();
-
     this.handle_change = this.handle_change.bind(this);
 
     this.db = db;
@@ -88,7 +64,10 @@ export class Changes extends EventEmitter {
     this.select = select;
     this.watch = watch;
     this.where = where;
+    this.init(cb);
+  }
 
+  async init(cb: Function): Promise<void> {
     this.dbg("constructor")(
       `select=${misc.to_json(this.select)}, watch=${misc.to_json(
         this.watch
@@ -98,33 +77,29 @@ export class Changes extends EventEmitter {
     try {
       this.init_where();
     } catch (e) {
-      if (typeof cb === "function") {
-        cb(`error initializing where conditions -- ${e}`);
-      }
+      cb(`error initializing where conditions -- ${e}`);
       return;
     }
-    this.db._listen(
-      this.table,
-      this.select,
-      this.watch,
-      (err, trigger_name) => {
-        if (err) {
-          if (typeof cb === "function") {
-            cb(err);
-          }
-          return;
-        }
-        this.trigger_name = trigger_name;
-        this.db.on(this.trigger_name, this.handle_change);
-        // NOTE: we close on *connect*, not on disconnect, since then clients
-        // that try to reconnect will only try to do so when we have an actual
-        // connection to the database.  No point in worrying them while trying
-        // to reconnect, which only makes matters worse (as they panic and
-        // requests pile up!).
-        this.db.once("connect", this.close);
-        typeof cb === "function" ? cb(undefined, this) : undefined;
-      }
-    );
+
+    try {
+      this.trigger_name = await callback(
+        this.db._listen,
+        this.table,
+        this.select,
+        this.watch
+      );
+    } catch (err) {
+      cb(err);
+      return;
+    }
+    this.db.on(this.trigger_name, this.handle_change);
+    // NOTE: we close on *connect*, not on disconnect, since then clients
+    // that try to reconnect will only try to do so when we have an actual
+    // connection to the database.  No point in worrying them while trying
+    // to reconnect, which only makes matters worse (as they panic and
+    // requests pile up!).
+    this.db.once("connect", this.close);
+    cb(undefined, this);
   }
 
   private dbg(f: string): Function {
@@ -155,34 +130,31 @@ export class Changes extends EventEmitter {
     delete this.condition;
   }
 
-  public insert(where): void {
+  public async insert(where): Promise<void> {
     const where0: { [field: string]: any } = {};
     for (let k in where) {
       const v = where[k];
       where0[`${k} = $`] = v;
     }
-    this.db._query({
-      select: this.watch.concat(misc.keys(this.select)),
-      table: this.table,
-      where: where0,
-      cb: all_results((err, results) => {
-        //# Useful for testing that the @_fail thing below actually works.
-        //#if Math.random() < .7
-        //#    err = "simulated error"
-        if (err) {
-          this.dbg("insert")("FAKE ERROR!");
-          this.fail(err); // this is game over
-          return;
-        }
-        for (let x of results) {
-          if (this.match_condition(x)) {
-            misc.map_mutate_out_undefined(x);
-            const change: ChangeEvent = { action: "insert", new_val: x };
-            this.emit("change", change);
-          }
-        }
-      })
-    });
+    let results: { [field: string]: any }[];
+    try {
+      results = await query({
+        db: this.db,
+        select: this.watch.concat(misc.keys(this.select)),
+        table: this.table,
+        where: where0
+      });
+    } catch (err) {
+      this.fail(err); // this is game over
+      return;
+    }
+    for (let x of results) {
+      if (this.match_condition(x)) {
+        misc.map_mutate_out_undefined(x);
+        const change: ChangeEvent = { action: "insert", new_val: x };
+        this.emit("change", change);
+      }
+    }
   }
 
   public delete(where): void {
@@ -209,7 +181,7 @@ export class Changes extends EventEmitter {
     }
   }
 
-  private handle_change(mesg): void {
+  private async handle_change(mesg): Promise<void> {
     //console.log '_handle_change', mesg
     if (mesg[0] === "DELETE") {
       if (!this.match_condition(mesg[2])) {
@@ -252,27 +224,28 @@ export class Changes extends EventEmitter {
       v = mesg[1][k];
       where[`${k} = $`] = v;
     }
-    this.db._query({
-      select: this.watch,
-      table: this.table,
-      where,
-      cb: one_result((err, result) => {
-        if (err) {
-          this.fail(err);
-          return;
-        }
-        if (result == null) {
-          // This happens when record isn't deleted, but some
-          // update results in the object being removed from our
-          // selection criterion... which we view as "delete".
-          this.emit("change", { action: "delete", old_val: mesg[1] });
-          return;
-        }
-        r = { action, new_val: misc.merge(result, mesg[1]) };
-        this.old_val(r, action, mesg);
-        this.emit("change", r);
-      })
-    });
+    let result: undefined | { [field: string]: any };
+    try {
+      result = await query_one({
+        db: this.db,
+        select: this.watch,
+        table: this.table,
+        where
+      });
+    } catch (err) {
+      this.fail(err);
+      return;
+    }
+    if (result == null) {
+      // This happens when record isn't deleted, but some
+      // update results in the object being removed from our
+      // selection criterion... which we view as "delete".
+      this.emit("change", { action: "delete", old_val: mesg[1] });
+      return;
+    }
+    r = { action, new_val: misc.merge(result, mesg[1]) };
+    this.old_val(r, action, mesg);
+    this.emit("change", r);
   }
 
   private init_where(): void {
