@@ -13,122 +13,172 @@ import { EventEmitter } from "events";
 
 import * as misc from "smc-util/misc";
 
+//import { callback2 } from "smc-util/async-utils";
+
 const { one_result, all_results } = require("../postgres-base");
 
+type QuerySelect = object;
+
+type WhereCondition = Function | object | object[];
+
+type QueryWhere =
+  | { [field: string]: any }
+  | { [field: string]: any }[]
+  | string
+  | string[];
+
+interface PostgreSQL extends EventEmitter {
+  _dbg(desc: string): Function;
+  _stop_listening(table: string, select: QuerySelect, watch: string[]);
+  _query(opts: {
+    select: string | string[];
+    table: string;
+    where: QueryWhere;
+    cb: Function;
+  }): void;
+  _listen(
+    table: string,
+    select: QuerySelect,
+    watch: string[],
+    cb: Function
+  ): void;
+}
+
+type ChangeAction = "delete" | "insert" | "update";
+function parse_action(obj: string): ChangeAction {
+  const s: string = `${obj.toLowerCase()}`;
+  if (s === "delete" || s === "insert" || s === "update") {
+    return s;
+  }
+  throw Error(`invalid action "${s}"`);
+}
+
+interface ChangeEvent {
+  action: ChangeAction;
+  new_val?: object;
+  old_val?: object;
+}
+
 export class Changes extends EventEmitter {
-  private _db: any;
-  private _table: any;
-  private _select: any;
-  private _watch: any;
-  private _where: any;
+  private db: PostgreSQL;
+  private table: string;
+  private select: QuerySelect;
+  private watch: string[];
+  private where: WhereCondition;
 
-  private _tgname: string;
-  private _closed: boolean;
-  private _condition: any;
-  private _match_condition: Function;
+  private trigger_name: string;
+  private closed: boolean;
+  private condition: { [field: string]: Function };
+  private match_condition: Function;
 
-  constructor(_db, _table, _select, _watch, _where, cb) {
+  constructor(
+    db: PostgreSQL,
+    table: string,
+    select: QuerySelect,
+    watch: string[],
+    where: WhereCondition,
+    cb
+  ) {
     super();
 
-    this._dbg = this._dbg.bind(this);
-    this._fail = this._fail.bind(this);
-    this.close = this.close.bind(this);
-    this._old_val = this._old_val.bind(this);
-    this._handle_change = this._handle_change.bind(this);
-    this.insert = this.insert.bind(this);
-    this.delete = this.delete.bind(this);
-    this._init_where = this._init_where.bind(this);
+    this.handle_change = this.handle_change.bind(this);
 
-    this._db = _db;
-    this._table = _table;
-    this._select = _select;
-    this._watch = _watch;
-    this._where = _where;
+    this.db = db;
+    this.table = table;
+    this.select = select;
+    this.watch = watch;
+    this.where = where;
 
-    this._dbg("constructor")(
-      `select=${misc.to_json(this._select)}, watch=${misc.to_json(
-        this._watch
-      )}, @_where=${misc.to_json(this._where)}`
+    this.dbg("constructor")(
+      `select=${misc.to_json(this.select)}, watch=${misc.to_json(
+        this.watch
+      )}, @_where=${misc.to_json(this.where)}`
     );
 
     try {
-      this._init_where();
+      this.init_where();
     } catch (e) {
       if (typeof cb === "function") {
         cb(`error initializing where conditions -- ${e}`);
       }
       return;
     }
-    this._db._listen(this._table, this._select, this._watch, (err, tgname) => {
-      if (err) {
-        if (typeof cb === "function") {
-          cb(err);
+    this.db._listen(
+      this.table,
+      this.select,
+      this.watch,
+      (err, trigger_name) => {
+        if (err) {
+          if (typeof cb === "function") {
+            cb(err);
+          }
+          return;
         }
-        return;
+        this.trigger_name = trigger_name;
+        this.db.on(this.trigger_name, this.handle_change);
+        // NOTE: we close on *connect*, not on disconnect, since then clients
+        // that try to reconnect will only try to do so when we have an actual
+        // connection to the database.  No point in worrying them while trying
+        // to reconnect, which only makes matters worse (as they panic and
+        // requests pile up!).
+        this.db.once("connect", this.close);
+        typeof cb === "function" ? cb(undefined, this) : undefined;
       }
-      this._tgname = tgname;
-      this._db.on(this._tgname, this._handle_change);
-      // NOTE: we close on *connect*, not on disconnect, since then clients
-      // that try to reconnect will only try to do so when we have an actual
-      // connection to the database.  No point in worrying them while trying
-      // to reconnect, which only makes matters worse (as they panic and
-      // requests pile up!).
-      this._db.once("connect", this.close);
-      typeof cb === "function" ? cb(undefined, this) : undefined;
-    });
+    );
   }
 
-  private _dbg(f: string): Function {
-    return this._db._dbg(`Changes(table='${this._table}').${f}`);
+  private dbg(f: string): Function {
+    return this.db._dbg(`Changes(table='${this.table}').${f}`);
   }
 
   // this breaks the changefeed -- client must recreate it; nothing further will work at all.
-  private _fail(err): void {
-    if (this._closed) {
+  private fail(err): void {
+    if (this.closed) {
       return;
     }
-    this._dbg("_fail")(`err='${err}'`);
+    this.dbg("_fail")(`err='${err}'`);
     this.emit("error", new Error(err));
     this.close();
   }
 
   public close(): void {
-    if (this._closed) {
+    if (this.closed) {
       return;
     }
-    this._closed = true;
+    this.closed = true;
     this.emit("close", { action: "close" });
     this.removeAllListeners();
-    this._db.removeListener(this._tgname, this._handle_change);
-    this._db.removeListener("connect", this.close);
-    this._db._stop_listening(this._table, this._select, this._watch);
-    delete this._tgname;
-    delete this._condition;
+    this.db.removeListener(this.trigger_name, this.handle_change);
+    this.db.removeListener("connect", this.close);
+    this.db._stop_listening(this.table, this.select, this.watch);
+    delete this.trigger_name;
+    delete this.condition;
   }
 
   public insert(where): void {
-    const where0 = {};
+    const where0: { [field: string]: any } = {};
     for (let k in where) {
       const v = where[k];
       where0[`${k} = $`] = v;
     }
-    this._db._query({
-      select: this._watch.concat(misc.keys(this._select)),
-      table: this._table,
+    this.db._query({
+      select: this.watch.concat(misc.keys(this.select)),
+      table: this.table,
       where: where0,
       cb: all_results((err, results) => {
         //# Useful for testing that the @_fail thing below actually works.
         //#if Math.random() < .7
         //#    err = "simulated error"
         if (err) {
-          this._dbg("insert")("FAKE ERROR!");
-          this._fail(err); // this is game over
+          this.dbg("insert")("FAKE ERROR!");
+          this.fail(err); // this is game over
           return;
         }
         for (let x of results) {
-          if (this._match_condition(x)) {
+          if (this.match_condition(x)) {
             misc.map_mutate_out_undefined(x);
-            this.emit("change", { action: "insert", new_val: x });
+            const change: ChangeEvent = { action: "insert", new_val: x };
+            this.emit("change", change);
           }
         }
       })
@@ -138,10 +188,11 @@ export class Changes extends EventEmitter {
   public delete(where): void {
     // listener is meant to delete everything that *matches* the where, so
     // there is no need to actually do a query.
-    this.emit("change", { action: "delete", old_val: where });
+    const change: ChangeEvent = { action: "delete", old_val: where };
+    this.emit("change", change);
   }
 
-  private _old_val(result, action, mesg): void {
+  private old_val(result, action, mesg): void {
     if (action === "update") {
       // include only changed fields if action is 'update'
       const old_val = {};
@@ -158,18 +209,21 @@ export class Changes extends EventEmitter {
     }
   }
 
-  private _handle_change(mesg): void {
+  private handle_change(mesg): void {
     //console.log '_handle_change', mesg
     if (mesg[0] === "DELETE") {
-      if (!this._match_condition(mesg[2])) {
+      if (!this.match_condition(mesg[2])) {
         return;
       }
       this.emit("change", { action: "delete", old_val: mesg[2] });
       return;
     }
-    let k, r, v;
-    const action = `${mesg[0].toLowerCase()}`;
-    if (!this._match_condition(mesg[1])) {
+    let k: string, r: ChangeEvent, v: any;
+    if (typeof mesg[0] !== "string") {
+      throw Error(`invalid mesg -- mesg[0] must be a string`);
+    }
+    const action: ChangeAction = parse_action(mesg[0]);
+    if (!this.match_condition(mesg[1])) {
       if (action !== "update") {
         return;
       }
@@ -178,18 +232,18 @@ export class Changes extends EventEmitter {
         if (mesg[2][k] == null) {
           mesg[2][k] = v;
         }
-        if (this._match_condition(mesg[2])) {
+        if (this.match_condition(mesg[2])) {
           this.emit("change", { action: "delete", old_val: mesg[2] });
         }
         return; // TODO: This looks *very* suspicious -- it just seems
-                // more likely that this would be in the if statement.
-                // Once I figure out what the heck is going on here,
-                // fix or write a clear comment!
+        // more likely that this would be in the if statement.
+        // Once I figure out what the heck is going on here,
+        // fix or write a clear comment!
       }
     }
-    if (this._watch.length === 0) {
+    if (this.watch.length === 0) {
       r = { action, new_val: mesg[1] };
-      this._old_val(r, action, mesg);
+      this.old_val(r, action, mesg);
       this.emit("change", r);
       return;
     }
@@ -198,13 +252,13 @@ export class Changes extends EventEmitter {
       v = mesg[1][k];
       where[`${k} = $`] = v;
     }
-    this._db._query({
-      select: this._watch,
-      table: this._table,
+    this.db._query({
+      select: this.watch,
+      table: this.table,
       where,
       cb: one_result((err, result) => {
         if (err) {
-          this._fail(err);
+          this.fail(err);
           return;
         }
         if (result == null) {
@@ -215,34 +269,37 @@ export class Changes extends EventEmitter {
           return;
         }
         r = { action, new_val: misc.merge(result, mesg[1]) };
-        this._old_val(r, action, mesg);
+        this.old_val(r, action, mesg);
         this.emit("change", r);
       })
     });
   }
 
-  private _init_where(): void {
-    let w: any[];
-    if (typeof this._where === "function") {
+  private init_where(): void {
+    if (typeof this.where === "function") {
       // user provided function
-      this._match_condition = this._where;
+      this.match_condition = this.where;
       return;
     }
-    if (misc.is_object(this._where)) {
-      w = [this._where];
+
+    let w: any[];
+    if (misc.is_object(this.where)) {
+      w = [this.where];
     } else {
-      w = this._where;
+      // TODO: misc.is_object needs to be a typescript checker instead, so
+      // this as isn't needed.
+      w = this.where as object[];
     }
 
-    this._condition = {};
-    function add_condition(field, op, val) {
-      let f, g;
+    this.condition = {};
+    const add_condition = (field: string, op: string, val: any): void => {
+      let f: Function, g: Function;
       field = field.trim();
       if (field[0] === '"') {
         // de-quote
         field = field.slice(1, field.length - 1);
       }
-      if (this._select[field] == null) {
+      if (this.select[field] == null) {
         throw Error(`'${field}' must be in select`);
       }
       if (misc.is_object(val)) {
@@ -287,26 +344,26 @@ export class Changes extends EventEmitter {
         g = misc.op_to_function(op);
         f = x => g(x, val);
       }
-      this._condition[field] = f;
+      this.condition[field] = f;
     };
 
     for (let obj of w) {
-      var found, i, op;
+      let found: boolean, i: number, op: string;
       if (misc.is_object(obj)) {
         for (let k in obj) {
           const val = obj[k];
           /*
-                    k should be of one of the following forms
-                       - "field op $::TYPE"
-                       - "field op $" or
-                       - "field op any($)"
-                       - 'field' (defaults to =)
-                    where op is one of =, <, >, <=, >=, !=
+          k should be of one of the following forms
+             - "field op $::TYPE"
+             - "field op $" or
+             - "field op any($)"
+             - 'field' (defaults to =)
+          where op is one of =, <, >, <=, >=, !=
 
-                    val must be:
-                       - something where javascript === and comparisons works as you expect!
-                       - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
-                    */
+          val must be:
+             - something where javascript === and comparisons works as you expect!
+             - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
+          */
           found = false;
           for (op of misc.operators) {
             i = k.indexOf(op);
@@ -341,17 +398,17 @@ export class Changes extends EventEmitter {
         throw Error("NotImplementedError");
       }
     }
-    if (misc.len(this._condition) === 0) {
-      delete this._condition;
+    if (misc.len(this.condition) === 0) {
+      delete this.condition;
     }
 
-    this._match_condition = obj => {
+    this.match_condition = (obj: object): boolean => {
       //console.log '_match_condition', obj
-      if (this._condition == null) {
+      if (this.condition == null) {
         return true;
       }
-      for (let field in this._condition) {
-        const f = this._condition[field];
+      for (let field in this.condition) {
+        const f = this.condition[field];
         if (!f(obj[field])) {
           //console.log 'failed due to field ', field
           return false;
