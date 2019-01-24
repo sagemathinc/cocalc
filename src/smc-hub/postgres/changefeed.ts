@@ -11,7 +11,7 @@ You must recreate it.
 
 import { EventEmitter } from "events";
 
-import * as misc from "smc-util/misc";
+import * as misc from "../smc-util/misc";
 
 import { callback } from "awaiting";
 
