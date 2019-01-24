@@ -12,7 +12,7 @@ import { is_array } from "../smc-util/misc2";
 const open_synctables: { [key: string]: SyncTable } = {};
 const wait_for: { [key: string]: Function[] } = {};
 
-function key(query): string {
+export function key(query): string {
   let table: string = Object.keys(query)[0];
   if (!table) {
     throw Error("no table in query");
