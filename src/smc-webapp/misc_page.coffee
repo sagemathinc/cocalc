@@ -1939,6 +1939,12 @@ exports.get_query_params = ->
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
 
+# returns true, if a target page should be loaded
+exports.should_load_target_url = ->
+    return window.smc_target \
+        and window.smc_target != 'login' \
+        and not exports.get_query_param('test')
+
 # If there is UTM information in the known cookie, extract and return it
 # Then, delete this cookie.
 # Reference: https://en.wikipedia.org/wiki/UTM_parameters

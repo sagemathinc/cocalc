@@ -228,9 +228,11 @@ class PageActions extends Actions
         @setState(session : val)
         history.update_params()
 
-        # Make new session manager if necessary
-        if val
-            @_session_manager ?= require('./session').session_manager(val, redux)
+        # Make new session manager, but only register it if we have an actual session name!
+        if not @_session_manager
+            sm = require('./session').session_manager(val, redux)
+            if val
+                @_session_manager = sm
 
     save_session: =>
         @_session_manager?.save()
@@ -323,6 +325,8 @@ exports.recent_wakeup_from_standby = recent_wakeup_from_standby
 
 if DEBUG
     window.smc ?= {}
+    window.smc.misc = misc
+    window.smc.misc_page = require('./misc_page')
     window.smc.init_app =
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects

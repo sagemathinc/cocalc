@@ -66,22 +66,12 @@ signed_in = (mesg) ->
     # Record which hub we're connected to.
     redux.getActions('account').setState(hub: mesg.hub)
     console.log("Signed into #{mesg.hub} at #{new Date()}")
-    load_file = window.smc_target and window.smc_target != 'login' and not misc_page.get_query_param('test')
     if first_login
         first_login = false
-        if not load_file
+        if not misc_page.should_load_target_url()
             load_app ->
                 require('./history').load_target('projects')
-
-    if load_file
-        # wait until account settings get loaded, then show target page
-        # HACK: This is hackish!, and will all go away with a more global use of React (and routing).
-        # The underscore below should make it clear that this is hackish.
-        redux.getTable('account')._table.once 'connected', ->
-            load_app ->
-                #if DEBUG then console.log("account/signed_in/load_file -> #{window.smc_target}")
-                require('./history').load_target(window.smc_target, true)
-                window.smc_target = ''
+    # loading a possible target is done after restoring a session -- see session.coffee
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
