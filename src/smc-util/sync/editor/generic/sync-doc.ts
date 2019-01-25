@@ -1081,7 +1081,7 @@ export class SyncDoc extends EventEmitter {
   }
 
   public assert_is_ready(desc: string): void {
-    if (this.state !== "ready") {
+    if (this.state != "ready") {
       throw Error(`must be ready -- ${desc}`);
     }
   }
@@ -2212,7 +2212,16 @@ export class SyncDoc extends EventEmitter {
   /* Initiates a save of file to disk, then waits for the
      state to change. */
   public async save_to_disk(): Promise<void> {
-    this.assert_is_ready("save_to_disk - start");
+    if (this.state != "ready") {
+      // We just make save_to_disk a successful
+      // no operation, if the document is either
+      // closed or hasn't finished opening, since
+      // there's a lot of code that tries to save
+      // on exit/close or automatically, and it
+      // is difficult to ensure it all checks state
+      // properly.
+      return;
+    }
     const dbg = this.dbg("save_to_disk");
     dbg("initiating the save");
     /* dbg(`live="${this.to_str()}"`);
