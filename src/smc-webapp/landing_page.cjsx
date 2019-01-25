@@ -626,7 +626,7 @@ exports.LandingPage = rclass
                         {
                             if not @props.get_api_key
                                 <div>
-                                    <a href={DOC_URL} target="_blank">Learn more about CoCalc...</a>
+                                    <a href={DOC_URL} target="_blank" rel="noopener">Learn more about CoCalc...</a>
                                 </div>
                         }
                     </div>
