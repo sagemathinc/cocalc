@@ -2434,25 +2434,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!store) {
       return;
     }
-    let now = misc.server_time();
-    const obj = {
-      project_id: this.project_id,
-      path,
-      description: opts.description || "",
-      disabled: false,
-      unlisted: opts.unlisted || false,
-      last_edited: now,
-      created: now
-    };
+    let cur_obj: any = {};
     // only set created if this obj is new; have to just linearly search through paths right now...
     if (store.get("public_paths") != null) {
-      store.get("public_paths").map(function(v) {
+      store.get("public_paths").forEach(function(v) {
         if (v.get("path") === path) {
-          delete obj.created;
-          return false;
+          cur_obj = v.toJS();
+          return false; // found it, exit forEach
+        } else {
+          return true; // next element
         }
       });
     }
+    const now = misc.server_time();
+    // unlisted and description are *optional*: fallback to already saved values if available
+    const unlisted = opts.unlisted != null ? opts.unlisted : cur_obj.unlisted;
+    const description =
+      opts.description != null ? opts.description : cur_obj.description;
+    const obj = {
+      project_id: this.project_id,
+      path,
+      description: description != null ? description : "",
+      disabled: false,
+      unlisted: unlisted != null ? unlisted : false,
+      last_edited: now,
+      created: cur_obj.created || now
+    };
     this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
   }
 
