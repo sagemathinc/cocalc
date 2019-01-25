@@ -22,6 +22,7 @@ import { EventEmitter } from "events";
 import { callback } from "awaiting";
 
 import { once } from "../smc-util/async-utils";
+import { copy } from "../smc-util/misc2";
 
 const { one_result, all_results } = require("../postgres-base");
 
@@ -93,7 +94,7 @@ class ThrottledTableQueue extends EventEmitter {
     const k = key(query);
     this.queue[k] = query;
     if (this.process_timer == null) {
-      this.dbg('enqueue')(`will process queue in ${this.interval_ms}ms...`);
+      this.dbg("enqueue")(`will process queue in ${this.interval_ms}ms...`);
       this.process_timer = setTimeout(
         this.process_queue.bind(this),
         this.interval_ms
@@ -105,14 +106,24 @@ class ThrottledTableQueue extends EventEmitter {
   private async process_queue(): Promise<void> {
     const dbg = this.dbg("process_queue");
     delete this.process_timer; // it just fired
-    // first time we just doing them one at a time.
-    // Soon we will do ALL queries simultaneously as a single query.
-    for (let k in this.queue) {
-      dbg(k);
-      const { select, where } = this.queue[k];
+    // First time we just doing them one at a time.
+    // FURTHER WORK: we could instead do ALL queries simultaneously as
+    // a single query, or at least do them in parallel...
 
-      // delete immediately since a new one with same k could get added during await.
-      delete this.queue[k];
+    // Make a copy of whatever is queued up at this moment in time,
+    // then clear the queue.  We are responsible for handling all
+    // queries in the queue now, but nothing further.  If queries are
+    // slow, it can easily be the case that process_queue is
+    // called several times at once.  However, that's fine, since
+    // each call is responsible for only the part of the queue that
+    // existed when it was called.
+    const queue = copy(this.queue);
+    this.queue = {};
+
+    for (let k in queue) {
+      dbg(k);
+      const { select, where } = queue[k];
+
       try {
         const result = await callback(
           one_query,
