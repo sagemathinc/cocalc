@@ -30,21 +30,21 @@ type Query = { [key: string]: any };
 interface Spark {
   address: { ip: string };
   id: string;
-  write: (string) => boolean;
-  on: (string, Function) => void;
+  write: (obj: any) => boolean;
+  on: (str: string, fn: Function) => void;
 }
 
 interface Channel {
-  write: (string) => boolean;
-  on: (string, Function) => void;
-  forEach: (Function) => void;
+  write: (obj: any) => boolean;
+  on: (str: string, fn: Function) => void;
+  forEach: (fn: Function) => void;
   destroy: Function;
 }
 
 import { Client } from "../smc-util/sync/editor/generic/types";
 
 interface Primus {
-  channel: (string) => Channel;
+  channel: (str: string) => Channel;
 }
 
 interface Logger {
