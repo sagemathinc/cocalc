@@ -13,7 +13,7 @@ alert_style = Object.freeze(
     fontSize     : '13pt'
 )
 
-oom_alert_style = Object.freeze(Object.assign({}, alert_style, {fontSize : '11pt', padding : '5px'}))
+oom_alert_style = Object.freeze(Object.assign({}, alert_style, {fontSize : '11pt', padding : '15px'}))
 
 
 exports.DiskSpaceWarning = rclass ({name}) ->
