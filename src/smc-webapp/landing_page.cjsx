@@ -535,6 +535,7 @@ exports.LandingPage = rclass
                 className = {"visible-xs"}
              >
                     <SignIn
+                        get_api_key   = {@props.get_api_key}
                         signing_in    = {@props.signing_in}
                         sign_in_error = {@props.sign_in_error}
                         has_account   = {@props.has_account}
