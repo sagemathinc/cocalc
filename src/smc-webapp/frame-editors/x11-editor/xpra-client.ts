@@ -59,8 +59,8 @@ export class XpraClient extends EventEmitter {
   private server: XpraServer;
   public _ws_status: ConnectionStatus = "disconnected";
   private last_active: number = 0;
-  private touch_interval: any;  // TODO: really Timer
-  private idle_interval: any;   // TODO: really Timer
+  private touch_interval: any; // TODO: really Timer
+  private idle_interval: any; // TODO: really Timer
   private idle_timed_out: boolean = false; // true when disconnected due to idle timeout
   private display: number;
 
@@ -150,7 +150,8 @@ export class XpraClient extends EventEmitter {
       f: this._connect.bind(this),
       start_delay: 1000,
       max_delay: 6000,
-      factor: 1.4
+      factor: 1.4,
+      desc: "xpra -- connect"
     });
   }
 
@@ -170,7 +171,7 @@ export class XpraClient extends EventEmitter {
       this.options.project_id
     }/server/${port}/`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
-    return { uri, dpi};
+    return { uri, dpi };
   }
 
   private init_xpra_events(): void {
@@ -322,7 +323,12 @@ export class XpraClient extends EventEmitter {
       this.client.rescale_children(surface.parent);
       this.emit("child:create", surface.parent.wid, surface.wid);
     } else {
-      this.emit("window:create", surface.wid, surface.metadata.title, !!surface.metadata["modal"]);
+      this.emit(
+        "window:create",
+        surface.wid,
+        surface.metadata.title,
+        !!surface.metadata["modal"]
+      );
     }
   }
 
@@ -529,7 +535,7 @@ export class XpraClient extends EventEmitter {
     return await this.server.exec(opts);
   }
 
-  public set_physical_keyboard(layout: string, variant: string) : void {
+  public set_physical_keyboard(layout: string, variant: string): void {
     this.client.set_physical_keyboard(layout, variant);
   }
 }

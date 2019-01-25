@@ -247,6 +247,9 @@ class PageActions extends Actions
         @setState(local_storage_warning : true)
 
     check_unload: (e) =>
+        if redux.getStore('page')?.get('get_api_key')
+            # never confirm close if get_api_key is set.
+            return
         # Returns a defined string if the user should confirm exiting the site.
         s = redux.getStore('account')
         if s?.get_user_type() == 'signed_in' and s?.get_confirm_close()

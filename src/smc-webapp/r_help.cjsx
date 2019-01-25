@@ -357,7 +357,7 @@ ABOUT_LINKS =
     #    </span>
     incorporated :
         icon : 'gavel'
-        text : 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+        text : 'SageMath, Inc. is a Delaware C Corporation that was incorporated Feb 2, 2015, founded on sustainable principles. The company has not and will not take Venture Capital funding or be acquired.'
 
 
 LinkList = rclass
