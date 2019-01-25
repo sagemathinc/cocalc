@@ -347,10 +347,7 @@ export class SortedPatchList extends EventEmitter {
 
   // VERY Slow -- only for consistency checking purposes and debugging.
   // If snapshots=false, don't use snapshots.
-  public value_no_cache(
-    time?: Date,
-    snapshots: boolean = true
-  ): Document {
+  public value_no_cache(time?: Date, snapshots: boolean = true): Document {
     let value: Document = this.from_str(""); // default in case no snapshots
     let start: number = 0;
     const prev_cutoff: Date = this.newest_snapshot_time();
@@ -479,6 +476,7 @@ export class SortedPatchList extends EventEmitter {
     let s: Document | undefined;
     const prev_cutoff: Date = this.newest_snapshot_time();
     let x: Patch;
+    let first_time: boolean = true;
     for (x of this.patches) {
       let tm: Date = x.time;
       let tm_show: number | string = milliseconds
@@ -494,15 +492,22 @@ export class SortedPatchList extends EventEmitter {
       if (s === undefined) {
         s = this.from_str(x.snapshot != null ? x.snapshot : "");
       }
-      if (
-        x.prev == null ||
-        this.times[x.prev.valueOf()] ||
-        x.prev <= prev_cutoff
-      ) {
-        s = s.apply_patch(x.patch);
+      if (first_time && x.snapshot != null) {
+        // do not apply patch no matter what.
       } else {
-        log(`prev=${x.prev.valueOf()} is missing, so not applying this patch`);
+        if (
+          x.prev == null ||
+          this.times[x.prev.valueOf()] ||
+          x.prev <= prev_cutoff
+        ) {
+          s = s.apply_patch(x.patch);
+        } else {
+          log(
+            `prev=${x.prev.valueOf()} is missing, so not applying this patch`
+          );
+        }
       }
+      first_time = false;
       log(
         x.snapshot ? "(SNAPSHOT) " : "           ",
         trunc_middle(s.to_str(), trunc).trim()

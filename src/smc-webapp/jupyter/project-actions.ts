@@ -25,7 +25,6 @@ export class JupyterActions extends JupyterActions0 {
   private _kernel_state: any;
   private _last_save_ipynb_file: any;
   private _manager_run_cell_queue: any;
-  private _run_again: any;
   private _run_nbconvert_lock: any;
   private _running_cells: any;
   private _throttled_ensure_positions_are_unique: any;
@@ -72,7 +71,7 @@ export class JupyterActions extends JupyterActions0 {
   // Called exactly once when the manager first starts up after the store is initialized.
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
-  initialize_manager = () => {
+  initialize_manager = async () => {
     console.log("INITIALIZING MANAGER");
     if (this._initialize_manager_already_done) {
       console.log("DONE");
@@ -110,7 +109,7 @@ export class JupyterActions extends JupyterActions0 {
     // a record with type:'fatal'
     // is created in the database; if it succeeds, that record is deleted.
     // Try again only when the file changes.
-    this._first_load();
+    await this._first_load();
 
     // Listen for changes...
     this.syncdb.on("change", this._backend_syncdb_change);
@@ -128,7 +127,7 @@ export class JupyterActions extends JupyterActions0 {
       await once(watcher, "change");
       dbg("file changed");
       watcher.close();
-      this._first_load();
+      await this._first_load();
       return;
     }
     dbg("loading worked");
@@ -147,7 +146,6 @@ export class JupyterActions extends JupyterActions0 {
 
     this._state = "ready";
     this.ensure_there_is_a_cell();
-    this.set_backend_state("ready");
   };
 
   _backend_syncdb_change = (changes: any) => {
@@ -163,10 +161,16 @@ export class JupyterActions extends JupyterActions0 {
               this.ensure_backend_kernel_setup();
               // only the backend should change kernel and backend state;
               // however, our security model allows otherwise (e.g., via TimeTravel).
-              if (record.get("kernel_state") !== this._kernel_state) {
+              if (
+                record.get("kernel_state") !== this._kernel_state &&
+                this._kernel_state != null
+              ) {
                 this.set_kernel_state(this._kernel_state, true);
               }
-              if (record.get("backend_state") !== this._backend_state) {
+              if (
+                record.get("backend_state") !== this._backend_state &&
+                this._backend_state != null
+              ) {
                 this.set_backend_state(this._backend_state);
               }
             }
@@ -180,42 +184,46 @@ export class JupyterActions extends JupyterActions0 {
 
     this.ensure_there_is_a_cell();
     this._throttled_ensure_positions_are_unique();
-    return this.sync_exec_state();
+    this.sync_exec_state();
   };
 
   // ensure_backend_kernel_setup ensures that we have a connection
   // to the proper type of kernel.
+  // If running is true, starts the kernel and waits until running.
   ensure_backend_kernel_setup = () => {
+    const dbg = this.dbg("ensure_backend_kernel_setup");
     const kernel = this.store.get("kernel");
     if (kernel == null) {
+      dbg("no kernel set -- can't do anything");
       return;
     }
 
-    const current =
-      this._jupyter_kernel != null ? this._jupyter_kernel.name : undefined;
-    if (current === kernel) {
-      // everything is properly setup
-      return;
+    let current: string | undefined = undefined;
+    if (this._jupyter_kernel != null) {
+      current = this._jupyter_kernel.name;
+      if (current === kernel && this._jupyter_kernel.get_state() != "closed") {
+        dbg("everything is properly setup and working");
+        return;
+      }
     }
 
-    const dbg = this.dbg("ensure_backend_kernel_setup");
     dbg(`kernel='${kernel}', current='${current}'`);
 
-    if (current != null && current !== kernel) {
-      dbg("kernel changed");
-      // kernel changed -- close it; this will trigger 'close' event, which
-      // runs code below that deletes attribute and creates new kernel wrapper.
-      if (this._jupyter_kernel != null) {
+    if (
+      this._jupyter_kernel != null &&
+      this._jupyter_kernel.get_state() != "closed"
+    ) {
+      if (current != kernel) {
+        dbg("kernel changed -- kill running kernel to trigger switch");
         this._jupyter_kernel.close();
+        return;
+      } else {
+        dbg("nothing to do");
+        return;
       }
-      return;
     }
 
-    if (this._jupyter_kernel != null) {
-      throw Error("this case should be impossible");
-    }
-
-    dbg("no kernel; make one");
+    dbg("make a new kernel");
 
     // No kernel wrapper object setup at all. Make one.
     this._jupyter_kernel = this._client.jupyter_kernel({
@@ -225,32 +233,29 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     if (this._jupyter_kernel == null) {
-      // mainly to satisfy compiler.
+      // to satisfy compiler.
       throw Error("Jupter kernel must be defined");
     }
 
-    // Since we just made a new kernel connection, clearly no cells are running on the backend.
-    delete this._running_cells;
+    // Since we just made a new kernel, clearly no cells are running on the backend.
+    this._running_cells = {};
+    this.clear_all_cell_run_state();
 
-    // When the kernel closes, we will forget about it, then
-    // make sure a new kernel gets setup.
-    this._jupyter_kernel.once("close", () => {
-      // kernel closed -- clean up then make new one.
-      delete this._jupyter_kernel;
-      return this.ensure_backend_kernel_setup();
+    // When the kernel closes, make sure a new kernel gets setup.
+    this._jupyter_kernel.once("closed", () => {
+      dbg("kernel closed -- make new one.");
+      this.ensure_backend_kernel_setup();
     });
 
-    // Track backend state changes.
+    // Track backend state changes other than closing, so they
+    // are visible to user etc.
+    // TODO: all these need to move to ephemeral table!!
     this._jupyter_kernel.on("state", state => {
       switch (state) {
         case "spawning":
         case "starting":
         case "running":
           return this.set_backend_state(state);
-        case "closed":
-          delete this._jupyter_kernel;
-          this.set_backend_state("init");
-          return this.ensure_backend_kernel_setup();
       }
     });
 
@@ -263,11 +268,15 @@ export class JupyterActions extends JupyterActions0 {
 
     this._jupyter_kernel.on("usage", this.set_kernel_usage);
 
-    // Ready to run code, etc.
-    this.sync_exec_state();
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
-    return this.set_backend_kernel_info();
+    if (current == null || current !== kernel) {
+      // Only set backend info if first time or kernel changed,
+      // and only for non-read-only kernels.
+      // Otherwise, just stopping the kernel will start it running
+      // again just to get this info.
+      this.set_backend_kernel_info();
+    }
   };
 
   init_kernel_info = async () => {
@@ -290,7 +299,29 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  // _manage_cell_change is called after a cell change has been
+  ensure_backend_kernel_is_running = async () => {
+    const dbg = this.dbg("ensure_backend_kernel_is_running");
+    if (this._backend_state == "ready") {
+      dbg("in state 'ready', so kick it into gear");
+      await this.set_backend_kernel_info();
+      dbg("done getting kernel info");
+    }
+    const is_running = (s): boolean => {
+      if (this._state === "closed") return true;
+      const t = s.get_one({ type: "settings" });
+      if (t == null) {
+        dbg("no settings");
+        return false;
+      } else {
+        const state = t.get("backend_state");
+        dbg(`state = ${state}`);
+        return state == "running";
+      }
+    };
+    await this.syncdb.wait(is_running, 60);
+  };
+
+  // manager_on_cell_change is called after a cell change has been
   // incorporated into the store by _syncdb_cell_change.
   // It ensures any cell with a compute request
   // gets computed,    Only one client -- the project itself -- will run this code.
@@ -324,6 +355,7 @@ export class JupyterActions extends JupyterActions0 {
   // Ensure that the cells listed as running *are* exactly the
   // ones actually running or queued up to run.
   sync_exec_state = () => {
+    const dbg = this.dbg("sync_exec_state");
     let change = false;
     const cells = this.store.get("cells");
     // First verify that all actual cells that are said to be running
@@ -336,6 +368,7 @@ export class JupyterActions extends JupyterActions0 {
           state !== "done" &&
           !(this._running_cells != null ? this._running_cells[id] : undefined)
         ) {
+          dbg(`set cell ${id} to done`);
           this._set({ type: "cell", id, state: "done" }, false);
           change = true;
         }
@@ -350,6 +383,7 @@ export class JupyterActions extends JupyterActions0 {
         const state = cells.getIn([id, "state"]);
         if (state == null || state === "done") {
           // cell no longer exists or isn't in a running state
+          dbg(`tell kernel to not run ${id}`);
           this._cancel_run(id);
         }
       }
@@ -360,10 +394,17 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   _cancel_run = (id: any) => {
-    if (this._running_cells != null ? this._running_cells[id] : undefined) {
-      return this._jupyter_kernel != null
-        ? this._jupyter_kernel.cancel_execute(id)
-        : undefined;
+    const dbg = this.dbg(`_cancel_run ${id}`);
+    // All these checks are so we only cancel if it is actually running
+    // with the current kernel...
+    if (this._running_cells == null || this._jupyter_kernel == null) return;
+    const identity = this._running_cells[id];
+    if (identity == null) return;
+    if (this._jupyter_kernel.identity == identity) {
+      dbg("cancelling")
+      this._jupyter_kernel.cancel_execute(id);
+    } else {
+      dbg("not canceling since wrong identity");
     }
   };
 
@@ -376,7 +417,7 @@ export class JupyterActions extends JupyterActions0 {
     if (this._manager_run_cell_queue == null) {
       this._manager_run_cell_queue = {};
     }
-    return (this._manager_run_cell_queue[id] = true);
+    this._manager_run_cell_queue[id] = true;
   };
 
   // properly start running -- in order -- the cells that have been requested to run
@@ -405,42 +446,76 @@ export class JupyterActions extends JupyterActions0 {
         this.manager_run_cell(cell.get("id"));
       }
     }
-    return delete this._manager_run_cell_queue;
+    delete this._manager_run_cell_queue;
   };
 
+  // returns new output handler for this cell.
   _output_handler = (cell: any) => {
+    const dbg = this.dbg(`handler(id='${cell.id}')`);
+    if (
+      this._jupyter_kernel == null ||
+      this._jupyter_kernel.get_state() == "closed"
+    ) {
+      throw Error("jupyter kernel must exist and not be closed;");
+    }
     this.reset_more_output(cell.id);
 
     const handler = new OutputHandler({
       cell,
       max_output_length: this.store.get("max_output_length"),
       report_started_ms: 250,
-      dbg: this.dbg(`handler(id='${cell.id}')`)
+      dbg
+    });
+
+    this._jupyter_kernel.once("closed", () => {
+      dbg("closing due to jupyter kernel closed");
+      handler.close();
     });
 
     handler.on("more_output", (mesg, mesg_length) => {
       return this.set_more_output(cell.id, mesg, mesg_length);
     });
 
-    return handler.on(
-      "process",
-      this._jupyter_kernel != null
-        ? this._jupyter_kernel.process_output
-        : undefined
-    );
+    handler.on("process", mesg => {
+      if (
+        this._jupyter_kernel != null &&
+        this._jupyter_kernel.get_state() == "running"
+      ) {
+        this._jupyter_kernel.process_output(mesg);
+      }
+    });
+
+    return handler;
   };
 
-  manager_run_cell = (id: string) => {
+  manager_run_cell = async (id: string) => {
     let left;
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
-    dbg();
+    dbg(JSON.stringify(misc.keys(this._running_cells)));
 
-    // if @_run_again[id] is set on completion of eval, then cell is run again; this is used only when re-running a cell currently running.
-    if (this._run_again != null) {
-      delete this._run_again[id];
+    // INITIAL STATE THAT MUST BE DONE BEFORE ANYTHING ASYNC!
+
+    if (this._running_cells == null) {
+      this._running_cells = {};
     }
 
+    if (this._running_cells[id]) {
+      dbg("cell already queued to run in kernel");
+      return;
+    }
+
+    // END INITIAL STATE BEFORE ASYNC.
+
     this.ensure_backend_kernel_setup();
+
+
+    try {
+      await this.ensure_backend_kernel_is_running();
+      if (this._state == 'closed') return;
+    } catch (err) {
+      // if this fails, give up on this evaluation.
+      return;
+    }
 
     const orig_cell = this.store.get("cells").get(id);
     if (orig_cell == null) {
@@ -450,23 +525,10 @@ export class JupyterActions extends JupyterActions0 {
 
     const input = ((left = orig_cell.get("input")) != null ? left : "").trim();
 
-    if (this._running_cells == null) {
-      this._running_cells = {};
+    if (this._jupyter_kernel == null) {
+      throw Error("bug -- this is guaranteed by the above");
     }
-
-    if (this._running_cells[id]) {
-      // The cell is already running, so we must ensure cell is
-      // not already running; this would happen if your run cell,
-      // change input while it is still running, then re-run.
-      if (this._run_again == null) {
-        this._run_again = {};
-      }
-      this._run_again[id] = true;
-      this._cancel_run(id);
-      return;
-    }
-
-    this._running_cells[id] = true;
+    this._running_cells[id] = this._jupyter_kernel.identity;
 
     const cell: any = {
       id,
@@ -493,11 +555,11 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     handler.once("done", () => {
+      dbg("handler is done");
+      this.store.removeListener("cell_change", cell_change);
+      exec.close();
       if (this._running_cells != null) {
         delete this._running_cells[id];
-      }
-      if (this._run_again != null ? this._run_again[id] : undefined) {
-        return this.run_code_cell(id);
       }
     });
 
@@ -521,7 +583,7 @@ export class JupyterActions extends JupyterActions0 {
     const cell_change = (cell_id, new_cell) => {
       if (id === cell_id) {
         dbg("cell_change");
-        return handler.cell_changed(new_cell, get_password);
+        handler.cell_changed(new_cell, get_password);
       }
     };
     this.store.on("cell_change", cell_change);
@@ -816,9 +878,12 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg(`load_ipynb_file`);
     dbg("reading file");
     const path = this.store.get("path");
-    let content : string;
+    let content: string;
     try {
-      content = await callback2(this._client.path_read, { path, maxsize_MB: 50 });
+      content = await callback2(this._client.path_read, {
+        path,
+        maxsize_MB: 50
+      });
     } catch (err) {
       const error = `Error reading ipynb file '${path}': ${err.toString()}.  Fix this to continue.`;
       this.syncdb.set({ type: "fatal", error });

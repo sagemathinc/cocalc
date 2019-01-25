@@ -19,7 +19,7 @@ import {
 
 import { init_syncdoc } from "./sync-doc";
 
-import { register_synctable } from "./open-synctables";
+import { key, register_synctable } from "./open-synctables";
 
 import { once } from "../smc-util/async-utils";
 
@@ -321,7 +321,19 @@ function channel_name(query: any, options: any[]): string {
       opts[key] = x[key];
     }
   }
-  const y = stringify([query, opts]);
+  // It's critical that we dedup the synctables having
+  // to do with sync-doc's.   A problem case is multiple
+  // queries for the same table, due to the time cutoff
+  // for patches after making a snapshot.
+  let q: string;
+  try {
+    q = key(query);
+  } catch {
+    // throws an error if the table doesn't have a string_id;
+    // that's fine - in this case, just make a key out of the query.
+    q = query;
+  }
+  const y = stringify([q, opts]);
   const s = sha1(y);
   return `sync:${s}`;
 }

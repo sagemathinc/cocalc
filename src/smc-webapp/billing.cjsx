@@ -34,6 +34,7 @@ _             = require('underscore')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
+# TODO: Upgrade to v3 and Stripe Elements
 load_stripe = (cb) ->
     if Stripe?
         cb()
@@ -1017,9 +1018,20 @@ ConfirmPaymentMethod = rclass
     render: ->
         if not @props.customer
             return <AddPaymentMethod redux={redux} />
+        default_card = undefined
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
+        if not default_card?
+            #  Should not happen (there should always be a default), but
+            # it did: https://github.com/sagemathinc/cocalc/issues/3468
+            # We try again with whatever the first card is.
+            for card_data in @props.customer.sources.data
+                default_card = card_data
+                break
+            # Still no card -- just ask them for one first.
+            if not default_card?
+                return <AddPaymentMethod redux={redux} />
 
         <Alert>
             <h4><Icon name='check' /> Confirm your payment card</h4>
@@ -1701,7 +1713,7 @@ Invoice = rclass
         invoice = @props.invoice
         username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("#{window.app_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+        misc_page.download_file("#{window.app_base_url}/invoice/cocalc-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status: ->
         if @props.invoice.paid
