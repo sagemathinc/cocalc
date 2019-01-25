@@ -4,107 +4,52 @@ Functionality and UI to ensure a user with given email (or account_id) is sync'd
 
 import { Row, Col, FormGroup, FormControl, Button } from "react-bootstrap";
 
-import { React, Component, Rendered, ReactDOM } from "smc-webapp/app-framework";
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 
-import { user_search, User } from "smc-webapp/frame-editors/generic/client";
-
-import { cmp } from "smc-util/misc2";
+import { User } from "smc-webapp/frame-editors/generic/client";
 
 import { UserResult } from "./user";
 
-interface UserSearchState {
+interface UserSearchProps {
   state: "edit" | "running";
   status: string;
   query: string;
   result: User[];
+  search: () => void;
+  set_query: (value: string) => void;
+  clear_status: () => void;
 }
 
-function user_sort_key(user: User): string {
-  if (user.last_active) {
-    return user.last_active;
-  }
-  if (user.created) {
-    return user.created;
-  }
-  return "";
-}
-
-export class UserSearch extends Component<{}, UserSearchState> {
-  private mounted: boolean;
-  constructor(props) {
-    super(props);
-    this.state = {
-      state: "edit",
-      status: "",
-      query: "",
-      result: []
-    };
-  }
-
-  componentWillMount(): void {
-    this.mounted = true;
-  }
-  componentWillUnmount(): void {
-    this.mounted = false;
-  }
-
-  status_mesg(s: string): void {
-    this.setState({
-      status: s
-    });
-  }
-
-  async search(): Promise<void> {
-    this.status_mesg("Searching...");
-    const result: User[] = await user_search({
-      query: this.state.query,
-      admin: true,
-      limit: 100
-    });
-    if (!this.mounted) {
-      return;
-    }
-    if (!result) {
-      this.status_mesg("ERROR");
-      return;
-    }
-    (window as any).result = result;
-    result.sort(function(a, b) {
-      return -cmp(user_sort_key(a), user_sort_key(b));
-    });
-    this.status_mesg("");
-    this.setState({ result: result });
-  }
-
-  submit_form(e): void {
+export class UserSearch extends Component<UserSearchProps> {
+  on_submit_form(e): void {
     e.preventDefault();
-    this.search();
+    this.props.search();
+  }
+
+  temp_test(e): void {
+    this.props.set_query(e.target.value)
   }
 
   render_form(): Rendered {
     return (
-      <form onSubmit={e => this.submit_form(e)}>
+      <form onSubmit={e => this.on_submit_form(e)}>
         <Row>
           <Col md={6}>
             <FormGroup>
               <FormControl
                 ref="input"
                 type="text"
-                value={this.state.query}
+                value={this.props.query}
                 placeholder="Part of first name, last name, or email address..."
-                onChange={() =>
-                  this.setState({
-                    query: ReactDOM.findDOMNode(this.refs.input).value
-                  })
-                }
+                onChange={e => this.temp_test(e)}
               />
             </FormGroup>
           </Col>
           <Col md={6}>
             <Button
               bsStyle="warning"
-              disabled={this.state.query == ""}
-              onClick={() => this.search()}
+              disabled={this.props.query == ""}
+              onClick={() => this.props.search()}
             >
               Search for User
             </Button>
@@ -115,13 +60,13 @@ export class UserSearch extends Component<{}, UserSearchState> {
   }
 
   render_status(): Rendered {
-    if (!this.state.status) {
+    if (!this.props.status) {
       return;
     }
     return (
       <div>
-        <pre>{this.state.status}</pre>
-        <Button onClick={() => this.setState({ status: "" })}>Clear</Button>
+        <pre>{this.props.status}</pre>
+        <Button onClick={() => this.props.clear_status()}>Clear</Button>
       </div>
     );
   }
@@ -146,12 +91,12 @@ export class UserSearch extends Component<{}, UserSearchState> {
   }
 
   render_result(): Rendered[] | Rendered {
-    if (this.state.result.length == 0) {
+    if (this.props.result.length == 0) {
       return <div>No results</div>;
     }
     let user: User;
     let v: Rendered[] = [this.render_user_header()];
-    for (user of this.state.result) {
+    for (user of this.props.result) {
       v.push(this.render_user(user));
     }
     return v;

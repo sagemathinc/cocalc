@@ -228,9 +228,11 @@ class PageActions extends Actions
         @setState(session : val)
         history.update_params()
 
-        # Make new session manager if necessary
-        if val
-            @_session_manager ?= require('./session').session_manager(val, redux)
+        # Make new session manager, but only register it if we have an actual session name!
+        if not @_session_manager
+            sm = require('./session').session_manager(val, redux)
+            if val
+                @_session_manager = sm
 
     save_session: =>
         @_session_manager?.save()
@@ -245,6 +247,9 @@ class PageActions extends Actions
         @setState(local_storage_warning : true)
 
     check_unload: (e) =>
+        if redux.getStore('page')?.get('get_api_key')
+            # never confirm close if get_api_key is set.
+            return
         # Returns a defined string if the user should confirm exiting the site.
         s = redux.getStore('account')
         if s?.get_user_type() == 'signed_in' and s?.get_confirm_close()
@@ -320,6 +325,8 @@ exports.recent_wakeup_from_standby = recent_wakeup_from_standby
 
 if DEBUG
     window.smc ?= {}
+    window.smc.misc = misc
+    window.smc.misc_page = require('./misc_page')
     window.smc.init_app =
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects

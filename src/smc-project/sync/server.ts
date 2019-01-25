@@ -19,7 +19,7 @@ import {
 
 import { init_syncdoc } from "./sync-doc";
 
-import { register_synctable } from "./open-synctables";
+import { key, register_synctable } from "./open-synctables";
 
 import { once } from "../smc-util/async-utils";
 
@@ -30,21 +30,21 @@ type Query = { [key: string]: any };
 interface Spark {
   address: { ip: string };
   id: string;
-  write: (string) => boolean;
-  on: (string, Function) => void;
+  write: (obj: any) => boolean;
+  on: (str: string, fn: Function) => void;
 }
 
 interface Channel {
-  write: (string) => boolean;
-  on: (string, Function) => void;
-  forEach: (Function) => void;
+  write: (obj: any) => boolean;
+  on: (str: string, fn: Function) => void;
+  forEach: (fn: Function) => void;
   destroy: Function;
 }
 
 import { Client } from "../smc-util/sync/editor/generic/types";
 
 interface Primus {
-  channel: (string) => Channel;
+  channel: (str: string) => Channel;
 }
 
 interface Logger {
@@ -189,10 +189,10 @@ class SyncTableChannel {
     // Now handle the connection
     this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
     if (this.closed) return;
-    if (this.synctable.get_state() == 'closed') {
+    if (this.synctable.get_state() == "closed") {
       throw Error("BUG -- this shouldn't happen");
     }
-    if (this.synctable.get_state() == 'disconnected') {
+    if (this.synctable.get_state() == "disconnected") {
       // Because synctable is being initialized for the first time,
       // or it temporarily disconnected (e.g., lost hub), and is
       // trying to reconnect.  So just wait for it to connect.
@@ -321,7 +321,19 @@ function channel_name(query: any, options: any[]): string {
       opts[key] = x[key];
     }
   }
-  const y = stringify([query, opts]);
+  // It's critical that we dedup the synctables having
+  // to do with sync-doc's.   A problem case is multiple
+  // queries for the same table, due to the time cutoff
+  // for patches after making a snapshot.
+  let q: string;
+  try {
+    q = key(query);
+  } catch {
+    // throws an error if the table doesn't have a string_id;
+    // that's fine - in this case, just make a key out of the query.
+    q = query;
+  }
+  const y = stringify([q, opts]);
   const s = sha1(y);
   return `sync:${s}`;
 }

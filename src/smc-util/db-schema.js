@@ -732,11 +732,14 @@ schema.file_use = {
 
   pg_indexes: ["project_id", "last_edited"],
 
+  // I put a time limit in pg_where below of to just give genuinely recent notifications,
+  // and massively reduce server load.  The obvious todo list is to make another file_use
+  // virtual table that lets you get older entries.
   user_query: {
     get: {
-      pg_where: ["projects", "last_edited IS NOT NULL"],
+      pg_where: ["last_edited >= NOW() - interval '14 days'", "projects"],
       pg_changefeed: "projects",
-      options: [{ order_by: "-last_edited" }, { limit: 100 }], // limit is kind of arbitrary; not sure what to do; I benchmarked 100 vs 200 on myself, and 100 is much faster.
+      options: [{ order_by: "-last_edited" }, { limit: 100 }], // limit is arbitrary
       throttle_changes: 3000,
       fields: {
         id: null,
@@ -1115,8 +1118,8 @@ schema.projects = {
   ],
 
   user_query: {
-    get: {
-      pg_where: "projects",
+    get: { // if you change the interval, change the text in projects.cjsx
+      pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1193,6 +1196,11 @@ schema.projects = {
     }
   }
 };
+
+// Same query above, but without the last_edited time constraint.
+schema.projects_all = misc.deep_copy(schema.projects);
+schema.projects_all.virtual = "projects";
+schema.projects_all.user_query.get.pg_where = ["projects"];
 
 // Table that enables set queries to the course field of a project.  Only
 // project owners are allowed to use this table.  The point is that this makes

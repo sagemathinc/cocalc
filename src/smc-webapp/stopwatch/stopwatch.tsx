@@ -18,7 +18,7 @@ function assertNever(x: never): never {
 interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
-  click_button: (string) => void;
+  click_button: (str: string) => void;
   compact?: boolean;
   label?: string; // a text label
   total?: number; // total time accumulated before entering current state

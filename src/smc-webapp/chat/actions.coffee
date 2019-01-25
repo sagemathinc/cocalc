@@ -121,10 +121,16 @@ class ChatActions extends Actions
             date    : message.get('date').toISOString()
         @save()
 
-    # Make sure verything is sent to the project **and** then saved to disk.
+    # Make sure everything is sent to the project.
     save: =>
         @syncdb.commit()
-        @syncdb.save_to_disk()
+        await @syncdb.save()
+
+    # Make sure everything saved to DISK.
+    save_to_disk: =>
+        this.setState(is_saving:true)
+        await @syncdb.save_to_disk()
+        this.setState(is_saving:false)
 
     set_to_last_input: =>
         @setState(input:@store.get('last_sent'))

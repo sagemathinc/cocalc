@@ -127,7 +127,7 @@ exports.sign_in = (opts) ->
 
     signed_in_mesg = undefined
     account = undefined
-    {api_key_action} = require('./api/manage')   # here, rather than at beginnig of file, due to some circular references...
+    {api_key_action} = require('./api/manage')   # here, rather than at beginning of file, due to some circular references...
 
     async.series([
         (cb) ->

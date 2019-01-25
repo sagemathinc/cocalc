@@ -40,7 +40,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {User} = require('./users')
 
@@ -594,6 +594,7 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 
+
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -720,11 +721,12 @@ ProjectControlPanel = rclass
         start_ts = @props.project.getIn(['status', 'start_ts'])
         return if not start_ts?
         return if @props.project.getIn(['state', 'state']) != 'running'
-        delta_s = (misc.server_time().getTime() - start_ts) / 1000
-        uptime_str = misc.seconds2hms(delta_s, true)
+
         <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
             <span style={color:'#666'}>
-                 <Icon name='clock-o' /> project started <b>{uptime_str}</b> ago
+                 <Icon name='clock-o' /> project started <b>
+                     {<TimeElapsed start_ts={start_ts} />}
+                 </b> ago
             </span>
         </LabeledRow>
 
@@ -897,7 +899,7 @@ SSHPanel = rclass
         <div>
             <span>Use the following username@host:</span>
             <pre>{addr}</pre>
-            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank" rel="noopener">
                 <Icon name='life-ring'/> How to create SSH keys
             </a>
         </div>

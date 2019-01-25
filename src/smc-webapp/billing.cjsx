@@ -34,6 +34,7 @@ _             = require('underscore')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
+# TODO: Upgrade to v3 and Stripe Elements
 load_stripe = (cb) ->
     if Stripe?
         cb()
@@ -215,7 +216,7 @@ validate =
 
 powered_by_stripe = ->
     <span>
-        Powered by <a href="https://stripe.com/" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
+        Powered by <a href="https://stripe.com/" rel="noopener" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
     </span>
 
 
@@ -299,7 +300,7 @@ AddPaymentMethod = rclass
 
     render_input_cvc_help: ->
         if @state.cvc_help
-            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>security code</a> is
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank' rel="noopener">security code</a> is
             located on the back of credit or debit cards and is a separate group of 3 (or 4) digits to the right of
             the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
         else
@@ -1017,9 +1018,20 @@ ConfirmPaymentMethod = rclass
     render: ->
         if not @props.customer
             return <AddPaymentMethod redux={redux} />
+        default_card = undefined
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
+        if not default_card?
+            #  Should not happen (there should always be a default), but
+            # it did: https://github.com/sagemathinc/cocalc/issues/3468
+            # We try again with whatever the first card is.
+            for card_data in @props.customer.sources.data
+                default_card = card_data
+                break
+            # Still no card -- just ask them for one first.
+            if not default_card?
+                return <AddPaymentMethod redux={redux} />
 
         <Alert>
             <h4><Icon name='check' /> Confirm your payment card</h4>
@@ -1251,7 +1263,7 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <div style={fontWeight:"bold"}>
                         Please immediately email us at <HelpEmailLink/> {" "}
-                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq">pricing FAQ</a> </span>}
+                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
                         if anything is unclear to you.
                     </div>
                     <Space/>
@@ -1312,7 +1324,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">instructor guide</a> to create a course file for your new course.
+                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank" rel="noopener">instructor guide</a> to create a course file for your new course.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1495,8 +1507,8 @@ FAQS =
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
         a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href={PolicyPrivacyPageUrl}>Privacy Policy</a> and {" "}
-            <a target="_blank" href={PolicyCopyrightPageUrl}>Copyright Notice</a>.
+            Please read our <a target="_blank" href={PolicyPrivacyPageUrl} rel="noopener">Privacy Policy</a> and {" "}
+            <a target="_blank" href={PolicyCopyrightPageUrl} rel="noopener">Copyright Notice</a>.
            </span>
     git:
         q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
@@ -1701,7 +1713,7 @@ Invoice = rclass
         invoice = @props.invoice
         username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
-        misc_page.download_file("#{window.app_base_url}/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+        misc_page.download_file("#{window.app_base_url}/invoice/cocalc-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status: ->
         if @props.invoice.paid
@@ -2030,7 +2042,7 @@ BillingPage = rclass
 
     render_info_link: ->
         <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
-            We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing and subscription options</a>.
+            We offer many <a href={PolicyPricingPageUrl} target='_blank' rel="noopener"> pricing and subscription options</a>.
             <Space/>
             {@render_suggested_next_step()}
         </div>
