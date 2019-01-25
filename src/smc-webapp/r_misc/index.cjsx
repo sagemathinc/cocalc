@@ -42,6 +42,8 @@ exports.CloseX = CloseX
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{TimeElapsed} = require('./time-elapsed')
+exports.TimeElapsed = TimeElapsed
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'

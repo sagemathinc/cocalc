@@ -1018,9 +1018,20 @@ ConfirmPaymentMethod = rclass
     render: ->
         if not @props.customer
             return <AddPaymentMethod redux={redux} />
+        default_card = undefined
         for card_data in @props.customer.sources.data
             if card_data.id == @props.customer.default_source
                 default_card = card_data
+        if not default_card?
+            #  Should not happen (there should always be a default), but
+            # it did: https://github.com/sagemathinc/cocalc/issues/3468
+            # We try again with whatever the first card is.
+            for card_data in @props.customer.sources.data
+                default_card = card_data
+                break
+            # Still no card -- just ask them for one first.
+            if not default_card?
+                return <AddPaymentMethod redux={redux} />
 
         <Alert>
             <h4><Icon name='check' /> Confirm your payment card</h4>

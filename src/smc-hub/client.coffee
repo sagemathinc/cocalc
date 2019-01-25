@@ -294,6 +294,7 @@ class exports.Client extends EventEmitter
 
         if mesg.event != 'pong'
             dbg("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+            # dbg("hub --> client (client=#{@id}): #{misc.trunc(JSON.stringify(mesg),1000)}")
 
         if mesg.id?
             start = @_messages.being_handled[mesg.id]
@@ -2580,34 +2581,54 @@ class exports.Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
+    _check_project_access: (project_id, cb) =>
+        if not @account_id?
+            cb('you must be signed in to access project')
+            return
+        if not misc.is_valid_uuid_string(project_id)
+            cb('project_id must be specified and valid')
+            return
+        access.user_has_write_access_to_project
+            database       : @database
+            project_id     : project_id
+            account_groups : @groups
+            account_id     : @account_id
+            cb             : (err, result) =>
+                if err
+                    cb(err)
+                else if not result
+                    cb("must have write access")
+                else
+                    cb()
+
+    mesg_disconnect_from_project: (mesg) =>
+        dbg = @dbg('mesg_disconnect_from_project')
+        @_check_project_access mesg.project_id, (err) =>
+            if err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"unable to disconnect from project #{mesg.project_id} -- #{err}")
+            else
+                local_hub_connection.disconnect_from_project(mesg.project_id)
+                @push_to_client(message.success(id:mesg.id))
+
     mesg_touch_project: (mesg) =>
         dbg = @dbg('mesg_touch_project')
         async.series([
             (cb) =>
                 dbg("checking conditions")
-                if not @account_id?
-                    cb('you must be signed in to touch a project')
-                    return
-                if not misc.is_valid_uuid_string(mesg.project_id)
-                    cb('project_id must be specified and valid')
-                    return
-                access.user_has_write_access_to_project
-                    database       : @database
-                    project_id     : mesg.project_id
-                    account_groups : @groups
-                    account_id     : @account_id
-                    cb             : (err, result) =>
-                        if err
-                            cb(err)
-                        else if not result
-                            cb("must have write access")
-                        else
-                            cb()
+                @_check_project_access(mesg.project_id, cb)
             (cb) =>
                 @touch
                     project_id : mesg.project_id
                     action     : 'touch'
                     cb         : cb
+            (cb) =>
+                f = @database.ensure_connection_to_project
+                if f?
+                    dbg("also create socket connection (so project can query db, etc.)")
+                    # We do NOT block on this -- it can take a while.
+                    f(mesg.project_id)
+                cb()
         ], (err) =>
             if err
                 dbg("failed -- #{err}")

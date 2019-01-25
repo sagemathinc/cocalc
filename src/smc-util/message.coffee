@@ -2143,14 +2143,18 @@ The information returned may be any of the api-accessible fields in the
 `projects` table. These fields are listed in CoCalc source file
 src/smc-util/db-schema.coffee, under `schema.projects.user_query`.
 In this example, project name and description are returned.
+
+Note: to get info only on projects active in the past 3 weeks, use
+`projects` instead of `projects_all` in the query.
+
 ```
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
-    -d '{"query":{"projects":[{"project_id":null,"title":null,"description":null}]}}' \\
+    -d '{"query":{"projects_all":[{"project_id":null,"title":null,"description":null}]}}' \\
     https://cocalc.com/api/v1/query
   ==> {"event":"query",
        "id":"8ec4ac73-2595-42d2-ad47-0b9641043b46",
        "multi_response": False,
-       "query": {"projects": [{"description": "Synthetic Monitoring",
+       "query": {"projects_all": [{"description": "Synthetic Monitoring",
                          "project_id": "1fa1626e-ce25-4871-9b0e-19191cd03325",
                          "title": "SYNTHMON"},
                         {"description": "No Description",
@@ -2494,8 +2498,32 @@ Example:
 ```
 """
 
-# client <-- hub
+# client --> hub
+API message2
+    event        : 'touch_project'
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project to touch'
+    desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things."
 
+# client --> hub
+API message2
+    event        : 'disconnect_from_project'
+    fields:
+        id:
+            init  : undefined
+            desc  : 'A unique UUID for the query'
+        project_id:
+            init  : required
+            desc  : 'id of project to disconnect from'
+    desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development."
+
+
+# client <-- hub
 message
     event      : 'available_upgrades'
     id         : undefined
@@ -2553,14 +2581,3 @@ message
     id           : undefined
     path         : required
 
-# client --> hub
-API message2
-    event        : 'touch_project'
-    fields:
-        id:
-            init  : undefined
-            desc  : 'A unique UUID for the query'
-        project_id:
-            init  : required
-            desc  : 'id of project to touch'
-    desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things."

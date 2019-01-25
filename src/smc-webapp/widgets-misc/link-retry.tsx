@@ -66,7 +66,8 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
       await retry_until_success({
         f,
         max_delay: 1000,
-        max_time: 30000
+        max_time: 30000,
+        desc: "opening link"
       });
     } catch (err) {
       if (!this.is_mounted) {

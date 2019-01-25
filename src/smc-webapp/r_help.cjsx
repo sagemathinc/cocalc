@@ -193,7 +193,7 @@ HelpPageUsageSection = rclass
                 </div>
                 {@render_recent_usage_stats()}
                 <Icon name='line-chart' fixedWidth />{' '}
-                <a target='_blank' href='https://share.cocalc.com/share/7561f68d-3d97-4530-b97e-68af2fb4ed13/stats.html'>
+                <a target='_blank' href='https://cocalc.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
                 More data...
                 </a>
                 <br/>
@@ -357,7 +357,7 @@ ABOUT_LINKS =
     #    </span>
     incorporated :
         icon : 'gavel'
-        text : 'SageMath, Inc. (a Delaware C Corporation) was incorporated Feb 2, 2015'
+        text : 'SageMath, Inc. is a Delaware C Corporation that was incorporated Feb 2, 2015, founded on sustainable principles. The company has not and will not take Venture Capital funding or be acquired.'
 
 
 LinkList = rclass

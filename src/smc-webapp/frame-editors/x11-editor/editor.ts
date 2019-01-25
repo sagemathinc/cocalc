@@ -16,6 +16,7 @@ export const x11 = {
   buttons: set([
     "decrease_font_size",
     "increase_font_size",
+    "set_zoom",
     "reload",
     "copy",
     "paste",

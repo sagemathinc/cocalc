@@ -25,6 +25,7 @@ underscore = require('underscore')
 
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
+{once} = require('smc-util/async-utils')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
@@ -54,8 +55,13 @@ _create_project_tokens = {}
 
 # Define projects actions
 class ProjectsActions extends Actions
-    # set whether the "add collaborators" component is displayed for the given project
-    # in the project listing
+    projects_table_set: (obj) =>
+        the_table = @redux.getTable('projects')
+        the_table?.set(obj)
+        return
+
+    # Set whether the "add collaborators" component is displayed
+    # for the given project in the project listing.
     set_add_collab: (project_id, enabled) =>
         add_collab = store.get('add_collab') ? immutable.Set()
         if enabled
@@ -100,7 +106,7 @@ class ProjectsActions extends Actions
             # title is already set as requested; nothing to do
             return
         # set in the Table
-        @redux.getTable('projects').set({project_id:project_id, title:title})
+        @projects_table_set({project_id:project_id, title:title})
         # create entry in the project's log
         @redux.getProjectActions(project_id).log
             event : 'set'
@@ -114,7 +120,7 @@ class ProjectsActions extends Actions
             # description is already set as requested; nothing to do
             return
         # set in the Table
-        @redux.getTable('projects').set({project_id:project_id, description:description})
+        @projects_table_set({project_id:project_id, description:description})
         # create entry in the project's log
         @redux.getProjectActions(project_id).log
             event       : 'set'
@@ -126,7 +132,7 @@ class ProjectsActions extends Actions
             fingerprint : required
             title       : required
             value       : required
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : opts.project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" :
@@ -140,7 +146,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             project_id  : required
             fingerprint : required
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : opts.project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" :
@@ -212,8 +218,6 @@ class ProjectsActions extends Actions
         webapp_client.create_project(opts)
 
     # Open the given project
-    #TODOJ: should not be in projects...
-    # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
             project_id     : required  # string  id of the project to open
@@ -221,6 +225,10 @@ class ProjectsActions extends Actions
             switch_to      : true      # bool    Whether or not to foreground it
             ignore_kiosk   : false     # bool    Ignore ?fullscreen=kiosk
             change_history : true      # bool    Whether or not to alter browser history
+        if not store.get_project(opts.project_id)?
+            # trying to open a not-known project -- maybe
+            # we have not yet loaded the full project list?
+            await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -429,9 +437,9 @@ class ProjectsActions extends Actions
         if not merge
             # explicitly set every field not specified to 0
             upgrades = misc.copy(upgrades)
-            for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
+            for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             users      :
                 "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
@@ -446,29 +454,29 @@ class ProjectsActions extends Actions
         @apply_upgrades_to_project(project_id, misc.map_limit(require('smc-util/schema').DEFAULT_QUOTAS, 0))
 
     save_project: (project_id) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'save', time:webapp_client.server_time()}
 
     start_project: (project_id) ->
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'start', time:webapp_client.server_time()}
 
     stop_project: (project_id) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'stop', time:webapp_client.server_time()}
         @redux.getProjectActions(project_id).log
             event : 'project_stop_requested'
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'close', time:webapp_client.server_time()}
 
     restart_project: (project_id) ->
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id     : project_id
             action_request : {action:'restart', time:webapp_client.server_time()}
         @redux.getProjectActions(project_id).log
@@ -476,7 +484,7 @@ class ProjectsActions extends Actions
 
     # Explcitly set whether or not project is hidden for the given account (state=true means hidden)
     set_project_hide: (account_id, project_id, state) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
@@ -485,14 +493,14 @@ class ProjectsActions extends Actions
     # Toggle whether or not project is hidden project
     toggle_hide_project: (project_id) =>
         account_id = @redux.getStore('account').get_account_id()
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             users      :
                 "#{account_id}" :
                     hide : not @redux.getStore('projects').is_hidden_from(project_id, account_id)
 
     delete_project: (project_id) =>
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             deleted    : true
 
@@ -502,7 +510,7 @@ class ProjectsActions extends Actions
         if not is_deleted
             @clear_project_upgrades(project_id)
 
-        @redux.getTable('projects').set
+        @projects_table_set
             project_id : project_id
             deleted    : not is_deleted
 
@@ -511,6 +519,12 @@ class ProjectsActions extends Actions
 
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
+
+    load_all_projects: => # async
+        if store.get('load_all_projects_done')
+            return
+        await load_all_projects()  # function defined below
+        @setState(load_all_projects_done : true)
 
 # Define projects store
 class ProjectsStore extends Store
@@ -577,6 +591,8 @@ class ProjectsStore extends Store
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
+            if pay == true  # bug -- can delete this workaround in March 2019.
+                pay = new Date('2019-02-15')
             if pay
                 if webapp_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,
@@ -809,7 +825,37 @@ class ProjectsTable extends Table
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
 
-redux.createTable('projects', ProjectsTable)
+class ProjectsAllTable extends Table
+    query: ->
+        return 'projects_all'
+    _change: (table, keys) =>
+        actions.setState(project_map: table.get())
+
+# We define functions below that load all projects or just the recent
+# ones.  First we try loading the recent ones.  If this is *empty*,
+# then we try loading all projects.  Loading all projects is also automatically
+# called if there is any attempt to open a project that isn't recent.
+# Why? Because the load_all_projects query is **expensive**.
+
+all_projects_have_been_loaded = false
+load_all_projects = =>
+    if all_projects_have_been_loaded
+        return
+    all_projects_have_been_loaded = true
+    redux.removeTable('projects')
+    redux.createTable('projects', ProjectsAllTable)
+    await once(redux.getTable('projects')._table, 'connected')
+
+load_recent_projects = =>
+    redux.createTable('projects', ProjectsTable)
+    await once(redux.getTable('projects')._table, "connected")
+    if redux.getTable('projects')._table.get().size == 0
+        await load_all_projects()
+
+load_recent_projects()
+
+
+
 
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
@@ -1166,6 +1212,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             search            : rtypes.string
             selected_hashtags : rtypes.object
             show_all          : rtypes.bool
+            load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
 
@@ -1395,10 +1442,50 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 redux       = {redux} />
                         </Col>
                     </Row>
+                    <Row>
+                        <Col sm={12}>
+                            <LoadAllProjects
+                                done = {@props.load_all_projects_done}
+                                redux = {redux} />
+                        </Col>
+                    </Row>
                 </Well>
             </Grid>
             <Footer/>
         </div>
+
+LoadAllProjects = rclass
+    displayName: "LoadAllProjects"
+
+    propTypes:
+        done  : rtypes.bool
+        redux : rtypes.object
+
+    load: ->
+        @setState(loading : true)
+        await @props.redux.getActions('projects').load_all_projects()
+        @setState(loading : false)
+
+    render_loading: ->
+        if this.state?.loading
+            return <Loading />
+
+    render_button: ->
+        <Button
+            onClick={@load}
+            bsStyle='info'
+            bsSize='large'>
+            {@render_loading()}
+            Load projects older than 3 weeks...
+        </Button>
+
+    render: ->
+        if @props.done
+            return <span />
+        <div style={marginTop:'20px'}>
+            {@render_button()}
+        </div>
+
 
 exports.ProjectTitle = ProjectTitle = rclass
     displayName: 'Projects-ProjectTitle'

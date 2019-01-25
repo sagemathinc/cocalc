@@ -4,7 +4,8 @@ React component that represents cursors of other users.
 
 // How long until another user's cursor is no longer displayed, if they don't move.
 // (NOTE: might take a little longer since we use a long interval.)
-const CURSOR_TIME_S = 15;
+const CURSOR_TIME_MS = 20000;
+const HIDE_NAME_TIMEOUT_MS = 3000;
 
 import { React, Component, rclass, rtypes, ReactDOM } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
@@ -30,7 +31,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
   }
   shouldComponentUpdate(nextProps, nextState) {
     if (this.props.time !== nextProps.time) {
-      this.show_name(2000);
+      this.show_name(HIDE_NAME_TIMEOUT_MS);
     }
     return (
       misc.is_different(this.props, nextProps, ["name", "color"]) ||
@@ -40,7 +41,7 @@ export class Cursor extends Component<CursorProps, CursorState> {
 
   componentDidMount() {
     this._mounted = true;
-    return this._set_timer(2000);
+    return this._set_timer(HIDE_NAME_TIMEOUT_MS);
   }
 
   componentWillUnmount() {
@@ -89,9 +90,9 @@ export class Cursor extends Component<CursorProps, CursorState> {
           top: this.props.top
         }}
         onMouseEnter={() => this.show_name()}
-        onMouseLeave={() => this.show_name(2000)}
+        onMouseLeave={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
         onTouchStart={() => this.show_name()}
-        onTouchEnd={() => this.show_name(2000)}
+        onTouchEnd={() => this.show_name(HIDE_NAME_TIMEOUT_MS)}
       >
         <span
           style={{
@@ -331,18 +332,18 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 
   shouldComponentUpdate(props, state) {
     return (
-      misc.is_different(
-        this.props,
-        props,
-        ["cursors", "user_map", "account_id"]
-      ) || this.state.n !== state.n
+      misc.is_different(this.props, props, [
+        "cursors",
+        "user_map",
+        "account_id"
+      ]) || this.state.n !== state.n
     );
   }
 
   componentDidMount() {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
-      CURSOR_TIME_S / 2 * 1000
+      (CURSOR_TIME_MS / 2)
     );
   }
 
@@ -372,31 +373,36 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
 
   render() {
     let C: any;
-    const now = misc.server_time();
+    const now = misc.server_time().valueOf();
     const v: any[] = [];
     if (this.props.codemirror != null) {
       C = PositionedCursor;
     } else {
       C = StaticPositionedCursor;
     }
-    if (this.props.cursors != null) {
+    if (this.props.cursors != null && this.props.user_map != null) {
       this.props.cursors.forEach((locs: any, account_id: any) => {
         const { color, name } = this.profile(account_id);
-        return locs.forEach(pos => {
-          if (now - pos.get("time") <= CURSOR_TIME_S * 1000) {
-            let left, left1;
-            if (account_id === this.props.account_id) {
-              // don't show our own cursor (we just haven't made this possible due to only keying by accoun_id)
+        locs.forEach(pos => {
+          const tm = pos.get("time");
+          if (tm == null) {
+            return;
+          }
+          const t = tm.valueOf();
+          if (now - t <= CURSOR_TIME_MS) {
+            /* if (account_id === this.props.account_id) {
+              // Don't show our own cursor, we just haven't made this
+              // possible due to only keying by account_id.
               return;
-            }
+            }*/
             v.push(
               <C
                 key={v.length}
-                time={pos.get("time") - 0}
+                time={t}
                 color={color}
                 name={name}
-                line={(left = pos.get("y")) != null ? left : 0}
-                ch={(left1 = pos.get("x")) != null ? left1 : 0}
+                line={pos.get("y", 0)}
+                ch={pos.get("x", 0)}
                 codemirror={this.props.codemirror}
               />
             );

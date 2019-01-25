@@ -560,12 +560,12 @@ exports.LandingPage = rclass
                               fontSize : '11pt',\
                               float    : "right"} >
                       <SignIn
-                          strategies    = {@props.strategies}
                           get_api_key   = {@props.get_api_key}
                           signing_in    = {@props.signing_in}
                           sign_in_error = {@props.sign_in_error}
                           has_account   = {@props.has_account}
                           xs            = {false}
+                          strategies    = {@props.strategies}
                           color         = {topbar.color} />
                   </div>
                   {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}

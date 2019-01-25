@@ -4,7 +4,7 @@ Single codemirror-based file editor
 This is a wrapper around a single codemirror editor view.
 */
 
-const SAVE_INTERVAL_MS = 500;
+const SAVE_DEBOUNCE_MS = 1500;
 
 import { delay } from "awaiting";
 
@@ -14,7 +14,7 @@ import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
 import { React, ReactDOM, Rendered, Component } from "../../app-framework";
 
-import { throttle, isEqual } from "underscore";
+import { debounce, throttle, isEqual } from "underscore";
 
 const misc = require("smc-util/misc");
 
@@ -205,7 +205,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       return;
     }
     this.props.actions.set_syncstring_to_codemirror();
-    this.props.actions.syncstring_save();
+    this.props.actions.syncstring_commit();
   }
 
   safari_hack(): void {
@@ -315,7 +315,7 @@ export class CodemirrorEditor extends Component<Props, State> {
       }
     }
 
-    const save_editor_state = throttle(() => this.save_editor_state(), 250);
+    const save_editor_state = throttle(() => this.save_editor_state(), 150);
     this.cm.on("scroll", save_editor_state);
 
     const e = $(this.cm.getWrapperElement());
@@ -335,17 +335,15 @@ export class CodemirrorEditor extends Component<Props, State> {
     }
 
     // After this only stuff that we use for the non-public version!
-    const save_syncstring_throttle = throttle(
+    const save_syncstring_debounce = debounce(
       () => this.save_syncstring(),
-      SAVE_INTERVAL_MS,
-      { leading: false }
+      SAVE_DEBOUNCE_MS
     );
 
     this.cm.on("change", (_, changeObj) => {
-      save_syncstring_throttle();
+      save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        this.props.actions.setState({ has_unsaved_changes: true });
-        return this.props.actions.exit_undo_mode();
+        this.props.actions.exit_undo_mode();
       }
     });
 
