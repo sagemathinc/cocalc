@@ -1361,7 +1361,7 @@ exports.define_codemirror_extensions = () ->
                 title  = title.val().trim()
 
                 if target == "_blank"
-                    target = " target='_blank'"
+                    target = " target='_blank' rel='noopener'"
 
                 if title.length > 0
                     title = " title='#{title}'"

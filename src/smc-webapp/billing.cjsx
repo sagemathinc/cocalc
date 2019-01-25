@@ -216,7 +216,7 @@ validate =
 
 powered_by_stripe = ->
     <span>
-        Powered by <a href="https://stripe.com/" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
+        Powered by <a href="https://stripe.com/" rel="noopener" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
     </span>
 
 
@@ -300,7 +300,7 @@ AddPaymentMethod = rclass
 
     render_input_cvc_help: ->
         if @state.cvc_help
-            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>security code</a> is
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank' rel="noopener">security code</a> is
             located on the back of credit or debit cards and is a separate group of 3 (or 4) digits to the right of
             the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
         else
@@ -1263,7 +1263,7 @@ exports.ExplainResources = ExplainResources = rclass
 
                     <div style={fontWeight:"bold"}>
                         Please immediately email us at <HelpEmailLink/> {" "}
-                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq">pricing FAQ</a> </span>}
+                        {if not @props.is_static then <span> or read our <a target='_blank' href="#{PolicyPricingPageUrl}#faq" rel="noopener">pricing FAQ</a> </span>}
                         if anything is unclear to you.
                     </div>
                     <Space/>
@@ -1324,7 +1324,7 @@ exports.ExplainPlan = ExplainPlan = rclass
                 <p>
                 We offer course packages to support teaching using <SiteName/>.
                 They start right after purchase and last for the indicated period and do <b>not auto-renew</b>.
-                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank">instructor guide</a> to create a course file for your new course.
+                Follow the <a href="https://doc.cocalc.com/teaching-instructors.html" target="_blank" rel="noopener">instructor guide</a> to create a course file for your new course.
                 Each time you add a student to your course, a project will be automatically created for that student.
                 You can create and distribute assignments,
                 students work on assignments inside their project (where you can see their progress
@@ -1507,8 +1507,8 @@ FAQS =
     private:
         q: <span>Which plan offers <b>"private" file storage</b>?</span>
         a: <span>All our plans (free and paid) host your files privately by default.
-            Please read our <a target="_blank" href={PolicyPrivacyPageUrl}>Privacy Policy</a> and {" "}
-            <a target="_blank" href={PolicyCopyrightPageUrl}>Copyright Notice</a>.
+            Please read our <a target="_blank" href={PolicyPrivacyPageUrl} rel="noopener">Privacy Policy</a> and {" "}
+            <a target="_blank" href={PolicyCopyrightPageUrl} rel="noopener">Copyright Notice</a>.
            </span>
     git:
         q: <span>Can I work with <b>Git</b> &mdash; including GitHub, Bitbucket, GitLab, etc.?</span>
@@ -2042,7 +2042,7 @@ BillingPage = rclass
 
     render_info_link: ->
         <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
-            We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing and subscription options</a>.
+            We offer many <a href={PolicyPricingPageUrl} target='_blank' rel="noopener"> pricing and subscription options</a>.
             <Space/>
             {@render_suggested_next_step()}
         </div>

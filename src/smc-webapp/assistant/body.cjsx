@@ -244,7 +244,7 @@ exports.ExamplesBody = rclass
             <Col sm={12}>
                 Selected language <code>{@props.lang}</code> has no data.
                 You can help by contributing more content at{' '}
-                <a href={REPO_URL} target={'_blank'}>
+                <a href={REPO_URL} target={'_blank'} rel={"noopener"}>
                     {REPO_URL.split('/')[-2...].join('/')}
                 </a>.
             </Col>
