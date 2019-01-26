@@ -1658,7 +1658,7 @@ ProjectFilesActionBox = rclass
         </div>
 
     handle_sharing_options_change: (single_file_data) -> (e) =>
-        # The reason we need single_fie_data is because I think "set_public_path" does not
+        # The reason we need single_file_data is because I think "set_public_path" does not
         # merge the "options", so you have to pass in the current description.
         state = e.target.value
         if state == "private"

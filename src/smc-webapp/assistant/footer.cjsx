@@ -65,6 +65,7 @@ exports.ExamplesFooter = rclass
                 className  = {'contrib-link'}
                 href       = {REPO_URL}
                 target     = {'_blank'}
+                rel        = {"noopener"}
             >
                 <Icon name = {'code-fork'} /> Contribute
             </Button>

@@ -54,7 +54,7 @@ exports.UpgradesPage = rclass
         <div style={margin:'10px 0'}>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing
+                We offer many <a href={PolicyPricingPageUrl} target='_blank' rel='noopener'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
