@@ -36,7 +36,7 @@ DESC_FONT = 'sans-serif'
 {reset_password_key} = require('./password-reset')
 
 misc = require('smc-util/misc')
-{APP_TAGLINE} = require('smc-util/theme')
+{APP_TAGLINE, DOC_URL} = require('smc-util/theme')
 {APP_ICON, APP_ICON_WHITE, APP_LOGO_NAME, APP_LOGO_NAME_WHITE} = require('./art')
 {APP_BASE_URL} = require('./misc_page')
 $.get window.app_base_url + "/registration", (obj, status) ->
@@ -535,6 +535,7 @@ exports.LandingPage = rclass
                 className = {"visible-xs"}
              >
                     <SignIn
+                        get_api_key   = {@props.get_api_key}
                         signing_in    = {@props.signing_in}
                         sign_in_error = {@props.sign_in_error}
                         has_account   = {@props.has_account}
@@ -560,12 +561,12 @@ exports.LandingPage = rclass
                               fontSize : '11pt',\
                               float    : "right"} >
                       <SignIn
-                          strategies    = {@props.strategies}
                           get_api_key   = {@props.get_api_key}
                           signing_in    = {@props.signing_in}
                           sign_in_error = {@props.sign_in_error}
                           has_account   = {@props.has_account}
                           xs            = {false}
+                          strategies    = {@props.strategies}
                           color         = {topbar.color} />
                   </div>
                   {### Had this below, but it looked all wrong, conflicting with the name--  height           : UNIT * 5, width: UNIT * 5, \ ###}
@@ -625,7 +626,7 @@ exports.LandingPage = rclass
                         {
                             if not @props.get_api_key
                                 <div>
-                                    <a href={APP_BASE_URL + "/"}>Learn more about CoCalc...</a>
+                                    <a href={DOC_URL} target="_blank" rel="noopener">Learn more about CoCalc...</a>
                                 </div>
                         }
                     </div>

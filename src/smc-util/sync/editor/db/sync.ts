@@ -3,10 +3,10 @@ import { from_str, DBDocument } from "./doc";
 import { Document, DocType } from "../generic/types";
 
 export interface SyncDBOpts extends SyncOpts0 {
-  from_str: (string) => Document;
+  from_str: (str: string) => Document;
   doctype: DocType;
-  primary_keys : string[];
-  string_cols  : string[];
+  primary_keys: string[];
+  string_cols: string[];
 }
 
 export class SyncDB extends SyncDoc {

@@ -15,7 +15,7 @@
     "ansi-to-react": "^1.1.1",
     "expect": "^1.20.2",
     "json-stable-stringify": "^1.0.1",
-    "mocha": "^3.2.0",
+    "mocha": "^5.2.0",
     "prop-types": "^15.5.10"
   },
   "devDependencies": {}

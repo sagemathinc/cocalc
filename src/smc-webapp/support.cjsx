@@ -354,7 +354,7 @@ SupportInfo = rclass
 
     created: () ->
         if @props.url?.length > 1
-            url = <a href={@props.url} target='_blank'>{@props.url}</a>
+            url = <a href={@props.url} target='_blank' rel='noopener'>{@props.url}</a>
         else
             url = 'no ticket'
         <div style={textAlign:'center'}>
@@ -391,26 +391,26 @@ SupportInfo = rclass
             <ul>
                 <li>
                     <b>Looking for documentation and help?</b> Go to
-                    the <a href="#{SmcWikiUrl}" target="_blank">CoCalc documentation</a>.
+                    the <a href="#{SmcWikiUrl}" target="_blank" rel="noopener">CoCalc documentation</a>.
                 </li>
                 <li>
                     <b>Trying to sign out?</b>  Click on Account on the top right, then click
                     "Sign out..." in Preferences.
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Bought a subscription but it does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Bought a subscription but it does not work?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">Files or project seem gone?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">Files or project seem gone?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is very slow or will not run?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is very slow or will not run?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
                 </li>
                 <li>
-                    <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Have a question about how to use Sage?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Have a question about how to use Sage?</a>
                 </li>
                 <li>
                     <b>Requesting that we install software?</b> Fill out the form below and

@@ -48,7 +48,7 @@ exports.SSHKeysPage = rclass
                         style       = {marginBottom:'0px'}
                         />
                     <div style={marginTop:'10px'}>
-                        <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">How to create SSH Keys...</a>
+                        <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank" rel="noopener">How to create SSH Keys...</a>
                     </div>
                 </Col>
             </Row>

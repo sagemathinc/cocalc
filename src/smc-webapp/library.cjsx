@@ -246,7 +246,7 @@ exports.Library = rclass ({name}) ->
                         overflow      : 'hidden'
                         textOverflow  : 'ellipsis'
                     <p style={color: COLORS.GRAY_D}>
-                        Website: <a style={website_style} target='_blank' href={doc.get('website')}>{doc.get('website')}</a>
+                        Website: <a style={website_style} target='_blank' rel='noopener' href={doc.get('website')}>{doc.get('website')}</a>
                     </p>
             }
             {

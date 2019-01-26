@@ -227,9 +227,9 @@ exports.Footer = rclass
             <Space/>
             <SiteName/> by <CompanyName/>
             {' '} &middot; {' '}
-            <a target="_blank" href={PolicyIndexPageUrl}>Policies</a>
+            <a target="_blank" rel='noopener' href={PolicyIndexPageUrl}>Policies</a>
             {' '} &middot; {' '}
-            <a target="_blank" href={PolicyTOSPageUrl}>Terms of Service</a>
+            <a target="_blank" rel='noopener' href={PolicyTOSPageUrl}>Terms of Service</a>
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
@@ -1174,9 +1174,9 @@ exports.NonMemberProjectWarning = (opts) ->
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
-            suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
@@ -1197,9 +1197,9 @@ exports.NoNetworkProjectWarning = (opts) ->
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
-            suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
