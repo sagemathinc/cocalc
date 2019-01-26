@@ -171,7 +171,7 @@ LanguageTable = rclass
                 <div style={style}>
                 {
                     if component_info.url
-                        <a target='_blank' href={component_info.url}>{component_info.name}</a>
+                        <a target='_blank' rel="noopener" href={component_info.url}>{component_info.name}</a>
                     else
                         component_info.name
                 }
@@ -314,7 +314,7 @@ ComputeEnvironment = rclass
                     The library{' '}
                     {
                         if url
-                            <a target='_blank' href={url}>{name}</a>
+                            <a target='_blank'  rel="noopener" href={url}>{name}</a>
                         else
                             name
                     }{' '}
@@ -337,7 +337,7 @@ ComputeEnvironment = rclass
                 <ul>
                     <li style={li_style}>selecting the appropriate Kernel in a Jupyter Notebook,</li>
                     <li style={li_style}>load it from within a SageMath Worksheet via the{' '}
-                        <a target='_blank' href={jupyter_bridge_url}>Jupyter Bridge</a>.
+                        <a target='_blank' rel="noopener" href={jupyter_bridge_url}>Jupyter Bridge</a>.
                         E.g. for Anaconda:
                         <pre>
                             %auto
@@ -412,7 +412,7 @@ ComputeEnvironment = rclass
                     info = execs[k]
                     <li key={k} style={li_style}>
                         <b>
-                            <a href={info.url} target='_blank'>{info.name}</a>{':'}
+                            <a href={info.url} rel="noopener" target='_blank'>{info.name}</a>{':'}
                         </b>
                         {' '}
                         {info.doc}

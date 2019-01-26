@@ -899,7 +899,7 @@ SSHPanel = rclass
         <div>
             <span>Use the following username@host:</span>
             <pre>{addr}</pre>
-            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank" rel="noopener">
                 <Icon name='life-ring'/> How to create SSH keys
             </a>
         </div>

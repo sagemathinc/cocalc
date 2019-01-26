@@ -44,8 +44,11 @@ Now, connect to the database, where the setup is in the passports_settings table
 
 1. there sould be a site_conf entry:
 ```
-insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME/auth"}'::JSONB );
+insert into passport_settings (strategy , conf ) VALUES ( 'site_conf', '{"auth": "https://[DOMAIN_NAME]/auth"}'::JSONB );
 ```
+e.g., {"auth": "https://cocalc.com/auth"} is used on the live site
+and   {"auth": "https://cocalc.com/[project_id]/port/8000/auth"} for a certain dev project.
+
 2. insert into passport_settings (strategy , conf ) VALUES ( 'google', '{"clientID": "....apps.googleusercontent.com", "clientSecret": "..."}'::JSONB )
 
 Then restart the hubs.
