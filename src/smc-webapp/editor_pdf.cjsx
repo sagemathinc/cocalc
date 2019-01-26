@@ -59,7 +59,7 @@ PublicPDF = rclass
                     <Icon name="refresh" /> Reload
                 </Button>
                 <Button
-                    target="_blank"
+                    target="_blank" rel="noopener"
                     href="#{get_url(@props.project_id, @props.path)}?random=#{Math.random()}">
                     <Icon name="external-link"/> Open in New Window
                 </Button>

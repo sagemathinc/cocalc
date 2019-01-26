@@ -13,7 +13,7 @@ const async = require("async");
 
 exports.session_manager = (name, redux) => new SessionManager(name, redux);
 
-interface IState {
+interface State {
   // project_id <=> filenames
   [k: string]: string[];
 }
@@ -23,9 +23,9 @@ class SessionManager {
   private redux: AppRedux;
   private _local_storage_name: string;
   private _local_storage_name_closed: string;
-  private _state: IState[];
+  private _state: State[];
   private _ignore: boolean;
-  private _state_closed: IState;
+  private _state_closed: State;
   private _initialized: boolean;
 
   constructor(name: string, redux: AppRedux) {
@@ -234,8 +234,8 @@ class SessionManager {
   }
 }
 
-const get_session_state = function(redux: AppRedux): IState[] {
-  const state: IState[] = [];
+const get_session_state = function(redux: AppRedux): State[] {
+  const state: State[] = [];
   redux
     .getStore("projects")
     .get("open_projects")
@@ -255,7 +255,7 @@ const get_session_state = function(redux: AppRedux): IState[] {
 // saved session; if not set (the default) the current state and the session are merged.
 const restore_session_state = function(
   redux: AppRedux,
-  state: IState[],
+  state: State[],
   reset_first?: boolean
 ): void {
   let project_id;

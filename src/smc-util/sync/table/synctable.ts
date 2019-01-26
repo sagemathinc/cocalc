@@ -47,10 +47,13 @@ const schema = require("../../schema");
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
-  dbg: (string) => Function;
-  query: (
-    opts: { query: any; options?: any[]; timeout?: number; cb?: Function }
-  ) => void;
+  dbg: (str: string) => Function;
+  query: (opts: {
+    query: any;
+    options?: any[];
+    timeout?: number;
+    cb?: Function;
+  }) => void;
   query_cancel: Function;
   server_time: Function;
   alert_message: Function;
@@ -69,12 +72,8 @@ export interface TimedChange {
   time: number; // ms since epoch
 }
 
-function is_fatal(err): boolean {
-  return (
-    typeof err === "string" &&
-    err.slice(0, 5) === "FATAL" &&
-    err.indexOf("tracker") === -1
-  );
+function is_fatal(err: string): boolean {
+  return err.indexOf("FATAL") != -1;
 }
 
 import { reuseInFlight } from "async-await-utils/hof";
@@ -141,6 +140,8 @@ export class SyncTable extends EventEmitter {
   // Set only for some tables.
   private project_id?: string;
 
+  private last_has_uncommitted_changes?: boolean = undefined;
+
   constructor(
     query,
     options: any[],
@@ -193,7 +194,7 @@ export class SyncTable extends EventEmitter {
   (Always returns false when not yet initialized.)
   */
   public has_uncommitted_changes(): boolean {
-    this.assert_not_closed();
+    this.assert_not_closed("has_uncommitted_changes");
     return len(this.changes) !== 0;
   }
 
@@ -207,7 +208,7 @@ export class SyncTable extends EventEmitter {
     is really best thought of as a key:value store!
   */
   public get(arg?): Map<string, any> | undefined {
-    this.assert_not_closed();
+    this.assert_not_closed("get");
 
     if (this.value == null) {
       throw Error("table not yet initialized");
@@ -268,7 +269,7 @@ export class SyncTable extends EventEmitter {
   locally.
   */
   public async save(): Promise<void> {
-    this.assert_not_closed();
+    this.assert_not_closed("save");
     if (this.value == null) {
       // nothing to save yet
       return;
@@ -281,11 +282,20 @@ export class SyncTable extends EventEmitter {
       }
       if (this.state === "connected") {
         if (!(await this._save())) {
+          this.update_has_uncommitted_changes();
           return;
         }
       }
       // else switched to something else (?), so
       // loop around and wait again for a change...
+    }
+  }
+
+  private update_has_uncommitted_changes(): void {
+    const cur = this.has_uncommitted_changes();
+    if (cur !== this.last_has_uncommitted_changes) {
+      this.emit("has-uncommitted-changes", cur);
+      this.last_has_uncommitted_changes = cur;
     }
   }
 
@@ -422,6 +432,7 @@ export class SyncTable extends EventEmitter {
     // Something changed:
     this.value = this.value.set(key, new_val);
     this.changes[key] = this.client.server_time().valueOf();
+    this.update_has_uncommitted_changes();
     if (this.client.is_project()) {
       // project assigns versions
       const version = this.increment_version(key);
@@ -484,7 +495,7 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
-    this.assert_not_closed();
+    this.assert_not_closed("wait");
 
     return await wait({
       obj: this,
@@ -499,6 +510,7 @@ export class SyncTable extends EventEmitter {
   private async first_connect(): Promise<void> {
     try {
       await this.connect();
+      this.update_has_uncommitted_changes();
     } catch (err) {
       console.warn(
         `synctable: failed to connect (table=${this.table}), error=${err}`,
@@ -593,7 +605,7 @@ export class SyncTable extends EventEmitter {
   private async connect(): Promise<void> {
     const dbg = this.dbg("connect");
     dbg();
-    this.assert_not_closed();
+    this.assert_not_closed("connect");
     if (this.state === "connected") {
       return;
     }
@@ -655,6 +667,7 @@ export class SyncTable extends EventEmitter {
   }
 
   private async create_changefeed_connection(): Promise<any[]> {
+    let delay_ms: number = 500;
     while (true) {
       this.close_changefeed();
       this.changefeed = new Changefeed(this.changefeed_options());
@@ -662,12 +675,20 @@ export class SyncTable extends EventEmitter {
       try {
         return await this.changefeed.connect();
       } catch (err) {
+        if (is_fatal(err.toString())) {
+          console.warn("FATAL creating initial changefeed", this.table, err);
+          this.close(true);
+          throw err;
+        }
         // This can happen because we might suddenly NOT be ready
         // to query db immediately after we are ready...
         console.warn(
           `${this.table} -- failed to connect -- ${err}; will retry`
         );
-        await delay(1000);
+        await delay(delay_ms);
+        if (delay_ms < 8000) {
+          delay_ms *= 1.3;
+        }
       }
     }
   }
@@ -948,7 +969,7 @@ export class SyncTable extends EventEmitter {
         this.last_save = value; // success -- don't have to save this stuff anymore...
       } catch (err) {
         dbg("db query failed", err);
-        if (is_fatal(err)) {
+        if (is_fatal(err.toString())) {
           console.warn("FATAL doing set", this.table, err);
           this.close(true);
           throw err;
@@ -989,6 +1010,7 @@ export class SyncTable extends EventEmitter {
         delete this.changes[key];
       }
     }
+    this.update_has_uncommitted_changes();
 
     const is_done = len(this.changes) === 0;
     dbg("done? ", is_done);
@@ -1261,6 +1283,7 @@ export class SyncTable extends EventEmitter {
         // So we will try to send out it again.
         if (!this.changes[key]) {
           this.changes[key] = this.client.server_time().valueOf();
+          this.update_has_uncommitted_changes();
         }
         // So we don't view it as having any known version
         // assigned by project, since the project lost it.
@@ -1297,10 +1320,12 @@ export class SyncTable extends EventEmitter {
     */
   }
 
-  public apply_changes_to_browser_client(changes: VersionedChange[]):  { [key: string]: boolean } {
+  public apply_changes_to_browser_client(
+    changes: VersionedChange[]
+  ): { [key: string]: boolean } {
     const dbg = this.dbg("apply_changes_to_browser_client");
     dbg("got ", changes.length, "changes");
-    this.assert_not_closed();
+    this.assert_not_closed("apply_changes_to_browser_client");
     if (this.value == null) {
       // initializing the synctable for the first time.
       this.value = Map();
@@ -1380,6 +1405,7 @@ export class SyncTable extends EventEmitter {
       if (this.handle_new_val(new_val, false)) {
         const version = this.increment_version(key);
         this.changes[key] = time;
+        this.update_has_uncommitted_changes();
         versioned_changes.push({ obj: new_val.toJS(), version });
         changed_keys.push(key);
       }
@@ -1465,7 +1491,16 @@ export class SyncTable extends EventEmitter {
     }
     const key = this.obj_to_key(new_val);
     if (key == null) {
-      throw Error("key must not be null");
+      // This means the primary key is null or missing, which
+      // shouldn't happen.  Maybe it could in some edge case.
+      // For now, we shouldn't let this break everything, so:
+      console.warn(
+        this.table,
+        "handle_new_val: ignoring invalid new_val ",
+        obj
+      );
+      return undefined;
+      // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
     if (!new_val.equals(cur_val)) {
@@ -1505,10 +1540,12 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  private assert_not_closed(): void {
+  private assert_not_closed(desc: string): void {
     if (this.state === "closed") {
       //console.trace();
-      throw Error("closed");
+      throw Error(
+        `the synctable "${this.table}" must not be closed -- ${desc}`
+      );
     }
   }
 }

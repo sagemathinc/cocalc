@@ -52,7 +52,10 @@ export interface Message {
 
 // an async function that takes prompt and optional password (in
 // which case value not in doc and sent via different channel).
-export type StdinFunction = (prompt: string, password: boolean) => Promise<string>;
+export type StdinFunction = (
+  prompt: string,
+  password: boolean
+) => Promise<string>;
 
 export interface ExecOpts {
   code: string;
@@ -74,6 +77,7 @@ export type KernelInfo = object;
 export interface JupyterKernelInterface extends EventEmitterInterface {
   name: string;
   store: any;
+  readonly identity: string;
   get_state(): string;
   signal(signal: string): void;
   usage(): Promise<{ cpu: number; memory: number }>;
