@@ -70,9 +70,9 @@ export class ProjectAndUserTracker extends EventEmitter {
     const dbg = this.dbg("init");
     dbg("Initializing Project and user tracker...");
 
-    // every changefeed might result in a listener on
-    // this one tracker.
-    this.setMaxListeners(10000);
+    // every changefeed for a user will result in a listener
+    // on an event on this one object.
+    this.setMaxListeners(1000);
 
     try {
       // create changefeed listening on changes to projects table
@@ -219,17 +219,6 @@ export class ProjectAndUserTracker extends EventEmitter {
   // add and remove user from a project, maintaining our data structures
   private add_user_to_project(account_id: string, project_id: string): void {
     this.assert_state("ready", "add_user_to_project");
-    const dbg = this.dbg("add_user_to_project");
-    if (
-      (account_id != null ? account_id.length : undefined) !== 36 ||
-      (project_id != null ? project_id.length : undefined) !== 36
-    ) {
-      // nothing to do -- better than crashing the server...
-      dbg(
-        `WARNING: invalid account_id (='${account_id}') or project_id (='${project_id}')`
-      );
-      return;
-    }
     if (
       this.projects[account_id] != null &&
       this.projects[account_id][project_id]
@@ -237,7 +226,7 @@ export class ProjectAndUserTracker extends EventEmitter {
       // already added
       return;
     }
-    this.emit("add_user_to_project", { account_id, project_id });
+    this.emit(`add_user_to_project-${account_id}`, project_id);
     if (this.users[project_id] == null) {
       this.users[project_id] = {};
     }
@@ -260,20 +249,14 @@ export class ProjectAndUserTracker extends EventEmitter {
         collabs[other_account_id] += 1;
       } else {
         collabs[other_account_id] = 1;
-        this.emit("add_collaborator", {
-          account_id,
-          collab_id: other_account_id
-        });
+        this.emit(`add_collaborator-${account_id}`, other_account_id);
       }
       const other_collabs = this.collabs[other_account_id];
       if (other_collabs[account_id] != null) {
         other_collabs[account_id] += 1;
       } else {
         other_collabs[account_id] = 1;
-        this.emit("add_collaborator", {
-          account_id: other_account_id,
-          collab_id: account_id
-        });
+        this.emit(`add_collaborator-${other_account_id}`, account_id);
       }
     }
   }
@@ -298,7 +281,7 @@ export class ProjectAndUserTracker extends EventEmitter {
       return;
     }
     if (!no_emit) {
-      this.emit("remove_user_from_project", { account_id, project_id });
+      this.emit(`remove_user_from_project-${account_id}`, project_id);
     }
     if (this.collabs[account_id] == null) {
       this.collabs[account_id] = {};
@@ -308,20 +291,14 @@ export class ProjectAndUserTracker extends EventEmitter {
       if (this.collabs[account_id][other_account_id] === 0) {
         delete this.collabs[account_id][other_account_id];
         if (!no_emit) {
-          this.emit("remove_collaborator", {
-            account_id,
-            collab_id: other_account_id
-          });
+          this.emit(`remove_collaborator-${account_id}`, other_account_id);
         }
       }
       this.collabs[other_account_id][account_id] -= 1;
       if (this.collabs[other_account_id][account_id] === 0) {
         delete this.collabs[other_account_id][account_id];
         if (!no_emit) {
-          this.emit("remove_collaborator", {
-            account_id: other_account_id,
-            collab_id: account_id
-          });
+          this.emit(`remove_collaborator-${other_account_id}`, account_id);
         }
       }
     }
@@ -337,8 +314,13 @@ export class ProjectAndUserTracker extends EventEmitter {
   }
 
   private register_cb(account_id: string, cb: Function): void {
+    const dbg = this.dbg(`register(account_id="${account_id}"`);
     if (this.accounts[account_id] != null) {
-      // already registered
+      dbg(
+        `already registered -- listener counts ${JSON.stringify(
+          this.listener_counts(account_id)
+        )}`
+      );
       cb();
       return;
     }
@@ -375,7 +357,7 @@ export class ProjectAndUserTracker extends EventEmitter {
     if (account_id == null) return; // nothing to do.
 
     const dbg = this.dbg(`do_register(account_id="${account_id}")`);
-    dbg("registering new account");
+    dbg("registering account");
     if (this.do_register_lock)
       throw Error("do_register MUST NOT be called twice at once!");
     this.do_register_lock = true;
@@ -395,24 +377,24 @@ export class ProjectAndUserTracker extends EventEmitter {
         return;
       }
 
-      // We now care a lot about this account_id:
+      // we care about this account_id
       this.accounts[account_id] = true;
 
+      dbg("now adding all users to project tracker -- start");
       for (let project of projects) {
         if (this.users[project.project_id] != null) {
           // already have data about this project
           continue;
         } else {
           for (let collab_account_id of project.users) {
-            // NOTE: Very rarely, sometimes collab_account_id is not defined
-            if (collab_account_id != null) {
-              this.add_user_to_project(collab_account_id, project.project_id);
+            if (collab_account_id == null) {
+              continue; // just skip; evidently rarely this isn't defined, maybe due to db error?
             }
+            this.add_user_to_project(collab_account_id, project.project_id);
           }
         }
       }
-
-      dbg("successfully registered");
+      dbg("successfully registered -- stop");
 
       // call the callbacks
       const callbacks = this.register_todo[account_id];
@@ -481,6 +463,20 @@ export class ProjectAndUserTracker extends EventEmitter {
   // on (account_id itself counted twice)
   public get_collabs(account_id: string): { [account_id: string]: number } {
     return this.collabs[account_id] != null ? this.collabs[account_id] : {};
+  }
+
+  private listener_counts(account_id: string): object {
+    const x: any = {};
+    for (let e of [
+      "add_user_to_project",
+      "remove_user_from_project",
+      "add_collaborator",
+      "remove_collaborator"
+    ]) {
+      const event = e + "-" + account_id;
+      x[event] = this.listenerCount(event);
+    }
+    return x;
   }
 }
 
