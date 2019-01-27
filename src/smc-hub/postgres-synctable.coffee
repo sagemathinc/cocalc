@@ -172,7 +172,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         new Changes(@, opts.table, opts.select, opts.watch, opts.where, opts.cb)
         return
 
-    # Event emitter that
+    # Event emitter that changes to users of a project, and collabs of a user.
+    # If it emits 'error' -- which is can and will do sometimes -- then
+    # any client of this tracker must give up on using it!
     project_and_user_tracker: (opts) =>
         opts = defaults opts,
             cb : required
@@ -181,18 +183,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return
         @_project_and_user_tracker_cbs ?= []
         @_project_and_user_tracker_cbs.push(opts.cb)
-        if @_project_and_user_tracker_cbs.length == 1
-            x = new ProjectAndUserTracker @, (err) =>
-                if not err
-                    @_project_and_user_tracker = x
-                    x.on 'error', =>
-                        delete @_project_and_user_tracker
-                else
-                    x = undefined
-                for cb in @_project_and_user_tracker_cbs
-                    cb?(err, x)
-                delete @_project_and_user_tracker_cbs
-
+        if @_project_and_user_tracker_cbs.length > 1
+            return
+        tracker = new ProjectAndUserTracker(@)
+        tracker.once "error", =>
+            # delete, so that future calls create a new one.
+            delete @_project_and_user_tracker
+        try
+            await tracker.init()
+            @_project_and_user_tracker = tracker
+            for cb in @_project_and_user_tracker_cbs
+                cb(undefined, tracker)
+            delete @_project_and_user_tracker_cbs
+        catch err
+            for cb in @_project_and_user_tracker_cbs
+                cb(err)
 
 class SyncTable extends EventEmitter
     constructor: (_db, _table, _columns, _where, _where_function, _limit, _order_by, cb) ->

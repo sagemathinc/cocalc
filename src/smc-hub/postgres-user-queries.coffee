@@ -1263,7 +1263,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
                             # Check that this is a project we have read access to
-                            if not db._project_and_user_tracker?.projects(account_id)[obj.project_id]
+                            if not db._project_and_user_tracker?.get_projects(account_id)[obj.project_id]
                                 return false
                             # Now check our actual query conditions on the object.
                             # This would normally be done by the changefeed, but since
@@ -1306,7 +1306,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     pg_changefeed = (db, account_id) ->
                         shared_tracker = undefined
                         where : (obj) ->  # client side test of "is a collab with me"
-                            return shared_tracker.collabs(account_id)?[obj.account_id]
+                            return shared_tracker.get_collabs(account_id)?[obj.account_id]
                         init_tracker : (tracker, feed) =>
                             shared_tracker = tracker
                             tracker.on 'add_collaborator', (x) =>
@@ -1335,7 +1335,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             cb(err)
                         else
                             tracker = _tracker
-                            tracker.register(account_id: account_id, cb:cb)
+                            try
+                                await tracker.register(account_id)
+                                cb()
+                            catch err
+                                cb(err)
                 else
                     cb()
             (cb) =>

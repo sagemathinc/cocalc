@@ -30,7 +30,7 @@ function parse_action(obj: string): ChangeAction {
   throw Error(`invalid action "${s}"`);
 }
 
-interface ChangeEvent {
+export interface ChangeEvent {
   action: ChangeAction;
   new_val?: object;
   old_val?: object;
