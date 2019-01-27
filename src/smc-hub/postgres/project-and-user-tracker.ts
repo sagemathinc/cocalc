@@ -45,7 +45,9 @@ export class ProjectAndUserTracker extends EventEmitter {
 
   // map from account_id to map from account_ids to *number* of
   // projects the two users have in common.
-  private collabs: { [account_id: string]: { [account_id: string]: number } } = {};
+  private collabs: {
+    [account_id: string]: { [account_id: string]: number };
+  } = {};
 
   private register_todo: { [account_id: string]: Function[] } = {};
 
@@ -372,13 +374,13 @@ export class ProjectAndUserTracker extends EventEmitter {
     for (account_id in this.register_todo) break;
     if (account_id == null) return; // nothing to do.
 
+    const dbg = this.dbg(`do_register(account_id="${account_id}")`);
+    dbg("registering new account");
     if (this.do_register_lock)
       throw Error("do_register MUST NOT be called twice at once!");
     this.do_register_lock = true;
     try {
       // Register this account
-      const dbg = this.dbg("do_register");
-      dbg(`registering account='${account_id}'...`);
       let projects: QueryResult[];
       try {
         projects = await query(this.db, {
@@ -410,7 +412,7 @@ export class ProjectAndUserTracker extends EventEmitter {
         }
       }
 
-      dbg(`successfully registered '${account_id}'`);
+      dbg("successfully registered");
 
       // call the callbacks
       const callbacks = this.register_todo[account_id];
