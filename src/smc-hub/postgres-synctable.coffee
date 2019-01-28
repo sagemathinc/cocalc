@@ -24,8 +24,6 @@ Server side synchronized tables built on PostgreSQL, and basic support
 for user get query updates.
 ###
 
-require('ts-node').register()
-
 EventEmitter = require('events')
 
 immutable    = require('immutable')
