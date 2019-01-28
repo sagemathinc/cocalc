@@ -190,7 +190,7 @@ export class ProfileImageSelector extends Component<
           <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
             Gravatar is a service for using a common avatar across websites. Go
             to the{" "}
-            <a href="https://en.gravatar.com" target="_blank">
+            <a href="https://en.gravatar.com" target="_blank" rel='noopener'>
               Wordpress Gravatar site
             </a>{" "}
             and sign in (or create an account) using {this.props.email_address}.
@@ -236,7 +236,7 @@ export class ProfileImageSelector extends Component<
           <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
             Adorable creates a cute randomize monster face out of your email.
             See{" "}
-            <a href="http://avatars.adorable.io" target="_blank">
+            <a href="http://avatars.adorable.io" target="_blank" rel='noopener'>
               {"http://avatars.adorable.io"}
             </a>{" "}
             for more.
