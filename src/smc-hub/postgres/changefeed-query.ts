@@ -60,6 +60,10 @@ class ThrottledTableQueue extends EventEmitter {
     this.db = db;
     this.table = table;
     this.interval_ms = interval_ms;
+
+    // client listens for results of query -- if queries pile up, and
+    // there are many tables, the default of 10 can easily be exceeded.
+    this.setMaxListeners(100);
   }
 
   private dbg(f): Function {
