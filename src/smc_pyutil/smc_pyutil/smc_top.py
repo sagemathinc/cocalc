@@ -204,7 +204,8 @@ class SmcTop(object):
             and `smem` is not used either.
             '''
             if impl == "smem":
-                return {"error":"smem no longer supported"}
+                # No longer supported -- just give back nothing.  It's way too slow.
+                return {}
 
             elif impl == "cgroup":
                 # cgroups is in bytes
