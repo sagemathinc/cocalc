@@ -1102,8 +1102,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                tab = window.open(how.url, '_blank', 'noopener')
-                tab.focus()
+                exports.open_new_tab(how.url)
                 done = true
 
             if how?.wrap?
