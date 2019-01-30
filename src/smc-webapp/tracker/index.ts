@@ -2,7 +2,7 @@
 // for now, it either does nothing or works with GA
 // this API basically allows to send off events by name and category
 
-const analytics = function(type, ...args) {
+const analytics = function(type: "event" | "pageview", ...args) {
   // GoogleAnalyticsObject contains the possibly customized function name of GA.
   // It's a good idea to call it differently from the default 'ga' to avoid name clashes...
   if ((window as any).GoogleAnalyticsObject != undefined) {
