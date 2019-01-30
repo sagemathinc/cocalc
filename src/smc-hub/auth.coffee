@@ -476,7 +476,11 @@ exports.init_passport = (opts) ->
 
     init_google = (cb) ->
         dbg("init_google")
-        # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth2
+        # Strategy: Google OAuth 2 -- should be https://github.com/jaredhanson/passport-google-oauth2
+        # but is https://github.com/passport-next/passport-google-oauth2
+        # ATTENTION:
+        # We have to use a fork of passport-google-oauth2, since jaredhanson is MIA.
+        # See https://github.com/jaredhanson/passport-google-oauth2/pull/51/files
         PassportStrategy = require('@passport-next/passport-google-oauth2').Strategy
         strategy = 'google'
         get_conf strategy, (err, conf) ->
@@ -490,10 +494,6 @@ exports.init_passport = (opts) ->
             #
             # require 'c'; db()
             # db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
-
-            # ATTENTION:
-            # We have to use a fork of passport-google-oauth2, since jaredhanson is MIA.
-            # See https://github.com/jaredhanson/passport-google-oauth2/pull/51/files
             opts =
                 clientID     : conf.clientID
                 clientSecret : conf.clientSecret
