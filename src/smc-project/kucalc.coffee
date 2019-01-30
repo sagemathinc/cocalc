@@ -161,8 +161,10 @@ cgroup_stats = (status, cb) ->
 
     }, (err, res) ->
         kib = 1024 # convert to kibibyte
-        status.memory.rss  += (res.memory.total_rss ? 0 + stats.total_rss_huge ? 0) / kib
-        status.memory.cache = (res.memory.cache ? 0) / kib
+        # total_rss includes total_rss_huge
+        # Ref: https://www.kernel.org/doc/Documentation/cgroup-v1/memory.txt
+        status.memory.rss  += (res.memory.total_rss ? 0) / kib
+        status.memory.cache = (res.memory.total_cache ? 0) / kib
         status.memory.limit = (res.memory.hierarchical_memory_limit ? 0) / kib
         status.cpu.usage    = res.cpu
         status.oom_kills    = res.oom
