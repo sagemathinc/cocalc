@@ -1227,8 +1227,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 return
         watch  = []
         select = {}
-        init_tracker = tracker = undefined
+        init_tracker = tracker = free_tracker = undefined
         possible_time_fields = misc.deep_copy(json_fields)
+        feed = undefined
 
         for field, val of user_query
             type = pg_type(SCHEMA[table]?.fields?[field])
@@ -1260,10 +1261,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb(); return
 
                 if pg_changefeed == 'projects'
+                    tracker_add = (project_id) => feed.insert({project_id:project_id})
+                    tracker_remove = (project_id) => feed.delete({project_id:project_id})
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
                             # Check that this is a project we have read access to
-                            if not db._project_and_user_tracker?.projects(account_id)[obj.project_id]
+                            if not db._project_and_user_tracker?.get_projects(account_id)[obj.project_id]
                                 return false
                             # Now check our actual query conditions on the object.
                             # This would normally be done by the changefeed, but since
@@ -1274,13 +1277,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
                         select : {'project_id':'UUID'}
 
-                        init_tracker : (tracker, feed) =>
-                            tracker.on 'add_user_to_project', (x) =>
-                                if x.account_id == account_id
-                                    feed.insert({project_id:x.project_id})
-                            tracker.on 'remove_user_from_project', (x) =>
-                                if x.account_id == account_id
-                                    feed.delete({project_id:x.project_id})
+                        init_tracker : (tracker) =>
+                            tracker.on "add_user_to_project-#{account_id}", tracker_add
+                            tracker.on "remove_user_from_project-#{account_id}", tracker_remove
+
+                        free_tracker : (tracker) =>
+                            dbg("freeing project tracker events")
+                            tracker.removeListener("add_user_to_project-#{account_id}", tracker_add)
+                            tracker.removeListener("remove_user_from_project-#{account_id}", tracker_remove)
+
 
                 else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->
@@ -1303,23 +1308,27 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     if not account_id?
                         cb("FATAL: account_id must be given")
                         return
+                    tracker_add = (collab_id) => feed.insert({account_id:collab_id})
+                    tracker_remove = (collab_id) => feed.delete({account_id:collab_id})
                     pg_changefeed = (db, account_id) ->
                         shared_tracker = undefined
-                        where : (obj) ->  # client side test of "is a collab with me"
-                            return shared_tracker.collabs(account_id)?[obj.account_id]
-                        init_tracker : (tracker, feed) =>
+                        where : (obj) ->  # test of "is a collab with me"
+                            return shared_tracker.get_collabs(account_id)?[obj.account_id]
+                        init_tracker : (tracker) =>
                             shared_tracker = tracker
-                            tracker.on 'add_collaborator', (x) =>
-                                if x.account_id == account_id
-                                    feed.insert({account_id:x.collab_id})
-                            tracker.on 'remove_collaborator', (x) =>
-                                if x.account_id == account_id
-                                    feed.delete({account_id:x.collab_id})
+                            tracker.on "add_collaborator-#{account_id}", tracker_add
+                            tracker.on "remove_collaborator-#{account_id}", tracker_remove
+                        free_tracker : (tracker) =>
+                            dbg("freeing collab tracker events")
+                            tracker.removeListener("add_collaborator-#{account_id}", tracker_add)
+                            tracker.removeListener("remove_collaborator-#{account_id}", tracker_remove)
 
 
                 x = pg_changefeed(@, account_id)
                 if x.init_tracker?
                     init_tracker = x.init_tracker
+                if x.free_tracker?
+                    free_tracker = x.free_tracker
                 if x.select?
                     for k, v of x.select
                         select[k] = v
@@ -1335,7 +1344,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             cb(err)
                         else
                             tracker = _tracker
-                            tracker.register(account_id: account_id, cb:cb)
+                            try
+                                await tracker.register(account_id)
+                                cb()
+                            catch err
+                                cb(err)
                 else
                     cb()
             (cb) =>
@@ -1344,23 +1357,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     select : select
                     where  : where
                     watch  : watch
-                    cb     : (err, feed) =>
+                    cb     : (err, _feed) =>
                         if err
                             cb(err)
                             return
+                        feed = _feed
                         feed.on 'change', (x) ->
                             process(x)
                             changes.cb(undefined, x)
                         feed.on 'close', ->
                             changes.cb(undefined, {action:'close'})
+                            dbg("feed close")
+                            if tracker? and free_tracker?
+                                dbg("free_tracker")
+                                free_tracker(tracker)
+                            dbg("do NOT free_tracker")
                         feed.on 'error', (err) ->
                             changes.cb("feed error - #{err}")
                         @_changefeeds ?= {}
                         @_changefeeds[changes.id] = feed
-                        init_tracker?(tracker, feed)
+                        init_tracker?(tracker)
                         # Any tracker error means this changefeed is now broken and
                         # has to be recreated.
-                        tracker?.on 'error', (err) ->
+                        tracker?.once 'error', (err) ->
                             changes.cb("tracker error - #{err}")
                         cb()
         ], cb)

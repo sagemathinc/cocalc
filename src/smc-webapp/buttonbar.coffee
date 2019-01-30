@@ -1826,7 +1826,7 @@ initialize_sage_python_r_toolbar = () ->
     rbar = $(".webapp-editor-redit-buttonbar")
 
     r_basic = make_bar()
-    add_icon(r_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+    add_icon(r_basic, "#", "#comment", "Comment selected text")
     add_icon(r_basic, "$\\vec v$", "#vector", "Insert a vector")
 
     r_control = make_bar()
@@ -1899,7 +1899,7 @@ initialize_sage_python_r_toolbar = () ->
     julia_bar = $(".webapp-editor-julia-edit-buttonbar")
 
     julia_basic = make_bar()
-    add_icon(julia_basic, "<i class='fa'>#</i>", "#comment", "Comment selected text")
+    add_icon(julia_basic, "#", "#comment", "Comment selected text")
 
     julia_control = make_bar()
     julia_control_entries = ["Control", "Control structures",

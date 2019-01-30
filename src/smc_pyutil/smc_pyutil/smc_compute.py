@@ -554,14 +554,7 @@ class Project(object):
         self.start(cores, memory, cpu_shares, base_url)
 
     def get_memory(self, s):
-        try:
-            t = self.cmd(
-                ["smem", "-nu"], verbose=0,
-                timeout=5).splitlines()[-1].split()[1:]
-            s['memory'] = dict(
-                zip('count swap uss pss rss'.split(), [int(x) for x in t]))
-        except:
-            log("error running memory command")
+        return 0  # no longer supported
 
     def status(self, timeout=60, base_url=''):
         log = self._log("status")

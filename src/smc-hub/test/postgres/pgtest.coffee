@@ -6,7 +6,7 @@ WARNING: The server timezone **MUST BE** UTC everywhere, or tests will fail!
 COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
-
+require('ts-node').register()
 require('coffee2-cache')
 
 DEBUG    = !!(process.env['SMC_DEBUG'] ? false)

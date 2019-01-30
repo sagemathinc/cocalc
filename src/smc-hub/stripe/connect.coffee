@@ -4,7 +4,7 @@ The stripe connection object, which communicates with the remote stripe server.
 Configure via the admin panel in account settings of an admin user.
 ###
 
-DEFAULT_VERSION = '2017-08-15'
+DEFAULT_VERSION = '2018-11-08'
 
 async = require('async')
 

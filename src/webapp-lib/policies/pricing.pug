@@ -11,7 +11,7 @@ block content
 
   div.jumbotron
     div.container
-      h1 #[a(href=URL target="_blank") #{COMPANY_NAME}]
+      h1 #[a(href=URL) #{COMPANY_NAME}]
       h2 #{NAME} Subscriptions and Pricing (March 2018)
       a.btn.btn-default(href="index.html" role="button") &laquo; Other Policies
 
@@ -23,7 +23,7 @@ block content
       Listed prices are in US dollars (when charging in local currency, the prices are converted into local currency using the
       conversion rates published by leading financial institutions).
     p.
-      When logged in, you may sign up for a subscription in #[a(target="_blank" href="/settings/billing") the billing tab]
-      and see a summary of upgrades in #[a(target="_blank" href="/settings/upgrades") the upgrades tab].
+      When logged in, you may sign up for a subscription in #[a(target="_blank" rel="noopener" href="/settings/billing") the billing tab]
+      and see a summary of upgrades in #[a(target="_blank" rel="noopener" href="/settings/upgrades") the upgrades tab].
 
     include _static_pricing_page.html

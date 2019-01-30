@@ -204,16 +204,8 @@ class SmcTop(object):
             and `smem` is not used either.
             '''
             if impl == "smem":
-                # smem is in kilobytes
-                try:
-                    # User     Count     Swap      USS      PSS      RSS
-                    smem = run("/usr/bin/smem", "-uH").split()[2:]
-                    smem = [int(_) / KBMB for _ in smem]
-                    smem = dict(zip(["swap", "uss", "pss", "rss"], smem))
-                    add_human_readable(smem)
-                    return smem
-                except Exception as e:
-                    return {"error": str(e)}
+                # No longer supported -- just give back nothing.  It's way too slow.
+                return {}
 
             elif impl == "cgroup":
                 # cgroups is in bytes

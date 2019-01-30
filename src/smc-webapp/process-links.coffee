@@ -80,6 +80,7 @@ $.fn.process_smc_links = (opts={}) ->
                 else
                     # make links open in a new tab by default
                     a.attr("target","_blank")
+                    a.attr("rel", "noopener")
 
         # part #2: process <img>, <object> and <video>/<source> tags
         # make relative links to images use the raw server
