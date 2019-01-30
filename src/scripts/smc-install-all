@@ -6,38 +6,24 @@ set -v
 cd `dirname $0`/..
 . smc-env
 
+run_install() {
+    cd "$1"
+    npm install
+    npm install --only=dev
+    npm audit fix
+}
+
+run_install $SMC_ROOT
+run_install $SMC_ROOT/smc-util
+run_install $SMC_ROOT/smc-util-node
+run_install $SMC_ROOT/smc-project
+run_install $SMC_ROOT/smc-project/jupyter
+run_install $SMC_ROOT/smc-webapp
+run_install $SMC_ROOT/smc-webapp/jupyter
+run_install $SMC_ROOT/smc-hub
+
+# assistant example code snippets
 cd $SMC_ROOT
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-util
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-util-node
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-project
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-project/jupyter
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-webapp
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-webapp/jupyter
-npm install
-npm install --only=dev
-
-cd $SMC_ROOT/smc-hub
-npm install
-npm install --only=dev
-
 git submodule update --init
 cd $SMC_ROOT/examples
 env OUTDIR=../webapp-lib/examples make
