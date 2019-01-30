@@ -858,8 +858,6 @@ load_recent_projects = =>
 load_recent_projects()
 
 
-
-
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
 
@@ -870,16 +868,25 @@ ProjectsSearch = rclass
         search             : ''
         open_first_project : undefined
 
+    getInitialState: ->
+        search : @props.search
+
     clear_and_focus_search_input: ->
         @refs.projects_search.clear_and_focus_search_input()
+
+    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 400)
+
+    set_search: (value) ->
+        @setState(search:value)
+        @debounce_set_search(value)
 
     render: ->
         <SearchInput
             ref         = 'projects_search'
             autoFocus   = {true}
-            value       = {@props.search}
+            value       = {@state.search}
+            on_change   = {@set_search}
             placeholder = 'Search for projects...'
-            on_change   = {(value)=>@actions('projects').setState(search: value)}
             on_submit   = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
         />
 
@@ -1327,6 +1334,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
+
 
     toggle_hashtag: (tag) ->
         selected_hashtags = @props.selected_hashtags
