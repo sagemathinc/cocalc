@@ -876,8 +876,7 @@ ProjectFilesButtons = rclass
         return if @props.kucalc != 'yes'
         <Button
             bsSize={'small'}
-            disabled={@props.show_library}
-            onClick={=>@props.actions.toggle_library(true)}
+            onClick={=>@props.actions.toggle_library()}
         >
             <Icon name='book' /> <HiddenSM>Library</HiddenSM>
         </Button>
@@ -2057,11 +2056,9 @@ ProjectFilesNew = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
-        disabled      : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
-        disabled    : true
 
     new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
@@ -2087,7 +2084,7 @@ ProjectFilesNew = rclass
     # Go to new file tab if no file is specified
     on_create_button_clicked: ->
         if @props.file_search.length == 0
-            @props.actions.toggle_new(true)
+            @props.actions.toggle_new()
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
         else
@@ -2098,7 +2095,6 @@ ProjectFilesNew = rclass
             id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
             onClick={@on_create_button_clicked}
-            disabled={@props.disabled}
         >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -2303,7 +2299,6 @@ exports.ProjectFiles = rclass ({name}) ->
             actions       = {@props.actions}
             create_file   = {@create_file}
             create_folder = {@create_folder}
-            disabled      = {@props.show_new}
         />
 
     render_activity: ->
