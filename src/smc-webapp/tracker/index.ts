@@ -5,8 +5,8 @@
 const analytics = function(type, ...args) {
   // GoogleAnalyticsObject contains the possibly customized function name of GA.
   // It's a good idea to call it differently from the default 'ga' to avoid name clashes...
-  if (window.GoogleAnalyticsObject != undefined) {
-    const ga = window[window.GoogleAnalyticsObject];
+  if ((window as any).GoogleAnalyticsObject != undefined) {
+    const ga = window[(window as any).GoogleAnalyticsObject];
     if (ga != undefined) {
       switch (type) {
         case "event":
