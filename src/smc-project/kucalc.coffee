@@ -80,7 +80,6 @@ exports.compute_status = compute_status = (cb) ->
         (cb) ->
             compute_status_disk(status, cb)
         (cb) ->
-            #compute_status_memory(status, cb)
             cgroup_stats(status, cb)
         (cb) ->
             processes_info(status, cb)
@@ -120,17 +119,6 @@ compute_status_tmp = (status, cb) ->
     disk_usage "/tmp", (err, x) ->
         status.memory.rss += 1000*x
         cb(err)
-
-compute_status_memory = (status, cb) ->
-    misc_node.execute_code
-        command : "smem -nu | tail -1 | awk '{print $6}'"
-        bash    : true
-        cb      : (err, out) ->
-            if err
-                cb(err)
-            else
-                status.memory.rss += parseInt(out.stdout)
-                cb()
 
 # this grabs the memory stats directly from the sysfs cgroup files
 # the actual usage is the sum of the rss values plus cache, but we leave cache aside
