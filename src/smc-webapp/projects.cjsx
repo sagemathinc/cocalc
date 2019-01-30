@@ -1324,6 +1324,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         return true
 
     visible_projects: ->
+        console.log("visible_projects")
         selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))

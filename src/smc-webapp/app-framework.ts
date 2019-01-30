@@ -47,11 +47,13 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminStore, AdminActions } from "./admin"
+import { AdminStore, AdminActions } from "./admin";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
 declare type ProjectActions = import("./project_actions").ProjectActions;
+
+import { FileUseStore, FileUseActions } from "./file_use";
 
 export let COLOR = {
   BG_RED: "#d9534f", // the red bootstrap color of the button background
@@ -201,6 +203,8 @@ export class AppRedux {
   getActions(name: "projects"): any;
   getActions(name: "billing"): any;
   getActions(name: "admin-page"): AdminActions;
+  getActions(name: "file_use"): FileUseActions;
+  getActions(name: "page"): any;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -259,6 +263,7 @@ export class AppRedux {
   getStore(name: "customize"): any;
   getStore(name: "projects"): any;
   getStore(name: "users"): any;
+  getStore(name: "file_use"): FileUseStore;
   getStore(name: "admin-page"): AdminStore;
   getStore<State, C extends Store<State>>(name: string): C | undefined;
   getStore<State, C extends Store<State>>(name: string): C | undefined {
