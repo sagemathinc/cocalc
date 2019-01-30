@@ -321,7 +321,15 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 # disable doing so!
                 @_connect_time = new Date()
                 locals.i = 0
+
+                # Weird and unfortunate fact -- this query can and does **HANG** never returning
+                # in some edge cases.  That's why we have to be paranoid about this entire _connect
+                # function...
                 f = (client, cb) =>
+                    it_hung = =>
+                        cb("hung")
+                        cb = undefined
+                    timeout = setTimeout(it_hung, 15000)
                     dbg("now connected; disabling nestloop query planning for client #{locals.i}")
                     locals.i += 1
                     client.query "SET enable_nestloop TO off", (err) =>
@@ -329,6 +337,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                             dbg("disabling nestloop failed for client #{locals.i}")
                         else
                             dbg("disabling nestloop done for client #{locals.i}")
+                        clearTimeout(timeout)
                         cb(err)
                 async.map(locals.clients, f, cb)
             (cb) =>

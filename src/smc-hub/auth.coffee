@@ -476,13 +476,12 @@ exports.init_passport = (opts) ->
 
     init_google = (cb) ->
         dbg("init_google")
-        # Strategy: Google OAuth 2 -- https://github.com/jaredhanson/passport-google-oauth
-        #
-        # NOTE: The passport-recommend library passport-google uses openid2, which
-        # is deprecated in a few days!   So instead, I have to use oauth2, which
-        # is in https://github.com/jaredhanson/passport-google-oauth, which I found by luck!?!
-        #
-        PassportStrategy = require('passport-google-oauth').OAuth2Strategy
+        # Strategy: Google OAuth 2 -- should be https://github.com/jaredhanson/passport-google-oauth2
+        # but is https://github.com/passport-next/passport-google-oauth2
+        # ATTENTION:
+        # We have to use a fork of passport-google-oauth2, since jaredhanson is MIA.
+        # See https://github.com/jaredhanson/passport-google-oauth2/pull/51/files
+        PassportStrategy = require('@passport-next/passport-google-oauth2').Strategy
         strategy = 'google'
         get_conf strategy, (err, conf) ->
             if err or not conf?

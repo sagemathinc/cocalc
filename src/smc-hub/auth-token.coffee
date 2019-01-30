@@ -61,7 +61,7 @@ exports.get_user_auth_token = (opts) ->
             opts.database.save_auth_token
                 account_id : opts.user_account_id
                 auth_token : auth_token
-                ttl        : 86400    # ttl in seconds (default: 1 day)
+                ttl        : 12*3600    # ttl in seconds (12 hours)
                 cb         : cb
     ], (err) ->
         opts.cb(err, auth_token)
