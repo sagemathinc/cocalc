@@ -31,7 +31,7 @@ export async function knitr(
     timeout: 360,
     command: R_CMD,
     args: [...R_ARGS, expr],
-    bash: true,   // so timeout is enforced by ulimit
+    bash: true, // so timeout is enforced by ulimit
     project_id: project_id,
     path: directory,
     err_on_exit: false,
@@ -44,8 +44,8 @@ Knitr error example:
 
 Testing a few cases, it looks like we should report everything after the line "Error in..."
 In case of multiple errors, only the first error is reported.
-There is not much sense with parsing the lines, because usually they aren't reported.
 Warnings are always below and start with a line ending in "Warning message:".
+The lines are reported as "Quitting from lines ...", we parse the first line number.
 
 Loading required package: knitr
 processing file: test2.rnw
@@ -69,6 +69,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
   let err: Error | undefined = undefined;
 
   const warnmsg = "Warning message:";
+  const errline = "Quitting from lines ";
 
   for (let line of output.stderr.split("\n")) {
     if (line.search("Error") == 0) {
@@ -99,6 +100,18 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
     }
     if (line.search("processing file:") == 0) {
       file = line.substring("processing file:".length).trim();
+    }
+    // try to parse the line where the error is
+    if (err != null && line.indexOf(errline) == 0) {
+      try {
+        const info = line.substring(errline.length).split(" ")[0];
+        const line_no = info.split("-")[0];
+        if (line_no.search(/\d+/) == 0) {
+          err.line = parseInt(line_no);
+        }
+      } catch (err) {
+        // console.log("knitr_errors: unable to parse error line:", line, err);
+      }
     }
     if (err != undefined) {
       err.content += `${line}\n`;

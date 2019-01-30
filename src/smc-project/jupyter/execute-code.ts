@@ -9,12 +9,7 @@ import { callback } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
 
-import {
-  uuid,
-  trunc,
-  deep_copy,
-  copy_with
-} from "../smc-util/misc2";
+import { uuid, trunc, deep_copy, copy_with } from "../smc-util/misc2";
 
 import {
   CodeExecutionEmitterInterface,
@@ -84,6 +79,7 @@ export class CodeExecutionEmitter extends EventEmitter
   }
 
   close(): void {
+    if (this.state == "closed") return;
     this.state = "closed";
     this.emit("closed");
     this.removeAllListeners();

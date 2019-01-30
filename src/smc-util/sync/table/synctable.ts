@@ -47,10 +47,13 @@ const schema = require("../../schema");
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
-  dbg: (string) => Function;
-  query: (
-    opts: { query: any; options?: any[]; timeout?: number; cb?: Function }
-  ) => void;
+  dbg: (str: string) => Function;
+  query: (opts: {
+    query: any;
+    options?: any[];
+    timeout?: number;
+    cb?: Function;
+  }) => void;
   query_cancel: Function;
   server_time: Function;
   alert_message: Function;
@@ -191,7 +194,7 @@ export class SyncTable extends EventEmitter {
   (Always returns false when not yet initialized.)
   */
   public has_uncommitted_changes(): boolean {
-    this.assert_not_closed();
+    this.assert_not_closed("has_uncommitted_changes");
     return len(this.changes) !== 0;
   }
 
@@ -205,7 +208,7 @@ export class SyncTable extends EventEmitter {
     is really best thought of as a key:value store!
   */
   public get(arg?): Map<string, any> | undefined {
-    this.assert_not_closed();
+    this.assert_not_closed("get");
 
     if (this.value == null) {
       throw Error("table not yet initialized");
@@ -266,7 +269,7 @@ export class SyncTable extends EventEmitter {
   locally.
   */
   public async save(): Promise<void> {
-    this.assert_not_closed();
+    this.assert_not_closed("save");
     if (this.value == null) {
       // nothing to save yet
       return;
@@ -288,10 +291,10 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  private update_has_uncommitted_changes() : void {
+  private update_has_uncommitted_changes(): void {
     const cur = this.has_uncommitted_changes();
     if (cur !== this.last_has_uncommitted_changes) {
-      this.emit('has-uncommitted-changes', cur);
+      this.emit("has-uncommitted-changes", cur);
       this.last_has_uncommitted_changes = cur;
     }
   }
@@ -492,7 +495,7 @@ export class SyncTable extends EventEmitter {
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
-    this.assert_not_closed();
+    this.assert_not_closed("wait");
 
     return await wait({
       obj: this,
@@ -602,7 +605,7 @@ export class SyncTable extends EventEmitter {
   private async connect(): Promise<void> {
     const dbg = this.dbg("connect");
     dbg();
-    this.assert_not_closed();
+    this.assert_not_closed("connect");
     if (this.state === "connected") {
       return;
     }
@@ -1322,7 +1325,7 @@ export class SyncTable extends EventEmitter {
   ): { [key: string]: boolean } {
     const dbg = this.dbg("apply_changes_to_browser_client");
     dbg("got ", changes.length, "changes");
-    this.assert_not_closed();
+    this.assert_not_closed("apply_changes_to_browser_client");
     if (this.value == null) {
       // initializing the synctable for the first time.
       this.value = Map();
@@ -1537,10 +1540,12 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  private assert_not_closed(): void {
+  private assert_not_closed(desc: string): void {
     if (this.state === "closed") {
       //console.trace();
-      throw Error(`the synctable "${this.table}" must not be closed`);
+      throw Error(
+        `the synctable "${this.table}" must not be closed -- ${desc}`
+      );
     }
   }
 }

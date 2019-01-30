@@ -34,7 +34,7 @@ STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.st
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
-{MiniTerminal}        = require('./project_miniterm')
+{MiniTerminal, output_style}        = require('./project_miniterm')
 {file_associations}   = require('./file-associations')
 account               = require('./account')
 immutable             = require('immutable')
@@ -1658,7 +1658,7 @@ ProjectFilesActionBox = rclass
         </div>
 
     handle_sharing_options_change: (single_file_data) -> (e) =>
-        # The reason we need single_fie_data is because I think "set_public_path" does not
+        # The reason we need single_file_data is because I think "set_public_path" does not
         # merge the "options", so you have to pass in the current description.
         state = e.target.value
         if state == "private"
@@ -2028,7 +2028,7 @@ ProjectFilesSearch = rclass
             />
             {@render_file_creation_error()}
             {@render_help_info()}
-            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
+            <div style={output_style}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>

@@ -46,6 +46,7 @@ interface RetryUntilSuccess<T> {
   max_time?: number; // milliseconds -- don't call f again if the call would start after this much time from first call
   factor?: number; // multiply delay by this each time
   log?: Function; // optional verbose logging function
+  desc?: string; // useful for making error messages better.
 }
 
 export async function retry_until_success<T>(
@@ -89,11 +90,14 @@ export async function retry_until_success<T>(
       let err = check_done();
       if (err) {
         // yep -- game over, throw an error
+        let e;
         if (last_exc) {
-          throw Error(`${err} -- last error was ${last_exc}`);
+          e = Error(`${err} -- last error was ${last_exc} -- ${opts.desc}`);
         } else {
-          throw Error(err);
+          e = Error(`${err} -- ${opts.desc}`);
         }
+        //console.warn(e);
+        throw e;
       }
       // record exception so can use it later.
       last_exc = exc;

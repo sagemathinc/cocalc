@@ -121,12 +121,11 @@ exports.load_target = load_target = (target, ignore_kiosk=false, change_history=
         when 'help'
             redux.getActions('page').set_active_tab('about', change_history)
         when 'projects'
-            require.ensure [], =>
-                if segments.length > 1
-                    #console.log("history/load_target → load_target: #{misc.to_json([segments.slice(1).join('/'), true, ignore_kiosk, change_history])}")
-                    redux.getActions('projects').load_target(segments.slice(1).join('/'), true, ignore_kiosk, change_history)
-                else
-                    redux.getActions('page').set_active_tab('projects', change_history)
+            if segments.length > 1
+                #console.log("history/load_target → load_target: #{misc.to_json([segments.slice(1).join('/'), true, ignore_kiosk, change_history])}")
+                redux.getActions('projects').load_target(segments.slice(1).join('/'), true, ignore_kiosk, change_history)
+            else
+                redux.getActions('page').set_active_tab('projects', change_history)
         when 'settings'
             if not logged_in
                 return

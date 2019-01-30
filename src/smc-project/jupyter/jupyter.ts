@@ -162,13 +162,14 @@ export class JupyterKernel extends EventEmitter
   implements JupyterKernelInterface {
   public name: string;
   public store: any; // used mainly for stdin support right now...
+  public readonly identity: string = uuid();
+
   private _dbg: Function;
   private _path: string;
   private _actions: any;
   private _state: string;
   private _directory: string;
   private _filename: string;
-  private _identity: string;
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
@@ -195,7 +196,6 @@ export class JupyterKernel extends EventEmitter
     this._directory = head;
     this._filename = tail;
     this._set_state("off");
-    this._identity = uuid();
     this._execute_code_queue = [];
     if (_jupyter_kernels[this._path] !== undefined) {
       // This happens when we change the kernel for a given file, e.g., from python2 to python3.
@@ -216,6 +216,7 @@ export class JupyterKernel extends EventEmitter
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     this._state = state;
     this.emit("state", this._state);
+    this.emit(this._state); // we *SHOULD* use this everywhere, not above.
   }
 
   get_state(): string {
@@ -264,7 +265,7 @@ export class JupyterKernel extends EventEmitter
     });
 
     this._channels = require("enchannel-zmq-backend").createChannels(
-      this._identity,
+      this.identity,
       this._kernel.config
     );
 
@@ -404,13 +405,13 @@ export class JupyterKernel extends EventEmitter
     if (this._state === "closed") {
       return;
     }
+    this._set_state("closed");
     if (this.store != null) {
       this.store.close();
       delete this.store;
     }
-    this._set_state("closed");
     const kernel = _jupyter_kernels[this._path];
-    if (kernel != null && kernel._identity === this._identity) {
+    if (kernel != null && kernel._identity === this.identity) {
       delete _jupyter_kernels[this._path];
     }
     this.removeAllListeners();
