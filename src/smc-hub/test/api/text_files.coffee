@@ -95,7 +95,7 @@ describe 'testing text file operations -- ', ->
                 done(err)
 
     it "reads a public text file in a project", (done) ->
-        @timeout(15000)
+        @timeout(20000)
         api.call
             event : 'public_get_text_file'
             body  :
