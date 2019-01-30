@@ -5,6 +5,7 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "@passport-next/passport-google-oauth2": "^1.0.0",
     "@types/http-proxy": "^1.16.2",
     "async": "^1.4.2",
     "awaiting": "^3.0.0",
@@ -39,7 +40,6 @@
     "passport-dropbox-oauth2": "^1.0.0",
     "passport-facebook": "^2.0.0",
     "passport-github": "^1.0.0",
-    "passport-google-oauth": "^0.2.0",
     "passport-local": "^1.0.0",
     "passport-twitter": "^1.0.3",
     "password-hash": "^1.2.2",
