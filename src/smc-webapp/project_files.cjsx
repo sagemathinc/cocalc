@@ -24,17 +24,20 @@
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
-SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG} = require('./r_misc')
+SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM, CloseX2} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
-{FileTypeSelector, NewFileButton} = require('./project_new')
+{FileTypeSelector, NewFileButton, ProjectNewForm} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
+{Library} = require('./library')
+{ProjectSettingsPanel} = require('./project/project-settings-support')
+{analytics_event} = require('./tracker')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
 {BillingPageLink, BillingPageForCourseRedux, PayCourseFee}     = require('./billing')
 {human_readable_size} = misc
-{MiniTerminal, output_style}        = require('./project_miniterm')
+{MiniTerminal, output_style_searchbox}  = require('./project_miniterm')
 {file_associations}   = require('./file-associations')
 account               = require('./account')
 immutable             = require('immutable')
@@ -493,7 +496,7 @@ FirstSteps = rclass
                 </span>
                 <br/>
                 <span style={line2}>
-                    You can also load it via "+ Add" → "Library" → "First Steps in <SiteName />"
+                    You can also load it via "Library" → "First Steps in <SiteName />"
                 </span>
             </Row>
         </Col>
@@ -515,11 +518,15 @@ NoFiles = rclass
     # Go to the new file tab if there is no file search
     handle_click: ->
         if @props.file_search.length == 0
-            @props.actions.set_active_tab('new')
+            #@props.actions.set_active_tab('new')
+            @props.actions.toggle_new(true)
+            analytics_event('project_files', 'listing_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
+            analytics_event('project_files', 'listing_create_button', 'folder')
         else
             @props.create_file()
+            analytics_event('project_files', 'listing_create_button', 'file')
 
     # Returns the full file_search text in addition to the default extension if applicable
     full_path_text: ->
@@ -593,23 +600,15 @@ NoFiles = rclass
     render_file_type_selection: ->
         <div>
             <h4 style={color:"#666"}>Or select a file type</h4>
-            <FileTypeSelector create_file={@props.create_file} create_folder={@props.create_folder} >
-                <Row>
-                    <Col sm={12}>
-                        <Tip title='Create a Chatroom'  placement='right'  icon='comment'
-                            tip='Create a chatroom for chatting with other collaborators on this project.'>
-                            <NewFileButton icon='comment' name='Chatroom' on_click={@props.create_file} ext='sage-chat' />
-                        </Tip>
-                    </Col>
-                </Row>
-            </FileTypeSelector>
+            <FileTypeSelector
+                create_file = {@props.create_file}
+                create_folder = {@props.create_folder}
+            />
         </div>
 
     render: ->
         <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
-            <Col sm={2}>
-            </Col>
-            <Col sm={8}>
+            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
                 <span style={fontSize:'20px'}>
                     No files found
                 </span>
@@ -617,8 +616,6 @@ NoFiles = rclass
                 {@render_create_button() if not @props.public_view}
                 {@render_help_alert()}
                 {@render_file_type_selection() if @props.file_search.length > 0}
-            </Col>
-            <Col sm={2}>
             </Col>
         </Row>
 
@@ -646,15 +643,14 @@ FileListing = rclass
         create_file            : rtypes.func.isRequired   # TODO: should be action!
         selected_file_index    : rtypes.number
         project_id             : rtypes.string
-        show_upload            : rtypes.bool
         shift_is_down          : rtypes.bool
         sort_by                : rtypes.func              # TODO: should be data
         library                : rtypes.object
         other_settings         : rtypes.immutable
+        show_new               : rtypes.bool
 
     getDefaultProps: ->
         file_search           : ''
-        show_upload           : false
 
     render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
@@ -709,14 +705,17 @@ FileListing = rclass
         (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
     render_no_files: ->
-        if @props.listing.length is 0 and @props.file_search[0] isnt TERM_MODE_CHAR
-            <NoFiles
-                current_path  = {@props.current_path}
-                actions       = {@props.actions}
-                public_view   = {@props.public_view}
-                file_search   = {@props.file_search}
-                create_folder = {@props.create_folder}
-                create_file   = {@props.create_file} />
+        return if @props.show_new
+        return if @props.listing.length isnt 0
+        return if @props.file_search[0] is TERM_MODE_CHAR
+        <NoFiles
+            current_path  = {@props.current_path}
+            actions       = {@props.actions}
+            public_view   = {@props.public_view}
+            file_search   = {@props.file_search}
+            create_folder = {@props.create_folder}
+            create_file   = {@props.create_file}
+        />
 
     render_first_steps: ->
         return  # See https://github.com/sagemathinc/cocalc/issues/3138
@@ -838,8 +837,11 @@ ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
 
     propTypes :
+        kucalc       : rtypes.string
         show_hidden  : rtypes.bool
         public_view  : rtypes.bool
+        show_new     : rtypes.bool
+        show_library : rtypes.bool
         actions      : rtypes.object.isRequired
 
     handle_refresh: (e) ->
@@ -873,11 +875,22 @@ ProjectFilesButtons = rclass
             <Icon name='life-saver' /> <span style={fontSize: 12} className='hidden-sm'>Backups</span>
         </Button>
 
+    render_library_button: ->
+        # library only exists on kucalc, for now.
+        return if @props.kucalc != 'yes'
+        <Button
+            bsSize={'small'}
+            onClick={=>@props.actions.toggle_library()}
+        >
+            <Icon name='book' /> <HiddenSM>Library</HiddenSM>
+        </Button>
+
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
+                {@render_library_button()}
                 <Button bsSize='small' className="upload-button">
-                    <Icon name='upload' /> Upload
+                    <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
                 </Button>
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
@@ -961,14 +974,14 @@ ProjectFilesActions = rclass
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
         style =
-            color      : '#999'
+            color      : COLORS.GRAY
             height     : '22px'
-            margin     : '3px 20px'
+            margin     : '5px 3px'
 
         if checked is 0
             <div style={style}>
                 <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
-                <div style={fontWeight:'200', display:'inline'}> -- Check an entry below to see options.</div>
+                <div style={display:'inline'}> &mdash; Click on the checkbox to the left of a file to copy, move, delete, download, etc.</div>
             </div>
         else
             <div style={style}>
@@ -985,8 +998,9 @@ ProjectFilesActions = rclass
         <Button
             onClick={=>@props.actions.set_file_action(name, get_basename)}
             disabled={disabled}
-            key={name} >
-            <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
+            key={name}
+        >
+            <Icon name={obj.icon} /> <HiddenSM>{obj.name}...</HiddenSM>
         </Button>
 
     render_action_buttons: ->
@@ -1041,19 +1055,19 @@ ProjectFilesActions = rclass
         </ButtonGroup>
 
     render: ->
-        <Row>
-            <Col sm={12}>
-                <ButtonToolbar>
+        <div style={flex: '1 0 auto'}>
+            <div style={flex: '1 0 auto'}>
+                <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'}>
                     <ButtonGroup>
                         {@render_check_all_button()}
                     </ButtonGroup>
                     {@render_action_buttons()}
                 </ButtonToolbar>
-            </Col>
-            <Col sm={12}>
+            </div>
+            <div style={flex: '1 0 auto'}>
                 {@render_currently_selected()}
-            </Col>
-        </Row>
+            </div>
+        </div>
 
 WIKI_SHARE_HELP_URL = 'https://github.com/sagemathinc/cocalc/wiki/share'
 
@@ -1875,11 +1889,13 @@ ProjectFilesSearch = rclass
         file_creation_error: rtypes.string
         num_files_displayed: rtypes.number
         public_view        : rtypes.bool.isRequired
+        disabled           : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
         selected_file_index : 0
         num_files_displayed : 0
+        disabled : false
 
     getInitialState: ->  # Miniterm functionality
         stdout : undefined
@@ -2018,17 +2034,18 @@ ProjectFilesSearch = rclass
             <SearchInput
                 autoFocus   = {not feature.IS_TOUCH}
                 autoSelect  = {not feature.IS_TOUCH}
-                placeholder = 'Filename'
+                placeholder = 'Search or create file'
                 value       = {@props.file_search}
                 on_change   = {@on_change}
                 on_submit   = {@search_submit}
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
                 on_clear    = {@on_clear}
+                disabled    = {@props.disabled}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
-            <div style={output_style}>
+            <div style={output_style_searchbox}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>
@@ -2071,16 +2088,21 @@ ProjectFilesNew = rclass
     # Go to new file tab if no file is specified
     on_create_button_clicked: ->
         if @props.file_search.length == 0
-            @props.actions.set_active_tab('new')
+            @props.actions.toggle_new()
+            analytics_event('project_files', 'search_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
+            analytics_event('project_files', 'search_create_button', 'folder')
         else
             @props.create_file()
+            analytics_event('project_files', 'search_create_button', 'file')
 
     render: ->
-        <SplitButton id='new_file_dropdown'
+        <SplitButton
+            id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
-            onClick={@on_create_button_clicked} >
+            onClick={@on_create_button_clicked}
+        >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
@@ -2112,6 +2134,8 @@ exports.ProjectFiles = rclass ({name}) ->
             is_logged_in   : rtypes.bool
         billing :
             customer       : rtypes.object
+        customize :
+            kucalc : rtypes.string
 
         "#{name}" :
             active_file_sort      : rtypes.object
@@ -2129,6 +2153,8 @@ exports.ProjectFiles = rclass ({name}) ->
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
             library               : rtypes.object
+            show_library          : rtypes.bool
+            show_new              : rtypes.bool
 
     propTypes :
         project_id             : rtypes.string
@@ -2221,6 +2247,38 @@ exports.ProjectFiles = rclass ({name}) ->
                 displayed_listing = {@props.displayed_listing} />
         </Col>
 
+    render_library: () ->
+        <Row>
+            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
+                <ProjectSettingsPanel
+                    icon  = {'book'}
+                    title = {'Library'}
+                    close = {=>@props.actions.toggle_library(false)}
+                >
+                    <Library
+                        project_id={@props.project_id}
+                        name={@props.name}
+                        actions={@actions(name)}
+                        close={=>@props.actions.toggle_library(false)}
+                    />
+                </ProjectSettingsPanel>
+            </Col>
+        </Row>
+
+    render_new: () ->
+        return if not @props.show_new
+        <Row>
+            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
+                <ProjectNewForm
+                    project_id={@props.project_id}
+                    name={@props.name}
+                    actions={@actions(name)}
+                    close={=>@props.actions.toggle_new(false)}
+                    show_header={true}
+                />
+            </Col>
+        </Row>
+
     render_files_actions: (listing, public_view) ->
         if listing.length > 0
             <ProjectFilesActions
@@ -2237,7 +2295,9 @@ exports.ProjectFiles = rclass ({name}) ->
         <MiniTerminal
             current_path = {@props.current_path}
             project_id   = {@props.project_id}
-            actions      = {@props.actions} />
+            actions      = {@props.actions}
+            show_close_x = {false}
+        />
 
     render_new_file : ->
         <ProjectFilesNew
@@ -2245,13 +2305,16 @@ exports.ProjectFiles = rclass ({name}) ->
             current_path  = {@props.current_path}
             actions       = {@props.actions}
             create_file   = {@create_file}
-            create_folder = {@create_folder} />
+            create_folder = {@create_folder}
+        />
 
     render_activity: ->
         <ActivityDisplay
             trunc    = {80}
             activity = {underscore.values(@props.activity)}
-            on_clear = {=>@props.actions.clear_all_activity()} />
+            on_clear = {=>@props.actions.clear_all_activity()}
+            style    = {top: '100px'}
+        />
 
     render_pay: ->
         <PayCourseFee project_id={@props.project_id} redux={@props.redux} />
@@ -2367,7 +2430,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     other_settings         = {@props.other_settings}
                     library                = {@props.library}
                     redux                  = {@props.redux}
-                    event_handlers
+                    show_new               = {@props.show_new}
                 />
             </SMC_Dropwrapper>
         else
@@ -2397,6 +2460,63 @@ exports.ProjectFiles = rclass ({name}) ->
     file_listing_page_size: ->
         return @props.other_settings?.get('page_size') ? 50
 
+    render_control_row: (public_view, visible_listing) ->
+        <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+            <div style={flex: '1 0 20%', marginRight: '10px', minWidth: '20em'}>
+                <ProjectFilesSearch
+                    project_id          = {@props.project_id}
+                    key                 = {@props.current_path}
+                    file_search         = {@props.file_search}
+                    actions             = {@props.actions}
+                    current_path        = {@props.current_path}
+                    selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
+                    selected_file_index = {@props.selected_file_index}
+                    file_creation_error = {@props.file_creation_error}
+                    num_files_displayed = {visible_listing?.length}
+                    create_file         = {@create_file}
+                    create_folder       = {@create_folder}
+                    public_view         = {public_view}
+                    disabled            = {@props.show_new}
+                />
+            </div>
+            {<div
+                style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}
+                className='cc-project-files-create-dropdown'
+             >
+                    {@render_new_file()}
+            </div> if not public_view}
+            <div
+                className = 'cc-project-files-path'
+                style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
+                <ProjectFilesPath
+                    current_path = {@props.current_path}
+                    history_path = {@props.history_path}
+                    actions      = {@props.actions}
+                />
+            </div>
+            {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
+                <UsersViewing project_id={@props.project_id} />
+            </div> if not public_view}
+            {<div style={flex: '1 0 auto', marginBottom:'15px'}>
+                {@render_miniterm()}
+            </div> if not public_view}
+        </div>
+
+    render_project_files_buttons: (public_view) ->
+        <div style={flex: '1 0 auto', marginBottom:'15px', textAlign: 'right'}>
+            {if not public_view
+                <ProjectFilesButtons
+                    show_hidden  = {@props.show_hidden ? false}
+                    current_path = {@props.current_path}
+                    public_view  = {public_view}
+                    actions      = {@props.actions}
+                    show_new     = {@props.show_new}
+                    show_library = {@props.show_library}
+                    kucalc       = {@props.kucalc}
+                />
+            }
+        </div>
+
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -2417,59 +2537,39 @@ exports.ProjectFiles = rclass ({name}) ->
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
 
+        flex_row_style =
+            display: 'flex'
+            flexFlow: 'row wrap'
+            justifyContent: 'space-between'
+            alignItems: 'stretch'
+
         <div style={padding:'5px'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}
-            <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
-                <div style={flex: '1 0 25%', marginRight: '10px', minWidth: '20em'}>
-                    <ProjectFilesSearch
-                        project_id          = {@props.project_id}
-                        key                 = {@props.current_path}
-                        file_search         = {@props.file_search}
-                        actions             = {@props.actions}
-                        current_path        = {@props.current_path}
-                        selected_file       = {visible_listing?[@props.selected_file_index ? 0]}
-                        selected_file_index = {@props.selected_file_index}
-                        file_creation_error = {@props.file_creation_error}
-                        num_files_displayed = {visible_listing?.length}
-                        create_file         = {@create_file}
-                        create_folder       = {@create_folder}
-                        public_view         = {public_view} />
+            {@render_control_row(public_view, visible_listing)}
+            {@render_new()}
+
+            {if @props.show_library
+                <div style={flex_row_style}>
+                    {@render_project_files_buttons(public_view)}
                 </div>
-                {<div
-                    style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}
-                    className='cc-project-files-create-dropdown' >
-                        {@render_new_file()}
-                </div> if not public_view}
-                <div
-                    className = 'cc-project-files-path'
-                    style={flex: '5 1 auto', marginRight: '10px', marginBottom:'15px'}>
-                    <ProjectFilesPath
-                        current_path = {@props.current_path}
-                        history_path = {@props.history_path}
-                        actions      = {@props.actions} />
-                </div>
-                {<div style={flex: '0 1 auto', marginRight: '10px', marginBottom:'15px'}>
-                    <UsersViewing project_id={@props.project_id} />
-                </div> if not public_view}
-                {<div style={flex: '1 0 auto', marginBottom:'15px'}>
-                    <ProjectFilesButtons
-                        show_hidden  = {@props.show_hidden ? false}
-                        current_path = {@props.current_path}
-                        public_view  = {public_view}
-                        actions      = {@props.actions} />
-                </div> if not public_view}
-            </div>
-            <Row>
-                <Col sm={8}>
+            }
+            {@render_library() if @props.show_library}
+
+            <div style={flex_row_style}>
+                <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
                     {@render_files_actions(listing, public_view) if listing?}
-                </Col>
-                <Col sm={4}>
-                    {@render_miniterm() if not public_view}
-                </Col>
-                {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
-            </Row>
+                </div>
+                {@render_project_files_buttons(public_view) if not @props.show_library}
+            </div>
+
+            {if @props.checked_files.size > 0 and @props.file_action?
+                <Row>
+                    {@render_files_action_box(file_map, public_view)}
+                </Row>
+            }
+
             {### Only show the access error if there is not another error. ###}
             {@render_access_error() if public_view and not error}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
