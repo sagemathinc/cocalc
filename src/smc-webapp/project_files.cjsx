@@ -968,7 +968,7 @@ ProjectFilesActions = rclass
         if checked is 0
             <div style={style}>
                 <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
-                <div style={display:'inline'}> &mdash; Click on the checkbox on the left of a file to copy, move, delete, download, etc.</div>
+                <div style={display:'inline'}> &mdash; Click on the checkbox to the left of a file to copy, move, delete, download, etc.</div>
             </div>
         else
             <div style={style}>
