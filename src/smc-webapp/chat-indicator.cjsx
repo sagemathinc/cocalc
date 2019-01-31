@@ -23,6 +23,7 @@
 
 misc = require('smc-util/misc')
 
+{analytics_event} = require('./tracker')
 {React, ReactDOM, rclass, redux, rtypes, Redux, COLOR} = require('./app-framework')
 {Icon, Tip, Loading, Space} = require('./r_misc')
 
@@ -67,8 +68,10 @@ exports.ChatIndicator = rclass
         a = redux.getProjectActions(@props.project_id)
         if @props.is_chat_open
             a.close_chat({path:@props.path})
+            analytics_event('side_chat', 'close')
         else
             a.open_chat({path:@props.path})
+            analytics_event('side_chat', 'open')
 
     is_new_chat: ->
         return redux.getStore('file_use')?.get_file_info(@props.project_id, @props.path)?.is_unseenchat ? false

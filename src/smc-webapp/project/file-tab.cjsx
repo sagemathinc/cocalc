@@ -12,6 +12,8 @@ misc = require('smc-util/misc')
 
 {COLORS, HiddenXS, Icon, Tip} = require('../r_misc')
 
+{analytics_event} = require("../tracker")
+
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
     borderRadius : "5px 5px 0px 0px"
@@ -60,11 +62,13 @@ exports.FileTab = rclass
     click: (e) ->
         actions = @actions(project_id: @props.project_id)
         if @props.file_tab and (e.ctrlKey or e.shiftKey or e.metaKey)
+            analytics_event('project_navigation', 'opened_a_file')
             # shift/ctrl/option clicking on *file* tab opens in a new popout window.
             actions.open_file
                 path               : misc.tab_to_path(@props.name)
                 new_browser_window : true
         else
+            analytics_event('project_navigation', 'opened_' + @props.name)
             actions.set_active_tab(@props.name)
 
     # middle mouse click closes

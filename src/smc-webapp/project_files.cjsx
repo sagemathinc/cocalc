@@ -31,6 +31,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {file_actions} = require('./project_store')
 {Library} = require('./library')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
+{analytics_event} = require('./tracker')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -519,10 +520,13 @@ NoFiles = rclass
         if @props.file_search.length == 0
             #@props.actions.set_active_tab('new')
             @props.actions.toggle_new(true)
+            analytics_event('project_files', 'listing_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
+            analytics_event('project_files', 'listing_create_button', 'folder')
         else
             @props.create_file()
+            analytics_event('project_files', 'listing_create_button', 'file')
 
     # Returns the full file_search text in addition to the default extension if applicable
     full_path_text: ->
@@ -970,14 +974,14 @@ ProjectFilesActions = rclass
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
         style =
-            color      : '#999'
+            color      : COLORS.GRAY
             height     : '22px'
-            margin     : '5px'
+            margin     : '5px 3px'
 
         if checked is 0
             <div style={style}>
                 <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
-                <div style={fontWeight:'200', display:'inline'}> -- Check an entry below to see options.</div>
+                <div style={display:'inline'}> &mdash; Click on the checkbox to the left of a file to copy, move, delete, download, etc.</div>
             </div>
         else
             <div style={style}>
@@ -2085,10 +2089,13 @@ ProjectFilesNew = rclass
     on_create_button_clicked: ->
         if @props.file_search.length == 0
             @props.actions.toggle_new()
+            analytics_event('project_files', 'search_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
+            analytics_event('project_files', 'search_create_button', 'folder')
         else
             @props.create_file()
+            analytics_event('project_files', 'search_create_button', 'file')
 
     render: ->
         <SplitButton
