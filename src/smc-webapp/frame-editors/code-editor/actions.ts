@@ -1625,6 +1625,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       case "rmd":
         parser = "rmd"; // runs markdown + styler
         break;
+      case "rnw":
+        parser = "rnw";
+        variant = "styler";
+        break;
       case "css":
         parser = "postcss";
         break;

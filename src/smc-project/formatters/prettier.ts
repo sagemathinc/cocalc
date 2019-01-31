@@ -84,6 +84,7 @@ export async function run_prettier_string(
       pretty = await python_format(str, options, logger);
       break;
     case "r":
+    case "rnw":
     case "rmd":
       // formatting cells in jupyter has no extension. Make sure it is .R!
       ext = misc.filename_extension(path !== undefined ? path : "code.R");

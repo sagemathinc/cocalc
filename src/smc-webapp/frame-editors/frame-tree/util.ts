@@ -49,7 +49,8 @@ export const PRETTIER_SUPPORT = {
   py: true, // use external tool
   tex: true, // actually use latexformat
   html: true, // uses old-school "tidy" with some specific parameters
-  r: true, // formatR
+  r: true, // formatR/styler
+  rnw: true, // styler
   go: true, // gofmt
   c: true, // clang-format
   cc: true, // --*--
