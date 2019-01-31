@@ -2,22 +2,31 @@
 // for now, it either does nothing or works with GA
 // this API basically allows to send off events by name and category
 
-const analytics = function(type: "event" | "pageview", ...args) {
+function analytics(type: "event" | "pageview", ...args): void {
   // GoogleAnalyticsObject contains the possibly customized function name of GA.
   // It's a good idea to call it differently from the default 'ga' to avoid name clashes...
-  if ((window as any).GoogleAnalyticsObject != undefined) {
-    const ga = window[(window as any).GoogleAnalyticsObject];
-    if (ga != undefined) {
-      switch (type) {
-        case "event":
-        case "pageview":
-          return ga("send", type, ...args);
-        default:
-          return console.warn(`unknown analytics event '${type}'`);
-      }
-    }
+  if ((window as any).GoogleAnalyticsObject == null) {
+    return; // GA not available
   }
-};
+  const ga = window[(window as any).GoogleAnalyticsObject];
+  if (ga == null) {
+    return; // GA still not available again?
+  }
+  switch (type) {
+    case "event":
+    case "pageview":
+      ga("send", type, ...args);
+      return;
+    default:
+      console.warn(`unknown analytics event '${type}'`);
+      return;
+  }
+}
 
-export const analytics_pageview = (...args) => analytics("pageview", ...args);
-export const analytics_event = (...args) => analytics("event", ...args);
+export function analytics_pageview(...args): void {
+  analytics("pageview", ...args);
+}
+
+export function analytics_event(...args): void {
+  analytics("event", ...args);
+}
