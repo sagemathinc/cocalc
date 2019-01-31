@@ -961,14 +961,14 @@ ProjectFilesActions = rclass
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
         style =
-            color      : '#999'
+            color      : COLORS.GRAY
             height     : '22px'
-            margin     : '3px 20px'
+            margin     : '5px 3px'
 
         if checked is 0
             <div style={style}>
                 <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
-                <div style={fontWeight:'200', display:'inline'}> -- Check an entry below to see options.</div>
+                <div style={display:'inline'}> &mdash; Click on the checkbox on the left of a file to copy, move, delete, download, etc.</div>
             </div>
         else
             <div style={style}>
