@@ -491,7 +491,7 @@ exports.ProjectNew = rclass ({name}) ->
         <Row>
             <Col xs={8} xsOffset={2} style={style}>
                 <Alert bsStyle={"info"}>
-                    Creating files, the library and upload has been moved to the{' '}
+                    Creating files, the library and upload have been moved to the{' '}
                     <Button onClick={=>@show_files_tab()}>
                         Files panel
                     </Button>.
