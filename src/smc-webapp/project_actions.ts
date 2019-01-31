@@ -323,7 +323,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    require("./misc_page").analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {

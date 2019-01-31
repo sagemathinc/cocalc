@@ -29,6 +29,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {FileTypeSelector, NewFileButton} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
+{analytics_event} = require('./tracker')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -516,10 +517,13 @@ NoFiles = rclass
     handle_click: ->
         if @props.file_search.length == 0
             @props.actions.set_active_tab('new')
+            analytics_event('project_files', 'listing_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
+            analytics_event('project_files', 'listing_create_button', 'folder')
         else
             @props.create_file()
+            analytics_event('project_files', 'listing_create_button', 'file')
 
     # Returns the full file_search text in addition to the default extension if applicable
     full_path_text: ->
@@ -2072,10 +2076,13 @@ ProjectFilesNew = rclass
     on_create_button_clicked: ->
         if @props.file_search.length == 0
             @props.actions.set_active_tab('new')
+            analytics_event('project_files', 'search_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
+            analytics_event('project_files', 'search_create_button', 'folder')
         else
             @props.create_file()
+            analytics_event('project_files', 'search_create_button', 'file')
 
     render: ->
         <SplitButton id='new_file_dropdown'
