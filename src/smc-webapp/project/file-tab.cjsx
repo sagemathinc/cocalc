@@ -4,13 +4,15 @@ A single file tab that
 There is one of these for each open file in a project.
 ###
 
-{React, ReactDOM, Fragment, rclass, rtypes} = require('../app-framework')
+{React, ReactDOM, rclass, rtypes} = require('../app-framework')
 
 misc = require('smc-util/misc')
 
 {NavItem} = require('react-bootstrap')
 
 {COLORS, HiddenXS, Icon, Tip} = require('../r_misc')
+
+{analytics_event} = require("../tracker")
 
 exports.DEFAULT_FILE_TAB_STYLES =
     width        : 250
@@ -60,11 +62,13 @@ exports.FileTab = rclass
     click: (e) ->
         actions = @actions(project_id: @props.project_id)
         if @props.file_tab and (e.ctrlKey or e.shiftKey or e.metaKey)
+            analytics_event('project_navigation', 'opened_a_file')
             # shift/ctrl/option clicking on *file* tab opens in a new popout window.
             actions.open_file
                 path               : misc.tab_to_path(@props.name)
                 new_browser_window : true
         else
+            analytics_event('project_navigation', 'opened_' + @props.name)
             actions.set_active_tab(@props.name)
 
     # middle mouse click closes
@@ -106,11 +110,11 @@ exports.FileTab = rclass
         text_color = 'white' if @props.is_active
 
         if @props.file_tab
-            label = <Fragment>{@props.label}</Fragment>
+            label = <>{@props.label}</>
         else
             label = <HiddenXS>{@props.label if not @props.shrink}</HiddenXS>
 
-        content = <Fragment><Icon style={icon_style} name={@props.icon} /> {label} </Fragment>
+        content = <><Icon style={icon_style} name={@props.icon} /> {label} </>
 
         if @props.file_tab
             # ONLY show for filenames, name file/new/find, etc. since stable.

@@ -629,35 +629,35 @@ exports.define_codemirror_extensions = () ->
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\section")
                 # article section
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsection")
                 # article subsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsection")
                 # article subsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsubsection")
                 # article subsubsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "%\\begin{}")
                 # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
@@ -1102,8 +1102,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                tab = window.open(how.url, '_blank', 'noopener')
-                tab.focus()
+                exports.open_new_tab(how.url)
                 done = true
 
             if how?.wrap?

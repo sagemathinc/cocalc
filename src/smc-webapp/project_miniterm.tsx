@@ -45,13 +45,22 @@ const { Icon } = require("./r_misc");
 
 const { webapp_client } = require("./webapp_client"); // used to run the command -- could change to use an action and the store.
 
-export const output_style: React.CSSProperties = {
+export const output_style_searchbox: React.CSSProperties = {
   position: "absolute",
   zIndex: 2,
   width: "93%",
   boxShadow: "0px 0px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto"
+};
+
+export const output_style_miniterm: React.CSSProperties = {
+  position: "absolute",
+  zIndex: 2,
+  boxShadow: "0px 0px 7px #aaa",
+  maxHeight: "450px",
+  overflow: "auto",
+  right: 0
 };
 
 const BAD_COMMANDS = {
@@ -75,6 +84,7 @@ interface Props {
   current_path: string;
   project_id?: string; // Undefined is = HOME
   actions: ProjectActions;
+  show_close_x?: boolean;
 }
 
 interface State {
@@ -96,6 +106,10 @@ export class MiniTerminal extends React.Component<Props, State> {
       error: undefined
     };
   }
+
+  static defaultProps = {
+    show_close_x: true
+  };
 
   execute_command = () => {
     this.setState({ stdout: "", error: "" });
@@ -179,7 +193,7 @@ export class MiniTerminal extends React.Component<Props, State> {
         }
       }
     });
-  }
+  };
 
   render_button() {
     switch (this.state.state) {
@@ -198,33 +212,57 @@ export class MiniTerminal extends React.Component<Props, State> {
     }
   }
 
+  render_close_x() {
+    if (!this.props.show_close_x) return;
+    return (
+      <a
+        onClick={e => {
+          e.preventDefault();
+          this.setState({ stdout: "", error: "" });
+        }}
+        href=""
+        style={{
+          right: "10px",
+          top: "0px",
+          color: "#666",
+          fontSize: "14pt",
+          position: "absolute"
+        }}
+      >
+        <Icon name="times" />
+      </a>
+    );
+  }
+
   render_output(x, style) {
     if (x) {
       return (
         <pre style={style}>
-          <a
-            onClick={e => {
-              e.preventDefault();
-              this.setState({ stdout: "", error: "" });
-            }}
-            href=""
-            style={{
-              right: "10px",
-              top: "0px",
-              color: "#666",
-              fontSize: "14pt",
-              position: "absolute"
-            }}
-          >
-            <Icon name="times" />
-          </a>
+          {this.render_close_x()}
           {x}
         </pre>
       );
     }
   }
 
-  keydown = (e) => {
+  render_clear() {
+    if (
+      (this.state.stdout ? this.state.stdout.length : 0) == 0 &&
+      (this.state.error ? this.state.error.length : 0) == 0
+    )
+      return;
+
+    return (
+      <Button
+        onClick={() => this.setState({ stdout: "", error: "" })}
+        bsStyle={"warning"}
+      >
+        <Icon name={"times-circle"} />
+      </Button>
+    );
+  }
+
+  keydown = e => {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
     // all null right now -- see
     //     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
@@ -232,13 +270,13 @@ export class MiniTerminal extends React.Component<Props, State> {
     if (e.keyCode === 27) {
       this.setState({ input: "", stdout: "", error: "" });
     }
-  }
+  };
 
   render() {
     // NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
     // We don't use inline, since we still want the full horizontal width.
     return (
-      <div>
+      <>
         <form
           onSubmit={e => {
             e.preventDefault();
@@ -261,18 +299,21 @@ export class MiniTerminal extends React.Component<Props, State> {
                 }}
                 onKeyDown={this.keydown}
               />
-              <InputGroup.Button>{this.render_button()}</InputGroup.Button>
+              <InputGroup.Button>
+                {this.render_clear()}
+                {this.render_button()}
+              </InputGroup.Button>
             </InputGroup>
           </FormGroup>
         </form>
-        <div style={output_style}>
+        <div style={output_style_miniterm}>
           {this.render_output(this.state.error, {
             color: "darkred",
             margin: 0
           })}
           {this.render_output(this.state.stdout, { margin: 0 })}
         </div>
-      </div>
+      </>
     );
   }
 }
