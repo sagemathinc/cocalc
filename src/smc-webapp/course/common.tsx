@@ -30,7 +30,7 @@ const misc = require("smc-util/misc");
 const { defaults, required } = misc;
 
 // React libraries
-import { React, Fragment, Component } from "../app-framework";
+import { React, Component } from "../app-framework";
 import { CourseActions } from "./actions";
 import { redux } from "../frame-editors/generic/test/util";
 import { AssignmentRecord, StudentRecord } from "./store";
@@ -382,7 +382,7 @@ export class StudentAssignmentInfo extends Component<
     const text = grade.trim() ? "Edit grade" : "Enter grade";
 
     return (
-      <Fragment>
+      <>
         <Tip
           title="Enter student's grade"
           tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number)."
@@ -397,7 +397,7 @@ export class StudentAssignmentInfo extends Component<
         </Tip>
         {this.render_grade()}
         {this.render_comments()}
-      </Fragment>
+      </>
     );
   }
 

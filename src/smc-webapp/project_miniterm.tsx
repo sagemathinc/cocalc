@@ -41,7 +41,6 @@ const {
   InputGroup,
   FormGroup
 } = require("react-bootstrap");
-const { Fragment } = require("./app-framework");
 const { Icon } = require("./r_misc");
 
 const { webapp_client } = require("./webapp_client"); // used to run the command -- could change to use an action and the store.
@@ -277,7 +276,7 @@ export class MiniTerminal extends React.Component<Props, State> {
     // NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
     // We don't use inline, since we still want the full horizontal width.
     return (
-      <Fragment>
+      <>
         <form
           onSubmit={e => {
             e.preventDefault();
@@ -314,7 +313,7 @@ export class MiniTerminal extends React.Component<Props, State> {
           })}
           {this.render_output(this.state.stdout, { margin: 0 })}
         </div>
-      </Fragment>
+      </>
     );
   }
 }

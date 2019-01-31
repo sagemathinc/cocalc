@@ -25,7 +25,7 @@ misc           = require('smc-util/misc')
 misc_page      = require('./misc_page')
 os_path        = require('path')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input, Well, SplitButton, MenuItem, Alert, ListGroup, ListGroupItem} = require('react-bootstrap')
 {Markdown, Space, TimeAgo, ErrorDisplay, Icon, Loading, TimeAgo, Tip, Space} = require('./r_misc')
 {webapp_client} = require('./webapp_client')
@@ -290,11 +290,11 @@ exports.Library = rclass ({name}) ->
                           {<Col sm={2}>{@thumbnail()}</Col> if thumb}
                       </Row>
 
-        <Fragment>
+        <>
             {content}
             {if @props.close
                 <Row>
                     <Col sm={12}>{@close_button()}</Col>
                 </Row>
             }
-        </Fragment>
+        </>

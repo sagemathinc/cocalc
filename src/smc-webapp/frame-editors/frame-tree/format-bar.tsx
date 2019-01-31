@@ -2,7 +2,7 @@
 The format bar
 */
 
-import { React, Component, Rendered, Fragment } from "../../app-framework";
+import { React, Component, Rendered } from "../../app-framework";
 
 import { cmp } from "smc-util/misc2";
 
@@ -133,7 +133,7 @@ export class FormatBar extends Component<Props, {}> {
 
   render_format_buttons(): Rendered {
     return (
-      <Fragment>
+      <>
         <ButtonGroup key={"format"}>
           {this.render_button(
             "format_code",
@@ -169,7 +169,7 @@ export class FormatBar extends Component<Props, {}> {
             "remove"
           )}
         </ButtonGroup>
-      </Fragment>
+      </>
     );
   }
 
