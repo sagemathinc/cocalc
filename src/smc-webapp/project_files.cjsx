@@ -885,13 +885,16 @@ ProjectFilesButtons = rclass
             <Icon name='book' /> <HiddenSM>Library</HiddenSM>
         </Button>
 
+    render_upload_button: ->
+        <Button bsSize='small' className="upload-button">
+            <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
+        </Button>
+
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
                 {@render_library_button()}
-                <Button bsSize='small' className="upload-button">
-                    <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
-                </Button>
+                {@render_upload_button()}
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
                 {@render_refresh()}
@@ -2548,21 +2551,16 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_error()}
             {@render_activity()}
             {@render_control_row(public_view, visible_listing)}
-            {@render_new()}
-
-            {if @props.show_library
-                <div style={flex_row_style}>
-                    {@render_project_files_buttons(public_view)}
-                </div>
-            }
-            {@render_library() if @props.show_library}
 
             <div style={flex_row_style}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
                     {@render_files_actions(listing, public_view) if listing?}
                 </div>
-                {@render_project_files_buttons(public_view) if not @props.show_library}
+                {@render_project_files_buttons(public_view)}
             </div>
+
+            {@render_new()}
+            {@render_library() if @props.show_library}
 
             {if @props.checked_files.size > 0 and @props.file_action?
                 <Row>
