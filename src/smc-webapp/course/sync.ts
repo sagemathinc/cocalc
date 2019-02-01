@@ -93,12 +93,10 @@ export let create_sync_db = (redux, actions, store, filename) => {
     syncdb.on("after-change", () =>
       redux.getProjectActions(project_id).flag_file_activity(filename)
     );
-    syncdb.on(
-      "cursor_activity",
-      typeof actions !== "undefined" && actions !== null
-        ? actions._syncdb_cursor_activity
-        : undefined
-    );
+
+    if (actions != null) {
+      syncdb.on("cursor_activity", actions._syncdb_cursor_activity);
+    }
 
     // Wait until the projects store has data about users of our project before configuring anything.
     const projects_store = redux.getStore("projects");

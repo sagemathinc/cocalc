@@ -29,6 +29,8 @@
 //
 //##############################################################################
 import * as immutable from "immutable";
+type iMap = Map<string, any>;
+
 import { join } from "path";
 
 // 3rd party libs
@@ -348,12 +350,15 @@ export class CourseActions extends Actions<CourseState> {
     this.update_unsaved_changes();
   }
 
-  _syncdb_cursor_activity = () => {
+  _syncdb_cursor_activity = (): void => {
+    if (this.syncdb == null) return;
     const next_cursors = this.syncdb.get_cursors();
     // assignment_id → student_id → account_id
     const grading_cursors = {};
-    next_cursors.forEach(function(info, account_id) {
+    next_cursors.forEach(function(info: iMap | undefined, account_id: string) {
+      if (info == null) return true; // i.e. "continue"
       info.get("locs").forEach(function(loc) {
+        if (loc == null) return true; // "continue"
         //console.log(
         //  "course::_syncdb_cursor_activity loc:",
         //  loc,
