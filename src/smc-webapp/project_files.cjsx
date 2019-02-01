@@ -2158,6 +2158,7 @@ exports.ProjectFiles = rclass ({name}) ->
             library               : rtypes.object
             show_library          : rtypes.bool
             show_new              : rtypes.bool
+            public_paths          : rtypes.immutable  # used only to trigger table init
 
     propTypes :
         project_id             : rtypes.string
