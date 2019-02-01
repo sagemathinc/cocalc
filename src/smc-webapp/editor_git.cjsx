@@ -741,7 +741,7 @@ Git = (name) -> rclass
                 </span>
             <Panel className="small" header={head}>
                 <p>{@props.current_github_issue.body}</p>
-                <a target="_blank" href={@props.current_github_issue.html_url}>Open on Github</a>
+                <a target="_blank" rel="noopener" href={@props.current_github_issue.html_url}>Open on Github</a>
             </Panel>
 
     render: ->

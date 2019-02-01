@@ -220,11 +220,12 @@ class ProjectsActions extends Actions
     # Open the given project
     open_project: (opts) =>
         opts = defaults opts,
-            project_id     : required  # string  id of the project to open
-            target         : undefined # string  The file path to open
-            switch_to      : true      # bool    Whether or not to foreground it
-            ignore_kiosk   : false     # bool    Ignore ?fullscreen=kiosk
-            change_history : true      # bool    Whether or not to alter browser history
+            project_id      : required  # string  id of the project to open
+            target          : undefined # string  The file path to open
+            switch_to       : true      # bool    Whether or not to foreground it
+            ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
+            change_history  : true      # bool    Whether or not to alter browser history
+            restore_session : true      # bool    Open's up previously closed editor tabs (false iff restoring full session)
         if not store.get_project(opts.project_id)?
             # trying to open a not-known project -- maybe
             # we have not yet loaded the full project list?
@@ -239,7 +240,8 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
-        redux.getActions('page').restore_session(opts.project_id)
+        if opts.restore_session
+            redux.getActions('page').restore_session(opts.project_id)
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
         project_actions.init_library()
@@ -276,6 +278,7 @@ class ProjectsActions extends Actions
                 switch_to      : switch_to
                 ignore_kiosk   : ignore_kiosk
                 change_history : change_history
+                restore_session: false
 
     # Put the given project in the foreground
     foreground_project: (project_id, change_history=true) =>
@@ -855,8 +858,6 @@ load_recent_projects = =>
 load_recent_projects()
 
 
-
-
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
 
@@ -867,16 +868,25 @@ ProjectsSearch = rclass
         search             : ''
         open_first_project : undefined
 
+    getInitialState: ->
+        search : @props.search
+
     clear_and_focus_search_input: ->
         @refs.projects_search.clear_and_focus_search_input()
+
+    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 400)
+
+    set_search: (value) ->
+        @setState(search:value)
+        @debounce_set_search(value)
 
     render: ->
         <SearchInput
             ref         = 'projects_search'
             autoFocus   = {true}
-            value       = {@props.search}
+            value       = {@state.search}
+            on_change   = {@set_search}
             placeholder = 'Search for projects...'
-            on_change   = {(value)=>@actions('projects').setState(search: value)}
             on_submit   = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
         />
 
@@ -1324,6 +1334,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
+
 
     toggle_hashtag: (tag) ->
         selected_hashtags = @props.selected_hashtags

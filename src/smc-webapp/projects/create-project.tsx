@@ -1,6 +1,7 @@
 /*
 Create a new project
 */
+import { analytics_event } from "../tracker";
 
 import { Component, React, ReactDOM, redux } from "../app-framework";
 
@@ -27,7 +28,7 @@ interface Props {
 interface State {
   state: "edit" | "view" | "saving";
   title_text: string;
-  error: string
+  error: string;
 }
 
 export class NewProjectCreator extends Component<Props, State> {
@@ -78,6 +79,7 @@ export class NewProjectCreator extends Component<Props, State> {
       title: this.state.title_text,
       token
     });
+    analytics_event("create_project", "created_new_project");
     redux
       .getStore("projects")
       .wait_until_project_created(token, 30, (err, project_id) => {

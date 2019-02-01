@@ -122,6 +122,7 @@ ProjectTab = rclass
             active_top_tab = {@props.active_top_tab}
             style          = {flexShrink:'1', width:'200px', maxWidth:'200px', height:'36px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref            = 'tab'
+            is_project     = {true}
         >
             <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
                 <span style={{paddingRight:'5px'}}>

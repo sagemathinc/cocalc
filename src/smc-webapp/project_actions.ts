@@ -159,6 +159,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
     this.clear_all_activity = this.clear_all_activity.bind(this);
+    this.toggle_library = this.toggle_library.bind(this);
     this.set_url_to_path = this.set_url_to_path.bind(this);
     this._url_in_project = this._url_in_project.bind(this);
     this.push_state = this.push_state.bind(this);
@@ -307,6 +308,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ activity: undefined });
   }
 
+  toggle_panel(name: keyof ProjectStoreState, show?: boolean): void {
+    if (show != null) {
+      this.setState({ [name]: show });
+    } else {
+      const store = this.get_store();
+      if (store == undefined) return;
+      this.setState({ [name]: !store.get(name) });
+    }
+  }
+
+  toggle_library(show?: boolean): void {
+    this.toggle_panel("show_library", show);
+  }
+
+  toggle_new(show?: boolean): void {
+    this.toggle_panel("show_new", show);
+  }
+
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
@@ -328,7 +347,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    require("./misc_page").analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {
@@ -674,8 +692,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let url =
         (window.app_base_url != null ? window.app_base_url : "") +
         this._url_in_project(`files/${opts.path}`);
-      url += `?session=${misc.uuid().slice(0, 8)}`;
-      url += "&fullscreen=default";
+      url += "?session=&fullscreen=default";
       require("./misc_page").open_popup_window(url, {
         width: 800,
         height: 640
@@ -2500,25 +2517,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!store) {
       return;
     }
-    let now = misc.server_time();
-    const obj = {
-      project_id: this.project_id,
-      path,
-      description: opts.description || "",
-      disabled: false,
-      unlisted: opts.unlisted || false,
-      last_edited: now,
-      created: now
-    };
+    let cur_obj: any = {};
     // only set created if this obj is new; have to just linearly search through paths right now...
     if (store.get("public_paths") != null) {
-      store.get("public_paths").map(function(v) {
+      store.get("public_paths").forEach(function(v) {
         if (v.get("path") === path) {
-          delete obj.created;
-          return false;
+          cur_obj = v.toJS();
+          return false; // found it, exit forEach
+        } else {
+          return true; // next element
         }
       });
     }
+    const now = misc.server_time();
+    // unlisted and description are *optional*: fallback to already saved values if available
+    const unlisted = opts.unlisted != null ? opts.unlisted : cur_obj.unlisted;
+    const description =
+      opts.description != null ? opts.description : cur_obj.description;
+    const obj = {
+      project_id: this.project_id,
+      path,
+      description: description != null ? description : "",
+      disabled: false,
+      unlisted: unlisted != null ? unlisted : false,
+      last_edited: now,
+      created: cur_obj.created || now
+    };
     this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
   }
 

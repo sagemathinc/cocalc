@@ -996,7 +996,7 @@ class Student extends Component<StudentProps, StudentState> {
   render_student_email() {
     const email = this.props.student.get("email_address");
     return (
-      <a target={"_blank"} href={`mailto:${email}`}>
+      <a target={"_blank"} href={`mailto:${email}`} rel={"noopener"}>
         {email}
       </a>
     );
