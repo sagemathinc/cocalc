@@ -3443,10 +3443,10 @@ You can find the comments they made in the folders below.\
     return this.setState({ grading: grading.set_discussion(chat_path) });
   };
   // set the "cursor" to the assignment+student currently being graded
-  grading_update_activity = (opts?) => {
-    let location;
+  grading_update_activity = (opts?): void => {
+    let location: any;
     const store = this.get_store();
-    if (store == null) {
+    if (store == null || this.syncdb == null) {
       return;
     }
     const grading = store.get("grading");
@@ -3456,18 +3456,13 @@ You can find the comments they made in the folders below.\
         assignment_id: grading.get("assignment_id"),
         student_id: grading.get("student_id")
       });
-      if (
-        (this.syncdb != null ? this.syncdb.is_closed() : undefined) ||
-        !this._loaded()
-      ) {
+      if (this.syncdb.is_closed() || !this._loaded()) {
         return;
       }
     }
     // argument must be an array, and we only have one cursor (at least, at the time of writing)
     // teacher moved to another student or closed the grading dialog
-    return this.syncdb != null
-      ? this.syncdb.set_cursor_locs([location])
-      : undefined;
+    this.syncdb.set_cursor_locs([location]);
   };
   grading_remove_activity = () => {
     if (
