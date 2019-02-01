@@ -2,6 +2,8 @@
  * Typed wrapper around LocalStorage
  */
 
+const { APP_BASE_URL } = require("../misc_page");
+
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
 const LS: { [k: string]: string | undefined } = (function() {
@@ -22,7 +24,6 @@ const LS: { [k: string]: string | undefined } = (function() {
 })();
 
 function make_key(keys: string[] | string): string {
-  const { APP_BASE_URL } = require("misc_page");
   const key = typeof keys == "string" ? keys : keys.join(".");
   return [APP_BASE_URL, key].join("::");
 }
@@ -31,7 +32,7 @@ function make_key(keys: string[] | string): string {
 export function del<T>(keys: string[] | string): T | undefined {
   const key = make_key(keys);
   try {
-    const val = get<T>(key);
+    const val = get<T>(keys);
     delete LS[key];
     return val;
   } catch (e) {
