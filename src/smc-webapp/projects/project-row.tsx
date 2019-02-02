@@ -5,6 +5,7 @@ Render a single project entry, which goes in the list of projects
 import * as immutable from "immutable";
 import { AppRedux, Component, React, rclass, rtypes } from "../app-framework";
 import { ProjectUsers } from "./project-users";
+import { analytics_event } from "../tracker";
 
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
@@ -167,6 +168,7 @@ export const ProjectRow = rclass<ReactProps>(
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
+      analytics_event('projects_page', 'opened_a_project')
     };
 
     open_project_settings = e => {

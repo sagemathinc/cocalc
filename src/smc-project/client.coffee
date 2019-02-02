@@ -481,6 +481,9 @@ class exports.Client extends EventEmitter
             access |= fs[s.toUpperCase() + '_OK']
         fs.access(opts.path, access, opts.cb)
 
+    # TODO: exists is deprecated.  "To check if a file exists
+    # without manipulating it afterwards, fs.access() is
+    # recommended."
     path_exists: (opts) =>
         opts = defaults opts,
             path : required
