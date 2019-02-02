@@ -81,18 +81,20 @@ export class Changefeed extends EventEmitter {
     // update. The input function "cb" will be called
     // precisely once, and the method handle_changefeed_update
     // may get called if there are additional
-    // changefeed updaes.
-    let f = cb;
+    // changefeed updates.
+    let first_time: boolean = true;
     this.do_query({
       query: this.query,
       changes: true,
       timeout: 30,
       options: this.options,
       cb: (err, resp) => {
-        // This calls cb the first time, and  calls
-        // handle_changefeed_update ever after.
-        f(err, resp);
-        f = this.handle_update.bind(this);
+        if (first_time) {
+          cb(err, resp);
+          first_time = false;
+        } else {
+          this.handle_update(err, resp);
+        }
       }
     });
   }
@@ -116,14 +118,21 @@ export class Changefeed extends EventEmitter {
       this.close();
       return;
     }
-    // Return just the new_val/old_val part of resp.
-    const x: { new_val?: any; old_val?: any } = {};
+    if (resp.action == null) {
+      // Not a changefeed message.  This happens, e.g., the first time
+      // when we use the standby server to get the changefeed.
+      return;
+    }
+    // Return just the new_val/old_val/action part of resp.
+    console.log("resp=", resp);
+    const x: { new_val?: any; old_val?: any; action?: string } = {};
     if (resp.new_val) {
       x.new_val = resp.new_val;
     }
     if (resp.old_val) {
-      x.new_val = resp.old_val;
+      x.old_val = resp.old_val;
     }
+    x.action = resp.action;
     this.emit("update", x);
   }
 

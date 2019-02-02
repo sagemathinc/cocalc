@@ -183,7 +183,7 @@ export class Changes extends EventEmitter {
   }
 
   private async handle_change(mesg): Promise<void> {
-    //console.log '_handle_change', mesg
+    this.dbg("handle_change")(JSON.stringify(mesg));
     if (mesg[0] === "DELETE") {
       if (!this.match_condition(mesg[2])) {
         return;
@@ -197,24 +197,31 @@ export class Changes extends EventEmitter {
     }
     const action: ChangeAction = parse_action(mesg[0]);
     if (!this.match_condition(mesg[1])) {
+      // object does not match condition
       if (action !== "update") {
+        // new object that doesn't match condition -- nothing to do.
         return;
       }
+      // fill in for each part that we watch in new object the same
+      // data in the old object, in case it is missing.
+      // TODO: when is this actually needed?
       for (k in mesg[1]) {
         v = mesg[1][k];
         if (mesg[2][k] == null) {
           mesg[2][k] = v;
         }
-        if (this.match_condition(mesg[2])) {
-          this.emit("change", { action: "delete", old_val: mesg[2] });
-        }
-        return; // TODO: This looks *very* suspicious -- it just seems
-        // more likely that this would be in the if statement.
-        // Once I figure out what the heck is going on here,
-        // fix or write a clear comment!
       }
+      if (this.match_condition(mesg[2])) {
+        // the old object was in our changefeed, but the UPDATE made it not
+        // anymore, so we emit delete action.
+        this.emit("change", { action: "delete", old_val: mesg[2] });
+      }
+      // Nothing more to do.
+      return;
     }
     if (this.watch.length === 0) {
+      // No additional columns are being watched at all -- we only
+      // care about what's in the mesg.
       r = { action, new_val: mesg[1] };
       this.old_val(r, action, mesg);
       this.emit("change", r);
