@@ -124,7 +124,7 @@ export class Changefeed extends EventEmitter {
       return;
     }
     // Return just the new_val/old_val/action part of resp.
-    console.log("resp=", resp);
+    // console.log("resp=", resp);
     const x: { new_val?: any; old_val?: any; action?: string } = {};
     if (resp.new_val) {
       x.new_val = resp.new_val;

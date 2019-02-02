@@ -1438,7 +1438,6 @@ export class SyncTable extends EventEmitter {
   in-memory table.
   */
   private update_change(change): void {
-    console.log(this.table, "update_change", change)
     if (this.state === "closed") {
       // We might get a few more updates even after
       // canceling the changefeed, so we just ignore them.
@@ -1474,7 +1473,6 @@ export class SyncTable extends EventEmitter {
     action: string,
     coerce: boolean
   ): string | undefined {
-    console.log(this.table, "handle_new_val", action, new_val, old_val, coerce);
     if (this.value == null) {
       // to satisfy typescript.
       throw Error("value must be initialized");

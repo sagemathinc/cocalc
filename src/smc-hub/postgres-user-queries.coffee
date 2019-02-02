@@ -1247,11 +1247,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     return
                 if x.new_val?
                     @_user_get_query_json_timestamps(x.new_val, possible_time_fields)
-                    @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
+                    if x.action == 'insert'  # do not do this for delete or update actions!
+                        @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
                 if x.old_val?
                     @_user_get_query_json_timestamps(x.old_val, possible_time_fields)
         else
-            process = ->  # no-op
+            process = (x) =>
+                if not x?
+                    return
+                if x.new_val?
+                    if x.action == 'insert'  # do not do this for delete or update actions!
+                        @_user_get_query_set_defaults(client_query, x.new_val, misc.keys(user_query))
 
         async.series([
             (cb) =>
