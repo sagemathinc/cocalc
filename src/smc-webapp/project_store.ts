@@ -137,6 +137,13 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
 
+  // Function to call to initialize one of the tables in this store.
+  // This is purely an optimization, so project_log and public_paths
+  // does not have to be initialized unless necessary.  The code
+  // is a little awkward, since I didn't want to change things too
+  // much while making this optimization.
+  public init_table: (table_name: string) => void;
+
   // TODO what's a and b ?
   constructor(a, b) {
     super(a, b);
@@ -651,8 +658,10 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
     };
   };
 
-  for (let table_name in queries) {
+  function init_table(table_name: string): void {
     const q = queries[table_name];
+    if (q == null) return; // already done
+    delete queries[table_name]; // so we do not init again.
     for (let k in q) {
       const v = q[k];
       if (typeof v === "function") {
@@ -665,6 +674,13 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
       create_table(table_name, q)
     );
   }
+
+  // public_paths is needed to show file listing and show
+  // any individual file, so we just load it...
+  init_table('public_paths');
+  // project_log, on the other hand, is only loaded if needed.
+
+  store.init_table = init_table;
 
   return store;
 }

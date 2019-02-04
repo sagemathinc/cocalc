@@ -2,6 +2,8 @@
  * Typed wrapper around LocalStorage
  */
 
+const { APP_BASE_URL } = require("../misc_page");
+
 // tests at startup if localStorage exists and works. if not or disabled, uses memory as a fallback.
 
 const LS: { [k: string]: string | undefined } = (function() {
@@ -22,7 +24,6 @@ const LS: { [k: string]: string | undefined } = (function() {
 })();
 
 function make_key(keys: string[] | string): string {
-  const { APP_BASE_URL } = require("misc_page");
   const key = typeof keys == "string" ? keys : keys.join(".");
   return [APP_BASE_URL, key].join("::");
 }
@@ -31,7 +32,7 @@ function make_key(keys: string[] | string): string {
 export function del<T>(keys: string[] | string): T | undefined {
   const key = make_key(keys);
   try {
-    const val = get<T>(key);
+    const val = get<T>(keys);
     delete LS[key];
     return val;
   } catch (e) {
@@ -39,6 +40,7 @@ export function del<T>(keys: string[] | string): T | undefined {
   }
 }
 
+// set an entry, and return true if it was successful
 export function set<T>(keys: string[] | string, value: T): boolean {
   const key = make_key(keys);
   try {
@@ -57,10 +59,21 @@ export function get<T>(keys: string[] | string): T | undefined {
     if (val != null) {
       return JSON.parse(val);
     } else {
-      console.warn(`localStorage unknown key "${key}"`);
+      return undefined;
     }
   } catch (e) {
     console.warn(`localStorage get("${key}"): ${e}`);
     del<T>(key);
+  }
+}
+
+export function exists(keys: string[] | string): boolean {
+  const key = make_key(keys);
+  // distinction between browser's localStorage and the fallback object
+  if (LS === window.localStorage) {
+    // test against null, see spec: https://www.w3.org/TR/webstorage/#dom-storage-getitem
+    return window.localStorage.getItem(key) !== null;
+  } else {
+    return LS[key] !== undefined;
   }
 }

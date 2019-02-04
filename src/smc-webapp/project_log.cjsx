@@ -25,7 +25,7 @@ underscore = require('underscore')
 immutable  = require('immutable')
 lodash = require('lodash')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
@@ -592,8 +592,18 @@ exports.ProjectLog = rclass ({name}) ->
             </Row>
         </Panel>
 
+    render_body: ->
+        if not @props.project_log
+            # The project log not yet loaded, so kick off the load.
+            # This is safe to call multiple times and is done so that the
+            # changefeed for the project log is only setup if the user actually
+            # looks at the project log at least once.
+            redux.getProjectStore(@props.project_id).init_table('project_log')
+            return <Loading />
+        return @render_log_panel()
+
     render: ->
         <div style={padding:'15px'}>
             <h1 style={marginTop:"0px"}><Icon name='history' /> Project activity log</h1>
-            {if @props.project_log then @render_log_panel() else <Loading/>}
+            {@render_body()}
         </div>
