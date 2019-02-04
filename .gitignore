@@ -123,8 +123,6 @@ src/smc_sagews/.pytest_cache/
 ## TODO: Why are these ever here?  I don't think they should be.
 src/smc-util/aggregate.js
 src/smc-util/aggregate.map
-src/smc-util/client-aggregate.js
-src/smc-util/client-aggregate.map
 src/smc-util/client.js
 src/smc-util/client.map
 src/smc-util/message.map
