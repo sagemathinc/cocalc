@@ -17,6 +17,7 @@ teardown = pgtest.teardown
 misc = require('smc-util/misc')
 
 describe 'use of eval_inputs table --', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
