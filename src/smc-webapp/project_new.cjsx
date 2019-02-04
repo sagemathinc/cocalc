@@ -23,15 +23,16 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2} = require('./r_misc')
 {User} = require('./users')
 {webapp_client} = require('./webapp_client')
 {file_associations} = require('./file-associations')
 {special_filenames_with_no_extension} = require('./project_file')
-{Library} = require('./library')
+{SMC_Dropzone} = require('./smc-dropzone')
+{ProjectSettingsPanel} = require('./project/project-settings-support')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -76,22 +77,6 @@ PathLink = exports.PathLink = rclass
     render: ->
         <a style={@styles} onClick={@handle_click}>{if @props.path then @props.path else @props.default}</a>
 
-ProjectNewHeader = rclass
-    displayName : 'ProjectNew-ProjectNewHeader'
-
-    mixins : [ImmutablePureRenderMixin]
-
-    propTypes :
-        current_path : rtypes.string
-        actions      : rtypes.object.isRequired
-
-    render: ->
-        <h1 style={marginTop:"0px"}>
-            <Icon name='plus-circle' /> Create new files in<Space/>
-            <PathLink
-                path       = {@props.current_path}
-                actions    = {@props.actions} />
-        </h1>
 
 exports.NewFileButton = NewFileButton = rclass
     displayName : 'ProjectNew-ProjectNewFileButton'
@@ -99,10 +84,11 @@ exports.NewFileButton = NewFileButton = rclass
     mixins : [ImmutablePureRenderMixin]
 
     propTypes :
-        name     : rtypes.string
-        icon     : rtypes.string
-        on_click : rtypes.func
-        ext      : rtypes.string
+        name      : rtypes.string
+        icon      : rtypes.string
+        on_click  : rtypes.func
+        ext       : rtypes.string
+        className : rtypes.string
 
     on_click: ->
         if @props.ext?
@@ -110,7 +96,11 @@ exports.NewFileButton = NewFileButton = rclass
         else
             @props.on_click()
     render: ->
-        <Button onClick={@on_click}  style={marginRight:'5px'} >
+        <Button
+            onClick={@on_click}
+            style={marginRight:'5px', marginBottom:'5px'}
+            className={@props.className}
+        >
             <Icon name={@props.icon} /> {@props.name}
             {@props.children}
         </Button>
@@ -129,29 +119,54 @@ NewFileDropdown = rclass
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
-        <MenuItem eventKey={i} key={i} onSelect={=>@props.create_file(ext)}>
-            <Icon name={data.icon} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+        text = <>
+                   <span style={textTransform:'capitalize'}>
+                    {data.name}
+                   </span>
+                   <span style={color:'#666'}>(.{ext})</span>
+               </>
+        <MenuItem
+            className={ 'dropdown-menu-left'}
+            eventKey={i}
+            key={i}
+            onSelect={=>@props.create_file(ext)}
+        >
+            <Icon name={data.icon} /> {text}
         </MenuItem>
 
     render: ->
-        <SplitButton id='new_file_dropdown'  title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
-            {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
-        </SplitButton>
+        <span
+            className={'pull-right dropdown-splitbutton-left'}
+            style={marginRight: '5px'}
+        >
+            <SplitButton
+                id={'new_file_dropdown'}
+                title={@file_dropdown_icon()}
+                onClick={=>@props.create_file()}
+            >
+                {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
+            </SplitButton>
+        </span>
 
 # Use Rows and Cols to append more buttons to this class.
 # Could be changed to auto adjust to a list of pre-defined button names.
 exports.FileTypeSelector = FileTypeSelector = rclass
-    proptypes :
-        create_file   : rtypes.func.required
-        create_folder : rtypes.func.required
+    displayName : 'ProjectNew-FileTypeSelector'
+
+    propTypes :
+        create_file   : rtypes.func  #.required # commented, causes an exception upon init
+        create_folder : rtypes.func  #.required
         styles        : rtypes.object
 
     render: ->
+        return if not @props.create_file or not @props.create_file
+
         row_style =
             marginBottom:'8px'
-        <div>
+
+        <>
             <Row style={row_style}>
-                <Col sm={6}>
+                <Col sm={12}>
                     <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
                     </Tip>
@@ -163,22 +178,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
                     </Tip>
                 </Col>
-                <Col sm={6}>
-                    <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.'>
-                        <NewFileDropdown create_file={@props.create_file} />
-                    </Tip>
-                    <span style={marginRight:'5px'}></span>
-                    <Tip
-                        title='Folder'  placement='left' icon='folder-open-o'
-                        tip='Create a folder in which to store and organize your files.  CoCalc provides a full featured filesystem.' >
-                        <NewFileButton
-                            icon='folder-open-o' name='Folder'
-                            on_click={@props.create_folder} />
-                    </Tip>
-                </Col>
             </Row>
             <Row style={row_style}>
-                <Col sm={6}>
+                <Col sm={12}>
                     <Tip title='Markdown File'   icon='cc-icon-markdown'
                         tip='Create a Markdown formatted document with real-time preview.'>
                         <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
@@ -199,23 +201,25 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
                         <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
                     </Tip>
+                    <Tip title='Create a chatroom'  placement='left'  icon='comment'
+                        tip='Create a chatroom for chatting with other collaborators on this project.'>
+                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
+                    </Tip>
                     <Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
                         <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
                     </Tip>
-                </Col>
-                <Col sm={6}>
-                    <Tip title='Manage a course'  placement='left'  icon='graduation-cap'
+                    <Tip title='Manage a course'  placement='bottom'  icon='graduation-cap'
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
                         <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
+                   {@props.children}
                 </Col>
             </Row>
-            {@props.children}
-        </div>
+        </>
 
-ProjectNewForm = rclass ({name}) ->
-    displayName : 'ProjectNewForm'
+exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
+    displayName : 'ProjectNew-ProjectNewForm'
 
     reduxProps :
         "#{name}" :
@@ -227,11 +231,16 @@ ProjectNewForm = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
+        close       : rtypes.func
+        show_header : rtypes.bool
 
     getInitialState: ->
         filename           : @props.default_filename ? @default_filename()
         extension_warning  : false
+
+    getDefaultProps: ->
+        show_header        : true
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
@@ -255,6 +264,7 @@ ProjectNewForm = rclass ({name}) ->
             name         : @state.filename
             ext          : ext
             current_path : @props.current_path
+        @props.close?()
 
     submit: (ext) ->
         if not @state.filename  # empty filename
@@ -272,11 +282,14 @@ ProjectNewForm = rclass ({name}) ->
         e.preventDefault()
         @submit()
 
-    render_header: ->
-        if @props.current_path?
-            <ProjectNewHeader
-                current_path = {@props.current_path}
-                actions      = {@props.actions} />
+    close_button: ->
+        return if not @props.close
+        <Button
+            onClick   = {=> @props.close()}
+            className = {"pull-right"}
+        >
+            Close
+        </Button>
 
     render_error: ->
         error = @props.file_creation_error
@@ -299,6 +312,7 @@ ProjectNewForm = rclass ({name}) ->
             name         : @state.filename
             current_path : @props.current_path
             switch_over  : true
+        @props.close?()
 
     render_no_extension_alert: ->
         <Alert bsStyle='warning' style={marginTop: '10px', fontWeight : 'bold'}>
@@ -313,53 +327,132 @@ ProjectNewForm = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
-    render: ->
-        <div>
-            {@render_header()}
-            <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
-                <Col sm={3}>
-                    <h4><Icon name='plus' /> Create a new file or directory</h4>
+    render_upload: ->
+        <>
+            <Row style={marginTop: '20px'}>
+                <Col sm={12}>
+                    <h4><Icon name='cloud-upload' /> Upload</h4>
                 </Col>
+            </Row>
+            <Row>
+                <Col sm={12}>
+                    <SMC_Dropzone
+                        dropzone_handler     = {{complete : => @props.actions.fetch_directory_listing()}}
+                        project_id           = {@props.project_id}
+                        current_path         = {@props.current_path}
+                        show_header          = {false}
+                    />
+                </Col>
+            </Row>
+            <Row>
                 <Col sm={9}>
-                    <h4 style={color:"#666"}>Name your file, folder or paste in a link</h4>
-                    <form onSubmit={@submit_via_enter}>
-                        <FormGroup>
-                            <FormControl
-                                autoFocus
-                                ref         = 'project_new_filename'
-                                value       = {@state.filename}
-                                type        = 'text'
-                                disabled    = {@state.extension_warning}
-                                placeholder = 'Name your file, folder, or paste in a link...'
-                                onChange    = {=>if @state.extension_warning then @setState(extension_warning : false) else @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)} />
-                        </FormGroup>
-                    </form>
+                    <div style={color: "#666"}>
+                        <em>You can also drag & drop onto the file listing below.</em>
+                    </div>
+                </Col>
+                <Col sm={3}>
+                    {if @props.close
+                        <Row>
+                            <Col sm={12}>{@close_button()}</Col>
+                        </Row>
+                    }
+                </Col>
+            </Row>
+        </>
+
+    render_new_file_folder: ->
+        <>
+            <Tip
+                title={'Folder'}
+                placement={'left'}
+                icon={'folder-open-o'}
+                tip={'Create a folder (sub-directory) in which to store and organize your files.  CoCalc provides a full featured filesystem.'}
+            >
+                <NewFileButton
+                    icon={'folder-open-o'}
+                    name={'Folder'}
+                    on_click={@create_folder}
+                    className={'pull-right'}
+                />
+            </Tip>
+            <Tip icon='file' title='Any Type of File' tip='Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc.' placement='top'>
+                <NewFileDropdown
+                    create_file={@submit}
+                />
+            </Tip>
+        </>
+
+    render_filename_form: ->
+        onChange = =>
+            if @state.extension_warning
+                @setState(extension_warning : false)
+            else
+                @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)
+
+        <form onSubmit={@submit_via_enter}>
+            <FormGroup>
+                <FormControl
+                    autoFocus
+                    ref         = {'project_new_filename'}
+                    value       = {@state.filename}
+                    type        = {'text'}
+                    disabled    = {@state.extension_warning}
+                    placeholder = {'Name your file, folder, or a URL to download from...'}
+                    onChange    = {onChange}
+                />
+            </FormGroup>
+        </form>
+
+
+    render_title: ->
+        if @props.current_path?
+            <span>Create new files in{' '}
+                <PathLink
+                    path       = {@props.current_path}
+                    actions    = {@props.actions}
+                />
+            </span>
+
+    render: ->
+        <ProjectSettingsPanel
+            show_header = {@props.show_header}
+            icon = {'plus-circle'}
+            title_el = {@render_title()}
+            close = {@props.close}
+        >
+            <Row key={@props.default_filename} >  {### key is so autofocus works below ###}
+                <Col sm={12}>
+                    <div style={color:"#666", paddingBottom:"5px"}>Name your file, folder or paste in a link</div>
+                    <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+                        <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
+                            {@render_filename_form()}
+                        </div>
+                        <div style={flex: '0 0 auto'}>
+                            {@render_new_file_folder()}
+                        </div>
+                    </div>
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
-                    <h4 style={color:"#666"}>Select the type</h4>
+                    <div style={color:"#666", paddingBottom:"5px"}>Select the type</div>
                     <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
-                        <Row>
-                            <Col sm={6}>
-                                <Tip title='Download files from the Internet'  icon = 'cloud'
-                                    tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
-                                    <NewFileButton
-                                        icon     = 'cloud'
-                                        name     = {"Download from Internet #{@blocked()}"}
-                                        on_click = {@create_file}
-                                        loading  = {@state.downloading} />
-                                </Tip>
-                            </Col>
-                            <Col sm={6}>
-                                <Tip title='Create a chatroom'  placement='left'  icon='comment'
-                                    tip='Create a chatroom for chatting with other collaborators on this project.'>
-                                    <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
-                                </Tip>
-                            </Col>
-                        </Row>
+                        <Tip
+                            title = {'Download files from the Internet'}
+                            icon = {'cloud'}
+                            placement = {'bottom'}
+                            tip = {"Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}"}
+                        >
+                            <NewFileButton
+                                icon     = {'cloud'}
+                                name     = {"Download from Internet #{@blocked()}"}
+                                on_click = {@create_file}
+                                loading  = {@state.downloading}
+                            />
+                        </Tip>
                     </FileTypeSelector>
                 </Col>
             </Row>
-        </div>
+            {@render_upload()}
+        </ProjectSettingsPanel>
 
 render = (project_id, redux) ->
     store   = redux.getProjectStore(project_id)
@@ -381,50 +474,33 @@ exports.unmount = (dom_node) ->
     #console.log("unmount project_new")
     ReactDOM.unmountComponentAtNode(dom_node)
 
-FileUpload = rclass ({name}) ->
-    displayName : 'ProjectNew-FileUpload'
-
-    reduxProps :
-        "#{name}" :
-            current_path : rtypes.string
-
-    propTypes :
-        project_id : rtypes.string.isRequired
-
-    mixins : [ImmutablePureRenderMixin]
-
-    render: ->
-        {SMC_Dropzone} = require('./smc-dropzone')
-
-        <Row>
-            <Col sm={3}>
-                <h4><Icon name='cloud-upload' /> Upload files from your computer</h4>
-            </Col>
-            <Col sm={9}>
-                <SMC_Dropzone
-                    dropzone_handler     = {{}}
-                    project_id           = {@props.project_id}
-                    current_path         = {@props.current_path} />
-            </Col>
-        </Row>
-
 exports.ProjectNew = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
         name : rtypes.string
 
+    show_files_tab: ->
+        pa = redux.getProjectActions(@props.project_id)
+        pa.set_active_tab("files")
+
     render: ->
-        <div style={padding:'15px'}>
-            <ProjectNewForm project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
-            <hr />
-            <Row>
-                <Col sm={3}>
-                    <h4><Icon name='book' /> Library</h4>
-                </Col>
-                <Col sm={9}>
-                    <Library project_id={@props.project_id} name={@props.name} actions={@actions(name)} />
-                </Col>
-            </Row>
-            <hr />
-            <FileUpload project_id={@props.project_id} name={@props.name} />
-        </div>
+        style =
+            textAlign: 'center'
+            padding: '3rem'
+
+        <Row>
+            <Col xs={8} xsOffset={2} style={style}>
+                <Alert bsStyle={"info"}>
+                    Creating files, the library and upload have been moved to the{' '}
+                    <Button onClick={=>@show_files_tab()}>
+                        Files panel
+                    </Button>.
+                    <br/>
+                    <img
+                        src={"https://storage.googleapis.com/cocalc-extra/cc-files-new-library-upload-arrow.png"}
+                        style={{width: "100%", marginTop: "3rem"}}
+                    />
+                </Alert>
+            </Col>
+        </Row>
+
