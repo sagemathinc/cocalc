@@ -532,10 +532,10 @@ PaymentMethod = rclass
                 </Col>
                 <Col md={5}>
                     <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                         <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
                             <Icon name='trash'/> Set to Default
                         </Button>
+                        <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -549,10 +549,10 @@ PaymentMethod = rclass
                 </Col>
                 <Col md={5}>
                     <ButtonToolbar>
-                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                         <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
                             <Icon name='trash'/> Delete Payment Method
                         </Button>
+                        <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                     </ButtonToolbar>
                 </Col>
             </Row>
@@ -981,12 +981,12 @@ AddSubscription = rclass
                         is_recurring = {@is_recurring()}
                         on_close = {@props.on_close}
                     /> if @props.selected_plan isnt ''}
-                    <Row>
+                    {@render_create_subscription_buttons()}
+                    <Row style={paddingTop:'15px'}>
                         <Col sm={5} smOffset={7}>
                             <CouponAdder applied_coupons={@props.applied_coupons} coupon_error={@props.coupon_error} />
                         </Col>
                     </Row>
-                    {@render_create_subscription_buttons()}
                 </Well>
                 <ExplainResources type='shared'/>
             </Col>

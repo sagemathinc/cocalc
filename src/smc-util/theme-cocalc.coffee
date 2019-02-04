@@ -39,6 +39,9 @@ exports.SENDGRID_TEMPLATE_ID    = null
 exports.SENDGRID_ASM_INVITES    = null
 exports.SENDGRID_ASM_NEWSLETTER = null
 
+# documentation
+exports.JUPYTER_CLASSIC_MODERN  = 'https://doc.cocalc.com/jupyter.html#classical-versus-cocalc'
+
 # This is the applications color scheme
 COLORS =
     BLUE_DDD : '#0E2B59'
