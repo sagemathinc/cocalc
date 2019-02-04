@@ -9,7 +9,6 @@ import {
   React,
   rclass,
   rtypes,
-  Fragment,
   Rendered,
   Component
 } from "../../app-framework";
@@ -148,7 +147,7 @@ class Build extends Component<Props, {}> {
       time_str = `(${(time / 1000).toFixed(1)} seconds)`;
     }
     return (
-      <Fragment>
+      <>
         {this.render_log_label(stage, time_str)}
         <textarea
           readOnly={true}
@@ -162,7 +161,7 @@ class Build extends Component<Props, {}> {
           }}
           value={value}
         />
-      </Fragment>
+      </>
     );
   }
 
@@ -175,7 +174,7 @@ class Build extends Component<Props, {}> {
       return;
     }
     return (
-      <Fragment>
+      <>
         <h4>Clean Auxiliary Files</h4>
         <textarea
           readOnly={true}
@@ -189,7 +188,7 @@ class Build extends Component<Props, {}> {
           }}
           value={value}
         />
-      </Fragment>
+      </>
     );
   }
 

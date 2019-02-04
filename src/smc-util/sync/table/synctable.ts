@@ -1348,7 +1348,7 @@ export class SyncTable extends EventEmitter {
         // nothing further to do.
         continue;
       }
-      if (this.handle_new_val(new_val, false)) {
+      if (this.handle_new_val(new_val, undefined, "insert", false)) {
         // really did make a change.
         changed_keys.push(key);
       }
@@ -1402,7 +1402,7 @@ export class SyncTable extends EventEmitter {
         versioned_changes.push({ obj, version });
         continue;
       }
-      if (this.handle_new_val(new_val, false)) {
+      if (this.handle_new_val(new_val, undefined, "insert", false)) {
         const version = this.increment_version(key);
         this.changes[key] = time;
         this.update_has_uncommitted_changes();
@@ -1438,35 +1438,25 @@ export class SyncTable extends EventEmitter {
   in-memory table.
   */
   private update_change(change): void {
-    //console.log("_update_change", change)
     if (this.state === "closed") {
       // We might get a few more updates even after
       // canceling the changefeed, so we just ignore them.
       return;
     }
     if (this.value == null) {
-      console.warn(`_update_change(${this.table}): ignored`);
+      console.warn(`update_change(${this.table}): ignored`);
       return;
     }
     this.emit("before-change");
     const changed_keys: string[] = [];
-    if (change.new_val != null) {
-      const key = this.handle_new_val(change.new_val);
-      if (key != null) {
-        changed_keys.push(key);
-      }
-    }
-
-    if (
-      change.old_val != null &&
-      this.obj_to_key(change.old_val) !== this.obj_to_key(change.new_val)
-    ) {
-      // Delete a record (TODO: untested)
-      const key = this.obj_to_key(change.old_val);
-      if (key != null) {
-        this.value = this.value.delete(key);
-        changed_keys.push(key);
-      }
+    const key = this.handle_new_val(
+      change.new_val,
+      change.old_val,
+      change.action,
+      this.coerce_types
+    );
+    if (key != null) {
+      changed_keys.push(key);
     }
 
     //console.log("update_change: changed_keys=", changed_keys)
@@ -1477,14 +1467,36 @@ export class SyncTable extends EventEmitter {
   }
 
   // - returns key only if obj actually changed things.
-  private handle_new_val(obj: any, coerce: boolean = true): string | undefined {
+  private handle_new_val(
+    new_val: any,
+    old_val: any,
+    action: string,
+    coerce: boolean
+  ): string | undefined {
     if (this.value == null) {
       // to satisfy typescript.
       throw Error("value must be initialized");
     }
-    let new_val = fromJS(obj);
+
+    if (action === "delete") {
+      old_val = fromJS(old_val);
+      if (old_val == null) {
+        throw Error("old_val must not be null for delete action");
+      }
+      if (coerce && this.coerce_types) {
+        old_val = this.do_coerce_types(old_val);
+      }
+      const key = this.obj_to_key(old_val);
+      if (key == null || !this.value.has(key)) {
+        return; // already gone
+      }
+      this.value = this.value.delete(key);
+      return key;
+    }
+
+    new_val = fromJS(new_val);
     if (new_val == null) {
-      throw Error("new_val must not be null");
+      throw Error("new_val must not be null for insert or update action");
     }
     if (coerce && this.coerce_types) {
       new_val = this.do_coerce_types(new_val);
@@ -1497,12 +1509,17 @@ export class SyncTable extends EventEmitter {
       console.warn(
         this.table,
         "handle_new_val: ignoring invalid new_val ",
-        obj
+        new_val
       );
       return undefined;
       // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
+    if (action === 'update') {
+      // For update actions, we shallow *merge* in the change.
+      // For insert action, we just replace the whole thing.
+      new_val = cur_val.merge(new_val);
+    }
     if (!new_val.equals(cur_val)) {
       this.value = this.value.set(key, new_val);
       return key;

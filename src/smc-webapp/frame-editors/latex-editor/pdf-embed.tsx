@@ -4,7 +4,7 @@ This is a renderer using the embed tag, so works with browsers that have a PDF v
 
 import { raw_url } from "../frame-tree/util";
 
-import { Component, Fragment, React, Rendered } from "../../app-framework";
+import { Component, React, Rendered } from "../../app-framework";
 
 export interface Props {
   actions: any;
@@ -39,7 +39,7 @@ export class PDFEmbed extends Component<Props, {}> {
 
   render_clickable(): Rendered {
     return (
-      <Fragment>
+      <>
         <div
           style={{
             position: "absolute",
@@ -50,7 +50,7 @@ export class PDFEmbed extends Component<Props, {}> {
           onMouseEnter={() => this.focus()}
         />
         {this.render_embed()}
-      </Fragment>
+      </>
     );
   }
 

@@ -205,6 +205,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 client.removeAllListeners()
         delete @_clients
 
+    is_connected: () =>
+        return @_clients? and @_clients.length > 0
+
     _connect: (cb) =>
         dbg = @_dbg("_do_connect")
         dbg("connect to #{@_host}")
@@ -450,7 +453,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_query_retry_until_success(opts)
             return
 
-        if not @_clients?
+        if not @is_connected()
             dbg = @_dbg("_query")
             dbg("connecting first...")
             @connect
@@ -493,7 +496,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
     __do_query: (opts) =>
         dbg = @_dbg("_query('#{opts.query}',id='#{misc.uuid().slice(0,6)}')")
-        if not @_clients?
+        if not @is_connected()
             # TODO: should also check that client is connected.
             opts.cb?("client not yet initialized")
             return

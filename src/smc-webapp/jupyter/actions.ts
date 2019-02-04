@@ -1848,19 +1848,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // File --> Open: just show the file listing page.
   file_open = (): void => {
-    if (this.redux != null) {
-      this.redux
-        .getProjectActions(this.store.get("project_id"))
-        .set_active_tab("files");
-    }
+    if (this.redux == null) return;
+    this.redux
+      .getProjectActions(this.store.get("project_id"))
+      .set_active_tab("files");
   };
 
+  // File --> New: like open, but also show the create panel
   file_new = (): void => {
-    if (this.redux != null) {
-      this.redux
-        .getProjectActions(this.store.get("project_id"))
-        .set_active_tab("new");
-    }
+    if (this.redux == null) return;
+    const project_actions = this.redux.getProjectActions(
+      this.store.get("project_id")
+    );
+    project_actions.set_active_tab("files");
+    project_actions.toggle_new(true);
   };
 
   register_input_editor = (id: any, editor: any): void => {

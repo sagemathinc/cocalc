@@ -154,6 +154,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
     this.clear_all_activity = this.clear_all_activity.bind(this);
+    this.toggle_library = this.toggle_library.bind(this);
     this.set_url_to_path = this.set_url_to_path.bind(this);
     this._url_in_project = this._url_in_project.bind(this);
     this.push_state = this.push_state.bind(this);
@@ -302,6 +303,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ activity: undefined });
   }
 
+  toggle_panel(name: keyof ProjectStoreState, show?: boolean): void {
+    if (show != null) {
+      this.setState({ [name]: show });
+    } else {
+      const store = this.get_store();
+      if (store == undefined) return;
+      this.setState({ [name]: !store.get(name) });
+    }
+  }
+
+  toggle_library(show?: boolean): void {
+    this.toggle_panel("show_library", show);
+  }
+
+  toggle_new(show?: boolean): void {
+    this.toggle_panel("show_new", show);
+  }
+
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
@@ -323,7 +342,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    require("./misc_page").analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {
