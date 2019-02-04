@@ -132,5 +132,3 @@ src/smc-util/heartbeat.map
 src/smc-util/message.map
 src/smc-util/schema-validate.js
 src/smc-util/schema-validate.map
-src/smc-util/upgrades.js
-src/smc-util/upgrades.map
