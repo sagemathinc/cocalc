@@ -203,7 +203,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     </Tip>
                     <Tip title='Create a chatroom'  placement='left'  icon='comment'
                         tip='Create a chatroom for chatting with other collaborators on this project.'>
-                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
+                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@props.create_file} ext='sage-chat' />
                     </Tip>
                     <Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
