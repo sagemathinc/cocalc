@@ -405,9 +405,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          {this.render_add_selector_button(options)}
-          <Space />
-          {this.render_add_all_students_button(options)}
+          <div style={{ paddingTop: "15px" }}>
+            {this.render_add_selector_button(options)}
+            <Space />
+            {this.render_add_all_students_button(options)}
+          </div>
         </FormGroup>
       );
     }
