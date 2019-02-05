@@ -2082,9 +2082,9 @@ message({
   lineNumber: undefined, // int
   columnNumber: undefined, // int
   severity: undefined, // string
-  browser: undefined, // string, how feature.coffee detected the browser
-  mobile: undefined, // boolean, feature.coffee::IS_MOBILE
-  responsive: undefined, // boolean, feature.coffee::is_responsive_mode
+  browser: undefined, // string, how feature.js detected the browser
+  mobile: undefined, // boolean, feature.js::IS_MOBILE
+  responsive: undefined, // boolean, feature.js::is_responsive_mode
   user_agent: undefined, // string
   smc_version: undefined, // string
   build_date: undefined, // string
@@ -2483,7 +2483,7 @@ Get title and description for a project, given the project id.
 Get info on all projects for the account whose security key is provided.
 The information returned may be any of the api-accessible fields in the
 \`projects\` table. These fields are listed in CoCalc source file
-src/smc-util/db-schema.coffee, under \`schema.projects.user_query\`.
+src/smc-util/db-schema.js, under \`schema.projects.user_query\`.
 In this example, project name and description are returned.
 
 Note: to get info only on projects active in the past 3 weeks, use
@@ -2671,10 +2671,10 @@ if you are only setting the \`jupyter_classic\` attribute because changes are me
 
 
 __NOTE:__ Information on which fields are gettable and settable in the database tables
-via API message is in file 'db-schema.coffee', in CoCalc sources on GitHub at
-https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.coffee
+via API message is in file 'db-schema.js', in CoCalc sources on GitHub at
+https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js
 
-Within file 'db-schema.coffee':
+Within file 'db-schema.js':
 
 - for _project_ fields you can get, see the definition of
 \`schema.projects.user_query.get.fields\`
@@ -2838,7 +2838,7 @@ This request returns information on project upgrdes for the user
 whose API key appears in the request.
 Two objects are returned, total upgrades and available upgrades.
 
-See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.coffee for units
+See https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/upgrade-spec.js for units
 
 Example:
 \`\`\`
