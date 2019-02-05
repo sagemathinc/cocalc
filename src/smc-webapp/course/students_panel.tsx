@@ -285,16 +285,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     };
 
     student_add_button() {
-      return (
-        <Button onClick={this.do_add_search}>
-          {this.state.add_searching ? (
-            <Icon name="cc-icon-cocalc-ring" spin />
-          ) : (
-            <Icon name="search" />
-          )}{" "}
-          Search
-        </Button>
+      const icon = this.state.add_searching ? (
+        <Icon name="cc-icon-cocalc-ring" spin />
+      ) : (
+        <Icon name="search" />
       );
+
+      return <Button onClick={this.do_add_search}>{icon} Search</Button>;
     }
 
     add_selector_clicked = () => {
@@ -408,9 +405,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          {this.render_add_selector_button(options)}
-          <Space />
-          {this.render_add_all_students_button(options)}
+          <div style={{ paddingTop: "15px" }}>
+            {this.render_add_selector_button(options)}
+            <Space />
+            {this.render_add_all_students_button(options)}
+          </div>
         </FormGroup>
       );
     }
@@ -531,6 +530,30 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
     }
 
+    student_add_input_onChange() {
+      const input = ReactDOM.findDOMNode(this.refs.student_add_input);
+      this.setState({
+        add_select: undefined,
+        add_search: input.value
+      });
+    }
+
+    student_add_input_onKeyDown(e) {
+      // ESC key
+      if (e.keyCode === 27) {
+        return this.setState({
+          add_search: "",
+          add_select: undefined
+        });
+
+        // Shift+Return
+      } else if (e.keyCode === 13 && e.shiftKey) {
+        e.preventDefault();
+        this.student_add_input_onChange();
+        this.do_add_search(e);
+      }
+    }
+
     render_header(num_omitted) {
       return (
         <div>
@@ -558,22 +581,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                       componentClass="textarea"
                       placeholder="Add students by name or email address..."
                       value={this.state.add_search}
-                      onChange={() =>
-                        this.setState({
-                          add_select: undefined,
-                          add_search: ReactDOM.findDOMNode(
-                            this.refs.student_add_input
-                          ).value
-                        })
-                      }
-                      onKeyDown={e => {
-                        if (e.keyCode === 27) {
-                          return this.setState({
-                            add_search: "",
-                            add_select: undefined
-                          });
-                        }
-                      }}
+                      onChange={() => this.student_add_input_onChange()}
+                      onKeyDown={e => this.student_add_input_onKeyDown(e)}
                     />
                   </FormGroup>
                 </Col>
@@ -901,17 +910,13 @@ class Student extends Component<StudentProps, StudentState> {
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
-      misc.is_different(
-        this.state,
-        nextState,
-        [
-          "confirm_delete",
-          "editing_student",
-          "edited_first_name",
-          "edited_last_name",
-          "edited_email_address"
-        ]
-      ) ||
+      misc.is_different(this.state, nextState, [
+        "confirm_delete",
+        "editing_student",
+        "edited_first_name",
+        "edited_last_name",
+        "edited_email_address"
+      ]) ||
       misc.is_different(this.props, nextProps, [
         "name",
         "student",
@@ -1420,7 +1425,7 @@ class Student extends Component<StudentProps, StudentState> {
                 value={this.state.edited_first_name}
                 onClick={e => {
                   e.stopPropagation();
-                  return e.preventDefault();
+                  e.preventDefault();
                 }}
                 onChange={e =>
                   this.setState({ edited_first_name: e.target.value })
@@ -1437,7 +1442,7 @@ class Student extends Component<StudentProps, StudentState> {
                 value={this.state.edited_last_name}
                 onClick={e => {
                   e.stopPropagation();
-                  return e.preventDefault();
+                  e.preventDefault();
                 }}
                 onChange={e =>
                   this.setState({ edited_last_name: e.target.value })
@@ -1456,7 +1461,7 @@ class Student extends Component<StudentProps, StudentState> {
                 value={this.state.edited_email_address}
                 onClick={e => {
                   e.stopPropagation();
-                  return e.preventDefault();
+                  e.preventDefault();
                 }}
                 onChange={e =>
                   this.setState({ edited_email_address: e.target.value })
