@@ -77,7 +77,7 @@ export class Terminal {
   private last_active: number = 0;
   // conn = connection to project -- a primus websocket channel.
   private conn?: any;
-  private touch_interval: any;  // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
+  private touch_interval: any; // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
 
   public is_mounted: boolean = false;
   public element: HTMLElement;
@@ -404,7 +404,12 @@ export class Terminal {
     switch (mesg.cmd) {
       case "size":
         if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
-          this.resize(mesg.rows, mesg.cols);
+          try {
+            this.resize(mesg.rows, mesg.cols);
+          } catch (err) {
+            // See https://github.com/sagemathinc/cocalc/issues/3536
+            console.warn(`ERROR resizing terminal -- ${err}`);
+          }
         }
         break;
       case "burst":

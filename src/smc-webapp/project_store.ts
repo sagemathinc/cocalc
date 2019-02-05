@@ -98,6 +98,7 @@ export interface ProjectStoreState {
 
   // Project Log
   project_log?: any; // immutable,
+  project_log_all?: any; // immutable,
   search?: string;
   page?: number;
 
@@ -134,8 +135,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
 
   // Function to call to initialize one of the tables in this store.
-  // This is purely an optimization, so project_log and public_paths
-  // does not have to be initialized unless necessary.  The code
+  // This is purely an optimization, so project_log, project_log_all and public_paths
+  // do not have to be initialized unless necessary.  The code
   // is a little awkward, since I didn't want to change things too
   // much while making this optimization.
   public init_table: (table_name: string) => void;

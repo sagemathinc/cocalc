@@ -46,12 +46,12 @@ export class Loading extends React.Component<Props> {
     }
 
     return (
-      <span style={style}>
+      <div style={style}>
         <span>
           <Icon name="cc-icon-cocalc-ring" spin /> {this.props.text}
         </span>
         {this.render_estimate()}
-      </span>
+      </div>
     );
   }
 }
