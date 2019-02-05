@@ -25,7 +25,7 @@ underscore = require('underscore')
 immutable  = require('immutable')
 lodash = require('lodash')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
+{React, ReactDOM, rtypes, rclass, Redux, redux}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, InputGroup, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, PathLink, r_join, SearchInput, Space, Tip} = require('./r_misc')
 {User} = require('./users')
@@ -396,9 +396,10 @@ exports.ProjectLog = rclass ({name}) ->
 
     reduxProps:
         "#{name}" :
-            project_log : rtypes.immutable
-            search      : rtypes.string
-            page        : rtypes.number
+            project_log     : rtypes.immutable
+            project_log_all : rtypes.immutable
+            search          : rtypes.string
+            page            : rtypes.number
         users :
             user_map    : rtypes.immutable
             get_name    : rtypes.func
@@ -420,17 +421,27 @@ exports.ProjectLog = rclass ({name}) ->
             return true
         if @props.page != nextProps.page
             return true
-        if not @props.project_log? or not nextProps.project_log?
+        if (not @props.project_log? or not nextProps.project_log?) and (not @props.project_log_all? or not nextProps.project_log_all?)
             return true
         if not @props.user_map? or not nextProps.user_map?
             return true
-        return not nextProps.project_log.equals(@props.project_log) or not nextProps.user_map.equals(@props.user_map)
+        if not nextProps.user_map.equals(@props.user_map)
+            return true
+        if nextProps.project_log?
+            return not nextProps.project_log.equals(@props.project_log)
+        if nextProps.project_log_all?
+            return not nextProps.project_log_all.equals(@props.project_log_all)
+        return false
 
     componentWillReceiveProps: (next) ->
-        if not @props.user_map? or not @props.project_log?
+        if not next.user_map? or (not next.project_log? and not next.project_log_all?)
             return
-        if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.user_map, next.user_map)
-            @update_log(next.project_log, next.user_map)
+        if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.user_map, next.user_map) or not immutable.is(@props.project_log_all, next.project_log_all)
+            if next.project_log_all?
+                x = next.project_log_all
+            else
+                x = next.project_log
+            @update_log(x, next.user_map)
 
     previous_page: ->
         if @props.page > 0
@@ -470,7 +481,8 @@ exports.ProjectLog = rclass ({name}) ->
 
         if not immutable.is(next_project_log, @_last_project_log)
             # The project log changed, so record the new entries
-            # and update any existing entries that changed, e.g., timing information added.
+            # and update any existing entries that changed, e.g.,
+            # timing information added.
             new_log = []
             next_project_log.map (val, id) =>
                 e = @_last_project_log?.get(id)
@@ -479,7 +491,8 @@ exports.ProjectLog = rclass ({name}) ->
                     new_log.push(val.toJS())
                 else if not immutable.is(val, e)
                     # An existing entry changed; this happens
-                    # when files are opened and the total time to open gets reported.
+                    # when files are opened and the total time
+                    # to open gets reported.
                     id = val.get('id')
                     # find it in the past log:
                     for x in @_log
@@ -517,7 +530,11 @@ exports.ProjectLog = rclass ({name}) ->
         log = @_log
         if not log?
             # first attempt
-            log = @update_log(@props.project_log, @props.user_map)
+            if @props.project_log?
+                x = @props.project_log
+            else
+                x = @props.project_log_all
+            log = @update_log(x, @props.user_map)
         if not log?
             return []
         words = misc.split(@props.search?.toLowerCase())
@@ -549,6 +566,19 @@ exports.ProjectLog = rclass ({name}) ->
             </Button>
         </ButtonGroup>
 
+    load_all: ->
+        @reset_cursor()
+        delete @_log
+        delete @_last_project_log
+        delete @_last_user_map
+        delete @_loading_table
+        @actions(name).project_log_load_all()
+
+    render_load_all_button: ->
+        <Button style={float:"right"} onClick={@load_all} disabled={@props.project_log_all?}>
+            Load older log entries
+        </Button>
+
     render_log_panel: ->
         # get visible log
         log = @visible_log()
@@ -579,27 +609,36 @@ exports.ProjectLog = rclass ({name}) ->
                 <Col sm={4}>
                     {@render_paging_buttons(num_pages, @props.page)}
                 </Col>
+                <Col sm={4}>
+                    {@render_load_all_button()}
+                </Col>
             </Row>
             <Row>
                 <Col sm={12}>
                     <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
-            <Row>
-                <Col sm={4} style={marginTop:'15px'}>
+            <Row style={marginTop:'15px'}>
+                <Col sm={4}>
                     {@render_paging_buttons(num_pages, @props.page)}
+                </Col>
+                <Col sm={8}>
+                    {@render_load_all_button()}
                 </Col>
             </Row>
         </Panel>
 
     render_body: ->
-        if not @props.project_log
-            # The project log not yet loaded, so kick off the load.
-            # This is safe to call multiple times and is done so that the
-            # changefeed for the project log is only setup if the user actually
-            # looks at the project log at least once.
-            redux.getProjectStore(@props.project_id).init_table('project_log')
-            return <Loading />
+        if not @props.project_log and not @props.project_log_all
+            if not @_loading_table
+                @_loading_table = true
+                # The project log not yet loaded, so kick off the load.
+                # This is safe to call multiple times and is done so that the
+                # changefeed for the project log is only setup if the user actually
+                # looks at the project log at least once.
+                redux.getProjectStore(@props.project_id).init_table('project_log')
+            return <Loading theme={"medium"}/>
+        @_loading_table = false
         return @render_log_panel()
 
     render: ->
