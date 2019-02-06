@@ -49,7 +49,6 @@ class UpgradeStatus extends Component<Props, {}> {
   }
 
   render_unused_mesg(total: QuotaMap, used: QuotaMap): Rendered {
-    console.log("total = ", JSON.stringify(total), "\nused = ", JSON.stringify(used));
     let mesg: string;
     let f: (event: any) => void;
     if (len(total) == 0) {
@@ -67,7 +66,6 @@ class UpgradeStatus extends Component<Props, {}> {
           }
         }
       }
-      console.log("unused = ", unused);
       if (unused.length == 0) {
         mesg = "All your upgrades are applied to projects...";
       } else {
