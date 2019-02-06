@@ -2071,7 +2071,7 @@ ProjectFilesNew = rclass
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
-            <Icon name='plus-circle' /> Create
+            <Icon name='plus-circle' /> New
         </span>
 
     file_dropdown_item: (i, ext) ->
@@ -2272,7 +2272,7 @@ exports.ProjectFiles = rclass ({name}) ->
     render_new: () ->
         return if not @props.show_new
         <Row>
-            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
+            <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
                 <ProjectNewForm
                     project_id={@props.project_id}
                     name={@props.name}
