@@ -3195,7 +3195,6 @@ exports.closest_kernel_match = function(name, kernel_list) {
         break;
       }
     }
-    // TODO: don't use regular name comparison, use compareVersionStrings
     if (
       v > bestValue ||
       (v === bestValue &&

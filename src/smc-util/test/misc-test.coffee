@@ -1518,10 +1518,14 @@ describe 'test closest kernel matching method', ->
     python3  = immutable.fromJS {name:"python3", display_name:"Python 3", language:"python"}
     sage8_2  = immutable.fromJS {name:"sage8.2", display_name:"Sagemath 8.2", language:"python"}
     sage8_10 = immutable.fromJS {name:"sage8.10", display_name:"Sagemath 8.10", language:"python"}
-    kernels = immutable.fromJS([octave,python3,python3,sage8_2,sage8_10])
+    ir       = immutable.fromJS {name:"ir", display_name:"R (R-Project)", language:"r"}
+    kernels = immutable.fromJS([octave,python3,python3,sage8_2,sage8_10,ir])
     it 'thinks python8 should be python3', ->
         expect(misc.closest_kernel_match("python8",kernels)).toEqual(python3)
     it 'replaces "matlab" with "octave"', ->
-        expect(misc.closest_kernel_match("matlabe",kernels)).toEqual(octave)
+        expect(misc.closest_kernel_match("matlab",kernels)).toEqual(octave)
     it 'suggests sage8.10 over sage8.2', ->
         expect(misc.closest_kernel_match("sage8",kernels)).toEqual(sage8_10)
+    it 'suggests R over ir35', ->
+        expect(misc.closest_kernel_match("ir35",kernels)).toEqual(ir)
+
