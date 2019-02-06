@@ -1557,7 +1557,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">Use sharing</a> to make a file or directory <a href="https://share.cocalc.com/share" target="_blank" rel="noopener"><b><i>visible to the world.</i></b></a>   (If you would instead like to privately collaborate and chat with people in this project, go the Project Settings tab and "Add people to project".)
+            <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">Use sharing</a> to make a file or directory <a href="https://share.cocalc.com/share" target="_blank" rel="noopener"><b><i>visible to the world</i></b></a>.  Files are automatically copied to <a href="https://share.cocalc.com/share" target="_blank" rel="noopener">the share server</a> about 30 seconds after you edit them.   If you would instead like to privately collaborate and chat with people in this project, go to the Project Settings tab and "Add new collaborators".
         </div>
 
     set_public_file_unlisting_to: (new_value) ->

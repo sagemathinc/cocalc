@@ -113,10 +113,11 @@ class MonitorPublicPaths
                     cb()
                 else
                     d('change -- update database table')
-                    @_table.set({id:id, last_edited:new Date()}, 'shallow')
+                    last_edited = new Date()
+                    @_table.set({id:id, last_edited:last_edited}, 'shallow')
                     @_table.save()  # and also cause change to get saved to database.
                     # This can be more robust (if actually connected).
-                    @_client.query({query:{id:id, last_edited:new Date()}, cb:cb})
+                    @_client.query({query:{id:id, last_edited:last_edited}, cb:cb})
         ], (err) =>
             # ignore err
             cb?()
