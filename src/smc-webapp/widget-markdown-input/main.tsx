@@ -252,30 +252,43 @@ class MarkdownInput0 extends Component<
         </div>
       );
     } else {
-      let style;
       const html = this.to_html();
-      if (html != null ? html.__html : undefined) {
-        style = this.props.rendered_style;
-      } else {
-        style = undefined;
-      }
+      const style = (html != null
+      ? html.__html
+      : undefined)
+        ? this.props.rendered_style
+        : undefined;
+
       let rendered_button: Rendered = undefined;
-      if (!this.props.hide_edit_button) {
-        const props: { onClick; bsSize? } = { onClick: this.edit };
-        if (this.props.edit_button_bsSize) {
-          props.bsSize = this.props.edit_button_bsSize;
+      const rendered_text_props: {
+        dangerouslySetInnerHTML;
+        style;
+        onClick?;
+      } = (() => {
+        if (!this.props.hide_edit_button) {
+          const props: { onClick; bsSize? } = { onClick: this.edit };
+          if (this.props.edit_button_bsSize) {
+            props.bsSize = this.props.edit_button_bsSize;
+          }
+          rendered_button = (
+            <Button {...props}>{this.props.edit_button_text}</Button>
+          );
+          return {
+            dangerouslySetInnerHTML: html,
+            style: style
+          };
+        } else {
+          return {
+            dangerouslySetInnerHTML: html,
+            style: style,
+            onClick: this.edit
+          };
         }
-        rendered_button = (
-          <Button {...props}>{this.props.edit_button_text}</Button>
-        );
-      }
+      })();
 
       return (
         <div>
-          <div
-            dangerouslySetInnerHTML={html}
-            style={style}
-          />
+          <div {...rendered_text_props} />
           {rendered_button}
         </div>
       );
