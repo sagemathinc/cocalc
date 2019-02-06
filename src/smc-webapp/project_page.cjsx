@@ -500,8 +500,8 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     </SortableNav>
                 </div>
                 <div style={borderLeft: '1px solid lightgrey',  display: 'inline-flex'}>
-                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
                     {@render_chat_indicator(shrink_fixed_tabs) if not is_public}
+                    {@render_share_indicator(shrink_fixed_tabs) if not is_public}
                 </div>
             </div>
         </div>

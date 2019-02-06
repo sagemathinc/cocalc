@@ -1589,9 +1589,10 @@ ProjectFilesActionBox = rclass
     render_how_shared: (parent_is_public, single_file_data) ->
         if parent_is_public
             return
+        single_file = @props.checked_files.first()
         <div>
             <br/>
-            <div style={color:'#444', fontSize:'15pt'}>How this file or directory is shared</div>
+            <div style={color:'#444', fontSize:'15pt'}>Choose how to share {single_file}:</div>
             <br/>
             {@render_sharing_options(single_file_data)}
         </div>
@@ -2071,7 +2072,7 @@ ProjectFilesNew = rclass
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
-            <Icon name='plus-circle' /> Create
+            <Icon name='plus-circle' /> New
         </span>
 
     file_dropdown_item: (i, ext) ->
@@ -2272,7 +2273,7 @@ exports.ProjectFiles = rclass ({name}) ->
     render_new: () ->
         return if not @props.show_new
         <Row>
-            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
+            <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
                 <ProjectNewForm
                     project_id={@props.project_id}
                     name={@props.name}
