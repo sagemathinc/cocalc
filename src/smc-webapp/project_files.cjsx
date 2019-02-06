@@ -1072,7 +1072,7 @@ ProjectFilesActions = rclass
             </div>
         </div>
 
-WIKI_SHARE_HELP_URL = 'https://github.com/sagemathinc/cocalc/wiki/share'
+WIKI_SHARE_HELP_URL = 'https://doc.cocalc.com/share.html'
 
 ProjectFilesActionBox = rclass
     displayName : 'ProjectFiles-ProjectFilesActionBox'
@@ -1557,7 +1557,7 @@ ProjectFilesActionBox = rclass
 
     render_share_defn: ->
         <div style={color:'#555'}>
-            <a href="https://github.com/sagemathinc/cocalc/wiki/share" target="_blank">Use sharing</a> to make a file or directory <a href="https://cocalc.com/share" target="_blank"><b><i>visible to the world.</i></b></a>   (If you would instead like to privately collaborate and chat with people in this project, go the project Settings tab and "Add people to project".)
+            <a href={WIKI_SHARE_HELP_URL} target="_blank" rel="noopener">Use sharing</a> to make a file or directory <a href="https://share.cocalc.com/share" target="_blank" rel="noopener"><b><i>visible to the world</i></b></a>.  Files are automatically copied to <a href="https://share.cocalc.com/share" target="_blank" rel="noopener">the share server</a> about 30 seconds after you edit them.   If you would instead like to privately collaborate and chat with people in this project, go to the Project Settings tab and "Add new collaborators".
         </div>
 
     set_public_file_unlisting_to: (new_value) ->
@@ -1702,10 +1702,10 @@ ProjectFilesActionBox = rclass
             <FormGroup>
             {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
                     <Icon name='eye'/><Space/>
-                    <i>Public (listed)</i> - This will appear on the <a href="https://cocalc.com/share" target="_blank">public share server</a>.
+                    <i>Public (listed)</i> - This will appear on the <a href="https://share.cocalc.com/share" target="_blank">public share server</a>.
               </Radio> else <Radio disabled={true} name="sharing_options" value="public_listed" checked={state == "public_listed"} inline>
                     <Icon name='eye'/><Space/>
-                    <del><i>Public (listed)</i> - This will appear on the <a href="https://cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
+                    <del><i>Public (listed)</i> - This will appear on the <a href="https://share.cocalc.com/share" target="_blank">share server</a>.</del> Public (listed) is only available for projects with network enabled.
                 </Radio>}
               <br/>
               <Radio name="sharing_options" value="public_unlisted" checked={state == "public_unlisted"} onChange={handler} inline>
