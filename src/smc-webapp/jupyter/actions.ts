@@ -957,9 +957,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_init_kernel = (): void => {
+    console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      if (!this._is_project) this.show_select_kernel("bad kernel");
+      if (!this._is_project) {
+        this.show_select_kernel("bad kernel");
+        // we also finalize the kernel selection check, because it doesn't switch to true
+        // if there is no kernel at all.
+        this.setState({ check_select_kernel_init: true });
+      }
     } else {
       // Opening an existing notebook
       const default_kernel = this.store.get_default_kernel();
@@ -2223,7 +2229,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_delay: 1000,
         max_delay: 10000,
         f: this._fetch_backend_kernel_info_from_server,
-        desc: 'jupyter:_set_backend_kernel_info_client'
+        desc: "jupyter:_set_backend_kernel_info_client"
       });
     }
   );
@@ -2246,7 +2252,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         start_delay: 500,
         max_delay: 3000,
         f,
-        desc: 'jupyter:_fetch_backend_kernel_info_from_server'
+        desc: "jupyter:_fetch_backend_kernel_info_from_server"
       });
     } catch (err) {
       this.set_error(err);
@@ -3245,11 +3251,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   check_select_kernel = (): void => {
     const kernel = this.store.get("kernel");
-    const no_kernel = kernel == null;
+    if (kernel == null) return;
+
     let unknown_kernel = false;
-    if (!no_kernel && this.store.get("kernels") != null)
+
+    console.log("jupyter::check_select_kernel", {
+      kernels: this.store.get("kernels"),
+      info: this.store.get_kernel_info(kernel)
+    });
+
+    if (this.store.get("kernels") != null)
       unknown_kernel = this.store.get_kernel_info(kernel) == null;
-    if (no_kernel || unknown_kernel) {
+
+    // a kernel is set, but we don't know it
+    if (unknown_kernel) {
       this.show_select_kernel("bad kernel");
     } else {
       // we got a kernel, close dialog if not requested by user
