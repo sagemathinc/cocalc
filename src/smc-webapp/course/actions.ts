@@ -1735,12 +1735,38 @@ export class CourseActions extends Actions<CourseState> {
     this.clear_edited_feedback(assignment, student);
   };
 
-  set_points = (assignment, student, filepath, points) => {
-    let left;
+  set_feedback = (
+    assignment: AssignmentRecord,
+    student_id: string,
+    grade,
+    comment
+  ): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
+    if (store == null) return;
+    const student: StudentRecord = store.get_student(student_id);
+    if (student == null) {
+      console.warn(`BUG -- no student with ID ${student_id}`);
     }
+    // console.log({ assignment, student, grade, comment });
+    const query = {
+      table: "assignments",
+      assignment_id: assignment.get("assignment_id")
+    };
+    const assignment_data = this._get_one(query);
+    const grades = assignment_data.grades || {};
+    grades[student.get("student_id")] = grade;
+    const comments = assignment_data.comments || {};
+    comments[student.get("student_id")] = comment;
+    const feedback_changes = Object.assign(
+      { grades: grades, comments: comments },
+      query
+    );
+    this._set(feedback_changes);
+  };
+
+  set_points = (assignment, student, filepath, points) => {
+    const store = this.get_store();
+    if (store == null) return;
     assignment = store.get_assignment(assignment);
     student = store.get_student(student);
     const student_id = student.get("student_id");
@@ -1748,9 +1774,8 @@ export class CourseActions extends Actions<CourseState> {
       table: "assignments",
       assignment_id: assignment.get("assignment_id")
     };
-    const points_map = (left = this._get_one(obj).points) != null ? left : {};
-    const student_points_map =
-      points_map[student_id] != null ? points_map[student_id] : {};
+    const points_map = this._get_one(obj).points || {};
+    const student_points_map = points_map[student_id] || {};
     // only delete if points is undefined/null, otherwise record the value, even "0"
     if (points == null) {
       delete student_points_map[filepath];
@@ -3132,13 +3157,10 @@ You can find the comments they made in the folders below.\
 
   open_handout(handout_id, student_id) {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     const handout = store.get_handout(handout_id);
-    if (handout == undefined) {
-      return;
-    }
+    if (handout == undefined) return;
+
     const student = store.get_student(student_id);
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
@@ -3152,9 +3174,14 @@ You can find the comments they made in the folders below.\
       return;
     }
     // Now open it
-    return this.redux.getProjectActions(proj).open_directory(path);
+    this.redux.getProjectActions(proj).open_directory(path);
   }
-  grading = opts => {
+
+  /*
+   * Grading
+   */
+
+  grading = (opts: any): void => {
     // this method starts grading and also steps forward to the next student
     // hence, initially the "direction" to jump is +1
     // there is also a second phase, where the directory listing is loaded.
@@ -3171,9 +3198,8 @@ You can find the comments they made in the folders below.\
     // direction: 0, +1 or -1, which student in the list to pick next
     //            first call after deleting grading should be +1, otherwise student_id stays undefined
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
+
     // initialization: start with a new grading object or the current one
     const { Grading } = require("./grading/models");
     let grading = (left = store.get("grading")) != null ? left : new Grading();
@@ -3251,7 +3277,7 @@ You can find the comments they made in the folders below.\
       next_account_id
     );
     // Phase 2: get the collected files listing
-    return store.grading_get_listing(
+    store.grading_get_listing(
       opts.assignment,
       next_student_id,
       opts.subdir,
@@ -3265,20 +3291,18 @@ You can find the comments they made in the folders below.\
           }
         }
         listing = immutable.fromJS(listing);
-        return this.grading_set_entry("listing", listing);
+        this.grading_set_entry("listing", listing);
       }
     );
   };
+
   // update routine to set derived data field in the grading object in a consistent way
-  grading_update = (store, grading) => {
+  grading_update = (store, grading): void => {
     let student_info;
-    if (grading == null) {
-      return;
-    }
+    if (grading == null) return;
     const x = store.grading_get_student_list(grading);
-    if (x == null) {
-      return;
-    }
+    if (x == null) return;
+
     grading = grading.merge(x);
     const total_points = store.get_points_total(
       grading.assignment_id,
@@ -3305,110 +3329,96 @@ You can find the comments they made in the folders below.\
       mode: grading_mode
     });
     grading = grading.merge(grading.get_listing_files());
-    return this.setState({ grading });
+    this.setState({ grading });
   };
+
   // teacher departs from the dialog
-  grading_stop = () => {
+  grading_stop = (): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
+
     // TODO grading and apath is probably used somewhere,but got lost in merging
     // const grading = store.get("grading");
     // const apath = store.get_assignment(grading.assignment_id).get("path");
     this.grading_cleanup_all_discussions();
     this.setState({ grading: null });
-    return this.grading_remove_activity();
+    this.grading_remove_activity();
   };
+
   // additonally filter student list by a substring
-  grading_set_student_filter = string => {
+  grading_set_student_filter = (str: string): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     let grading = store.get("grading");
-    if (grading == null) {
-      return;
-    }
-    grading = grading.set("student_filter", string);
+    if (grading == null) return;
+
+    grading = grading.set("student_filter", str);
     return this.grading_update(store, grading);
   };
+
   // utility method to set just a key in the grading state
-  grading_set_entry = (key, value) => {
+  grading_set_entry = (key, value): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     let grading = store.get("grading");
-    if (grading == null) {
-      return;
-    }
+    if (grading == null) return;
+
     grading = grading.set(key, value);
     if (["only_not_graded", "only_collected", "listing"].includes(key)) {
-      return this.grading_update(store, grading);
+      this.grading_update(store, grading);
     } else {
-      return this.setState({ grading });
+      this.setState({ grading });
     }
   };
-  grading_toggle_show_all_files = () => {
+
+  grading_toggle_show_all_files = (): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     let grading = store.get("grading");
-    if (grading == null) {
-      return;
-    }
+    if (grading == null) return;
+
     grading = grading.toggle_show_all_files();
-    return this.grading_update(store, grading);
+    this.grading_update(store, grading);
   };
-  grading_toggle_anonymous = () => {
+
+  grading_toggle_anonymous = (): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     let grading = store.get("grading");
-    if (grading == null) {
-      return;
-    }
+    if (grading == null) return;
+
     grading = grading.toggle_anonymous().set("student_filter", "");
-    return this.grading_update(store, grading);
+    this.grading_update(store, grading);
   };
+
   grading_toggle_show_discussion = show => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     const grading = store.get("grading");
-    if (grading == null) {
-      return;
-    }
+    if (grading == null) return;
+
     // ignore if there are no changes
-    if (grading.discussion_show === show) {
-      return;
-    }
-    return this.grading_update(store, grading.toggle_show_discussion(show));
+    if (grading.discussion_show === show) return;
+    this.grading_update(store, grading.toggle_show_discussion(show));
   };
-  grading_cleanup_discussion = (assignment_path, account_id) => {
-    if (account_id == null) {
-      return;
-    }
+
+  grading_cleanup_discussion = (assignment_path, account_id): void => {
+    if (account_id == null) return;
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
+
     const chat_path = store.grading_get_discussion_path(
       assignment_path,
       account_id
     );
     chat_register.remove(chat_path, this.redux, store.get("course_project_id"));
-    return store.grading_remove_discussion(chat_path);
+    store.grading_remove_discussion(chat_path);
   };
-  grading_cleanup_all_discussions = () => {
+
+  grading_cleanup_all_discussions = (): void => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
+
     if (store._open_discussions != null) {
       store._open_discussions.forEach(chat_path => {
         return chat_register.remove(
@@ -3418,14 +3428,13 @@ You can find the comments they made in the folders below.\
         );
       });
     }
-    return delete store._open_discussions;
+    delete store._open_discussions;
   };
-  grading_activate_discussion = (assignment_path, account_id) => {
+
+  grading_activate_discussion = (assignment_path, account_id): void => {
     let chat_path;
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     if (account_id == null) {
       chat_path = NO_ACCOUNT;
     } else {
@@ -3437,42 +3446,35 @@ You can find the comments they made in the folders below.\
       store.grading_register_discussion(chat_path);
     }
     const grading = store.get("grading");
-    if (grading == null) {
-      return;
-    }
+    if (grading == null) return;
+
     return this.setState({ grading: grading.set_discussion(chat_path) });
   };
+
   // set the "cursor" to the assignment+student currently being graded
   grading_update_activity = (opts?): void => {
-    let location: any;
     const store = this.get_store();
-    if (store == null || this.syncdb == null) {
-      return;
-    }
+    if (store == null || this.syncdb == null) return;
+    if (this.syncdb.is_closed() || !this._loaded()) return;
+
     const grading = store.get("grading");
-    if (grading == null) {
-      location = defaults(opts, {
-        type: "grading",
-        assignment_id: grading.get("assignment_id"),
-        student_id: grading.get("student_id")
-      });
-      if (this.syncdb.is_closed() || !this._loaded()) {
-        return;
-      }
-    }
+    if (grading == null) return;
+
+    const location = defaults(opts, {
+      type: "grading",
+      assignment_id: grading.get("assignment_id"),
+      student_id: grading.get("student_id")
+    });
     // argument must be an array, and we only have one cursor (at least, at the time of writing)
     // teacher moved to another student or closed the grading dialog
     this.syncdb.set_cursor_locs([location]);
   };
-  grading_remove_activity = () => {
-    if (
-      (this.syncdb != null ? this.syncdb.is_closed() : undefined) ||
-      !this._loaded()
-    ) {
-      return;
-    }
+
+  grading_remove_activity = (): void => {
+    if (this.syncdb == null) return;
+    if (this.syncdb.is_closed() || !this._loaded()) return;
     // argument must be an array, not null!
-    return this.syncdb != null ? this.syncdb.set_cursor_locs([]) : undefined;
+    this.syncdb.set_cursor_locs([]);
   };
 }
 
@@ -3481,6 +3483,7 @@ function __guard__(value, transform) {
     ? transform(value)
     : undefined;
 }
+
 function __guardMethod__(obj, methodName, transform) {
   if (
     typeof obj !== "undefined" &&

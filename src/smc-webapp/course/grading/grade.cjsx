@@ -80,8 +80,9 @@ exports.Grade = rclass
 
     save_grade: (e, grade) ->
         e?.preventDefault?()
-        @props.actions.set_grade(@props.assignment, @props.student_id, grade ? @state.edited_grade)
-        @props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
+        #@props.actions.set_grade(@props.assignment, @props.student_id, grade ? @state.edited_grade)
+        #@props.actions.set_comments(@props.assignment, @props.student_id, @state.edited_comments)
+        @props.actions.set_feedback(@props.assignment, @props.student_id, grade ? @state.edited_grade, @state.edited_comments)
         @setState(editing_grade : false)
 
     grade_cancel: ->

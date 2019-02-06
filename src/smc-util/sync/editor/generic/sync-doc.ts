@@ -388,6 +388,10 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
+  public is_closed(): boolean {
+    return this.state == ("closed" as State);
+  }
+
   public set_doc(doc: Document, exit_undo_mode: boolean = true): void {
     if (exit_undo_mode) this.undo_state = undefined;
     if (doc.is_equal(this.doc)) {
