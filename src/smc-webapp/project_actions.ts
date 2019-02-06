@@ -46,20 +46,25 @@ const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
 
 const FROM_WEB_TIMEOUT_S = 45;
 
-// At most this many of the most recent log messages for a project get loaded:
-// TODO: add a button to load the entire log or load more...
-const MAX_PROJECT_LOG_ENTRIES = 1000;
-
 export const QUERIES = {
   project_log: {
     query: {
       id: null,
       project_id: null,
       account_id: null,
-      time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
+      time: null,
       event: null
-    },
-    options: [{ order_by: "-time" }, { limit: MAX_PROJECT_LOG_ENTRIES }]
+    }
+  },
+
+  project_log_all: {
+    query: {
+      id: null,
+      project_id: null,
+      account_id: null,
+      time: null,
+      event: null
+    }
   },
 
   public_paths: {
@@ -154,6 +159,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
     this.clear_all_activity = this.clear_all_activity.bind(this);
+    this.toggle_library = this.toggle_library.bind(this);
     this.set_url_to_path = this.set_url_to_path.bind(this);
     this._url_in_project = this._url_in_project.bind(this);
     this.push_state = this.push_state.bind(this);
@@ -258,8 +264,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     must_define(this.redux);
     this.close_all_files();
     for (let table in QUERIES) {
-      this.redux.removeTable(project_redux_name(this.project_id, table));
+      this.remove_table(table);
     }
+  };
+
+  remove_table = (table: string): void => {
+    this.redux.removeTable(project_redux_name(this.project_id, table));
   };
 
   // Records in the backend database that we are actively
@@ -302,6 +312,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ activity: undefined });
   }
 
+  toggle_panel(name: keyof ProjectStoreState, show?: boolean): void {
+    if (show != null) {
+      this.setState({ [name]: show });
+    } else {
+      const store = this.get_store();
+      if (store == undefined) return;
+      this.setState({ [name]: !store.get(name) });
+    }
+  }
+
+  toggle_library(show?: boolean): void {
+    this.toggle_panel("show_library", show);
+  }
+
+  toggle_new(show?: boolean): void {
+    this.toggle_panel("show_new", show);
+  }
+
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
@@ -323,7 +351,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    require("./misc_page").analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {
@@ -2781,6 +2808,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     });
+  }
+
+  project_log_load_all(): void {
+    const store = this.get_store();
+    if (store == null) return; // no store
+    if (store.get("project_log_all") != null) return; // already done
+    this.setState({ project_log: undefined });
+    store.init_table("project_log_all");
+    this.remove_table("project_log");
   }
 }
 

@@ -48,6 +48,8 @@ export class Changes extends EventEmitter {
   private condition: { [field: string]: Function };
   private match_condition: Function;
 
+  private val_update_cache: { [key: string]: any } = {};
+
   constructor(
     db: PostgreSQL,
     table: string,
@@ -128,6 +130,7 @@ export class Changes extends EventEmitter {
     this.db._stop_listening(this.table, this.select, this.watch);
     delete this.trigger_name;
     delete this.condition;
+    delete this.val_update_cache;
   }
 
   public async insert(where): Promise<void> {
@@ -165,25 +168,8 @@ export class Changes extends EventEmitter {
     this.emit("change", change);
   }
 
-  private old_val(result, action, mesg): void {
-    if (action === "update") {
-      // include only changed fields if action is 'update'
-      const old_val = {};
-      for (let field in mesg[1]) {
-        const val = mesg[1][field];
-        const old = mesg[2][field];
-        if (val !== old) {
-          old_val[field] = old;
-        }
-      }
-      if (misc.len(old_val) > 0) {
-        result.old_val = old_val;
-      }
-    }
-  }
-
   private async handle_change(mesg): Promise<void> {
-    //console.log '_handle_change', mesg
+    // this.dbg("handle_change")(JSON.stringify(mesg));
     if (mesg[0] === "DELETE") {
       if (!this.match_condition(mesg[2])) {
         return;
@@ -195,28 +181,34 @@ export class Changes extends EventEmitter {
     if (typeof mesg[0] !== "string") {
       throw Error(`invalid mesg -- mesg[0] must be a string`);
     }
-    const action: ChangeAction = parse_action(mesg[0]);
+    let action: ChangeAction = parse_action(mesg[0]);
     if (!this.match_condition(mesg[1])) {
+      // object does not match condition
       if (action !== "update") {
+        // new object that doesn't match condition -- nothing to do.
         return;
       }
+      // fill in for each part that we watch in new object the same
+      // data in the old object, in case it is missing.
+      // TODO: when is this actually needed?
       for (k in mesg[1]) {
         v = mesg[1][k];
         if (mesg[2][k] == null) {
           mesg[2][k] = v;
         }
-        if (this.match_condition(mesg[2])) {
-          this.emit("change", { action: "delete", old_val: mesg[2] });
-        }
-        return; // TODO: This looks *very* suspicious -- it just seems
-        // more likely that this would be in the if statement.
-        // Once I figure out what the heck is going on here,
-        // fix or write a clear comment!
       }
+      if (this.match_condition(mesg[2])) {
+        // the old object was in our changefeed, but the UPDATE made it not
+        // anymore, so we emit delete action.
+        this.emit("change", { action: "delete", old_val: mesg[2] });
+      }
+      // Nothing more to do.
+      return;
     }
     if (this.watch.length === 0) {
+      // No additional columns are being watched at all -- we only
+      // care about what's in the mesg.
       r = { action, new_val: mesg[1] };
-      this.old_val(r, action, mesg);
       this.emit("change", r);
       return;
     }
@@ -245,9 +237,50 @@ export class Changes extends EventEmitter {
       this.emit("change", { action: "delete", old_val: mesg[1] });
       return;
     }
-    r = { action, new_val: misc.merge(result, mesg[1]) };
-    this.old_val(r, action, mesg);
+
+    const key = JSON.stringify(mesg[1]);
+    const this_val = misc.merge(result, mesg[1]);
+    let new_val;
+    if (action == "update") {
+      const x = this.new_val_update(mesg[1], this_val, key);
+      action = x.action; // may be insert in case no previous cached info.
+      new_val = x.new_val;
+    } else {
+      // not update and not delete (could have been a delete and write
+      // before we did above query, so treat as insert).
+      action = "insert";
+      new_val = this_val;
+    }
+    this.val_update_cache[key] = this_val;
+
+    r = { action, new_val };
     this.emit("change", r);
+  }
+
+  private new_val_update(
+    primary_part: { [key: string]: any },
+    this_val: { [key: string]: any },
+    key: string
+  ): { new_val: { [key: string]: any }; action: "insert" | "update" } {
+    const prev_val = this.val_update_cache[key];
+    if (prev_val == null) {
+      return { new_val: this_val, action: "insert" }; // not enough info to make a diff
+    }
+    // Send only the fields that changed between
+    // prev_val and this_val, along with the primary part.
+    const new_val = misc.copy(primary_part);
+    // Not using lodash isEqual below, since we want equal Date objects
+    // to compare as equal.  If JSON is randomly re-ordered, that's fine since
+    // it is just slightly less efficienct.
+    for (let field in this_val) {
+      if (
+        new_val[field] === undefined &&
+        JSON.stringify(this_val[field]) != JSON.stringify(prev_val[field])
+      ) {
+        new_val[field] = this_val[field];
+      }
+    }
+    return { new_val, action: "update" };
   }
 
   private init_where(): void {

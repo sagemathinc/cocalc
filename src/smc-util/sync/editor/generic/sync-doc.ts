@@ -324,8 +324,9 @@ export class SyncDoc extends EventEmitter {
     } else {
       action = "edit";
     }
-    const file_use = () => {
+    const file_use = async () => {
       if (!is_chat) {
+        await delay(100); // wait a little so my_patches and gets updated.
         // We ONLY count this and record that the file was
         // edited if there was an actual change record in the
         // patches log, by this user, since last time.

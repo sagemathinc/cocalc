@@ -10,6 +10,8 @@
 Test functionality in the client module.
 ###
 
+require('ts-node').register()
+
 client = require('../client')
 expect = require('expect')
 

@@ -19,7 +19,7 @@ DROPSTYLE =
     boxShadow    : '4px 4px 2px #bbb'
     borderRadius : '5px'
     padding      : 0
-    margin       : '10px'
+    margin       : '10px 0'
 
 render_header = ->
     <Tip
@@ -41,6 +41,10 @@ exports.SMC_Dropzone = rclass
         current_path         : rtypes.string.isRequired
         dropzone_handler     : rtypes.object.isRequired
         close_button_onclick : rtypes.func
+        show_header          : rtypes.bool
+
+    getDefaultProps: ->
+        show_header          : true
 
     dropzone_template : ->
         <div className='dz-preview dz-file-preview'>
@@ -73,12 +77,13 @@ exports.SMC_Dropzone = rclass
     render: ->
         <div>
             {@render_close_button() if @props.close_button_onclick?}
-            {render_header()}
+            {render_header() if @props.show_header}
             <div style={DROPSTYLE}>
                 <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
-                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())} />
+                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())}
+                />
             </div>
         </div>
 

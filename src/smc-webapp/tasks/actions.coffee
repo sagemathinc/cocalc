@@ -4,7 +4,7 @@ Task Actions
 
 LAST_EDITED_THRESH_S = 30
 
-WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
+WIKI_HELP_URL = "https://doc.cocalc.com/tasks.html"
 
 immutable  = require('immutable')
 underscore = require('underscore')
