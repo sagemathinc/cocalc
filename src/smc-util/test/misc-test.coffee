@@ -1519,7 +1519,8 @@ describe 'test closest kernel matching method', ->
     sage8_2  = immutable.fromJS {name:"sage8.2", display_name:"Sagemath 8.2", language:"python"}
     sage8_10 = immutable.fromJS {name:"sage8.10", display_name:"Sagemath 8.10", language:"python"}
     ir       = immutable.fromJS {name:"ir", display_name:"R (R-Project)", language:"r"}
-    kernels = immutable.fromJS([octave,python3,python3,sage8_2,sage8_10,ir])
+    ir_old   = immutable.fromJS {name:"ir-old", display_name: "R (old)", language: "r", metadata: {cocalc: {priority: -10}}}
+    kernels = immutable.fromJS([octave, python3, python3, sage8_2, sage8_10, ir, ir_old])
     it 'thinks python8 should be python3', ->
         expect(misc.closest_kernel_match("python8",kernels)).toEqual(python3)
     it 'replaces "matlab" with "octave"', ->
@@ -1528,4 +1529,6 @@ describe 'test closest kernel matching method', ->
         expect(misc.closest_kernel_match("sage8",kernels)).toEqual(sage8_10)
     it 'suggests R over ir35', ->
         expect(misc.closest_kernel_match("ir35",kernels)).toEqual(ir)
+    it 'suggests R over ir-35', ->
+        expect(misc.closest_kernel_match("ir-35",kernels)).toEqual(ir)
 
