@@ -254,10 +254,6 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         if newProps.default_filename != @props.default_filename
             @setState(filename: newProps.default_filename)
 
-    componentDidUpdate: ->
-        if not @state.extension_warning
-            ReactDOM.findDOMNode(@refs.project_new_filename).focus()
-
     default_filename: ->
         return require('./account').default_filename()
 
