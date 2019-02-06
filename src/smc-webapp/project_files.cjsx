@@ -1589,9 +1589,10 @@ ProjectFilesActionBox = rclass
     render_how_shared: (parent_is_public, single_file_data) ->
         if parent_is_public
             return
+        single_file = @props.checked_files.first()
         <div>
             <br/>
-            <div style={color:'#444', fontSize:'15pt'}>How this file or directory is shared</div>
+            <div style={color:'#444', fontSize:'15pt'}>Choose how to share {single_file}:</div>
             <br/>
             {@render_sharing_options(single_file_data)}
         </div>

@@ -435,7 +435,7 @@ ChatRoom = rclass ({name}) ->
         else
             icon = <Icon name='caret-right'/>
         <div
-            style   = {fontSize:'15pt', width:'16px', display:'inline-block', cursor:'pointer'}
+            style   = {width:'16px', display:'inline-block', cursor:'pointer'}
         >
             {icon}
         </div>
@@ -479,7 +479,7 @@ ChatRoom = rclass ({name}) ->
         </div>
 
     render_project_users: ->
-        <div style={margin:'5px 15px'}>
+        <div style={margin:'5px 15px', maxHeight: '20%', overflow: 'auto', borderBottom: '1px solid lightgrey'}>
             {@render_collab_list()}
             {@render_add_collab()}
         </div>
