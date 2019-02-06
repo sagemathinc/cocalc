@@ -35,11 +35,15 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+{ reuseInFlight } = require("async-await-utils/hof");
+
+{UpgradeStatus} = require('./upgrades/status')
 
 ###
 TODO:  This entire file should be broken into many small files/components,
@@ -838,10 +842,10 @@ class ProjectsAllTable extends Table
 # ones.  First we try loading the recent ones.  If this is *empty*,
 # then we try loading all projects.  Loading all projects is also automatically
 # called if there is any attempt to open a project that isn't recent.
-# Why? Because the load_all_projects query is **expensive**.
+# Why? Because the load_all_projects query is potentially **expensive**.
 
 all_projects_have_been_loaded = false
-load_all_projects = =>
+load_all_projects = reuseInFlight =>
     if all_projects_have_been_loaded
         return
     all_projects_have_been_loaded = true
@@ -1426,6 +1430,11 @@ exports.ProjectsPage = ProjectsPage = rclass
                     </Row>
                     <Row>
                         <Col sm={12} style={marginTop:'1ex'}>
+                            <VisibleMDLG>
+                                <div style={maxWidth:'50%', float:'right'}>
+                                    <UpgradeStatus />
+                                </div>
+                            </VisibleMDLG>
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
                                 />
