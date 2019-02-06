@@ -2043,6 +2043,19 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+
+    get_user_auth_token: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+
+        @call
+            allow_post  : false
+            message     : message.user_auth(account_id:opts.account_id, password:'')
+            error_event : true
+            cb          : opts.cb
+
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

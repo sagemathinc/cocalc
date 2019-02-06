@@ -21,7 +21,7 @@ exports.get_user_auth_token = (opts) ->
         database        : required
         account_id      : required
         user_account_id : required
-        password        : required
+        password        : required    # admin can get token by using password = ''.
         cb              : required
     types opts,
         database        : types.object.isRequired
@@ -36,8 +36,25 @@ exports.get_user_auth_token = (opts) ->
         opts.cb("banned -- please wait at least #{BAN_TIME_MS/1000}s before trying again")
         return
 
+    is_admin = false
+
     async.series([
         (cb) ->
+            if opts.password != ''
+                is_admin = false
+                cb()
+                return
+            # must be an admin or NOPE.
+            opts.database.is_admin
+                account_id : opts.account_id
+                cb         : (err, _is_admin) =>
+                    is_admin = _is_admin
+                    cb(err)
+        (cb) ->
+            if is_admin and opts.password == ''
+                # no need to do anything further
+                cb()
+                return
             # confirm auth
             auth.is_password_correct
                 database             : opts.database
@@ -63,6 +80,14 @@ exports.get_user_auth_token = (opts) ->
                 auth_token : auth_token
                 ttl        : 12*3600    # ttl in seconds (12 hours)
                 cb         : cb
+        (cb) ->
+            # log that we created an auth_token for an account...
+            # just in case (this is entirely a security thing)
+            opts.database.log
+                event : 'get_user_auth_token'
+                value : {account_id : opts.account_id, user_account_id:opts.user_account_id, is_admin:is_admin}
+                cb    : cb
+
     ], (err) ->
         opts.cb(err, auth_token)
     )

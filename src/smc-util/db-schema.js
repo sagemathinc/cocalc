@@ -927,9 +927,9 @@ schema.project_log = {
 
   user_query: {
     get: {
-      pg_where: "projects",
+      pg_where: ["time >= NOW() - interval '21 days'", "projects"],
       pg_changefeed: "projects",
-      options: [{ order_by: "-time" }, { limit: 1000 }],
+      options: [{ order_by: "-time" }, { limit: 200 }],
       throttle_changes: 2000,
       fields: {
         id: null,
@@ -952,6 +952,17 @@ schema.project_log = {
     }
   }
 };
+
+// project_log_all -- exactly like project_log, but loads up
+// to the most recent **10,000** log entries (so a LOT).
+schema.project_log_all = misc.deep_copy(schema.project_log);
+schema.project_log_all.virtual = "project_log";
+// no time constraint:
+schema.project_log_all.user_query.get.pg_where = ["projects"];
+schema.project_log_all.user_query.get.options = [
+  { order_by: "-time" },
+  { limit: 10000 }
+];
 
 schema.projects = {
   primary_key: "project_id",
@@ -1118,7 +1129,8 @@ schema.projects = {
   ],
 
   user_query: {
-    get: { // if you change the interval, change the text in projects.cjsx
+    get: {
+      // if you change the interval, change the text in projects.cjsx
       pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,

@@ -172,10 +172,11 @@ class MultipleAddSearch extends Component<
           size={5}
           rows={10}
           onChange={this.change_selection}
+          style={{marginTop:'15px'}}
         >
           {this.render_results_list()}
         </FormControl>
-        <ButtonToolbar>
+        <ButtonToolbar style={{marginTop:'15px'}}>
           {this.render_add_selector_button()}
           <Button onClick={this.clear_and_focus_search_input}>Cancel</Button>
         </ButtonToolbar>
