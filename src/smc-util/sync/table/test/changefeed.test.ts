@@ -41,10 +41,10 @@ describe("first test of the public API of the Changefeed class", () => {
 
   it("causes an update", done => {
     changefeed.on("update", x => {
-      expect(x).toEqual({ new_val: { text: "bar" } });
+      expect(x).toEqual({ action: "insert", new_val: { text: "bar" } });
       done();
     });
-    got.do_query.cb(undefined, { new_val: { text: "bar" } });
+    got.do_query.cb(undefined, { action: "insert", new_val: { text: "bar" } });
   });
 
   it("ends the changefeed via query_cancel event", done => {

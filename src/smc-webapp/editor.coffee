@@ -688,7 +688,7 @@ class CodeMirrorEditor extends FileEditor
         @hide_startup_message()
         @element.find(".webapp-editor-codemirror-content").show()
         for cm in @codemirrors()
-            cm.refresh()
+            cm_refresh(cm)
 
     hide_startup_message: () =>
         @element.find(".webapp-editor-codemirror-startup-message").hide()
@@ -908,7 +908,7 @@ class CodeMirrorEditor extends FileEditor
         # the getScrollInfo function below will return the sizing data about
         # the cm instance before the above css font-size change has been rendered.
         f = () =>
-            cm.refresh()
+            cm_refresh(cm)
             scroll_after = cm.getScrollInfo()
             x = (scroll_before.left / scroll_before.width) * scroll_after.width
             y = (((scroll_before.top+scroll_before.clientHeight/2) / scroll_before.height) * scroll_after.height) - scroll_after.clientHeight/2
@@ -1429,9 +1429,9 @@ class CodeMirrorEditor extends FileEditor
 
         refresh = (cm) =>
             return if not cm?
-            cm.refresh()
+            cm_refresh(cm)
             # See https://github.com/sagemathinc/cocalc/issues/1327#issuecomment-265488872
-            setTimeout((=>cm.refresh()), 1)
+            setTimeout((=>cm_refresh(cm)), 1)
 
         for cm in @codemirrors()
             refresh(cm)
@@ -2001,3 +2001,13 @@ exports.register_nonreact_editors = ->
         f         : (project_id, path, opts) -> codemirror_session_editor(project_id, path, opts)
         is_public : false
 
+
+
+# See https://github.com/sagemathinc/cocalc/issues/3538
+cm_refresh = (cm) ->
+    if not cm?
+        return
+    try
+        cm.refresh()
+    catch err
+        console.warn("cm refresh err", err)

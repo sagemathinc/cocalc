@@ -629,35 +629,35 @@ exports.define_codemirror_extensions = () ->
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\section")
                 # article section
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsection")
                 # article subsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsection")
                 # article subsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsubsection")
                 # article subsubsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "%\\begin{}")
                 # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
@@ -1102,8 +1102,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                tab = window.open(how.url, '_blank', 'noopener')
-                tab.focus()
+                exports.open_new_tab(how.url)
                 done = true
 
             if how?.wrap?
@@ -1871,13 +1870,12 @@ exports.open_new_tab = (url, popup=false, opts) ->
         scrollbars : 'yes'
         width      : '800'
         height     : '640'
-        noopener   : 'yes'
 
     if popup
         popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
-        tab = window.open(url, '_blank', popup_opts)
+        tab = window.open("", '_blank', popup_opts)
     else
-        tab = window.open(url, '_blank', 'noopener')
+        tab = window.open("", '_blank')
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
         if url
@@ -1890,6 +1888,11 @@ exports.open_new_tab = (url, popup=false, opts) ->
             type    : 'info'
             timeout : 15
         return null
+    # equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
+    # credits: https://stackoverflow.com/a/49276673/54236
+    tab.opener = null
+    # only *after* the above, we set the URL!
+    tab.location = url
     return tab
 
 exports.get_cookie = (name) ->

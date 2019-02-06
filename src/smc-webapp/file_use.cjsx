@@ -55,6 +55,8 @@ misc = require('smc-util/misc')
 {webapp_client} = require('./webapp_client')
 editor = require('./editor')
 
+{callback2, once} = require('smc-util/async-utils')
+
 sha1 = require('smc-util/schema').client_db.sha1
 
 # react in smc-specific modules
@@ -89,6 +91,14 @@ class FileUseActions extends Actions
             return
         for x in v
             @mark_file(x.project_id, x.path, action, 0, false)
+
+    _set: (obj) =>
+        try
+            if not webapp_client.is_signed_in()
+                await once(webapp_client, 'signed_in')
+            await callback2(webapp_client.query, {query : {file_use : obj}})
+        catch err
+            console.warn("WARNING: mark_file error -- ", err)
 
     # Mark the action for the given file with the current timestamp (right now).
     # If zero is true, instead mark the timestamp as 0, basically indicating removal
@@ -134,7 +144,7 @@ class FileUseActions extends Actions
             # Update the overall "last_edited" field for the file; this is used for sorting,
             # and grabbing only recent files from database for file use notifications.
             obj.last_edited = timestamp
-        table.set(obj)
+        @_set(obj)
 
 class FileUseStore extends Store
     get_errors: =>

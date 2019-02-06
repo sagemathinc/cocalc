@@ -313,7 +313,7 @@ class JupyterWrapper extends EventEmitter
 
         # FUTURE: Proper file rename with sync not supported yet
         # needs to work with sync system)
-        @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
+        @frame.$("#notebook_name").unbind('click')
 
         # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
         for cmd in ['new', 'open', 'copy', 'rename']

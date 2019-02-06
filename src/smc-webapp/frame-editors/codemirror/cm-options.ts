@@ -176,7 +176,7 @@ export function cm_options(
       extraKeys[k] = v;
     }
     if (opts.bindings !== "emacs") {
-      extraKeys["Ctrl-P"] = () => actions.print();
+      extraKeys["Ctrl-P"] = () => actions.print(frame_id);
     }
   }
 

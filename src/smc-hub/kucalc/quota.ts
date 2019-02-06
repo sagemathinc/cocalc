@@ -158,7 +158,7 @@ exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
     upgrade: string, // keyof Settings, but only the numeric ones
     parse_num: NumParser,
     factor?: number
-  ) {
+  ): void {
     if (factor == null) factor = 1;
 
     const base: number = (() => {
@@ -180,23 +180,23 @@ exports.quota = function(settings_arg?: Settings, users_arg?: Users) {
     }
     contribs = Math.min(remain, contribs);
     // use quota[name], and ignore base, because admins are allowed to contribute without limits
-    return (quota[name] += contribs);
+    quota[name] += contribs;
   };
 
   // disk space quota in MB
-  calc("disk_quota", "disk_quota", to_int);
+  calc("disk_quota", "disk_quota", to_int, undefined);
 
   // memory limit
-  calc("memory_limit", "memory", to_int);
+  calc("memory_limit", "memory", to_int, undefined);
 
   // idle timeout: not used for setting up the project quotas, but necessary to know for precise scheduling on nodes
-  calc("idle_timeout", "mintime", to_int);
+  calc("idle_timeout", "mintime", to_int, undefined);
 
   // memory request
-  calc("memory_request", "memory_request", to_int);
+  calc("memory_request", "memory_request", to_int, undefined);
 
   // "cores" is the hard upper bound the project container should get
-  calc("cpu_limit", "cores", to_float);
+  calc("cpu_limit", "cores", to_float, undefined);
 
   // cpu_shares is the minimum cpu usage to request
   calc("cpu_request", "cpu_shares", to_float, 1 / 1024);
