@@ -103,6 +103,11 @@ exports.UpgradesPage = rclass
         if not upgrades? or not used?
             return @render_no_upgrades()
 
+        # Ensure that all projects loaded -- this can change used above, which is fine,
+        # and would re-render this component.  The issue is that it's conceivable you have
+        # a project nobody has touched for a month, which has upgrades applied to it.
+        @props.redux.getActions('projects').load_all_projects()
+
         <Panel header={<h2>Upgrades that you get from your subscriptions and course packages</h2>}>
             <Row key='header'>
                 <Col sm={2}>

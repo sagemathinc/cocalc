@@ -625,7 +625,14 @@ export class Terminal {
     if (this.ignore_terminal_data) {
       // during the initial render
       //console.log('direct resize')
-      this.terminal.resize(cols, rows);
+      // Yes, this can throw an exception, thus breaking everything (resulting in
+      // a blank page for the user).  This is probably an upstream xterm.js bug,
+      // but we still have to work around it.
+      try {
+        this.terminal.resize(cols, rows);
+      } catch (err) {
+        console.warn("Error resizing terminal", err, rows, cols);
+      }
     }
     if (
       this.last_geom !== undefined &&
