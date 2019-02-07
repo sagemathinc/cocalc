@@ -875,12 +875,16 @@ ProjectFilesButtons = rclass
             <Icon name='life-saver' /> <span style={fontSize: 12} className='hidden-sm'>Backups</span>
         </Button>
 
+    handle_library_click: (e) ->
+        @props.actions.toggle_library()
+        analytics_event('project_file_listing', 'toggle library')
+
     render_library_button: ->
         # library only exists on kucalc, for now.
         return if @props.kucalc != 'yes'
         <Button
             bsSize={'small'}
-            onClick={=>@props.actions.toggle_library()}
+            onClick={@handle_library_click}
         >
             <Icon name='book' /> <HiddenSM>Library</HiddenSM>
         </Button>
