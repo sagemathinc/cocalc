@@ -1934,6 +1934,7 @@ ProjectFilesSearch = rclass
 
         @_id = (@_id ? 0) + 1
         id = @_id
+        analytics_event('project_file_listing', 'exec file search miniterm', input)
         webapp_client.exec
             project_id : @props.project_id
             command    : input0
