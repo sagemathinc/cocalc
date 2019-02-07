@@ -70,6 +70,7 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
 interface AddCollaboratorsPanelProps {
   // OWN PROPS
   project: any;
+  on_invite?: () => void;
   // REDUX PROPS
   get_fullname(): string;
   user_map: immutable.Map<any, any>;
@@ -85,7 +86,6 @@ interface AddCollaboratorsPanelState {
   email_to: string;
   email_body: string;
   is_editing_email: boolean;
-  on_invite?: () => void;
 }
 
 class AddCollaboratorsPanel0 extends Component<

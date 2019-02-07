@@ -1,5 +1,5 @@
 import { React, Component, redux } from "../app-framework";
-import { analytics_event } from "./tracker";
+import { analytics_event } from "../tracker";
 const { Button, ButtonGroup } = require("react-bootstrap");
 const { Icon } = require("../r_misc");
 
