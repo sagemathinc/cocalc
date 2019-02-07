@@ -520,13 +520,13 @@ NoFiles = rclass
         if @props.file_search.length == 0
             #@props.actions.set_active_tab('new')
             @props.actions.toggle_new(true)
-            analytics_event('project_files', 'listing_create_button', 'empty')
+            analytics_event('project_file_listing', 'listing_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
-            analytics_event('project_files', 'listing_create_button', 'folder')
+            analytics_event('project_file_listing', 'listing_create_button', 'folder')
         else
             @props.create_file()
-            analytics_event('project_files', 'listing_create_button', 'file')
+            analytics_event('project_file_listing', 'listing_create_button', 'file')
 
     # Returns the full file_search text in addition to the default extension if applicable
     full_path_text: ->
@@ -998,8 +998,12 @@ ProjectFilesActions = rclass
         obj = file_actions[name]
         get_basename = =>
             misc.path_split(@props.checked_files?.first()).tail
+        handle_click = (e) =>
+            @props.actions.set_file_action(name, get_basename)
+            analytics_event('project_file_listing', 'open ' + name + ' menu')
+
         <Button
-            onClick={=>@props.actions.set_file_action(name, get_basename)}
+            onClick={handle_click}
             disabled={disabled}
             key={name}
         >
@@ -1139,6 +1143,7 @@ ProjectFilesActionBox = rclass
             dest : misc.path_to_file(@props.current_path, destination)
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_action()
+        analytics_event('project_file_listing', 'compress item')
 
     render_compress: ->
         size = @props.checked_files.size
@@ -1187,7 +1192,7 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
         @props.actions.fetch_directory_listing()
-
+        analytics_event('project_file_listing', 'delete item')
 
     render_delete_warning: ->
         if @props.current_path is '.trash'
@@ -1238,11 +1243,13 @@ ProjectFilesActionBox = rclass
                     dest           : misc.path_to_file(rename_dir, destination)
                     dest_is_folder : false
                     include_chats  : true
+                analytics_event('project_file_listing', 'rename item')
             when 'duplicate'
                 @props.actions.copy_paths
                     src           : @props.checked_files.toArray()
                     dest          : misc.path_to_file(rename_dir, destination)
                     only_contents : true
+                analytics_event('project_file_listing', 'duplicate item')
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
 
@@ -1338,6 +1345,7 @@ ProjectFilesActionBox = rclass
             include_chats  : true
         @props.actions.set_file_action()
         @props.actions.set_all_files_unchecked()
+        analytics_event('project_file_listing', 'move item')
 
     valid_move_input: ->
         src_path = misc.path_split(@props.checked_files.first()).head
@@ -1448,10 +1456,13 @@ ProjectFilesActionBox = rclass
                 target_path       : destination_directory
                 overwrite_newer   : overwrite_newer
                 delete_missing    : delete_extra_files
+            analytics_event('project_file_listing', 'copy between projects')
         else
             @props.actions.copy_paths
                 src  : paths
                 dest : destination_directory
+            analytics_event('project_file_listing', 'copy within a project')
+
         @props.actions.set_file_action()
 
     valid_copy_input: ->
@@ -1530,9 +1541,11 @@ ProjectFilesActionBox = rclass
     share_click: ->
         description = ReactDOM.findDOMNode(@refs.share_description).value
         @props.actions.set_public_path(@props.checked_files.first(), {description: description})
+        analytics_event('project_file_listing', 'share item')
 
     stop_sharing_click: ->
         @props.actions.disable_public_path(@props.checked_files.first())
+        analytics_event('project_file_listing', 'stop sharing item')
 
     render_share_warning: ->
         <Alert bsStyle='warning' style={wordWrap:'break-word'}>
@@ -1749,6 +1762,7 @@ ProjectFilesActionBox = rclass
         filename   = misc.path_split(single_file).tail
         text       = encodeURIComponent("Check out #{filename}")
         site_name  = @props.site_name ? SITE_NAME
+        analytics_event('project_file_listing', 'share item via', where)
         switch where
             when 'facebook'
                 # https://developers.facebook.com/docs/sharing/reference/share-dialog
@@ -1782,6 +1796,7 @@ ProjectFilesActionBox = rclass
             path : @props.checked_files.first()
             log : true
         @props.actions.set_file_action()
+        analytics_event('project_file_listing', 'download item')
 
     download_multiple_click: ->
         destination = ReactDOM.findDOMNode(@refs.download_archive).value
@@ -1799,6 +1814,7 @@ ProjectFilesActionBox = rclass
                 @props.actions.fetch_directory_listing()
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_action()
+        analytics_event('project_file_listing', 'download item')
 
     render_download_single: (single_item) ->
         target = @props.actions.get_store().get_raw_link(single_item)
@@ -2092,13 +2108,13 @@ ProjectFilesNew = rclass
     on_create_button_clicked: ->
         if @props.file_search.length == 0
             @props.actions.toggle_new()
-            analytics_event('project_files', 'search_create_button', 'empty')
+            analytics_event('project_file_listing', 'search_create_button', 'empty')
         else if @props.file_search[@props.file_search.length - 1] == '/'
             @props.create_folder()
-            analytics_event('project_files', 'search_create_button', 'folder')
+            analytics_event('project_file_listing', 'search_create_button', 'folder')
         else
             @props.create_file()
-            analytics_event('project_files', 'search_create_button', 'file')
+            analytics_event('project_file_listing', 'search_create_button', 'file')
 
     render: ->
         <SplitButton
