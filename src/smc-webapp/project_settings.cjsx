@@ -28,6 +28,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
+{analytics_event}       = require('./tracker')
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 {required, defaults}    = misc
@@ -434,9 +435,18 @@ HideDeletePanel = rclass
     toggle_delete_project: ->
         @actions('projects').toggle_delete_project(@props.project.get('project_id'))
         @hide_delete_conf()
+        if @props.project.get('deleted')
+            analytics_event('project_settings', 'undelete project')
+        else
+            analytics_event('project_settings', 'delete project')
 
     toggle_hide_project: ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
+        user = @props.project.getIn(['users', webapp_client.account_id])
+        if user.get('hide')
+            analytics_event('project_settings', 'unhide project')
+        else
+            analytics_event('project_settings', 'hide project')
 
     # account_id : String
     # project    : immutable.Map
