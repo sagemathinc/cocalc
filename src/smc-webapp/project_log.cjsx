@@ -214,6 +214,10 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
+    render_x11: ->
+        return if not @props.event.action == 'launch'
+        <span>launched X11 app <code>{@props.event.command}</code> in {@file_link(@props.event.path, true, 0)}</span>
+
     render_library: ->
         return if not @props.event.target?
         <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
@@ -302,6 +306,8 @@ LogEntry = rclass
                 return @render_library()
             when 'assistant'
                 return @render_assistant()
+            when 'x11'
+                return @render_x11()
             # ignore unknown -- would just look mangled to user...
             #else
             # FUTURE:
