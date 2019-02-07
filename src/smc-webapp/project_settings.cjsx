@@ -664,9 +664,11 @@ ProjectControlPanel = rclass
 
     restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
+        analytics_event('project_settings', 'restart project')
 
     stop_project: ->
         @actions('projects').stop_project(@props.project.get('project_id'))
+        analytics_event('project_settings', 'stop project')
 
     render_confirm_restart: ->
         if @state.restart
@@ -768,6 +770,7 @@ ProjectControlPanel = rclass
         )
         new_image = @state.compute_image
         actions = redux.getProjectActions(@props.project.get('project_id'))
+        analytics_event('project_settings', 'change compute image')
         try
             await actions.set_compute_image(new_image)
             @restart_project()
@@ -897,11 +900,13 @@ SSHPanel = rclass
     add_ssh_key: (opts) ->
         opts.project_id = @props.project.get('project_id')
         @actions('projects').add_ssh_key_to_project(opts)
+        analytics_event('project_settings', 'add project ssh key')
 
     delete_ssh_key: (fingerprint) ->
         @actions('projects').delete_ssh_key_from_project
             fingerprint : fingerprint
             project_id  : @props.project.get('project_id')
+        analytics_event('project_settings', 'remove project ssh key')
 
     render_ssh_notice: ->
         user = misc.replace_all(@props.project.get('project_id'), '-', '')
@@ -1006,7 +1011,7 @@ ProjectSettingsBody = rclass ({name}) ->
                 </Col>
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
-                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} />
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />

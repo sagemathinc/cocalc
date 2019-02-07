@@ -85,6 +85,7 @@ interface AddCollaboratorsPanelState {
   email_to: string;
   email_body: string;
   is_editing_email: boolean;
+  on_invite?: () => void;
 }
 
 class AddCollaboratorsPanel0 extends Component<
@@ -439,6 +440,9 @@ ${name}
           replyto_name
         );
     });
+    if (this.props.on_invite) {
+      this.props.on_invite();
+    }
     this.reset();
   };
 
