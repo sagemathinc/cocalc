@@ -88,6 +88,7 @@ LogSearch = rclass
 
     render: ->
         <SearchInput
+            ref         = {"box"}
             autoFocus   = {true}
             autoSelect  = {true}
             placeholder = 'Search log...'
@@ -579,6 +580,10 @@ exports.ProjectLog = rclass ({name}) ->
             Load older log entries
         </Button>
 
+    focus_search_box: ->
+        input = @refs.search.refs.box.refs.input
+        ReactDOM.findDOMNode(input).focus()
+
     render_log_panel: ->
         # get visible log
         log = @visible_log()
@@ -594,10 +599,11 @@ exports.ProjectLog = rclass ({name}) ->
             cursor = undefined
             selected = undefined
 
-        <Panel>
+        <Panel onClick={@focus_search_box}>
             <Row>
                 <Col sm={4}>
                     <LogSearch
+                        ref              = {"search"}
                         actions          = {@actions(name)}
                         search           = {@props.search}
                         selected         = {selected}
