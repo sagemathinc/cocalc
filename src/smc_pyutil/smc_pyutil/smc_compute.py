@@ -265,7 +265,6 @@ class Project(object):
             self.dev_env()
             os.chdir(self.project_path)
             self.cmd("smc-local-hub stop")
-            self.cmd("smc-console-server stop")
             self.cmd("smc-sage-server stop")
             return
 
@@ -469,6 +468,16 @@ class Project(object):
 
         os.environ['SMC_BASE_URL'] = base_url
 
+        if ephemeral_state:
+            os.environ['COCALC_EPHEMERAL_STATE'] = 'yes'
+        elif 'COCALC_EPHEMERAL_STATE' in os.environ:
+            del os.environ['COCALC_EPHEMERAL_STATE']
+
+        if ephemeral_disk:
+            os.environ['COCALC_EPHEMERAL_DISK'] = 'yes'
+        elif 'COCALC_EPHEMERAL_DISK' in os.environ:
+            del os.environ['COCALC_EPHEMERAL_DISK']
+
         # When running CoCalc inside of CoCalc, this env variable
         # could cause trouble, e.g., confusing the sagews server.
         if 'COCALC_SECRET_TOKEN' in os.environ:
@@ -540,7 +549,7 @@ class Project(object):
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
 
-    def stop(self, ephemeral_disk):
+    def stop(self, ephemeral_state, ephemeral_disk):
         self.killall()
         self.delete_user()
         self.remove_smc_path()
@@ -1227,6 +1236,12 @@ def main():
     # kill all processes and delete unix user.
     parser_stop = subparsers.add_parser(
         'stop', help='kill all processes and delete user')
+    parser_stop.add_argument(
+        "--ephemeral_state",
+        help="mainly so options are the same as for start and restart",
+        default=False,
+        action="store_const",
+        const=True)
     parser_stop.add_argument(
         "--ephemeral_disk",
         help="also be sure to delete any files left around by project",

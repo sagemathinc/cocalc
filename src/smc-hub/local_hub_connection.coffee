@@ -26,6 +26,8 @@ Connection to a Project (="local hub", for historical reasons only.)
 ###
 
 async   = require('async')
+{callback2} = require('smc-util/async-utils')
+
 uuid    = require('node-uuid')
 winston = require('winston')
 underscore = require('underscore')
@@ -238,8 +240,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     # do nothing
             delete @_sockets_by_client_id[client_id]
 
+    # async
     init_ephemeral: () =>
-        @_ephemeral = await @database.get_project_ephemeral_info(@project_id)
+        settings = await callback2(@database.get_project_settings, {project_id:@project_id})
+        @_ephemeral = misc.copy_with(settings, ['ephemeral_disk', 'ephemeral_state'])
         @dbg("init_ephemeral -- #{JSON.stringify(@_ephemeral)}")
         # cache for 60s
         @_ephemeral_timeout = setTimeout((() => delete @_ephemeral), 60000)

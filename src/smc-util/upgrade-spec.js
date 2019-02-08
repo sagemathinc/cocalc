@@ -45,7 +45,9 @@ exports.DEFAULT_QUOTAS = {
   memory_request: 0,
   mintime: 1800, // 30 minutes
   network: 0,
-  member_host: 0
+  member_host: 0,
+  ephemeral_state: 0,
+  ephemeral_disk: 0
 };
 
 upgrades.max_per_project = {
