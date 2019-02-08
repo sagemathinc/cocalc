@@ -17,7 +17,10 @@ import { once } from "../smc-util/async-utils";
 import { filename_extension } from "../smc-util/misc2";
 import { jupyter_backend } from "../jupyter/jupyter";
 
-const syncdocs : {[path:string] : SyncDoc}= {};
+const COCALC_EPHEMERAL_STATE: boolean =
+  process.env.COCALC_EPHEMERAL_STATE === "yes";
+
+const syncdocs: { [path: string]: SyncDoc } = {};
 
 export function init_syncdoc(
   client: Client,
@@ -37,7 +40,7 @@ export function init_syncdoc(
 // If there is an already existing syncdoc for this path,
 // return it; otherwise, return undefined.  This is useful
 // for getting a reference to a syncdoc, e.g., for prettier.
-export function get_syncdoc(path: string) : SyncDoc | undefined {
+export function get_syncdoc(path: string): SyncDoc | undefined {
   return syncdocs[path];
 }
 
@@ -123,7 +126,7 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
   if (typeof path != "string") {
     throw Error("path must be a string");
   }
-  let opts = { path };
+  let opts = { path, ephemeral: COCALC_EPHEMERAL_STATE };
   let type: string = "";
 
   let doctype = s.get("doctype");
@@ -158,7 +161,6 @@ function create_syncdoc(type, opts): SyncDoc {
   }
 }
 
-
 export async function syncdoc_call(
   path: string,
   logger: any,
@@ -180,4 +182,3 @@ export async function syncdoc_call(
       throw Error(`unknown command ${mesg.cmd}`);
   }
 }
-

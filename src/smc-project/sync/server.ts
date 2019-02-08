@@ -54,6 +54,9 @@ interface Logger {
 import * as stringify from "fast-json-stable-stringify";
 const { sha1 } = require("smc-util-node/misc_node");
 
+const COCALC_EPHEMERAL_STATE: boolean =
+  process.env.COCALC_EPHEMERAL_STATE === "yes";
+
 class SyncTableChannel {
   private synctable: SyncTable;
   private client: Client;
@@ -99,6 +102,12 @@ class SyncTableChannel {
     this.logger = logger;
     this.query = query;
     this.init_options(options);
+    if (COCALC_EPHEMERAL_STATE) {
+      // No matter what, we set ephemeral true when
+      // this env var is set, since all db access
+      // will be denied anyways.
+      this.ephemeral = true;
+    }
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
