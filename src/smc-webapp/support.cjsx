@@ -391,33 +391,32 @@ SupportInfo = rclass
             <h2 style={marginTop:'-5px'}>Frequent questions</h2>
             <ul>
                 <li>
-                    <b>Looking for documentation and help?</b> Go to
-                    the <a href="#{SmcWikiUrl}" target="_blank" rel="noopener">CoCalc documentation</a>.
+                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b>Looking for documentation and help?</b></a>
                 </li>
                 <li>
-                    <b>Trying to sign out?</b>  Click on Account on the top right, then click
-                    "Sign out..." in Preferences.
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Subscription does not work?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Bought a subscription but it does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">File or project seems gone?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">Files or project seem gone?</a>
-                </li>
-                <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is very slow or will not run?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is slow or will not run?</a>
                 </li>
                 <li>
                     <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Have a question about how to use Sage?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Questions about how to use Sage?</a>
                 </li>
                 <li>
                     <b>Requesting that we install software?</b> Fill out the form below...
                 </li>
                 <li>
                     <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
+                </li>
+                <li>
+                    <b>Just trying to sign out?</b>  Click on Account on the top right, then click
+                    "Sign out..." in Preferences.
                 </li>
             </ul>
 
