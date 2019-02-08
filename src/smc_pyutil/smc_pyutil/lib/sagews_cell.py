@@ -19,7 +19,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
-
 """
 This script converts a .m GNU Octave file to an SMC sagews file.
 It relies on the sagews built-in mode `%octave` to instantiate a communication bridge
@@ -35,8 +34,8 @@ from ansi2html import Ansi2HTMLConverter
 
 from smc_pyutil.sws2sagews import MARKERS, uuid
 
-class SagewsCell(object):
 
+class SagewsCell(object):
     '''
     Create unicode string corresponding to cell in a sage worksheet, including input/output
     marker and uuid.
@@ -149,14 +148,17 @@ class SagewsCell(object):
                 # mangle type of output to html
                 type = 'html'
             cell += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                     json.dumps({type: output, 'done': True}) + MARKERS['output']) + u'\n'
+                     json.dumps({
+                         type: output,
+                         'done': True
+                     }) + MARKERS['output']) + u'\n'
             return cell
 
         # depending on the typed arguments, construct the sagews cell
         if html:
-            cell = mkcell(input=input, output = html, type='html', modes='')
+            cell = mkcell(input=input, output=html, type='html', modes='')
         elif md:
-            cell = mkcell(input=md, type = 'md', modes='i')
+            cell = mkcell(input=md, type='md', modes='i')
         elif error:
             cell = mkcell(input=input, output=error, type='err')
         elif ascii:

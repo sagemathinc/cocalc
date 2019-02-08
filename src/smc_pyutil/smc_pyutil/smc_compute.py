@@ -252,8 +252,8 @@ class Project(object):
     def pids(self):
         return [
             int(x)
-            for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True)
-            .replace('ERROR', '').split()
+            for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).
+            replace('ERROR', '').split()
         ]
 
     def num_procs(self):
@@ -276,15 +276,14 @@ class Project(object):
             log("kill attempt left %s procs" % n)
             if n == 0:
                 return
-            self.cmd(
-                ['/usr/bin/killall', '-u', self.username], ignore_errors=True)
+            self.cmd(['/usr/bin/killall', '-u', self.username],
+                     ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-u', self.uid], ignore_errors=True)
             time.sleep(grace_s)
-            self.cmd(
-                ['/usr/bin/killall', '-9', '-u', self.username],
-                ignore_errors=True)
-            self.cmd(
-                ['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
+            self.cmd(['/usr/bin/killall', '-9', '-u', self.username],
+                     ignore_errors=True)
+            self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid],
+                     ignore_errors=True)
         log("WARNING: failed to kill all procs after %s tries" % max_tries)
 
     def chown(self, path, recursive=True):
@@ -455,7 +454,8 @@ class Project(object):
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
-    def start(self, cores, memory, cpu_shares, base_url, ephemeral_state, ephemeral_disk):
+    def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+              ephemeral_disk):
         self.remove_smc_path(
         )  # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.ensure_bashrc()
@@ -549,12 +549,14 @@ class Project(object):
         # TODO: If ephemeral_disk is true, also delete
         # home directory of project
 
-    def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state, ephemeral_disk):
+    def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
+                ephemeral_disk):
         log = self._log("restart")
         log("first stop")
         self.stop()
         log("then start")
-        self.start(cores, memory, cpu_shares, base_url, ephemeral_state, ephemeral_disk)
+        self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
+                   ephemeral_disk)
 
     def get_memory(self, s):
         return 0  # no longer supported
@@ -601,10 +603,9 @@ class Project(object):
 
         try:
             # ignore_errors since if over quota returns nonzero exit code
-            v = self.cmd(
-                ['quota', '-v', '-u', self.username],
-                verbose=0,
-                ignore_errors=True).splitlines()
+            v = self.cmd(['quota', '-v', '-u', self.username],
+                         verbose=0,
+                         ignore_errors=True).splitlines()
             quotas = v[-1]
             # when the user's quota is exceeded, the last column is "ERROR"
             if quotas == "ERROR":
@@ -1148,13 +1149,15 @@ def main():
         default='')
     parser_start.add_argument(
         "--ephemeral_state",
-        help="sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
         default=False,
         action="store_const",
         const=True)
     parser_start.add_argument(
         "--ephemeral_disk",
-        help="sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
         default=False,
         action="store_const",
         const=True)
@@ -1257,13 +1260,15 @@ def main():
         default='')
     parser_restart.add_argument(
         "--ephemeral_state",
-        help="sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
         default=False,
         action="store_const",
         const=True)
     parser_restart.add_argument(
         "--ephemeral_disk",
-        help="sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
+        help=
+        "sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
         default=False,
         action="store_const",
         const=True)

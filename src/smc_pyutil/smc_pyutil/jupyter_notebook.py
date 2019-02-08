@@ -39,7 +39,8 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print "Usage: %s [start/stop/status] normal Jupyter notebook options..." % sys.argv[0]
+        print "Usage: %s [start/stop/status] normal Jupyter notebook options..." % sys.argv[
+            0]
         print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
         sys.exit(1)
 
