@@ -450,11 +450,12 @@ class Project(object):
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
 
-        # for development, the raw server, jupyter, etc., have to listen on localhost since that is where
+        # for development, the raw server, jupyter, etc., have
+        # to listen on localhost since that is where
         # the hub is running
         os.environ['SMC_PROXY_HOST'] = 'localhost'
 
-    def start(self, cores, memory, cpu_shares, base_url):
+    def start(self, cores, memory, cpu_shares, base_url, ephemeral_state, ephemeral_disk):
         self.remove_smc_path(
         )  # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
         self.ensure_bashrc()
@@ -539,19 +540,21 @@ class Project(object):
             os.waitpid(pid, 0)
             self.compute_quota(cores, memory, cpu_shares)
 
-    def stop(self):
+    def stop(self, ephemeral_disk):
         self.killall()
         self.delete_user()
         self.remove_smc_path()
         self.remove_forever_path()
         self.remove_snapshots_path()
+        # TODO: If ephemeral_disk is true, also delete
+        # home directory of project
 
-    def restart(self, cores, memory, cpu_shares, base_url):
+    def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state, ephemeral_disk):
         log = self._log("restart")
         log("first stop")
         self.stop()
         log("then start")
-        self.start(cores, memory, cpu_shares, base_url)
+        self.start(cores, memory, cpu_shares, base_url, ephemeral_state, ephemeral_disk)
 
     def get_memory(self, s):
         return 0  # no longer supported
@@ -823,8 +826,6 @@ class Project(object):
         filename = os.path.split(abspath)[-1]
         if os.path.isfile(abspath):
             # a regular file
-            # TODO: compress the file before base64 encoding (and corresponding decompress
-            # in hub before sending to client)
             size = os.lstat(abspath).st_size
             if size > maxsize:
                 raise RuntimeError(
@@ -1145,6 +1146,18 @@ def main():
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
         type=str,
         default='')
+    parser_start.add_argument(
+        "--ephemeral_state",
+        help="sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
+        default=False,
+        action="store_const",
+        const=True)
+    parser_start.add_argument(
+        "--ephemeral_disk",
+        help="sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
+        default=False,
+        action="store_const",
+        const=True)
     f(parser_start)
 
     parser_status = subparsers.add_parser(
@@ -1209,7 +1222,15 @@ def main():
     f(parser_killall)
 
     # kill all processes and delete unix user.
-    f(subparsers.add_parser('stop', help='kill all processes and delete user'))
+    parser_stop = subparsers.add_parser(
+        'stop', help='kill all processes and delete user')
+    parser_stop.add_argument(
+        "--ephemeral_disk",
+        help="also be sure to delete any files left around by project",
+        default=False,
+        action="store_const",
+        const=True)
+    f(parser_stop)
 
     parser_restart = subparsers.add_parser(
         'restart', help='stop then start project')
@@ -1234,6 +1255,18 @@ def main():
         "passed on to local hub server so it can properly launch raw server, jupyter, etc.",
         type=str,
         default='')
+    parser_restart.add_argument(
+        "--ephemeral_state",
+        help="sets the environment variable COCALC_EPHEMERAL_STATE so the project is aware that it can't make database queries",
+        default=False,
+        action="store_const",
+        const=True)
+    parser_restart.add_argument(
+        "--ephemeral_disk",
+        help="sets the environment variable COCALC_EPHEMERAL_DISK so the project is aware that the disk is ephemeral",
+        default=False,
+        action="store_const",
+        const=True)
     f(parser_restart)
 
     # directory listing

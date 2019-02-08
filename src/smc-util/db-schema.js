@@ -1109,6 +1109,14 @@ schema.projects = {
       desc:
         "If given and nonzero, project will be killed if it is idle for this many **minutes**, where idle *means* that last_edited has not been updated."
     },
+    ephemeral_state : {
+      type: "boolean",
+      desc: "If true, do not allow project to write any changes to the database."
+    },
+    ephemeral_disk : {
+      type: "boolean",
+      desc: "If true, all disk is ephemeral and vanishes any time the project stops."
+    },
     run_quota: {
       type: "map",
       desc: "If project is running, this is the quota that it is running with."
@@ -1155,7 +1163,9 @@ schema.projects = {
         action_request: null, // last requested action -- {action:?, time:?, started:?, finished:?, err:?}
         course: null,
         compute_image: exports.DEFAULT_COMPUTE_IMAGE,
-        addons: null
+        addons: null,
+        ephemeral_state: null,
+        ephemeral_disk: null
       }
     },
     set: {

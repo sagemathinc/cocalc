@@ -13,6 +13,8 @@ MAP_LIMIT = 5
 
 async   = require('async')
 
+{callback2} = require('smc-util/async-utils')
+
 random_key = require("random-key")
 
 misc_node = require('smc-util-node/misc_node')
@@ -1654,6 +1656,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             query : "SELECT #{column} FROM projects"
             where : 'project_id :: UUID = $' : project_id
             cb    : one_result(column, cb)
+
+    # async
+    get_project_ephemeral_info: (project_id) =>
+        return await callback2(@get_project, {project_id:project_id, columns:['ephemeral_state', 'ephemeral_disk']})
 
     add_user_to_project: (opts) =>
         opts = defaults opts,
