@@ -562,7 +562,7 @@ class Project(object):
                 ephemeral_disk):
         log = self._log("restart")
         log("first stop")
-        self.stop()
+        self.stop(ephemeral_state, ephemeral_disk)
         log("then start")
         self.start(cores, memory, cpu_shares, base_url, ephemeral_state,
                    ephemeral_disk)
