@@ -110,11 +110,11 @@ exports.NavTab = rclass
         if @props.name?
             @actions('page').set_active_tab(@props.name)
             if @props.is_project
-                analytics_event('topNav', 'opened_a_project');
+                analytics_event('top_nav', 'opened_a_project');
             else
-                analytics_event('topNav', @props.name)
+                analytics_event('top_nav', @props.name)
         else if @props.label?
-            analytics_event('topNav', @props.label)
+            analytics_event('top_nav', @props.label)
         @props.on_click?()
 
     render: ->

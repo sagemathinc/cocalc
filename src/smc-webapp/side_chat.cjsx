@@ -403,8 +403,13 @@ ChatRoom = rclass ({name}) ->
             @props.actions.set_input('')
         else if e.keyCode == 13 and e.shiftKey # shift + enter
             @button_send_chat(e)
+            analytics_event('side_chat', 'send_chat', 'keyboard')
         else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
+
+    on_send_click: (e) ->
+        @button_send_chat(e)
+        analytics_event('side_chat', 'send_chat', 'click')
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, @props.input, @props.actions)
@@ -529,7 +534,7 @@ ChatRoom = rclass ({name}) ->
                     />
                     <Button
                         style    = {width:'15%', height:'100%'}
-                        onClick  = {@button_send_chat}
+                        onClick  = {@on_send_click}
                         disabled = {@props.input==''}
                         bsStyle  = 'success' >
                         <Icon name='chevron-circle-right'/>

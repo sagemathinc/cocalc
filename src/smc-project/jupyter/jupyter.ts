@@ -237,13 +237,16 @@ export class JupyterKernel extends EventEmitter
     dbg("spawning kernel...");
 
     const opts: any = { detached: true, stdio: "ignore" };
-    if (this.name.indexOf("sage")) {
-      // special environment for sage-based kernels
+
+    if (this.name.indexOf("sage") == 0) {
+      dbg("setting special environment for sage.* kernels");
       opts.env = SAGE_JUPYTER_ENV;
     }
+
     if (this._directory !== "") {
       opts.cwd = this._directory;
     }
+
     try {
       dbg("launching kernel interface...");
       this._kernel = await require("spawnteract").launch(this.name, opts);
