@@ -23,8 +23,10 @@ $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
+{analytics_event} = require('./tracker')
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
+{once} = require('smc-util/async-utils')
 
 misc = require('smc-util/misc')
 {required, defaults} = misc
@@ -34,11 +36,15 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+{ reuseInFlight } = require("async-await-utils/hof");
+
+{UpgradeStatus} = require('./upgrades/status')
 
 ###
 TODO:  This entire file should be broken into many small files/components,
@@ -217,15 +223,18 @@ class ProjectsActions extends Actions
         webapp_client.create_project(opts)
 
     # Open the given project
-    #TODOJ: should not be in projects...
-    # J3: Maybe should be in Page actions? I don't see the upside.
     open_project: (opts) =>
         opts = defaults opts,
-            project_id     : required  # string  id of the project to open
-            target         : undefined # string  The file path to open
-            switch_to      : true      # bool    Whether or not to foreground it
-            ignore_kiosk   : false     # bool    Ignore ?fullscreen=kiosk
-            change_history : true      # bool    Whether or not to alter browser history
+            project_id      : required  # string  id of the project to open
+            target          : undefined # string  The file path to open
+            switch_to       : true      # bool    Whether or not to foreground it
+            ignore_kiosk    : false     # bool    Ignore ?fullscreen=kiosk
+            change_history  : true      # bool    Whether or not to alter browser history
+            restore_session : true      # bool    Open's up previously closed editor tabs (false iff restoring full session)
+        if not store.get_project(opts.project_id)?
+            # trying to open a not-known project -- maybe
+            # we have not yet loaded the full project list?
+            await @load_all_projects()
         project_store = redux.getProjectStore(opts.project_id)
         project_actions = redux.getProjectActions(opts.project_id)
         relation = redux.getStore('projects').get_my_group(opts.project_id)
@@ -236,7 +245,8 @@ class ProjectsActions extends Actions
         @set_project_open(opts.project_id)
         if opts.target?
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
-        redux.getActions('page').restore_session(opts.project_id)
+        if opts.restore_session
+            redux.getActions('page').restore_session(opts.project_id)
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
         project_actions.init_library()
@@ -273,6 +283,7 @@ class ProjectsActions extends Actions
                 switch_to      : switch_to
                 ignore_kiosk   : ignore_kiosk
                 change_history : change_history
+                restore_session: false
 
     # Put the given project in the foreground
     foreground_project: (project_id, change_history=true) =>
@@ -434,7 +445,7 @@ class ProjectsActions extends Actions
         if not merge
             # explicitly set every field not specified to 0
             upgrades = misc.copy(upgrades)
-            for quota,val of require('smc-util/schema').DEFAULT_QUOTAS
+            for quota, val of require('smc-util/schema').DEFAULT_QUOTAS
                 upgrades[quota] ?= 0
         @projects_table_set
             project_id : project_id
@@ -517,6 +528,12 @@ class ProjectsActions extends Actions
     display_deleted_projects: (should_display) =>
         @setState(deleted: should_display)
 
+    load_all_projects: => # async
+        if store.get('load_all_projects_done')
+            return
+        await load_all_projects()  # function defined below
+        @setState(load_all_projects_done : true)
+
 # Define projects store
 class ProjectsStore extends Store
     get_project: (project_id) =>
@@ -582,6 +599,8 @@ class ProjectsStore extends Store
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
+            if pay == true  # bug -- can delete this workaround in March 2019.
+                pay = new Date('2019-02-15')
             if pay
                 if webapp_client.server_time() >= misc.months_before(-3, pay)
                     # It's 3 months after date when sign up required, so course likely over,
@@ -814,7 +833,35 @@ class ProjectsTable extends Table
     _change: (table, keys) =>
         actions.setState(project_map: table.get())
 
-redux.createTable('projects', ProjectsTable)
+class ProjectsAllTable extends Table
+    query: ->
+        return 'projects_all'
+    _change: (table, keys) =>
+        actions.setState(project_map: table.get())
+
+# We define functions below that load all projects or just the recent
+# ones.  First we try loading the recent ones.  If this is *empty*,
+# then we try loading all projects.  Loading all projects is also automatically
+# called if there is any attempt to open a project that isn't recent.
+# Why? Because the load_all_projects query is potentially **expensive**.
+
+all_projects_have_been_loaded = false
+load_all_projects = reuseInFlight =>
+    if all_projects_have_been_loaded
+        return
+    all_projects_have_been_loaded = true
+    redux.removeTable('projects')
+    redux.createTable('projects', ProjectsAllTable)
+    await once(redux.getTable('projects')._table, 'connected')
+
+load_recent_projects = =>
+    redux.createTable('projects', ProjectsTable)
+    await once(redux.getTable('projects')._table, "connected")
+    if redux.getTable('projects')._table.get().size == 0
+        await load_all_projects()
+
+load_recent_projects()
+
 
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
@@ -826,16 +873,25 @@ ProjectsSearch = rclass
         search             : ''
         open_first_project : undefined
 
+    getInitialState: ->
+        search : @props.search
+
     clear_and_focus_search_input: ->
         @refs.projects_search.clear_and_focus_search_input()
+
+    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 300)
+
+    set_search: (value) ->
+        @setState(search:value)
+        @debounce_set_search(value)
 
     render: ->
         <SearchInput
             ref         = 'projects_search'
             autoFocus   = {true}
-            value       = {@props.search}
+            value       = {@state.search}
+            on_change   = {@set_search}
             placeholder = 'Search for projects...'
-            on_change   = {(value)=>@actions('projects').setState(search: value)}
             on_submit   = {(_, opts)=>@props.open_first_project(not opts.ctrl_down)}
         />
 
@@ -850,16 +906,21 @@ HashtagGroup = rclass
     getDefaultProps: ->
         selected_hashtags : {}
 
+    handle_tag_click: (tag) ->
+        return (e) =>
+            @props.toggle_hashtag(tag)
+            analytics_event('projects_page', 'clicked_hashtag', tag)
+
     render_hashtag: (tag) ->
         color = 'info'
         if @props.selected_hashtags and @props.selected_hashtags[tag]
             color = 'warning'
-        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize='small' bsStyle={color}>
+        <Button key={tag} onClick={this.handle_tag_click(tag)} bsSize='small' bsStyle={color}>
             {misc.trunc(tag, 60)}
         </Button>
 
     render: ->
-        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden'}>
+        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden',     border: '1px solid lightgrey', padding: '5px', background: '#fafafa', borderRadius: '5px'}>
             {@render_hashtag(tag) for tag in @props.hashtags}
         </ButtonGroup>
 
@@ -1171,6 +1232,7 @@ exports.ProjectsPage = ProjectsPage = rclass
             search            : rtypes.string
             selected_hashtags : rtypes.object
             show_all          : rtypes.bool
+            load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
 
@@ -1283,6 +1345,7 @@ exports.ProjectsPage = ProjectsPage = rclass
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
+
     toggle_hashtag: (tag) ->
         selected_hashtags = @props.selected_hashtags
         filter = @filter()
@@ -1373,8 +1436,14 @@ exports.ProjectsPage = ProjectsPage = rclass
                     </Row>
                     <Row>
                         <Col sm={12} style={marginTop:'1ex'}>
+                            <VisibleMDLG>
+                                <div style={maxWidth:'50%', float:'right'}>
+                                    <UpgradeStatus />
+                                </div>
+                            </VisibleMDLG>
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
+                                default_value={@props.search}
                                 />
                         </Col>
                     </Row>
@@ -1400,10 +1469,50 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 redux       = {redux} />
                         </Col>
                     </Row>
+                    <Row>
+                        <Col sm={12}>
+                            <LoadAllProjects
+                                done = {@props.load_all_projects_done}
+                                redux = {redux} />
+                        </Col>
+                    </Row>
                 </Well>
             </Grid>
             <Footer/>
         </div>
+
+LoadAllProjects = rclass
+    displayName: "LoadAllProjects"
+
+    propTypes:
+        done  : rtypes.bool
+        redux : rtypes.object
+
+    load: ->
+        @setState(loading : true)
+        await @props.redux.getActions('projects').load_all_projects()
+        @setState(loading : false)
+
+    render_loading: ->
+        if this.state?.loading
+            return <Loading />
+
+    render_button: ->
+        <Button
+            onClick={@load}
+            bsStyle='info'
+            bsSize='large'>
+            {@render_loading()}
+            Load projects older than 3 weeks...
+        </Button>
+
+    render: ->
+        if @props.done
+            return <span />
+        <div style={marginTop:'20px'}>
+            {@render_button()}
+        </div>
+
 
 exports.ProjectTitle = ProjectTitle = rclass
     displayName: 'Projects-ProjectTitle'

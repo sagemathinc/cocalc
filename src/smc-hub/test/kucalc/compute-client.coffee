@@ -27,7 +27,7 @@ wait = (project, cb) ->
             cb = undefined
 
 describe 'creating compute client -- ', ->
-    @timeout(10000)
+    @timeout(30000) # could be stuck in precompiling typescript
     before(setup)
     after(teardown)
 

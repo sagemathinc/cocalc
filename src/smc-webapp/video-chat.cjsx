@@ -24,6 +24,7 @@ misc          = require('smc-util/misc')
 {Button}      = require('react-bootstrap')
 {sha1}        = require('smc-util/schema').client_db
 {server_time} = require('./webapp_client').webapp_client
+{analytics_event} = require('./tracker')
 
 {alert_message} = require('./alerts')
 
@@ -154,8 +155,10 @@ exports.VideoChatButton = rclass
     click_video_button: ->
         if @video_chat.we_are_chatting()    # we are chatting, so stop chatting
             @video_chat.stop_chatting()
+            analytics_event('side_chat', 'stop_video')
         else
             @video_chat.start_chatting()    # not chatting, so start
+            analytics_event('side_chat', 'start_video')
 
     render_num_chatting: (num_users_chatting) ->
         if num_users_chatting > 0

@@ -403,8 +403,13 @@ ChatRoom = rclass ({name}) ->
             @props.actions.set_input('')
         else if e.keyCode == 13 and e.shiftKey # shift + enter
             @button_send_chat(e)
+            analytics_event('side_chat', 'send_chat', 'keyboard')
         else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
+
+    on_send_click: (e) ->
+        @button_send_chat(e)
+        analytics_event('side_chat', 'send_chat', 'click')
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, @props.input, @props.actions)
@@ -435,7 +440,7 @@ ChatRoom = rclass ({name}) ->
         else
             icon = <Icon name='caret-right'/>
         <div
-            style   = {fontSize:'15pt', width:'16px', display:'inline-block', cursor:'pointer'}
+            style   = {width:'16px', display:'inline-block', cursor:'pointer'}
         >
             {icon}
         </div>
@@ -479,7 +484,7 @@ ChatRoom = rclass ({name}) ->
         </div>
 
     render_project_users: ->
-        <div style={margin:'5px 15px'}>
+        <div style={margin:'5px 15px', maxHeight: '20%', overflow: 'auto', borderBottom: '1px solid lightgrey'}>
             {@render_collab_list()}
             {@render_add_collab()}
         </div>
@@ -529,14 +534,14 @@ ChatRoom = rclass ({name}) ->
                     />
                     <Button
                         style    = {width:'15%', height:'100%'}
-                        onClick  = {@button_send_chat}
+                        onClick  = {@on_send_click}
                         disabled = {@props.input==''}
                         bsStyle  = 'success' >
                         <Icon name='chevron-circle-right'/>
                     </Button>
                 </div>
                 <div style={color:"#888", padding:'5px'}>
-                    Shift+enter to send. Double click to edit. Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank'>LaTeX</a>.
+                    Shift+enter to send. Double click to edit. Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank' rel='noopener'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank' rel='noopener'>LaTeX</a>.
                 </div>
             </div>
         </div>

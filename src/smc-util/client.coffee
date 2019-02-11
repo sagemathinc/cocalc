@@ -282,11 +282,14 @@ class exports.Connection extends EventEmitter
                 @emit("data", channel, data)
         @_connected = false
 
-        # start pinging -- not used/needed for primus, but *is* needed for getting information about server_time
-        # In particular, this ping time is not reported to the user and is not used as a keep-alive, hence it
-        # can be fairly long.
-        @_ping_interval = 60000
-        @_ping()
+        # start pinging -- not used/needed for primus,
+        # but *is* needed for getting information about
+        # server_time skew and showing ping time
+        # to user.
+        @_ping_interval = 30000
+        # Starting pinging a few seconds after connecting the first time,
+        # after things have settled down a little (to not throw off ping time).
+        @once("connected", => setTimeout(@_ping, 5000))
 
     dbg: (f) =>
         return (m...) ->
@@ -300,26 +303,49 @@ class exports.Connection extends EventEmitter
             console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
 
     _ping: () =>
-        @_ping_interval ?= 60000 # frequency to ping
-        @_last_ping = new Date()
+        @_ping_interval ?= 30000 # frequency to ping
+        start = @_last_ping = new Date()
         @call
             allow_post : false
             message    : message.ping()
-            timeout    : 15     # CRITICAL that this timeout be less than the @_ping_interval
+            timeout    : 10     # CRITICAL that this timeout be less than the @_ping_interval
             cb         : (err, pong) =>
-                if not err
-                    now = new Date()
-                    # Only record something if success, got a pong, and the round trip is short!
-                    # If user messes with their clock during a ping and we don't do this, then
-                    # bad things will happen.
-                    if pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                        @_last_pong = {server:pong.now, local:now}
-                        # See the function server_time below; subtract @_clock_skew from local time to get a better
-                        # estimate for server time.
-                        @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                        misc.set_local_storage('clock_skew', @_clock_skew)
+                # console.log("response to ping message", err, pong)
+                if err
+                    # try again **sooner**
+                    setTimeout(@_ping, @_ping_interval/2)
+                    return
+                now = new Date()
+                # Only record something if success, got a pong, and the round trip is short!
+                # If user messes with their clock during a ping and we don't do this, then
+                # bad things will happen.
+                if pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                    @_last_pong = {server:pong.now, local:now}
+                    # See the function server_time below; subtract @_clock_skew from local time to get a better
+                    # estimate for server time.
+                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                    misc.set_local_storage('clock_skew', @_clock_skew)
+
+                this._emit_latency(now.valueOf() - start.valueOf(), @_clock_skew)
+
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
+
+    _emit_latency: (latency, clock_skew) =>
+        # console.log("_emit_latency", latency, clock_skew)
+        if not window?.document?.hasFocus?()
+            # console.log("latency: not in focus")
+            return
+        # networking/pinging slows down when browser not in focus...
+        if latency > 10000
+            # console.log("latency: discarding huge latency", latency)
+            # We get some ridiculous values from Primus when the browser
+            # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+            # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+            # numbers displayed in the browser.
+            return
+        @emit("ping", latency, clock_skew)
+
 
     # Returns (approximate) time in ms since epoch on the server.
     # NOTE:
@@ -1937,8 +1963,10 @@ class exports.Connection extends EventEmitter
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if not opts.changes and $?.post? and @_enable_post
+        if @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
+            # (NOTE: signed_in required because POST fails everything when
+            # user is not signed in.)
             @_post_query
                 query   : opts.query
                 options : opts.options
@@ -1947,7 +1975,12 @@ class exports.Connection extends EventEmitter
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
-                    console.warn("query err and is standby; try again without standby.")
+                    # Note, right when signing in this can fail, since
+                    # sign_in = got websocket sign in mesg, which is NOT
+                    # the same thing as setting up cookies. For security
+                    # reasons it is difficult to know exactly when the
+                    # remember-me cookie has been set.
+                    console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
                     opts.standby = false
                     @query(opts)
             return
@@ -2035,6 +2068,19 @@ class exports.Connection extends EventEmitter
             message     : message.disconnect_from_project(project_id: opts.project_id)
             error_event : true
             cb          : opts.cb
+
+
+    get_user_auth_token: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+
+        @call
+            allow_post  : false
+            message     : message.user_auth(account_id:opts.account_id, password:'')
+            error_event : true
+            cb          : opts.cb
+
 
 #################################################
 # Other account Management functionality shared between client and server

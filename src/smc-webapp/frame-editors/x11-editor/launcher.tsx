@@ -164,6 +164,12 @@ const APPS: IAPPS = {
     command: "idea.sh",
     icon: "lightbulb"
   },
+  sqlitebrowser: {
+    label: "SQLite",
+    desc:
+      "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
+    icon: "database"
+  },
   avogadro: {
     label: "Avogadro",
     desc:
@@ -206,6 +212,17 @@ const APPS: IAPPS = {
     label: "System Monitor",
     desc:
       "Shows you what programs are running and how much processor time, memory, and disk space are being used."
+  },
+  gedit: {
+    icon: "edit",
+    label: "Gedit",
+    desc: "The GNOME text editor"
+  },
+  cadabra2: {
+    command: "cadabra2-gtk",
+    icon: "square-root-alt",
+    label: "Cadabra 2",
+    desc: "A field-theory motivated approach to computer algebra"
   }
 };
 

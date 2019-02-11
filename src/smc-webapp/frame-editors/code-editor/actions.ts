@@ -5,8 +5,7 @@ Code Editor Actions
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
-  "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
-const MAX_SAVE_TIME_S = 45; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
+  "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
@@ -25,13 +24,12 @@ import { SyncDB } from "smc-util/sync/editor/db";
 import { SyncString } from "smc-util/sync/editor/string";
 
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, retry_until_success } from "smc-util/async-utils";
+import { callback_opts } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
   history_path,
   len,
-  startswith,
   uuid
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
@@ -283,9 +281,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       "after-change",
       this.set_codemirror_to_syncstring.bind(this)
     );
-    this._syncstring.on("change", this._syncstring_change.bind(this));
-    this._syncstring.on("ready", this._syncstring_change.bind(this));
-
     this._syncstring.once("load-time-estimate", est => {
       return this.setState({ load_time_estimate: est });
     });
@@ -308,7 +303,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.close();
     });
 
-    this._init_has_unsaved_changes();
+    this._syncstring.on("has-uncommitted-changes", has_uncommitted_changes =>
+      this.setState({ has_uncommitted_changes })
+    );
+
+    this._syncstring.on("has-unsaved-changes", has_unsaved_changes => {
+      this.setState({ has_unsaved_changes });
+    });
   }
 
   // This is currently NOT used in this base class.  It's used in other
@@ -529,9 +530,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
-  _assert_is_leaf_id(id: string, caller: string): void {
+    // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
+  _assert_is_leaf_id(id: string, caller: string) {
     if (!this._is_leaf_id(id)) {
-      throw Error(`${caller} -- no leaf with id "${id}"`);
+      throw Error(`${caller} -- no leaf with id ${id}`);
     }
   }
 
@@ -855,44 +857,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  _has_unsaved_changes(): boolean {
-    if (!this._syncstring) {
-      return false;
-    }
-    return this._syncstring.has_unsaved_changes();
-  }
-
-  _has_uncommitted_changes(): boolean {
-    if (!this._syncstring) {
-      return false;
-    }
-    return this._syncstring.has_uncommitted_changes();
-  }
-
-  // Called to cause updating of the save/committed status
-  // in the store. It does this a few times.  This should get
-  // called whenever there's some chance this status has changed.
-  // This is probably bad code,
-  // and it would be nice to get rid of its async nature.
-  async update_save_status(): Promise<void> {
-    for (let i = 0; i < 2; i++) {
-      if (this._state === "closed") {
-        continue;
-      }
-      this.setState({
-        has_unsaved_changes: this._has_unsaved_changes(),
-        has_uncommitted_changes: this._has_uncommitted_changes()
-      });
-      await delay(2000);
-    }
-  }
-
-  _init_has_unsaved_changes(): void {
-    // basically copies from tasks/actions.coffee -- opportunity to refactor
-    this._syncstring.on("metadata-change", () => this.update_save_status());
-    this._syncstring.on("connected", () => this.update_save_status());
-  }
-
   _syncstring_metadata(): void {
     // need to check since this can get called by the close.
     if (!this._syncstring) return;
@@ -917,12 +881,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     });
     if (!cursors.equals(this.store.get("cursors"))) {
       this.setState({ cursors });
-    }
-  }
-
-  _syncstring_change(): void {
-    if (this.update_save_status) {
-      this.update_save_status();
     }
   }
 
@@ -968,57 +926,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.delete_trailing_whitespace({ omit_lines });
   }
 
-  // Use internally..  Try once to save to disk.
-  //  If fail (e.g., broken network) -- sets error and returns fine.
-  //  If there are still unsaved changes right after save, throws exception.
-  //  If worked fine and previous set error was saving, clears that error.
-  async _try_to_save_to_disk(): Promise<void> {
-    if (this._syncstring == null) {
-      return;
-    }
-    this.setState({ is_saving: true });
-    try {
-      await this._syncstring.save_to_disk();
-    } finally {
-      this.update_save_status();
-      this.setState({ is_saving: false });
-    }
-    if (this.store.get("has_unsaved_changes")) {
-      throw Error("not saved");
-    }
-    let error = this.store.get("error");
-    if (error && startswith(error, SAVE_ERROR)) {
-      // Save just succeeded, but there was a save error at the top, so clear it.
-      this.set_error("");
-    }
-  }
-
-  async _do_save(): Promise<void> {
-    try {
-      this.set_status("Saving to disk...");
-      await retry_until_success({
-        f: async () => await this._try_to_save_to_disk(),
-        max_time: MAX_SAVE_TIME_S * 1000,
-        max_delay: 6000
-      });
-    } catch (err) {
-      console.warn(err);
-      if (this._state !== "closed") {
-        this.set_error(
-          `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
-        );
-      }
-      log_error({
-        string_id: this._syncstring ? this._syncstring._string_id : "",
-        path: this.path,
-        project_id: this.project_id,
-        error: "Error saving file -- has_unsaved_changes"
-      });
-    } finally {
-      this.set_status("");
-    }
-  }
-
   async save(explicit: boolean): Promise<void> {
     if (this.is_public || !this.store.get("is_loaded")) {
       return;
@@ -1038,7 +945,23 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
     }
     this.set_syncstring_to_codemirror();
-    await this._do_save();
+    this.setState({ is_saving: true });
+    try {
+      await this._syncstring.save_to_disk();
+    } catch (err) {
+      console.warn("save_to_disk", this.path, "ERROR", err);
+      if (this._state !== "closed") {
+        this.set_error(`${SAVE_ERROR} -- ${err} -- ${SAVE_WORKAROUND}`);
+        log_error({
+          string_id: this._syncstring ? this._syncstring._string_id : "",
+          path: this.path,
+          project_id: this.project_id,
+          error: "Error saving file -- has_unsaved_changes"
+        });
+      }
+    } finally {
+      this.setState({ is_saving: false });
+    }
   }
 
   _get_project_actions() {
@@ -1057,7 +980,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     open_new_tab(url);
   }
 
-  change_font_size(delta: number, id?: string): void {
+  set_zoom(zoom: number, id?: string) {
+    this.change_font_size(undefined, id, zoom);
+  }
+
+  /* zoom: 1=100%, 1.5=150%, ...*/
+  change_font_size(delta?: number, id?: string, zoom?: number): void {
+    if (delta == null && zoom == null) return;
     const local = this.store.get("local_view_state");
     if (!id) {
       id = local.get("active_id");
@@ -1069,14 +998,30 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!node) {
       return;
     }
-    let font_size: number = node.get("font_size", get_default_font_size());
-    font_size += delta;
-    if (font_size < 2) {
-      font_size = 2;
+
+    // this is 100%
+    const default_font_size = get_default_font_size();
+    let font_size: number;
+    // either +/- delta or set the zoom factor
+    if (zoom != null) {
+      font_size = default_font_size * zoom;
+    } else if (delta != null) {
+      font_size = node.get("font_size", default_font_size);
+      font_size += delta;
+      if (font_size < 2) {
+        font_size = 2;
+      }
+    } else {
+      // to make typescript happy
+      return;
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    const percent = Math.round((font_size * 100) / 14);
+    this.set_status_font_size(font_size, default_font_size);
+  }
+
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
     this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
@@ -1230,7 +1175,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._syncstring != null) {
       this._syncstring.commit();
     }
-    this.update_save_status();
   }
 
   set_syncstring_to_codemirror(id?: string): void {
@@ -1277,7 +1221,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // there are no cursors or selections if there are no cm's.
       doc.setValue(this._syncstring.to_str());
     }
-    this.update_save_status();
   }
 
   exit_undo_mode(): void {

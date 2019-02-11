@@ -5,6 +5,7 @@ Render a single project entry, which goes in the list of projects
 import * as immutable from "immutable";
 import { AppRedux, Component, React, rclass, rtypes } from "../app-framework";
 import { ProjectUsers } from "./project-users";
+import { analytics_event } from "../tracker";
 
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
@@ -28,7 +29,7 @@ export const ProjectRow = rclass<ReactProps>(
   class ProjectRow extends Component<ReactProps & ReduxProps, State> {
     static reduxProps = () => {
       return {
-        project: {
+        projects: {
           add_collab: rtypes.immutable.Set
         }
       };
@@ -66,24 +67,21 @@ export const ProjectRow = rclass<ReactProps>(
       return <ProjectUsers project={imm} />;
     }
 
-    add_collab(): boolean;
-    add_collab(is_displayed: boolean): void;
-    add_collab(is_displayed?): void | boolean {
-      const { project_id } = this.props.project;
-      if (is_displayed == undefined) {
-        return (
-          this.props.add_collab != undefined &&
-          this.props.add_collab.has(project_id)
-        );
-      } else {
-        this.props.redux
-          .getActions("projects")
-          .set_add_collab(project_id, is_displayed);
-      }
+    get_collab_state(): boolean {
+      return (
+        this.props.add_collab != undefined &&
+        this.props.add_collab.has(this.props.project.project_id)
+      );
+    }
+
+    add_collab(is_displayed: boolean): void {
+      this.props.redux
+        .getActions("projects")
+        .set_add_collab(this.props.project.project_id, is_displayed);
     }
 
     render_add_collab() {
-      if (!this.add_collab()) {
+      if (!this.get_collab_state()) {
         return;
       }
       // We get the immutable.js project object since that's what
@@ -100,7 +98,7 @@ export const ProjectRow = rclass<ReactProps>(
 
     render_collab_caret() {
       let icon;
-      if (this.add_collab()) {
+      if (this.get_collab_state()) {
         icon = <Icon name="caret-down" />;
       } else {
         icon = <Icon name="caret-right" />;
@@ -156,7 +154,10 @@ export const ProjectRow = rclass<ReactProps>(
       // Check if user has highlighted some text.
       // Do NOT open if the user seems to be trying to highlight text on the row
       // eg. for copy pasting.
-      if (this.state && cur_sel === this.state.selection_at_last_mouse_down) {
+      if (
+        this.state != null &&
+        cur_sel === this.state.selection_at_last_mouse_down
+      ) {
         this.open_project_from_list(e);
       }
     };
@@ -167,6 +168,7 @@ export const ProjectRow = rclass<ReactProps>(
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
+      analytics_event('projects_page', 'opened_a_project')
     };
 
     open_project_settings = e => {
@@ -179,7 +181,7 @@ export const ProjectRow = rclass<ReactProps>(
     };
 
     toggle_add_collaborators = e => {
-      this.add_collab(!this.add_collab());
+      this.add_collab(!this.get_collab_state());
       e.stopPropagation();
     };
 

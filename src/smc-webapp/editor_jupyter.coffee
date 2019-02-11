@@ -313,7 +313,7 @@ class JupyterWrapper extends EventEmitter
 
         # FUTURE: Proper file rename with sync not supported yet
         # needs to work with sync system)
-        @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
+        @frame.$("#notebook_name").unbind('click')
 
         # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
         for cmd in ['new', 'open', 'copy', 'rename']
@@ -1199,7 +1199,7 @@ class JupyterNotebook extends EventEmitter
             , 0
 
     info: () =>
-        t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank'>Jupyter Notebook</a></h3>"
+        t = "<h3><i class='fa fa-question-circle'></i> About <a href='https://jupyter.org/' target='_blank' rel='noopener'>Jupyter Notebook</a></h3>"
         t += "<h4>Enhanced with CoCalc Sync</h4>"
         t += "You are editing this document using the Jupyter Notebook enhanced with realtime synchronization and history logging."
         t += "<h4>Use Sage by pasting this into a cell</h4>"
@@ -1218,7 +1218,7 @@ class JupyterNotebook extends EventEmitter
 
     modern: () =>
         t = "<h3><i class='fa fa-exchange'></i> Switch to the CoCalc Jupyter Notebook</a></h3>"
-        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='" + require('smc-util/theme').JUPYTER_CLASSIC_MODERN + "' target='_blank'>More info and the latest status...</a>"
+        t += "<br><br>Unfortunately, Jupyter classic does not work on Firefox; please switch back to the CoCalc Jupyter notebook server (or use Google Chrome or Safari).<br><br>The CoCalc Jupyter Notebook has <a href='http://blog.sagemath.com/jupyter/2017/05/05/jupyter-rewrite-for-smc.html' target='_blank' rel='noopener'>many improvements</a> over the classical notebook, which you are currently using.  However, certain features are still not fully supported (notably, interactive widgets).  You can try opening your notebooks using the CoCalc notebook.  If it doesn't work for you, you can easily switch to the Classical Jupyter Notebook (please let us know what is missing so we can add it!). NOTE: multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work well!<br><br><a href='" + require('smc-util/theme').JUPYTER_CLASSIC_MODERN + "' target='_blank' rel='noopener'>More info and the latest status...</a>"
         t += "<br><hr>"
         t += "<a href='#jupyter-switch-to-modern-notebook' class='btn btn-warning'>Switch to CoCalc Jupyter Notebook</a>"
         bootbox.alert(t)

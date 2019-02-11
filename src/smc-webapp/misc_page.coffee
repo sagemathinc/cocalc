@@ -629,35 +629,35 @@ exports.define_codemirror_extensions = () ->
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\section")
                 # article section
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsection")
                 # article subsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsection")
                 # article subsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "\\subsubsubsection")
                 # article subsubsubsection
                 for i in [start.line+1..cm.lastLine()]
                     if startswith(trimStart(cm.getLine(i)), ["\\chapter", "\\section", "\\subsection", "\\subsubsection", "\\subsubsubsection", "\\end{document}"])
                         return [i - 1, 0]
-                return cm.lastLine()
+                return [cm.lastLine(), 0]
 
             else if startswith(line, "%\\begin{}")
                 # support what texmaker supports for custom folding -- http://tex.stackexchange.com/questions/44022/code-folding-in-latex
@@ -786,8 +786,6 @@ exports.define_codemirror_extensions = () ->
                 @scrollIntoView(last_pos)
                 @setCursor(last_pos)
 
-        delete @_setValueNoJump
-
         # Just do an expensive double check that the above worked.  I have no reason
         # to believe the above could ever fail... but maybe it does in some very rare
         # cases, and if it did, the results would be PAINFUL.  So... we just brutally
@@ -796,6 +794,9 @@ exports.define_codemirror_extensions = () ->
         if value != @getValue()
             console.warn("setValueNoJump failed -- just setting value directly")
             @setValue(value)
+
+        delete @_setValueNoJump
+
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## OPTIMIZATION: this is a very stupid/inefficient way to turn
@@ -1102,8 +1103,7 @@ exports.define_codemirror_extensions = () ->
 
             # this is an abuse, but having external links to the documentation is good
             if how?.url?
-                tab = window.open(how.url, '_blank')
-                tab.focus()
+                exports.open_new_tab(how.url)
                 done = true
 
             if how?.wrap?
@@ -1361,7 +1361,7 @@ exports.define_codemirror_extensions = () ->
                 title  = title.val().trim()
 
                 if target == "_blank"
-                    target = " target='_blank'"
+                    target = " target='_blank' rel='noopener'"
 
                 if title.length > 0
                     title = " title='#{title}'"
@@ -1874,9 +1874,9 @@ exports.open_new_tab = (url, popup=false, opts) ->
 
     if popup
         popup_opts = ("#{k}=#{v}" for k, v of opts when v?).join(',')
-        tab = window.open(url, '_blank', popup_opts)
+        tab = window.open("", '_blank', popup_opts)
     else
-        tab = window.open(url, '_blank')
+        tab = window.open("", '_blank')
     if not tab?.closed? or tab.closed   # either tab isn't even defined (or doesn't have close method) -- or already closed -- popup blocked
         {alert_message} = require('./alerts')
         if url
@@ -1889,6 +1889,11 @@ exports.open_new_tab = (url, popup=false, opts) ->
             type    : 'info'
             timeout : 15
         return null
+    # equivalent to rel=noopener, i.e. neither tabs know about each other via window.opener
+    # credits: https://stackoverflow.com/a/49276673/54236
+    tab.opener = null
+    # only *after* the above, we set the URL!
+    tab.location = url
     return tab
 
 exports.get_cookie = (name) ->
@@ -1938,6 +1943,12 @@ exports.get_query_params = ->
 
 exports.get_query_param = (p) ->
     return exports.get_query_params()[p]
+
+# returns true, if a target page should be loaded
+exports.should_load_target_url = ->
+    return window.smc_target \
+        and window.smc_target != 'login' \
+        and not exports.get_query_param('test')
 
 # If there is UTM information in the known cookie, extract and return it
 # Then, delete this cookie.

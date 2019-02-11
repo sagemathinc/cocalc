@@ -294,6 +294,8 @@ class exports.Client extends EventEmitter
 
         if mesg.event != 'pong'
             dbg("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+            #dbg("hub --> client (client=#{@id}): #{misc.trunc(JSON.stringify(mesg),1000)}")
+            #dbg("hub --> client (client=#{@id}): #{JSON.stringify(mesg)}")
 
         if mesg.id?
             start = @_messages.being_handled[mesg.id]
@@ -2187,7 +2189,7 @@ class exports.Client extends EventEmitter
                 (cb) =>
                     if schema.cancel_at_period_end
                         dbg("Setting subscription to cancel at period end")
-                        @_stripe.customers.cancelSubscription(customer_id, subscription.id, {at_period_end:true}, cb)
+                        @_stripe.subscriptions.update(subscription.id, {cancel_at_period_end:true}, cb)
                     else
                         cb()
                 (cb) =>
@@ -2231,7 +2233,7 @@ class exports.Client extends EventEmitter
                     dbg("cancel the subscription at stripe")
                     # This also returns the subscription, which lets
                     # us easily get the metadata of all projects associated to this subscription.
-                    @_stripe.customers.cancelSubscription(customer_id, subscription_id, {at_period_end:mesg.at_period_end}, cb)
+                    @_stripe.subscriptions.update(subscription_id, {cancel_at_period_end:mesg.at_period_end}, cb)
                 (cb) =>
                     @database.stripe_update_customer(account_id : @account_id, stripe : @_stripe, customer_id : customer_id, cb: cb)
             ], (err) =>

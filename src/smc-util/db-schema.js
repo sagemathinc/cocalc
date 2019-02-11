@@ -131,7 +131,7 @@ schema.account_creation_actions = {
 schema.accounts = {
   desc: "All user accounts.",
   primary_key: "account_id",
-  db_standby: "unsafe",
+  // db_standby: "unsafe",
   fields: {
     account_id: {
       type: "uuid",
@@ -732,11 +732,14 @@ schema.file_use = {
 
   pg_indexes: ["project_id", "last_edited"],
 
+  // I put a time limit in pg_where below of to just give genuinely recent notifications,
+  // and massively reduce server load.  The obvious todo list is to make another file_use
+  // virtual table that lets you get older entries.
   user_query: {
     get: {
-      pg_where: ["projects", "last_edited IS NOT NULL"],
+      pg_where: ["last_edited >= NOW() - interval '14 days'", "projects"],
       pg_changefeed: "projects",
-      options: [{ order_by: "-last_edited" }, { limit: 100 }], // limit is kind of arbitrary; not sure what to do; I benchmarked 100 vs 200 on myself, and 100 is much faster.
+      options: [{ order_by: "-last_edited" }, { limit: 100 }], // limit is arbitrary
       throttle_changes: 3000,
       fields: {
         id: null,
@@ -895,7 +898,9 @@ schema.password_reset_attempts = {
 
 schema.project_log = {
   primary_key: "id",
-  db_standby: "unsafe",
+  // db_standby feels too slow for this, since the user only
+  // does this query when they actually click to show the log.
+  //db_standby: "unsafe",
   durability: "soft", // dropping a log entry (e.g., "foo opened a file") wouldn't matter much
   fields: {
     id: {
@@ -924,9 +929,9 @@ schema.project_log = {
 
   user_query: {
     get: {
-      pg_where: "projects",
+      pg_where: ["time >= NOW() - interval '30 days'", "projects"],
       pg_changefeed: "projects",
-      options: [{ order_by: "-time" }, { limit: 1000 }],
+      options: [{ order_by: "-time" }, { limit: 300 }],
       throttle_changes: 2000,
       fields: {
         id: null,
@@ -949,6 +954,19 @@ schema.project_log = {
     }
   }
 };
+
+// project_log_all -- exactly like project_log, but loads up
+// to the most recent **many** log entries (so a LOT).
+schema.project_log_all = misc.deep_copy(schema.project_log);
+// This happens rarely, and user is prepared to wait.
+schema.project_log_all.db_standby = "unsafe";
+schema.project_log_all.virtual = "project_log";
+// no time constraint:
+schema.project_log_all.user_query.get.pg_where = ["projects"];
+schema.project_log_all.user_query.get.options = [
+  { order_by: "-time" },
+  { limit: 7500 }
+];
 
 schema.projects = {
   primary_key: "project_id",
@@ -1116,7 +1134,8 @@ schema.projects = {
 
   user_query: {
     get: {
-      pg_where: "projects",
+      // if you change the interval, change the text in projects.cjsx
+      pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
@@ -1193,6 +1212,11 @@ schema.projects = {
     }
   }
 };
+
+// Same query above, but without the last_edited time constraint.
+schema.projects_all = misc.deep_copy(schema.projects);
+schema.projects_all.virtual = "projects";
+schema.projects_all.user_query.get.pg_where = ["projects"];
 
 // Table that enables set queries to the course field of a project.  Only
 // project owners are allowed to use this table.  The point is that this makes

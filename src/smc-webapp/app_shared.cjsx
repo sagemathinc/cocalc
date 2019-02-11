@@ -31,8 +31,9 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file_use')
-{AdminPage} = require('admin/page')
+{AdminPage} = require('./admin')
 {show_announce_end} = require('./redux_account')
+{analytics_event} = require('./tracker')
 
 ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE
 feature = require('./feature')
@@ -78,9 +79,11 @@ exports.NavTab = rclass
         inner_style     : rtypes.object
         add_inner_style : rtypes.object
         show_label      : rtypes.bool
+        is_project      : rtypes.bool
 
     getDefaultProps: ->
         show_label : true
+        is_project : false
 
     shouldComponentUpdate: (next) ->
         if @props.children?
@@ -106,6 +109,12 @@ exports.NavTab = rclass
     on_click: (e) ->
         if @props.name?
             @actions('page').set_active_tab(@props.name)
+            if @props.is_project
+                analytics_event('top_nav', 'opened_a_project');
+            else
+                analytics_event('top_nav', @props.name)
+        else if @props.label?
+            analytics_event('top_nav', @props.label)
         @props.on_click?()
 
     render: ->

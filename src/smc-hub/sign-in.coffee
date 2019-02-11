@@ -127,7 +127,7 @@ exports.sign_in = (opts) ->
 
     signed_in_mesg = undefined
     account = undefined
-    {api_key_action} = require('./api/manage')   # here, rather than at beginnig of file, due to some circular references...
+    {api_key_action} = require('./api/manage')   # here, rather than at beginning of file, due to some circular references...
 
     async.series([
         (cb) ->
@@ -262,10 +262,6 @@ exports.sign_in_using_auth_token = (opts) ->
     async.series([
         (cb) ->
             dbg("get account and check credentials")
-            # NOTE: Despite people complaining, we do give away info about whether
-            # the e-mail address is for a valid user or not.
-            # There is no security in not doing this, since the same information
-            # can be determined via the invite collaborators feature.
             opts.database.get_auth_token_account_id
                 auth_token : mesg.auth_token
                 cb         : (err, _account_id) ->

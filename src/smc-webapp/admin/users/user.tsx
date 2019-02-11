@@ -18,19 +18,22 @@ import { Projects } from "./projects";
 
 import { Activity } from "./activity";
 
+import { Impersonate } from "./impersonate";
+
 interface State {
   projects: boolean;
   subscriptions: boolean;
   activity: boolean;
+  impersonate: boolean;
 }
 
 interface Props extends User {
   header?: boolean;
 }
 
-type More = "projects" | "subscriptions" | "activity";
+type More = "projects" | "subscriptions" | "activity" | "impersonate";
 
-const MORE: More[] = ["projects", "subscriptions", "activity"];
+const MORE: More[] = ["projects", "subscriptions", "activity", "impersonate"];
 
 export class UserResult extends Component<Props, State> {
   constructor(props, state) {
@@ -77,6 +80,13 @@ export class UserResult extends Component<Props, State> {
     return <Activity account_id={this.props.account_id} />;
   }
 
+  render_impersonate(): Rendered {
+    if (!this.state.impersonate) {
+      return;
+    }
+    return <Impersonate account_id={this.props.account_id} first_name={this.props.first_name} last_name={this.props.last_name}/>;
+  }
+
   render_caret(show: boolean): Rendered {
     if (show) {
       return <Icon name="caret-down" />;
@@ -86,7 +96,7 @@ export class UserResult extends Component<Props, State> {
   }
 
   render_more_link(name: More): Rendered {
-    // sorry abou the any below; I could NOT get typescript to work.
+    // sorry about the any below; I could NOT get typescript to work.
     return (
       <a
         style={{ cursor: "pointer" }}
@@ -107,6 +117,9 @@ export class UserResult extends Component<Props, State> {
         <Space />
         <Space />
         {this.render_more_link("activity")}
+        <Space />
+        <Space />
+        {this.render_more_link("impersonate")}
       </div>
     );
   }
@@ -137,6 +150,7 @@ export class UserResult extends Component<Props, State> {
         {this.render_subscriptions()}
         {this.render_projects()}
         {this.render_activity()}
+        {this.render_impersonate()}
       </div>
     );
   }
