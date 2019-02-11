@@ -46,20 +46,25 @@ const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
 
 const FROM_WEB_TIMEOUT_S = 45;
 
-// At most this many of the most recent log messages for a project get loaded:
-// TODO: add a button to load the entire log or load more...
-const MAX_PROJECT_LOG_ENTRIES = 1000;
-
 export const QUERIES = {
   project_log: {
     query: {
       id: null,
       project_id: null,
       account_id: null,
-      time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
+      time: null,
       event: null
-    },
-    options: [{ order_by: "-time" }, { limit: MAX_PROJECT_LOG_ENTRIES }]
+    }
+  },
+
+  project_log_all: {
+    query: {
+      id: null,
+      project_id: null,
+      account_id: null,
+      time: null,
+      event: null
+    }
   },
 
   public_paths: {
@@ -259,8 +264,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     must_define(this.redux);
     this.close_all_files();
     for (let table in QUERIES) {
-      this.redux.removeTable(project_redux_name(this.project_id, table));
+      this.remove_table(table);
     }
+  };
+
+  remove_table = (table: string): void => {
+    this.redux.removeTable(project_redux_name(this.project_id, table));
   };
 
   // Records in the backend database that we are actively
@@ -2799,6 +2808,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
     });
+  }
+
+  project_log_load_all(): void {
+    const store = this.get_store();
+    if (store == null) return; // no store
+    if (store.get("project_log_all") != null) return; // already done
+    this.setState({ project_log: undefined });
+    store.init_table("project_log_all");
+    this.remove_table("project_log");
   }
 }
 

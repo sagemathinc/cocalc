@@ -173,9 +173,21 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     <Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
                         <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
                     </Tip>
-                    <Tip title='RMarkdown File'  icon='cc-icon-r'
-                        tip='RMarkdown document with real-time preview.'>
-                        <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
+                    <Tip title='LaTeX Document'   icon='cc-icon-tex-file'
+                        tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
+                        <NewFileButton icon='cc-icon-tex-file' name='LaTeX document' on_click={@props.create_file} ext='tex' />
+                    </Tip>
+                </Col>
+            </Row>
+            <Row style={row_style}>
+                <Col sm={12}>
+                    <Tip title='Manage a course'  placement='bottom'  icon='graduation-cap'
+                        tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
+                        <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
+                    </Tip>
+                    <Tip title='Create a chatroom'  placement='left'  icon='comment'
+                        tip='Create a chatroom for chatting with other collaborators on this project.'>
+                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@props.create_file} ext='sage-chat' />
                     </Tip>
                 </Col>
             </Row>
@@ -185,13 +197,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a Markdown formatted document with real-time preview.'>
                         <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
                     </Tip>
-                    <Tip title='LaTeX Document'   icon='cc-icon-tex-file'
-                        tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
-                        <NewFileButton icon='cc-icon-tex-file' name='LaTeX' on_click={@props.create_file} ext='tex' />
-                    </Tip>
-                    <Tip title='Terminal'  icon='terminal'
-                        tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
-                        <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
+                    <Tip title='RMarkdown File'  icon='cc-icon-r'
+                        tip='RMarkdown document with real-time preview.'>
+                        <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
                     </Tip>
                     <Tip title='Task list'   icon='tasks'
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
@@ -201,17 +209,17 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a collaborative stopwatch to keep track how long it takes to do something.'>
                         <NewFileButton icon='stopwatch' name='Stopwatch' on_click={@props.create_file} ext='time' />
                     </Tip>
-                    <Tip title='Create a chatroom'  placement='left'  icon='comment'
-                        tip='Create a chatroom for chatting with other collaborators on this project.'>
-                        <NewFileButton icon='comment' name='Create a chatroom' on_click={@create_file} ext='sage-chat' />
+                </Col>
+            </Row>
+            <Row style={row_style}>
+                <Col sm={12}>
+                    <Tip title='Terminal'  icon='terminal'
+                        tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
+                        <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
                     <Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
                         <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
-                    </Tip>
-                    <Tip title='Manage a course'  placement='bottom'  icon='graduation-cap'
-                        tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
-                        <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
                    {@props.children}
                 </Col>
@@ -245,10 +253,6 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
             @setState(filename: newProps.default_filename)
-
-    componentDidUpdate: ->
-        if not @state.extension_warning
-            ReactDOM.findDOMNode(@refs.project_new_filename).focus()
 
     default_filename: ->
         return require('./account').default_filename()
@@ -433,7 +437,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     </div>
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
-                    <div style={color:"#666", paddingBottom:"5px"}>Select the type</div>
+                    <div style={color:"#666", paddingBottom:"5px"}>Select the type of file</div>
                     <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
                         <Tip
                             title = {'Download files from the Internet'}
@@ -477,30 +481,14 @@ exports.unmount = (dom_node) ->
 exports.ProjectNew = rclass ({name}) ->
     propTypes :
         project_id : rtypes.string
-        name : rtypes.string
-
-    show_files_tab: ->
-        pa = redux.getProjectActions(@props.project_id)
-        pa.set_active_tab("files")
 
     render: ->
-        style =
-            textAlign: 'center'
-            padding: '3rem'
-
-        <Row>
-            <Col xs={8} xsOffset={2} style={style}>
-                <Alert bsStyle={"info"}>
-                    Creating files, the library and upload have been moved to the{' '}
-                    <Button onClick={=>@show_files_tab()}>
-                        Files panel
-                    </Button>.
-                    <br/>
-                    <img
-                        src={"https://storage.googleapis.com/cocalc-extra/cc-files-new-library-upload-arrow.png"}
-                        style={{width: "100%", marginTop: "3rem"}}
-                    />
-                </Alert>
+        <Row style={marginTop:'15px'}>
+            <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
+                <ProjectNewForm
+                    project_id={@props.project_id}
+                    name={name}
+                    actions={@actions(name)}
+                />
             </Col>
         </Row>
-

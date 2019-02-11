@@ -18,7 +18,7 @@ exports.stripe_sync = (opts) ->
         logger    : {debug:console.log}
         database  : required
         target    : undefined
-        limit     : 3  # number at once
+        limit     : 1  # number at once -- stripe will kick us out due to exceeding rate limit thresh if this is bigger than 1...
         cb        : undefined
 
     dbg = (m) -> opts.logger?.debug("stripe_sync: #{m}")

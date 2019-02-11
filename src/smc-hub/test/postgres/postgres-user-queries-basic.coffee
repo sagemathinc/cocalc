@@ -19,6 +19,7 @@ misc = require('smc-util/misc')
 {SCHEMA} = require('smc-util/schema')
 
 describe 'some basic testing of user_queries', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
     account_id = undefined

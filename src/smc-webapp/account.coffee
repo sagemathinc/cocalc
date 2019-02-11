@@ -55,8 +55,6 @@ webapp_client.on 'mesg_info', (info) ->
     setTimeout(f, 1)
 
 signed_in = (mesg) ->
-    {analytics_event} = require('./misc_page')
-    analytics_event('account', 'signed_in')    # user signed in
     # the has_remember_me cookie is for usability: After a sign in we "mark" this client as being "known"
     # next time the main landing page is visited, haproxy or hub will redirect to the client
     # note: similar code is in redux_account.coffee → AccountActions::sign_out
@@ -68,6 +66,8 @@ signed_in = (mesg) ->
     console.log("Signed into #{mesg.hub} at #{new Date()}")
     if first_login
         first_login = false
+        {analytics_event} = require('./misc_page')
+        analytics_event('account', 'signed_in')    # user signed in
         if not misc_page.should_load_target_url()
             load_app ->
                 require('./history').load_target('projects')

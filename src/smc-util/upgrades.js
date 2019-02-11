@@ -33,7 +33,7 @@ function get_total_upgrades(stripe_subscriptions_data) {
   }
   let total = {};
   for (let sub of subs) {
-    for (let q = 0; q < subs.quantity; q++) {
+    for (let q = 0; q < sub.quantity; q++) {
       total = misc.map_sum(
         total,
         PROJECT_UPGRADES.subscription[sub.plan.id.split("-")[0]].benefits

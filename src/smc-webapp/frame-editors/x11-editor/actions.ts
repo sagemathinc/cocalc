@@ -571,6 +571,14 @@ export class Actions extends BaseActions<X11EditorState> {
     // Launch the command
     this.channel.write({ cmd: "launch", command, args });
     // TODO: wait for a status message back...
+
+    const project_actions = this._get_project_actions();
+    project_actions.log({
+      event: "x11",
+      action: "launch",
+      path: this.path,
+      command
+    });
   }
 
   set_physical_keyboard(layout: string, variant: string): void {
