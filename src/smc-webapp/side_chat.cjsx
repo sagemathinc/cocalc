@@ -448,8 +448,13 @@ ChatRoom = rclass ({name}) ->
         # shift + enter for larger textarea. just "return" for single line input.
         else if e.keyCode == 13 and (e.shiftKey or componentClass == 'input')
             @button_send_chat(e)
+            analytics_event('side_chat', 'send_chat', 'keyboard')
         else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
+
+    on_send_click: (e) ->
+        @button_send_chat(e)
+        analytics_event('side_chat', 'send_chat', 'click')
 
     button_send_chat: (e) ->
         send_chat(e, @refs.log_container, @props.input, @props.actions)
@@ -530,7 +535,7 @@ ChatRoom = rclass ({name}) ->
 
     render_project_users: ->
         return null if not @props.show_collabs
-        <div style={margin:'5px 15px'}>
+        <div style={margin:'5px 15px', maxHeight: '20%', overflow: 'auto', borderBottom: '1px solid lightgrey'}>
             {@render_collab_list()}
             {@render_add_collab()}
         </div>
@@ -628,7 +633,7 @@ ChatRoom = rclass ({name}) ->
                     />
                     <Button
                         style    = {send_style}
-                        onClick  = {@button_send_chat}
+                        onClick  = {@on_send_click}
                         disabled = {@props.input==''}
                         bsStyle  = {'success'}
                     >

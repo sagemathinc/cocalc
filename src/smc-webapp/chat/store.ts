@@ -36,7 +36,7 @@ export class ChatStore extends Store<ChatState> {
       use_saved_position: undefined,
       saved_position: undefined,
       search: "",
-      add_collab: false,
+      add_collab: true,
       is_saving: false,
       has_uncommitted_changes: false,
       has_unsaved_changes: false

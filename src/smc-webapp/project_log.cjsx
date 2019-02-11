@@ -88,6 +88,7 @@ LogSearch = rclass
 
     render: ->
         <SearchInput
+            ref         = {"box"}
             autoFocus   = {true}
             autoSelect  = {true}
             placeholder = 'Search log...'
@@ -213,6 +214,10 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
+    render_x11: ->
+        return if not @props.event.action == 'launch'
+        <span>launched X11 app <code>{@props.event.command}</code> in {@file_link(@props.event.path, true, 0)}</span>
+
     render_library: ->
         return if not @props.event.target?
         <span>copied "{@props.event.title}" from the library to {@file_link(@props.event.target, true, 0)}</span>
@@ -301,6 +306,8 @@ LogEntry = rclass
                 return @render_library()
             when 'assistant'
                 return @render_assistant()
+            when 'x11'
+                return @render_x11()
             # ignore unknown -- would just look mangled to user...
             #else
             # FUTURE:
@@ -579,6 +586,10 @@ exports.ProjectLog = rclass ({name}) ->
             Load older log entries
         </Button>
 
+    focus_search_box: ->
+        input = @refs.search.refs.box.refs.input
+        ReactDOM.findDOMNode(input).focus()
+
     render_log_panel: ->
         # get visible log
         log = @visible_log()
@@ -594,10 +605,11 @@ exports.ProjectLog = rclass ({name}) ->
             cursor = undefined
             selected = undefined
 
-        <Panel>
+        <Panel onClick={@focus_search_box}>
             <Row>
                 <Col sm={4}>
                     <LogSearch
+                        ref              = {"search"}
                         actions          = {@actions(name)}
                         search           = {@props.search}
                         selected         = {selected}
