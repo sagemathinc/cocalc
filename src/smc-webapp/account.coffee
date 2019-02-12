@@ -46,7 +46,7 @@ load_app = (cb) ->
     require.ensure [], ->
         require('./r_account.cjsx')  # initialize react-related account page
         require('./projects.cjsx')   # initialize project listing
-        require('./file_use.cjsx')   # initialize file_use notifications
+        require('./file-use/init')   # initialize file_use notifications
         cb()
 
 webapp_client.on 'mesg_info', (info) ->
