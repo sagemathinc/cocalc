@@ -54,7 +54,9 @@ export class FileUseViewer extends Component<Props, State> {
           on_change={value =>
             this.setState({ search: value, cursor: 0, show_all: false })
           }
-          on_submit={this.open_selected}
+          on_submit={() => {
+            this.open_selected();
+          }}
           on_escape={before => {
             if (!before) {
               const a = this.props.redux.getActions("page");
@@ -92,24 +94,25 @@ export class FileUseViewer extends Component<Props, State> {
 
   render_mark_all_read_button(): Rendered {
     return (
-      <Button key="mark_all_read_button" onClick={this.click_mark_all_read}>
+      <Button
+        key="mark_all_read_button"
+        onClick={() => this.click_mark_all_read()}
+      >
         <Icon name="check-square" /> Mark All Read
       </Button>
     );
   }
 
   open_selected(): void {
-    if (this._visible_list != null) {
-      const x = this._visible_list[this.state.cursor];
-      if (x != null) {
-        open_file_use_entry(
-          x.get("project_id"),
-          x.get("path"),
-          x.get("show_chat", false),
-          this.props.redux
-        );
-      }
-    }
+    if (this._visible_list == null) return;
+    const x = this._visible_list[this.state.cursor];
+    if (x == null) return;
+    open_file_use_entry(
+      x.get("project_id"),
+      x.get("path"),
+      x.get("show_chat", false),
+      this.props.redux
+    );
   }
 
   render_list(): Rendered[] {
