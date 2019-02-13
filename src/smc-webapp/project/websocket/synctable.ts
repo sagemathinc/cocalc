@@ -207,7 +207,8 @@ class SyncTableChannel extends EventEmitter {
 // of a guranteed stable json.
 const cache: { [key: string]: SyncTableChannel } = {};
 
-(window as any).channel_cache = cache;
+const window = ((global as any).window as any);
+if (window != null) window.channel_cache = cache;
 
 function key(opts: Options): string {
   return `${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
