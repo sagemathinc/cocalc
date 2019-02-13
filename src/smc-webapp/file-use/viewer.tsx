@@ -1,4 +1,3 @@
-
 import { Map as iMap, List as iList } from "immutable";
 
 import { FileUseInfo } from "./info";
@@ -34,7 +33,7 @@ interface State {
 
 export class FileUseViewer extends Component<Props, State> {
   private _visible_list: iMap<string, any>[] = [];
-  private _num_missing : number = 0;
+  private _num_missing: number = 0;
 
   constructor(props) {
     super(props);
@@ -103,7 +102,12 @@ export class FileUseViewer extends Component<Props, State> {
     if (this._visible_list != null) {
       const x = this._visible_list[this.state.cursor];
       if (x != null) {
-        open_file_use_entry(x.toJS(), this.props.redux);
+        open_file_use_entry(
+          x.get("project_id"),
+          x.get("path"),
+          x.get("show_chat", false),
+          this.props.redux
+        );
       }
     }
   }
@@ -112,9 +116,9 @@ export class FileUseViewer extends Component<Props, State> {
     let v = this.props.file_use_list.toArray();
     if (this.state.search) {
       const s = search_split(this.state.search.toLowerCase());
-      const w : any[] = [];
+      const w: any[] = [];
       for (let x of v) {
-        if (x && search_match(x.get('search'), s)) {
+        if (x && search_match(x.get("search"), s)) {
           w.push(x);
         }
       }
@@ -125,7 +129,7 @@ export class FileUseViewer extends Component<Props, State> {
       v = v.slice(0, SHORTLIST_LENGTH);
     }
     this._visible_list = v;
-    const r : Rendered[] = [];
+    const r: Rendered[] = [];
     for (let i = 0; i < v.length; i++) {
       const info = v[i];
       r.push(

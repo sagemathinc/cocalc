@@ -37,8 +37,6 @@ interface Props {
 }
 
 export class FileUseInfo extends Component<Props, {}> {
-  private info: any = {};
-
   shouldComponentUpdate(nextProps: Props): boolean {
     return (
       this.props.info !== nextProps.info ||
@@ -48,20 +46,16 @@ export class FileUseInfo extends Component<Props, {}> {
     );
   }
 
-  componentWillReceiveProps(props: Props): void {
-    this.info = props.info.toJS(); // TODO: ugly, but makes the code easier to read/write, I guess...
-  }
-
   render_users(): Rendered {
-    if (this.info.users == null) return;
+    if (this.props.info.get("users") == null) return;
     const v: Rendered[] = [];
     // only list users who have actually done something aside from mark read/seen this file
     const users: any[] = [];
-    for (let user of this.info.users) {
-      if (user != null && user.last_edited) {
-        users.push(user);
+    this.props.info.get("users").forEach((user, _) => {
+      if (user != null && user.get("last_edited")) {
+        users.push(user.toJS());
       }
-    }
+    });
     for (let user of users.slice(0, MAX_USERS)) {
       v.push(
         <User
@@ -77,10 +71,10 @@ export class FileUseInfo extends Component<Props, {}> {
   }
 
   render_last_edited(): Rendered {
-    if (this.info.last_edited) {
+    if (this.props.info.get("last_edited")) {
       return (
         <span key="last_edited">
-          was edited <TimeAgo date={this.info.last_edited} />
+          was edited <TimeAgo date={this.props.info.get("last_edited")} />
         </span>
       );
     }
@@ -90,16 +84,28 @@ export class FileUseInfo extends Component<Props, {}> {
     if (e != null) {
       e.preventDefault();
     }
-    open_file_use_entry(this.info, this.props.redux);
+    const x = this.props.info;
+    open_file_use_entry(
+      x.get("project_id"),
+      x.get("path"),
+      x.get("show_chat", false),
+      this.props.redux
+    );
   }
 
   render_path(): Rendered {
-    let { name, ext } = misc.separate_file_extension(this.info.path);
+    let { name, ext } = misc.separate_file_extension(
+      this.props.info.get("path")
+    );
     name = misc.trunc_middle(name, TRUNCATE_LENGTH);
     ext = misc.trunc_middle(ext, TRUNCATE_LENGTH);
     return (
       <span>
-        <span style={{ fontWeight: this.info.is_unread ? "bold" : "normal" }}>
+        <span
+          style={{
+            fontWeight: this.props.info.get("is_unread") ? "bold" : "normal"
+          }}
+        >
           {name}
         </span>
         <span style={{ color: !this.props.mask ? "#999" : undefined }}>
@@ -110,23 +116,23 @@ export class FileUseInfo extends Component<Props, {}> {
   }
 
   render_project(): Rendered {
-    const proj = this.props.project_map.get(this.info.project_id);
+    const proj = this.props.project_map.get(this.props.info.get("project_id"));
     const title = proj == null ? "" : proj.get("title");
     return <em key="project">{misc.trunc(title, TRUNCATE_LENGTH)}</em>;
   }
 
   render_what_is_happening(): Rendered {
-    if (this.info.users == null) {
+    if (this.props.info.get("users") == null) {
       return this.render_last_edited();
     }
-    if (this.info.show_chat) {
+    if (this.props.info.get("show_chat")) {
       return <span>discussed by </span>;
     }
     return <span>edited by </span>;
   }
 
   render_action_icon(): Rendered {
-    if (this.info.show_chat) {
+    if (this.props.info.get("show_chat")) {
       return <Icon name="comment" />;
     } else {
       return <Icon name="edit" />;
@@ -134,21 +140,23 @@ export class FileUseInfo extends Component<Props, {}> {
   }
 
   render_type_icon(): Rendered {
-    return <FileUseIcon filename={this.info.path} />;
+    return <FileUseIcon filename={this.props.info.get("path")} />;
   }
 
   render(): Rendered {
     const style = misc.copy(file_use_style);
-    if (this.info.notify) {
+    if (this.props.info.get("notify")) {
       style.background = "#ffffea"; // very light yellow
     } else {
-      style.background = this.info.is_unread ? "#f4f4f4" : "#fefefe";
+      style.background = this.props.info.get("is_unread")
+        ? "#f4f4f4"
+        : "#fefefe";
     }
     if (this.props.cursor) {
       misc.merge(style, { background: "#08c", color: "white" });
     }
     return (
-      <div style={style} onClick={this.open}>
+      <div style={style} onClick={e => this.open(e)}>
         <Row>
           <Col key="action" sm={1} style={{ fontSize: "14pt" }}>
             {this.render_action_icon()}
