@@ -2,6 +2,8 @@
 Synctable that uses the project websocket rather than the database.
 */
 
+import { reuseInFlight } from "async-await-utils/hof";
+
 import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 import { once, retry_until_success } from "smc-util/async-utils";
@@ -26,12 +28,6 @@ interface Options {
   throttle_changes?: undefined | number;
 }
 
-export async function synctable_project(opts): Promise<SyncTable> {
-  const t = new SyncTableChannel(opts);
-  await once(t, "connected");
-  return t.synctable;
-}
-
 import { EventEmitter } from "events";
 
 class SyncTableChannel extends EventEmitter {
@@ -42,17 +38,14 @@ class SyncTableChannel extends EventEmitter {
   private websocket?: any;
   private query: any;
   private options: any;
+  private key: string;
 
   private connected: boolean = false;
 
-  constructor({
-    project_id,
-    query,
-    options,
-    client,
-    throttle_changes
-  }: Options) {
+  constructor(opts: Options) {
     super();
+    const { project_id, query, options, client, throttle_changes } = opts;
+    this.key = key(opts);
     this.synctable = synctable_no_database(
       query,
       options,
@@ -68,9 +61,13 @@ class SyncTableChannel extends EventEmitter {
     this.options = options;
     this.init_synctable_handlers();
 
-    this.connect = this.connect.bind(this);
+    this.connect = reuseInFlight(this.connect.bind(this));
     this.log = this.log.bind(this);
     this.connect();
+  }
+
+  public is_connected(): boolean {
+    return this.connected;
   }
 
   private log(..._args): void {
@@ -129,10 +126,12 @@ class SyncTableChannel extends EventEmitter {
       // Already offline... let's try again from the top.
       throw Error("websocket went offline already");
     }
+
+    this.channel.on("data", this.handle_mesg_from_project.bind(this));
+
     // The moment the websocket goes offline, connect again.
     this.websocket.once("offline", this.connect);
 
-    this.channel.on("data", this.handle_mesg_from_project.bind(this));
     this.channel.on("close", this.connect);
     this.channel.on("open", this.connect);
   }
@@ -144,7 +143,7 @@ class SyncTableChannel extends EventEmitter {
     this.synctable.once("closed", this.close.bind(this));
   }
 
-  private clean_up_sockets(): void {
+  private async clean_up_sockets(): Promise<void> {
     if (this.channel != null) {
       this.channel.removeAllListeners();
       this.channel.end();
@@ -157,6 +156,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private close(): void {
+    delete cache[this.key];
     this.clean_up_sockets();
     if (this.synctable != null) {
       this.synctable.close();
@@ -199,4 +199,33 @@ class SyncTableChannel extends EventEmitter {
 
     this.channel.write(mesg);
   }
+}
+
+// We use a cache to ensure there is at most one synctable
+// at a time with given defining parameters.  This is just
+// for efficiency and sanity, so we use JSON.stringify instead
+// of a guranteed stable json.
+const cache: { [key: string]: SyncTableChannel } = {};
+
+(window as any).channel_cache = cache;
+
+function key(opts: Options): string {
+  return `${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
+    opts.options
+  )}`;
+}
+
+export async function synctable_project(opts: Options): Promise<SyncTable> {
+  const k = key(opts);
+  let t;
+  if (cache[k] !== undefined) {
+    t = cache[k];
+  } else {
+    t = new SyncTableChannel(opts);
+    cache[k] = t;
+  }
+  if (!t.is_connected()) {
+    await once(t, "connected");
+  }
+  return t.synctable;
 }
