@@ -97,15 +97,28 @@ export class CellList extends Component<CellListProps> {
       return;
     }
     // if click in the cell list, focus the cell list; otherwise, blur it.
-    const elt = $(this.cell_list_ref)!;
-    const offset = elt.offset()!;
-    const x = event.pageX - offset.left;
-    const y = event.pageY - offset.top;
-    if (x >= 0 && y >= 0 && x <= elt.outerWidth()! && y <= elt.outerHeight()!) {
-      this.props.actions.focus();
-    } else {
-      this.props.actions.blur();
+    const elt = $(this.cell_list_ref);
+    // list no longer exists, nothing left to do
+    if (elt == null) return;
+
+    const offset = elt.offset();
+    if (offset != null) {
+      const x = event.pageX - offset.left;
+      const y = event.pageY - offset.top;
+      const outerH = elt.outerHeight();
+      const outerW = elt.outerWidth();
+      if (outerW != null && outerH != null) {
+        if (x >= 0 && y >= 0 && x <= outerW && y <= outerH) {
+          this.props.actions.focus();
+        } else {
+          this.props.actions.blur();
+        }
+      }
+      // this return is important, avoids the fallback case below
+      return;
     }
+    // Fallback if anyting is undefined -- https://github.com/sagemathinc/cocalc/issues/3580
+    this.props.actions.focus();
   };
 
   componentWillReceiveProps(nextProps) {
