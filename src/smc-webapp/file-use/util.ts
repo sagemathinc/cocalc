@@ -1,10 +1,4 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-export function open_file_use_entry(info, redux) {
+export function open_file_use_entry(info, redux) : void {
   if (
     redux == null ||
     (info != null ? info.project_id : undefined) == null ||
@@ -13,15 +7,20 @@ export function open_file_use_entry(info, redux) {
     return;
   }
   // mark this file_use entry read
-  redux.getActions("file_use").mark_file(info.project_id, info.path, "read");
-  redux.getActions("page").toggle_show_file_use();
+  const f = redux.getActions("file_use");
+  if (f != null) f.mark_file(info.project_id, info.path, "read");
+
+  const p = redux.getActions("page");
+  if (p != null) p.toggle_show_file_use();
+
   // open the file
-  return require.ensure([], () => {
-    return redux.getProjectActions(info.project_id).open_file({
+  const a = redux.getProjectActions(info.project_id);
+  if (a != null) {
+    a.open_file({
       path: info.path,
       foreground: true,
       foreground_project: true,
       chat: info.show_chat
     });
-  });
+  }
 }

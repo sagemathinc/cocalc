@@ -7,6 +7,7 @@ const { sha1 } = require("smc-util/schema").client_db;
 export interface FileUseState {
   errors?: iList<string>;
   file_use?: iMap<string, any>;
+  notify_count?: number;
 }
 
 export class FileUseStore extends Store<FileUseState> {
@@ -21,7 +22,7 @@ export class FileUseStore extends Store<FileUseState> {
     super(name, redux);
     this.get_errors = this.get_errors.bind(this);
     this._initialize_cache = this._initialize_cache.bind(this);
-    this._clear_cache = this._clear_cache.bind(this);
+    this.clear_cache = this.clear_cache.bind(this);
     this._search = this._search.bind(this);
     this._process_users = this._process_users.bind(this);
     this.get_notify_count = this.get_notify_count.bind(this);
@@ -54,19 +55,19 @@ export class FileUseStore extends Store<FileUseState> {
     if (!this._account) {
       return;
     }
-    this._users.on("change", this._clear_cache);
-    this._projects.on("change", this._clear_cache);
+    this._users.on("change", this.clear_cache);
+    this._projects.on("change", this.clear_cache);
     this._account.on("change", () => {
       if (this._account.get_account_id() !== this._account_id) {
-        return this._clear_cache();
+        return this.clear_cache();
       }
     });
     this._cache_init = true;
     return true;
   }
 
-  _clear_cache() {
-    return delete this._cache;
+  public clear_cache() : void {
+    delete this._cache;
   }
 
   _search(x) {
@@ -157,15 +158,17 @@ export class FileUseStore extends Store<FileUseState> {
     return (y.is_unseenchat = you_last_chatseen < newest_chat);
   }
 
-  get_notify_count() {
+  get_notify_count(): number {
     if (this._cache == null) {
       this._update_cache();
     }
-    return (this._cache != null ? this._cache.notify_count : undefined) != null
-      ? this._cache != null
-        ? this._cache.notify_count
-        : undefined
-      : 0;
+    if (this._cache == null) {
+      throw Error("cache must be set");
+    }
+    if (this._cache.notify_count) {
+      return this._cache.notify_count;
+    }
+    return 0;
   }
 
   get_sorted_file_use_list(): any[] {

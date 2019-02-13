@@ -1,12 +1,24 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
+import { Component, React, Rendered } from "../app-framework";
+
+const { User } = require("../users");
+const { r_join, Icon, TimeAgo } = require("../r_misc");
+
+import { FileUseIcon } from "./icon";
+
+import { Map as iMap } from "immutable";
+
+const { Col, Row } = require("react-bootstrap");
+
+const misc = require("smc-util/misc");
+
+import { open_file_use_entry } from "./util";
+
+// Arbitrary constants:
+
+// Maximum number of distinct user names to show in a notification
+const MAX_USERS = 5;
+// Length to truncate project title and filename to.
+const TRUNCATE_LENGTH = 50;
 
 const file_use_style = {
   border: "1px solid #aaa",
@@ -14,57 +26,57 @@ const file_use_style = {
   padding: "8px"
 };
 
-const FileUseInfo = rclass({
-  displayName: "FileUse",
+interface Props {
+  info: iMap<string, any>;
+  account_id: string;
+  user_map: iMap<string, any>;
+  project_map: iMap<string, any>;
+  redux: any;
+  cursor?: boolean;
+  mask?: string; // TODO: not used in client code.  Why?? remove... or?
+}
 
-  propTypes: {
-    info: rtypes.object.isRequired,
-    account_id: rtypes.string.isRequired,
-    user_map: rtypes.object.isRequired,
-    project_map: rtypes.object.isRequired,
-    redux: rtypes.object,
-    cursor: rtypes.bool
-  },
+export class FileUseInfo extends Component<Props, {}> {
+  private info: any = {};
 
-  shouldComponentUpdate(nextProps) {
-    const a =
+  shouldComponentUpdate(nextProps: Props): boolean {
+    return (
       this.props.info !== nextProps.info ||
       this.props.cursor !== nextProps.cursor ||
       this.props.user_map !== nextProps.user_map ||
-      this.props.project_map !== nextProps.project_map;
-    return a;
-  },
+      this.props.project_map !== nextProps.project_map
+    );
+  }
 
-  render_users() {
-    let user;
-    if (this.info.users != null) {
-      const v = [];
-      // only list users who have actually done something aside from mark read/seen this file
-      const users = (() => {
-        const result = [];
-        for (user of Array.from(this.info.users)) {
-          if (user.last_edited) {
-            result.push(user);
-          }
-        }
-        return result;
-      })();
-      for (user of Array.from(users.slice(0, MAX_USERS))) {
-        v.push(
-          <User
-            key={user.account_id}
-            account_id={user.account_id}
-            name={user.account_id === this.props.account_id ? "You" : undefined}
-            user_map={this.props.user_map}
-            last_active={user.last_edited}
-          />
-        );
+  componentWillReceiveProps(props: Props): void {
+    this.info = props.info.toJS(); // TODO: ugly, but makes the code easier to read/write, I guess...
+  }
+
+  render_users(): Rendered {
+    if (this.info.users == null) return;
+    const v: Rendered[] = [];
+    // only list users who have actually done something aside from mark read/seen this file
+    const users: any[] = [];
+    for (let user of this.info.users) {
+      if (user != null && user.last_edited) {
+        users.push(user);
       }
-      return r_join(v);
     }
-  },
+    for (let user of users.slice(0, MAX_USERS)) {
+      v.push(
+        <User
+          key={user.account_id}
+          account_id={user.account_id}
+          name={user.account_id === this.props.account_id ? "You" : undefined}
+          user_map={this.props.user_map}
+          last_active={user.last_edited}
+        />
+      );
+    }
+    return r_join(v);
+  }
 
-  render_last_edited() {
+  render_last_edited(): Rendered {
     if (this.info.last_edited) {
       return (
         <span key="last_edited">
@@ -72,20 +84,19 @@ const FileUseInfo = rclass({
         </span>
       );
     }
-  },
+  }
 
-  open(e) {
+  open(e): void {
     if (e != null) {
       e.preventDefault();
     }
-    return open_file_use_entry(this.info, this.props.redux);
-  },
+    open_file_use_entry(this.info, this.props.redux);
+  }
 
-  render_path() {
+  render_path(): Rendered {
     let { name, ext } = misc.separate_file_extension(this.info.path);
     name = misc.trunc_middle(name, TRUNCATE_LENGTH);
     ext = misc.trunc_middle(ext, TRUNCATE_LENGTH);
-    //  style={if @info.is_unread then {fontWeight:'bold'}}
     return (
       <span>
         <span style={{ fontWeight: this.info.is_unread ? "bold" : "normal" }}>
@@ -96,22 +107,15 @@ const FileUseInfo = rclass({
         </span>
       </span>
     );
-  },
+  }
 
-  render_project() {
-    return (
-      <em key="project">
-        {misc.trunc(
-          __guard__(this.props.project_map.get(this.info.project_id), x =>
-            x.get("title")
-          ),
-          TRUNCATE_LENGTH
-        )}
-      </em>
-    );
-  },
+  render_project(): Rendered {
+    const proj = this.props.project_map.get(this.info.project_id);
+    const title = proj == null ? "" : proj.get("title");
+    return <em key="project">{misc.trunc(title, TRUNCATE_LENGTH)}</em>;
+  }
 
-  render_what_is_happening() {
+  render_what_is_happening(): Rendered {
     if (this.info.users == null) {
       return this.render_last_edited();
     }
@@ -119,22 +123,21 @@ const FileUseInfo = rclass({
       return <span>discussed by </span>;
     }
     return <span>edited by </span>;
-  },
+  }
 
-  render_action_icon() {
+  render_action_icon(): Rendered {
     if (this.info.show_chat) {
       return <Icon name="comment" />;
     } else {
       return <Icon name="edit" />;
     }
-  },
+  }
 
-  render_type_icon() {
-    return <FileIcon filename={this.info.path} />;
-  },
+  render_type_icon(): Rendered {
+    return <FileUseIcon filename={this.info.path} />;
+  }
 
-  render() {
-    this.info = this.props.info.toJS();
+  render(): Rendered {
     const style = misc.copy(file_use_style);
     if (this.info.notify) {
       style.background = "#ffffea"; // very light yellow
@@ -161,10 +164,4 @@ const FileUseInfo = rclass({
       </div>
     );
   }
-});
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

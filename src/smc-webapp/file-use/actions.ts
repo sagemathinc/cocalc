@@ -18,52 +18,61 @@ import { Actions } from "../app-framework";
 
 const immutable = require("immutable");
 
-export class FileUseActions extends Actions {
-  constructor(...args) {
-    super(...args);
-    this._init = this._init.bind(this);
+import { FileUseState, FileUseStore } from "./store";
+const { sha1 } = require("smc-util/schema").client_db;
+
+export class FileUseActions<T = FileUseState> extends Actions<
+  T | FileUseState
+> {
+  private _mark_file_lock: { [key: string]: boolean } = {};
+
+  _init() {
     this.record_error = this.record_error.bind(this);
     this.mark_all = this.mark_all.bind(this);
     this.mark_file = this.mark_file.bind(this);
-  }
-
-  _init() {
-    const store = this.redux.getStore("file_use");
-    return store.on("change", () => {
-      // Ensure derived immutable state is updated right after clearing the cache; this of course
-      // initializes the cache.
-      return this.setState({ notify_count: store.get_notify_count() });
+    const store = this.get_store();
+    store.on("change", () => {
+      // Ensure derived immutable state is updated right after clearing
+      // the cache; this of course initializes the cache.
+      this.setState({ notify_count: store.get_notify_count() });
     });
   }
 
-  record_error(err) {
+  private get_store(): FileUseStore {
+    const store: FileUseStore | undefined = this.redux.getStore("file_use");
+    if (store == null) {
+      throw Error("store must be defined before actions!");
+    }
+    return store;
+  }
+
+  record_error(err: any) {
     // Record in the store that an error occured as a result of some action
     // This should get displayed to the user...
-    if (!typeof err === "string") {
-      err = misc.to_json(err);
-    }
-    return this.setState({
-      errors: this.redux
-        .getStore("file_use")
+    this.setState({
+      errors: this.get_store()
         .get_errors()
-        .push(immutable.Map({ time: webapp_client.server_time(), err }))
+        .push(
+          immutable.Map({ time: webapp_client.server_time(), err: `${err}` })
+        )
     });
   }
 
-  // OPTIMIZATION: This updates and rerenders for each item. Change to doing it in a batch.
-  mark_all(action) {
-    let v;
+  // OPTIMIZATION: This updates and rerenders for each item.
+  // TODO: Change to doing it in a batch.
+  mark_all(action): void {
+    let v: any[];
     if (action === "read") {
-      v = this.redux.getStore("file_use").get_all_unread();
+      v = this.get_store().get_all_unread();
     } else if (action === "seen") {
-      v = this.redux.getStore("file_use").get_all_unseen();
+      v = this.get_store().get_all_unseen();
     } else {
       this.record_error(`mark_all: unknown action '${action}'`);
       return;
     }
-    return Array.from(v).map(x =>
-      this.mark_file(x.project_id, x.path, action, 0, false)
-    );
+    v.map(x => {
+      if (x != null) this.mark_file(x.project_id, x.path, action, 0, false);
+    });
   }
 
   _set = async obj => {
@@ -71,27 +80,24 @@ export class FileUseActions extends Actions {
       if (!webapp_client.is_signed_in()) {
         await once(webapp_client, "signed_in");
       }
-      return await callback2(webapp_client.query, { query: { file_use: obj } });
+      await callback2(webapp_client.query, { query: { file_use: obj } });
     } catch (error) {
       const err = error;
-      return console.warn("WARNING: mark_file error -- ", err);
+      console.warn("WARNING: mark_file error -- ", err);
     }
   };
 
   // Mark the action for the given file with the current timestamp (right now).
   // If zero is true, instead mark the timestamp as 0, basically indicating removal
   // of that marking for that user.
-  mark_file(project_id, path, action, ttl, fix_path, timestamp) {
-    // ttl in units of ms
-    if (ttl == null) {
-      ttl = "default";
-    }
-    if (fix_path == null) {
-      fix_path = true;
-    }
-    if (timestamp == null) {
-      timestamp = undefined;
-    }
+  async mark_file(
+    project_id: string,
+    path: string,
+    action: string,
+    ttl: number | "default" = "default", // ttl in units of ms
+    fix_path: boolean = true,
+    timestamp: Date | undefined = undefined
+  ): Promise<void> {
     if (fix_path) {
       // This changes .foo.txt.sage-chat to foo.txt.
       path = misc.original_path(path);
@@ -102,13 +108,18 @@ export class FileUseActions extends Actions {
       // nothing to do -- non-logged in users shouldn't be marking files
       return;
     }
-    const project_is_known = __guard__(
-      this.redux.getStore("projects").get("project_map"),
-      x => x.has(project_id)
-    );
+    const projects = this.redux.getStore("projects");
+    if (projects == null) {
+      return;
+    }
+    const project_map = projects.get("project_map");
+    if (project_map == null) {
+      return;
+    }
+    const project_is_known = project_map.has(project_id);
     if (!project_is_known) {
-      // user is not currently a collaborator on this project, so definitely shouldn't
-      // mark file use.
+      // user is not currently a collaborator on this project,
+      // so definitely shouldn't mark file use.
       return;
     }
     if (ttl) {
@@ -119,11 +130,7 @@ export class FileUseActions extends Actions {
           ttl = 90 * 1000;
         }
       }
-      //console.log('ttl', ttl)
-      const key = `${project_id}-${path}-${action}`;
-      if (this._mark_file_lock == null) {
-        this._mark_file_lock = {};
-      }
+      const key: string = `${project_id}-${path}-${action}`;
       if (this._mark_file_lock[key]) {
         return;
       }
@@ -132,11 +139,17 @@ export class FileUseActions extends Actions {
     }
 
     const table = this.redux.getTable("file_use");
+    if (table == null) {
+      throw Error("table must be defined");
+    }
+
     if (timestamp == null) {
       timestamp = webapp_client.server_time();
+    } else {
+      timestamp = new Date(timestamp);
     }
-    timestamp = new Date(timestamp);
-    const obj = {
+
+    const obj : any = {
       id: sha1(project_id, path),
       project_id,
       path,
@@ -147,12 +160,6 @@ export class FileUseActions extends Actions {
       // and grabbing only recent files from database for file use notifications.
       obj.last_edited = timestamp;
     }
-    return this._set(obj);
+    await this._set(obj);
   }
-}
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }

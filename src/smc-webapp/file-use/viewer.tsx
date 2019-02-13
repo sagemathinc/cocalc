@@ -1,33 +1,51 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 
-const FileUseViewer = rclass({
-  displayName: "FileUseViewer",
+import { Map as iMap, List as iList } from "immutable";
 
-  propTypes: {
-    redux: rtypes.object,
-    file_use_list: rtypes.object.isRequired,
-    user_map: rtypes.object.isRequired,
-    project_map: rtypes.object.isRequired,
-    account_id: rtypes.string.isRequired
-  },
+import { FileUseInfo } from "./info";
 
-  getInitialState() {
-    return {
+const { Button, Col, Row } = require("react-bootstrap");
+
+import { Component, React, Rendered } from "../app-framework";
+
+const { Icon, SearchInput } = require("../r_misc");
+
+import { FileUseActions } from "./actions";
+
+import { open_file_use_entry } from "./util";
+
+const { search_match, search_split } = require("smc-util/misc");
+
+// Number of notifications to show if "Show All" isn't clicked
+const SHORTLIST_LENGTH = 40;
+
+interface Props {
+  redux: any;
+  file_use_list: iList<any>;
+  user_map: iMap<string, any>;
+  project_map: iMap<string, any>;
+  account_id: string;
+}
+
+interface State {
+  search: string;
+  cursor: number; // cursor position
+  show_all: boolean;
+}
+
+export class FileUseViewer extends Component<Props, State> {
+  private _visible_list: iMap<string, any>[] = [];
+  private _num_missing : number = 0;
+
+  constructor(props) {
+    super(props);
+    this.state = {
       search: "",
       cursor: 0,
       show_all: false
     };
-  },
+  }
 
-  render_search_box() {
+  render_search_box(): Rendered {
     return (
       <span key="search_box" className="smc-file-use-notifications-search">
         <SearchInput
@@ -40,84 +58,78 @@ const FileUseViewer = rclass({
           on_submit={this.open_selected}
           on_escape={before => {
             if (!before) {
-              this.actions("page").toggle_show_file_use();
-              return this.setState({ cursor: 0, show_all: false });
+              const a = this.props.redux.getActions("page");
+              if (a != null) {
+                (a as any).toggle_show_file_use();
+              }
+              this.setState({ cursor: 0, show_all: false });
             }
           }}
           on_up={() =>
             this.setState({ cursor: Math.max(0, this.state.cursor - 1) })
           }
-          on_down={() =>
-            this.setState({
-              cursor: Math.max(
-                0,
-                Math.min(
-                  ((this._visible_list != null
-                    ? this._visible_list.length
-                    : undefined) != null
-                    ? this._visible_list != null
-                      ? this._visible_list.length
-                      : undefined
-                    : 0) - 1,
-                  this.state.cursor + 1
-                )
-              )
-            })
-          }
+          on_down={() => {
+            const cursor = Math.max(
+              0,
+              Math.min(this._visible_list.length - 1, this.state.cursor + 1)
+            );
+            this.setState({ cursor });
+          }}
         />
       </span>
     );
-  },
+  }
 
-  click_mark_all_read() {
-    this.actions("file_use").mark_all("read");
-    return this.actions("page").toggle_show_file_use();
-  },
+  click_mark_all_read(): void {
+    const a: FileUseActions = this.props.redux.getActions("file_use");
+    if (a != null) {
+      a.mark_all("read");
+    }
+    const p = this.props.redux.getActions("page");
+    if (p != null) {
+      (p as any).toggle_show_file_use();
+    }
+  }
 
-  render_mark_all_read_button() {
+  render_mark_all_read_button(): Rendered {
     return (
       <Button key="mark_all_read_button" onClick={this.click_mark_all_read}>
         <Icon name="check-square" /> Mark All Read
       </Button>
     );
-  },
+  }
 
-  open_selected() {
-    return open_file_use_entry(
-      __guard__(
-        this._visible_list != null
-          ? this._visible_list[this.state.cursor]
-          : undefined,
-        x => x.toJS()
-      ),
-      this.props.redux
-    );
-  },
+  open_selected(): void {
+    if (this._visible_list != null) {
+      const x = this._visible_list[this.state.cursor];
+      if (x != null) {
+        open_file_use_entry(x.toJS(), this.props.redux);
+      }
+    }
+  }
 
-  render_list() {
+  render_list(): Rendered[] {
     let v = this.props.file_use_list.toArray();
     if (this.state.search) {
-      const s = misc.search_split(this.state.search.toLowerCase());
-      v = (() => {
-        const result = [];
-        for (let x of Array.from(v)) {
-          if (misc.search_match(x.get("search"), s)) {
-            result.push(x);
-          }
+      const s = search_split(this.state.search.toLowerCase());
+      const w : any[] = [];
+      for (let x of v) {
+        if (x && search_match(x.get('search'), s)) {
+          w.push(x);
         }
-        return result;
-      })();
+      }
+      v = w;
     }
     if (!this.state.show_all) {
       this._num_missing = Math.max(0, v.length - SHORTLIST_LENGTH);
       v = v.slice(0, SHORTLIST_LENGTH);
     }
     this._visible_list = v;
-    const r = [];
+    const r : Rendered[] = [];
     for (let i = 0; i < v.length; i++) {
       const info = v[i];
       r.push(
-        <FileUse
+        <FileUseInfo
           key={`file-use-${i}`}
           cursor={i === this.state.cursor}
           redux={this.props.redux}
@@ -129,9 +141,9 @@ const FileUseViewer = rclass({
       );
     }
     return r;
-  },
+  }
 
-  render_show_all() {
+  render_show_all(): Rendered {
     if (this._num_missing) {
       return (
         <Button
@@ -145,9 +157,9 @@ const FileUseViewer = rclass({
         </Button>
       );
     }
-  },
+  }
 
-  render_show_less() {
+  render_show_less(): Rendered {
     const n = this._visible_list.length - SHORTLIST_LENGTH;
     if (n > 0) {
       return (
@@ -162,17 +174,17 @@ const FileUseViewer = rclass({
         </Button>
       );
     }
-  },
+  }
 
-  render_toggle_all() {
+  render_toggle_all(): Rendered {
     return (
       <div key="toggle_all" style={{ textAlign: "center", marginTop: "2px" }}>
         {this.state.show_all ? this.render_show_less() : this.render_show_all()}
       </div>
     );
-  },
+  }
 
-  render() {
+  render(): Rendered {
     return (
       <div className={"smc-file-use-viewer"}>
         <Row key="top">
@@ -188,10 +200,4 @@ const FileUseViewer = rclass({
       </div>
     );
   }
-});
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
 }
