@@ -1473,7 +1473,7 @@ exports.UpgradeAdjustor = rclass
     # the max button will set the upgrade input box to the number given as max
     render_max_button: (name, max) ->
         <Button
-            bsSize  = 'xsmall'
+            bsSize  = 'small'
             onClick = {=>@setState("upgrade_#{name}" : max)}
             style   = {padding:'0px 5px'}
         >
@@ -1516,7 +1516,7 @@ exports.UpgradeAdjustor = rclass
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
                 <Col sm={6}>
-                    <form>
+                    <form style={float:'right'}>
                         <Checkbox
                             ref      = {"upgrade_#{name}"}
                             checked  = {val > 0}
@@ -1567,7 +1567,7 @@ exports.UpgradeAdjustor = rclass
 
             unit = misc.plural(show_remaining, display_unit)
             if limit < remaining
-                remaining_note = <span>You have {remaining_all} unallocated {unit}<br/>(you may allocate up to {limit} {unit} here)</span>
+                remaining_note = <span>You have {remaining_all} unallocated {unit}<br/>(You may allocate up to {limit} {unit} here)</span>
 
             else
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
@@ -1575,7 +1575,7 @@ exports.UpgradeAdjustor = rclass
             <Row key={name} style={marginTop:'5px'}>
                 <Col sm={7}>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong> ({show_total} of {total_limit} {unit})
+                        <strong>{display}</strong> (current: {show_total} {unit}, max allowed: {total_limit} {unit})
                     </Tip>
                     <br/>
                     {remaining_note}
@@ -1652,6 +1652,10 @@ exports.UpgradeAdjustor = rclass
                 changed = true
         return changed
 
+    show_account_upgrades: ->
+        redux.getActions('page').set_active_tab('account')
+        redux.getActions('account').set_active_tab('upgrades')
+
     render: ->
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
@@ -1660,36 +1664,32 @@ exports.UpgradeAdjustor = rclass
             {limits, remaining, current, totals, proj_remainder} = @get_quota_info()
 
             <Alert bsStyle='warning' style={@props.style}>
-                {<React.Fragment>
-                    <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+                {<div>
+                    <h3><Icon name='arrow-circle-up' /> Adjust you quota contributions to this project</h3>
 
-                    <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
-                    </span>
-                    <hr/>
-                </React.Fragment> if not @props.omit_header}
+                    <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
+                    </div>
+                </div> if not @props.omit_header}
+                <div style={marginTop:'10px'}>
+                    <Button
+                        onClick = {@max_upgrades}
+                    >
+                        Apply maximum available upgrades to this project...
+                    </Button>
+                    {' '}
+                    <Button
+                        onClick = {@clear_upgrades}
+                    >
+                        Remove all your upgrades from this project...
+                    </Button>
+                </div>
+                <hr/>
                 <Row>
-                    <Col md={2}>
-                        <b style={fontSize:'12pt'}>Quota</b>
-                    </Col>
-                    <Col md={4}>
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {@max_upgrades}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Max All Upgrades
-                        </Button>
-                        {' '}
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {@clear_upgrades}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Remove All Upgrades
-                        </Button>
+                    <Col md={6}>
+                        <b style={fontSize:'14pt'}>Quota</b>
                     </Col>
                     <Col md={6}>
-                        <b style={fontSize:'12pt'}>Your contribution</b>
+                        <b style={fontSize:'14pt', float:'right'}>Your contribution</b>
                     </Col>
                 </Row>
                 <hr/>
