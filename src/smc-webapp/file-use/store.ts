@@ -163,7 +163,7 @@ export class FileUseStore extends Store<FileUseState> {
       this._update_cache();
     }
     if (this._cache == null) {
-      throw Error("cache must be set");
+      return 0; // not ready yet.
     }
     if (this._cache.notify_count) {
       return this._cache.notify_count;
