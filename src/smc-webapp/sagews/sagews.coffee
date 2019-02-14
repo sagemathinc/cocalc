@@ -101,15 +101,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
             cm_foldOptions  : foldOptions
+            persistent      : true   # so sage session **not** killed when everybody closes the tab.
 
-        super editor, opts0
+        super(editor, opts0)
 
         # Code execution queue.
         @execution_queue = new ExecutionQueue(@_execute_cell_server_side, @)
 
     # Since we can't use in super cbs, use _init_cb as the function which will be called by the parent
     _init_cb: =>
-        @readonly = @_syncstring.get_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
+        @readonly = @_syncstring.is_read_only()  # TODO: harder problem -- if file state flips between read only and not, need to rerender everything...
 
         @init_hide_show_gutter()  # must be after @readonly set
 
@@ -265,6 +266,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
     get_all_cells: =>
         cm = @focused_codemirror()
+        if not cm?
+            return []
         cells = []
         top = undefined
         process_line = (n) =>
@@ -857,6 +860,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         after = @editor.codemirror.getValue()
         if before != after and not @readonly
             @_syncstring.from_str(after)
+            @_syncstring.save()
 
     _process_sage_updates: (cm, start, stop) =>
         #dbg = (m) -> console.log("_process_sage_updates: #{m}")
@@ -1226,14 +1230,14 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             cb    : undefined
         if @readonly
             opts.cb?({done:true, error:'readonly'})
-        else
-            if not @_syncstring?._evaluator?
-                opts.cb?({done:true, error:'closed'})
-                return
-            @_syncstring._evaluator.call
-                program : 'sage'
-                input   : opts.input
-                cb      : opts.cb
+            return
+        if not @_syncstring?.evaluator?
+            opts.cb?({done:true, error:'closed'})
+            return
+        @_syncstring.evaluator.call
+            program : 'sage'
+            input   : opts.input
+            cb      : opts.cb
         return
 
     status: (opts) =>
@@ -1257,7 +1261,6 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             id          : misc.uuid()
             output_uuid : opts.output_uuid
             timeout     : undefined
-
         @sage_call
             input :
                 event       : 'execute_code'
@@ -1301,7 +1304,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 return
 
     process_html_output: (e) =>
-        # TODO: when redoing this using react, see the Markdown component in r_misc.cjsx
+        # TODO: when redoing this using react, see the Markdown component in r_misc
         # and the process_smc_links jQuery plugin in misc_page.coffee
         # makes tables look MUCH nicer
         e.find("table").addClass('table')
@@ -2050,7 +2053,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 mesg[opts.mode] = opts.code
         opts.cell.append_output_message(mesg)
         setTimeout(opts.cell.set_output_min_height, 1000)
-        @sync()
+        setTimeout(@sync, 1)
 
     execute_cell_server_side: (opts) =>
         opts = defaults opts,
@@ -2090,9 +2093,11 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         done = =>
             cell.remove_cell_flag(FLAGS.running)
             cell.set_cell_flag(FLAGS.this_session)
-            setTimeout(cell.set_output_min_height, 1000) # wait a second, e.g., for async loading of images to finish
+            # wait a second, e.g., for async loading of images to finish
+            setTimeout(cell.set_output_min_height, 1000)
             @sync()
             opts.cb?()
+            delete opts.cb  # to be sure not called again.
 
         t0 = new Date()
         cleared_output = false
@@ -2101,7 +2106,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 cleared_output = true
                 cell.set_output([])
 
-        # Give the cell one second to get output from backend.  If not, then we clear output.
+        # Give the cell one second to get output from backend.
+        # If not, then we clear output.
         # These reduces "flicker", which makes things seem slow.
         setTimeout(clear_output, 1000)
         first_output = true
@@ -2109,7 +2115,9 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             code         : input
             output_uuid  : output_uuid
             cb           : (mesg) =>
-                if first_output  # we *always* clear the first time, even if we cleared above via the setTimeout.
+                if first_output
+                    # we *always* clear the first time, even if we
+                    # cleared above via the setTimeout.
                     first_output = false
                     clear_output()
                 cell.append_output_message(mesg)

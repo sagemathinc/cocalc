@@ -113,6 +113,7 @@ exports.create_account = (opts) ->
                 email_address : opts.mesg.email_address
                 password_hash : auth.password_hash(opts.mesg.password)
                 created_by    : opts.client.ip_address
+                usage_intent  : opts.mesg.usage_intent
                 cb: (error, result) ->
                     if error
                         cb(other:"Unable to create account right now.  Please try later.")

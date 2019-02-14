@@ -9,21 +9,13 @@ import { callback } from "awaiting";
 import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
 
-import {
-  uuid,
-  trunc,
-  deep_copy,
-  copy_with
-} from "../smc-webapp/frame-editors/generic/misc";
+import { uuid, trunc, deep_copy, copy_with } from "../smc-util/misc2";
 
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
-  StdinFunction,
-  Message
+  StdinFunction
 } from "../smc-webapp/jupyter/project-interface";
-
-type MesgHandler = (mesg: Message) => void;
 
 export class CodeExecutionEmitter extends EventEmitter
   implements CodeExecutionEmitterInterface {
@@ -87,6 +79,7 @@ export class CodeExecutionEmitter extends EventEmitter
   }
 
   close(): void {
+    if (this.state == "closed") return;
     this.state = "closed";
     this.emit("closed");
     this.removeAllListeners();

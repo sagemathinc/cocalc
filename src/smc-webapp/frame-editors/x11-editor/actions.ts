@@ -2,6 +2,8 @@
 X Window Editor Actions
 */
 
+const HELP_URL = "https://doc.cocalc.com/x11.html";
+
 // 15 minute idle timeout -- it's important to disconnect
 // the websocket to the xpra server, to avoid a massive
 // waste of bandwidth...
@@ -9,7 +11,7 @@ const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
-import { Map, Set, fromJS } from "immutable";
+import { Map, Set as immutableSet, fromJS } from "immutable";
 
 import { project_api } from "../generic/client";
 
@@ -30,6 +32,8 @@ import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";
 
 const { alert_message } = require("smc-webapp/alerts");
+
+const { open_new_tab } = require("smc-webapp/misc_page");
 
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;
@@ -148,12 +152,17 @@ export class Actions extends BaseActions<X11EditorState> {
       idle_timeout_ms: CLIENT_IDLE_TIMEOUT_MS
     });
 
-    this.client.on("window:create", (wid: number, title: string) => {
-      this.push_to_wid_history(wid);
-      let windows = this.store.get("windows").set(wid, fromJS({ wid, title }));
-      this.setState({ windows });
-      this.update_x11_tabs();
-    });
+    this.client.on(
+      "window:create",
+      (wid: number, title: string, is_modal: boolean) => {
+        this.push_to_wid_history(wid);
+        let windows = this.store
+          .get("windows")
+          .set(wid, fromJS({ wid, title, is_modal }));
+        this.setState({ windows });
+        this.update_x11_tabs();
+      }
+    );
 
     this.client.on("window:destroy", (wid: number) => {
       this.delete_window(wid);
@@ -208,7 +217,7 @@ export class Actions extends BaseActions<X11EditorState> {
     if (!parent) {
       return;
     }
-    let children = parent.get("children", Set())[op](child_wid);
+    let children = parent.get("children", immutableSet())[op](child_wid);
     parent = parent.set("children", children);
     windows = windows.set(parent_wid, parent);
     this.setState({ windows });
@@ -271,13 +280,20 @@ export class Actions extends BaseActions<X11EditorState> {
     this.client.blur();
   }
 
-  // Set things so that the X11 window wid is displayed in the frame
-  // with given id.
+  // Set things so that the X11 window wid is displayed in
+  // the frame with given id.
   set_focused_window_in_frame(
     id: string,
     wid: number,
     do_not_ensure = false
   ): void {
+    const modal_wids = this.get_modal_wids();
+    if (modal_wids.size > 0 && !modal_wids.has(wid)) {
+      this.set_error(
+        "Close any modal tabs before switching to a non-modal tab."
+      );
+      return;
+    }
     this.push_to_wid_history(wid);
     const leaf = this._get_frame_node(id);
     if (leaf == null || leaf.get("type") !== "x11") {
@@ -437,18 +453,37 @@ export class Actions extends BaseActions<X11EditorState> {
   // Update x11 tabs to get as close as we can to having
   // a tab selected in each x11 frame.
   private update_x11_tabs(): void {
+    const modal_wids: Set<number> = this.get_modal_wids();
     const used_wids = this._get_used_wids();
+
     const windows = this.store.get("windows");
+
+    if (modal_wids.size > 0) {
+      // there is a modal window -- in this case we just consider
+      // all non-modal windows as used, so they can't get seleted below.
+      for (let id of new Set(windows.keys())) {
+        if (!modal_wids.has(id)) {
+          used_wids[id] = true;
+        }
+      }
+    }
 
     for (let leaf_id in this._get_leaf_ids()) {
       const leaf = this._get_frame_node(leaf_id);
-      if (
-        leaf == null ||
-        leaf.get("type") !== "x11" ||
-        windows.has(leaf.get("wid"))
-      ) {
-        // tab already set
+      if (leaf == null || leaf.get("type") !== "x11") {
         continue;
+      }
+      if (windows.has(leaf.get("wid"))) {
+        // tab already set
+        if (modal_wids.size > 0) {
+          // modal case -- only continue if this one is modal
+          if (modal_wids.has(leaf.get("wid"))) {
+            continue;
+          }
+        } else {
+          // non-modal -- always continue.
+          continue;
+        }
       }
       // Set this leaf to something not already used,
       // preferring most recently created or focused windows.
@@ -536,9 +571,37 @@ export class Actions extends BaseActions<X11EditorState> {
     // Launch the command
     this.channel.write({ cmd: "launch", command, args });
     // TODO: wait for a status message back...
+
+    const project_actions = this._get_project_actions();
+    project_actions.log({
+      event: "x11",
+      action: "launch",
+      path: this.path,
+      command
+    });
   }
 
   set_physical_keyboard(layout: string, variant: string): void {
     this.client.set_physical_keyboard(layout, variant);
+  }
+
+  private get_modal_wids(): Set<number> {
+    const wids: Set<number> = new Set();
+    this.store.get("windows").forEach((window, wid) => {
+      if (window.get("is_modal")) {
+        wids.add(wid);
+      }
+    });
+    return wids;
+  }
+
+  // for X11, we just want to communicate the %-value
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
+    this.set_status(`Set zoom to ${percent}%`, 1500);
+  }
+
+  help(): void {
+    open_new_tab(HELP_URL);
   }
 }

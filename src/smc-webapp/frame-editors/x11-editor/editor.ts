@@ -5,7 +5,7 @@ Top-level React component for an X Window
 import { createEditor } from "../frame-tree/editor";
 import { X11 } from "./x11";
 import { Launcher } from "./launcher";
-import { set } from "../generic/misc";
+import { set } from "smc-util/misc2";
 import { terminal } from "../terminal-editor/editor";
 
 export const x11 = {
@@ -16,6 +16,7 @@ export const x11 = {
   buttons: set([
     "decrease_font_size",
     "increase_font_size",
+    "set_zoom",
     "reload",
     "copy",
     "paste",

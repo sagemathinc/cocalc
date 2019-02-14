@@ -29,6 +29,8 @@ const { Avatar } = require("./other-users");
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 
+import { SaveButton } from "./frame-editors/frame-tree/save-button";
+
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
 const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
@@ -133,21 +135,17 @@ export class Message extends Component<MessageProps, MessageState> {
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
-      misc.is_different(
-        this.props,
-        nextProps,
-        [
-          "message",
-          "user_map",
-          "account_id",
-          "show_avatar",
-          "is_prev_sender",
-          "is_next_sender",
-          "editor_name",
-          "saved_mesg",
-          "sender_name"
-        ]
-      ) ||
+      misc.is_different(this.props, nextProps, [
+        "message",
+        "user_map",
+        "account_id",
+        "show_avatar",
+        "is_prev_sender",
+        "is_next_sender",
+        "editor_name",
+        "saved_mesg",
+        "sender_name"
+      ]) ||
       misc.is_different(this.state, nextState, [
         "edited_message",
         "show_history",
@@ -722,9 +720,8 @@ export class ChatLog extends Component<ChatLogProps> {
     if (not_showing) {
       const s = (
         <Alert bsStyle="warning" key="not_showing">
-          Hiding {not_showing} chats that do not match search for '{
-            this.props.search
-          }'.
+          Hiding {not_showing} chats that do not match search for '
+          {this.props.search}'.
         </Alert>
       );
       v.push(s);
@@ -759,6 +756,9 @@ interface ChatRoomReduxProps {
   account_id: string;
   font_size?: number;
   file_use?: any;
+  is_saving: boolean;
+  has_unsaved_changes: boolean;
+  has_uncommitted_changes: boolean;
 }
 
 type ChatRoomProps = ChatRoomOwnProps & ChatRoomReduxProps;
@@ -779,7 +779,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         saved_mesg: rtypes.string,
         saved_position: rtypes.number,
         use_saved_position: rtypes.bool,
-        search: rtypes.string
+        search: rtypes.string,
+        is_saving: rtypes.bool,
+        has_unsaved_changes: rtypes.bool,
+        has_uncommitted_changes: rtypes.bool
       },
 
       users: {
@@ -1046,7 +1049,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             target="_blank"
           >
             LaTeX
-          </a>. Emoticons: {misc.emoticons}.
+          </a>
+          . Emoticons: {misc.emoticons}.
         </div>
       </Tip>
     );
@@ -1124,6 +1128,17 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     );
   }
 
+  render_save_button() {
+    return (
+      <SaveButton
+        onClick={() => this.props.actions.save_to_disk()}
+        is_saving={this.props.is_saving}
+        has_unsaved_changes={this.props.has_unsaved_changes}
+        has_uncommitted_changes={this.props.has_uncommitted_changes}
+      />
+    );
+  }
+
   render_video_chat_button() {
     return (
       <VideoChatButton
@@ -1161,6 +1176,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           style={{ padding: "2px", textAlign: "right" }}
         >
           <ButtonGroup>
+            {this.render_save_button()}
             {this.render_timetravel_button()}
             {this.render_video_chat_button()}
             {this.render_bottom_button()}

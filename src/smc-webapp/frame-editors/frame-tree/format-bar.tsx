@@ -2,9 +2,9 @@
 The format bar
 */
 
-import { React, Component, Rendered, Fragment } from "../../app-framework";
+import { React, Component, Rendered } from "../../app-framework";
 
-import { cmp } from "../generic/misc";
+import { cmp } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
@@ -133,7 +133,7 @@ export class FormatBar extends Component<Props, {}> {
 
   render_format_buttons(): Rendered {
     return (
-      <Fragment>
+      <>
         <ButtonGroup key={"format"}>
           {this.render_button(
             "format_code",
@@ -169,7 +169,7 @@ export class FormatBar extends Component<Props, {}> {
             "remove"
           )}
         </ButtonGroup>
-      </Fragment>
+      </>
     );
   }
 
@@ -349,12 +349,9 @@ export class FormatBar extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <div
-        style={{ background: "#f8f8f8", margin: "0 1px" }}
-        className="cc-frame-tree-format-bar"
-      >
+      <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
         {this.render_font_dropdowns()}
-        <div style={{ maxHeight: "34px", overflow: "hidden" }}>
+        <div className={'cc-frame-tree-format-bar'}>
           {this.render_text_style_buttons()}
           <Space />
           {this.render_insert_buttons()}

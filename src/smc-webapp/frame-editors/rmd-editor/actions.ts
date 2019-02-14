@@ -10,7 +10,7 @@ import { convert } from "./rmd-converter";
 import { markdown_to_html_frontmatter } from "../../markdown";
 import { FrameTree } from "../frame-tree/types";
 import { redux } from "../../app-framework";
-import { change_filename_extension, path_split } from "../generic/misc";
+import { change_filename_extension, path_split } from "smc-util/misc2";
 
 export class RmdActions extends Actions {
   private _last_save_time: number = 0;
@@ -33,7 +33,7 @@ export class RmdActions extends Actions {
       this._last_save_time = time;
       run_debounced();
     });
-    this._syncstring.once("init", () => this._run_rmd_converter());
+    this._syncstring.once("ready", () => this._run_rmd_converter());
   }
 
   async _check_produced_files(): Promise<void> {
@@ -82,6 +82,11 @@ export class RmdActions extends Actions {
   async _run_rmd_converter(time?: number): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
+    if (this._syncstring == null || this._syncstring.get_state() != 'ready') {
+      // do not run if not ready -- important due to the debounce, which could
+      // fire this at any time.
+      return;
+    }
     this.set_status("Running RMarkdown...");
     this.set_error("");
     let markdown = "";

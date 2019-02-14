@@ -3,7 +3,7 @@ Convert LaTeX file to PDF using latexmk.
 */
 
 import { exec, ExecOutput } from "../generic/client";
-import { path_split, change_filename_extension } from "../generic/misc";
+import { path_split, change_filename_extension } from "smc-util/misc2";
 
 export async function latexmk(
   project_id: string,
@@ -25,9 +25,9 @@ export async function latexmk(
     status([command].concat(args).join(" "));
   }
   return await exec({
-    bash: true,    // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
+    bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
     allow_post: false, // definitely could take a long time to fully run latex
-    timeout: 60,
+    timeout: 4 * 60, // 4 minutes, on par with Overleaf
     command: command,
     args: args,
     project_id: project_id,

@@ -38,8 +38,9 @@ import {
   path_split,
   separate_file_extension,
   change_filename_extension
-} from "../generic/misc";
+} from "smc-util/misc2";
 import { IBuildSpecs } from "./build";
+const { open_new_tab } = require("smc-webapp/misc_page");
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;
@@ -136,8 +137,10 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.build("", false);
       }
     };
-    this._syncstring.once("init", f);
-    this._syncdb.once("init", f);
+    this._syncstring.once("ready", f);
+
+    if (this._syncdb == null) throw Error("syncdb must be defined");
+    this._syncdb.once("ready", f);
   }
 
   _init_latexmk(): void {
@@ -158,6 +161,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._init_syncdb(["key"], undefined, path);
 
     const set_cmd = (): void => {
+      if (this._syncdb == null) throw Error("syncdb must be defined");
       const x = this._syncdb.get_one({ key: "build_command" });
       if (x !== undefined && x.get("value") !== undefined) {
         const cmd: List<string> | string = x.get("value");
@@ -182,7 +186,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.set_build_command(default_cmd);
     };
 
-    this._syncdb.on("init", set_cmd);
+    this._syncdb.on("ready", set_cmd);
     this._syncdb.on("change", set_cmd);
   }
 
@@ -353,7 +357,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_build_logs({ knitr: output });
     this.clear_gutter("Codemirror-latex-errors");
     update_gutters({
-      path: this.path,
+      path: this.filename_knitr,
       log: output.parse,
       set_gutter: (line, component) => {
         this.set_gutter_marker({
@@ -725,11 +729,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   help(): void {
-    // TODO: call version that deals with popup blockers...
-    const w = window.open(HELP_URL, "_blank");
-    if (w) {
-      w.focus();
-    }
+    open_new_tab(HELP_URL);
   }
 
   zoom_page_width(id: string): void {
@@ -805,9 +805,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   set_build_command(command: string | string[]): void {
-    const now = server_time().valueOf();
-    this._syncdb.set({ key: "build_command", value: command, time: now });
-    this._syncdb.save();
+    // I deleted the insane time:now in this syncdb set, since that would seem to generate
+    // an insane amount of traffic (and I'm surprised it wouldn't generate a feedback loop)!
+    this._syncdb.set({ key: "build_command", value: command });
+    this._syncdb.commit();
     this.setState({ build_command: fromJS(command) });
   }
 }

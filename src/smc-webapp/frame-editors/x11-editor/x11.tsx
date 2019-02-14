@@ -18,11 +18,10 @@ import {
 } from "../../app-framework";
 
 import { debounce } from "underscore";
-import { is_different } from "../generic/misc";
+import { cmp, is_different } from "smc-util/misc2";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";
-import { cmp } from "../generic/misc";
 
 interface Props {
   actions: Actions;

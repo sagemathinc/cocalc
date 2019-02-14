@@ -4,7 +4,7 @@ Manage a collection of terminals in the frame tree.
 
 import { Actions } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
-import { len } from "../generic/misc";
+import { len } from "smc-util/misc2";
 import { Terminal } from "./connected-terminal";
 
 export class TerminalManager {
@@ -61,7 +61,7 @@ export class TerminalManager {
   }
 
   get_terminal(id: string, parent: HTMLElement): Terminal {
-    if (this.terminals[id] != null)  {
+    if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
     } else {
       this.terminals[id] = new Terminal(
@@ -110,5 +110,4 @@ export class TerminalManager {
   get(id: string): Terminal | undefined {
     return this.terminals[id];
   }
-
 }

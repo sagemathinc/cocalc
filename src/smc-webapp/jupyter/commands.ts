@@ -4,6 +4,8 @@ Comprehensive list of Jupyter notebook (version 5) command,
    k : default keyboard shortcut for that command
 */
 
+// for now we also use require here (see comment in actions.ts)
+
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
 const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
@@ -131,7 +133,7 @@ export function commands(actions: any) {
           ],
           cb(choice) {
             if (choice === "Restart") {
-              return actions.signal("SIGKILL");
+              return actions.restart();
             }
           }
         });
@@ -155,7 +157,7 @@ export function commands(actions: any) {
           ],
           cb(choice) {
             if (choice === "Restart and clear all outputs") {
-              actions.signal("SIGKILL");
+              actions.restart();
               return actions.clear_all_outputs();
             }
           }
@@ -165,7 +167,7 @@ export function commands(actions: any) {
 
     "confirm restart kernel and run all cells": {
       m: "Restart and run all...",
-      i: 'forward',
+      i: "forward",
       f() {
         // TODO: async/await?
         actions.confirm_dialog({
@@ -180,19 +182,10 @@ export function commands(actions: any) {
               default: true
             }
           ],
-          cb(choice) {
+          async cb(choice) {
             if (choice === "Restart and run all cells") {
-              actions.signal("SIGKILL");
-              actions.store.wait({
-                until(s) {
-                  s.get("backend_state") !== "running";
-                },
-                timeout: 3,
-                cb() {
-                  // TODO: handle error passed to cb
-                  actions.run_all_cells();
-                }
-              });
+              await actions.restart();
+              actions.run_all_cells();
             }
           }
         });
@@ -212,7 +205,7 @@ export function commands(actions: any) {
           ],
           cb(choice) {
             if (choice === "Shutdown") {
-              actions.signal("SIGKILL");
+              actions.shutdown();
             }
           }
         });
@@ -538,21 +531,21 @@ export function commands(actions: any) {
 
     "restart kernel": {
       m: "Restart kernel",
-      f: () => actions.signal("SIGKILL")
+      f: () => actions.restart()
     },
 
     "restart kernel and clear output": {
       m: "Restart kernel and clear output",
       f() {
-        actions.signal("SIGKILL");
+        actions.restart();
         actions.clear_all_outputs();
       }
     },
 
     "restart kernel and run all cells": {
       m: "Restart and run all",
-      f() {
-        actions.signal("SIGKILL");
+      async f() {
+        await actions.restart();
         actions.run_all_cells();
       }
     },
@@ -693,7 +686,7 @@ export function commands(actions: any) {
 
     "shutdown kernel": {
       m: "Shutdown kernel",
-      f: () => actions.signal("SIGKILL")
+      f: () => actions.shutdown()
     },
 
     "split cell at cursor": {

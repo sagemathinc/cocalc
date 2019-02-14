@@ -28,6 +28,7 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
+{analytics_event}       = require('./tracker')
 {webapp_client}         = require('./webapp_client')
 misc                    = require('smc-util/misc')
 {required, defaults}    = misc
@@ -40,7 +41,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {User} = require('./users')
 
@@ -163,7 +164,7 @@ QuotaConsole = rclass
             tip   = {params_data.desc}>{params_data.display}</Tip>}
             key   = {params_data.display}
             style = {borderBottom:'1px solid #ccc'}
-            >
+        >
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 {upgrade_list}
@@ -376,7 +377,7 @@ UsagePanel = rclass
         <Row>
             <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust Quotas...
+                    <Icon name='arrow-circle-up' /> Adjust your quota contributions...
                 </Button>
             </Col>
         </Row>
@@ -394,6 +395,7 @@ UsagePanel = rclass
                 quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 submit_upgrade_quotas                = {@submit_upgrade_quotas}
                 cancel_upgrading                     = {=>@setState(show_adjustor : false)}
+                total_project_quotas                 = {@props.total_project_quotas}
             /> if @state.show_adjustor}
             <QuotaConsole
                 project_id                   = {@props.project_id}
@@ -433,9 +435,18 @@ HideDeletePanel = rclass
     toggle_delete_project: ->
         @actions('projects').toggle_delete_project(@props.project.get('project_id'))
         @hide_delete_conf()
+        if @props.project.get('deleted')
+            analytics_event('project_settings', 'undelete project')
+        else
+            analytics_event('project_settings', 'delete project')
 
     toggle_hide_project: ->
         @actions('projects').toggle_hide_project(@props.project.get('project_id'))
+        user = @props.project.getIn(['users', webapp_client.account_id])
+        if user.get('hide')
+            analytics_event('project_settings', 'unhide project')
+        else
+            analytics_event('project_settings', 'hide project')
 
     # account_id : String
     # project    : immutable.Map
@@ -593,6 +604,7 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 
+
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
@@ -652,9 +664,11 @@ ProjectControlPanel = rclass
 
     restart_project: ->
         @actions('projects').restart_project(@props.project.get('project_id'))
+        analytics_event('project_settings', 'restart project')
 
     stop_project: ->
         @actions('projects').stop_project(@props.project.get('project_id'))
+        analytics_event('project_settings', 'stop project')
 
     render_confirm_restart: ->
         if @state.restart
@@ -719,11 +733,12 @@ ProjectControlPanel = rclass
         start_ts = @props.project.getIn(['status', 'start_ts'])
         return if not start_ts?
         return if @props.project.getIn(['state', 'state']) != 'running'
-        delta_s = (misc.server_time().getTime() - start_ts) / 1000
-        uptime_str = misc.seconds2hms(delta_s, true)
+
         <LabeledRow key='uptime' label='Uptime' style={@rowstyle()}>
             <span style={color:'#666'}>
-                 <Icon name='clock-o' /> project started <b>{uptime_str}</b> ago
+                 <Icon name='clock-o' /> project started <b>
+                     {<TimeElapsed start_ts={start_ts} />}
+                 </b> ago
             </span>
         </LabeledRow>
 
@@ -755,6 +770,7 @@ ProjectControlPanel = rclass
         )
         new_image = @state.compute_image
         actions = redux.getProjectActions(@props.project.get('project_id'))
+        analytics_event('project_settings', 'change compute image')
         try
             await actions.set_compute_image(new_image)
             @restart_project()
@@ -884,11 +900,13 @@ SSHPanel = rclass
     add_ssh_key: (opts) ->
         opts.project_id = @props.project.get('project_id')
         @actions('projects').add_ssh_key_to_project(opts)
+        analytics_event('project_settings', 'add project ssh key')
 
     delete_ssh_key: (fingerprint) ->
         @actions('projects').delete_ssh_key_from_project
             fingerprint : fingerprint
             project_id  : @props.project.get('project_id')
+        analytics_event('project_settings', 'remove project ssh key')
 
     render_ssh_notice: ->
         user = misc.replace_all(@props.project.get('project_id'), '-', '')
@@ -896,7 +914,7 @@ SSHPanel = rclass
         <div>
             <span>Use the following username@host:</span>
             <pre>{addr}</pre>
-            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank">
+            <a href="https://github.com/sagemathinc/cocalc/wiki/AllAboutProjects#create-ssh-key" target="_blank" rel="noopener">
                 <Icon name='life-ring'/> How to create SSH keys
             </a>
         </div>
@@ -993,7 +1011,7 @@ ProjectSettingsBody = rclass ({name}) ->
                 </Col>
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
-                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} />
+                    <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} />
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
                     <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
@@ -1036,7 +1054,7 @@ exports.ProjectSettings = rclass ({name}) ->
         query = {}
         for k in misc.keys(require('smc-util/schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
-        @_table = webapp_client.sync_table({projects_admin : query})
+        @_table = webapp_client.sync_table2({projects_admin : query}, []);
         @_table.on 'change', =>
             @setState(admin_project : @_table.get(@props.project_id))
 

@@ -17,6 +17,7 @@ teardown = pgtest.teardown
 misc = require('smc-util/misc')
 
 describe 'basic use of syncstring table from user -- ', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
@@ -198,13 +199,15 @@ describe 'syncstring changefeed from account -- ', ->
                     obj.read_only = false
                     db.user_query(account_id: accounts[0], query: {syncstrings: obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update')
+                    expect(x.new_val.read_only).toEqual(false)
 
                     # modify the users field
                     obj.users = [accounts[0]]
                     db.user_query(account_id: accounts[0], query: {syncstrings: obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update')
+                    expect(x.new_val.users).toEqual(obj.users)
 
                     # change an irrelevant field and get no update, then change the read_only field back so we see something
                     db.user_query
@@ -218,7 +221,8 @@ describe 'syncstring changefeed from account -- ', ->
                                 obj.read_only = true
                                 db.user_query(account_id: accounts[0], query: {syncstrings: obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update')
+                    expect(x.new_val.read_only).toEqual(true)
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->
@@ -367,13 +371,15 @@ describe 'syncstring changefeed from project -- ', ->
                     obj.read_only = false
                     db.user_query(account_id: accounts[0], query: {syncstrings: obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update')
+                    expect(x.new_val.read_only).toEqual(false)
 
                     # modify the users field
                     obj.users = [accounts[0]]
                     db.user_query(project_id: projects[0], query: {syncstrings: obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update')
+                    expect(x.new_val.users).toEqual([accounts[0]])
 
                     # change an irrelevant field and get no update, then change the read_only field back so we see something
                     db.user_query
@@ -387,7 +393,8 @@ describe 'syncstring changefeed from project -- ', ->
                                 obj.read_only = true
                                 db.user_query(project_id: projects[0], query: {syncstrings: obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update')
+                    expect(x.new_val.read_only).toEqual(true)
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->
@@ -602,7 +609,7 @@ describe 'test writing and reading for recent_syncstrings_in_project -- ', ->
                         cb    : cb
                 (x, cb) ->
                     obj0.last_active = time2
-                    expect(x).toEqual({action:'update', new_val:obj0, old_val:{last_active:time0}})
+                    expect(x).toEqual({action:'insert', new_val:obj0})
 
                     # change time introducing a syncstring that was old
                     db.user_query
@@ -610,7 +617,7 @@ describe 'test writing and reading for recent_syncstrings_in_project -- ', ->
                         query : {syncstrings:{project_id:projects[0], path:path1, last_active:time3}}
                         cb    : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:{last_active:time3, project_id:projects[0], string_id:string_id1}, old_val:{last_active:time1}})
+                    expect(x).toEqual({action:'insert', new_val:{last_active:time3, project_id:projects[0], string_id:string_id1}})
 
                     # create new syncstring
                     db.user_query
@@ -626,7 +633,14 @@ describe 'test writing and reading for recent_syncstrings_in_project -- ', ->
                         query : {syncstrings:{project_id:projects[0], path:path0, last_active:time1}}
                         cb    : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'delete', old_val:{last_active:time3, project_id:projects[0], string_id:string_id0}})
+                    expect(x.action).toEqual('delete')
+                    expect(x.old_val.project_id).toEqual(projects[0])
+                    expect(x.old_val.string_id).toEqual(string_id0)
+                    # the last_active time might jitter a bit. checking if inside a bracket...
+                    time3.setSeconds(time3.getSeconds() - 1)
+                    expect(x.old_val.last_active.getTime()).toBeGreaterThan(time3.getTime())
+                    time3.setSeconds(time3.getSeconds() + 2)
+                    expect(x.old_val.last_active.getTime()).toBeLessThan(time3.getTime())
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->

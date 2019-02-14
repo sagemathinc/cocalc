@@ -95,12 +95,16 @@ describe 'seconds2hms', ->
     d = 24 * h # one day
     it 'converts to short form', ->
         expect(s2hms(0)).toEqual '0s'
+        expect(s2hms(1.138)).toEqual '1.14s'
+        expect(s2hms(15.559)).toEqual '15.6s'
         expect(s2hms(60)).toEqual '1m0s'
         expect(s2hms(61)).toEqual '1m1s'
         expect(s2hms(3601)).toEqual '1h0m1s'
         expect(s2hms(7300)).toEqual '2h1m40s'
     it 'converts to long form', ->
         expect(s2hms(0, true)).toEqual '0 seconds'
+        expect(s2hms(1.138, true)).toEqual '1 second'
+        expect(s2hms(15.559, true)).toEqual '16 seconds'
         expect(s2hms(61, true)).toEqual '1 minute 1 second'
         expect(s2hms(3601, true)).toEqual '1 hour'
         expect(s2hms(7300, true)).toEqual '2 hours 1 minute'
@@ -1248,7 +1252,9 @@ describe "ticket_id_to_ticket_url", ->
         y.should.match /^http/
         y.should.match /123/
 
-describe "map_limit limits the values of a by the values in b or by b if b is a number", ->
+describe "map_min limits the values of a by the values in b or by b if b is a number", ->
+    it "map_min == map_limit", ->
+        misc.map_limit.should.eql misc.map_min
     it "Limits by a map with similar keys", ->
         a = {'x': 8, 'y': -1, 'z': 5}
         b = {'x': 4.4, 'y': 2.2}
@@ -1259,6 +1265,18 @@ describe "map_limit limits the values of a by the values in b or by b if b is a 
         b = 0
         e = {'x': 0, 'y': -1, 'z': 0}
         misc.map_limit(a, b).should.eql e
+
+describe "map_max is similar to map_min", ->
+    it "Limits by a map with similar keys", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = {'x': 4.4, 'y': 2.2}
+        e = {'x': 8, 'y': 2.2, 'z': 5}
+        misc.map_max(a, b).should.eql e
+    it "Limits by a number", ->
+        a = {'x': 8, 'y': -1, 'z': 5}
+        b = 0
+        e = {'x': 8, 'y': 0, 'z': 5}
+        misc.map_max(a, b).should.eql e
 
 describe 'is_valid_email_address is', ->
     valid = misc.is_valid_email_address

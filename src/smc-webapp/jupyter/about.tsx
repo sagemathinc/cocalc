@@ -8,6 +8,7 @@ import { Button, Modal } from "react-bootstrap";
 const { Icon } = require("../r_misc"); // TODO: import types
 const { ShowSupportLink } = require("../support"); // TODO: import types
 import { Map as ImmutableMap } from "immutable";
+const {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
 
 interface AboutProps {
   actions: any;
@@ -54,7 +55,7 @@ export class About extends Component<AboutProps> {
         <a href="https://github.com/sagemathinc/cocalc/wiki/sagejupyter" target="_new">
           documentation
         </a>, create a <ShowSupportLink />, or see the latest{" "}
-        <a href="https://github.com/sagemathinc/cocalc/wiki/JupyterClassicModern" target="_blank">
+        <a href={JUPYTER_CLASSIC_MODERN} target="_blank" rel="noopener">
           status of Jupyter in CoCalc.
         </a>
       </span>
@@ -103,7 +104,7 @@ export class About extends Component<AboutProps> {
           <div style={{ color: "#666", margin: "0px 45px" }}>
             CoCalc Jupyter notebook is a complete open source rewrite by SageMath, Inc. of the
             classical Jupyter notebook client from the{" "}
-            <a href="http://jupyter.org/" target="_blank">
+            <a href="http://jupyter.org/" target="_blank" rel="noopener">
               Jupyter project
             </a>. CoCalc Jupyter notebook maintains full compatibility with the file format and
             general look and feel of the classical notebook. It improves on the classical notebook

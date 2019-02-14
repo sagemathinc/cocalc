@@ -27,7 +27,7 @@ or
 
 import { delay } from "awaiting";
 import { is_safari } from "../generic/browser";
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 import { React, ReactDOM, Component } from "../../app-framework";
 import { Map, Set } from "immutable";
 
@@ -110,7 +110,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
   }
 
   componentWillUnmount(): void {
-    if (typeof(this.props.actions.blur) === 'function') {
+    if (typeof this.props.actions.blur === "function") {
       this.props.actions.blur();
     }
   }
@@ -206,6 +206,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         status={this.props.status}
         title={desc.get("title")}
         connection_status={desc.get("connection_status")}
+        font_size={desc.get("font_size")}
       />
     );
   }
@@ -223,7 +224,11 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
 
     const id: string = desc.get("id");
     return (
-      <div id={`frame-${id}`} className="smc-vfill">
+      <div
+        id={`frame-${id}`}
+        className="smc-vfill"
+        style={{ background: "white", zIndex: 1 }}
+      >
         <Leaf
           id={id}
           name={this.props.name}

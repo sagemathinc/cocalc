@@ -4,7 +4,7 @@ Task Actions
 
 LAST_EDITED_THRESH_S = 30
 
-WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/tasks"
+WIKI_HELP_URL = "https://doc.cocalc.com/tasks.html"
 
 immutable  = require('immutable')
 underscore = require('underscore')
@@ -38,7 +38,7 @@ class exports.TaskActions extends Actions
         @_init_has_unsaved_changes()
         @syncdb.on('change', @_syncdb_change)
         @syncdb.once('change', @_ensure_positions_are_unique)
-        @syncdb.once('init', @_syncdb_metadata)
+        @syncdb.once('ready', @_syncdb_metadata)
         @syncdb.on('metadata-change', @_syncdb_metadata)
 
         @syncdb.once 'load-time-estimate', (est) => @setState(load_time_estimate: est)
@@ -105,11 +105,15 @@ class exports.TaskActions extends Actions
         @syncdb.on('connected',       @set_save_status)
 
     _syncdb_metadata: =>
+        if not @syncdb? or not @store?  # may happen during close
+            return
         read_only = @syncdb.is_read_only()
         if read_only != @store.get('read_only')
             @setState(read_only: read_only)
 
     _syncdb_change: (changes) =>
+        if not @syncdb? or not @store?  # may happen during close
+            return
         tasks = @store.get('tasks') ? immutable.Map()
         changes.forEach (x) =>
             task_id = x.get('task_id')
@@ -207,9 +211,17 @@ class exports.TaskActions extends Actions
         return
 
     save: =>
-        @setState(has_unsaved_changes:false)
-        @syncdb.save =>
-            @set_save_status()
+        if @_state == 'closed'
+            return
+        try
+            await @syncdb.save_to_disk()
+        catch err
+            if @_state == 'closed'  # expected to fail when closing
+                return
+            # somehow report that save to disk failed.
+            console.warn("Tasks save to disk failed ", err);
+        @set_save_status()
+        return
 
     new_task: =>
         # create new task positioned before the current task
@@ -262,6 +274,7 @@ class exports.TaskActions extends Actions
 
         obj.task_id = task_id
         @syncdb.set(obj)
+        @syncdb.commit()
         if setState
             # also set state directly in the tasks object locally **immediately**; this would happen
             # eventually as a result of the syncdb set above.
@@ -346,10 +359,16 @@ class exports.TaskActions extends Actions
             @set_current_task(new_task_id)
 
     undo: =>
-        @syncdb?.undo()
+        if !@syncdb?
+            return
+        @syncdb.undo()
+        @syncdb.commit()
 
     redo: =>
-        @syncdb?.redo()
+        if !@syncdb?
+            return
+        @syncdb.redo()
+        @syncdb.commit()
 
     set_task_not_done: (task_id) =>
         task_id ?= @store.get('current_task_id')

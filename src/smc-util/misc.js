@@ -2237,9 +2237,9 @@ exports.seconds2hms = seconds2hms = function(secs, longform, show_seconds) {
   if (longform == null) {
     longform = false;
   }
-  if (secs < 10) {
+  if (!longform && secs < 10) {
     s = round2(secs % 60);
-  } else if (secs < 60) {
+  } else if (!longform && secs < 60) {
     s = round1(secs % 60);
   } else {
     s = Math.round(secs % 60);
@@ -2386,24 +2386,28 @@ exports.map_diff = function(a, b) {
   return c;
 };
 
-// limit the values in a by the values of b
-// or just by b if b is a number
-exports.map_limit = function(a, b) {
-  let k, v;
-  const c = {};
-  if (typeof b === "number") {
-    for (k in a) {
-      v = a[k];
-      c[k] = Math.min(v, b);
+// compare the values in a map a by the values of b
+// or just by b if b is a number, using func(a, b)
+map_comp_fn = function(func, fallback) {
+  return (a, b) => {
+    const c = {};
+    if (typeof b === "number") {
+      for (let k in a) {
+        let v = a[k];
+        c[k] = func(v, b);
+      }
+    } else {
+      for (let k in a) {
+        let v = a[k];
+        c[k] = func(v, b[k] != null ? b[k] : fallback);
+      }
     }
-  } else {
-    for (k in a) {
-      v = a[k];
-      c[k] = Math.min(v, b[k] != null ? b[k] : Number.MAX_VALUE);
-    }
-  }
-  return c;
+    return c;
+  };
 };
+
+exports.map_limit = exports.map_min = map_comp_fn(Math.min, Number.MAX_VALUE);
+exports.map_max = map_comp_fn(Math.max, Number.MIN_VALUE);
 
 // arithmetic sum of an array
 exports.sum = function(arr, start) {

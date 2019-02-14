@@ -54,7 +54,7 @@ exports.UpgradesPage = rclass
         <div style={margin:'10px 0'}>
             <h3>Thank you for supporting <SiteName/></h3>
             <span style={color:"#666"}>
-                We offer many <a href={PolicyPricingPageUrl} target='_blank'> pricing
+                We offer many <a href={PolicyPricingPageUrl} target='_blank' rel='noopener'> pricing
                 and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
@@ -78,7 +78,7 @@ exports.UpgradesPage = rclass
                         {<span>{u} {misc.plural(u, info.display_unit)}</span> if u?}
                     </Col>
                     <Col sm={7}>
-                        <ProgressBar striped now={percent_used} style={marginBottom: '0px'}/>
+                        <ProgressBar striped now={percent_used} style={margin: '3px 0px', border:'1px solid grey'}/>
                     </Col>
                 </Row>
             </Col>
@@ -103,7 +103,12 @@ exports.UpgradesPage = rclass
         if not upgrades? or not used?
             return @render_no_upgrades()
 
-        <Panel header={<h2>Upgrades that you get from your subscriptions and course packages</h2>}>
+        # Ensure that all projects loaded -- this can change used above, which is fine,
+        # and would re-render this component.  The issue is that it's conceivable you have
+        # a project nobody has touched for a month, which has upgrades applied to it.
+        @props.redux.getActions('projects').load_all_projects()
+
+        <Panel header={<h2>Upgrades from your subscriptions and course packages.</h2>}>
             <Row key='header'>
                 <Col sm={2}>
                     <strong>Quota</strong>
@@ -194,6 +199,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
         <UpgradeAdjustor
             key                                  = {"adjustor-#{project_id}"}
             project_id                           = {project_id}
+            total_project_quotas                 = {@props.get_total_project_quotas(project_id) }
             upgrades_you_can_use                 = {@props.get_total_upgrades()}
             upgrades_you_applied_to_all_projects = {@props.get_total_upgrades_you_have_applied()}
             upgrades_you_applied_to_this_project = {@props.get_upgrades_you_applied_to_project(project_id)}

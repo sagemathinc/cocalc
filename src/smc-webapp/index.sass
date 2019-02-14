@@ -41,6 +41,7 @@
 @import profile
 @import jupyter/jupyter
 @import tasks/tasks
+@import frame-editors/style
 
 .hide
   display : none
@@ -368,3 +369,22 @@ span.katex
 //  position: absolute
 //  font-size: 28px
 //  margin-top: -14px
+
+
+// issue https://github.com/sagemathinc/cocalc/issues/3389
+// fixing terminal scroll bar
+div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
+  background: transparent !important
+  z-index: 1
+
+.dropzone
+  min-height : 130px
+
+  .dz-default.dz-message
+    opacity  : .7
+
+.dropdown-splitbutton-left>div>ul.dropdown-menu
+  right: 0;
+  left: auto;
+  padding-left: 1px;
+  padding-right: 1px;

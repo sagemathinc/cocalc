@@ -30,10 +30,10 @@ MAX_CONCURRENT = 75
 async = require('async')
 underscore = require('underscore')
 
-syncstring = require('./syncstring')
-synctable  = require('./synctable')
-synctable2 = require('./sync/synctable')
-db_doc = require('./db-doc')
+synctable2 = require('./sync/table')
+{synctable_project} = require('smc-webapp/project/websocket/synctable')
+SyncString2 = require('smc-util/sync/editor/string/sync').SyncString
+SyncDB2 = require('smc-util/sync/editor/db').SyncDB
 
 smc_version = require('./smc-version')
 
@@ -42,6 +42,7 @@ misc    = require("./misc")
 
 client_aggregate = require('./client-aggregate')
 
+{once} = require('./async-utils')
 
 {validate_client_query} = require('./schema-validate')
 
@@ -281,11 +282,14 @@ class exports.Connection extends EventEmitter
                 @emit("data", channel, data)
         @_connected = false
 
-        # start pinging -- not used/needed for primus, but *is* needed for getting information about server_time
-        # In particular, this ping time is not reported to the user and is not used as a keep-alive, hence it
-        # can be fairly long.
-        @_ping_interval = 60000
-        @_ping()
+        # start pinging -- not used/needed for primus,
+        # but *is* needed for getting information about
+        # server_time skew and showing ping time
+        # to user.
+        @_ping_interval = 30000
+        # Starting pinging a few seconds after connecting the first time,
+        # after things have settled down a little (to not throw off ping time).
+        @once("connected", => setTimeout(@_ping, 5000))
 
     dbg: (f) =>
         return (m...) ->
@@ -299,26 +303,49 @@ class exports.Connection extends EventEmitter
             console.log("#{(new Date()).toISOString()} - Client.#{f}: #{s}")
 
     _ping: () =>
-        @_ping_interval ?= 60000 # frequency to ping
-        @_last_ping = new Date()
+        @_ping_interval ?= 30000 # frequency to ping
+        start = @_last_ping = new Date()
         @call
             allow_post : false
             message    : message.ping()
-            timeout    : 15     # CRITICAL that this timeout be less than the @_ping_interval
+            timeout    : 10     # CRITICAL that this timeout be less than the @_ping_interval
             cb         : (err, pong) =>
-                if not err
-                    now = new Date()
-                    # Only record something if success, got a pong, and the round trip is short!
-                    # If user messes with their clock during a ping and we don't do this, then
-                    # bad things will happen.
-                    if pong?.event == 'pong' and now - @_last_ping <= 1000*15
-                        @_last_pong = {server:pong.now, local:now}
-                        # See the function server_time below; subtract @_clock_skew from local time to get a better
-                        # estimate for server time.
-                        @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
-                        misc.set_local_storage('clock_skew', @_clock_skew)
+                # console.log("response to ping message", err, pong)
+                if err
+                    # try again **sooner**
+                    setTimeout(@_ping, @_ping_interval/2)
+                    return
+                now = new Date()
+                # Only record something if success, got a pong, and the round trip is short!
+                # If user messes with their clock during a ping and we don't do this, then
+                # bad things will happen.
+                if pong?.event == 'pong' and now - @_last_ping <= 1000*15
+                    @_last_pong = {server:pong.now, local:now}
+                    # See the function server_time below; subtract @_clock_skew from local time to get a better
+                    # estimate for server time.
+                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                    misc.set_local_storage('clock_skew', @_clock_skew)
+
+                this._emit_latency(now.valueOf() - start.valueOf(), @_clock_skew)
+
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
+
+    _emit_latency: (latency, clock_skew) =>
+        # console.log("_emit_latency", latency, clock_skew)
+        if not window?.document?.hasFocus?()
+            # console.log("latency: not in focus")
+            return
+        # networking/pinging slows down when browser not in focus...
+        if latency > 10000
+            # console.log("latency: discarding huge latency", latency)
+            # We get some ridiculous values from Primus when the browser
+            # tab gains focus after not being in focus for a while (say on ipad but on many browsers)
+            # that throttle.  Just discard them, since otherwise they lead to ridiculous false
+            # numbers displayed in the browser.
+            return
+        @emit("ping", latency, clock_skew)
+
 
     # Returns (approximate) time in ms since epoch on the server.
     # NOTE:
@@ -804,6 +831,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
+            usage_intent   : undefined
             get_api_key    : undefined       # if given, will create/get api token in response message
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
@@ -829,6 +857,7 @@ class exports.Connection extends EventEmitter
                 email_address   : opts.email_address
                 password        : opts.password
                 agreed_to_terms : opts.agreed_to_terms
+                usage_intent    : opts.usage_intent
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
@@ -1809,11 +1838,24 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options, debounce_interval=2000, throttle_changes=undefined) =>
-        return synctable.sync_table(query, options, @, debounce_interval, throttle_changes)
-
-    synctable2: (query, options, throttle_changes=undefined) =>
+    sync_table2: (query, options, throttle_changes=undefined) =>
         return synctable2.synctable(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_database: (query, options, throttle_changes=undefined) =>
+        s = this.sync_table2(query, options, throttle_changes)
+        await once(s, 'connected')
+        return s
+
+    synctable_no_changefeed: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_changefeed(query, options, @, throttle_changes)
+
+    synctable_no_database: (query, options, throttle_changes=undefined) =>
+        return synctable2.synctable_no_database(query, options, @, throttle_changes)
+
+    # This is async! The returned synctable is fully initialized.
+    synctable_project: (project_id, query, options, throttle_changes=undefined) =>
+        return await synctable_project(project_id:project_id, query:query, options:options, client:@, throttle_changes:throttle_changes)
 
     # this is async
     symmetric_channel: (name, project_id) =>
@@ -1821,40 +1863,47 @@ class exports.Connection extends EventEmitter
             throw Error("project_id must be a valid uuid")
         return (await @project_websocket(project_id)).api.symmetric_channel(name)
 
-    sync_string: (opts) =>
+    sync_string2: (opts) =>
         opts = defaults opts,
-            id                 : undefined
-            project_id         : required
-            path               : required
-            file_use_interval  : 'default'
-            cursors            : false
-            patch_interval     : 1000
-            save_interval      : 2000
-            before_change_hook : undefined
-            after_change_hook  : undefined
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            persistent        : false
+            data_server       : undefined
         opts.client = @
-        return new syncstring.SyncString(opts)
+        return new SyncString2(opts)
 
-    sync_db: (opts) =>
+    sync_db2: (opts) =>
         opts = defaults opts,
-            project_id      : required
-            path            : required
-            primary_keys    : required
-            string_cols     : undefined
-            cursors         : false
-            change_throttle : 500     # amount to throttle change events (in ms)
-            patch_interval  : 1000
-            save_interval   : 2000    # amount to debounce saves (in ms)
+            id                : undefined
+            project_id        : required
+            path              : required
+            file_use_interval : 'default'
+            cursors           : false
+            patch_interval    : 1000
+            save_interval     : 2000
+            change_throttle   : undefined
+            primary_keys      : required
+            string_cols       : []
+            persistent        : false
+            data_server       : undefined
         opts.client = @
-        return new db_doc.SyncDB(opts)
+        return new SyncDB2(opts)
 
+    # This now returns the new sync_db2 and sync_string2 objects.
     open_existing_sync_document: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : required
+            data_server : undefined
+            persistent : false
             cb         : required  # cb(err, document)
         opts.client = @
-        db_doc.open_existing_sync_document(opts)
+        open_existing_sync_document(opts)
         return
 
     # If called on the fronted, will make the given file with the given action.
@@ -1866,7 +1915,7 @@ class exports.Connection extends EventEmitter
             action     : required
             ttl        : 120
         # Will only do something if @_redux has been set.
-        @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
+        @_redux?.getActions('file_use')?.mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     _post_query: (opts) =>
         opts = defaults opts,
@@ -1914,8 +1963,10 @@ class exports.Connection extends EventEmitter
         if opts.options? and not misc.is_array(opts.options)
             throw Error("options must be an array")
 
-        if not opts.changes and $?.post? and @_enable_post
+        if @_signed_in and not opts.changes and $?.post? and @_enable_post
             # Can do via http POST request, rather than websocket messages
+            # (NOTE: signed_in required because POST fails everything when
+            # user is not signed in.)
             @_post_query
                 query   : opts.query
                 options : opts.options
@@ -1924,7 +1975,12 @@ class exports.Connection extends EventEmitter
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
-                    console.warn("query err and is standby; try again without standby.")
+                    # Note, right when signing in this can fail, since
+                    # sign_in = got websocket sign in mesg, which is NOT
+                    # the same thing as setting up cookies. For security
+                    # reasons it is difficult to know exactly when the
+                    # remember-me cookie has been set.
+                    console.warn("query err and is standby; try again without standby.", "query=", opts.query, "; err=", err)
                     opts.standby = false
                     @query(opts)
             return
@@ -1990,16 +2046,38 @@ class exports.Connection extends EventEmitter
             opts.cb?()
             return
         # Throttle -- so if this function is called with the same project_id
-        # twice in 60s, it's ignored (to avoid unnecessary network traffic).
+        # twice in 20s, it's ignored (to avoid unnecessary network traffic).
         @_touch_project_throttle ?= {}
         last = @_touch_project_throttle[opts.project_id]
-        if last? and new Date().valueOf() - last <= 60000
+        if last? and new Date().valueOf() - last <= 20000
             opts.cb?()
             return
         @_touch_project_throttle[opts.project_id] = new Date().valueOf()
         @call
             allow_post  : true
             message     : message.touch_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
+
+    disconnect_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : undefined
+        @call
+            allow_post  : true
+            message     : message.disconnect_from_project(project_id: opts.project_id)
+            error_event : true
+            cb          : opts.cb
+
+
+    get_user_auth_token: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+
+        @call
+            allow_post  : false
+            message     : message.user_auth(account_id:opts.account_id, password:'')
             error_event : true
             cb          : opts.cb
 
@@ -2031,4 +2109,41 @@ exports.issues_with_create_account = (mesg) ->
     return issues
 
 
+# This is mainly used for TimeTravel view...
+open_existing_sync_document = (opts) ->
+    opts = defaults opts,
+        client     : required
+        project_id : required
+        path       : required
+        data_server : undefined
+        persistent : false
+        cb         : required
+    opts.client.query
+        query :
+            syncstrings:
+                project_id : opts.project_id
+                path       : opts.path
+                doctype    : null
+        cb: (err, resp) ->
+            if err
+                opts.cb(err)
+                return
+            if resp.event == 'error'
+                opts.cb(resp.error)
+                return
+            if not resp.query?.syncstrings?
+                opts.cb("no document '#{opts.path}' in project '#{opts.project_id}'")
+                return
+            doctype = JSON.parse(resp.query.syncstrings.doctype ? '{"type":"string"}')
+            opts2 =
+                project_id : opts.project_id
+                path       : opts.path
+            if opts.data_server
+                opts2.data_server = opts.data_server
+            if opts.persistent
+                opts2.persistent = opts.persistent
+            if doctype.opts?
+                opts2 = misc.merge(opts2, doctype.opts)
+            doc = opts.client["sync_#{doctype.type}2"](opts2)
+            opts.cb(undefined, doc)
 

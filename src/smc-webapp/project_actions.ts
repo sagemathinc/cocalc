@@ -6,11 +6,11 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
-import { to_user_string } from "./frame-editors/generic/misc";
+import { to_user_string } from "smc-util/misc2";
 
 import { query as client_query } from "./frame-editors/generic/client";
 
-import { callback_opts } from "smc-util/async-utils";
+import { callback2 } from "smc-util/async-utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -46,19 +46,25 @@ const BANNED_FILE_TYPES = ["doc", "docx", "pdf", "sws"];
 
 const FROM_WEB_TIMEOUT_S = 45;
 
-// At most this many of the most recent log messages for a project get loaded:
-// TODO: add a button to load the entire log or load more...
-const MAX_PROJECT_LOG_ENTRIES = 1000;
-
 export const QUERIES = {
   project_log: {
     query: {
+      id: null,
       project_id: null,
       account_id: null,
-      time: null, // if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
+      time: null,
       event: null
-    },
-    options: [{ order_by: "-time" }, { limit: MAX_PROJECT_LOG_ENTRIES }]
+    }
+  },
+
+  project_log_all: {
+    query: {
+      id: null,
+      project_id: null,
+      account_id: null,
+      time: null,
+      event: null
+    }
   },
 
   public_paths: {
@@ -153,6 +159,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
     this.clear_all_activity = this.clear_all_activity.bind(this);
+    this.toggle_library = this.toggle_library.bind(this);
     this.set_url_to_path = this.set_url_to_path.bind(this);
     this._url_in_project = this._url_in_project.bind(this);
     this.push_state = this.push_state.bind(this);
@@ -257,16 +264,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     must_define(this.redux);
     this.close_all_files();
     for (let table in QUERIES) {
-      this.redux.removeTable(project_redux_name(this.project_id, table));
+      this.remove_table(table);
     }
   };
 
-  // Records in the backend database that we are actively using this project.
+  remove_table = (table: string): void => {
+    this.redux.removeTable(project_redux_name(this.project_id, table));
+  };
+
+  // Records in the backend database that we are actively
+  // using this project and wakes up the project.
   // This resets the idle timeout, among other things.
+  // This is throttled, so multiple calls are spaced out.
   touch = async (): Promise<void> => {
-    await callback_opts(webapp_client.touch_project)({
-      project_id: this.project_id
-    });
+    try {
+      await callback2(webapp_client.touch_project, {
+        project_id: this.project_id
+      });
+    } catch (err) {
+      // nonfatal.
+      console.warn(`unable to touch ${this.project_id} -- ${err}`);
+    }
   };
 
   _ensure_project_is_open(cb): void {
@@ -294,6 +312,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ activity: undefined });
   }
 
+  toggle_panel(name: keyof ProjectStoreState, show?: boolean): void {
+    if (show != null) {
+      this.setState({ [name]: show });
+    } else {
+      const store = this.get_store();
+      if (store == undefined) return;
+      this.setState({ [name]: !store.get(name) });
+    }
+  }
+
+  toggle_library(show?: boolean): void {
+    this.toggle_panel("show_library", show);
+  }
+
+  toggle_new(show?: boolean): void {
+    this.toggle_panel("show_new", show);
+  }
+
   set_url_to_path(current_path): void {
     if (current_path.length > 0 && !misc.endswith(current_path, "/")) {
       current_path += "/";
@@ -315,7 +351,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this._last_history_state = local_url;
     const { set_url } = require("./history");
     set_url(this._url_in_project(local_url));
-    require("./misc_page").analytics_pageview(window.location.pathname);
   }
 
   move_file_tab(opts): void {
@@ -335,7 +370,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Closes a file tab
   // Also closes file references.
-  close_tab(path): void {
+  // path not always defined, see #3440
+  close_tab(path: string | undefined): void {
+    if (path == null) return;
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -468,7 +505,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ default_filename: next });
   }
 
-  set_activity(opts) {
+  async set_activity(opts): Promise<void> {
     opts = defaults(opts, {
       id: required, // client must specify this, e.g., id=misc.uuid()
       status: undefined, // status update message during the activity -- description of progress
@@ -482,9 +519,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // If there is activity it's also a good opportunity to
     // express that we are interested in this project.
-    try {
-      this.touch();
-    } catch (err) {}
+    this.touch();
 
     let x =
       store.get("activity") != null ? store.get("activity").toJS() : undefined;
@@ -659,8 +694,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let url =
         (window.app_base_url != null ? window.app_base_url : "") +
         this._url_in_project(`files/${opts.path}`);
-      url += `?session=${misc.uuid().slice(0, 8)}`;
-      url += "&fullscreen=default";
+      url += "?session=&fullscreen=default";
       require("./misc_page").open_popup_window(url, {
         width: 800,
         height: 640
@@ -1323,17 +1357,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb => {
           let projects_store = this.redux.getStore("projects");
           // make sure that our relationship to this project is known.
-          return (
-            !projects_store ||
-            projects_store.wait({
-              until: s => (s as any).get_my_group(this.project_id),
-              timeout: 30,
-              cb: (err, group) => {
-                my_group = group;
-                return cb(err);
-              }
-            })
-          );
+          if (projects_store == null) {
+            cb("projects_store not yet initialized");
+            return;
+          }
+          projects_store.wait({
+            until: s => (s as any).get_my_group(this.project_id),
+            timeout: 30,
+            cb: (err, group) => {
+              my_group = group;
+              cb(err);
+            }
+          });
         },
         cb => {
           store = this.get_store();
@@ -1344,7 +1379,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           if (path == null) {
             path = store.get("current_path");
           }
-          return get_directory_listing({
+          get_directory_listing({
             project_id: this.project_id,
             path,
             hidden: true,
@@ -1352,7 +1387,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             group: my_group,
             cb: (err, listing) => {
               the_listing = listing;
-              return cb(err);
+              cb(err);
             }
           });
         }
@@ -2413,8 +2448,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for PUBLIC PATHS
-     */
+   * Actions for PUBLIC PATHS
+   */
   set_public_path(
     path,
     opts: {
@@ -2426,25 +2461,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (!store) {
       return;
     }
-    let now = misc.server_time();
-    const obj = {
-      project_id: this.project_id,
-      path,
-      description: opts.description || "",
-      disabled: false,
-      unlisted: opts.unlisted || false,
-      last_edited: now,
-      created: now
-    };
+    let cur_obj: any = {};
     // only set created if this obj is new; have to just linearly search through paths right now...
     if (store.get("public_paths") != null) {
-      store.get("public_paths").map(function(v) {
+      store.get("public_paths").forEach(function(v) {
         if (v.get("path") === path) {
-          delete obj.created;
-          return false;
+          cur_obj = v.toJS();
+          return false; // found it, exit forEach
+        } else {
+          return true; // next element
         }
       });
     }
+    const now = misc.server_time();
+    // unlisted and description are *optional*: fallback to already saved values if available
+    const unlisted = opts.unlisted != null ? opts.unlisted : cur_obj.unlisted;
+    const description =
+      opts.description != null ? opts.description : cur_obj.description;
+    const obj = {
+      project_id: this.project_id,
+      path,
+      description: description != null ? description : "",
+      disabled: false,
+      unlisted: unlisted != null ? unlisted : false,
+      last_edited: now,
+      created: cur_obj.created || now
+    };
     this.redux.getProjectTable(this.project_id, "public_paths").set(obj);
   }
 
@@ -2458,8 +2500,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   /*
-     * Actions for Project Search
-     */
+   * Actions for Project Search
+   */
 
   toggle_search_checkbox_subdirectories() {
     let store = this.get_store();
@@ -2767,6 +2809,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     });
   }
+
+  project_log_load_all(): void {
+    const store = this.get_store();
+    if (store == null) return; // no store
+    if (store.get("project_log_all") != null) return; // already done
+    this.setState({ project_log: undefined });
+    store.init_table("project_log_all");
+    this.remove_table("project_log");
+  }
 }
 
 const prom_client = require("./prom-client");
@@ -2781,7 +2832,7 @@ if (prom_client.enabled) {
   );
 }
 
-var get_directory_listing = function(opts) {
+function get_directory_listing(opts) {
   let method, prom_dir_listing_start, prom_labels, state, time0, timeout;
   opts = defaults(opts, {
     project_id: required,
@@ -2895,4 +2946,4 @@ var get_directory_listing = function(opts) {
       }
     }
   });
-};
+}

@@ -20,7 +20,7 @@ import {
 import { FrameTree } from "../frame-tree/types";
 
 import { project_api } from "../generic/client";
-import { capitalize } from "../generic/misc";
+import { capitalize } from "smc-util/misc2";
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
@@ -99,9 +99,6 @@ export class Actions extends BaseActions<LeanEditorState> {
     const api = await project_api(this.project_id);
     this.channel = await api.lean_channel(this.path);
     const channel: any = this.channel;
-    if (this._syncstring != null) {
-      this._syncstring.touch(); // so the backend project will "care" about this file.
-    }
     channel.on("close", () => {
       channel.removeAllListeners();
       channel.conn.once("open", async () => {
@@ -121,6 +118,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   process_data_queue(): void {
+      // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     if (this.data_queue.length === 0) {
       return;
     }
@@ -166,6 +165,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   update_status_bar = (): void => {
+      // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     const synced =
       this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
     const tasks = this.store.unsafe_getIn(["tasks"]);
@@ -184,6 +185,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   };
 
   update_gutters = (): void => {
+      // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     const synced =
       this.store.getIn(["sync", "hash"]) == this.store.get("syncstring_hash");
     const messages = this.store.unsafe_getIn(["messages"]);
@@ -311,6 +314,8 @@ export class Actions extends BaseActions<LeanEditorState> {
   }
 
   async update_info(): Promise<void> {
+    // Can easily happen when closing, due to debounce.
+    if (this._state === "closed") return;
     const cm = this._recent_cm();
     if (cm == null) {
       // e.g., maybe no editor

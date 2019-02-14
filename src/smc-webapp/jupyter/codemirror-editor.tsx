@@ -4,10 +4,12 @@ Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 
+const SAVE_DEBOUNCE_MS = 1500;
+
 import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
-const syncstring = require("smc-util/syncstring");
+import { three_way_merge } from "smc-util/sync/editor/generic/util";
 const { Complete } = require("./complete");
 const { Cursors } = require("./cursors");
 declare const CodeMirror: any; // TODO: type
@@ -174,7 +176,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       return; // nothing to do
     }
     const local = this.cm.getValue();
-    const new_val = syncstring.three_way_merge({
+    const new_val = three_way_merge({
       base: this._cm_last_remote,
       local,
       remote
@@ -389,7 +391,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this._cm_last_remote = value;
     this.cm.setValue(value);
 
-    this._cm_change = underscore.debounce(this._cm_save, 1000);
+    this._cm_change = underscore.debounce(this._cm_save, SAVE_DEBOUNCE_MS);
     this.cm.on("change", this._cm_change);
     this.cm.on("focus", this._cm_focus);
     this.cm.on("blur", this._cm_blur);

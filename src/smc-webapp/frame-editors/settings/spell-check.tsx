@@ -17,7 +17,7 @@ import { DropdownButton, MenuItem } from "react-bootstrap";
 
 import { React, Rendered, Component } from "../../app-framework";
 
-import { is_different } from "../generic/misc";
+import { is_different } from "smc-util/misc2";
 
 import { DICTS, dict_desc } from "./aspell-dicts";
 
