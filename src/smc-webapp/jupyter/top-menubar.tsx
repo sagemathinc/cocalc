@@ -4,7 +4,8 @@ The Menu bar across the top
 File, Edit, etc....
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework";
+import { analytics_event } from "../tracker";
 import * as immutable from "immutable";
 import { ButtonGroup, Dropdown, MenuItem } from "react-bootstrap";
 const { Icon } = require("../r_misc");
@@ -319,6 +320,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         onSelect={() => {
           this.props.actions.set_kernel(kernel.name);
           this.focus();
+          analytics_event('cocal_jupyter', 'change kernel', kernel.name);
           return this.props.actions.set_default_kernel(kernel.name);
         }}
       >

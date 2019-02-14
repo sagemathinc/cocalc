@@ -345,6 +345,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     # Set value of the syncstring to equal current value of the codemirror editor
     _set_syncstring_to_codemirror: =>
+        if not @codemirror?
+            return
         #console.log '_set_syncstring_to_codemirror'
         #@_debug_sync_state('before')
         if not @_user_action
@@ -359,6 +361,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     # Set value of the codemirror editor to equal current value of the syncstring
     _set_codemirror_to_syncstring: =>
+        if not @codemirror?
+            return
         #console.log '_set_codemirror_to_syncstring'
         #@_debug_sync_state('before')
         @_setting_from_syncstring = true
