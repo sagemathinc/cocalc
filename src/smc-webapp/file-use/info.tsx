@@ -1,5 +1,7 @@
 import { Component, React, Rendered } from "../app-framework";
 
+import { analytics_event } from "../tracker";
+
 const { User } = require("../users");
 const { r_join, Icon, TimeAgo } = require("../r_misc");
 
@@ -90,6 +92,11 @@ export class FileUseInfo extends Component<Props, {}> {
       x.get("path"),
       x.get("show_chat", false),
       this.props.redux
+    );
+    analytics_event(
+      "file_notifications",
+      "open from click",
+      misc.filename_extension(x.get("path"))
     );
   }
 
