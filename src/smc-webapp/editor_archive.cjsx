@@ -101,7 +101,7 @@ class ArchiveActions extends Actions
     set_unsupported: (ext) =>
         msg = <span>
                 <b>WARNING:</b> Support for decompressing {ext} archives is not yet implemented{' '}
-                (see <a href='https://github.com/sagemathinc/cocalc/issues/1720' target='_blank'>https://github.com/sagemathinc/cocalc/issues/1720</a>).
+                (see <a href='https://github.com/sagemathinc/cocalc/issues/1720' target='_blank' rel='noopener'>https://github.com/sagemathinc/cocalc/issues/1720</a>).
                 <br/>
                 Despite that, you can open up a Terminal ("Files" → "Create" dropdown, select "Terminal") and run the extraction command right there in the Linux shell.
               </span>

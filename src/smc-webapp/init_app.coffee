@@ -228,9 +228,11 @@ class PageActions extends Actions
         @setState(session : val)
         history.update_params()
 
-        # Make new session manager if necessary
-        if val
-            @_session_manager ?= require('./session').session_manager(val, redux)
+        # Make new session manager, but only register it if we have an actual session name!
+        if not @_session_manager
+            sm = require('./session').session_manager(val, redux)
+            if val
+                @_session_manager = sm
 
     save_session: =>
         @_session_manager?.save()
@@ -245,6 +247,9 @@ class PageActions extends Actions
         @setState(local_storage_warning : true)
 
     check_unload: (e) =>
+        if redux.getStore('page')?.get('get_api_key')
+            # never confirm close if get_api_key is set.
+            return
         # Returns a defined string if the user should confirm exiting the site.
         s = redux.getStore('account')
         if s?.get_user_type() == 'signed_in' and s?.get_confirm_close()
@@ -320,6 +325,8 @@ exports.recent_wakeup_from_standby = recent_wakeup_from_standby
 
 if DEBUG
     window.smc ?= {}
+    window.smc.misc = misc
+    window.smc.misc_page = require('./misc_page')
     window.smc.init_app =
         recent_wakeup_from_standby : recent_wakeup_from_standby
         num_recent_disconnects     : num_recent_disconnects
@@ -330,7 +337,7 @@ if prom_client.enabled
          {buckets : [50, 100, 150, 200, 300, 500, 1000, 2000, 5000]})
     prom_ping_time_last = prom_client.new_gauge('ping_last_ms', 'last reported ping time')
 
-webapp_client.on "ping", (ping_time) ->
+webapp_client.on "ping", (ping_time, clock_skew) ->
     ping_time_smooth = redux.getStore('page').get('avgping') ? ping_time
     # reset outside 3x
     if ping_time > 3 * ping_time_smooth or ping_time_smooth > 3 * ping_time
@@ -338,7 +345,9 @@ webapp_client.on "ping", (ping_time) ->
     else
         decay = 1 - Math.exp(-1)
         ping_time_smooth = decay * ping_time_smooth + (1-decay) * ping_time
-    redux.getActions('page').set_ping(ping_time, Math.round(ping_time_smooth))
+    page_actions = redux.getActions('page')
+    page_actions.set_ping(ping_time, Math.round(ping_time_smooth))
+    page_actions.setState(clock_skew:clock_skew)
 
     if prom_client.enabled
         prom_ping_time.observe(ping_time)

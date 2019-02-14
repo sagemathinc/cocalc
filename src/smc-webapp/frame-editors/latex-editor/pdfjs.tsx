@@ -19,7 +19,6 @@ import { is_different, seconds_ago, list_alternatives } from "smc-util/misc2";
 import { dblclick } from "./mouse-click";
 import {
   Component,
-  Fragment,
   React,
   ReactDOM,
   rclass,
@@ -135,9 +134,9 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       return <Loading text="Building..." />;
     } else {
       return (
-        <Fragment>
+        <>
           <Icon name="play-circle" /> Build or fix
-        </Fragment>
+        </>
       );
     }
   }
@@ -309,7 +308,7 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       next_props.is_current
     ) {
       // ensure any codemirror (etc.) elements blur, when this pdfjs viewer is focused.
-      $(document.activeElement).blur();
+      ($ as any)(document.activeElement).blur();
       $(ReactDOM.findDOMNode(this.refs.scroll)).focus();
     }
   }

@@ -5,28 +5,31 @@ Code Editor Actions
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
 const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
-  "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, or restart this project in Project Settings.";
-const MAX_SAVE_TIME_S = 45; // how long to retry to save (and get no unsaved changes), until giving up and showing an error.
+  "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
 import { fromJS, List, Map, Set } from "immutable";
 import { debounce } from "underscore";
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import {
   get_default_font_size,
   log_error,
   public_get_text_file,
   prettier,
   syncstring,
-  syncdb
+  syncdb2,
+  syncstring2
 } from "../generic/client";
+
+import { SyncDB } from "smc-util/sync/editor/db";
+import { SyncString } from "smc-util/sync/editor/string";
+
 import { aux_file } from "../frame-tree/util";
-import { callback_opts, retry_until_success } from "smc-util/async-utils";
+import { callback_opts } from "smc-util/async-utils";
 import {
   endswith,
   filename_extension,
   history_path,
   len,
-  startswith,
   uuid
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
@@ -94,8 +97,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   T | CodeEditorState
 > {
   protected _state: "closed" | undefined;
-  protected _syncstring: any;
-  protected _syncdb?: any; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
+  protected _syncstring: SyncString;
+  protected _syncdb?: SyncDB; /* auxiliary file optionally used for shared project configuration (e.g., for latex) */
   private _syncstring_init: boolean = false; // true once init has happened.
   private _syncdb_init: boolean = false; // true once init has happened
   protected _key_handler: any;
@@ -206,28 +209,30 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   _init_syncstring(): void {
     if (this.doctype == "none") {
-      this._syncstring = syncstring({
+      this._syncstring = <SyncString>syncstring({
         project_id: this.project_id,
         path: this.path,
         cursors: true,
         before_change_hook: () => this.set_syncstring_to_codemirror(),
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
-        save_interval: 500,
         patch_interval: 500
       });
     } else if (this.doctype == "syncstring") {
-      this._syncstring = syncstring({
+      this._syncstring = syncstring2({
         project_id: this.project_id,
         path: this.path,
-        cursors: true,
-        before_change_hook: () => this.set_syncstring_to_codemirror(),
-        after_change_hook: () => this.set_codemirror_to_syncstring(),
-        save_interval: 500,
-        patch_interval: 500
+        cursors: true
       });
     } else if (this.doctype == "syncdb") {
-      this._syncstring = syncdb({
+      if (
+        this.primary_keys == null ||
+        this.primary_keys.length == null ||
+        this.primary_keys.length <= 0
+      ) {
+        throw Error("primary_keys must be array of positive length");
+      }
+      this._syncstring = syncdb2({
         project_id: this.project_id,
         path: this.path,
         primary_keys: this.primary_keys,
@@ -237,10 +242,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
-    this._syncstring.once("init", err => {
+    this._syncstring.once("ready", err => {
       if (err) {
         this.set_error(
-          `Fatal error opening file -- ${err}.  Please try reopening the file again.`
+          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
         );
         return;
       }
@@ -257,16 +262,25 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       ) {
         this.setState({ is_loaded: true });
       }
+
+      this._syncstring.on(
+        "metadata-change",
+        this._syncstring_metadata.bind(this)
+      );
+      this._syncstring.on(
+        "cursor_activity",
+        this._syncstring_cursor_activity.bind(this)
+      );
     });
 
-    this._syncstring.on("metadata-change", () => this._syncstring_metadata());
-    this._syncstring.on("cursor_activity", () =>
-      this._syncstring_cursor_activity()
+    this._syncstring.on(
+      "before-change",
+      this.set_syncstring_to_codemirror.bind(this)
     );
-
-    this._syncstring.on("change", () => this._syncstring_change());
-    this._syncstring.on("init", () => this._syncstring_change());
-
+    this._syncstring.on(
+      "after-change",
+      this.set_codemirror_to_syncstring.bind(this)
+    );
     this._syncstring.once("load-time-estimate", est => {
       return this.setState({ load_time_estimate: est });
     });
@@ -277,7 +291,25 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.set_reload("save_to_disk");
     });
 
-    this._init_has_unsaved_changes();
+    this._syncstring.once("error", err => {
+      this.set_error(
+        `Fatal error opening ${
+          this.path
+        } -- ${err}\nFix this, then try opening the file again.`
+      );
+    });
+
+    this._syncstring.once("closed", () => {
+      this.close();
+    });
+
+    this._syncstring.on("has-uncommitted-changes", has_uncommitted_changes =>
+      this.setState({ has_uncommitted_changes })
+    );
+
+    this._syncstring.on("has-unsaved-changes", has_unsaved_changes => {
+      this.setState({ has_unsaved_changes });
+    });
   }
 
   // This is currently NOT used in this base class.  It's used in other
@@ -288,20 +320,29 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     string_cols?: string[],
     path?: string
   ): void {
+    if (primary_keys.length <= 0) {
+      throw Error("primary_keys must be array of positive length");
+    }
     const aux = aux_file(path || this.path, "syncdb");
-    this._syncdb = syncdb({
+    this._syncdb = syncdb2({
       project_id: this.project_id,
       path: aux,
-      primary_keys: primary_keys,
-      string_cols: string_cols
+      primary_keys,
+      string_cols
     });
-    this._syncdb.once("init", err => {
-      if (err) {
-        this.set_error(
-          `Fatal error opening config "${aux}" -- ${err}.  Please try reopening the file again.`
-        );
-        return;
-      }
+    this._syncdb.once("error", err => {
+      this.set_error(
+        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
+      );
+    });
+
+    this._syncdb.once("closed", () => {
+      this.close();
+    });
+
+    this._syncdb.once("ready", async () => {
+      // TODO -- there is a race condition setting up tables; throwing in this delay makes it work.
+      // await delay(1000);
       this._syncdb_init = true;
       if (
         !this.store.get("is_loaded") &&
@@ -380,25 +421,31 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       );
       delete this._key_handler;
     }
-    if (this._syncstring) {
-      // syncstring was initialized; be sure not to
-      // loose the very last change user made!
-      this.set_syncstring_to_codemirror();
-      this._syncstring._save();
-      this._syncstring.close();
-      delete this._syncstring;
-    }
-    if (this._syncdb) {
-      // syncstring was initialized; be sure not to
-      // loose the very last change user made!
-      this._syncdb.save_asap();
-      this._syncdb.close();
-      delete this._syncdb;
-    }
+    this.close_syncstring();
+    this.close_syncdb();
     // Remove underlying codemirror doc from cache.
     cm_doc_cache.close(this.project_id, this.path);
     // Free up any allocated terminals.
     this.terminals.close();
+  }
+
+  private async close_syncstring(): Promise<void> {
+    const s = this._syncstring;
+    if (s == null) return;
+    if (s.get_state() === "ready") {
+      // syncstring was initialized; be sure not to
+      // lose the very last change user made!
+      this.set_syncstring_to_codemirror();
+    }
+    delete this._syncstring;
+    s.close(); // this should save synctables in syncstring
+  }
+
+  private async close_syncdb(): Promise<void> {
+    if (this._syncdb == null) return;
+    const s = this._syncdb;
+    delete this._syncdb;
+    s.close();
   }
 
   __save_local_view_state(): void {
@@ -483,9 +530,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
-  _assert_is_leaf_id(id: string, caller: string): void {
+    // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
+  _assert_is_leaf_id(id: string, caller: string) {
     if (!this._is_leaf_id(id)) {
-      throw Error(`${caller} -- no leaf with id "${id}"`);
+      throw Error(`${caller} -- no leaf with id ${id}`);
     }
   }
 
@@ -809,79 +857,30 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  _has_unsaved_changes(): boolean {
-    if (!this._syncstring) {
-      return false;
-    }
-    return this._syncstring.has_unsaved_changes();
-  }
-
-  _has_uncommitted_changes(): boolean {
-    if (!this._syncstring) {
-      return false;
-    }
-    return this._syncstring.has_uncommitted_changes();
-  }
-
-  // Called to cause updating of the save/committed status
-  // in the store. It does this a few times.  This should get
-  // called whenever there's some chance this status has changed.
-  // This is probably bad code,
-  // and it would be nice to get rid of its async nature.
-  async update_save_status(): Promise<void> {
-    for (let i = 0; i < 2; i++) {
-      if (this._state === "closed") {
-        continue;
-      }
-      this.setState({
-        has_unsaved_changes: this._has_unsaved_changes(),
-        has_uncommitted_changes: this._has_uncommitted_changes()
-      });
-      await delay(2000);
-    }
-  }
-
-  _init_has_unsaved_changes(): void {
-    // basically copies from tasks/actions.coffee -- opportunity to refactor
-    this._syncstring.on("metadata-change", () => this.update_save_status());
-    this._syncstring.on("connected", () => this.update_save_status());
-  }
-
   _syncstring_metadata(): void {
-    if (!this._syncstring) return; // need to check since this can get called by the close.
-    const read_only = this._syncstring.get_read_only();
+    // need to check since this can get called by the close.
+    if (!this._syncstring) return;
+    const read_only = this._syncstring.is_read_only();
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });
     }
   }
 
   _syncstring_cursor_activity(): void {
+    // need to check since this can get called by the close.
+    if (!this._syncstring) return;
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
-    let cursors = Map();
+    let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring.get_cursors().forEach((info, account_id) => {
-      if (account_id === this._syncstring._client.account_id) {
-        // skip self.
-        return;
-      }
       info.get("locs").forEach(loc => {
-        let left;
         loc = loc.set("time", info.get("time"));
-        const locs = ((left = cursors.get(account_id)) != null
-          ? left
-          : List()
-        ).push(loc);
+        const locs = cursors.get(account_id, List()).push(loc);
         cursors = cursors.set(account_id, locs);
       });
     });
     if (!cursors.equals(this.store.get("cursors"))) {
       this.setState({ cursors });
-    }
-  }
-
-  _syncstring_change(): void {
-    if (this.update_save_status) {
-      this.update_save_status();
     }
   }
 
@@ -927,63 +926,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.delete_trailing_whitespace({ omit_lines });
   }
 
-  // Use internally..  Try once to save to disk.
-  //  If fail (e.g., broken network) -- sets error and returns fine.
-  //  If there are still unsaved changes right after save, throws exception.
-  //  If worked fine and previous set error was saving, clears that error.
-  async _try_to_save_to_disk(): Promise<void> {
-    if (this._syncstring == null) {
-      return;
-    }
-    this.setState({ is_saving: true });
-    try {
-      await callback(this._syncstring.save_to_disk);
-    } finally {
-      this.update_save_status();
-      this.setState({ is_saving: false });
-    }
-    if (this.store.get("has_unsaved_changes")) {
-      throw Error("not saved");
-    }
-    let error = this.store.get("error");
-    if (error && startswith(error, SAVE_ERROR)) {
-      // Save just succeeded, but there was a save error at the top, so clear it.
-      this.set_error("");
-    }
-  }
-
-  async _do_save(): Promise<void> {
-    let that = this;
-    try {
-      this.set_status("Saving to disk...");
-      await retry_until_success({
-        f: async function() {
-          /* evidently no fat arrow with async/await + typescript */
-          await that._try_to_save_to_disk();
-        },
-        max_time: MAX_SAVE_TIME_S * 1000,
-        max_delay: 6000
-      });
-    } catch (err) {
-      console.warn(err);
-      if (this._state !== "closed") {
-        this.set_error(
-          `${SAVE_ERROR} Despite repeated attempts, the version of the file saved to disk does not equal the version in your browser.  ${SAVE_WORKAROUND}`
-        );
-      }
-      log_error({
-        string_id: this._syncstring ? this._syncstring._string_id : "",
-        path: this.path,
-        project_id: this.project_id,
-        error: "Error saving file -- has_unsaved_changes"
-      });
-    } finally {
-      this.set_status("");
-    }
-  }
-
   async save(explicit: boolean): Promise<void> {
-    if (this.is_public) {
+    if (this.is_public || !this.store.get("is_loaded")) {
       return;
     }
     // TODO: what about markdown, where do not want this...
@@ -1001,7 +945,23 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       }
     }
     this.set_syncstring_to_codemirror();
-    await this._do_save();
+    this.setState({ is_saving: true });
+    try {
+      await this._syncstring.save_to_disk();
+    } catch (err) {
+      console.warn("save_to_disk", this.path, "ERROR", err);
+      if (this._state !== "closed") {
+        this.set_error(`${SAVE_ERROR} -- ${err} -- ${SAVE_WORKAROUND}`);
+        log_error({
+          string_id: this._syncstring ? this._syncstring._string_id : "",
+          path: this.path,
+          project_id: this.project_id,
+          error: "Error saving file -- has_unsaved_changes"
+        });
+      }
+    } finally {
+      this.setState({ is_saving: false });
+    }
   }
 
   _get_project_actions() {
@@ -1020,7 +980,13 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     open_new_tab(url);
   }
 
-  change_font_size(delta: number, id?: string): void {
+  set_zoom(zoom: number, id?: string) {
+    this.change_font_size(undefined, id, zoom);
+  }
+
+  /* zoom: 1=100%, 1.5=150%, ...*/
+  change_font_size(delta?: number, id?: string, zoom?: number): void {
+    if (delta == null && zoom == null) return;
     const local = this.store.get("local_view_state");
     if (!id) {
       id = local.get("active_id");
@@ -1032,14 +998,30 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (!node) {
       return;
     }
-    let font_size: number = node.get("font_size", get_default_font_size());
-    font_size += delta;
-    if (font_size < 2) {
-      font_size = 2;
+
+    // this is 100%
+    const default_font_size = get_default_font_size();
+    let font_size: number;
+    // either +/- delta or set the zoom factor
+    if (zoom != null) {
+      font_size = default_font_size * zoom;
+    } else if (delta != null) {
+      font_size = node.get("font_size", default_font_size);
+      font_size += delta;
+      if (font_size < 2) {
+        font_size = 2;
+      }
+    } else {
+      // to make typescript happy
+      return;
     }
     this.set_frame_tree({ id, font_size });
     this.focus(id);
-    const percent = Math.round((font_size * 100) / 14);
+    this.set_status_font_size(font_size, default_font_size);
+  }
+
+  set_status_font_size(font_size: number, default_font_size) {
+    const percent = Math.round((font_size * 100) / default_font_size);
     this.set_status(`Set font size to ${font_size} (${percent}%)`, 1500);
   }
 
@@ -1189,11 +1171,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.terminals.focus(id);
   }
 
-  syncstring_save(): void {
+  syncstring_commit(): void {
     if (this._syncstring != null) {
-      this._syncstring.save();
+      this._syncstring.commit();
     }
-    this.update_save_status();
   }
 
   set_syncstring_to_codemirror(id?: string): void {
@@ -1240,7 +1221,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // there are no cursors or selections if there are no cm's.
       doc.setValue(this._syncstring.to_str());
     }
-    this.update_save_status();
   }
 
   exit_undo_mode(): void {
@@ -1260,7 +1240,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.setValueNoJump(value, true);
     cm.focus();
     this.set_syncstring_to_codemirror();
-    this._syncstring.save();
+    this._syncstring.commit();
   }
 
   // per-session sync-aware redo
@@ -1281,7 +1261,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.setValueNoJump(value, true);
     cm.focus();
     this.set_syncstring_to_codemirror();
-    this._syncstring.save();
+    this._syncstring.commit();
   }
 
   _cm_exec(id: string, command: string): void {
@@ -1487,6 +1467,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
+    if (this._state == "closed") return;
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
     const lang = (this.store.get("settings") as Map<string, any>).get("spell");
@@ -1529,7 +1510,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();
-      this._syncstring.save();
+      this._syncstring.commit();
     }
   }
 
@@ -1603,13 +1584,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.set_status("Ensuring your latest changes are saved...");
     this.set_syncstring_to_codemirror();
     try {
-      await retry_until_success({
-        f: async () => {
-          await callback(this._syncstring._save);
-        },
-        max_time: 10000,
-        max_delay: 1500
-      });
+      await this._syncstring.save();
       return true;
     } catch (err) {
       this.set_error(`Error saving to server: \n${err}`);

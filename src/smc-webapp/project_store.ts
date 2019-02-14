@@ -93,9 +93,12 @@ export interface ProjectStoreState {
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
   new_name?: string;
   most_recent_file_click?: string;
+  show_library: boolean;
+  show_new: boolean;
 
   // Project Log
   project_log?: any; // immutable,
+  project_log_all?: any; // immutable,
   search?: string;
   page?: number;
 
@@ -131,34 +134,48 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
 
+  // Function to call to initialize one of the tables in this store.
+  // This is purely an optimization, so project_log, project_log_all and public_paths
+  // do not have to be initialized unless necessary.  The code
+  // is a little awkward, since I didn't want to change things too
+  // much while making this optimization.
+  public init_table: (table_name: string) => void;
+
+  // TODO what's a and b ?
+  constructor(a, b) {
+    super(a, b);
+    this._projects_store_change = this._projects_store_change.bind(this);
+  }
+
   _init = () => {
     // If we are explicitly listed as a collaborator on this project,
     // watch for this to change, and if it does, close the project.
     // This avoids leaving it open after we are removed, which is confusing,
     // given that all permissions have vanished.
     const projects: any = this.redux.getStore("projects"); // may not be available; for example when testing
+    // console.log("ProjectStore::_init project_map/project_id", this.project_id, projects.getIn(["project_map", this.project_id]));
     if (
       (projects != null
         ? projects.getIn(["project_map", this.project_id])
         : undefined) != null
     ) {
+      // console.log('ProjectStore::_init projects.on("change", ... )');
       // only do this if we are on project in the first place!
-      return projects.on("change", this._projects_store_collab_check);
+      return projects.on("change", this._projects_store_change);
     }
   };
 
   destroy = () => {
     let projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
-      projects_store.removeListener(
-        "change",
-        this._projects_store_collab_check
-      );
+      projects_store.removeListener("change", this._projects_store_change);
     }
   };
 
-  private _projects_store_collab_check(state): void {
-    if (state.getIn(["project_map", this.project_id]) == null) {
+  // constructor binds this callback, such that "this.project_id" works!
+  private _projects_store_change(state): void {
+    const change = state.getIn(["project_map", this.project_id]);
+    if (change == null) {
       // User has been removed from the project!
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
     }
@@ -186,6 +203,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       activity: undefined,
       page_number: 0,
       checked_files: immutable.Set(),
+      show_library: false,
+      show_new: false,
 
       // Project New
       library: immutable.Map({}),
@@ -596,10 +615,12 @@ function _sort_on_numerical_field(field, factor = 1) {
     );
 }
 
-export function init(project_id: string, redux: AppRedux) {
+export function init(project_id: string, redux: AppRedux): ProjectStore {
   const name = project_redux_name(project_id);
   if (redux.hasStore(name)) {
-    return;
+    const store: ProjectStore | undefined = redux.getStore(name);
+    // this makes TS happy. we already check that it exists due to "hasStore()"
+    if (store != null) return store;
   }
 
   // Initialize everything
@@ -607,6 +628,7 @@ export function init(project_id: string, redux: AppRedux) {
   const actions = redux.createActions(name, ProjectActions);
   store.project_id = project_id;
   actions.project_id = project_id; // so actions can assume this is available on the object
+  store._init();
 
   const queries = misc.deep_copy(QUERIES);
   const create_table = function(table_name, q) {
@@ -631,8 +653,10 @@ export function init(project_id: string, redux: AppRedux) {
     };
   };
 
-  for (let table_name in queries) {
+  function init_table(table_name: string): void {
     const q = queries[table_name];
+    if (q == null) return; // already done
+    delete queries[table_name]; // so we do not init again.
     for (let k in q) {
       const v = q[k];
       if (typeof v === "function") {
@@ -645,4 +669,13 @@ export function init(project_id: string, redux: AppRedux) {
       create_table(table_name, q)
     );
   }
+
+  // public_paths is needed to show file listing and show
+  // any individual file, so we just load it...
+  init_table('public_paths');
+  // project_log, on the other hand, is only loaded if needed.
+
+  store.init_table = init_table;
+
+  return store;
 }

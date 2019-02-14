@@ -1,7 +1,6 @@
 /*
  * decaffeinate suggestions:
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
  * DS104: Avoid inline assignments
  * DS205: Consider reworking code to avoid use of IIFEs
  * DS207: Consider shorter variations of null checks
@@ -285,16 +284,13 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
     };
 
     student_add_button() {
-      return (
-        <Button onClick={this.do_add_search}>
-          {this.state.add_searching ? (
-            <Icon name="cc-icon-cocalc-ring" spin />
-          ) : (
-            <Icon name="search" />
-          )}{" "}
-          Search
-        </Button>
+      const icon = this.state.add_searching ? (
+        <Icon name="cc-icon-cocalc-ring" spin />
+      ) : (
+        <Icon name="search" />
       );
+
+      return <Button onClick={this.do_add_search}>{icon} Search</Button>;
     }
 
     add_selector_clicked = () => {
@@ -408,9 +404,11 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
           >
             {options}
           </FormControl>
-          {this.render_add_selector_button(options)}
-          <Space />
-          {this.render_add_all_students_button(options)}
+          <div style={{ paddingTop: "15px" }}>
+            {this.render_add_selector_button(options)}
+            <Space />
+            {this.render_add_all_students_button(options)}
+          </div>
         </FormGroup>
       );
     }
@@ -531,6 +529,30 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
       }
     }
 
+    student_add_input_onChange() {
+      const input = ReactDOM.findDOMNode(this.refs.student_add_input);
+      this.setState({
+        add_select: undefined,
+        add_search: input.value
+      });
+    }
+
+    student_add_input_onKeyDown(e) {
+      // ESC key
+      if (e.keyCode === 27) {
+        return this.setState({
+          add_search: "",
+          add_select: undefined
+        });
+
+        // Shift+Return
+      } else if (e.keyCode === 13 && e.shiftKey) {
+        e.preventDefault();
+        this.student_add_input_onChange();
+        this.do_add_search(e);
+      }
+    }
+
     render_header(num_omitted) {
       return (
         <div>
@@ -558,22 +580,8 @@ export const StudentsPanel = rclass<StudentsPanelReactProps>(
                       componentClass="textarea"
                       placeholder="Add students by name or email address..."
                       value={this.state.add_search}
-                      onChange={() =>
-                        this.setState({
-                          add_select: undefined,
-                          add_search: ReactDOM.findDOMNode(
-                            this.refs.student_add_input
-                          ).value
-                        })
-                      }
-                      onKeyDown={e => {
-                        if (e.keyCode === 27) {
-                          return this.setState({
-                            add_search: "",
-                            add_select: undefined
-                          });
-                        }
-                      }}
+                      onChange={() => this.student_add_input_onChange()}
+                      onKeyDown={e => this.student_add_input_onKeyDown(e)}
                     />
                   </FormGroup>
                 </Col>
@@ -901,17 +909,13 @@ class Student extends Component<StudentProps, StudentState> {
 
   shouldComponentUpdate(nextProps, nextState) {
     return (
-      misc.is_different(
-        this.state,
-        nextState,
-        [
-          "confirm_delete",
-          "editing_student",
-          "edited_first_name",
-          "edited_last_name",
-          "edited_email_address"
-        ]
-      ) ||
+      misc.is_different(this.state, nextState, [
+        "confirm_delete",
+        "editing_student",
+        "edited_first_name",
+        "edited_last_name",
+        "edited_email_address"
+      ]) ||
       misc.is_different(this.props, nextProps, [
         "name",
         "student",
@@ -996,7 +1000,7 @@ class Student extends Component<StudentProps, StudentState> {
   render_student_email() {
     const email = this.props.student.get("email_address");
     return (
-      <a target={"_blank"} href={`mailto:${email}`}>
+      <a target={"_blank"} href={`mailto:${email}`} rel={"noopener"}>
         {email}
       </a>
     );
@@ -1013,17 +1017,32 @@ class Student extends Component<StudentProps, StudentState> {
   };
 
   render_last_active() {
+    if (this.props.student.get("account_id") == null) {
+      return (
+        <span style={{ color: "#666" }}>(has not created account yet)</span>
+      );
+    }
     const student_project_id = this.props.student.get("project_id");
     if (student_project_id == null) {
       return;
     }
-    // get the last time the student edited this project somehow.
-    const last_active = __guard__(
-      redux.getStore("projects").get_last_active(student_project_id),
-      x => x.get(this.props.student.get("account_id"))
-    );
+    const p = this.props.project_map.get(student_project_id);
+    if (p == null) {
+      // no info about this project?  maybe we need to load full list or
+      // users isn't a collab, so don't know.
+      const project_actions = redux.getActions("projects");
+      if (project_actions != null) {
+        // If this does load all (since not loaded), then will try again to
+        // render with new project_map.
+        project_actions.load_all_projects();
+      }
+      return;
+    }
+    const u = p.get("last_active");
+    const last_active =
+      u != null ? u.get(this.props.student.get("account_id")) : null;
     if (last_active) {
-      // could be 0 or undefined
+      // student has definitely been active (and we know about this project).
       return (
         <span style={{ color: "#666" }}>
           (last used project <TimeAgo date={last_active} />)
@@ -1406,7 +1425,7 @@ class Student extends Component<StudentProps, StudentState> {
                 value={this.state.edited_first_name}
                 onClick={e => {
                   e.stopPropagation();
-                  return e.preventDefault();
+                  e.preventDefault();
                 }}
                 onChange={e =>
                   this.setState({ edited_first_name: e.target.value })
@@ -1423,7 +1442,7 @@ class Student extends Component<StudentProps, StudentState> {
                 value={this.state.edited_last_name}
                 onClick={e => {
                   e.stopPropagation();
-                  return e.preventDefault();
+                  e.preventDefault();
                 }}
                 onChange={e =>
                   this.setState({ edited_last_name: e.target.value })
@@ -1442,7 +1461,7 @@ class Student extends Component<StudentProps, StudentState> {
                 value={this.state.edited_email_address}
                 onClick={e => {
                   e.stopPropagation();
-                  return e.preventDefault();
+                  e.preventDefault();
                 }}
                 onChange={e =>
                   this.setState({ edited_email_address: e.target.value })
@@ -1504,8 +1523,3 @@ var noncloud_emails = function(v, s) {
     return result1;
   })().sort((a, b) => misc.cmp(a.email_address, b.email_address));
 };
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}

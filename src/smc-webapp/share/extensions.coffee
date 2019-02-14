@@ -5,7 +5,6 @@ mimetype library)...
 
 ###
 
-
 {file_associations} = require('../file-associations')
 
 set = (v) ->

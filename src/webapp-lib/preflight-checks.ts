@@ -84,10 +84,11 @@ function preflight_check(): void {
       spec.buildID.length >= 8 &&
       spec.buildID.slice(0, 8) >= "20180903");
 
+  // 69 to 61 have issues, and 65 up until beta8 exhibits similar issues.
+  // 65 resolved in beta9. upstream: https://bugzilla.mozilla.org/show_bug.cgi?id=1514688
   const buggyFF =
     spec.name === "Firefox" &&
-    59 <= spec.version &&
-    spec.version <= 61 &&
+    (59 <= spec.version && spec.version <= 61) &&
     !ff60esr;
 
   if (oldFF || oldIE || oldEdge || oldSafari || oldOpera || oldChrome) {
@@ -95,9 +96,9 @@ function preflight_check(): void {
       <h1 style="color:red;font-size:400%">&#9888;</h1>
       <h2>CoCalc does not support ${spec.name} version ${spec.version}.</h2>
       <div>
-          <p>We recommend that you use the newest version of <a target="_blank" href='https://google.com/chrome'>Google Chrome</a>.</p>
+          <p>We recommend that you use the newest version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>.</p>
           <p>Learn more about our
-            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" >browser requirements</a>.
+            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" rel="noopener">browser requirements</a>.
           </p>
           <p style="font-weight:bold; font-size: 115%">
             <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my old browser...</a>
@@ -116,13 +117,13 @@ function preflight_check(): void {
              <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1453204">firefox issue #1453204</a>!
           </p>
           <p>Either update to at least Firefox version 62,
-             switch to a recent version of <a target="_blank" href='https://google.com/chrome'>Google Chrome</a>,
+             switch to a recent version of <a target="_blank" rel="noopener" href='https://google.com/chrome'>Google Chrome</a>,
              or tweak your TSL settings (we wouldn't recommend that, though):
              <a href="https://tinyurl.com/y9hphj39">https://tinyurl.com/y9hphj39</a> and
              <a href="https://tinyurl.com/yboeepsf">https://tinyurl.com/yboeepsf</a>.
           </p>
           <p>Learn more about our
-            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" >browser requirements</a>.
+            <a href="https://github.com/sagemathinc/cocalc/wiki/BrowserRequirements" target="_blank" rel="noopener">browser requirements</a>.
           </p>
           <p style="font-weight:bold; font-size: 115%">
             <a href="./app?${SKIP_TOKEN}">Try to use CoCalc anyways with my broken browser...</a>

@@ -9,7 +9,17 @@ const { Icon } = require("r_misc");
 
 import { Actions } from "./actions";
 
-const APPS = {
+interface IAPPS {
+  [k: string]: {
+    icon: string;
+    desc: string;
+    label?: string;
+    command?: string;
+    args?: string[];
+  };
+}
+
+const APPS: IAPPS = {
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
     icon: "edit",
@@ -71,7 +81,7 @@ const APPS = {
     label: "nteract"
   },
   wxmaxima: {
-    icon: "shapes",
+    icon: "square-root-alt",
     desc: "A legendary computer algebra system",
     label: "Maxima"
   },
@@ -81,12 +91,13 @@ const APPS = {
       "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
     label: "RStudio"
   },
-  // octave: {
-  //   icon: "cc-icon-octave",
-  //   desc: "Scientific programming largely compatible with Matlab",
-  //   label: "Octave",
-  //   command: "/usr/bin/octave"
-  // },
+  octave: {
+    icon: "cc-icon-octave",
+    desc: "Scientific programming largely compatible with Matlab",
+    label: "Octave",
+    command: "octave",
+    args: ["--force-gui"]
+  },
   texmacs: {
     icon: "cc-icon-tex-file",
     desc:
@@ -153,6 +164,12 @@ const APPS = {
     command: "idea.sh",
     icon: "lightbulb"
   },
+  sqlitebrowser: {
+    label: "SQLite",
+    desc:
+      "A high quality, visual, open source tool to create, design, and edit database files compatible with SQLite.",
+    icon: "database"
+  },
   avogadro: {
     label: "Avogadro",
     desc:
@@ -173,6 +190,39 @@ const APPS = {
     label: "Calibre",
     icon: "book",
     desc: "A powerful and easy to use e-book manager"
+  },
+  qgis: {
+    label: "QGIS",
+    icon: "globe",
+    desc: "A user friendly Open Source Geographic Information System."
+  },
+  ds9: {
+    icon: "star",
+    label: "SAOImage DS9",
+    desc: "An astronomical imaging and data visualization application."
+  },
+  xcas: {
+    icon: "square-root-alt",
+    label: "Xcas",
+    desc:
+      "An interface to perform computer algebra, function graphs, interactive geometry (2-d and 3-d), spreadsheet and statistics, programmation."
+  },
+  "gnome-system-monitor": {
+    icon: "heartbeat",
+    label: "System Monitor",
+    desc:
+      "Shows you what programs are running and how much processor time, memory, and disk space are being used."
+  },
+  gedit: {
+    icon: "edit",
+    label: "Gedit",
+    desc: "The GNOME text editor"
+  },
+  cadabra2: {
+    command: "cadabra2-gtk",
+    icon: "square-root-alt",
+    label: "Cadabra 2",
+    desc: "A field-theory motivated approach to computer algebra"
   }
 };
 

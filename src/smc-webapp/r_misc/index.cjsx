@@ -36,12 +36,19 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
+
 {CloseX} = require('./close-x')
 exports.CloseX = CloseX
+
+{CloseX2} = require('./close-x2')
+exports.CloseX2 = CloseX2
+
 {Saving} = require('./saving')
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{TimeElapsed} = require('./time-elapsed')
+exports.TimeElapsed = TimeElapsed
 
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
@@ -220,9 +227,9 @@ exports.Footer = rclass
             <Space/>
             <SiteName/> by <CompanyName/>
             {' '} &middot; {' '}
-            <a target="_blank" href={PolicyIndexPageUrl}>Policies</a>
+            <a target="_blank" rel='noopener' href={PolicyIndexPageUrl}>Policies</a>
             {' '} &middot; {' '}
-            <a target="_blank" href={PolicyTOSPageUrl}>Terms of Service</a>
+            <a target="_blank" rel='noopener' href={PolicyTOSPageUrl}>Terms of Service</a>
             {' '} &middot; {' '}
             <HelpEmailLink />
             {' '} &middot; {' '}
@@ -580,15 +587,17 @@ exports.SearchInput = rclass
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.element
         input_class     : rtypes.string  # className for the InputGroup element
+        disabled        : rtypes.bool
 
     shouldComponentUpdate: (props, state) ->
         return misc.is_different(@state, state, ['value', 'ctrl_down']) or \
                misc.is_different(@props, props, ['clear_on_submit', 'autoFocus', 'autoSelect', 'placeholder', \
-                                                 'default_value',  'value', 'buttonAfter'])
+                                                 'default_value',  'value', 'buttonAfter', 'disabled'])
 
     getInitialState: ->
         value     : (@props.value || @props.default_value) ? ''
         ctrl_down : false
+        disabled  : false
 
     get_opts: ->
         ctrl_down : @state.ctrl_down
@@ -617,7 +626,7 @@ exports.SearchInput = rclass
             return @props.buttonAfter
         else
             s = if @state.value?.length > 0 then 'warning' else "default"
-            <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
+            <Button onClick={@clear_and_focus_search_input} bsStyle={s} disabled = {@props.disabled}>
                 <Icon name='times-circle' />
             </Button>
 
@@ -666,6 +675,7 @@ exports.SearchInput = rclass
                     onChange    = {=>@set_value(ReactDOM.findDOMNode(@refs.input).value)}
                     onKeyDown   = {@key_down}
                     onKeyUp     = {@key_up}
+                    disabled    = {@props.disabled}
                 />
                 <InputGroup.Button>
                     {@search_button()}
@@ -1164,9 +1174,9 @@ exports.NonMemberProjectWarning = (opts) ->
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
-            suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} members-only hosting {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
@@ -1187,9 +1197,9 @@ exports.NoNetworkProjectWarning = (opts) ->
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
-            suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
+            suggestion = <span>Your {total} internet access {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable an internet access upgrade for another project to free a spot up for this one.</span>
         else
-            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
+            suggestion = <span><Space /><a href={url} target='_blank' rel='noopener' style={cursor:'pointer'}>Subscriptions start at only $14/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
@@ -1463,7 +1473,7 @@ exports.UpgradeAdjustor = rclass
     # the max button will set the upgrade input box to the number given as max
     render_max_button: (name, max) ->
         <Button
-            bsSize  = 'xsmall'
+            bsSize  = 'small'
             onClick = {=>@setState("upgrade_#{name}" : max)}
             style   = {padding:'0px 5px'}
         >
@@ -1506,7 +1516,7 @@ exports.UpgradeAdjustor = rclass
                     You have {show_remaining} unallocated {misc.plural(show_remaining, display_unit)}
                 </Col>
                 <Col sm={6}>
-                    <form>
+                    <form style={float:'right'}>
                         <Checkbox
                             ref      = {"upgrade_#{name}"}
                             checked  = {val > 0}
@@ -1557,7 +1567,7 @@ exports.UpgradeAdjustor = rclass
 
             unit = misc.plural(show_remaining, display_unit)
             if limit < remaining
-                remaining_note = <span>You have {remaining_all} unallocated {unit}<br/>(you may allocate up to {limit} {unit} here)</span>
+                remaining_note = <span>You have {remaining_all} unallocated {unit}<br/>(You may allocate up to {limit} {unit} here)</span>
 
             else
                 remaining_note = <span>You have {remaining_all} unallocated {unit}</span>
@@ -1565,7 +1575,7 @@ exports.UpgradeAdjustor = rclass
             <Row key={name} style={marginTop:'5px'}>
                 <Col sm={7}>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong> ({show_total} of {total_limit} {unit})
+                        <strong>{display}</strong> (current: {show_total} {unit}, max allowed: {total_limit} {unit})
                     </Tip>
                     <br/>
                     {remaining_note}
@@ -1642,6 +1652,10 @@ exports.UpgradeAdjustor = rclass
                 changed = true
         return changed
 
+    show_account_upgrades: ->
+        redux.getActions('page').set_active_tab('account')
+        redux.getActions('account').set_active_tab('upgrades')
+
     render: ->
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
@@ -1650,36 +1664,32 @@ exports.UpgradeAdjustor = rclass
             {limits, remaining, current, totals, proj_remainder} = @get_quota_info()
 
             <Alert bsStyle='warning' style={@props.style}>
-                {<React.Fragment>
-                    <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+                {<div>
+                    <h3><Icon name='arrow-circle-up' /> Adjust you quota contributions to this project</h3>
 
-                    <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  Go to "Account --> Upgrades" to see how your upgrades are currently allocated.
-                    </span>
-                    <hr/>
-                </React.Fragment> if not @props.omit_header}
+                    <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
+                    </div>
+                </div> if not @props.omit_header}
+                <div style={marginTop:'10px'}>
+                    <Button
+                        onClick = {@max_upgrades}
+                    >
+                        Apply maximum available upgrades to this project...
+                    </Button>
+                    {' '}
+                    <Button
+                        onClick = {@clear_upgrades}
+                    >
+                        Remove all your upgrades from this project...
+                    </Button>
+                </div>
+                <hr/>
                 <Row>
-                    <Col md={2}>
-                        <b style={fontSize:'12pt'}>Quota</b>
-                    </Col>
-                    <Col md={4}>
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {@max_upgrades}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Max All Upgrades
-                        </Button>
-                        {' '}
-                        <Button
-                            bsSize  = 'xsmall'
-                            onClick = {@clear_upgrades}
-                            style   = {padding:'0px 5px'}
-                        >
-                            Remove All Upgrades
-                        </Button>
+                    <Col md={6}>
+                        <b style={fontSize:'14pt'}>Quota</b>
                     </Col>
                     <Col md={6}>
-                        <b style={fontSize:'12pt'}>Your contribution</b>
+                        <b style={fontSize:'14pt', float:'right'}>Your contribution</b>
                     </Col>
                 </Row>
                 <hr/>
@@ -1762,6 +1772,12 @@ exports.CopyToClipBoard = rclass
 exports.HiddenXS = rclass
     render: ->
         <span className={'hidden-xs'}>
+            {@props.children}
+        </span>
+
+exports.HiddenSM = rclass
+    render: ->
+        <span className={'hidden-sm'}>
             {@props.children}
         </span>
 

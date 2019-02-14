@@ -67,7 +67,7 @@ export class Client {
   private activeWindow: number = 0;
   private lastActiveWindow: number = 0;
   private audioCodecs = { codecs: [] };
-  private ping_interval: number = 0;
+  private ping_interval: any = 0;   // really Timer type
 
   private layout: string = "";
   private variant: string = "";

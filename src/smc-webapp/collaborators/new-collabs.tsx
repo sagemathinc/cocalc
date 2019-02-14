@@ -70,6 +70,7 @@ async function search_for_accounts(search = ""): Promise<UserAndProfile[]> {
 interface AddCollaboratorsPanelProps {
   // OWN PROPS
   project: any;
+  on_invite?: () => void;
   // REDUX PROPS
   get_fullname(): string;
   user_map: immutable.Map<any, any>;
@@ -439,6 +440,9 @@ ${name}
           replyto_name
         );
     });
+    if (this.props.on_invite) {
+      this.props.on_invite();
+    }
     this.reset();
   };
 

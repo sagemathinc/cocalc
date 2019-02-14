@@ -16,6 +16,7 @@ teardown = pgtest.teardown
 misc = require('smc-util/misc')
 
 describe 'very basic test of projects table', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
@@ -43,7 +44,7 @@ describe 'very basic test of projects table', ->
                             # Test removing user from the project
                             db.remove_user_from_project(account_id:accounts[0], project_id:projects[0], cb:cb)
                         (x, cb) ->
-                            expect(x).toEqual({ action: 'update', new_val: { project_id: projects[0], title: 'Project 0', users: {} } })
+                            expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[0], title: 'Project 0', users: {} } })
                             cb()
                         (x, cb) ->
                             expect(x).toEqual({ action: 'delete', old_val: { project_id: projects[0] } })
@@ -124,7 +125,7 @@ describe 'create multiple projects with multiple collaborators', ->
                             log 'Now add another collaborator'
                             db.add_user_to_project(project_id:projects[2], account_id:accounts[2], cb:cb)
                         (x, cb) ->
-                            expect(x).toEqual({ action: 'update', new_val: { project_id: projects[2], users:{"#{accounts[0]}":{group:"collaborator"}, "#{accounts[1]}":{group:"owner"}, "#{accounts[2]}":{group:"collaborator"}} } })
+                            expect(x).toEqual({ action: 'insert', new_val: { project_id: projects[2], users:{"#{accounts[0]}":{group:"collaborator"}, "#{accounts[1]}":{group:"owner"}, "#{accounts[2]}":{group:"collaborator"}} } })
 
                             log 'Now take first user back off'
                             db.remove_user_from_project(project_id:projects[2], account_id:accounts[0], cb:cb)
@@ -217,21 +218,23 @@ describe 'changefeed testing all projects fields', ->
                         (x, cb) ->
                             obj0.title = 'Foo'
                             obj0.description = 'bar'
-                            expect(x).toEqual( { action: 'update', new_val: obj0 })
+                            expect(x).toEqual( { action: 'insert', new_val: obj0 })
 
                             user_query
                                 query : {projects:{project_id:projects[0], deleted:true}}
                                 cb    : cb
                         (x, cb) ->
                             obj0.deleted = true
-                            expect(x).toEqual( { action: 'update', new_val: obj0 })
+                            expect(x.action).toEqual('update');
+                            expect(x.new_val.deleted).toEqual(obj0.deleted)
 
                             obj0.action_request = {action:'test', started:new Date()}
                             user_query
                                 query : {projects:{project_id:projects[0], action_request:obj0.action_request}}
                                 cb    : cb
                         (x, cb) ->
-                            expect(x).toEqual( { action: 'update', new_val:obj0 })
+                            expect(x.action).toEqual('update');
+                            expect(x.new_val.action_request).toEqual(obj0.action_request)
 
                             obj0.last_edited = new Date()
                             db._query
@@ -240,7 +243,8 @@ describe 'changefeed testing all projects fields', ->
                                 where : {project_id : projects[0]}
                                 cb    : cb
                         (x, cb) ->
-                            expect(x).toEqual( { action: 'update', new_val:obj0 })
+                            expect(x.action).toEqual('update');
+                            expect(x.new_val.last_edited).toEqual(obj0.last_edited)
 
                             set =
                                 invite          : {a:'map'}
@@ -257,7 +261,9 @@ describe 'changefeed testing all projects fields', ->
                                 where : {project_id : projects[0]}
                                 cb    : cb
                         (x, cb) ->
-                            expect(x).toEqual( { action: 'update', new_val:obj0 })
+                            expect(x.action).toEqual('update')
+                            for field in ['invite', 'invite_requests', 'host', 'status', 'state', 'last_active', 'course']
+                                expect(x.new_val[field]).toEqual(obj0[field])
 
                             db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                         (x, cb) ->
@@ -294,7 +300,7 @@ describe 'testing a changefeed from a project (instead of account)', ->
                                 query      : {projects:obj}
                                 cb         : cb
                         (x, cb) ->
-                            expect(x).toEqual({action:'update', new_val:obj})
+                            expect(x).toEqual({action:'insert', new_val:obj})
 
                             db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                         (x, cb) ->
@@ -380,7 +386,7 @@ describe 'test changefeed admin-only access to project', ->
                         query      : {projects:{project_id:project_id, title:"WAY Better Title"}}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:{project_id:project_id, title:"WAY Better Title"}})
+                    expect(x).toEqual({action:'insert', new_val:{project_id:project_id, title:"WAY Better Title"}})
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->
@@ -475,7 +481,7 @@ describe 'test public_projects table -- ', ->
                             query      : {projects:{project_id:project_id, title:'TITLE', description:'DESC'}}
                             cb         : cb
                     (x, cb) ->
-                        expect(x).toEqual({ action: 'update', new_val: { project_id: project_id, description: 'DESC', title: 'TITLE' } })
+                        expect(x).toEqual({ action: 'insert', new_val: { project_id: project_id, description: 'DESC', title: 'TITLE' } })
                         db.user_query
                             account_id : accounts[0]
                             query      : {projects:{project_id:project_id, title:'Project 0', description:'Description 0'}}
@@ -583,7 +589,7 @@ describe 'test public_paths table -- ', ->
                                                         description:"foo2", disabled:true}}
                             cb         : cb
                     (x, cb) ->
-                        expect(x).toEqual({ action: 'update', new_val: {id:v[1].id, project_id:projects[0],  \
+                        expect(x).toEqual({ action: 'insert', new_val: {id:v[1].id, project_id:projects[0],  \
                                                                         path:"foo.txt", description:"foo2", disabled:true} })
 
                         db.user_query
@@ -592,8 +598,9 @@ describe 'test public_paths table -- ', ->
                                                         description:"foo", disabled:false}}
                             cb         : cb
                     (x, cb) ->
-                        expect(x).toEqual({ action: 'update', new_val: {id:v[1].id, project_id:projects[0], path:"foo.txt",  \
-                                                                        description:"foo", disabled:false} })
+                        expect(x.action).toEqual('update');
+                        expect(x.new_val.description).toEqual("foo")
+                        expect(x.new_val.disabled).toEqual(false);
 
                         db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                     (x, cb) ->
@@ -693,7 +700,7 @@ describe 'test site_settings table -- ', ->
 
                         user_query({name:'site_name', value:'CoCalc'}, cb)
                     (x, cb) ->
-                        expect(x).toEqual({ action: 'update', new_val: {name:'site_name', value:'CoCalc'} })
+                        expect(x).toEqual({ action: 'insert', new_val: {name:'site_name', value:'CoCalc'} })
 
                         user_query({name:'site_description', value:'The collaborative site'}, cb)
                     (x, cb) ->
@@ -843,7 +850,8 @@ describe 'test system_notifications ', ->
                             query      : {system_notifications: [obj1]}
                             cb         : cb
                     (x, cb) ->
-                        expect(x).toEqual( { action: 'update', new_val: obj1 })
+                        expect(x.action).toEqual('update');
+                        expect(x.new_val.done).toEqual(true);
 
                         db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                     (x, cb) ->

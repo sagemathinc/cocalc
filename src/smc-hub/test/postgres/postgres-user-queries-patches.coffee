@@ -17,6 +17,7 @@ teardown = pgtest.teardown
 misc = require('smc-util/misc')
 
 describe 'basic use of patches table from user -- ', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
@@ -328,13 +329,15 @@ describe 'changefeed tests on patches table', ->
                 (x, cb) ->
                     expect(x).toEqual({action:'insert', new_val:{string_id:string_id, time:t[3], user_id:1, patch:patch0}})
 
-                    # modify the just-inserted patch -- should fire since we *are* watching sent column
+                    # modify sent part of the just-inserted patch -- should fire since we *are* watching sent column
                     db.user_query
                         account_id : accounts[0]
                         query      : {patches:{string_id:string_id, time:t[3], user_id:1, sent:t[1]}}
                         cb         : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:{string_id:string_id, time:t[3], user_id:1, patch:patch0, sent:t[1]}})
+                    expect(x.action).toEqual('update');
+                    # Note: patch and user_id is NOT sent again since that is redundant.
+                    expect(x.new_val).toEqual({string_id:string_id, time:t[3], sent:t[1]});
 
                     # deletes an older patch -- shouldn't fire changefeed
                     db._query
