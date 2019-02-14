@@ -2,7 +2,7 @@
 Test message and message2 definitions
 ###
 
-messages = require('../../../smc-util/message.coffee')
+messages = require('../../../smc-util/message.js')
 
 expect = require('expect')
 

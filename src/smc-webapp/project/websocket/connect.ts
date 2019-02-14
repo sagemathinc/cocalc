@@ -4,10 +4,19 @@ Create a singleton websocket connection directly to a particular project.
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { API } from "./api";
-const { retry_until_success } = require("smc-util/async-utils"); // so also works on backend.
+const {
+  callback2,
+  once,
+  retry_until_success
+} = require("smc-util/async-utils"); // so also works on backend.
 
 import { callback } from "awaiting";
 import { /* getScript*/ ajax, globalEval } from "jquery";
+
+const { webapp_client } = require("../../webapp_client");
+const { redux } = require("../../app-framework");
+
+import { set_project_websocket_state, WebsocketState } from "./websocket-state";
 
 const connections = {};
 
@@ -16,6 +25,27 @@ const connections = {};
 // of the target, hence causing multiple projects to have the same websocket.
 // I'm too tired to do this right at the moment.
 let READING_PRIMUS_JS = false;
+
+async function start_project(project_id: string) {
+  // also check if the project is supposedly running and if
+  // not wait for it to be.
+  const projects = redux.getStore("projects");
+  if (projects == null) {
+    throw Error("projects store must exist");
+  }
+
+  if (projects.get_state(project_id) != "running") {
+    // Encourage project to start running, if it isn't already...
+    await callback2(webapp_client.touch_project, { project_id });
+    if (projects.get_my_group(project_id) == "admin") {
+      // must be viewing as admin, so can't start as below.  Just touch and be done.
+      return;
+    }
+    await callback2(projects.wait, {
+      until: () => projects.get_state(project_id) == "running"
+    });
+  }
+}
 
 async function connection_to_project0(project_id: string): Promise<any> {
   if (project_id == null || project_id.length != 36) {
@@ -33,11 +63,25 @@ async function connection_to_project0(project_id: string): Promise<any> {
   const Primus0 = window0.Primus; // the global primus
   let Primus;
 
+  // So that the store reflects that we are not connected but are trying.
+  set_project_websocket_state(project_id, "offline");
+
   await retry_until_success({
+    // log: console.log,
     f: async function() {
       if (READING_PRIMUS_JS) {
         throw Error("currently reading one already");
       }
+
+      if (!webapp_client.is_signed_in()) {
+        // At least wait until main client is signed in, since nothing
+        // will work until that is the case anyways.
+        await once(webapp_client, "signed_in");
+      }
+
+      await start_project(project_id);
+
+      // Now project is thought to be running, so maybe this will work:
       try {
         READING_PRIMUS_JS = true;
 
@@ -70,10 +114,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
         //console.log("success!");
       }
     },
-    max_time: 1000 * 60 * 30,
-    start_delay: 250,
-    max_delay: 1500,
-    factor: 1.2
+    start_delay: 300,
+    max_delay: 3000,
+    factor: 1.2,
+    desc : 'connecting to project'
     //log: (...x) => {
     //  console.log("retry primus:", ...x);
     //}
@@ -83,7 +127,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // However, we don't want to overwrite the usual global window.Primus.
   const conn = (connections[project_id] = Primus.connect({
     reconnect: {
-      max: 3000,
+      max: 5000,
       min: 1000,
       factor: 1.3,
       retries: 1000
@@ -91,12 +135,48 @@ async function connection_to_project0(project_id: string): Promise<any> {
   }));
   conn.api = new API(conn);
   conn.verbose = false;
-  conn.on("open", function() {
-    console.log(`project websocket: connected to ${project_id}`);
+
+  // Given conn a state API, which is very handy for my use.
+  // This both emits something (useful for sync and other code),
+  // and sets information in the projects store (useful for UI).
+
+  // And also some logging to the console about what is
+  // going on in some cases.
+
+  function update_state(state: WebsocketState): void {
+    if (conn.state == state) {
+      return; // nothing changed, so no need to set or emit.
+    }
+    console.log(
+      `project websocket: state='${state}', project_id='${project_id}'`
+    );
+    conn.state = state;
+    conn.emit("state", state);
+    set_project_websocket_state(project_id, state);
+  }
+  update_state("offline"); // starts offline
+
+  conn.on("open", () => {
+    update_state("online");
   });
-  conn.on("reconnect", function() {
-    console.log(`project websocket: trying to reconnect to ${project_id}`);
+
+  conn.on("online", () => {
+    update_state("online");
   });
+
+  conn.on("offline", () => {
+    update_state("offline");
+  });
+
+  conn.on("destroy", () => {
+    update_state("destroyed");
+  });
+
+  conn.on("reconnect", async function() {
+    console.log(`project websocket: reconnecting to '${project_id}'...`);
+    update_state("offline");
+  });
+
   return conn;
 }
 

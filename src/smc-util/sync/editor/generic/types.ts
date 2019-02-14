@@ -20,6 +20,15 @@ export interface Document {
   make_patch(Document): CompressedPatch;
   is_equal(Document): boolean;
   to_str(): string;
+  set(any): Document;  // returns new document with result of set
+  get(any?): any;      // returns result of get query on document (error for string)
+  get_one(any?): any;      // returns result of get_one query on document (error for string)
+  delete(any?) : Document; // delete something from Document (error for string)
+
+  // optional info about what changed going from prev to this.
+  changes(prev? : Document) : any;
+  // how many in this document (length of string number of records in db-doc, etc.)
+  count() : number;
 }
 
 export type CompressedPatch = any[];
@@ -34,10 +43,14 @@ There's actually a completely separate client
 that runs in the browser and one on the project,
 but anything that has the following interface
 might work... */
-export interface Client {
+import { EventEmitter } from "events";
+
+export interface Client extends EventEmitter {
   server_time: () => Date;
   is_user: () => boolean;
   is_project: () => boolean;
+  is_connected: () => boolean;
+  is_signed_in: () => boolean;
   dbg: (desc: string) => Function;
   mark_file: (
     opts: {
@@ -64,11 +77,18 @@ export interface Client {
   write_file: (opts: { path: string; data: string; cb: Function }) => void;
   watch_file: (opts: { path: string }) => FileWatcher;
 
-  synctable2: (
+  synctable_project: (
+    project_id: string,
     query: any,
     options: any,
     throttle_changes?: number
-  ) => SyncTable;
+  ) => Promise<SyncTable>;
+
+  synctable_database: (
+    query: any,
+    options: any,
+    throttle_changes?: number
+  ) => Promise<SyncTable>;
 
   // account_id or project_id
   client_id: () => string;

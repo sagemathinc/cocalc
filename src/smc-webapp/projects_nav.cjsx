@@ -34,6 +34,8 @@ feature = require('./feature')
 {Loading, Icon, Tip} = require('./r_misc')
 {NavTab} = require('./app_shared')
 
+{WebsocketIndicator} = require('./project/websocket/websocket-indicator')
+
 NavWrapper = ({style, children, id, className}) ->
     React.createElement(Nav, {style:style, id:id, className:className}, children)
 
@@ -50,6 +52,7 @@ ProjectTab = rclass
     reduxProps:
         projects:
             public_project_titles : rtypes.immutable.Map
+            project_websockets : rtypes.immutable.Map
 
     propTypes:
         project        : rtypes.immutable.Map
@@ -119,8 +122,12 @@ ProjectTab = rclass
             active_top_tab = {@props.active_top_tab}
             style          = {flexShrink:'1', width:'200px', maxWidth:'200px', height:'36px', overflow: 'hidden', lineHeight:'1.75em', color:text_color}
             ref            = 'tab'
+            is_project     = {true}
         >
-            <div style = {float:'right', whiteSpace:'nowrap', fontSize:'16px', color:x_color}>
+            <div style = {float:'right', whiteSpace:'nowrap', color:x_color}>
+                <span style={{paddingRight:'5px'}}>
+                    <WebsocketIndicator state={@props.project_websockets?.get(@props.project_id)} />
+                </span>
                 <Icon
                     name        = 'times'
                     onClick     = {@close_tab}

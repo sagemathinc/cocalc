@@ -38,6 +38,8 @@ const {
   is_array
 } = require("smc-util/misc");
 
+import { SyncDB } from "../smc-util/sync/editor/db/sync";
+
 const { key_value_store } = require("smc-util/key-value-store");
 
 import { blob_store, BlobStore } from "./jupyter-blobs-sqlite";
@@ -79,7 +81,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`
 });
 
-export function jupyter_backend(syncdb: any, client: any) {
+export function jupyter_backend(syncdb: SyncDB, client: any) {
   const dbg = client.dbg("jupyter_backend");
   dbg();
   const app_data = require("smc-webapp/app-framework");
@@ -88,7 +90,7 @@ export function jupyter_backend(syncdb: any, client: any) {
 
   // This path is the file we will watch for changes and save to, which is in the original
   // official ipynb format:
-  const path = original_path(syncdb._path);
+  const path = original_path(syncdb.get_path());
 
   const redux_name = app_data.redux_name(project_id, path);
   const store = app_data.redux.createStore(redux_name, JupyterStore);
@@ -96,7 +98,8 @@ export function jupyter_backend(syncdb: any, client: any) {
 
   actions._init(project_id, path, syncdb, store, client);
 
-  return syncdb.once("init", err => dbg(`syncdb init complete -- ${err}`));
+  syncdb.once("error", err => dbg(`syncdb ERROR -- ${err}`));
+  syncdb.once("ready", () => dbg("syncdb ready"));
 }
 
 // for interactive testing
@@ -159,13 +162,14 @@ export class JupyterKernel extends EventEmitter
   implements JupyterKernelInterface {
   public name: string;
   public store: any; // used mainly for stdin support right now...
+  public readonly identity: string = uuid();
+
   private _dbg: Function;
   private _path: string;
   private _actions: any;
   private _state: string;
   private _directory: string;
   private _filename: string;
-  private _identity: string;
   private _kernel: any;
   private _kernel_info: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
@@ -192,7 +196,6 @@ export class JupyterKernel extends EventEmitter
     this._directory = head;
     this._filename = tail;
     this._set_state("off");
-    this._identity = uuid();
     this._execute_code_queue = [];
     if (_jupyter_kernels[this._path] !== undefined) {
       // This happens when we change the kernel for a given file, e.g., from python2 to python3.
@@ -213,6 +216,7 @@ export class JupyterKernel extends EventEmitter
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     this._state = state;
     this.emit("state", this._state);
+    this.emit(this._state); // we *SHOULD* use this everywhere, not above.
   }
 
   get_state(): string {
@@ -233,13 +237,16 @@ export class JupyterKernel extends EventEmitter
     dbg("spawning kernel...");
 
     const opts: any = { detached: true, stdio: "ignore" };
-    if (this.name.indexOf("sage")) {
-      // special environment for sage-based kernels
+
+    if (this.name.indexOf("sage") == 0) {
+      dbg("setting special environment for sage.* kernels");
       opts.env = SAGE_JUPYTER_ENV;
     }
+
     if (this._directory !== "") {
       opts.cwd = this._directory;
     }
+
     try {
       dbg("launching kernel interface...");
       this._kernel = await require("spawnteract").launch(this.name, opts);
@@ -261,7 +268,7 @@ export class JupyterKernel extends EventEmitter
     });
 
     this._channels = require("enchannel-zmq-backend").createChannels(
-      this._identity,
+      this.identity,
       this._kernel.config
     );
 
@@ -401,13 +408,13 @@ export class JupyterKernel extends EventEmitter
     if (this._state === "closed") {
       return;
     }
+    this._set_state("closed");
     if (this.store != null) {
       this.store.close();
       delete this.store;
     }
-    this._set_state("closed");
     const kernel = _jupyter_kernels[this._path];
-    if (kernel != null && kernel._identity === this._identity) {
+    if (kernel != null && kernel._identity === this.identity) {
       delete _jupyter_kernels[this._path];
     }
     this.removeAllListeners();

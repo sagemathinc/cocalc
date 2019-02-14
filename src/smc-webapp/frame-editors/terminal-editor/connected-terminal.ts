@@ -77,7 +77,7 @@ export class Terminal {
   private last_active: number = 0;
   // conn = connection to project -- a primus websocket channel.
   private conn?: any;
-  private touch_interval: any;  // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
+  private touch_interval: any; // number doesn't work anymore and Timer doesn't exist everywhere... headache. Todo.
 
   public is_mounted: boolean = false;
   public element: HTMLElement;
@@ -404,7 +404,12 @@ export class Terminal {
     switch (mesg.cmd) {
       case "size":
         if (typeof mesg.rows === "number" && typeof mesg.cols === "number") {
-          this.resize(mesg.rows, mesg.cols);
+          try {
+            this.resize(mesg.rows, mesg.cols);
+          } catch (err) {
+            // See https://github.com/sagemathinc/cocalc/issues/3536
+            console.warn(`ERROR resizing terminal -- ${err}`);
+          }
         }
         break;
       case "burst":
@@ -472,7 +477,12 @@ export class Terminal {
         }
         // cause render to actually appear now.
         await delay(0);
-        this.terminal.refresh(0, this.terminal.rows - 1);
+        try {
+          this.terminal.refresh(0, this.terminal.rows - 1);
+        } catch(err) {
+          // See https://github.com/sagemathinc/cocalc/issues/3572
+          console.warn(`TERMINAL WARNING -- ${err}`);
+        }
         // Finally start listening to user input.
         this.init_keyhandler();
         cb();
@@ -620,7 +630,14 @@ export class Terminal {
     if (this.ignore_terminal_data) {
       // during the initial render
       //console.log('direct resize')
-      this.terminal.resize(cols, rows);
+      // Yes, this can throw an exception, thus breaking everything (resulting in
+      // a blank page for the user).  This is probably an upstream xterm.js bug,
+      // but we still have to work around it.
+      try {
+        this.terminal.resize(cols, rows);
+      } catch (err) {
+        console.warn("Error resizing terminal", err, rows, cols);
+      }
     }
     if (
       this.last_geom !== undefined &&

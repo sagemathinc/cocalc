@@ -22,8 +22,6 @@ import "react-image-crop/dist/ReactCrop.css";
 // per image.
 const AVATAR_SIZE: number = 160;
 
-import { callback } from "awaiting";
-
 interface ProfileImageSelectorProps {
   profile: ImmutableMap<any, any>;
   redux: any;
@@ -62,12 +60,9 @@ export class ProfileImageSelector extends Component<
 
   set_image = async (src: string) => {
     this.setState({ is_loading: true });
+    const table = this.props.redux.getTable("account");
     try {
-      await callback(
-        this.props.redux.getTable("account").set,
-        { profile: { image: src } },
-        "none"
-      );
+      await table.set({ profile: { image: src } }, "none");
     } catch (err) {
       if (this.is_mounted) {
         this.setState({ error: `${err}` });
@@ -195,7 +190,7 @@ export class ProfileImageSelector extends Component<
           <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
             Gravatar is a service for using a common avatar across websites. Go
             to the{" "}
-            <a href="https://en.gravatar.com" target="_blank">
+            <a href="https://en.gravatar.com" target="_blank" rel='noopener'>
               Wordpress Gravatar site
             </a>{" "}
             and sign in (or create an account) using {this.props.email_address}.
@@ -241,7 +236,7 @@ export class ProfileImageSelector extends Component<
           <Well style={{ marginTop: "10px", marginBottom: "10px" }}>
             Adorable creates a cute randomize monster face out of your email.
             See{" "}
-            <a href="http://avatars.adorable.io" target="_blank">
+            <a href="http://avatars.adorable.io" target="_blank" rel='noopener'>
               {"http://avatars.adorable.io"}
             </a>{" "}
             for more.

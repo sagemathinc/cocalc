@@ -1,4 +1,5 @@
 import { React, Component, redux } from "../app-framework";
+import { analytics_event } from "../tracker";
 const { Button, ButtonGroup } = require("react-bootstrap");
 const { Icon } = require("../r_misc");
 
@@ -22,11 +23,12 @@ export class ProjectsFilterButtons extends Component<Props> {
     if (this.props.show_deleted_button) {
       return (
         <Button
-          onClick={() =>
+          onClick={() => {
             redux
               .getActions("projects")
-              .display_deleted_projects(!this.props.deleted)
-          }
+              .display_deleted_projects(!this.props.deleted);
+            analytics_event("projects_page", "clicked_deleted_filter");
+          }}
           bsStyle={style}
         >
           <Icon
@@ -46,11 +48,12 @@ export class ProjectsFilterButtons extends Component<Props> {
     if (this.props.show_hidden_button) {
       return (
         <Button
-          onClick={() =>
+          onClick={() => {
             redux
               .getActions("projects")
-              .display_hidden_projects(!this.props.hidden)
-          }
+              .display_hidden_projects(!this.props.hidden);
+            analytics_event("projects_page", "clicked_hidden_filter");
+          }}
           bsStyle={style}
         >
           <Icon
