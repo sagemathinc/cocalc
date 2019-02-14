@@ -1915,7 +1915,7 @@ class exports.Connection extends EventEmitter
             action     : required
             ttl        : 120
         # Will only do something if @_redux has been set.
-        @_redux?.getActions('file_use').mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
+        @_redux?.getActions('file_use')?.mark_file(opts.project_id, opts.path, opts.action, opts.ttl)
 
     _post_query: (opts) =>
         opts = defaults opts,
