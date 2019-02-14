@@ -786,8 +786,6 @@ exports.define_codemirror_extensions = () ->
                 @scrollIntoView(last_pos)
                 @setCursor(last_pos)
 
-        delete @_setValueNoJump
-
         # Just do an expensive double check that the above worked.  I have no reason
         # to believe the above could ever fail... but maybe it does in some very rare
         # cases, and if it did, the results would be PAINFUL.  So... we just brutally
@@ -796,6 +794,9 @@ exports.define_codemirror_extensions = () ->
         if value != @getValue()
             console.warn("setValueNoJump failed -- just setting value directly")
             @setValue(value)
+
+        delete @_setValueNoJump
+
 
     CodeMirror.defineExtension 'patchApply', (patch) ->
         ## OPTIMIZATION: this is a very stupid/inefficient way to turn

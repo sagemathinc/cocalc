@@ -23,6 +23,7 @@ $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
+{analytics_event} = require('./tracker')
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 {once} = require('smc-util/async-utils')
@@ -878,7 +879,7 @@ ProjectsSearch = rclass
     clear_and_focus_search_input: ->
         @refs.projects_search.clear_and_focus_search_input()
 
-    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 400)
+    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 300)
 
     set_search: (value) ->
         @setState(search:value)
@@ -905,11 +906,16 @@ HashtagGroup = rclass
     getDefaultProps: ->
         selected_hashtags : {}
 
+    handle_tag_click: (tag) ->
+        return (e) =>
+            @props.toggle_hashtag(tag)
+            analytics_event('projects_page', 'clicked_hashtag', tag)
+
     render_hashtag: (tag) ->
         color = 'info'
         if @props.selected_hashtags and @props.selected_hashtags[tag]
             color = 'warning'
-        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize='small' bsStyle={color}>
+        <Button key={tag} onClick={this.handle_tag_click(tag)} bsSize='small' bsStyle={color}>
             {misc.trunc(tag, 60)}
         </Button>
 
@@ -1437,6 +1443,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                             </VisibleMDLG>
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
+                                default_value={@props.search}
                                 />
                         </Col>
                     </Row>
