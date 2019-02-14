@@ -23,6 +23,7 @@ $          = window.$
 immutable  = require('immutable')
 underscore = require('underscore')
 
+{analytics_event} = require('./tracker')
 {webapp_client} = require('./webapp_client')
 {alert_message} = require('./alerts')
 {once} = require('smc-util/async-utils')
@@ -35,11 +36,15 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, FormControl, FormGroup, InputGroup, Alert, Checkbox, Label} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
+{VisibleMDLG, ErrorDisplay, Icon, Loading, LoginLink, Saving, SearchInput, Space , TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, Footer} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+
+{ reuseInFlight } = require("async-await-utils/hof");
+
+{UpgradeStatus} = require('./upgrades/status')
 
 ###
 TODO:  This entire file should be broken into many small files/components,
@@ -838,10 +843,10 @@ class ProjectsAllTable extends Table
 # ones.  First we try loading the recent ones.  If this is *empty*,
 # then we try loading all projects.  Loading all projects is also automatically
 # called if there is any attempt to open a project that isn't recent.
-# Why? Because the load_all_projects query is **expensive**.
+# Why? Because the load_all_projects query is potentially **expensive**.
 
 all_projects_have_been_loaded = false
-load_all_projects = =>
+load_all_projects = reuseInFlight =>
     if all_projects_have_been_loaded
         return
     all_projects_have_been_loaded = true
@@ -874,7 +879,7 @@ ProjectsSearch = rclass
     clear_and_focus_search_input: ->
         @refs.projects_search.clear_and_focus_search_input()
 
-    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 400)
+    debounce_set_search: underscore.debounce(((value) -> @actions('projects').setState(search: value)), 300)
 
     set_search: (value) ->
         @setState(search:value)
@@ -901,16 +906,21 @@ HashtagGroup = rclass
     getDefaultProps: ->
         selected_hashtags : {}
 
+    handle_tag_click: (tag) ->
+        return (e) =>
+            @props.toggle_hashtag(tag)
+            analytics_event('projects_page', 'clicked_hashtag', tag)
+
     render_hashtag: (tag) ->
         color = 'info'
         if @props.selected_hashtags and @props.selected_hashtags[tag]
             color = 'warning'
-        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize='small' bsStyle={color}>
+        <Button key={tag} onClick={this.handle_tag_click(tag)} bsSize='small' bsStyle={color}>
             {misc.trunc(tag, 60)}
         </Button>
 
     render: ->
-        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden'}>
+        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden',     border: '1px solid lightgrey', padding: '5px', background: '#fafafa', borderRadius: '5px'}>
             {@render_hashtag(tag) for tag in @props.hashtags}
         </ButtonGroup>
 
@@ -1426,8 +1436,14 @@ exports.ProjectsPage = ProjectsPage = rclass
                     </Row>
                     <Row>
                         <Col sm={12} style={marginTop:'1ex'}>
+                            <VisibleMDLG>
+                                <div style={maxWidth:'50%', float:'right'}>
+                                    <UpgradeStatus />
+                                </div>
+                            </VisibleMDLG>
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
+                                default_value={@props.search}
                                 />
                         </Col>
                     </Row>

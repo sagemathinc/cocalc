@@ -2,6 +2,8 @@
 Determine function that does query.
 */
 
+const DISABLE_STANDBY : boolean = true; // if true, never use standby server at all.
+
 const async = require("async");
 
 import { delay } from "awaiting";
@@ -19,7 +21,7 @@ export function query_function(
   }
   const db_standby = s.db_standby;
 
-  if (!db_standby) {
+  if (DISABLE_STANDBY || !db_standby) {
     // just use default client.query, which queries the master database.
     return client_query;
   }

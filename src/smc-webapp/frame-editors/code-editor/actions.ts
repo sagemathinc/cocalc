@@ -530,9 +530,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
-  _assert_is_leaf_id(id: string, caller: string): void {
+    // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
+  _assert_is_leaf_id(id: string, caller: string) {
     if (!this._is_leaf_id(id)) {
-      throw Error(`${caller} -- no leaf with id "${id}"`);
+      throw Error(`${caller} -- no leaf with id ${id}`);
     }
   }
 

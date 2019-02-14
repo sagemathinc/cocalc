@@ -324,8 +324,9 @@ export class SyncDoc extends EventEmitter {
     } else {
       action = "edit";
     }
-    const file_use = () => {
+    const file_use = async () => {
       if (!is_chat) {
+        await delay(100); // wait a little so my_patches and gets updated.
         // We ONLY count this and record that the file was
         // edited if there was an actual change record in the
         // patches log, by this user, since last time.
@@ -2280,6 +2281,12 @@ export class SyncDoc extends EventEmitter {
   }
 
   private update_has_unsaved_changes(): void {
+    if (this.state != "ready") {
+      // This can happen, since this is called by a debounced function.
+      // Make it a no-op in case we're not ready.
+      // See https://github.com/sagemathinc/cocalc/issues/3577
+      return;
+    }
     const cur = this.has_unsaved_changes();
     if (cur !== this.last_has_unsaved_changes) {
       this.emit("has-unsaved-changes", cur);
@@ -2306,9 +2313,9 @@ export class SyncDoc extends EventEmitter {
       }
       try {
         dbg("waiting until done...");
-        await this.syncstring_table.wait(until, 10);
+        await this.syncstring_table.wait(until, 15);
       } catch (err) {
-        dbg("timed out after 10s");
+        dbg("timed out after 15s");
         throw Error("timed out");
       }
       if (this.state != "ready" || this.deleted) {
@@ -2327,7 +2334,7 @@ export class SyncDoc extends EventEmitter {
     };
     await retry_until_success({
       f,
-      max_tries: 4,
+      max_tries: 8,
       desc: "wait_for_save_to_disk_done"
     });
     if (this.state != "ready" || this.deleted) {

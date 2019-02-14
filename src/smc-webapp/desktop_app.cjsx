@@ -34,7 +34,7 @@
 {ProjectsPage} = require('./projects')
 {ProjectPage}  = require('./project_page')
 {AccountPage}  = require('./account_page') # SMELL: Not used but gets around a webpack error..
-{FileUsePage}  = require('./file_use')
+{FileUsePage}  = require('./file-use/page')
 {Support}      = require('./support')
 {Avatar}       = require('./other-users')
 

@@ -16,6 +16,7 @@ teardown = pgtest.teardown
 misc = require('smc-util/misc')
 
 describe 'test the accounts table changefeed', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
     account_id = undefined
@@ -39,7 +40,7 @@ describe 'test the accounts table changefeed', ->
                                 query      : {accounts:{account_id:account_id, first_name:'SAGE!'}}
                                 cb         : cb
                         (x, cb) ->
-                            expect(x).toEqual({ action:'update', new_val: { account_id:account_id, first_name:'SAGE!'}})
+                            expect(x).toEqual({ action:'insert', new_val: { account_id:account_id, first_name:'SAGE!'}})
                             db.delete_account(account_id:account_id, cb:cb)
                         (x, cb) ->
                             expect(x).toEqual({ action: 'delete', old_val: { account_id:account_id } })
@@ -53,6 +54,7 @@ describe 'test the accounts table changefeed', ->
         )
 
 describe 'test changefeeds involving the file_use table on one project with one user', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
@@ -96,7 +98,8 @@ describe 'test changefeeds involving the file_use table on one project with one 
                 (x, cb) ->
                     # note how chat gets recursively MERGED IN -- not replacing users. (so tricky under the hood to implement...)
                     obj.users["#{accounts[0]}"].chat = t1
-                    expect(x).toEqual({action:'update', new_val:obj})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.users).toEqual(obj.users)
 
                     # now mutate it by updating last_edited
                     t2 = new Date()
@@ -105,9 +108,9 @@ describe 'test changefeeds involving the file_use table on one project with one 
                         query      : {file_use:{project_id:projects[0], path: 'foo.txt', last_edited:t2}}
                         cb         : cb
                 (x, cb) ->
-                    # note how chat gets recursively MERGED IN -- not replacing users. (so tricky under the hood to implement...)
                     obj.last_edited = t2
-                    expect(x).toEqual({action:'update', new_val: obj})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.last_edited).toEqual(obj.last_edited)
 
                     # add a second file_use entry
                     db.user_query
@@ -198,7 +201,8 @@ describe 'test file_use changefeeds with multiple projects', ->
                                 cb         : cb
 
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val: obj[1]})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.last_edited).toEqual(obj[1].last_edited)
                     cb()
             ], done)
 
@@ -239,22 +243,26 @@ describe 'modifying a single file_use record in various ways', ->
                     obj.last_edited = new Date()
                     db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val: obj})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.last_edited).toEqual(obj.last_edited)
 
                     obj.users[accounts[0]].chat = new Date()
                     db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val: obj})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.users).toEqual(obj.users)
 
                     obj.users[accounts[1]] = {seen: new Date()}
                     db.user_query(account_id: accounts[1], query: {file_use:obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val: obj})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.users).toEqual(obj.users)
 
                     obj.users[accounts[0]] = {chat: new Date(), read: new Date()}
                     db.user_query(account_id: accounts[0], query: {file_use:obj}, cb: cb)
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val: obj})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.users).toEqual(obj.users)
 
                     db._query
                         query : "DELETE FROM file_use"

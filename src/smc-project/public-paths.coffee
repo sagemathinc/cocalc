@@ -2,7 +2,7 @@
 Monitoring of public paths in a running project.
 ###
 
-UPDATE_INTERVAL_S = 30
+UPDATE_INTERVAL_S = 20
 #UPDATE_INTERVAL_S = 5  # for testing
 
 fs         = require('fs')
@@ -113,8 +113,11 @@ class MonitorPublicPaths
                     cb()
                 else
                     d('change -- update database table')
-                    @_table.set({id:id, last_edited:new Date()}, 'deep', cb)
+                    last_edited = new Date()
+                    @_table.set({id:id, last_edited:last_edited}, 'shallow')
                     @_table.save()  # and also cause change to get saved to database.
+                    # This can be more robust (if actually connected).
+                    @_client.query({query:{id:id, last_edited:last_edited}, cb:cb})
         ], (err) =>
             # ignore err
             cb?()

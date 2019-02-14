@@ -16,6 +16,7 @@ teardown = pgtest.teardown
 misc = require('smc-util/misc')
 
 describe 'test changefeed of all collaborators of a user -- ', ->
+    @timeout(10000)
     before(setup)
     after(teardown)
 
@@ -114,7 +115,7 @@ describe 'test collaborators fields are updated -- ', ->
                         where : {account_id:accounts[1]}
                         cb    : cb
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:{account_id:accounts[1], first_name:'X1', last_name:'Y1'}})
+                    expect(x).toEqual({action:'insert', new_val:{account_id:accounts[1], first_name:'X1', last_name:'Y1'}})
 
                     # change last_active and profile
                     db._query
@@ -124,7 +125,9 @@ describe 'test collaborators fields are updated -- ', ->
                         cb    : cb
 
                 (x, cb) ->
-                    expect(x).toEqual({action:'update', new_val:{account_id:accounts[1], first_name:'X1', last_name:'Y1', last_active:t0, profile:{foo:'bar'}}})
+                    expect(x.action).toEqual('update');
+                    expect(x.new_val.last_active).toEqual(t0);
+                    expect(x.new_val.profile).toEqual({foo:'bar'});
 
                     db.user_query_cancel_changefeed(id:changefeed_id, cb:cb)
                 (x, cb) ->

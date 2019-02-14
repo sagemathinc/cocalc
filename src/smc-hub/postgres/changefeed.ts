@@ -130,6 +130,7 @@ export class Changes extends EventEmitter {
     this.db._stop_listening(this.table, this.select, this.watch);
     delete this.trigger_name;
     delete this.condition;
+    delete this.val_update_cache;
   }
 
   public async insert(where): Promise<void> {
