@@ -1199,6 +1199,13 @@ start_fake_server = (cb) ->
     # change global CONF path for local dev purposes
     DEV = true
     SQLITE_FILE = require('path').join(process.env.SALVUS_ROOT, 'data', 'compute.sqlite3')
+    # For the fake dev server, we always reset the database on startup, since
+    # we always kill all projects on startup.
+    try
+        fs.unlinkSync(SQLITE_FILE)
+    catch err
+        winston.debug("unlink sqlite file ", err)
+        # no-op
     async.series [init_sqlite_db, init_mintime], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
