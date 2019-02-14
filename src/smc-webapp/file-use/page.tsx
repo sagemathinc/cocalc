@@ -94,7 +94,7 @@ async function notification_list_click_handler(e): Promise<void> {
   // delay is to give plenty of time for the click to register
   // with react's event handler, so file opens
   await delay(100);
-  const page : any = redux.getActions("page");
+  const page: any = redux.getActions("page");
   if (page != null) {
     page.toggle_show_file_use();
   }

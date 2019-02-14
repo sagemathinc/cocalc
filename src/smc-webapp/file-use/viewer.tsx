@@ -6,13 +6,15 @@ const { Button, Col, Row } = require("react-bootstrap");
 
 import { Component, React, Rendered } from "../app-framework";
 
+import { analytics_event } from "../tracker";
+
 const { Icon, SearchInput } = require("../r_misc");
 
 import { FileUseActions } from "./actions";
 
 import { open_file_use_entry } from "./util";
 
-const { search_match, search_split } = require("smc-util/misc");
+const { filename_extension, search_match, search_split } = require("smc-util/misc");
 
 // Number of notifications to show if "Show All" isn't clicked
 const SHORTLIST_LENGTH = 40;
@@ -112,6 +114,11 @@ export class FileUseViewer extends Component<Props, State> {
       x.get("path"),
       x.get("show_chat", false),
       this.props.redux
+    );
+    analytics_event(
+      "file_notifications",
+      "open from search",
+      filename_extension(x.get("path"))
     );
   }
 
