@@ -455,8 +455,9 @@ class Project(object):
 
     def start(self, cores, memory, cpu_shares, base_url, ephemeral_state,
               ephemeral_disk):
-        self.remove_smc_path(
-        )  # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
+        # start can be prevented by massive logs in ~/.smc; if project not stopped via stop, then they will still be there.
+        self.remove_smc_path()
+
         self.ensure_bashrc()
         self.remove_forever_path()  # probably not needed anymore
         self.remove_snapshots_path()
@@ -555,8 +556,9 @@ class Project(object):
         self.remove_smc_path()
         self.remove_forever_path()
         self.remove_snapshots_path()
-        # TODO: If ephemeral_disk is true, also delete
-        # home directory of project
+        if ephemeral_disk:
+            # Also delete home directory of project
+            shutil.rmtree(self.project_path)
 
     def restart(self, cores, memory, cpu_shares, base_url, ephemeral_state,
                 ephemeral_disk):

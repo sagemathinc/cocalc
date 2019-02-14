@@ -196,7 +196,11 @@ class SyncTableChannel {
 
   private async new_connection(spark: Spark): Promise<void> {
     // Now handle the connection
-    this.log(`new connection from ${spark.address.ip} -- ${spark.id}`);
+    this.log(
+      `new connection from ${spark.address.ip} -- ${
+        spark.id
+      } -- num_connections = ${this.num_connections()}`
+    );
     if (this.closed) return;
     if (this.synctable.get_state() == "closed") {
       throw Error("BUG -- this shouldn't happen");
@@ -229,7 +233,7 @@ class SyncTableChannel {
     });
     spark.on("end", () => {
       this.log(
-        `spark event -- end connection ${spark.address.ip} -- ${spark.id}`
+        `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${this.num_connections()}`
       );
       this.check_if_should_close();
     });
@@ -259,17 +263,21 @@ class SyncTableChannel {
       // don't bother if either already closed, or the persistent option is set.
       return;
     }
-    let n = 0;
-    this.channel.forEach((spark: Spark) => {
-      console.log(`existing connection ${spark.id}`);
-      n += 1;
-    });
+    const n = this.num_connections();
     if (n === 0) {
       this.log("check_if_should_close -- ", n, " closing");
       this.close();
     } else {
       this.log("check_if_should_close -- ", n, " do not close");
     }
+  }
+
+  private num_connections(): number {
+    let n = 0;
+    this.channel.forEach((_: Spark) => {
+      n += 1;
+    });
+    return n;
   }
 
   private async handle_mesg_from_browser(

@@ -377,7 +377,7 @@ UsagePanel = rclass
         <Row>
             <Col sm={12}>
                 <Button bsStyle='primary' disabled={@state.show_adjustor} onClick={=>@setState(show_adjustor : true)} style={float: 'right', marginBottom : '5px'}>
-                    <Icon name='arrow-circle-up' /> Adjust Quotas...
+                    <Icon name='arrow-circle-up' /> Adjust your quota contributions...
                 </Button>
             </Col>
         </Row>
