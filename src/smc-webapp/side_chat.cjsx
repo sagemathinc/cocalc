@@ -31,6 +31,7 @@ misc_page = require('./misc_page')
 {webapp_client} = require('./webapp_client')
 {Avatar} = require('./other-users')
 {alert_message} = require('./alerts')
+{analytics_event} = require('./tracker')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')

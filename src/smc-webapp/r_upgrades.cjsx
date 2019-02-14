@@ -78,7 +78,7 @@ exports.UpgradesPage = rclass
                         {<span>{u} {misc.plural(u, info.display_unit)}</span> if u?}
                     </Col>
                     <Col sm={7}>
-                        <ProgressBar striped now={percent_used} style={marginBottom: '0px', backgroundColor:'orange'}/>
+                        <ProgressBar striped now={percent_used} style={margin: '3px 0px', border:'1px solid grey'}/>
                     </Col>
                 </Row>
             </Col>
@@ -108,7 +108,7 @@ exports.UpgradesPage = rclass
         # a project nobody has touched for a month, which has upgrades applied to it.
         @props.redux.getActions('projects').load_all_projects()
 
-        <Panel header={<h2>Upgrades from your subscriptions and course packages. <span style={{float:'right', background:'orange', color:'white', padding:'3px 5px'}}>Unallocated upgrades are shown in orange.</span></h2>}>
+        <Panel header={<h2>Upgrades from your subscriptions and course packages.</h2>}>
             <Row key='header'>
                 <Col sm={2}>
                     <strong>Quota</strong>

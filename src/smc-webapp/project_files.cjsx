@@ -248,6 +248,7 @@ FileRow = rclass
                 foreground : foreground
             if foreground
                 @props.actions.set_file_search('')
+            analytics_event('project_file_listing', 'clicked_file_row', misc.filename_extension(@full_path()))
 
     handle_download_click: (e) ->
         e.preventDefault()
@@ -889,8 +890,11 @@ ProjectFilesButtons = rclass
             <Icon name='book' /> <HiddenSM>Library</HiddenSM>
         </Button>
 
+    handle_upload_click: (e) ->
+        analytics_event('project_file_listing', 'clicked upload')
+
     render_upload_button: ->
-        <Button bsSize='small' className="upload-button">
+        <Button bsSize='small' className="upload-button" onClick={@handle_upload_click}>
             <Icon name='upload' /> <HiddenSM>Upload</HiddenSM>
         </Button>
 
