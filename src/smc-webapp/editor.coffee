@@ -1491,8 +1491,8 @@ class CodeMirrorEditor extends FileEditor
             )
         else
             @examples_dialog.show(lang)
-        analytics_event('editor_assistant', misc.get_extension(@filename), lang)
         @examples_dialog.set_handler(@example_insert_handler)
+        analytics_event('editor_assistant', @ext, lang)
 
     example_insert_handler: (insert) =>
         # insert : {lang: string, descr: string, code: string[]}

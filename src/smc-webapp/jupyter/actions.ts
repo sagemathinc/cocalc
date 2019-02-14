@@ -599,12 +599,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ md_edit_ids: md_edit_ids.add(id) });
   };
 
-  set_md_cell_not_editing = (id: any): void => {
-    const md_edit_ids = this.store.get("md_edit_ids");
+  set_md_cell_not_editing = (id: string): void => {
+    let md_edit_ids = this.store.get("md_edit_ids");
     if (!md_edit_ids.contains(id)) {
       return;
     }
-    this.setState({ md_edit_ids: md_edit_ids.delete(id) });
+    md_edit_ids = md_edit_ids.delete(id);
+    this.setState({ md_edit_ids });
   };
 
   change_cell_to_heading = (id: any, n = 1) => {
@@ -1345,18 +1346,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     const cell_list = this.get_cell_list();
     if (cell_list.get(cell_list.size - 1) === last_id) {
-      this.set_cur_id(last_id);
       const new_id = this.insert_cell(1);
-      // this is ugly, but I don't know a better way; when the codemirror editor of
-      // the current cell unmounts, it blurs, which happens after right now.
-      // So we just change the mode back to edit slightly in the future.
-      return setTimeout(() => {
-        this.set_cur_id(new_id);
-        return this.set_mode("edit");
-      }, 1);
+      this.set_cur_id(new_id);
+      this.set_mode("edit");
     } else {
       this.set_mode("escape");
-      return this.move_cursor(1);
+      this.move_cursor(1);
     }
   };
 
