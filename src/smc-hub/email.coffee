@@ -320,7 +320,7 @@ You can share your thoughts in a <strong>side chat</strong> next to each documen
     <a href="https://doc.cocalc.com/teaching-instructors.html">Sophisticated tools for teaching a class</a>.
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://github.com/sagemathinc/cocalc/wiki/Troubleshooting">Troubleshooting connectivity issues</a>
+    <a href="https://doc.cocalc.com/howto/connectivity-issues.html">Troubleshooting connectivity issues</a>
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
     <a href="https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors">Common mathematical syntax errors:</a> look into this if you are new to working with a programming language!

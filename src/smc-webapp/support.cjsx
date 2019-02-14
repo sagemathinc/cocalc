@@ -388,37 +388,35 @@ SupportInfo = rclass
                        Otherwise, please fill out this form.
                    </p>
         <div>
+            <h2 style={marginTop:'-5px'}>Frequent questions</h2>
             <ul>
                 <li>
-                    <b>Looking for documentation and help?</b> Go to
-                    the <a href="#{SmcWikiUrl}" target="_blank" rel="noopener">CoCalc documentation</a>.
+                    <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b>Looking for documentation and help?</b></a>
                 </li>
                 <li>
-                    <b>Trying to sign out?</b>  Click on Account on the top right, then click
-                    "Sign out..." in Preferences.
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Subscription does not work?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Bought a subscription but it does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">File or project seems gone?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">Files or project seem gone?</a>
-                </li>
-                <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is very slow or will not run?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is slow or will not run?</a>
                 </li>
                 <li>
                     <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Have a question about how to use Sage?</a>
+                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Questions about how to use Sage?</a>
                 </li>
                 <li>
-                    <b>Requesting that we install software?</b> Fill out the form below and
-                    include a complete example
-                    that we can easily use to verify that we properly installed the software.
+                    <b>Requesting that we install software?</b> Fill out the form below...
                 </li>
                 <li>
                     <b>Hit a bug or just need to talk with us?</b>  Fill out the form below...
+                </li>
+                <li>
+                    <b>Just trying to sign out?</b>  Click on Account on the top right, then click
+                    "Sign out..." in Preferences.
                 </li>
             </ul>
 
@@ -430,6 +428,7 @@ SupportInfo = rclass
                 you receive a confirmation email.
                 You can also check the status of your ticket under "Support"
                 in your account settings.
+                We typically respond to support requests from paying customers very quickly.
             </p>
         </div>
 
@@ -508,7 +507,6 @@ SupportForm = rclass
             <Alert bsStyle='info'>
                 Please make sure your email address is correct.
             </Alert>
-
         <form>
             <FormGroup validationState={if ee?.length > 0 then 'error'}>
                 <FormControl
@@ -521,7 +519,6 @@ SupportForm = rclass
                     onChange    = {@email_change} />
             </FormGroup>
             {email_info}
-            <Space />
             <FormGroup>
                 <FormControl
                     ref         = 'subject'
@@ -529,14 +526,13 @@ SupportForm = rclass
                     type        = 'text'
                     tabIndex    = {2}
                     label       = 'Message'
-                    placeholder = "Subject ..."
+                    placeholder = "Summarize the problem ..."
                     value       = {@props.subject}
                     onChange    = {@data_change} />
             </FormGroup>
             <div style={margin:'10px', color:'#666'}>
                 1. What did you do exactly?  2. What happened?  3. How did this differ from what you expected?
                 <br/>
-                <b><em>If your support request involves any files at all, include the link (the URL in your browser) to the file; otherwise, answering your question may take many extra hours.</em></b>
             </div>
             <FormGroup>
                 <FormControl
