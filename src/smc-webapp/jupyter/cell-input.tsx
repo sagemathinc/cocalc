@@ -100,6 +100,7 @@ export class CellInput extends Component<CellInputProps> {
         nextProps.cell.get("slide") !== this.props.cell.get("slide"))
     );
   }
+
   render_input_prompt = (type: any) => (
     <InputPrompt
       type={type}
@@ -110,6 +111,7 @@ export class CellInput extends Component<CellInputProps> {
       end={this.props.cell.get("end")}
     />
   );
+
   handle_md_double_click = () => {
     if (this.props.actions == null) {
       return;
@@ -122,6 +124,7 @@ export class CellInput extends Component<CellInputProps> {
     this.props.actions.set_cur_id(id);
     return this.props.actions.set_mode("edit");
   };
+
   options = (type?: "code" | "markdown") => {
     let opt: any;
     switch (type) {
@@ -145,6 +148,7 @@ export class CellInput extends Component<CellInputProps> {
     }
     return opt;
   };
+
   render_codemirror(type: any) {
     return (
       <CodeMirror
@@ -158,6 +162,7 @@ export class CellInput extends Component<CellInputProps> {
       />
     );
   }
+
   render_markdown_edit_button() {
     if (
       !this.props.is_current ||
@@ -172,6 +177,7 @@ export class CellInput extends Component<CellInputProps> {
       </Button>
     );
   }
+
   render_markdown() {
     let value = this.props.cell.get("input", "").trim();
     if (value === "" && this.props.actions) {
@@ -198,9 +204,11 @@ export class CellInput extends Component<CellInputProps> {
       </div>
     );
   }
+
   render_unsupported(type: any) {
     return <div>Unsupported cell type {type}</div>;
   }
+
   render_input_value(type: any) {
     switch (type) {
       case "code":
@@ -214,6 +222,7 @@ export class CellInput extends Component<CellInputProps> {
         return this.render_unsupported(type);
     }
   }
+
   render_complete() {
     if (
       this.props.complete &&
@@ -228,6 +237,7 @@ export class CellInput extends Component<CellInputProps> {
       );
     }
   }
+
   render_cell_toolbar() {
     if (this.props.cell_toolbar && this.props.actions) {
       return (
@@ -239,6 +249,7 @@ export class CellInput extends Component<CellInputProps> {
       );
     }
   }
+
   render_time() {
     if (this.props.cell.get("start") !== undefined) {
       return (
@@ -273,6 +284,7 @@ export class CellInput extends Component<CellInputProps> {
       );
     }
   }
+
   render() {
     const type = this.props.cell.get("cell_type") || "code";
     return (
