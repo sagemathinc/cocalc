@@ -100,11 +100,29 @@ class ProjectsActions extends Actions
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
+    # This may also trigger load_all_projects.
+    # async
     have_project: (project_id) =>
-        return @redux.getTable('projects')?._table?.get(project_id)?  # dangerous use of _table!
+        t = @redux.getTable('projects')?._table
+        if not t? # called before initialization... -- shouldn't ever happen
+            return false
+        if t.get_state() != 'connected'
+            console.log("t.get_state == ", t.get_state())
+            # table isn't ready to be used yet -- wait for it.
+            await once(t, 'connected')
+        # now t is ready and we can query it.
+        if t.get(project_id)?
+            # we know this project
+            return true
+        if store.get('load_all_projects_done')
+            return false
+        # be sure by first loading all projects
+        await @load_all_projects()
+        # and try again.  Because we loaded all projects, we won't hit infinite recurse.
+        return await @have_project(project_id)
 
     set_project_title: (project_id, title) =>
-        if not @have_project(project_id)
+        if not await @have_project(project_id)
             console.warn("Can't set title -- you are not a collaborator on project '#{project_id}'.")
             return
         if store.get_title(project_id) == title
@@ -118,7 +136,7 @@ class ProjectsActions extends Actions
             title : title
 
     set_project_description: (project_id, description) =>
-        if not @have_project(project_id)
+        if not await @have_project(project_id)
             console.warn("Can't set description -- you are not a collaborator on project '#{project_id}'.")
             return
         if store.get_description(project_id) == description
@@ -180,7 +198,7 @@ class ProjectsActions extends Actions
 
     # only owner can set course description.
     set_project_course_info: (project_id, course_project_id, path, pay, account_id, email_address) =>
-        if not @have_project(project_id)
+        if not await @have_project(project_id)
             msg = "Can't set description -- you are not a collaborator on project '#{project_id}'."
             console.warn(msg)
             return
