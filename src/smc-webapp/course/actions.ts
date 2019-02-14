@@ -387,39 +387,38 @@ export class CourseActions extends Actions<CourseState> {
 
   dispatch_payload = payload => {
     const store = this.get_store();
-    if (store == null) {
-      return;
-    }
+    if (store == null) return;
     if ((payload != null ? payload.course_discussion : undefined) != null) {
-      const [apath, account_id] = payload.course_discussion;
-      async.series([
-        cb => {
-          return store.wait({
-            until: store => store.get_assignments(),
-            timeout: 60,
-            cb
-          });
-        },
-        cb => {
-          return store.wait({
-            until: store => store.get_students(),
-            timeout: 60,
-            cb
-          });
-        },
-        cb => {
-          const assignment = store.get_assignment_by_path(apath);
-          const student_id = store.get_student_by_account_id(account_id);
-          this.grading({
-            assignment,
-            student_id,
-            direction: 0,
-            discussion_show: true
-          });
-          this.set_tab("assignments");
-          cb();
-        }
-      ]);
+      const [apath, account_id] = payload.course_discussion.toJS();
+      ((apath, account_id) =>
+        async.series([
+          cb => {
+            return store.wait({
+              until: store => store.get_assignments(),
+              timeout: 60,
+              cb
+            });
+          },
+          cb => {
+            return store.wait({
+              until: store => store.get_students(),
+              timeout: 60,
+              cb
+            });
+          },
+          cb => {
+            const assignment = store.get_assignment_by_path(apath);
+            const student_id = store.get_student_by_account_id(account_id);
+            this.grading({
+              assignment,
+              student_id,
+              direction: 0,
+              discussion_show: true
+            });
+            this.set_tab("assignments");
+            cb();
+          }
+        ]))(apath, account_id);
       return;
     }
   };
