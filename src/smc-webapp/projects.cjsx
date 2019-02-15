@@ -107,7 +107,6 @@ class ProjectsActions extends Actions
         if not t? # called before initialization... -- shouldn't ever happen
             return false
         if t.get_state() != 'connected'
-            console.log("t.get_state == ", t.get_state())
             # table isn't ready to be used yet -- wait for it.
             await once(t, 'connected')
         # now t is ready and we can query it.
