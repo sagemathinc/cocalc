@@ -58,7 +58,9 @@ upgrades.max_per_project = {
   network: 1,
   cpu_shares: 1024 * 3,
   mintime: 24 * 3600 * 90,
-  member_host: 1
+  member_host: 1,
+  ephemeral_state: 1,
+  ephemeral_disk: 1
 };
 
 // In the params listed below you *MUST* define all of display, display_unit,
@@ -150,6 +152,25 @@ upgrades.params = {
     input_type: "checkbox",
     desc:
       "Runs this project on a machine hosting less projects, aside from the free projects, and without random reboots."
+  },
+  ephemeral_state: {
+    display: "Ephemeral State",
+    unit: "state",
+    display_unit: "state",
+    display_factor: 1,
+    pricing_unit: "project",
+    pricing_factor: 1,
+    input_type: "checkbox",
+    desc: ""
+  },
+  ephemeral_disk: {
+    display: "Ephemeral Disk",
+    unit: "disk",
+    display_factor: 1,
+    pricing_unit: "project",
+    pricing_factor: 1,
+    input_type: "checkbox",
+    desc: ""
   }
 };
 
