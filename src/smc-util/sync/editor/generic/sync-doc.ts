@@ -1502,6 +1502,11 @@ export class SyncDoc extends EventEmitter {
       dbg("bug -- not ready");
       throw Error("bug -- cannot save if doc and last are not initialized");
     }
+    if (this.state != "ready") {
+      // There's nothing to do regarding save if the table isn't
+      // opened yet or is already closed or closing.
+      return;
+    }
     await this.patches_table.save();
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
