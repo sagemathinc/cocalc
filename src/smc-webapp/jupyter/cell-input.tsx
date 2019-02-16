@@ -1,6 +1,9 @@
 /*
 React component that describes the input of a cell
 */
+
+declare const $: any;
+
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
