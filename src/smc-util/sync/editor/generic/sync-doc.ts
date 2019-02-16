@@ -2187,7 +2187,14 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return this.hash_of_saved_version() !== this.hash_of_live_version();
+    try {
+      return this.hash_of_saved_version() !== this.hash_of_live_version();
+    } catch (err) {
+      // This could happen, e.g. when syncstring_table isn't connected
+      // in some edge case. Better to just say we don't know then crash
+      // everything. See https://github.com/sagemathinc/cocalc/issues/3577
+      return;
+    }
   }
 
   // Returns hash of last version saved to disk (as far as we know).
