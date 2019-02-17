@@ -12,15 +12,27 @@ See https://github.com/sagemathinc/cocalc/issues/2462
 {Markdown}      = require('../r_misc')
 misc            = require('smc-util/misc')
 
+excel_info = 'Microsoft Excel file -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Calc" application.'
+hdf_file = 'Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.'
+microsoft_word = 'Microsoft Word file -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Writer" application.'
+microsoft_ppt = 'Microsoft PowerPoint -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.'
+
 # ext: markdown string.
 INFO =
-    h4   : 'Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.'
-    h5   : 'Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.'
-    xlsx : 'Microsoft Excel file -- you may be able to use this file via a Python library or use it in some other way.'
+    h4   : hdf_file
+    h5   : hdf_file
+    xlsx : excel_info
+    xls  : excel_info
+    doc  : microsoft_word
+    docx : microsoft_word
+    ppt  : microsoft_ppt
+    pptx : microsoft_ppt
     raw  : 'You may be able to use this file via a Python library or use it in some other way.'
     tiff : 'You may be able to use this file via a Python image manipulation library or use it in some other way.'
     fit  : 'You may be able to use this file from Python using the [fitparse](https://github.com/dtcooper/python-fitparse) library.'
-    odt  : 'Please download this file to your computer and open it using [OpenOffice Writer](https://www.openoffice.org/product/writer.html).'
+    odt  : 'OpenDocument Text -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Writer" application.'
+    ods  : 'OpenDocument Spreadsheet -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Calc" application.'
+    odp  : 'OpenDocument Presentation -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.'
     sobj : 'You can load an sobj file into **SageMath** by typing `load("filename.sobj")`.'
     'noext-octave-workspace' : '''
                                This is a data file that contains the state of your Octave workspace.
@@ -57,5 +69,5 @@ DataGeneric = rclass
 
 require('../project_file').register_file_editor
     ext       : misc.keys(INFO)
-    icon      : 'table'
+    icon      : 'question-circle'
     component : DataGeneric
