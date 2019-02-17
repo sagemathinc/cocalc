@@ -170,9 +170,16 @@ class Image extends Component<ImageProps, ImageState> {
   };
 
   render_locally() {
-    const src = `data:${this.props.type};${this.encoding()},${
-      this.props.value
-    }`;
+    if (this.props.value == null) {
+      // should never happen
+      return <span />;
+    }
+    // The encodeURIComponent is definitely necessary these days.
+    // See https://github.com/sagemathinc/cocalc/issues/3197 and the comments at
+    // https://css-tricks.com/probably-dont-base64-svg/
+    const src = `data:${
+      this.props.type
+    };${this.encoding()},${encodeURIComponent(this.props.value)}`;
     return (
       <img src={src} width={this.props.width} height={this.props.height} />
     );
