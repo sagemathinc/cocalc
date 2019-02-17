@@ -163,16 +163,32 @@ class Image extends Component<ImageProps, ImageState> {
   encoding = () => {
     switch (this.props.type) {
       case "image/svg+xml":
-        return "utf8";
+        // below, we explicitly encode SVG images
+        // otherwise set this to "utf8" -- #3197
+        return "base64";
       default:
         return "base64";
     }
   };
 
+  img_payload = () => {
+    // already checked, just to make TS happy
+    if (this.props.value == null) return "";
+
+    // not encoded SVG images appear broken
+    // https://github.com/sagemathinc/cocalc/issues/3197
+    switch (this.props.type) {
+      case "image/svg+xml":
+        return Buffer.from(this.props.value).toString("base64");
+      default:
+        return this.props.value;
+    }
+  };
+
   render_locally() {
-    const src = `data:${this.props.type};${this.encoding()},${
-      this.props.value
-    }`;
+    const src = `data:${
+      this.props.type
+    };${this.encoding()},${this.img_payload()}`;
     return (
       <img src={src} width={this.props.width} height={this.props.height} />
     );
