@@ -489,6 +489,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_all_outputs = (): void => {
+    if (this.store == null) return;
     let not_editable = 0;
     this.store.get("cells").forEach((cell, id) => {
       if (cell.get("output") != null || cell.get("exec_count")) {
