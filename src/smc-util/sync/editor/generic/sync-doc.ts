@@ -799,7 +799,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.patch_list != null) {
-      this.patch_list.close();
+      await this.patch_list.close();
       delete this.patch_list;
     }
 
