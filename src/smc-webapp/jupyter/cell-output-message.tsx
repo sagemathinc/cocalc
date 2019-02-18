@@ -607,7 +607,7 @@ const message_component = function(message: immutable.Map<any, any>) {
 };
 
 interface CellOutputMessageProps {
-  message: immutable.Map<any, any>;
+  message?: immutable.Map<any, any>;
   project_id?: string;
   directory?: string;
   actions?: any; // optional  - not needed by most messages
@@ -617,6 +617,7 @@ interface CellOutputMessageProps {
 
 export class CellOutputMessage extends Component<CellOutputMessageProps> {
   render() {
+    if (this.props.message == null) return;
     const C: any = message_component(this.props.message);
     return (
       <C
