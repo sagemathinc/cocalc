@@ -321,7 +321,8 @@ class SmcTop(object):
             # memory in pct of cgroup limit, exclucing swap.
             # i.e. a value near or above 100% indicates excessive usage
             if not "error" in self._totals["mem"]:
-                mem_pct = 100. * mem.rss / KBMB**2 / self._totals["mem"]["mem_max"]
+                mem_pct = 100. * mem.rss / KBMB**2 / self._totals["mem"][
+                    "mem_max"]
             else:
                 mem_pct = 0.
 
@@ -485,8 +486,8 @@ class SmcTop(object):
                 sums = data["summaries"][cat]
                 sums["time"] = secs2hms(sums["time"])
                 print0(
-                    "{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
-                    .format(**sums))
+                    "{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}".
+                    format(**sums))
 
         totals = data["totals"]
         print0()

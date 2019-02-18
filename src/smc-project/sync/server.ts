@@ -8,6 +8,13 @@ TODO:
 silently swallowed in persistent mode...
 */
 
+// This is a hard upper bound on the number of browser sessions that could
+// have the same file open at once.  We put some limit on it, to at least
+// limit problems from bugs which crash projects (since each connection uses
+// memory, and it adds up).  Some customers want 100+ simultaneous users,
+// so don't set this too low (except for dev)!
+const MAX_CONNECTIONS = 150;
+
 import { reuseInFlight } from "async-await-utils/hof";
 
 import {
@@ -31,6 +38,7 @@ interface Spark {
   address: { ip: string };
   id: string;
   write: (obj: any) => boolean;
+  end: (...args) => void;
   on: (str: string, fn: Function) => void;
 }
 
@@ -53,6 +61,9 @@ interface Logger {
 
 import * as stringify from "fast-json-stable-stringify";
 const { sha1 } = require("smc-util-node/misc_node");
+
+const COCALC_EPHEMERAL_STATE: boolean =
+  process.env.COCALC_EPHEMERAL_STATE === "yes";
 
 class SyncTableChannel {
   private synctable: SyncTable;
@@ -99,6 +110,12 @@ class SyncTableChannel {
     this.logger = logger;
     this.query = query;
     this.init_options(options);
+    if (COCALC_EPHEMERAL_STATE) {
+      // No matter what, we set ephemeral true when
+      // this env var is set, since all db access
+      // will be denied anyways.
+      this.ephemeral = true;
+    }
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
@@ -187,14 +204,27 @@ class SyncTableChannel {
 
   private async new_connection(spark: Spark): Promise<void> {
     // Now handle the connection
+    const n = this.num_connections();
     this.log(
       `new connection from ${spark.address.ip} -- ${
         spark.id
-      } -- num_connections = ${this.num_connections()}`
+      } -- num_connections = ${n}`
     );
-    if (this.closed) return;
+    if (n > MAX_CONNECTIONS) {
+      const error = `Too many connections (${n} > ${MAX_CONNECTIONS})`;
+      this.log(`${error}: killing new connection from ${spark.id}`);
+      spark.end({ error });
+      return;
+    }
+    if (this.closed) {
+      this.log(`table closed: killing new connection from ${spark.id}`);
+      spark.end();
+      return;
+    }
     if (this.synctable.get_state() == "closed") {
-      throw Error("BUG -- this shouldn't happen");
+      this.log(`table state closed: killing new connection from ${spark.id}`);
+      spark.end();
+      return;
     }
     if (this.synctable.get_state() == "disconnected") {
       // Because synctable is being initialized for the first time,
@@ -224,7 +254,9 @@ class SyncTableChannel {
     });
     spark.on("end", () => {
       this.log(
-        `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${this.num_connections()}`
+        `spark event -- end connection ${spark.address.ip} -- ${
+          spark.id
+        }  -- num_connections = ${this.num_connections()}`
       );
       this.check_if_should_close();
     });
@@ -265,6 +297,9 @@ class SyncTableChannel {
 
   private num_connections(): number {
     let n = 0;
+    if (this.channel == null) {
+      return n;
+    }
     this.channel.forEach((_: Spark) => {
       n += 1;
     });

@@ -2024,7 +2024,10 @@ def python3(code=None, **kwargs):
     if python3.jupyter_kernel is None:
         python3.jupyter_kernel = jupyter("python3")
     return python3.jupyter_kernel(code, **kwargs)
+
+
 python3.jupyter_kernel = None
+
 
 def anaconda(code=None, **kwargs):
     """
@@ -2053,7 +2056,10 @@ def anaconda(code=None, **kwargs):
     if anaconda.jupyter_kernel is None:
         anaconda.jupyter_kernel = jupyter("anaconda5")
     return anaconda.jupyter_kernel(code, **kwargs)
+
+
 anaconda.jupyter_kernel = None
+
 
 def singular_kernel(code=None, **kwargs):
     """
@@ -2444,16 +2450,18 @@ def prun(code):
             title=text_control('', "<h1>Salvus Profiler</h1>"),
             sort=(
                 "First sort by",
-                selector(
-                    [('calls', 'number of calls to the function'),
-                     ('time', ' total time spent in the function'),
-                     ('cumulative',
-                      'total time spent in this and all subfunctions (from invocation till exit)'
-                      ), ('module',
-                          'name of the module that contains the function'),
-                     ('name', 'name of the function')],
-                    width="100%",
-                    default='time')),
+                selector([
+                    ('calls', 'number of calls to the function'),
+                    ('time', ' total time spent in the function'),
+                    ('cumulative',
+                     'total time spent in this and all subfunctions (from invocation till exit)'
+                     ),
+                    ('module',
+                     'name of the module that contains the function'),
+                    ('name', 'name of the function')
+                ],
+                         width="100%",
+                         default='time')),
             strip_dirs=True):
         try:
             p = pstats.Stats(filename)
@@ -3086,8 +3094,8 @@ class Exercise:
         self._number_of_attempts = 0
         attempts = []
 
-        @interact(layout=[[('question', 12)], [('attempt', 12)], [('feedback',
-                                                                   12)]])
+        @interact(layout=[[('question', 12)], [('attempt', 12)],
+                          [('feedback', 12)]])
         def f(
                 question=("<b>Question:</b>", text_control(self._question)),
                 attempt=('<b>Answer:</b>', self._answer[1])):
@@ -3213,8 +3221,8 @@ def exercise(code):
     the_times = []
 
     @interact(
-        layout=[[('go', 1), ('title', 11, '')], [('')], [('times', 12,
-                                                          "<b>Times:</b>")]],
+        layout=[[('go', 1), ('title', 11, '')], [('')],
+                [('times', 12, "<b>Times:</b>")]],
         flicker=True)
     def h(
             go=button(
@@ -3448,16 +3456,14 @@ def md2html(s):
     from markdown2 import markdown
 
     delims = [('\\(', '\\)'), ('$$', '$$'), ('\\[', '\\]'),
-              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}',
-                                                         '\\end{equation*}'),
-              ('\\begin{align}',
-               '\\end{align}'), ('\\begin{align*}',
-                                 '\\end{align*}'), ('\\begin{eqnarray}',
-                                                    '\\end{eqnarray}'),
-              ('\\begin{eqnarray*}',
-               '\\end{eqnarray*}'), ('\\begin{math}',
-                                     '\\end{math}'), ('\\begin{displaymath}',
-                                                      '\\end{displaymath}')]
+              ('\\begin{equation}', '\\end{equation}'),
+              ('\\begin{equation*}', '\\end{equation*}'),
+              ('\\begin{align}', '\\end{align}'),
+              ('\\begin{align*}', '\\end{align*}'),
+              ('\\begin{eqnarray}', '\\end{eqnarray}'),
+              ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
+              ('\\begin{math}', '\\end{math}'),
+              ('\\begin{displaymath}', '\\end{displaymath}')]
 
     tmp = [((s, None), None)]
     for d in delims:
@@ -3696,11 +3702,10 @@ def pandoc(fmt, doc=None, hide=True):
     if doc is None:
         return lambda x : html(pandoc(fmt, x), hide=hide) if x is not None else ''
     import subprocess
-    p = subprocess.Popen(
-        ['pandoc', '-f', fmt, '--mathjax'],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        stdin=subprocess.PIPE)
+    p = subprocess.Popen(['pandoc', '-f', fmt, '--mathjax'],
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         stdin=subprocess.PIPE)
     if not isinstance(doc, unicode):
         doc = unicode(doc, 'utf8')
     p.stdin.write(doc.encode('UTF-8'))

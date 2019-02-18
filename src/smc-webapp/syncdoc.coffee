@@ -397,11 +397,19 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.set_readonly_ui(@_syncstring.is_read_only())
 
     sync: (cb) =>
-        if @codemirror?  # need not be defined, right when user closes the editor instance
-            @_set_syncstring_to_codemirror()
+        if not @codemirror? or @_syncstring?.get_state() != 'ready'
+            # codemirror need not be defined or @_syncstring might be not ready to use, e.g.,
+            # right when user closes the editor instance
+            cb?()
+            return
+        @_set_syncstring_to_codemirror()
         @_syncstring.commit()
-        await @_syncstring.save()
-        cb?()
+        try
+            await @_syncstring.save()
+            cb?()
+        catch err
+            cb?(err)
+
 
     # per-session sync-aware undo
     undo: () =>
