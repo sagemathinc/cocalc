@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ReactDOM, Rendered, redux} from "./app-framework";
+import { ReactDOM, Rendered, redux } from "./app-framework";
 import { Passports } from "./passports";
 import { List } from "immutable";
 
@@ -61,8 +61,7 @@ export class SignUp extends React.Component<Props, State> {
         ReactDOM.findDOMNode(this.refs.last_name).value,
         ReactDOM.findDOMNode(this.refs.email).value,
         ReactDOM.findDOMNode(this.refs.password).value,
-        this.state.user_token,
-        ReactDOM.findDOMNode(this.refs.question).value
+        this.state.user_token
       );
   };
 
@@ -230,7 +229,6 @@ export class SignUp extends React.Component<Props, State> {
           style={{ marginTop: 20, marginBottom: 20 }}
           onSubmit={this.make_account}
         >
-          {this.render_question()}
           {this.render_first_name()}
           {this.render_last_name()}
           {this.render_email()}
