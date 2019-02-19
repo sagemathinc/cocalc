@@ -33,6 +33,7 @@ interface Options {
   options: any;
   client: Client;
   throttle_changes?: undefined | number;
+  id : string;
 }
 
 import { EventEmitter } from "events";
@@ -237,8 +238,19 @@ const cache: { [key: string]: SyncTableChannel } = {};
 // ONLY uncomment when developing!
 // (window as any).channel_cache = cache;
 
+// The id here is so that the synctables and channels are unique
+// **for a given syncdoc**.  There can be multiple syncdocs for
+// the same underlying project_id/path, e.g.,
+//    - when timetravel and a document are both open at the same time,
+//    - when a document is closing (and saving offline changes) at the
+//      same time that it is being opened; to see this disconnect from
+//      the network, make changes, clocse the file tab, then open it
+//      again, and reconnect to the network.
+// See https://github.com/sagemathinc/cocalc/issues/3595 for why this
+// opts.id below is so important.  I tried several different approaches,
+// and this is the best by far.
 function key(opts: Options): string {
-  return `${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
+  return `${opts.id}-${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
     opts.options
   )}`;
 }

@@ -131,7 +131,7 @@ export class SyncDoc extends EventEmitter {
   private string_id: string;
   private my_user_id: number;
 
-  // This id is used for equality test for existing_syncdocs
+  // This id is used for equality test and caching.
   private id: string = uuid();
 
   private client: Client;
@@ -266,23 +266,6 @@ export class SyncDoc extends EventEmitter {
   */
   private async init(): Promise<void> {
     this.assert_not_closed("init");
-
-    // There can be at most one sync-doc at a time for a given
-    // project_id/path.  See
-    // https://github.com/sagemathinc/cocalc/issues/3595
-    // Basically one is closing while another opens if you
-    // twiddle with the network while making changes and close/open
-    // the tab.
-    while (existing_syncdocs[this.string_id] != null) {
-      // Do NOT start initializing this one, until any existing ones
-      // is **completely** closed.  We write this code to handle
-      // possibly more than 2 at once, though I can think of no reason
-      // that would happen, given our client.
-      await once(existing_syncdocs[this.string_id], "tables-closed");
-    }
-    // We win -- we got the event first and get to slot ourselves
-    // in as the one to wait on.
-    existing_syncdocs[this.string_id] = this;
 
     try {
       //const t0 = new Date();
@@ -788,6 +771,10 @@ export class SyncDoc extends EventEmitter {
     this.set_state("closed");
     this.emit("close");
 
+    // must be after the emits above, so clients know
+    // what happened and can respond.
+    this.removeAllListeners();
+
     if (this.throttled_file_use != null) {
       // Cancel any pending file_use calls.
       cancel_scheduled(this.throttled_file_use);
@@ -840,19 +827,6 @@ export class SyncDoc extends EventEmitter {
     }
 
     delete this.settings;
-
-    const doc = existing_syncdocs[this.string_id];
-    if (doc != null && doc.id === this.id) {
-      delete existing_syncdocs[this.string_id];
-    }
-
-    // Inform any syncdoc stuck waiting in init, that
-    // it can now open the above tables.
-    this.emit("tables-closed");
-
-    // must be after the emits above, so clients know
-    // what happened and can respond.
-    this.removeAllListeners();
   }
 
   // TODO: We **have** to do this on the client, since the backend
@@ -917,7 +891,8 @@ export class SyncDoc extends EventEmitter {
           this.project_id,
           query,
           options,
-          throttle_changes
+          throttle_changes,
+          this.id
         );
       case "database":
         return await this.client.synctable_database(
@@ -2658,4 +2633,3 @@ export class SyncDoc extends EventEmitter {
   }
 }
 
-const existing_syncdocs: { [string_id: string]: SyncDoc } = {};
