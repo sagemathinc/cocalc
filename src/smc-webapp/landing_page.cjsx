@@ -496,7 +496,7 @@ exports.LandingPage = rclass
                 <div>
                     If you are economically disadvantaged or doing open source math software
                     development,{' '}
-                    <a href="mailto:help@sagemath.com" target="_blank">contact us</a>{' '}
+                    <a href="mailto:help@cocalc.com" target="_blank">contact us</a>{' '}
                     for special options.
                 </div>
             </Alert>

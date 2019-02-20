@@ -1585,7 +1585,7 @@ exports.site_settings_conf = {
   help_email: {
     name: "Help email",
     desc: "Email address that user is directed to use for support requests",
-    default: "help@sagemath.com"
+    default: "help@cocalc.com"
   },
   commercial: {
     name: "Commercial ('yes' or 'no')",

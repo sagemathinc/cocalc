@@ -1289,10 +1289,10 @@ class exports.Client extends EventEmitter
                     # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                     opts =
                         to           : locals.email_address
-                        bcc          : 'invites@sagemath.com'
+                        bcc          : 'invites@cocalc.com'
                         fromname     : 'CoCalc'
-                        from         : 'invites@sagemath.com'
-                        replyto      : mesg.replyto ? 'help@sagemath.com'
+                        from         : 'invites@cocalc.com'
+                        replyto      : mesg.replyto ? 'help@cocalc.com'
                         replyto_name : mesg.replyto_name
                         subject      : subject
                         category     : "invite"
@@ -1412,10 +1412,10 @@ class exports.Client extends EventEmitter
                             # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to           : email_address
-                                bcc          : 'invites@sagemath.com'
+                                bcc          : 'invites@cocalc.com'
                                 fromname     : 'CoCalc'
-                                from         : 'invites@sagemath.com'
-                                replyto      : mesg.replyto ? 'help@sagemath.com'
+                                from         : 'invites@cocalc.com'
+                                replyto      : mesg.replyto ? 'help@cocalc.com'
                                 replyto_name : mesg.replyto_name
                                 subject      : subject
                                 category     : "invite"
