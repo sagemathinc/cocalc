@@ -36,13 +36,12 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
-
 {CloseX} = require('./close-x')
 exports.CloseX = CloseX
-
 {CloseX2} = require('./close-x2')
 exports.CloseX2 = CloseX2
-
+{SimpleX} = require('./simple-x')
+exports.SimpleX = SimpleX
 {Saving} = require('./saving')
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
@@ -159,11 +158,6 @@ exports.Octicon = rclass
         if @props.mega
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
-
-exports.SimpleX = SimpleX = ({onClick}) ->
-    <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
-        <Icon name='times' />
-    </a>
 
 exports.SkinnyError = ({error_text, on_close}) ->
     <div style={color:'red'}>
