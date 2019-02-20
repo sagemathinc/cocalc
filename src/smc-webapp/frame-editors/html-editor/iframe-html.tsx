@@ -71,7 +71,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
 
   init_scroll_handler(): void {
     const node = ReactDOM.findDOMNode(this.refs.iframe);
-    if (node !== undefined) {
+    if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener(
         "scroll",
         throttle(() => this.on_scroll(), 150)
