@@ -310,7 +310,9 @@ class SyncTableChannel {
     _spark: Spark,
     mesg: any
   ): Promise<void> {
-    this.log("handle_mesg_from_browser ", (this.channel as any).channel, mesg);
+    // do not log the actual mesg, since it can be huge and make the logfile dozens of MB.
+    // Temporarily enable as needed for debugging purposes.
+    this.log("handle_mesg_from_browser ", (this.channel as any).channel); // , mesg);
     if (this.closed) {
       throw Error("received mesg from browser AFTER close");
     }
