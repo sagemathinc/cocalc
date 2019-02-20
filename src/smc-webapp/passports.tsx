@@ -9,6 +9,7 @@ interface Props {
   get_api_key?: string;
   no_heading?: boolean;
   style?: object;
+  disabled?:boolean;
 }
 
 const BASE_ICON_STYLE: React.CSSProperties = {

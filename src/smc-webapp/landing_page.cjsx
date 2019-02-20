@@ -619,7 +619,7 @@ exports.LandingPage = rclass
                 </Col>
                 <Col sm={6}>
                     <div style={color:"#333", fontSize:'12pt', marginTop:'5px'}>
-                        Create a new account here or sign in with an existing account above.
+                        Create a new account to the left or sign in with an existing account above.
                         <br/>
                         {@render_trial_info()}
                         <br/>
