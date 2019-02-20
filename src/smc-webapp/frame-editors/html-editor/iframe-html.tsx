@@ -85,7 +85,7 @@ export class IFrameHTML extends Component<PropTypes, {}> {
 
   init_click_handler(): void {
     const node = ReactDOM.findDOMNode(this.refs.iframe);
-    if (node !== undefined) {
+    if (node != null && node.contentDocument != null) {
       node.contentDocument.addEventListener("click", () => this.click_iframe());
     }
   }
