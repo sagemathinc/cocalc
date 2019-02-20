@@ -472,6 +472,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   clear_selected_outputs = () => {
     const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
     const v = this.store.get_selected_cell_ids_list();
     for (let id of v) {
       const cell = cells.get(id);
@@ -485,12 +486,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
     }
-    return this._sync();
+    this._sync();
   };
 
   clear_all_outputs = (): void => {
     let not_editable = 0;
-    this.store.get("cells").forEach((cell, id) => {
+    const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
+    cells.forEach((cell, id) => {
       if (cell.get("output") != null || cell.get("exec_count")) {
         if (!this.store.is_cell_editable(id)) {
           not_editable += 1;
@@ -522,6 +525,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   toggle_selected_outputs = (prop: any) => {
     const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
     for (let id of this.store.get_selected_cell_ids_list()) {
       var left;
       const cell = cells.get(id);
@@ -533,7 +537,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   toggle_all_outputs = (prop: any) => {
-    this.store.get("cells").forEach((cell, id) => {
+    const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
+    cells.forEach((cell, id) => {
       let left: any;
       if ((left = cell.get("cell_type")) != null ? left : "code" === "code") {
         this._set({ type: "cell", id, [prop]: !cell.get(prop) }, false);
