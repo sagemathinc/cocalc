@@ -159,11 +159,6 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-exports.SkinnyError = ({error_text, on_close}) ->
-    <div style={color:'red'}>
-         <SimpleX onClick={on_close} /> {error_text}
-    </div>
-
 error_text_style =
     marginRight : '1ex'
     whiteSpace  : 'pre-line'
