@@ -474,6 +474,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   clear_selected_outputs = () => {
     const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
     const v = this.store.get_selected_cell_ids_list();
     for (let id of v) {
       const cell = cells.get(id);
@@ -487,12 +488,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
     }
-    return this._sync();
+    this._sync();
   };
 
   clear_all_outputs = (): void => {
     let not_editable = 0;
-    this.store.get("cells").forEach((cell, id) => {
+    const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
+    cells.forEach((cell, id) => {
       if (cell.get("output") != null || cell.get("exec_count")) {
         if (!this.store.is_cell_editable(id)) {
           not_editable += 1;
@@ -524,6 +527,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   toggle_selected_outputs = (prop: any) => {
     const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
     for (let id of this.store.get_selected_cell_ids_list()) {
       var left;
       const cell = cells.get(id);
@@ -535,7 +539,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   toggle_all_outputs = (prop: any) => {
-    this.store.get("cells").forEach((cell, id) => {
+    const cells = this.store.get("cells");
+    if (cells == null) return; // nothing to do
+    cells.forEach((cell, id) => {
       let left: any;
       if ((left = cell.get("cell_type")) != null ? left : "code" === "code") {
         this._set({ type: "cell", id, [prop]: !cell.get(prop) }, false);
@@ -1510,17 +1516,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     const lines = input.split("\n");
     let v = lines.slice(0, cursor.y);
-    const line = lines[cursor.y];
-    const left = line.slice(0, cursor.x);
-    if (left) {
-      v.push(left);
+    const line: string | undefined = lines[cursor.y];
+    if (line != null) {
+      const left = line.slice(0, cursor.x);
+      if (left) {
+        v.push(left);
+      }
     }
     const top = v.join("\n");
 
     v = lines.slice(cursor.y + 1);
-    const right = line.slice(cursor.x);
-    if (right) {
-      v = [right].concat(v);
+    if (line != null) {
+      const right = line.slice(cursor.x);
+      if (right) {
+        v = [right].concat(v);
+      }
     }
     const bottom = v.join("\n");
     this.set_cell_input(new_id, top, false);
@@ -1879,46 +1889,38 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   // Meant to be used for implementing actions -- do not call externally
-  _get_cell_input = (id?: any) => {
-    let left, left1;
-    if (id == null) {
+  private _get_cell_input = (id?: string | undefined): string => {
+    if (id === undefined) {
       id = this.store.get("cur_id");
     }
-    return (left =
-      (left1 = __guardMethod__(
-        this._input_editors != null ? this._input_editors[id] : undefined,
-        "save",
-        o => o.save()
-      )) != null
-        ? left1
-        : this.store.getIn(["cells", id, "input"])) != null
-      ? left
-      : "";
+    if (id == null) return "";
+    this.call_input_editor_method(id, "save");
+    return this.store.getIn(["cells", id, "input"], "");
   };
+
+  private call_input_editor_method(id: string, name: string, ...args): void {
+    if (this._input_editors == null) return;
+    const editor = this._input_editors[id];
+    if (editor == null) return;
+    const method = editor[name];
+    if (method != null) {
+      method(...args);
+    }
+  }
 
   // Press tab key in editor of currently selected cell.
   tab_key = () => {
-    return __guardMethod__(
-      this._input_editors != null
-        ? this._input_editors[this.store.get("cur_id")]
-        : undefined,
-      "tab_key",
-      o => o.tab_key()
-    );
+    this.call_input_editor_method(this.store.get("cur_id"), "tab_key");
   };
 
-  set_cursor = (id: any, pos: any): void => {
+  set_cursor = (id: string, pos: any): void => {
     /*
         id = cell id
         pos = {x:?, y:?} coordinates in a cell
 
         use y=-1 for last line.
         */
-    __guardMethod__(
-      this._input_editors != null ? this._input_editors[id] : undefined,
-      "set_cursor",
-      o => o.set_cursor(pos)
-    );
+    this.call_input_editor_method(id, "set_cursor", pos);
   };
 
   set_kernel = (kernel: any) => {
@@ -2015,6 +2017,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           error: complete.error ? complete.error : "completion failed"
         }
       });
+      return;
+    }
+
+    if (complete.matches == 0) {
       return;
     }
 

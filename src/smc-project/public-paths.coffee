@@ -15,6 +15,9 @@ exports.monitor = (client) ->
 
 class MonitorPublicPaths
     constructor: (@_client) ->
+        if process.env.COCALC_EPHEMERAL_STATE == "yes"
+            # nothing to do -- can't do anything with public paths if can't write to db.
+            return
         @_init()
 
     dbg: (f) =>

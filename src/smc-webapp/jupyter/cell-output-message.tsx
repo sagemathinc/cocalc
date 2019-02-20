@@ -170,9 +170,16 @@ class Image extends Component<ImageProps, ImageState> {
   };
 
   render_locally() {
-    const src = `data:${this.props.type};${this.encoding()},${
-      this.props.value
-    }`;
+    if (this.props.value == null) {
+      // should never happen
+      return <span />;
+    }
+    // The encodeURIComponent is definitely necessary these days.
+    // See https://github.com/sagemathinc/cocalc/issues/3197 and the comments at
+    // https://css-tricks.com/probably-dont-base64-svg/
+    const src = `data:${
+      this.props.type
+    };${this.encoding()},${encodeURIComponent(this.props.value)}`;
     return (
       <img src={src} width={this.props.width} height={this.props.height} />
     );
@@ -680,11 +687,12 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
       asc ? n++ : n--
     ) {
       const mesg = this.props.output.get(`${n}`);
-      // Make this renderer robust against any possible weird shap of the actual
+      // Make this renderer robust against any possible weird shape of the actual
       // output object, e.g., undefined or not immmutable js.
       // Also, we're checking that get is defined --
       //   see https://github.com/sagemathinc/cocalc/issues/2404
-      if ((mesg != null ? mesg.get : undefined) == null) {
+      if (mesg == null || typeof mesg.get != 'function') {
+        console.warn(`Jupyter -- ignoring invalid mesg ${mesg}`);
         continue;
       }
       const name = mesg.get("name");

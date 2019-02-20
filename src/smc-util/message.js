@@ -1556,8 +1556,8 @@ Email sent by the previous example:
 
 \`\`\`
 To: someone@m.local
-From: CoCalc <invites@sagemath.com
-Reply-To: help@sagemath.com
+From: CoCalc <invites@cocalc.com
+Reply-To: help@cocalc.com
 Subject: CoCalc Invitation
 
 Please sign up and join this project.<br/><br/>\\n<b>

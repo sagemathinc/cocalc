@@ -16,7 +16,7 @@ const STYLE: React.CSSProperties = {
 
 interface UncommittedChangesProps {
   has_uncommitted_changes?: boolean;
-  delay_ms?: number; // assumed not to change, default 5000
+  delay_ms: number; // assumed not to change, default 5000
 }
 
 interface UncommittedChangesState {
@@ -54,7 +54,7 @@ export class UncommittedChanges extends Component<
       this._last_change = new Date();
     }
     if (new_props.has_uncommitted_changes) {
-      setTimeout(this._check, this.props.delay_ms! + 10);
+      setTimeout(this._check, this.props.delay_ms + 10);
     }
   }
   componentWillUnmount() {
@@ -63,7 +63,7 @@ export class UncommittedChanges extends Component<
   componentDidMount() {
     this._mounted = true;
     this._last_change = new Date(); // from truly undefined to known
-    setTimeout(this._check, this.props.delay_ms! + 10);
+    setTimeout(this._check, this.props.delay_ms + 10);
   }
   render() {
     if (!this.props.has_uncommitted_changes) {

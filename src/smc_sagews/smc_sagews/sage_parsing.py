@@ -304,9 +304,8 @@ def divide_into_blocks(code):
             merge()
 
         # function definitions
-        elif (s.startswith('def')
-              or s.startswith('@')) and blocks[i - 1][-1].splitlines(
-              )[-1].lstrip().startswith('@'):
+        elif (s.startswith('def') or s.startswith('@')) and blocks[
+                i - 1][-1].splitlines()[-1].lstrip().startswith('@'):
             merge()
 
         # lines starting with else conditions (if *and* for *and* while!)
@@ -428,15 +427,15 @@ def introspect(code, namespace, preparse=True):
         else:
             # Now for all of the other harder cases.
             i = max([expr.rfind(s) for s in '?('])
-            if i >= 1 and i == len(
-                    expr
-            ) - 1 and expr[i - 1] == '?':  # expr ends in two ?? -- source code
+            if i >= 1 and i == len(expr) - 1 and expr[
+                    i - 1] == '?':  # expr ends in two ?? -- source code
                 get_source = True
                 get_completions = False
                 get_help = False
                 target = ""
                 obj = expr[:i - 1]
-            elif i == len(expr) - 1:  # ends in ( or ? (but not ??) -- docstring
+            elif i == len(
+                    expr) - 1:  # ends in ( or ? (but not ??) -- docstring
                 get_help = True
                 get_completions = False
                 get_source = False
@@ -540,8 +539,8 @@ def introspect(code, namespace, preparse=True):
                     obj = guess_last_expression(obj)
                     try:
                         O = eval(
-                            obj
-                            if not preparse else preparse_code(obj), namespace)
+                            obj if not preparse else preparse_code(obj),
+                            namespace)
                     except:
                         pass
             finally:

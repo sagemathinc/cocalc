@@ -160,7 +160,7 @@ class Project
         sqlite_db.select
             table   : 'projects'
             columns : ['state', 'state_time', 'state_error', 'mintime',
-                       'network', 'cores', 'memory', 'cpu_shares']
+                       'network', 'cores', 'memory', 'cpu_shares', 'ephemeral_disk', 'ephemeral_state']
             where   : {project_id : @project_id}
             cb      : (err, results) =>
                 if err
@@ -181,6 +181,9 @@ class Project
                     @_cores      = results[0].cores
                     @_memory     = results[0].memory
                     @_cpu_shares = results[0].cpu_shares
+                    @_ephemeral_disk = results[0].ephemeral_disk
+                    @_ephemeral_state = results[0].ephemeral_state
+
                     dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, state_error=#{@_state_error}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
                         dbg("updating non-stable state")
@@ -234,6 +237,22 @@ class Project
             cb          : undefined
         dbg = @dbg("_command(action:'#{opts.action}')")
 
+        if opts.action == 'ephemeral_state' or opts.action == 'ephemeral_disk'
+            # no-op -- nothing needs to be done for these, except record
+            # this property in our sqlite table, so it gets used.
+            value = !!opts.args?[0]
+            @["_" + opts.action] = value
+            sqlite_db.update
+                table : 'projects'
+                set   :
+                    "#{opts.action}" : value
+                where :
+                    project_id : @project_id
+                cb    : (err) =>
+                    opts.cb?(err, {})
+            return
+
+
         if opts.at_most_one
             if @_command_cbs[opts.action]?
                 @_command_cbs[opts.action].push(opts.cb)
@@ -245,6 +264,13 @@ class Project
         args = [opts.action]
         if opts.args?
             args = args.concat(opts.args)
+
+        if opts.action == 'start' or opts.action == 'stop' or opts.action == 'restart'
+            if @_ephemeral_state
+                args.push('--ephemeral_state')
+            if @_ephemeral_disk
+                args.push('--ephemeral_disk')
+
         args.push(@project_id)
         dbg("args=#{misc.to_safe_str(args)}")
         smc_compute
@@ -792,12 +818,13 @@ init_sqlite_db = (cb) ->
                 #    state -- opened, closed, etc.
                 #    state_time -- when switched to current state
                 #    assigned -- when project was first opened on this node.
+                #    etc.
                 f = (query, cb) ->
                     sqlite_db.sql
                         query : query
                         cb    : cb
                 async.map([
-                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN, cores INTEGER, memory INTEGER, cpu_shares INTEGER)',
+                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN, cores INTEGER, memory INTEGER, cpu_shares INTEGER, ephemeral_state BOOLEAN, ephemeral_disk BOOLEAN)',
                     'CREATE TABLE keyvalue(key TEXT PRIMARY KEY, value TEXT)'
                     ], f, cb)
     ], cb)
@@ -998,6 +1025,10 @@ firewall = (opts) ->
         command : required
         args    : []
         cb      : required
+    if DEV
+        # no-op in dev mode.
+        opts.cb()
+        return
     if opts.command == 'outgoing' and NO_OUTGOING_FIREWALL
         opts.cb()
         return
@@ -1168,6 +1199,13 @@ start_fake_server = (cb) ->
     # change global CONF path for local dev purposes
     DEV = true
     SQLITE_FILE = require('path').join(process.env.SALVUS_ROOT, 'data', 'compute.sqlite3')
+    # For the fake dev server, we always reset the database on startup, since
+    # we always kill all projects on startup.
+    try
+        fs.unlinkSync(SQLITE_FILE)
+    catch err
+        winston.debug("unlink sqlite file ", err)
+        # no-op
     async.series [init_sqlite_db, init_mintime], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
