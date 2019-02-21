@@ -22,10 +22,9 @@ The history of this code is:
    - dynamic scaling
    - multiple users
 
-## License: GPLv2+
+## License: MPL
 
-- Xpra is a GPLv2+ program, so the original html5 xpra client is only available under the GPLv2+ license.
+- The original HTML5 client is licensed under the Mozilla Public License.  This license applies to the code in this directory only, as it is a derived work. The MPL is NOT viral, in that it does not apply to any code outside this directory.
 
-- Anders Evenenrud's [xpra client](https://github.com/andersevenrud/xpra-html5-client) is clearly derived from the official xpra html5 client, though the code is all rewritten in a different style, it's still pretty much copy/paste/reformat. It's clearly a derived work. That original client is GPL'd. Thus Ander's https://github.com/andersevenrud/xpra-html5-client legally has to be GPLv2+ licensed. However, he declared it MIT licensed, which is a GPL violation (you cannot just relicese GPL code as MIT). For our purposes, we'll just consider it to also be GPLv2+, though of course I _wish_ it were MIT licensed. This is not a problem for CoCalc, since CoCalc is AGPLv3+. It will be a problem for [OS.js](https://www.os-js.org/) if they care, since that program is 2-clause BSD licensed.
+- Anders Evenenrud's [xpra client](https://github.com/andersevenrud/xpra-html5-client) is derived from the official xpra html5 client, though the code is all rewritten in a different style, it's still pretty much copy/paste/reformat.  So it must be MPL licensed. He recently updated the license properly.
 
-- Implication: any version of cocalc that includes this smc-webapp/frame-editors/x11-editor/xpra directory, MUST be released under GPLv2+ or compatible license. This will matter if we ever need to relicense cocalc for some company. If that happens, we'll have to delete the x11-editor code from the different-licensed version. That would be easy.
