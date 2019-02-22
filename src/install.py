@@ -96,7 +96,7 @@ def install_webapp(*args):
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
         # clean up all package-lock files in cocalc's codebase (before running npm install again)
-        cmd("git ls-files '*/package-lock.json' | xargs rm -f")
+        cmd("git ls-files '../*/package-lock.json' | xargs rm -f")
         for path in [
                 '.', 'smc-util', 'smc-util-node', 'smc-webapp',
                 'smc-webapp/jupyter'
