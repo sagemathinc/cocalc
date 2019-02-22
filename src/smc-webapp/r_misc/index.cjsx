@@ -159,48 +159,6 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-error_text_style =
-    marginRight : '1ex'
-    whiteSpace  : 'pre-line'
-    maxWidth    : '80ex'
-
-exports.ErrorDisplay = ErrorDisplay = rclass
-    displayName : 'Misc-ErrorDisplay'
-
-    propTypes :
-        error           : rtypes.oneOfType([rtypes.string,rtypes.object])
-        error_component : rtypes.any
-        title           : rtypes.string
-        style           : rtypes.object
-        bsStyle         : rtypes.string
-        onClose         : rtypes.func       # TODO: change to on_close everywhere...?
-
-    render_close_button: ->
-        <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
-
-    render_title: ->
-        <h4>{@props.title}</h4>
-
-    render: ->
-        if @props.style?
-            style = misc.copy(error_text_style)
-            misc.merge(style, @props.style)
-        else
-            style = error_text_style
-        if @props.error?
-            if typeof(@props.error) == 'string'
-                error = @props.error
-            else
-                error = misc.to_json(@props.error)
-        else
-            error = @props.error_component
-        bsStyle = @props.bsStyle ? 'danger'
-        <Alert bsStyle={bsStyle} style={style}>
-            {@render_close_button() if @props.onClose?}
-            {@render_title() if @props.title}
-            {error}
-        </Alert>
-
 exports.Spinner = rclass
     render : ->
         <Icon name='spinner' spin={true} />
