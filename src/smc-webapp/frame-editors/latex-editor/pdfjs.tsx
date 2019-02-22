@@ -202,10 +202,15 @@ class PDFJS extends Component<PDFJSProps, PDFJSState> {
       });
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
+      console.log(`WARNING: error loading PDF -- ${err}`);
       if (this.mounted && err.toString().indexOf("Missing") != -1) {
         this.setState({ missing: true });
+        await delay(3000);
+        if (this.mounted && this.state.missing) {
+          // try again
+          this.props.actions.update_pdf(new Date().valueOf(), true);
+        }
       }
-      console.log(`WARNING: error loading PDF -- ${err}`);
       //this.props.actions.set_error();
     }
   }
