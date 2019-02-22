@@ -3331,6 +3331,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.focus(true);
     this.hide_select_kernel();
   };
+
+  kernel_dont_ask_again = (dont_ask: boolean): void => {
+    console.log("dont_ask_again_click", dont_ask);
+    // why is "as any" necessary?
+    const account_table = this.redux.getTable("account") as any;
+    account_table.set({
+      editor_settings: { dont_ask_jupyter_kernel: dont_ask }
+    });
+  };
 }
 
 function __guard__(value: any, transform: any) {
@@ -3338,7 +3347,7 @@ function __guard__(value: any, transform: any) {
     ? transform(value)
     : undefined;
 }
-function __range__(left: any, right: any, inclusive: any) {
+function __range__(left: number, right: number, inclusive: boolean) {
   let range: any[] = [];
   let ascending = left < right;
   let end = !inclusive ? right : ascending ? right + 1 : right - 1;
@@ -3347,6 +3356,7 @@ function __range__(left: any, right: any, inclusive: any) {
   }
   return range;
 }
+
 function __guardMethod__(obj: any, methodName: any, transform: any) {
   if (
     typeof obj !== "undefined" &&

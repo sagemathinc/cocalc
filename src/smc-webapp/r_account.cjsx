@@ -856,6 +856,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
     build_on_save             : 'build LaTex file whenever it is saved to disk'
     show_exec_warning         : 'warn that certain files are not directly executable'
+    dont_ask_jupyter_kernel   : 'automatically select the last chosen Jupyter Kernel for new Notebooks'
     jupyter_classic           : <span>use classical Jupyter notebook <a href={JUPYTER_CLASSIC_MODERN} target='_blank'>(DANGER: this can cause trouble...)</a></span>
 
 EditorSettingsCheckboxes = rclass

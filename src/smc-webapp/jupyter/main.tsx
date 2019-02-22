@@ -74,7 +74,7 @@ interface JupyterEditorProps {
   insert_image?: boolean; // show insert image dialog
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
-  editor_settings?: immutable.Map<any, any>;
+  editor_settings: immutable.Map<any, any>;
   raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
@@ -127,7 +127,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         insert_image: rtypes.bool, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
-        editor_settings: rtypes.immutable.Map,
         raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
@@ -140,7 +139,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         default_kernel: rtypes.string,
         closestKernel: rtypes.immutable.Map
       },
-      customize: { site_name: rtypes.string }
+      customize: { site_name: rtypes.string },
+      account: { editor_settings: rtypes.immutable.Map }
     };
   }
 
@@ -355,6 +355,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_select_kernel() {
+    const do_not_ask_again = this.props.editor_settings.get(
+      "dont_ask_jupyter_kernel"
+    );
     return (
       <KernelSelector
         actions={this.props.actions}
@@ -366,6 +369,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         default_kernel={this.props.default_kernel}
         closestKernel={this.props.closestKernel}
         site_name={this.props.site_name}
+        do_not_ask_again={do_not_ask_again == null ? false : do_not_ask_again}
       />
     );
   }

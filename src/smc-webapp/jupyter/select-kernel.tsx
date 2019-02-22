@@ -9,14 +9,13 @@ import {
   OrderedMap /*, List as ImmutableList*/
 } from "immutable";
 import * as misc from "smc-util/misc";
-const { Icon, /* Markdown, /*Space,*/ Loading } = require("../r_misc"); // TODO: import types
+const { Icon, Loading } = require("../r_misc"); // TODO: import types
 const {
   Button,
   Col,
   Row,
   ButtonGroup,
-  /* MenuItem,
-  DropdownButton, */
+  Checkbox,
   Alert
 } = require("react-bootstrap"); // TODO: import types
 import { Kernel } from "./util";
@@ -39,6 +38,7 @@ interface KernelSelectorProps {
   kernel?: string;
   kernel_info?: any;
   default_kernel?: string;
+  do_not_ask_again?: boolean;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
   kernels_by_language?: OrderedMap<string, List<string>>;
@@ -55,25 +55,6 @@ export class KernelSelector extends Component<
     super(props, context);
     this.state = {};
   }
-
-  // render_select_button() {
-  //   const disabled = this.state.selected_kernel == null;
-  //   const msg = disabled
-  //     ? "Select a kernel"
-  //     : `Use ${this.kernel_name(this.state.selected_kernel!)}`;
-  //   return (
-  //     <Button
-  //       key={"select"}
-  //       bsStyle={disabled ? "default" : "primary"}
-  //       disabled={disabled}
-  //       onClick={() =>
-  //         this.props.actions.select_kernel(this.state.selected_kernel)
-  //       }
-  //     >
-  //       {msg}
-  //     </Button>
-  //   );
-  // }
 
   // the idea here is to not set the kernel, but still render the notebook.
   // looks like that's not easy, and well, probably incompatible with classical jupyter.
@@ -140,6 +121,7 @@ export class KernelSelector extends Component<
         key={`kernel-${lang}-${name}`}
         onClick={() => this.props.actions.select_kernel(name)}
         bsSize={size}
+        style={{ marginBottom: "5px" }}
       >
         {icon} {this.kernel_name(name)}
       </Button>
@@ -243,8 +225,31 @@ export class KernelSelector extends Component<
       <Row style={row_style}>
         <h4>Quick selection</h4>
         <div>
-          Your most recently selected kernel is{" "}
+          The most recently selected kernel is{" "}
           {this.render_kernel_button(this.props.default_kernel)}.
+        </div>
+      </Row>
+    );
+  }
+
+  dont_ask_again_click(checked:boolean) {
+    this.props.actions.kernel_dont_ask_again(checked);
+  }
+
+  render_dont_ask_again() {
+    return (
+      <Row style={row_style}>
+        <div>
+          <Checkbox
+            checked={this.props.do_not_ask_again}
+            onChange={e => this.dont_ask_again_click(e.target.checked)}
+          >
+            Do not ask again
+          </Checkbox>
+          <span style={{ color: COLORS.GRAY }}>
+            Check this box to always use your most recent selection. You can
+            change your kernel any time later, too.
+          </span>
         </div>
       </Row>
     );
@@ -338,6 +343,7 @@ export class KernelSelector extends Component<
           {this.render_top()}
           {this.render_unknown()}
           {this.render_last()}
+          {this.render_dont_ask_again()}
           {this.render_suggested()}
           {this.render_all()}
           <hr />
