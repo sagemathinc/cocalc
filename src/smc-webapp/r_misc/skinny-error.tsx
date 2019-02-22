@@ -3,11 +3,13 @@ import { SimpleX } from "./simple-x";
 
 interface Props {
   error_text: string;
-  on_close: (e: React.SyntheticEvent) => void;
+  on_close: () => void;
 }
 
-export function skinnyError({ error_text, on_close }: Props) {
-  <div style={{ color: "red" }}>
-    <SimpleX onClick={on_close} /> {error_text}
-  </div>;
+export function SkinnyError({ error_text, on_close }: Props) {
+  return (
+    <div style={{ color: "red" }}>
+      <SimpleX onClick={on_close} /> {error_text}
+    </div>
+  );
 }
