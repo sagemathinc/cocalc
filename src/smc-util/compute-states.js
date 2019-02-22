@@ -123,7 +123,9 @@ exports.COMPUTE_STATES = {
       "disk_quota",
       "compute_quota",
       "status",
-      "migrate_live"
+      "migrate_live",
+      "ephemeral_state",
+      "ephemeral_disk"
     ]
   },
 

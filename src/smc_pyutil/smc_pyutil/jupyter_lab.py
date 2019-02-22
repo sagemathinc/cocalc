@@ -39,7 +39,8 @@ def server_setup():
     DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
     if len(sys.argv) == 1:
-        print "Usage: %s [start/stop/status] normal Jupyter lab options..." % sys.argv[0]
+        print "Usage: %s [start/stop/status] normal Jupyter lab options..." % sys.argv[
+            0]
         print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
         sys.exit(1)
 
@@ -186,7 +187,7 @@ def action(mode):
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'jupyter-lab' |grep port={port}".format(
-                port=port)   # port is to disambiguate for cc-in-cc dev use...
+                port=port)  # port is to disambiguate for cc-in-cc dev use...
             for s in os.popen(c).read().splitlines():
                 v = s.split()
                 if len(v) < 2 or not v[1].split('/')[-1].startswith('python'):

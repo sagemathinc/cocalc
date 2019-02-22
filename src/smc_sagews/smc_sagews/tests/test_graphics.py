@@ -11,18 +11,25 @@ import pytest
 # TODO(hal) refactor this later
 SHA_LEN = 36
 
+
 class TestTachyon:
     def test_t_show0(self, exec2):
         code = dedent(r"""t = Tachyon(xres=400,yres=400, camera_center=(2,0,0))
         t.light((4,3,2), 0.2, (1,1,1))
         t.sphere((0,0,0), 0.5, 't0')""")
-        exec2(code,[])
+        exec2(code, [])
+
     def test_t_show1(self, execblob):
-        execblob("t.show()", want_html = False, file_type='png', ignore_stdout = True)
+        execblob(
+            "t.show()", want_html=False, file_type='png', ignore_stdout=True)
+
     def test_show_t(self, execblob):
-        execblob("show(t)", want_html = False, file_type='png', ignore_stdout = True)
+        execblob(
+            "show(t)", want_html=False, file_type='png', ignore_stdout=True)
+
     def test_t(self, execblob):
-        execblob("t", want_html = False, file_type='png', ignore_stdout = True)
+        execblob("t", want_html=False, file_type='png', ignore_stdout=True)
+
 
 class TestThreeJS:
     # https://github.com/sagemathinc/cocalc/issues/2450
@@ -37,28 +44,40 @@ class TestThreeJS:
         p = surface.plot(aspect_ratio=1, color='yellow')
         show(p, viewer='threejs', online=True)
         """
-        execblob(dedent(code), want_html=False, ignore_stdout=True, file_type='sage3d')
+        execblob(
+            dedent(code),
+            want_html=False,
+            ignore_stdout=True,
+            file_type='sage3d')
+
 
 class TestGraphics:
     def test_plot(self, execblob):
-        execblob("plot(cos(x),x,0,pi)", want_html = False, file_type = 'svg')
+        execblob("plot(cos(x),x,0,pi)", want_html=False, file_type='svg')
+
 
 class TestOctavePlot:
-    def test_octave_plot(self,execblob):
+    def test_octave_plot(self, execblob):
         # assume octave kernel not running at start of test
-        execblob("%octave\nx = -10:0.1:10;plot (x, sin (x));", file_type = 'png', ignore_stdout = True)
+        execblob(
+            "%octave\nx = -10:0.1:10;plot (x, sin (x));",
+            file_type='png',
+            ignore_stdout=True)
+
 
 class TestRPlot:
-    def test_r_smallplot(self,execblob):
-        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'svg')
-    def test_r_bigplot(self,execblob):
+    def test_r_smallplot(self, execblob):
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type='svg')
+
+    def test_r_bigplot(self, execblob):
         "lots of points, do not overrun blob size limit"
         code = """%r
 N <- 100000
 xx <- rnorm(N, 5) + 3
 yy <- rnorm(N, 3) - 1
 plot(xx, yy, cex=.1)"""
-        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type = 'svg')
+        execblob("%r\nwith(mtcars,plot(wt,mpg))", file_type='svg')
+
 
 class TestShowGraphs:
     def test_issue594(self, test_id, sagews):
@@ -71,7 +90,7 @@ for i in range(2):
     print ("BEFORE PLOT %s"%i)
     G.show()
     print ("AFTER PLOT %s"%i)"""
-        m = conftest.message.execute_code(code = code, id = test_id)
+        m = conftest.message.execute_code(code=code, id=test_id)
         sagews.send_json(m)
         # expect 12 messages from worksheet client, including final done:true
         json_wanted = 6
@@ -110,9 +129,7 @@ for i in range(2):
                 blob_wanted -= 1
                 file_uuid = mesg[:SHA_LEN].decode()
                 assert file_uuid == conftest.uuidsha1(mesg[SHA_LEN:])
-                m = conftest.message.save_blob(sha1 = file_uuid)
+                m = conftest.message.save_blob(sha1=file_uuid)
                 sagews.send_json(m)
                 continue
         conftest.recv_til_done(sagews, test_id)
-
-

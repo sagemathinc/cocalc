@@ -26,6 +26,8 @@ Connection to a Project (="local hub", for historical reasons only.)
 ###
 
 async   = require('async')
+{callback2} = require('smc-util/async-utils')
+
 uuid    = require('node-uuid')
 winston = require('winston')
 underscore = require('underscore')
@@ -204,6 +206,10 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @dbg("free_resources")
         @query_cancel_all_changefeeds()
         @delete_heartbeat()
+        delete @_ephemeral
+        if @_ephemeral_timeout
+            clearTimeout(@_ephemeral_timeout)
+            delete @_ephemeral_timeout
         delete @address  # so we don't continue trying to use old address
         delete @_status
         delete @smc_version  # so when client next connects we ignore version checks until they tell us their version
@@ -234,6 +240,24 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     # do nothing
             delete @_sockets_by_client_id[client_id]
 
+    # async
+    init_ephemeral: () =>
+        settings = await callback2(@database.get_project_settings, {project_id:@project_id})
+        @_ephemeral = misc.copy_with(settings, ['ephemeral_disk', 'ephemeral_state'])
+        @dbg("init_ephemeral -- #{JSON.stringify(@_ephemeral)}")
+        # cache for 60s
+        @_ephemeral_timeout = setTimeout((() => delete @_ephemeral), 60000)
+
+    ephemeral_disk: () =>
+        if not @_ephemeral?
+            await @init_ephemeral()
+        return @_ephemeral.ephemeral_disk
+
+    ephemeral_state: () =>
+        if not @_ephemeral?
+            await @init_ephemeral()
+        return @_ephemeral.ephemeral_state
+
     #
     # Project query support code
     #
@@ -244,6 +268,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         if not query?
             write_mesg(message.error(error:"query must be defined"))
             return
+        if await @ephemeral_state()
+            @dbg("project has ephemeral state")
+            write_mesg(message.error(error:"FATAL -- project has ephemeral state so no database queries are aloud"))
+            return
+        @dbg("project does NOT have ephemeral state")
         first = true
         if mesg.changes
             @_query_changefeeds ?= {}

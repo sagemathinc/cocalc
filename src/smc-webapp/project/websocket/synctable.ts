@@ -2,11 +2,18 @@
 Synctable that uses the project websocket rather than the database.
 */
 
+import { delay } from "awaiting";
+
 import { reuseInFlight } from "async-await-utils/hof";
 
 import { synctable_no_database, SyncTable } from "smc-util/sync/table";
 
 import { once, retry_until_success } from "smc-util/async-utils";
+
+// Always wait at least this long between connect attempts.  This
+// avoids flooding the project with connection requests if, e.g., the
+// client limit for a particular file is reached.
+const MIN_CONNECT_WAIT_MS = 5000;
 
 interface Client {
   touch_project: ({
@@ -26,6 +33,7 @@ interface Options {
   options: any;
   client: Client;
   throttle_changes?: undefined | number;
+  id : string;
 }
 
 import { EventEmitter } from "events";
@@ -39,6 +47,8 @@ class SyncTableChannel extends EventEmitter {
   private query: any;
   private options: any;
   private key: string;
+
+  private last_connect: number = 0;
 
   private connected: boolean = false;
 
@@ -77,12 +87,22 @@ class SyncTableChannel extends EventEmitter {
   private async connect(): Promise<void> {
     if (this.synctable == null) return;
     this.set_connected(false);
+
+    const time_since_last_connect = new Date().valueOf() - this.last_connect;
+    if (time_since_last_connect < MIN_CONNECT_WAIT_MS) {
+      // Last attempt to connect was very recent, so we wait a little before
+      // trying again.
+      await delay(MIN_CONNECT_WAIT_MS - time_since_last_connect);
+    }
+
     await retry_until_success({
       max_delay: 5000,
       f: this.attempt_to_connect.bind(this),
       desc: "webapp-synctable-connect",
       log: this.log
     });
+
+    this.last_connect = new Date().valueOf();
   }
 
   private set_connected(connected: boolean): void {
@@ -173,6 +193,14 @@ class SyncTableChannel extends EventEmitter {
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
+    if (mesg.error != null) {
+      const message = `Error opening file -- ${
+        mesg.error
+      } -- wait, restart your project or refresh your browser`;
+      // NOTE: right now module level import of this breaks things.
+      const { alert_message } = require("../../alerts");
+      alert_message({ type: "info", message, timeout: 10 });
+    }
     if (mesg.init != null) {
       this.log("project --> client: init_browser_client");
       this.synctable.init_browser_client(mesg.init);
@@ -210,14 +238,26 @@ const cache: { [key: string]: SyncTableChannel } = {};
 // ONLY uncomment when developing!
 // (window as any).channel_cache = cache;
 
+// The id here is so that the synctables and channels are unique
+// **for a given syncdoc**.  There can be multiple syncdocs for
+// the same underlying project_id/path, e.g.,
+//    - when timetravel and a document are both open at the same time,
+//    - when a document is closing (and saving offline changes) at the
+//      same time that it is being opened; to see this disconnect from
+//      the network, make changes, clocse the file tab, then open it
+//      again, and reconnect to the network.
+// See https://github.com/sagemathinc/cocalc/issues/3595 for why this
+// opts.id below is so important.  I tried several different approaches,
+// and this is the best by far.
 function key(opts: Options): string {
-  return `${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
+  return `${opts.id}-${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
     opts.options
   )}`;
 }
 
 export async function synctable_project(opts: Options): Promise<SyncTable> {
   const k = key(opts);
+  // console.log("key = ", k);
   let t;
   if (cache[k] !== undefined) {
     t = cache[k];

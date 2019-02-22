@@ -412,16 +412,14 @@ def sanitize_math_input(s):
     from markdown2Mathjax import sanitizeInput
     # it's critical that $$ be first!
     delims = [('$$', '$$'), ('\\(', '\\)'), ('\\[', '\\]'),
-              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}',
-                                                         '\\end{equation*}'),
-              ('\\begin{align}',
-               '\\end{align}'), ('\\begin{align*}',
-                                 '\\end{align*}'), ('\\begin{eqnarray}',
-                                                    '\\end{eqnarray}'),
-              ('\\begin{eqnarray*}',
-               '\\end{eqnarray*}'), ('\\begin{math}',
-                                     '\\end{math}'), ('\\begin{displaymath}',
-                                                      '\\end{displaymath}')]
+              ('\\begin{equation}', '\\end{equation}'),
+              ('\\begin{equation*}', '\\end{equation*}'),
+              ('\\begin{align}', '\\end{align}'),
+              ('\\begin{align*}', '\\end{align*}'),
+              ('\\begin{eqnarray}', '\\end{eqnarray}'),
+              ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
+              ('\\begin{math}', '\\end{math}'),
+              ('\\begin{displaymath}', '\\end{displaymath}')]
 
     tmp = [((s, None), None)]
     for d in delims:
@@ -552,7 +550,8 @@ class Cell(object):
                     x['stderr']) + "\\end{verbatim}}"
             if 'code' in x:
                 # TODO: for now ignoring that not all code is Python...
-                s += "\\begin{lstlisting}" + x['code']['source'] + "\\end{lstlisting}"
+                s += "\\begin{lstlisting}" + x['code'][
+                    'source'] + "\\end{lstlisting}"
             if 'html' in x:
                 s += html2tex(x['html'], self._commands)
             if 'md' in x:
