@@ -218,7 +218,12 @@ exports.mathjax_finish_startup = ->
 
 mathjax_typeset = (el) ->
     # no MathJax.Hub, since there is no MathJax defined!
-    mathjax_enqueue(["Typeset", el])
+    try
+        mathjax_enqueue(["Typeset", el])
+    catch err
+        # This exception *does* happen sometimes -- see
+        #     https://github.com/sagemathinc/cocalc/issues/3620
+        # This is probably a bug in Mathjax, but whatever.
 
 $.fn.extend
     mathjax: (opts={}) ->
