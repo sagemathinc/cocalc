@@ -23,7 +23,7 @@ const MAX_CONNECTIONS = 150;
 // some potentially malicious conduct, and also possible new clients with bugs.
 // It is VERY important that this not be too small, since there is often
 // a delay/timeout before a channel is properly closed.
-const MAX_CONNECTIONS_FROM_ONE_CLIENT = 20;
+const MAX_CONNECTIONS_FROM_ONE_CLIENT = 50;
 
 import {
   synctable_no_changefeed,
@@ -244,7 +244,7 @@ class SyncTableChannel {
     );
 
     if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
-      const error = `Too many connections (${m} > ${MAX_CONNECTIONS_FROM_ONE_CLIENT}) from this client.`;
+      const error = `Too many connections (${m} > ${MAX_CONNECTIONS_FROM_ONE_CLIENT}) from this client.  You might need to refresh your browser.`;
       this.log(
         `${error}  Waiting 5s, then killing new connection from ${spark.id}...`
       );
