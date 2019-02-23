@@ -543,13 +543,8 @@ module.exports =
     module:
         rules: [
             { test: /pnotify.*\.js$/, use: "imports-loader?define=>false,global=>window" },
-            {
-                test: /\.(coffee|cjsx)$/
-                use: [
-                    { loader: 'babel-loader' },
-                    { loader: 'coffee-loader' }
-                ]
-            },
+            { test: /\.coffee$/, loader: 'coffee-loader' },
+            { test: /\.cjsx$/, loader: ['coffee-loader', 'cjsx-loader'] },
             { test: [/node_modules\/prom-client\/.*\.js$/], loader: 'babel-loader' },
             { test: [/latex-editor\/.*\.jsx?$/], loader: 'babel-loader' },
             # Note: ts-loader is not a very good webpack citizen https://github.com/TypeStrong/ts-loader/issues/552
