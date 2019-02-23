@@ -88,7 +88,9 @@
     "webpack-static": "cd $SALVUS_ROOT; scripts/update_color_scheme.coffee; scripts/update_react_static && CC_STATICPAGES=true NODE_ENV=development webpack --debug --output-pathinfo --progress --colors",
     "install-all": "scripts/smc-install-all",
     "make": "npm run install-all",
-    "clean": "git ls-files '../*/package-lock.json' | xargs rm -f; find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static"
+    "delete-package-lock" : "git ls-files '../*/package-lock.json' | xargs rm -f",
+    "restore-package-lock" : "git ls-files '../*/package-lock.json' | xargs git checkout --",
+    "clean": "find $SMC_ROOT -type d -name node_modules | xargs rm -rf; rm -rf $SMC_ROOT/static"
   },
   "repository": {
     "type": "git",
