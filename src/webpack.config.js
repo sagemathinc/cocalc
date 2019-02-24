@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 // CoCalc, by SageMath, Inc., (c) 2016, 2017 -- License: AGPLv3
 
 /*
@@ -90,7 +83,7 @@ That way, the hub can send down the URL to the jupyter server (there is no webap
 "use strict";
 
 // So we can require coffeescript code.
-require('coffeescript/register')
+require("coffeescript/register");
 
 let cleanWebpackPlugin,
   entries,
@@ -220,13 +213,13 @@ class MathjaxVersionedSymlink {
     const mksymlink = (dir, cb) =>
       fs.access(dir, function(err) {
         if (err) {
-          return fs.symlink(symto, dir, cb);
+          fs.symlink(symto, dir, cb);
         }
       });
     const done = compilation =>
       async.concat([MATHJAX_ROOT, misc_node.MATHJAX_NOVERS], mksymlink);
     const plugin = { name: "MathjaxVersionedSymlink" };
-    return compiler.hooks.done.tap(plugin, done);
+    compiler.hooks.done.tap(plugin, done);
   }
 }
 
@@ -261,14 +254,14 @@ const assetsPlugin = new AssetsPlugin({
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
-const smcChunkSorter = function(a, b) {
+function smcChunkSorter(a, b) {
   const order = ["css", "fill", "vendor", "smc"];
   if (order.indexOf(a.names[0]) < order.indexOf(b.names[0])) {
     return -1;
   } else {
     return 1;
   }
-};
+}
 
 // https://github.com/kangax/html-minifier#options-quick-reference
 const htmlMinifyOpts = {
@@ -375,15 +368,10 @@ for (let dp of glob.sync("webapp-lib/doc/*.pug")) {
 }
 
 // the following renders the policy pages
-for (let pp of (() => {
-  const result = [];
-  for (let x of glob.sync("webapp-lib/policies/*.pug")) {
-    if (path.basename(x)[0] !== "_") {
-      result.push(x);
-    }
+for (let pp of glob.sync("webapp-lib/policies/*.pug")) {
+  if (path.basename(pp)[0] === "_") {
+    continue;
   }
-  return result;
-})()) {
   output_fn = `policies/${misc.change_filename_extension(
     path.basename(pp),
     "html"
