@@ -306,7 +306,6 @@ class SyncTableChannel {
       );
       this.check_if_should_close();
     });
-
   }
 
   private send_synctable_to_browser(spark: Spark): void {
