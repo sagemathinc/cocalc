@@ -40,9 +40,10 @@ class Error extends Component<ErrorProps> {
 
   componentWillReceiveProps(nextProps) {
     if (
-      // TODO: is nbconvert suppose to exist here?
-      !misc.is_string(this.props.nbconvert!.get("error")) &&
-      misc.is_string(nextProps.nbconvert!.get("error"))
+      this.props.nbconvert != null &&
+      !misc.is_string(this.props.nbconvert.get("error")) &&
+      nextProps.nbconvert != null &&
+      misc.is_string(nextProps.nbconvert.get("error"))
     ) {
       setTimeout(() => this.scroll(), 10);
     }
@@ -129,10 +130,10 @@ export class NBConvert extends Component<NBConvertProps> {
   }
 
   render_download() {
-    if (this.props.nbconvert!.get("error")) {
+    if (this.props.nbconvert == null || this.props.nbconvert.get("error") || this.props.nbconvert_dialog == null) {
       return;
     }
-    const to = this.props.nbconvert_dialog!.get("to");
+    const to = this.props.nbconvert_dialog.get("to");
     const info = NAMES[to];
     if (info == null) {
       return;
@@ -275,7 +276,10 @@ export class NBConvert extends Component<NBConvertProps> {
   }
 
   args = () => {
-    return ["--to", this.props.nbconvert_dialog!.get("to")]; // TODO: is this.props.nbconvert_dialog defined?
+    if (this.props.nbconvert_dialog == null) {
+      return []; // broken case -- shouldn't happen
+    }
+    return ["--to", this.props.nbconvert_dialog.get("to")];
   };
 
   run = () => {

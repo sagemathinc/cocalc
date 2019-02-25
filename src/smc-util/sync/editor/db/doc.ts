@@ -267,8 +267,26 @@ export class DBDocument implements Document {
           const v = to[key];
           if (!isEqual(from[key], v)) {
             if (this.string_cols.has(key) && from[key] != null && v != null) {
-              // A string patch
-              obj[key] = string_make_patch(from[key], v);
+              if (typeof from[key] == "string" && typeof v == "string") {
+                // A valid string patch, converting one string to another.
+                obj[key] = string_make_patch(from[key], v);
+              } else {
+                /* This should be impossible, due to the type checking that
+                   I've added to set in this same commit.  However, it can't
+                   hurt to put in the above check on types, just in case.
+                     https://github.com/sagemathinc/cocalc/issues/3625
+                   A string col actually contains something that is not
+                   a string.  (Maybe it's due to loading something old?)
+                   In any case, it's better to "best effort" this, rather
+                   than to make the entire document be un-savable and
+                   un-usable to the user.
+                   We just give up and record no change in this case, so
+                   when doc is read in later (or by another user), there
+                   will be no weird corruption.
+                   This case will probably go away completely when all
+                   client code is written with proper typing.
+                */
+              }
             } else if (is_object(from[key]) && is_object(v)) {
               // Changing from one map to another, where they are not
               // equal -- can use a merge to make this more efficient.
@@ -394,23 +412,36 @@ export class DBDocument implements Document {
           // null = how to delete fields
           record = record.delete(field);
         } else {
-          if (this.string_cols.has(field) && is_array(value)) {
-            // special case: a string patch
-            record = record.set(
-              field,
-              string_apply_patch(value, before.get(field, ""))[0]
-            );
-          } else {
-            let new_val;
-            const cur = record.get(field);
-            const change = immutable.fromJS(value);
-            if (immutable.Map.isMap(cur) && immutable.Map.isMap(change)) {
-              new_val = merge_set(cur, change);
-            } else {
-              new_val = change;
+          if (this.string_cols.has(field)) {
+            if (is_array(value)) {
+              // special case: a string patch
+              record = record.set(
+                field,
+                string_apply_patch(value, before.get(field, ""))[0]
+              );
+              continue;
             }
-            record = record.set(field, new_val);
+            if (typeof value != "string") {
+              // Putting this guard in to address
+              // https://github.com/sagemathinc/cocalc/issues/3625
+              // which was caused by some client code setting a string_col
+              // to something that is not a string.  We'll next have
+              // to wait for this exception to be triggered someday...
+              throw Error(
+                `'${field}' must be a string, but tried to set to '${value}' of type ${typeof value}`
+              );
+            }
+            // falls through to actually set it below.
           }
+          let new_val;
+          const cur = record.get(field);
+          const change = immutable.fromJS(value);
+          if (immutable.Map.isMap(cur) && immutable.Map.isMap(change)) {
+            new_val = merge_set(cur, change);
+          } else {
+            new_val = change;
+          }
+          record = record.set(field, new_val);
         }
       }
 

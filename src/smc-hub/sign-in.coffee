@@ -67,16 +67,16 @@ sign_in_check = (opts) ->
     s = sign_in_fails
     if s.email_m[email] > 3
         # A given email address is allowed at most 3 failed login attempts per minute
-        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     if s.email_h[email] > 30
         # A given email address is allowed at most 30 failed login attempts per hour.
-        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     if s.ip_m[ip] > 10
         # A given ip address is allowed at most 10 failed login attempts per minute.
-        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait a minute, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     if s.ip_h[ip] > 50
         # A given ip address is allowed at most 50 failed login attempts per hour.
-        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@sagemath.com."
+        return "Wait an hour, then try to login again.  If you can't remember your password, reset it or email help@cocalc.com."
     return false
 
 exports.sign_in = (opts) ->
@@ -154,9 +154,9 @@ exports.sign_in = (opts) ->
                         return
                     if not is_correct
                         if not account.password_hash
-                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot Password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot Password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@cocalc.com and we will sort this out.")
                         else
-                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot Password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot Password?' link.   If that doesn't work, email help@cocalc.com and we will sort this out.")
                     else
                         cb()
         # remember me

@@ -17,7 +17,7 @@ import {
   CodeEditorState
 } from "../code-editor/actions";
 import { latexmk, build_command } from "./latexmk";
-import { sagetex, sagetex_hash } from "./sagetex";
+import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
 import { pythontex, pythontex_errors } from "./pythontex";
 import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
@@ -493,24 +493,28 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
 
+    let output: BuildLog | undefined;
     try {
       // Next run Sage.
-      const output: BuildLog = await sagetex(
-        this.project_id,
-        this.path,
-        hash,
-        status
-      );
-      this.set_build_logs({ sagetex: output });
+      output = await sagetex(this.project_id, this.path, hash, status);
       // Now run latex again, since we had to run sagetex, which changes
       // the sage output. This +1 forces re-running latex... but still dedups
       // it in case of multiple users.
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
+      this.update_pdf(time, force);
     } finally {
       this._last_sagetex_hash = hash;
       this.set_status("");
+    }
+
+    if (output != null) {
+      // process any errors
+      output.parse = sagetex_errors(this.path, output).toJS();
+      this.set_build_logs({ sagetex: output });
+      // there is no line information in the sagetex errors (and no concordance info either),
+      // hence we can't update the gutters.
     }
   }
 
