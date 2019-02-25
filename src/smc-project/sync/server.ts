@@ -15,7 +15,15 @@ silently swallowed in persistent mode...
 // so don't set this too low (except for dev)!
 const MAX_CONNECTIONS = 150;
 
-import { reuseInFlight } from "async-await-utils/hof";
+// The frontend client code *should* prevent many connections, but some
+// old broken clients may not work properly.   This must be at least 2,
+// since we can have two clients for a given channel at once if a file is
+// being closed still, while it is reopened (e.g., when user does this:
+// disconnect, change, close, open, reconnect).  Also, this setting prevents
+// some potentially malicious conduct, and also possible new clients with bugs.
+// It is VERY important that this not be too small, since there is often
+// a delay/timeout before a channel is properly closed.
+const MAX_CONNECTIONS_FROM_ONE_CLIENT = 30;
 
 import {
   synctable_no_changefeed,
@@ -28,7 +36,9 @@ import { init_syncdoc } from "./sync-doc";
 
 import { key, register_synctable } from "./open-synctables";
 
+import { reuseInFlight } from "async-await-utils/hof";
 import { once } from "../smc-util/async-utils";
+import { delay } from "awaiting";
 
 const { deep_copy, len } = require("../smc-util/misc2");
 
@@ -37,6 +47,7 @@ type Query = { [key: string]: any };
 interface Spark {
   address: { ip: string };
   id: string;
+  conn: { id: string; write: (obj: any) => boolean };
   write: (obj: any) => boolean;
   end: (...args) => void;
   on: (str: string, fn: Function) => void;
@@ -89,6 +100,8 @@ class SyncTableChannel {
   // (or just drop a connection temporarily) while a persistent stateful
   // session continues running.
   private persistent: boolean = false;
+
+  private connections_from_one_client: { [id: string]: number } = {};
 
   constructor({
     client,
@@ -164,6 +177,7 @@ class SyncTableChannel {
   private init_handlers(): void {
     this.log("init_handlers");
     this.channel.on("connection", this.new_connection.bind(this));
+    this.channel.on("disconnection", this.end_connection.bind(this));
   }
 
   private async init_synctable(): Promise<void> {
@@ -202,27 +216,68 @@ class SyncTableChannel {
     this.broadcast_synctable_to_browsers();
   }
 
+  private increment_connection_count(spark: Spark): number {
+    // account for new connection from this particular client.
+    let m: undefined | number = this.connections_from_one_client[spark.conn.id];
+    if (m === undefined) m = 0;
+    return (this.connections_from_one_client[spark.conn.id] = m + 1);
+  }
+
+  private decrement_connection_count(spark: Spark): number {
+    let m: undefined | number = this.connections_from_one_client[spark.conn.id];
+    if (m === undefined) {
+      return 0;
+    }
+    return (this.connections_from_one_client[spark.conn.id] = Math.max(
+      0,
+      m - 1
+    ));
+  }
+
   private async new_connection(spark: Spark): Promise<void> {
     // Now handle the connection
     const n = this.num_connections();
+
+    // account for new connection from this particular client.
+    const m = this.increment_connection_count(spark);
+
     this.log(
-      `new connection from ${spark.address.ip} -- ${
-        spark.id
-      } -- num_connections = ${n}`
+      `new connection from (address=${spark.address.ip}, conn=${
+        spark.conn.id
+      }) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
     );
-    if (n > MAX_CONNECTIONS) {
-      const error = `Too many connections (${n} > ${MAX_CONNECTIONS})`;
-      this.log(`${error}: killing new connection from ${spark.id}`);
+
+    if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
+      const error = `Too many connections (${m} > ${MAX_CONNECTIONS_FROM_ONE_CLIENT}) from this client.  You might need to refresh your browser.`;
+      this.log(
+        `${error}  Waiting 5s, then killing new connection from ${spark.id}...`
+      );
+      await delay(5000); // minimize impact of client trying again, which it should do...
+      this.decrement_connection_count(spark);
       spark.end({ error });
       return;
     }
+
+    if (n > MAX_CONNECTIONS) {
+      const error = `Too many connections (${n} > ${MAX_CONNECTIONS})`;
+      this.log(
+        `${error} Waiting 5s, then killing new connection from ${spark.id}`
+      );
+      await delay(5000); // minimize impact of client trying again, which it should do
+      this.decrement_connection_count(spark);
+      spark.end({ error });
+      return;
+    }
+
     if (this.closed) {
       this.log(`table closed: killing new connection from ${spark.id}`);
+      this.decrement_connection_count(spark);
       spark.end();
       return;
     }
     if (this.synctable.get_state() == "closed") {
       this.log(`table state closed: killing new connection from ${spark.id}`);
+      this.decrement_connection_count(spark);
       spark.end();
       return;
     }
@@ -245,26 +300,16 @@ class SyncTableChannel {
         this.log("error handling mesg -- ", err, err.stack);
       }
     });
+  }
 
-    spark.on("close", () => {
-      this.log(
-        `spark event -- close connection ${spark.address.ip} -- ${spark.id}`
-      );
-      this.check_if_should_close();
-    });
-    spark.on("end", () => {
-      this.log(
-        `spark event -- end connection ${spark.address.ip} -- ${
-          spark.id
-        }  -- num_connections = ${this.num_connections()}`
-      );
-      this.check_if_should_close();
-    });
-    spark.on("open", () => {
-      this.log(
-        `spark event -- open connection ${spark.address.ip} -- ${spark.id}`
-      );
-    });
+  private async end_connection(spark: Spark): Promise<void> {
+    const m = this.decrement_connection_count(spark);
+    this.log(
+      `spark event -- end connection ${spark.address.ip} -- ${
+        spark.id
+      }  -- num_connections = ${this.num_connections()}  (from this client = ${m})`
+    );
+    this.check_if_should_close();
   }
 
   private send_synctable_to_browser(spark: Spark): void {

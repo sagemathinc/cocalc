@@ -1515,17 +1515,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     const lines = input.split("\n");
     let v = lines.slice(0, cursor.y);
-    const line = lines[cursor.y];
-    const left = line.slice(0, cursor.x);
-    if (left) {
-      v.push(left);
+    const line: string | undefined = lines[cursor.y];
+    if (line != null) {
+      const left = line.slice(0, cursor.x);
+      if (left) {
+        v.push(left);
+      }
     }
     const top = v.join("\n");
 
     v = lines.slice(cursor.y + 1);
-    const right = line.slice(cursor.x);
-    if (right) {
-      v = [right].concat(v);
+    if (line != null) {
+      const right = line.slice(cursor.x);
+      if (right) {
+        v = [right].concat(v);
+      }
     }
     const bottom = v.join("\n");
     this.set_cell_input(new_id, top, false);

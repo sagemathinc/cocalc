@@ -9,6 +9,7 @@ interface Props {
   get_api_key?: string;
   no_heading?: boolean;
   style?: object;
+  disabled?: boolean;
 }
 
 const BASE_ICON_STYLE: React.CSSProperties = {
@@ -64,24 +65,47 @@ export class Passports extends React.Component<Props> {
         <Icon name={name} /> {passport_name}
       </span>
     );
-    return (
-      <a href={url} key={name} style={{ fontSize: "28px" }}>
-        <Tip
-          placement="bottom"
-          title={title}
-          tip={`Use ${passport_name} to sign into your CoCalc account instead of an email address and password.`}
-        >
-          <Icon name={name} style={icon_style} />
-        </Tip>
-      </a>
-    );
+    const style: any = { fontSize: "28px" };
+    if (this.props.disabled) {
+      url = "";
+      style.opacity = 0.5;
+    }
+    if (this.props.disabled) {
+      return (
+        <span style={style}>
+          <Tip
+            placement="bottom"
+            title={title}
+            tip={"Please agree to the terms of service first."}
+          >
+            <Icon name={name} style={icon_style} />
+          </Tip>
+        </span>
+      );
+    } else {
+      return (
+        <a href={url} key={name} style={style}>
+          <Tip
+            placement="bottom"
+            title={title}
+            tip={`Use ${passport_name} to sign into your CoCalc account instead of an email address and password.`}
+          >
+            <Icon name={name} style={icon_style} />
+          </Tip>
+        </a>
+      );
+    }
   }
 
   render_heading() {
     if (this.props.no_heading) {
       return;
     }
-    return <h3 style={{ marginTop: 0 }}>Connect with</h3>;
+    const style: any = { marginTop: 0 };
+    if (this.props.disabled) {
+      style.opacity = 0.5;
+    }
+    return <h3 style={style}>Connect with</h3>;
   }
 
   render() {
