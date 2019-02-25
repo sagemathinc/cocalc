@@ -6,7 +6,12 @@ set -v
 cd `dirname $0`/..
 . smc-env
 
+# step 0: fix paths for a theme
 cocalc_setup_theme.py
+
+# step 1: get rid of package-lock files
+# DISABLED: causes build issues
+#git ls-files '../*/package-lock.json' | xargs rm -f
 
 cd $SMC_ROOT
 npm install

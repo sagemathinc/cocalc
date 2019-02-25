@@ -74,6 +74,11 @@ const APPS: IAPPS = {
     icon: "table",
     label: "Calc"
   },
+  loimpress: {
+    desc: "LibreOffice Impress",
+    icon: "tv",
+    label: "Impress"
+  },
   nteract: {
     command: "nteract",
     icon: "cube",

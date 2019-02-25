@@ -394,19 +394,19 @@ SupportInfo = rclass
                     <a href="https://doc.cocalc.com" target="_blank" rel="noopener"><b>Looking for documentation and help?</b></a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/MySubscriptionDoesNotWork">Subscription does not work?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/subscriptions.html#what-if-your-subscription-does-not-seem-to-do-anything">Subscription does not work?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/DeleteProject">File or project seems gone?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/missing-project.html">File or project seems gone?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageWorksheetWontRun">Sage worksheet or Jupyter notebook is slow or will not run?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/slow-worksheet.html">Sage worksheet or Jupyter notebook is slow or will not run?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/KernelTerminated">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">Jupyter notebook keeps crashing with "Kernel terminated"?</a>
                 </li>
                 <li>
-                    <a target="_blank" rel="noopener" href="https://github.com/sagemathinc/cocalc/wiki/SageQuestion">Questions about how to use Sage?</a>
+                    <a target="_blank" rel="noopener" href="https://doc.cocalc.com/howto/sage-question.html">Questions about how to use Sage?</a>
                 </li>
                 <li>
                     <b>Requesting that we install software?</b> Fill out the form below...

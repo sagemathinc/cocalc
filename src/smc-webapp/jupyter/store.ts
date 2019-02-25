@@ -82,7 +82,12 @@ export class JupyterStore extends Store<JupyterStoreState> {
     // TODO: Could do in O(1) instead of O(n) by sorting only selected first by position...; maybe use algorithm based on size...
     const selected = this.get_selected_cell_ids();
     const v: any[] = [];
-    this.get("cell_list").forEach(id => {
+    const cell_list = this.get("cell_list");
+    if (cell_list == null) {
+      // special case -- no cells
+      return v;
+    }
+    cell_list.forEach(id => {
       if (selected[id]) {
         v.push(id);
       }
