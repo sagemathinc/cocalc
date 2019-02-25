@@ -2,7 +2,7 @@
 Add collaborators to a project
 ###
 
-{React, ReactDOM, redux, rtypes, rclass}  = require('../app-framework')
+{React, ReactDOM, redux, rtypes, rclass, Fragment}  = require('../app-framework')
 
 {Alert, Button, ButtonToolbar, FormControl, FormGroup, Well, Checkbox} = require('react-bootstrap')
 
@@ -181,12 +181,12 @@ exports.AddCollaborators = rclass
         # TODO: we should not say 'search for "h"' when someone
         # has already searched for "h".
         # Instead it should be:
-        # 
+        #
         # - Search [...]
         # - if results.length > 0:
         #   - Select names from below to add
         #   - list of users
-        #   - add button 
+        #   - add button
         # - else
         #   - no results found
         #   - send invitation
@@ -210,13 +210,13 @@ exports.AddCollaborators = rclass
                 select.push(r)
         if select.length == 0
             if existing.length == 0
-                <>
+                <Fragment>
                     Sorry, no accounts found.
                     <br/>
                     <Button style={marginBottom:'10px'} onClick={@write_email_invite}>
                         <Icon name='envelope' />  Send Email Invitation...
                     </Button>
-                </>
+                </Fragment>
             else
                 # no hit, but at least one existing collaborator
                 collabs = ("#{r.first_name} #{r.last_name}" for r in existing).join(', ')

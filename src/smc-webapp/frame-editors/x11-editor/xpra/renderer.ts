@@ -1,4 +1,18 @@
 /*
+ * CoCalc's Xpra HTML Client
+ *
+ * ---
+ *
+ * Xpra
+ * Copyright (c) 2013-2017 Antoine Martin <antoine@devloop.org.uk>
+ * Copyright (c) 2016 David Brushinski <dbrushinski@spikes.com>
+ * Copyright (c) 2014 Joshua Higgins <josh@kxes.net>
+ * Copyright (c) 2015-2016 Spikes, Inc.
+ * Copyright (c) 2018-2019 SageMath, Inc.
+ * Licensed under MPL 2.0, see:
+ * http://www.mozilla.org/MPL/2.0/
+*/
+/*
 CoCalc -- Xpra HTML Client
 
 The Renderer object.   Periodically clears the queue of

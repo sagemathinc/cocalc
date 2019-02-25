@@ -194,7 +194,9 @@ export class SyncTable extends EventEmitter {
   (Always returns false when not yet initialized.)
   */
   public has_uncommitted_changes(): boolean {
-    this.assert_not_closed("has_uncommitted_changes");
+    if (this.state === "closed") {
+      return false;  // if closed, can't have any uncommitted changes.
+    }
     return len(this.changes) !== 0;
   }
 

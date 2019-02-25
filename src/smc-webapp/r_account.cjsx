@@ -722,7 +722,7 @@ DeleteAccountConfirmation = rclass
     # Make this the render function to disable account deletion
     xxx_render: ->
         <Well  style={marginTop: '26px', textAlign:'center', fontSize: '12pt'}>
-            To delete your account, contact us at <a href="mailto:help@sagemath.com" target="_blank">help@sagemath.com</a>{" "}
+            To delete your account, contact us at <a href="mailto:help@cocalc.com" target="_blank">help@cocalc.com</a>{" "}
             or open a support request by clicking "Help" in the top right menu.<br/>
             <Button
                 style = {marginTop:'5px'}

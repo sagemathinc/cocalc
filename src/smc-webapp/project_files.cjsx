@@ -1648,7 +1648,7 @@ ProjectFilesActionBox = rclass
                     {@render_how_shared(parent_is_public, single_file_data)}
                 </Col>
             </Row>
-            {if not single_file_data.is_public then undefined else <>
+            {if not single_file_data.is_public then undefined else <Fragment>
                 <Row>
                     <Col sm={4} style={color:'#666'}>
                         <h4>Description</h4>
@@ -1686,7 +1686,7 @@ ProjectFilesActionBox = rclass
                         </Button>
                     </Col>
                 </Row>
-            </>}
+            </Fragment>}
             <Row>
                 <Col sm={12}>
                     <Button onClick={@cancel_action}>
@@ -1720,7 +1720,7 @@ ProjectFilesActionBox = rclass
     render_sharing_options: (single_file_data) ->
         state = @get_sharing_options_state(single_file_data)
         handler = @handle_sharing_options_change(single_file_data)
-        <>
+        <Fragment>
             <FormGroup>
             {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
                     <Icon name='eye'/><Space/>
@@ -1740,7 +1740,7 @@ ProjectFilesActionBox = rclass
                 <i>Private</i> - Only collaborators on this project can view this.
               </Radio>
             </FormGroup>
-        </>
+        </Fragment>
 
     render_social_buttons: (single_file) ->
         # sort like in account settings

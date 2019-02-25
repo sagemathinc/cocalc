@@ -72,7 +72,6 @@ export class JupyterActions extends JupyterActions0 {
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
   initialize_manager = async () => {
-    console.log("INITIALIZING MANAGER");
     if (this._initialize_manager_already_done) {
       console.log("DONE");
       return;

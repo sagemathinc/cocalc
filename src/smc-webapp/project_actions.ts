@@ -1862,7 +1862,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb("no store");
         return;
       }
-      return $.ajax({
+      $.ajax({
         url: index_json_url,
         timeout: 5000,
         success: data => {
@@ -1877,7 +1877,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           library = store.get("library").set("examples", data);
           this.setState({ library });
           _init_library_index_cache[this.project_id] = data;
-          return cb();
+          cb();
         }
       }).fail(err =>
         //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
@@ -1885,13 +1885,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       );
     };
 
-    return misc.retry_until_success({
+    misc.retry_until_success({
       f: fetch,
       start_delay: 1000,
       max_delay: 10000,
       max_time: 1000 * 60 * 3, // try for at most 3 minutes
       cb: () => {
-        return (_init_library_index_ongoing[this.project_id] = false);
+        _init_library_index_ongoing[this.project_id] = false;
       }
     });
   }
