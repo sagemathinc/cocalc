@@ -46,6 +46,8 @@ exports.SimpleX = SimpleX
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{LabeledRow} = require('./labeled-row')
+exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
 exports.TimeElapsed = TimeElapsed
 
@@ -301,28 +303,6 @@ exports.NumberInput = NumberInput = rclass
             </Col>
             <Col xs={6} className="lighten">
                 {unit}
-            </Col>
-        </Row>
-
-exports.LabeledRow = LabeledRow = rclass
-    displayName : 'Misc-LabeledRow'
-
-    propTypes :
-        label      : rtypes.any.isRequired
-        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
-        label_cols : rtypes.number    # number between 1 and 11 (default: 4)
-        className  : rtypes.string
-
-    getDefaultProps: ->
-        label_cols : 4
-
-    render: ->
-        <Row style={@props.style} className={@props.className} >
-            <Col xs={@props.label_cols} style={marginTop:'8px'}>
-                {@props.label}
-            </Col>
-            <Col xs={12-@props.label_cols}  style={marginTop:'8px'}>
-                {@props.children}
             </Col>
         </Row>
 
