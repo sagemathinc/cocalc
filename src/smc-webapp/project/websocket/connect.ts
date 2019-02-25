@@ -114,9 +114,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
         //console.log("success!");
       }
     },
-    start_delay: 300,
-    max_delay: 3000,
-    factor: 1.2,
+    start_delay: 1000,
+    max_delay: 15000,  // do not make too aggressive or it DDOS proxy server
+    factor: 1.3,
     desc : 'connecting to project'
     //log: (...x) => {
     //  console.log("retry primus:", ...x);
