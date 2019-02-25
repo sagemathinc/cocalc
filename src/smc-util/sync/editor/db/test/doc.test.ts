@@ -214,6 +214,22 @@ describe("test various types of patches", () => {
     const patch2 = doc.make_patch(doc2);
     expect(patch2).toEqual([1, [{ key: "cocalc", value: [1, "2", 5] }]]);
   });
+
+  it("tests that string column runtime type checking works", () => {
+    // This checks that https://github.com/sagemathinc/cocalc/issues/3625
+    // is fixed.
+    const doc = new DBDocument(
+      new Set(["key"]),
+      new Set(["value"]) /* so must always be a string */,
+      fromJS([{ key: "cocalc", value: "a string" }])
+    );
+
+    const doc2 = doc.set({ value: "foo" });
+    const x = doc2.get_one({})!;
+    expect(x.get("value")).toBe("foo");
+
+    expect(() => doc2.set({ value: 0 })).toThrow("must be a string");
+  });
 });
 
 describe("test conversion to and *from* strings", () => {

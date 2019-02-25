@@ -177,6 +177,7 @@ class SyncTableChannel {
   private init_handlers(): void {
     this.log("init_handlers");
     this.channel.on("connection", this.new_connection.bind(this));
+    this.channel.on("disconnection", this.end_connection.bind(this));
   }
 
   private async init_synctable(): Promise<void> {
@@ -227,7 +228,10 @@ class SyncTableChannel {
     if (m === undefined) {
       return 0;
     }
-    return (this.connections_from_one_client[spark.conn.id] = Math.max(0,m - 1));
+    return (this.connections_from_one_client[spark.conn.id] = Math.max(
+      0,
+      m - 1
+    ));
   }
 
   private async new_connection(spark: Spark): Promise<void> {
@@ -296,17 +300,16 @@ class SyncTableChannel {
         this.log("error handling mesg -- ", err, err.stack);
       }
     });
+  }
 
-    spark.on("end", () => {
-      const m = this.decrement_connection_count(spark);
-      this.log(
-        `spark event -- end connection ${spark.address.ip} -- ${
-          spark.id
-        }  -- num_connections = ${this.num_connections()}  (from this client = ${m})`
-      );
-      this.check_if_should_close();
-    });
-
+  private async end_connection(spark: Spark): Promise<void> {
+    const m = this.decrement_connection_count(spark);
+    this.log(
+      `spark event -- end connection ${spark.address.ip} -- ${
+        spark.id
+      }  -- num_connections = ${this.num_connections()}  (from this client = ${m})`
+    );
+    this.check_if_should_close();
   }
 
   private send_synctable_to_browser(spark: Spark): void {
