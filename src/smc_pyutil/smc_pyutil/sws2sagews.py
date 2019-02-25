@@ -265,8 +265,8 @@ def sws_to_sagews(filename):
     body = t.extractfile(wkfile).read()
     data_files, data_path = write_data_files(pfx, t)
     if data_files:
-        out += MARKERS['cell'] + uuid(
-        ) + 'ai' + MARKERS['cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n' % data_path
+        out += MARKERS['cell'] + uuid() + 'ai' + MARKERS[
+            'cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n' % data_path
     out += sws_body_to_sagews(body)
 
     meta = {}

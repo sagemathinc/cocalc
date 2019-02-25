@@ -2,6 +2,7 @@ def pytest_addoption(parser):
     """specify comma-delimited list of kernel names to limit test"""
     parser.addoption("--kname", action="store", help="kernel name")
 
+
 def pytest_generate_tests(metafunc):
     """default is to test all non-sage kernels listed with `jupyter kernelspec list`"""
     option_value = metafunc.config.option.kname
@@ -11,7 +12,9 @@ def pytest_generate_tests(metafunc):
     # nsk = list of available non-sage kernel names
     # skip first line of command output, "Available kernels"
     else:
-        v = [x.strip() for x in os.popen("jupyter kernelspec list").readlines()]
+        v = [
+            x.strip() for x in os.popen("jupyter kernelspec list").readlines()
+        ]
         nsk = [x.split()[0] for x in v[1:] if not x.startswith('sage')]
         metafunc.parametrize("kname", nsk)
 
@@ -31,25 +34,29 @@ report_prom = os.path.expanduser('~/sagews-direct-test-report.prom')
 results = []
 start_time = None
 
+
 @pytest.hookimpl
 def pytest_configure(config):
     global start_time
     start_time = datetime.utcnow()
 
+
 @pytest.hookimpl
 def pytest_unconfigure(config):
     global start_time
+
     def append_file(f1, f2):
         with open(f1, 'a') as outf1:
             with open(f2, 'r') as inf2:
                 outf1.write(inf2.read())
+
     data = {
-        'name'     : 'sagews_direct.test',
-        'version'  : 1,
-        'start'    : str(start_time),
-        'end'      : str(datetime.utcnow()),
-        'fields'   : ['name', 'outcome', 'duration'],
-        'results'  : results,
+        'name': 'sagews_direct.test',
+        'version': 1,
+        'start': str(start_time),
+        'end': str(datetime.utcnow()),
+        'fields': ['name', 'outcome', 'duration'],
+        'results': results,
     }
     report_json_tmp = report_json + '~'
     with open(report_json, 'w') as out:
@@ -63,10 +70,12 @@ def pytest_unconfigure(config):
     with open(report_prom_tmp, 'w') as prom:
         for (name, outcome, duration) in results:
             labels = 'name="{name}",outcome="{outcome}"'.format(**locals())
-            line = 'sagews_direct_test{{{labels}}} {duration} {ts}'.format(**locals())
+            line = 'sagews_direct_test{{{labels}}} {duration} {ts}'.format(
+                **locals())
             prom.write(line + '\n')
     # ... then atomically overwrite the real one
     os.rename(report_prom_tmp, report_prom)
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):

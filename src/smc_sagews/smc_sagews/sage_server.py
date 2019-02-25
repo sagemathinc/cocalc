@@ -1317,8 +1317,8 @@ if 'SAGE_STARTUP_FILE' in os.environ and os.path.isfile(os.environ['SAGE_STARTUP
         - display -- (default: False); if True, typeset as display math (so centered, etc.)
         """
         self._flush_stdio()
-        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj,
-                                                                       **kwds)
+        tex = obj if isinstance(obj, str) else self.namespace['latex'](obj, **
+                                                                       kwds)
         self._send_output(
             tex={
                 'tex': tex,
@@ -2144,18 +2144,18 @@ def serve(port, host, extra_imports=False):
         namespace['_salvus_parsing'] = sage_parsing
 
         for name in [
-                'anaconda', 'asy', 'attach', 'auto', 'capture', 'cell', 'clear',
-                'coffeescript', 'cython', 'default_mode', 'delete_last_output',
-                'dynamic', 'exercise', 'fork', 'fortran', 'go', 'help', 'hide',
-                'hideall', 'input', 'java', 'javascript', 'julia', 'jupyter',
-                'license', 'load', 'md', 'mediawiki', 'modes', 'octave',
-                'pandoc', 'perl', 'plot3d_using_matplotlib', 'prun',
-                'python_future_feature', 'py3print_mode', 'python', 'python3',
-                'r', 'raw_input', 'reset', 'restore', 'ruby', 'runfile',
-                'sage_chat', 'sage_eval', 'scala', 'scala211', 'script',
-                'search_doc', 'search_src', 'sh', 'show', 'show_identifiers',
-                'singular_kernel', 'time', 'timeit', 'typeset_mode', 'var',
-                'wiki'
+                'anaconda', 'asy', 'attach', 'auto', 'capture', 'cell',
+                'clear', 'coffeescript', 'cython', 'default_mode',
+                'delete_last_output', 'dynamic', 'exercise', 'fork', 'fortran',
+                'go', 'help', 'hide', 'hideall', 'input', 'java', 'javascript',
+                'julia', 'jupyter', 'license', 'load', 'md', 'mediawiki',
+                'modes', 'octave', 'pandoc', 'perl', 'plot3d_using_matplotlib',
+                'prun', 'python_future_feature', 'py3print_mode', 'python',
+                'python3', 'r', 'raw_input', 'reset', 'restore', 'ruby',
+                'runfile', 'sage_chat', 'sage_eval', 'scala', 'scala211',
+                'script', 'search_doc', 'search_src', 'sh', 'show',
+                'show_identifiers', 'singular_kernel', 'time', 'timeit',
+                'typeset_mode', 'var', 'wiki'
         ]:
             namespace[name] = getattr(sage_salvus, name)
 

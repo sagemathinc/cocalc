@@ -50,7 +50,13 @@ import {
 
 import { wait } from "../../../async-wait";
 
-import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
+import {
+  cmp_Date,
+  endswith,
+  filename_extension,
+  keys,
+  uuid
+} from "../../../misc2";
 
 import { Evaluator } from "./evaluator";
 
@@ -99,6 +105,10 @@ export interface SyncOpts0 {
   // backend when explicitly requested:
   persistent?: boolean;
 
+  // If true, entire sync-doc is assumed completely ephemeral
+  // This option should be set only in the project.
+  ephemeral?: boolean;
+
   // which data/changefeed server to use
   data_server?: DataServer;
 }
@@ -120,6 +130,9 @@ export class SyncDoc extends EventEmitter {
   private path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;
+
+  // This id is used for equality test and caching.
+  private id: string = uuid();
 
   private client: Client;
   private _from_str: (str: string) => Document; // creates a doc from a string.
@@ -197,6 +210,8 @@ export class SyncDoc extends EventEmitter {
 
   private last_has_unsaved_changes?: boolean = undefined;
 
+  private ephemeral: boolean = false;
+
   constructor(opts: SyncOpts) {
     super();
     if (opts.string_id === undefined) {
@@ -216,7 +231,8 @@ export class SyncDoc extends EventEmitter {
       "doctype",
       "from_patch_str",
       "persistent",
-      "data_server"
+      "data_server",
+      "ephemeral"
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
@@ -755,8 +771,8 @@ export class SyncDoc extends EventEmitter {
     this.set_state("closed");
     this.emit("close");
 
-    // must be after this.emit('close') above, so they know
-    // what happened and can respond to it.
+    // must be after the emits above, so clients know
+    // what happened and can respond.
     this.removeAllListeners();
 
     if (this.throttled_file_use != null) {
@@ -792,7 +808,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.patch_list != null) {
-      this.patch_list.close();
+      await this.patch_list.close();
       delete this.patch_list;
     }
 
@@ -831,18 +847,23 @@ export class SyncDoc extends EventEmitter {
   // Since this MUST succeed before doing anything else, we
   // keep trying until either it does, or this document is closed.
   private async ensure_syncstring_exists_in_db(): Promise<void> {
-    // Wait until connected, if necessary.
+    const dbg = this.dbg("ensure_syncstring_exists_in_db");
+    if (this.ephemeral) {
+      dbg("ephemeral -- nothing to do");
+      return;
+    }
+    if (this.client.is_user()) {
+      dbg("browser client -- nothing to do");
+      return;
+    }
+
     if (!this.client.is_connected()) {
+      dbg("wait until connected...", this.client.is_connected());
       await once(this.client, "connected");
     }
-
-    if (this.client.is_user() && !this.client.is_signed_in()) {
-      await once(this.client, "signed_in");
-    }
-
     if (this.state == ("closed" as State)) return;
 
-    // Do the write query.
+    dbg("do syncstring write query...");
     await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -853,6 +874,7 @@ export class SyncDoc extends EventEmitter {
         }
       }
     });
+    dbg("wrote syncstring to db - done.");
   }
 
   private async synctable(
@@ -869,7 +891,8 @@ export class SyncDoc extends EventEmitter {
           this.project_id,
           query,
           options,
-          throttle_changes
+          throttle_changes,
+          this.id
         );
       case "database":
         return await this.client.synctable_database(
@@ -908,8 +931,18 @@ export class SyncDoc extends EventEmitter {
 
     dbg("getting table...");
     this.syncstring_table = await this.synctable(query, []);
-    dbg("waiting for, then handling the first update...");
-    await this.handle_syncstring_update();
+    if (this.ephemeral && this.client.is_project()) {
+      this.syncstring_table.set({
+        string_id: this.string_id,
+        project_id: this.project_id,
+        path: this.path,
+        doctype: JSON.stringify(this.doctype)
+      });
+      await this.syncstring_table.save();
+    } else {
+      dbg("waiting for, then handling the first update...");
+      await this.handle_syncstring_update();
+    }
     this.syncstring_table.on(
       "change",
       this.handle_syncstring_update.bind(this)
@@ -1124,6 +1157,9 @@ export class SyncDoc extends EventEmitter {
      it is being deleted?
   */
   public async delete_from_database(): Promise<void> {
+    if (this.ephemeral) {
+      return; // not in database.
+    }
     const queries = [
       {
         patches_delete: {
@@ -1476,6 +1512,11 @@ export class SyncDoc extends EventEmitter {
       dbg("bug -- not ready");
       throw Error("bug -- cannot save if doc and last are not initialized");
     }
+    if (this.state != "ready") {
+      // There's nothing to do regarding save if the table isn't
+      // opened yet or is already closed or closing.
+      return;
+    }
     await this.patches_table.save();
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
@@ -1740,7 +1781,7 @@ export class SyncDoc extends EventEmitter {
   public async load_full_history(): Promise<void> {
     //dbg = this.dbg("load_full_history")
     //dbg()
-    if (this.has_full_history()) {
+    if (this.has_full_history() || this.ephemeral) {
       //dbg("nothing to do, since complete history definitely already loaded")
       return;
     }
@@ -2156,7 +2197,14 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return this.hash_of_saved_version() !== this.hash_of_live_version();
+    try {
+      return this.hash_of_saved_version() !== this.hash_of_live_version();
+    } catch (err) {
+      // This could happen, e.g. when syncstring_table isn't connected
+      // in some edge case. Better to just say we don't know then crash
+      // everything. See https://github.com/sagemathinc/cocalc/issues/3577
+      return;
+    }
   }
 
   // Returns hash of last version saved to disk (as far as we know).
@@ -2584,3 +2632,4 @@ export class SyncDoc extends EventEmitter {
     this.before_change = this.doc;
   }
 }
+

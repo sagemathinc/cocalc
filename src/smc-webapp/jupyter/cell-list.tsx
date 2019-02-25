@@ -143,11 +143,14 @@ export class CellList extends Component<CellListProps> {
   } // reset scroll request state
 
   scroll_cell_list = (scroll: any) => {
-    const elt = $(this.cell_list_ref)!;
+    const elt = $(this.cell_list_ref);
+    if (elt == null) {
+      return;
+    }
     if (elt.length > 0) {
       let cur, top;
       if (typeof scroll === "number") {
-        elt.scrollTop(elt.scrollTop()! + scroll);
+        elt.scrollTop(elt.scrollTop() + scroll);
         return;
       }
 
@@ -159,7 +162,7 @@ export class CellList extends Component<CellListProps> {
           top = cur.position().top - elt.position().top;
           if (top < PADDING) {
             scroll = "cell top";
-          } else if (top > elt.height()! - PADDING) {
+          } else if (top > elt.height() - PADDING) {
             scroll = "cell bottom";
           } else {
             return;
@@ -169,27 +172,27 @@ export class CellList extends Component<CellListProps> {
       switch (scroll) {
         case "list up":
           // move scroll position of list up one page
-          return elt.scrollTop(elt.scrollTop()! - elt.height()! * 0.9);
+          return elt.scrollTop(elt.scrollTop() - elt.height() * 0.9);
         case "list down":
           // move scroll position of list up one page
-          return elt.scrollTop(elt.scrollTop()! + elt.height()! * 0.9);
+          return elt.scrollTop(elt.scrollTop() + elt.height() * 0.9);
         case "cell top":
-          cur = elt.find(`#${this.props.cur_id}`)!;
-          if (cur.length > 0) {
+          cur = elt.find(`#${this.props.cur_id}`);
+          if (cur != null && cur.length > 0) {
             return elt.scrollTop(
-              elt.scrollTop()! +
+              elt.scrollTop() +
                 (cur.position().top - elt.position().top) -
                 PADDING
             );
           }
           break;
         case "cell center":
-          cur = elt.find(`#${this.props.cur_id}`)!;
-          if (cur.length > 0) {
+          cur = elt.find(`#${this.props.cur_id}`);
+          if (cur != null && cur.length > 0) {
             return elt.scrollTop(
-              elt.scrollTop()! +
-                (cur.position()!.top - elt.position()!.top) -
-                elt.height()! * 0.5
+              elt.scrollTop() +
+                (cur.position().top - elt.position().top) -
+                elt.height() * 0.5
             );
           }
           break;
@@ -197,9 +200,9 @@ export class CellList extends Component<CellListProps> {
           cur = elt.find(`#${this.props.cur_id}`);
           if (cur.length > 0) {
             return elt.scrollTop(
-              elt.scrollTop()! +
+              elt.scrollTop() +
                 (cur.position().top - elt.position().top) -
-                elt.height()! * 0.9 +
+                elt.height() * 0.9 +
                 PADDING
             );
           }
