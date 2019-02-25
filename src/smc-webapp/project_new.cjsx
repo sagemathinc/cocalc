@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2} = require('./r_misc')
@@ -119,12 +119,12 @@ NewFileDropdown = rclass
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
-        text = <>
+        text = <Fragment>
                    <span style={textTransform:'capitalize'}>
                     {data.name}
                    </span>
                    <span style={color:'#666'}>(.{ext})</span>
-               </>
+               </Fragment>
         <MenuItem
             className={ 'dropdown-menu-left'}
             eventKey={i}
@@ -164,7 +164,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         row_style =
             marginBottom:'8px'
 
-        <>
+        <Fragment>
             <Row style={row_style}>
                 <Col sm={12}>
                     <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
@@ -224,7 +224,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                    {@props.children}
                 </Col>
             </Row>
-        </>
+        </Fragment>
 
 exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     displayName : 'ProjectNew-ProjectNewForm'
@@ -332,7 +332,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
         </Alert>
 
     render_upload: ->
-        <>
+        <Fragment>
             <Row style={marginTop: '20px'}>
                 <Col sm={12}>
                     <h4><Icon name='cloud-upload' /> Upload</h4>
@@ -362,10 +362,10 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     }
                 </Col>
             </Row>
-        </>
+        </Fragment>
 
     render_new_file_folder: ->
-        <>
+        <Fragment>
             <Tip
                 title={'Folder'}
                 placement={'left'}
@@ -384,7 +384,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     create_file={@submit}
                 />
             </Tip>
-        </>
+        </Fragment>
 
     render_filename_form: ->
         onChange = =>
