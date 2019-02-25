@@ -115,9 +115,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
       }
     },
     start_delay: 1000,
-    max_delay: 15000,  // do not make too aggressive or it DDOS proxy server
+    max_delay: 15000, // do not make too aggressive or it DDOS proxy server
     factor: 1.3,
-    desc : 'connecting to project'
+    desc: "connecting to project"
     //log: (...x) => {
     //  console.log("retry primus:", ...x);
     //}
@@ -127,10 +127,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // However, we don't want to overwrite the usual global window.Primus.
   const conn = (connections[project_id] = Primus.connect({
     reconnect: {
-      max: 5000,
-      min: 1000,
-      factor: 1.3,
-      retries: 1000
+      max: 30000,  // do not make too aggressive or it DDOS proxy server
+      min: 3000,
+      factor: 1.5,
+      retries: Infinity
     }
   }));
   conn.api = new API(conn);
