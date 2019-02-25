@@ -166,7 +166,17 @@ class SyncTableChannel extends EventEmitter {
   private async clean_up_sockets(): Promise<void> {
     if (this.channel != null) {
       this.channel.removeAllListeners();
-      this.channel.end();
+      if (this.channel.conn.writable) {
+        /* The multiplex plugin should probably check that
+           conn is writable before trying to write, but it
+           doesn't.  So we only call end here if the conn
+           hasn't already closed itself.  Not doing this, causes a
+           stacktrace randomly, which isn't good.  (To reproduce,
+           open a file in a project, then close the project tab,
+           then re-open the project tab, and repeat a few times
+           until getting a stacktrace.) */
+        this.channel.end();
+      }
       delete this.channel;
     }
     if (this.websocket != null) {
