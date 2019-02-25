@@ -34,6 +34,9 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {SMC_Dropzone} = require('./smc-dropzone')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 
+{JupyterServerPanel} = require('./project/plain-jupyter-server')
+{JupyterLabServerPanel} = require('./project/jupyterlab-server')
+
 v = misc.keys(file_associations)
 v.sort()
 
@@ -89,17 +92,20 @@ exports.NewFileButton = NewFileButton = rclass
         on_click  : rtypes.func
         ext       : rtypes.string
         className : rtypes.string
+        disabled  : rtypes.bool
 
     on_click: ->
         if @props.ext?
             @props.on_click(@props.ext)
         else
             @props.on_click()
+
     render: ->
         <Button
             onClick={@on_click}
             style={marginRight:'5px', marginBottom:'5px'}
             className={@props.className}
+            disabled={@props.disabled}
         >
             <Icon name={@props.icon} /> {@props.name}
             {@props.children}
@@ -157,6 +163,11 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         create_file   : rtypes.func  #.required # commented, causes an exception upon init
         create_folder : rtypes.func  #.required
         styles        : rtypes.object
+        project_id    : rtypes.string.isRequired
+
+    getInitialState :->
+        show_jupyter_server_panel : false
+        show_jupyterlab_server_panel : false
 
     render: ->
         return if not @props.create_file or not @props.create_file
@@ -224,6 +235,32 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                    {@props.children}
                 </Col>
             </Row>
+            <Row style={row_style}>
+                <Col sm={12}>
+                    <Tip title={'Jupyter Server'}  icon={'cc-icon-ipynb'}
+                        tip={"Start a Jupyter notebook server..."}>
+                        <NewFileButton  name={'Jupyter Classic...'}
+                        icon={'cc-icon-ipynb'}
+                        on_click={=>@setState(show_jupyter_server_panel:true)}
+                        disabled={@state.show_jupyter_server_panel}/>
+                    </Tip>
+                    <Tip title={'JupyterLab Server'} icon={'cc-icon-ipynb'}
+                        tip={'Start a JupyterLab server...'}>
+                        <NewFileButton name={'JupyterLab...'}
+                        icon={'cc-icon-ipynb'}
+                        on_click={=>@setState(show_jupyterlab_server_panel:true)}
+                        disabled={@state.show_jupyterlab_server_panel}/>
+                    </Tip>
+                </Col>
+            </Row>
+            <Row style={row_style}>
+                <Col sm={6}>
+                    {if @state.show_jupyter_server_panel then <JupyterServerPanel project_id={@props.project_id} />}
+                </Col>
+                <Col sm={6}>
+                    {if @state.show_jupyterlab_server_panel then <JupyterLabServerPanel project_id={@props.project_id} />}
+                </Col>
+            </Row>
         </Fragment>
 
 exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
@@ -239,6 +276,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
 
     propTypes :
+        project_id  : rtypes.string.isRequired
         actions     : rtypes.object.isRequired
         close       : rtypes.func
         show_header : rtypes.bool
@@ -441,7 +479,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
                     <div style={color:"#666", paddingBottom:"5px"}>Select the type of file</div>
-                    <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
+                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id}>
                         <Tip
                             title = {'Download files from the Internet'}
                             icon = {'cloud'}
