@@ -24,9 +24,10 @@ export function init_websocket_api(
   primus.on("connection", function(spark) {
     // Now handle the connection
     logger.debug(
-      "primus api",
+      "primus-api",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
+
     spark.on("request", async function(data, done) {
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
       try {
@@ -35,7 +36,7 @@ export function init_websocket_api(
         done(resp);
       } catch (err) {
         // put this in for debugging...
-        // It's normal to sometimes get errors, e.g., when a Jupyter kernel 
+        // It's normal to sometimes get errors, e.g., when a Jupyter kernel
         // isn't yet available.
         // console.trace(); logger.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
@@ -45,6 +46,13 @@ export function init_websocket_api(
       logger.debug("primus-api", "data", typeof data, JSON.stringify(data));
     });*/
   });
+
+  primus.on("disconnection", function(spark) {
+    logger.debug(
+      "primus-api",
+      `end connection from ${spark.address.ip} -- ${spark.id}`
+    );
+  })
 }
 
 import { run_prettier, run_prettier_string } from "../formatters/prettier";

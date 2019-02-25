@@ -194,7 +194,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_select_cell_type() {
     let cell_type: any;
-    if (this.props.sel_ids != null ? this.props.sel_ids!.size > 1 : false) {
+    if (this.props.sel_ids != null ? this.props.sel_ids.size > 1 : false) {
       cell_type = "multi";
     } else {
       cell_type =

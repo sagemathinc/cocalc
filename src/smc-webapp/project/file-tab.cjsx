@@ -4,7 +4,7 @@ A single file tab that
 There is one of these for each open file in a project.
 ###
 
-{React, ReactDOM, rclass, rtypes} = require('../app-framework')
+{React, ReactDOM, rclass, rtypes, Fragment} = require('../app-framework')
 
 misc = require('smc-util/misc')
 
@@ -113,11 +113,11 @@ exports.FileTab = rclass
         text_color = 'white' if @props.is_active
 
         if @props.file_tab
-            label = <>{@props.label}</>
+            label = <Fragment>{@props.label}</Fragment>
         else
             label = <HiddenXS>{@props.label if not @props.shrink}</HiddenXS>
 
-        content = <><Icon style={icon_style} name={@props.icon} /> {label} </>
+        content = <Fragment><Icon style={icon_style} name={@props.icon} /> {label} </Fragment>
 
         if @props.file_tab
             # ONLY show for filenames, name file/new/find, etc. since stable.

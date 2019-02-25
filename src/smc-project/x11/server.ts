@@ -6,7 +6,7 @@ TODO:
   - [ ] when stopping project, kill xpra's
 */
 
-import { spawn } from "child_process";
+import { spawn, SpawnOptions } from "child_process";
 import { callback } from "awaiting";
 const { abspath } = require("smc-util-node/misc_node");
 const { path_split } = require("smc-util/misc");
@@ -124,7 +124,7 @@ class X11Channel {
     const env = clone(process.env);
     env.DISPLAY = `:${this.display}`;
     const cwd = this.get_cwd();
-    const options = { cwd, env, detached: true, stdio: "ignore" };
+    const options: SpawnOptions = { cwd, env, detached: true, stdio: "ignore" };
     args = args != null ? args : [];
     try {
       const sub = spawn(command, args, options);
