@@ -331,6 +331,22 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
+    render_close_row: ->
+        if not @props.close
+            return
+        <Row>
+            <Col sm={9}>
+                <div style={color: "#666"}>
+                    <em>You can also drag & drop onto the file listing below.</em>
+                </div>
+            </Col>
+            <Col sm={3}>
+                <Row>
+                    <Col sm={12}>{@close_button()}</Col>
+                </Row>
+            </Col>
+        </Row>
+
     render_upload: ->
         <Fragment>
             <Row style={marginTop: '20px'}>
@@ -348,20 +364,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     />
                 </Col>
             </Row>
-            <Row>
-                <Col sm={9}>
-                    <div style={color: "#666"}>
-                        <em>You can also drag & drop onto the file listing below.</em>
-                    </div>
-                </Col>
-                <Col sm={3}>
-                    {if @props.close
-                        <Row>
-                            <Col sm={12}>{@close_button()}</Col>
-                        </Row>
-                    }
-                </Col>
-            </Row>
+            {@render_close_row()}
         </Fragment>
 
     render_new_file_folder: ->
