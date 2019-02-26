@@ -1,0 +1,19 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke test 1`] = `
+<form
+  onSubmit={[Function]}
+>
+  <FormGroup
+    bsClass="form-group"
+  >
+    <FormControl
+      bsClass="form-control"
+      componentClass="input"
+      onChange={[Function]}
+      type="text"
+      value="initial"
+    />
+  </FormGroup>
+</form>
+`;
