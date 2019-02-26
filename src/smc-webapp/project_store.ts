@@ -359,6 +359,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         if (!this.get("show_masked", true)) {
+          // if we do not gray out files (and hence haven't computed the file mask yet)
+          // we do it now!
+          if (!this.get("other_settings").get("mask_files")) {
+            _compute_file_masks(listing);
+          }
+
           const filtered: string[] = [];
           for (let f of listing) {
             if (!f.mask) filtered.push(f);
