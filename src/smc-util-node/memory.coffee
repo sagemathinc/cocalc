@@ -1,4 +1,4 @@
-memwatch = require('memwatch-next')
+memwatch = require('node-memwatch')
 
 exports.init = (log) ->
     memwatch.on 'leak', (info) ->
