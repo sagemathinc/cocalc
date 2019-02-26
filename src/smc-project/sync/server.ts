@@ -250,9 +250,9 @@ class SyncTableChannel {
     if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
       const error = `Too many connections (${m} > ${MAX_CONNECTIONS_FROM_ONE_CLIENT}) from this client.  You might need to refresh your browser.`;
       this.log(
-        `${error}  Waiting 5s, then killing new connection from ${spark.id}...`
+        `${error}  Waiting 15s, then killing new connection from ${spark.id}...`
       );
-      await delay(5000); // minimize impact of client trying again, which it should do...
+      await delay(15000); // minimize impact of client trying again, which it should do...
       this.decrement_connection_count(spark);
       spark.end({ error });
       return;
