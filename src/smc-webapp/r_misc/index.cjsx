@@ -46,6 +46,8 @@ exports.SimpleX = SimpleX
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{NumberInput} = require("./number-input")
+exports.NumberInput = NumberInput
 {LabeledRow} = require('./labeled-row')
 exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
@@ -247,64 +249,6 @@ exports.TextInput = rclass
             {@render_input()}
             {@render_save_button()}
         </form>
-
-exports.NumberInput = NumberInput = rclass
-    displayName : 'Misc-NumberInput'
-
-    propTypes :
-        number      : rtypes.number.isRequired
-        min         : rtypes.number.isRequired
-        max         : rtypes.number.isRequired
-        on_change   : rtypes.func.isRequired
-        unit        : rtypes.string
-        disabled    : rtypes.bool
-
-    componentWillReceiveProps: (next_props) ->
-        if @props.number != next_props.number
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(number : next_props.number)
-
-    getInitialState: ->
-        number : @props.number
-
-    saveChange: (e) ->
-        e?.preventDefault()
-        n = parseInt(@state.number)
-        if "#{n}" == "NaN"
-            n = @props.number
-        if n < @props.min
-            n = @props.min
-        else if n > @props.max
-            n = @props.max
-        @setState(number:n)
-        @props.on_change(n)
-
-    render_save_button: ->
-        if @state.number? and @state.number != @props.number
-            <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
-
-    render: ->
-        unit = if @props.unit? then "#{@props.unit}" else ''
-        <Row>
-            <Col xs={6}>
-                <form onSubmit={@saveChange}>
-                    <FormGroup>
-                        <FormControl
-                            type     = 'text'
-                            ref      = 'input'
-                            value    = {if @state.number? then @state.number else @props.number}
-                            onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
-                            onBlur   = {@saveChange}
-                            onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
-                            disabled = {@props.disabled}
-                        />
-                    </FormGroup>
-                </form>
-            </Col>
-            <Col xs={6} className="lighten">
-                {unit}
-            </Col>
-        </Row>
 
 help_text =
   backgroundColor: 'white'
