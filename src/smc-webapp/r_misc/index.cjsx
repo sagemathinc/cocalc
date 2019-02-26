@@ -46,6 +46,8 @@ exports.SimpleX = SimpleX
 exports.Saving = Saving
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{TextInput} = require("./text-input")
+exports.TextInput = TextInput
 {NumberInput} = require("./number-input")
 exports.NumberInput = NumberInput
 {LabeledRow} = require('./labeled-row')
@@ -210,45 +212,6 @@ exports.MessageDisplay = MessageDisplay = rclass
             </Col>
         </Row>
 
-exports.TextInput = rclass
-    displayName : 'Misc-TextInput'
-
-    propTypes :
-        text : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-        type : rtypes.string
-        rows : rtypes.number
-
-    componentWillReceiveProps: (next_props) ->
-        if @props.text != next_props.text
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(text : next_props.text)
-
-    getInitialState: ->
-        text : @props.text
-
-    saveChange: (event) ->
-        event.preventDefault()
-        @props.on_change(@state.text)
-
-    render_save_button: ->
-        if @state.text? and @state.text != @props.text
-            <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
-
-    render_input: ->
-        <FormGroup>
-            <FormControl type={@props.type ? 'text'} ref='input' rows={@props.rows}
-                       componentClass={if @props.type == 'textarea' then 'textarea' else 'input'}
-                       value={if @state.text? then @state.text else @props.text}
-                       onChange={=>@setState(text:ReactDOM.findDOMNode(@refs.input).value)}
-            />
-        </FormGroup>
-
-    render: ->
-        <form onSubmit={@saveChange}>
-            {@render_input()}
-            {@render_save_button()}
-        </form>
 
 help_text =
   backgroundColor: 'white'
