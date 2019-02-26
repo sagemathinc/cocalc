@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ReactDOM, Rendered, redux} from "./app-framework";
+import { ReactDOM, Rendered, redux } from "./app-framework";
 import { Passports } from "./passports";
 import { List } from "immutable";
 
@@ -61,8 +61,7 @@ export class SignUp extends React.Component<Props, State> {
         ReactDOM.findDOMNode(this.refs.last_name).value,
         ReactDOM.findDOMNode(this.refs.email).value,
         ReactDOM.findDOMNode(this.refs.password).value,
-        this.state.user_token,
-        ReactDOM.findDOMNode(this.refs.question).value
+        this.state.user_token
       );
   };
 
@@ -89,6 +88,7 @@ export class SignUp extends React.Component<Props, State> {
           strategies={this.props.strategies}
           get_api_key={this.props.get_api_key}
           style={{ textAlign: "center" }}
+          disabled={!this.state.terms_checkbox}
         />
         Or sign up via email
         <br />
@@ -128,6 +128,7 @@ export class SignUp extends React.Component<Props, State> {
       <FormGroup>
         {this.render_error("first_name")}
         <FormControl
+          disabled={!this.state.terms_checkbox}
           name="first_name"
           ref="first_name"
           type="text"
@@ -144,6 +145,7 @@ export class SignUp extends React.Component<Props, State> {
       <FormGroup>
         {this.render_error("last_name")}
         <FormControl
+          disabled={!this.state.terms_checkbox}
           name="last_name"
           ref="last_name"
           type="text"
@@ -160,6 +162,7 @@ export class SignUp extends React.Component<Props, State> {
       <FormGroup>
         {this.render_error("email_address")}
         <FormControl
+          disabled={!this.state.terms_checkbox}
           name="email"
           ref="email"
           type="email"
@@ -175,6 +178,7 @@ export class SignUp extends React.Component<Props, State> {
       <FormGroup>
         {this.render_error("password")}
         <FormControl
+          disabled={!this.state.terms_checkbox}
           name="password"
           ref="password"
           type="password"
@@ -191,6 +195,7 @@ export class SignUp extends React.Component<Props, State> {
         <span>What would you like to do with CoCalc? (optional)</span>
         <FormGroup>
           <FormControl
+            disabled={!this.state.terms_checkbox}
             name="question"
             ref="question"
             type="text"
@@ -206,7 +211,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <Button
         style={{ marginBottom: UNIT, marginTop: UNIT }}
-        disabled={this.props.signing_up}
+        disabled={!this.state.terms_checkbox || this.props.signing_up}
         bsStyle={"success"}
         bsSize={"large"}
         type={"submit"}
@@ -225,12 +230,11 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_error("token")}
         {this.render_error("generic")}
         {this.render_error("account_creation_failed")}
-        {this.state.terms_checkbox ? this.render_passports() : undefined}
+        {this.render_passports()}
         <form
           style={{ marginTop: 20, marginBottom: 20 }}
           onSubmit={this.make_account}
         >
-          {this.render_question()}
           {this.render_first_name()}
           {this.render_last_name()}
           {this.render_email()}
@@ -250,7 +254,7 @@ export class SignUp extends React.Component<Props, State> {
       <Well style={well_style}>
         <AccountCreationEmailInstructions />
         {this.render_terms()}
-        {this.state.terms_checkbox ? this.render_creation_form() : undefined}
+        {this.render_creation_form()}
         <div style={{ textAlign: "center" }}>
           Email <HelpEmailLink /> if you need help.
         </div>
