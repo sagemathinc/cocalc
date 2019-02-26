@@ -22,7 +22,8 @@
 Miscellaneous functions.
 """
 
-import os, sha
+import os
+import hashlib
 
 ##########################################################################
 # Connecting to HTTP url's.
@@ -66,7 +67,7 @@ def all_files(path):  # TODO: delete if not used
 
     - ``path`` -- string
 
-    EXAMPLES::
+    EXAMPLES:
 
     We create 3 files: a, xyz.abc, and m/n/k/foo.  We also create a
     directory x/y/z, which is empty::
@@ -147,7 +148,6 @@ def local_ip_address(dest='8.8.8.8'):
     """
     # See http://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
     # Obviously, this requires internet access.
-    import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect((dest, 80))
     return s.getsockname()[0]
@@ -245,4 +245,4 @@ def thread_map(callable, inputs):
 # sha-1 hash
 ################################################
 def sha1(s):
-    return sha.sha(s).hexdigest()
+    return hashlib.sha1(s).hexdigest()
