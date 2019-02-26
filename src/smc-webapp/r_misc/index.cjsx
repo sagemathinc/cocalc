@@ -44,6 +44,8 @@ exports.CloseX2 = CloseX2
 exports.SimpleX = SimpleX
 {Saving} = require('./saving')
 exports.Saving = Saving
+{Spinner} = require('./spinner')
+exports.Spinner = Spinner
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
 {TextInput} = require("./text-input")
@@ -164,10 +166,6 @@ exports.Octicon = rclass
         if @props.mega
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
-
-exports.Spinner = rclass
-    render : ->
-        <Icon name='spinner' spin={true} />
 
 exports.Footer = rclass
     displayName : "Footer"
