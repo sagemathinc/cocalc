@@ -16,7 +16,7 @@
     "coffee-register-cache": "0.0.0",
     "coffeescript": "^2.1.0",
     "jsdom": "^7.2.2",
-    "memwatch-next": "^0.3.0",
+    "node-memwatch": "^1.0.1",
     "shell-escape": "^0.2.0",
     "sqlite3": "^4.0.4",
     "temp": "^0.8.3",

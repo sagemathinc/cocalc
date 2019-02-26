@@ -29,7 +29,7 @@
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
     "node-cleanup": "^2.1.2",
-    "node-pty": "^0.7.8",
+    "node-pty": "^0.8.1",
     "pidusage": "^1.2.0",
     "posix": "^4.0.0",
     "prettier": "^1.16.0",
