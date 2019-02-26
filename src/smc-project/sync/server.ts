@@ -23,7 +23,7 @@ const MAX_CONNECTIONS = 150;
 // some potentially malicious conduct, and also possible new clients with bugs.
 // It is VERY important that this not be too small, since there is often
 // a delay/timeout before a channel is properly closed.
-const MAX_CONNECTIONS_FROM_ONE_CLIENT = 30;
+const MAX_CONNECTIONS_FROM_ONE_CLIENT = 20;
 
 import {
   synctable_no_changefeed,
