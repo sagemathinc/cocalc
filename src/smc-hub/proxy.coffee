@@ -126,9 +126,9 @@ exports.init_http_proxy_server = (opts) ->
 
     winston.debug("init_http_proxy_server")
 
-    window.debug("init_smc_version: start...")
+    winston.debug("init_smc_version: start...")
     await init_smc_version(opts.database)
-    window.debug("init_smc_version: done")
+    winston.debug("init_smc_version: done")
 
     # Checks for access to project, and in case of write access,
     # also touch's project thus recording that user is interested
