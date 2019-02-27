@@ -52,7 +52,7 @@ export class JupyterLabServerPanel extends Component<Props, {}> {
 
   render(): Rendered {
     return (
-      <ProjectSettingsPanel title="JupyterLab server" icon="list-alt">
+      <ProjectSettingsPanel title="JupyterLab Server" icon="list-alt">
         <span style={{ color: "#444" }}>
           The JupyterLab server runs from your project and provides support for
           Jupyter notebooks, terminals, drag and drop, with a nice multiwindow
