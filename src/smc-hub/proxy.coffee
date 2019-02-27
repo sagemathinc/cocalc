@@ -450,15 +450,16 @@ exports.init_http_proxy_server = (opts) ->
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
 
-        if exports.version_check(req, undefined, base_url)
-            dbg("websocket upgrade -- version check failed")
-            return
-
         # Strip remember_me cookie from req used for websocket upgrade.
         req.headers['cookie'] = exports.strip_remember_me_cookie(req.headers['cookie']).cookie
 
         req_url = req.url.slice(base_url.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
+
+        if exports.version_check(req, undefined, base_url)
+            dbg("websocket upgrade -- version check failed")
+            return
+
         target undefined, req_url, (err, location, internal_url) ->
             if err
                 dbg("websocket upgrade error -- #{err}")
