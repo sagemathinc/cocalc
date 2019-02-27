@@ -24,6 +24,7 @@ HTTP Proxy Server, which passes requests directly onto http
 servers running on project vm's
 ###
 
+Cookies = require('cookies')            # https://github.com/jed/cookies
 async   = require('async')
 winston = require('./winston-metrics').get_logger('proxy')
 http_proxy = require('http-proxy')
@@ -41,7 +42,39 @@ hub_projects = require('./projects')
 auth = require('./auth')
 access = require('./access')
 
+{once} = require('smc-util/async-utils')
+
 DEBUG2 = false
+
+# async
+server_settings = undefined
+exports.init_smc_version = init_smc_version = (db) ->
+    winston.debug("init_smc_version: ")
+    if db.is_standby
+        return
+    server_settings = require('./server-settings')(db)
+    if server_settings.table._state == 'init'
+        winston.debug("init_smc_version: Waiting for init to finish")
+        await once(server_settings.table, 'init')
+    winston.debug("init_smc_version: Table now ready!", server_settings.version)
+
+exports.version_check = (req, res, base_url) ->
+    c = new Cookies(req)
+    # The arbitrary name of the cookie 'cocalc_version' is
+    # also used in the frontend code file
+    #     smc-webapp/set-version-cookie.js
+    # The encodeURIComponent below is because js-cookie does
+    # the same in order to *properly* deal with / characters.
+    version = parseInt(c.get(encodeURIComponent(base_url) + 'cocalc_version'))
+    min_version = server_settings.version.version_min_browser
+    winston.debug('client version_check', version, min_version)
+    if isNaN(version) or version < min_version
+        if res?
+            res.writeHead(500, {'Content-Type':'text/html'})
+            res.end("REFRESH YOUR BROWSER -- version=#{version} < required_version=#{min_version}")
+        return true
+    else
+        return false
 
 # In the interest of security and "XSS", we strip the "remember_me" cookie from the header before
 # passing anything along via the proxy.
@@ -92,6 +125,10 @@ exports.init_http_proxy_server = (opts) ->
     {database, compute_server, base_url} = opts
 
     winston.debug("init_http_proxy_server")
+
+    window.debug("init_smc_version: start...")
+    await init_smc_version(opts.database)
+    window.debug("init_smc_version: done")
 
     # Checks for access to project, and in case of write access,
     # also touch's project thus recording that user is interested
@@ -338,6 +375,10 @@ exports.init_http_proxy_server = (opts) ->
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
+        if exports.version_check(req, res, base_url)
+            dbg("version check failed")
+            return
+
         # Before doing anything further with the request on to the proxy, we remove **all** cookies whose
         # name contains "remember_me", to prevent the project backend from getting at
         # the user's session cookie, since one project shouldn't be able to get
@@ -408,6 +449,10 @@ exports.init_http_proxy_server = (opts) ->
     # add websockets support
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
+
+        if exports.version_check(req, undefined, base_url)
+            dbg("websocket upgrade -- version check failed")
+            return
 
         # Strip remember_me cookie from req used for websocket upgrade.
         req.headers['cookie'] = exports.strip_remember_me_cookie(req.headers['cookie']).cookie
