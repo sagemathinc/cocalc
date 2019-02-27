@@ -17,7 +17,7 @@ if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
         //- Creates a default tracker with automatic cookie domain configuration.
         google_analytics('create', '#{GOOGLE_ANALYTICS}', 'auto');
         //- Sends a pageview hit from the tracker just created.
-        google_analytics('send', 'pageview');
+        google_analytics('send', 'pageview', window.location.pathname);
 
     //- Sets the `async` attribute to load the script asynchronously.
     script(async src='//www.google-analytics.com/analytics.js')
