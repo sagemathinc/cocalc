@@ -835,7 +835,6 @@ class Project(object):
                         "path (=%s) does not exist and neither does %s" %
                         (path, base))
 
-        filename = os.path.split(abspath)[-1]
         if os.path.isfile(abspath):
             # a regular file
             size = os.lstat(abspath).st_size

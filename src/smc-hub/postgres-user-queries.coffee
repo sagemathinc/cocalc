@@ -1568,7 +1568,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         @_query
             query : "SELECT project_id FROM syncstrings"
             where : "string_id = $::CHAR(40)" : string_id
-            cache : false  # unfortunately, if this returns no, due to FATAL below this will break opening the file forever
+            cache : false  # *MUST* leave as false (not true), since unfortunately, if this returns no, due to FATAL below this would break opening the file until cache clears.
             cb    : one_result 'project_id', (err, x) =>
                 if err
                     cb(err)

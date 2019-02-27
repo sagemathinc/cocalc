@@ -266,7 +266,9 @@ export class SyncDoc extends EventEmitter {
   */
   private async init(): Promise<void> {
     this.assert_not_closed("init");
+    const log = this.dbg("init");
 
+    log("initializing all tables...");
     try {
       //const t0 = new Date();
       await this.init_all();
@@ -274,12 +276,13 @@ export class SyncDoc extends EventEmitter {
       //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
       //);
     } catch (err) {
-      // completely normal that this could happen - it means
+      log(`WARNING -- error initializing ${err}`);
+      // completely normal that this could happen on frontend - it just means
       // that we closed the file before finished opening it...
-      //console.warn("SyncDoc init error -- ", err, err.stack);
       if (this.state != "closed") {
-        // Error NOT caused by closing during the init_all, so we
-        // report it.
+        log(
+          "Error -- NOT caused by closing during the init_all, so we report it."
+        );
         this.emit("error", err);
       }
       await this.close();
@@ -864,6 +867,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state == ("closed" as State)) return;
 
     dbg("do syncstring write query...");
+
     await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -2632,4 +2636,3 @@ export class SyncDoc extends EventEmitter {
     this.before_change = this.doc;
   }
 }
-
