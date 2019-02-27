@@ -2635,4 +2635,8 @@ export class SyncDoc extends EventEmitter {
     this.emit("change", this.doc.changes(this.before_change));
     this.before_change = this.doc;
   }
+
+  public export_to(ext : string) : string {
+
+  }
 }
