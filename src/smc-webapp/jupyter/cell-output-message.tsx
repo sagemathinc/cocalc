@@ -687,11 +687,12 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
       asc ? n++ : n--
     ) {
       const mesg = this.props.output.get(`${n}`);
-      // Make this renderer robust against any possible weird shap of the actual
+      // Make this renderer robust against any possible weird shape of the actual
       // output object, e.g., undefined or not immmutable js.
       // Also, we're checking that get is defined --
       //   see https://github.com/sagemathinc/cocalc/issues/2404
-      if ((mesg != null ? mesg.get : undefined) == null) {
+      if (mesg == null || typeof mesg.get != 'function') {
+        console.warn(`Jupyter -- ignoring invalid mesg ${mesg}`);
         continue;
       }
       const name = mesg.get("name");

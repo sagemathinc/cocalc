@@ -57,6 +57,7 @@
     "jquery-ui-touch-punch": "^0.2",
     "jquery.payment": "^3.0.0",
     "jquery.scrollintoview": "^1.9",
+    "js-cookie": "^2.2.0",
     "json-stable-stringify": "^1.0",
     "katex": "^0.9.0",
     "langs": "^2.0.0",
@@ -73,7 +74,7 @@
     "nodeunit": "^0.11.3",
     "octicons": "^3.5.0",
     "onecolor": "^3.1.0",
-    "pdfjs-dist": "^2.0.489",
+    "pdfjs-dist": "^2.0.943",
     "pegjs": "^0.10.0",
     "pica": "^4.1.1",
     "pnotify": "^3.0.0",
@@ -101,7 +102,7 @@
     "three": "^0.78.0",
     "timeago": "^1.6.3",
     "underscore": "^1.9.1",
-    "xterm": "^3.11.0",
+    "xterm": "=3.10.1",
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {

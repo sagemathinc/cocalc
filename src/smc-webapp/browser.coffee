@@ -25,7 +25,9 @@
 # count to the left of the title; if called with no arguments just updates
 # the count, maintaining the previous title.
 notify_count = undefined
-exports.set_notify_count_function = (f) -> notify_count = f
+exports.set_notify_count_function = ->
+    store = redux.getStore('file_use')
+    notify_count = store.get_notify_count
 
 last_title = ''
 exports.set_window_title = (title) ->

@@ -6,7 +6,7 @@ console.log("loading jsdom...")
 {JSDOM} = require('jsdom')
 
 console.log("loading jQuery...")
-DOM = new JSDOM('<!DOCTYPE html>')
+DOM = new JSDOM('<!DOCTYPE html>', {url: 'http://localhost'})
 jQuery = require('jquery')(DOM.window)
 
 global.BACKEND   = true

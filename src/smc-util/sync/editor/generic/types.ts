@@ -20,15 +20,15 @@ export interface Document {
   make_patch(Document): CompressedPatch;
   is_equal(Document): boolean;
   to_str(): string;
-  set(any): Document;  // returns new document with result of set
-  get(any?): any;      // returns result of get query on document (error for string)
-  get_one(any?): any;      // returns result of get_one query on document (error for string)
-  delete(any?) : Document; // delete something from Document (error for string)
+  set(any): Document; // returns new document with result of set
+  get(any?): any; // returns result of get query on document (error for string)
+  get_one(any?): any; // returns result of get_one query on document (error for string)
+  delete(any?): Document; // delete something from Document (error for string)
 
   // optional info about what changed going from prev to this.
-  changes(prev? : Document) : any;
+  changes(prev?: Document): any;
   // how many in this document (length of string number of records in db-doc, etc.)
-  count() : number;
+  count(): number;
 }
 
 export type CompressedPatch = any[];
@@ -52,18 +52,19 @@ export interface Client extends EventEmitter {
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   dbg: (desc: string) => Function;
-  mark_file: (
-    opts: {
-      project_id: string;
-      path: string;
-      action: string;
-      ttl: number;
-    }
-  ) => void;
+  mark_file: (opts: {
+    project_id: string;
+    path: string;
+    action: string;
+    ttl: number;
+  }) => void;
 
-  log_error: (
-    opts: { project_id: string; path: string; string_id: string; error: any }
-  ) => void;
+  log_error: (opts: {
+    project_id: string;
+    path: string;
+    string_id: string;
+    error: any;
+  }) => void;
 
   query: (opts: { query: any; cb: Function }) => void;
 
@@ -71,9 +72,11 @@ export interface Client extends EventEmitter {
   path_access: (opts: { path: string; mode: string; cb: Function }) => void;
   path_exists: (opts: { path: string; cb: Function }) => void;
   path_stat: (opts: { path: string; cb: Function }) => void;
-  path_read: (
-    opts: { path: string; maxsize_MB?: number; cb: Function }
-  ) => void;
+  path_read: (opts: {
+    path: string;
+    maxsize_MB?: number;
+    cb: Function;
+  }) => void;
   write_file: (opts: { path: string; data: string; cb: Function }) => void;
   watch_file: (opts: { path: string }) => FileWatcher;
 
@@ -81,7 +84,8 @@ export interface Client extends EventEmitter {
     project_id: string,
     query: any,
     options: any,
-    throttle_changes?: number
+    throttle_changes?: number,
+    id?: string
   ) => Promise<SyncTable>;
 
   synctable_database: (

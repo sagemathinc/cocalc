@@ -32,8 +32,7 @@ export class NonloadedPage extends Component<Props, {}> {
           display: "inline-block"
         }}
       >
-        <div style={{ width: width, height: height }}>
-        </div>
+        <div style={{ width: width, height: height }} />
       </div>
     );
   }

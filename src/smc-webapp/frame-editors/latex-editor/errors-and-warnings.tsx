@@ -192,7 +192,9 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
       this.props.build_logs.getIn(["knitr", "parse"]) !=
         props.build_logs.getIn(["knitr", "parse"]) ||
       this.props.build_logs.getIn(["pythontex", "parse"]) !=
-        props.build_logs.getIn(["pythontex", "parse"])
+        props.build_logs.getIn(["pythontex", "parse"])||
+      this.props.build_logs.getIn(["sagetex", "parse"]) !=
+        props.build_logs.getIn(["sagetex", "parse"])
     );
   }
 
@@ -244,12 +246,15 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
     if (!content) {
       return;
     }
+    const header = (
+      <>
+        <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
+        {capitalize(group)} ({capitalize(tool)})
+      </>
+    );
     return (
       <div key={group}>
-        <h3>
-          <Icon name={spec.icon} style={{ color: spec.color }} />{" "}
-          {capitalize(group)} ({capitalize(tool)})
-        </h3>
+        {content.size == 0 ? <h5>{header}</h5> : <h3>{header}</h3>}
         {this.render_group_content(content)}
       </div>
     );
@@ -282,6 +287,7 @@ class ErrorsAndWarnings extends Component<ErrorsAndWarningsProps, {}> {
         {["errors", "typesetting", "warnings"].map(group =>
           this.render_group("latex", group)
         )}
+        {this.render_group("sagetex", "errors")}
         {["errors", "warnings"].map(group => this.render_group("knitr", group))}
         {this.render_group("pythontex", "errors")}
       </div>

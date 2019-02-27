@@ -90,7 +90,10 @@ init_smc_version = (db, cb) ->
         cb()
         return
     server_settings = require('./server-settings')(db)
-    server_settings.table.once('init', cb)
+    if server_settings.table._state == 'init'
+        server_settings.table.once('init', => cb())
+    else
+        cb()
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
     server_settings.table.on 'change', ->
         winston.debug("version changed -- sending updates to clients")
@@ -527,7 +530,7 @@ exports.start_server = start_server = (cb) ->
             # proxy server and http server; Some of this working etc. *relies* on compute_server having been created.
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
-            x = hub_http_server.init_express_http_server
+            x = await hub_http_server.init_express_http_server
                 base_url       : BASE_URL
                 dev            : program.dev
                 compute_server : compute_server

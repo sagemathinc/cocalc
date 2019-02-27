@@ -19,22 +19,37 @@ const { webapp_client } = require("../webapp_client");
 
 import { keys, filename_extension } from "smc-util/misc2";
 
+const hdf_file =
+  "Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.";
+const excel =
+  'Microsoft Excel file -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Calc" application.';
+const microsoft_word =
+  'Microsoft Word file -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Writer" application.';
+const microsoft_ppt =
+  'Microsoft PowerPoint -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.';
+
 // ext: markdown string.
 const INFO = {
-  h4:
-    "Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.",
-  h5:
-    "Hierarchical Data Format (HDF file) -- you can open this file using a Python or R library.",
-  xlsx:
-    "Microsoft Excel file -- you may be able to use this file via a Python library or use it in some other way.",
+  h4: hdf_file,
+  h5: hdf_file,
+  xlsx: excel,
+  xls: excel,
+  doc: microsoft_word,
+  docx: microsoft_word,
+  ppt: microsoft_ppt,
+  pptx: microsoft_ppt,
   raw:
     "You may be able to use this file via a Python library or use it in some other way.",
   tiff:
-    "You may be able to use this file via a Python image manipulation library or use it in some other way.",
+    'You may be able to use this file via a Python image manipulation library or via a tool like "Gimp" in an ["X11" file](https://doc.cocalc.com/x11.html).',
   fit:
     "You may be able to use this file from Python using the [fitparse](https://github.com/dtcooper/python-fitparse) library.",
   odt:
-    "Please download this file to your computer and open it using [OpenOffice Writer](https://www.openoffice.org/product/writer.html).",
+    'OpenDocument Text -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Writer" application.',
+  ods:
+    'OpenDocument Spreadsheet -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Calc" application.',
+  odp:
+    'OpenDocument Presentation -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.',
   sobj:
     'You can load an sobj file into **SageMath** by typing `load("filename.sobj")`.',
   "noext-octave-workspace": `\
@@ -88,6 +103,6 @@ class DataGeneric extends Component<Props, {}> {
 
 register_file_editor({
   ext: keys(INFO),
-  icon: "table",
+  icon: "question",
   component: DataGeneric
 });

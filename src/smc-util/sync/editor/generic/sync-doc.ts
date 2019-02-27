@@ -50,7 +50,13 @@ import {
 
 import { wait } from "../../../async-wait";
 
-import { cmp_Date, endswith, filename_extension, keys } from "../../../misc2";
+import {
+  cmp_Date,
+  endswith,
+  filename_extension,
+  keys,
+  uuid
+} from "../../../misc2";
 
 import { Evaluator } from "./evaluator";
 
@@ -124,6 +130,9 @@ export class SyncDoc extends EventEmitter {
   private path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;
+
+  // This id is used for equality test and caching.
+  private id: string = uuid();
 
   private client: Client;
   private _from_str: (str: string) => Document; // creates a doc from a string.
@@ -257,7 +266,9 @@ export class SyncDoc extends EventEmitter {
   */
   private async init(): Promise<void> {
     this.assert_not_closed("init");
+    const log = this.dbg("init");
 
+    log("initializing all tables...");
     try {
       //const t0 = new Date();
       await this.init_all();
@@ -265,12 +276,13 @@ export class SyncDoc extends EventEmitter {
       //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
       //);
     } catch (err) {
-      // completely normal that this could happen - it means
+      log(`WARNING -- error initializing ${err}`);
+      // completely normal that this could happen on frontend - it just means
       // that we closed the file before finished opening it...
-      //console.warn("SyncDoc init error -- ", err, err.stack);
       if (this.state != "closed") {
-        // Error NOT caused by closing during the init_all, so we
-        // report it.
+        log(
+          "Error -- NOT caused by closing during the init_all, so we report it."
+        );
         this.emit("error", err);
       }
       await this.close();
@@ -762,8 +774,8 @@ export class SyncDoc extends EventEmitter {
     this.set_state("closed");
     this.emit("close");
 
-    // must be after this.emit('close') above, so they know
-    // what happened and can respond to it.
+    // must be after the emits above, so clients know
+    // what happened and can respond.
     this.removeAllListeners();
 
     if (this.throttled_file_use != null) {
@@ -799,7 +811,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.patch_list != null) {
-      this.patch_list.close();
+      await this.patch_list.close();
       delete this.patch_list;
     }
 
@@ -855,6 +867,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state == ("closed" as State)) return;
 
     dbg("do syncstring write query...");
+
     await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -882,7 +895,8 @@ export class SyncDoc extends EventEmitter {
           this.project_id,
           query,
           options,
-          throttle_changes
+          throttle_changes,
+          this.id
         );
       case "database":
         return await this.client.synctable_database(
