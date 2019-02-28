@@ -847,16 +847,14 @@ export class SyncDoc extends EventEmitter {
   // fields....
   // Also, this also establishes the correct doctype.
 
-  // Since this MUST succeed before doing anything else, we
-  // keep trying until either it does, or this document is closed.
+  // Since this MUST succeed before doing anything else. This is critical
+  // because the patches table can't be opened anywhere if the syncstring
+  // object doesn't exist, due to how our security works, *AND* that the
+  // patches table uses the string_id, which is a SHA1 hash.
   private async ensure_syncstring_exists_in_db(): Promise<void> {
     const dbg = this.dbg("ensure_syncstring_exists_in_db");
     if (this.ephemeral) {
-      dbg("ephemeral -- nothing to do");
-      return;
-    }
-    if (this.client.is_user()) {
-      dbg("browser client -- nothing to do");
+      dbg("ephemeral -- nothing to do (since database not used)");
       return;
     }
 
@@ -864,6 +862,11 @@ export class SyncDoc extends EventEmitter {
       dbg("wait until connected...", this.client.is_connected());
       await once(this.client, "connected");
     }
+
+    if (this.client.is_user() && !this.client.is_signed_in()) {
+      await once(this.client, "signed_in");
+    }
+
     if (this.state == ("closed" as State)) return;
 
     dbg("do syncstring write query...");
