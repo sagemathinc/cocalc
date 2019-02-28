@@ -264,7 +264,9 @@ FileRow = rclass
             <div style={color:'#666', display:'inline'}>Invalid Date Time</div>
 
     render_download_button: (url_href) ->
-        <Button style   = {marginLeft: '1em', background:'transparent'}
+        # ugly width 2.5em is to line up with blank space for directory.
+        # TODO: This really should not be in the size column...
+        <Button style   = {marginLeft: '1em', background:'transparent', width:'2.5em'}
                 bsStyle = 'default'
                 bsSize  = 'xsmall'
                 href    = "#{url_href}"
@@ -325,6 +327,7 @@ DirectoryRow = rclass
         color        : rtypes.string
         bordered     : rtypes.bool
         time         : rtypes.number
+        size         : rtypes.number
         mask         : rtypes.bool
         public_data  : rtypes.object
         is_public    : rtypes.bool
@@ -391,6 +394,14 @@ DirectoryRow = rclass
                 {misc.trunc_middle(@props.display_name ? @props.name, 50)}
             </a>
 
+    render_size: ->
+        if not @props.size   # need newer backend project
+            return
+        # -2 below since we don't include . and ..
+        <span className='pull-right' style={color:'#666', marginRight:'3em'}>
+            {@props.size - 2} items
+        </span>
+
     render: ->
         row_styles =
             cursor          : 'pointer'
@@ -429,6 +440,7 @@ DirectoryRow = rclass
             </Col>
             <Col sm={4} smPush={5} xs={6}>
                 {@render_time()}
+                {@render_size()}
             </Col>
             <Col sm={5} smPull={4} xs={12} style={directory_styles}>
                 {@render_name_link()}
@@ -671,6 +683,7 @@ FileListing = rclass
                 name         = {name}
                 display_name = {display_name}
                 time         = {time}
+                size         = {size}
                 key          = {index}
                 color        = {color}
                 bordered     = {apply_border}
