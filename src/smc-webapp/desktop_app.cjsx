@@ -101,6 +101,51 @@ PAGE_REDUX_PROPS =
 
 PAGE_REDUX_FIELDS = redux_fields(PAGE_REDUX_PROPS)
 
+
+
+Draggable = require('react-draggable')
+
+HelpOverlay = rclass
+    displayName : 'HelpOverlay'
+    render : ->
+        boxStyle =
+            border: '2px solid gray'
+            borderRadius: '5px'
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.24)'
+            verticalAlign: 'bottom'
+            background: 'none'
+            width: '29vw'
+            height: '83vh'
+            zIndex: 10000000
+            top: '15vh'
+            left: '70vw'
+            visibility: 'visible'
+            opacity: 1
+            position: 'fixed'
+            background: 'white'
+            display: 'flex'
+            flexDirection: 'column'
+
+        docStyle =
+            flexGrow: 1
+            border: 'none'
+            margin: 0
+            padding: 0
+
+        src = "https://doc.cocalc.com"
+
+
+        <Draggable
+            ref    = 'helpoverlay'
+            onStop = {(e) => console.log('onStop', e)}
+            onStart = {(e) => console.log('onStart', e)}
+        >
+            <div style={boxStyle}>
+                <div>Controls: <a href={"#"} onClick={=>window.alert('close')}>close</a></div>
+                <iframe frameborder={0} src={src} allowTransparency={0} style={docStyle}></iframe>
+            </div>
+        </Draggable>
+
 Page = rclass
     displayName : "Page"
 
@@ -295,6 +340,7 @@ Page = rclass
             {<FullscreenButton /> if (@props.fullscreen != 'kiosk')}
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
+            {<HelpOverlay />}
             <ErrorBoundary>
                 <ActiveAppContent active_top_tab={@props.active_top_tab}/>
             </ErrorBoundary>
