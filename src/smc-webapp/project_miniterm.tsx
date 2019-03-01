@@ -62,7 +62,8 @@ export const output_style_miniterm: React.CSSProperties = {
   maxHeight: "450px",
   overflow: "auto",
   right: 0,
-  maxWidth: "80%"
+  maxWidth: "80%",
+  marginRight: "5px"
 };
 
 const BAD_COMMANDS = {
