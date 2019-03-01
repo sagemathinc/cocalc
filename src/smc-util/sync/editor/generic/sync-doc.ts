@@ -276,10 +276,13 @@ export class SyncDoc extends EventEmitter {
       //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
       //);
     } catch (err) {
+      if (this.state == "closed") {
+        return;
+      }
       log(`WARNING -- error initializing ${err}`);
       // completely normal that this could happen on frontend - it just means
       // that we closed the file before finished opening it...
-      if (this.state != "closed") {
+      if (this.state != "closed" as State) {
         log(
           "Error -- NOT caused by closing during the init_all, so we report it."
         );
@@ -889,6 +892,7 @@ export class SyncDoc extends EventEmitter {
     options: any[],
     throttle_changes?: undefined | number
   ): Promise<SyncTable> {
+    this.assert_not_closed("synctable");
     if (this.persistent && this.data_server == "project") {
       options = options.concat([{ persistent: true }]);
     }
@@ -986,20 +990,25 @@ export class SyncDoc extends EventEmitter {
     }
     const log = this.dbg("init_all");
 
-    this.assert_not_closed("init_all -- before ensuring syncstring exists");
     log("ensure syncstring exists in database");
+    this.assert_not_closed("init_all -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
+
     log("syncstring_table");
+    this.assert_not_closed("init_all -- before init_syncstring_table");
     await this.init_syncstring_table();
-    this.assert_not_closed("init_all -- before init patch_list");
+
     log("patch_list, cursors, evaluator");
+    this.assert_not_closed("init_all -- before init patch_list, cursors, evaluator");
     await Promise.all([
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator()
     ]);
     this.assert_not_closed("init_all -- after init patch_list");
+
     this.init_table_close_handlers();
+
     log("file_use_interval");
     this.init_file_use_interval();
 
@@ -1017,6 +1026,7 @@ export class SyncDoc extends EventEmitter {
         desc: "syncdoc -- load_from_disk"
       });
       log("done loading from disk");
+      this.assert_not_closed("init_all -- load from disk");
     }
 
     log("wait_until_fully_ready");
