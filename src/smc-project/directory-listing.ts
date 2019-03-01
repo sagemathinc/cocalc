@@ -25,6 +25,7 @@ const HOME =
 export interface ListingEntry {
   name: string;
   isdir?: boolean;
+  issymlink?: boolean;
   size?: number; // bytes for file, number of entries for directory (*including* . and ..).
   mtime?: number;
   error?: string;
@@ -55,19 +56,28 @@ export async function get_listing_node10(
       entry = { name: "????", error: "Cannot display bad binary filename. " };
     }
 
-    if (file.isDirectory()) {
-      entry.isdir = true;
-    }
-
     try {
       let stats: Stats;
       if (file.isSymbolicLink()) {
-        stats = await callback(lstat, dir + "/" + entry.name);
-      } else {
-        stats = await callback(stat, dir + "/" + entry.name);
+        entry.issymlink = true;
       }
-      entry.size = stats.size;
+      try {
+        stats = await callback(stat, dir + "/" + entry.name);
+      } catch (err) {
+        // don't have access to target of link (or it is a broken link).
+        stats = await callback(lstat, dir + "/" + entry.name);
+      }
       entry.mtime = stats.mtime.valueOf() / 1000;
+      if (file.isDirectory()) {
+        entry.isdir = true;
+        try {
+          entry.size = (await callback(readdir, dir + "/" + entry.name)).length;
+        } catch (err) {
+          // skip
+        }
+      } else {
+        entry.size = stats.size;
+      }
     } catch (err) {
       entry.error = `${entry.error ? entry.error : ""}${err}`;
     }
@@ -99,17 +109,27 @@ export async function get_listing(
       entry = { name: "????", error: "Cannot display bad binary filename. " };
     }
 
+    let stats: Stats;
     try {
-      let stats: Stats;
-      try {
-        stats = await callback(stat, dir + "/" + entry.name);
-      } catch (err) {
-        stats = await callback(lstat, dir + "/" + entry.name);
+      stats = await callback(lstat, dir + "/" + entry.name);
+      if (stats.isSymbolicLink()) {
+        entry.issymlink = true;
+        try {
+          stats = await callback(stat, dir + "/" + entry.name);
+        } catch(err) {
+          // broken link -- just report info about the link itself...
+        }
       }
-      entry.size = stats.size;
       entry.mtime = stats.mtime.valueOf() / 1000;
       if (stats.isDirectory()) {
         entry.isdir = true;
+        try {
+          entry.size = (await callback(readdir, dir + "/" + entry.name)).length;
+        } catch (err) {
+          // just ignore -- no size info.
+        }
+      } else {
+        entry.size = stats.size;
       }
     } catch (err) {
       entry.error = `${entry.error ? entry.error : ""}${err}`;

@@ -157,6 +157,7 @@ FileRow = rclass
         display_name : rtypes.string  # if given, will display this, and will show true filename in popover
         size         : rtypes.number  # sometimes is NOT known!
         time         : rtypes.number
+        issymlink    : rtypes.bool    # TODO: actually use
         checked      : rtypes.bool
         bordered     : rtypes.bool
         color        : rtypes.string
@@ -173,6 +174,7 @@ FileRow = rclass
         @props.display_name != next.display_name or
         @props.size         != next.size         or
         @props.time         != next.time         or
+        @props.issymlink    != next.issymlink    or
         @props.checked      != next.checked      or
         @props.mask         != next.mask         or
         @props.public_data  != next.public_data  or
@@ -328,6 +330,7 @@ DirectoryRow = rclass
         bordered     : rtypes.bool
         time         : rtypes.number
         size         : rtypes.number
+        issymlink    : rtypes.bool
         mask         : rtypes.bool
         public_data  : rtypes.object
         is_public    : rtypes.bool
@@ -348,7 +351,9 @@ DirectoryRow = rclass
         @props.is_public    != next.is_public    or
         @props.current_path != next.current_path or
         @props.no_select    != next.no_select    or
-        @props.public_view  != next.public_view
+        @props.public_view  != next.public_view  or
+        @props.issymlink    != next.issymlink
+
 
     handle_mouse_down: (e) ->
         @setState
@@ -395,11 +400,10 @@ DirectoryRow = rclass
             </a>
 
     render_size: ->
-        if not @props.size   # need newer backend project
+        if not @props.size?   # need newer backend project
             return
-        # -2 below since we don't include . and ..
         <span className='pull-right' style={color:'#666', marginRight:'3em'}>
-            {@props.size - 2} items
+            {@props.size} {misc.plural(@props.size, 'item')}
         </span>
 
     render: ->
@@ -665,7 +669,7 @@ FileListing = rclass
     getDefaultProps: ->
         file_search           : ''
 
-    render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
+    render_row: (name, size, time, mask, isdir, display_name, public_data, issymlink, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
         if checked
@@ -684,6 +688,7 @@ FileListing = rclass
                 display_name = {display_name}
                 time         = {time}
                 size         = {size}
+                issymlink    = {issymlink}
                 key          = {index}
                 color        = {color}
                 bordered     = {apply_border}
@@ -702,6 +707,7 @@ FileListing = rclass
                 display_name = {display_name}
                 time         = {time}
                 size         = {size}
+                issymlink    = {issymlink}
                 color        = {color}
                 bordered     = {apply_border}
                 mask         = {mask}
@@ -716,7 +722,7 @@ FileListing = rclass
             />
 
     render_rows: ->
-        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
+        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, a.issymlink, i) for a, i in @props.listing)
 
     render_no_files: ->
         return if @props.show_new
