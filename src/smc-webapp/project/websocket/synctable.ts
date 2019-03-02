@@ -33,7 +33,7 @@ interface Options {
   options: any;
   client: Client;
   throttle_changes?: undefined | number;
-  id : string;
+  id: string;
 }
 
 import { EventEmitter } from "events";
@@ -163,7 +163,7 @@ class SyncTableChannel extends EventEmitter {
     this.synctable.once("closed", this.close.bind(this));
   }
 
-  private async clean_up_sockets(): Promise<void> {
+  private clean_up_sockets(): void {
     if (this.channel != null) {
       this.channel.removeAllListeners();
       if (this.channel.conn.writable) {
@@ -185,12 +185,13 @@ class SyncTableChannel extends EventEmitter {
     }
   }
 
-  private close(): void {
+  private async close(): Promise<void> {
     delete cache[this.key];
     this.clean_up_sockets();
     if (this.synctable != null) {
-      this.synctable.close();
+      const s = this.synctable;
       delete this.synctable;
+      await s.close();
     }
   }
 
@@ -260,9 +261,9 @@ const cache: { [key: string]: SyncTableChannel } = {};
 // opts.id below is so important.  I tried several different approaches,
 // and this is the best by far.
 function key(opts: Options): string {
-  return `${opts.id}-${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
-    opts.options
-  )}`;
+  return `${opts.id}-${opts.project_id}-${JSON.stringify(
+    opts.query
+  )}-${JSON.stringify(opts.options)}`;
 }
 
 export async function synctable_project(opts: Options): Promise<SyncTable> {
