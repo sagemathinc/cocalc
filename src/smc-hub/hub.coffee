@@ -70,6 +70,8 @@ sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
 
+{handle_mentions_loop} = require('./mentions/handle')
+
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
 
@@ -482,6 +484,12 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            winston.debug("mentions=#{program.mentions}")
+            if program.mentions
+                winston.debug("enabling handling of mentions...")
+                handle_mentions_loop(database, program.mentions)
+            cb()
+        (cb) ->
             if not program.port
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
@@ -677,6 +685,7 @@ command_line = () ->
         .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--mentions <n>', 'if given, periodically handle mentions (time in ms)', ((n) -> parseInt(n)), 15000)
         .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')

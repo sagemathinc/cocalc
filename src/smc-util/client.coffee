@@ -2081,6 +2081,18 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    mention: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            target     : required # account_id (for now)
+            priority   : undefined # optional integer; larger number is higher; 0 is default.
+            cb         : undefined
+        @query
+            query :
+                mentions : misc.copy_without(opts, 'cb')
+            cb : opts.cb
+
 
 #################################################
 # Other account Management functionality shared between client and server

@@ -1752,6 +1752,67 @@ schema.system_notifications = {
   }
 };
 
+schema.mentions = {
+  primary_key: ["time", "project_id", "path", "target"],
+  db_standby: "unsafe",
+  anonymous: true, // allow user *read* access, even if not signed in
+  fields: {
+    time: {
+      type: "timestamp",
+      desc: "when this mention happened."
+    },
+    project_id: {
+      type: "uuid"
+    },
+    path: {
+      type: "string"
+    },
+    source: {
+      type: "uuid",
+      desc: "User who did the mentioning."
+    },
+    target: {
+      type: "string",
+      desc:
+        "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc."
+    },
+    priority: {
+      type: "number",
+      desc:
+        "optional integer priority.  0 = default, but could be 1 = higher priority, etc."
+    },
+    error: {
+      type: "string",
+      desc:
+        "some sort of error occured handling this mention"
+    },
+    done: {
+      type: "boolean",
+      desc: "notification has been handled in some way by the backend (e.g., email sent, decision not to send email, etc.)"
+    }
+  },
+
+  pg_indexes: ["done"],
+
+  user_query: {
+    set: {
+      fields: {
+        time: () => new Date(),
+        project_id: "project_write",
+        path: true,
+        source: "account_id",
+        target: true,
+        priority:true
+      },
+      required_fields: {
+        project_id: true,
+        path: true,
+        target: true
+      }
+    }
+  }
+};
+
 // Client side versions of some db functions, which are used, e.g., when setting fields.
 const sha1 = require("sha1");
 class ClientDB {
