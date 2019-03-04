@@ -86,6 +86,7 @@ export async function handle_mention(
   );
   const subject = `${SITE_NAME} Notification`;
   const body = `${source_name} mentioned you in a chat at ${path} in ${project_title}`;
+  // TODO: body should probably have a link...
   let source_email: string = await callback(
     db.get_user_column,
     "email_address",
