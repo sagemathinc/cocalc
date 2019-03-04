@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux, Fragment}  = require('./app-framework')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Panel, Input,
 Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space, CloseX2} = require('./r_misc')
@@ -33,6 +33,9 @@ Well, SplitButton, MenuItem, Alert} = require('react-bootstrap')
 {special_filenames_with_no_extension} = require('./project_file')
 {SMC_Dropzone} = require('./smc-dropzone')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
+
+{JupyterServerPanel} = require('./project/plain-jupyter-server')
+{JupyterLabServerPanel} = require('./project/jupyterlab-server')
 
 v = misc.keys(file_associations)
 v.sort()
@@ -89,17 +92,20 @@ exports.NewFileButton = NewFileButton = rclass
         on_click  : rtypes.func
         ext       : rtypes.string
         className : rtypes.string
+        disabled  : rtypes.bool
 
     on_click: ->
         if @props.ext?
             @props.on_click(@props.ext)
         else
             @props.on_click()
+
     render: ->
         <Button
             onClick={@on_click}
             style={marginRight:'5px', marginBottom:'5px'}
             className={@props.className}
+            disabled={@props.disabled}
         >
             <Icon name={@props.icon} /> {@props.name}
             {@props.children}
@@ -119,12 +125,12 @@ NewFileDropdown = rclass
     file_dropdown_item: (i, ext) ->
         {file_options} = require('./editor')
         data = file_options('x.' + ext)
-        text = <>
+        text = <Fragment>
                    <span style={textTransform:'capitalize'}>
                     {data.name}
                    </span>
                    <span style={color:'#666'}>(.{ext})</span>
-               </>
+               </Fragment>
         <MenuItem
             className={ 'dropdown-menu-left'}
             eventKey={i}
@@ -157,6 +163,11 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         create_file   : rtypes.func  #.required # commented, causes an exception upon init
         create_folder : rtypes.func  #.required
         styles        : rtypes.object
+        project_id    : rtypes.string.isRequired
+
+    getInitialState :->
+        show_jupyter_server_panel : false
+        show_jupyterlab_server_panel : false
 
     render: ->
         return if not @props.create_file or not @props.create_file
@@ -164,7 +175,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         row_style =
             marginBottom:'8px'
 
-        <>
+        <Fragment>
             <Row style={row_style}>
                 <Col sm={12}>
                     <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
@@ -224,7 +235,33 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                    {@props.children}
                 </Col>
             </Row>
-        </>
+            <Row style={row_style}>
+                <Col sm={12}>
+                    <Tip title={'Jupyter Server'}  icon={'cc-icon-ipynb'}
+                        tip={"Start a Jupyter notebook server..."}>
+                        <NewFileButton  name={'Jupyter Classic...'}
+                        icon={'cc-icon-ipynb'}
+                        on_click={=>@setState(show_jupyter_server_panel:true)}
+                        disabled={@state.show_jupyter_server_panel}/>
+                    </Tip>
+                    <Tip title={'JupyterLab Server'} icon={'cc-icon-ipynb'}
+                        tip={'Start a JupyterLab server...'}>
+                        <NewFileButton name={'JupyterLab...'}
+                        icon={'cc-icon-ipynb'}
+                        on_click={=>@setState(show_jupyterlab_server_panel:true)}
+                        disabled={@state.show_jupyterlab_server_panel}/>
+                    </Tip>
+                </Col>
+            </Row>
+            <Row style={row_style}>
+                <Col sm={6}>
+                    {if @state.show_jupyter_server_panel then <JupyterServerPanel project_id={@props.project_id} />}
+                </Col>
+                <Col sm={6}>
+                    {if @state.show_jupyterlab_server_panel then <JupyterLabServerPanel project_id={@props.project_id} />}
+                </Col>
+            </Row>
+        </Fragment>
 
 exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
     displayName : 'ProjectNew-ProjectNewForm'
@@ -239,6 +276,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
 
     propTypes :
+        project_id  : rtypes.string.isRequired
         actions     : rtypes.object.isRequired
         close       : rtypes.func
         show_header : rtypes.bool
@@ -331,8 +369,24 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             </ButtonToolbar>
         </Alert>
 
+    render_close_row: ->
+        if not @props.close
+            return
+        <Row>
+            <Col sm={9}>
+                <div style={color: "#666"}>
+                    <em>You can also drag & drop onto the file listing below.</em>
+                </div>
+            </Col>
+            <Col sm={3}>
+                <Row>
+                    <Col sm={12}>{@close_button()}</Col>
+                </Row>
+            </Col>
+        </Row>
+
     render_upload: ->
-        <>
+        <Fragment>
             <Row style={marginTop: '20px'}>
                 <Col sm={12}>
                     <h4><Icon name='cloud-upload' /> Upload</h4>
@@ -348,24 +402,11 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     />
                 </Col>
             </Row>
-            <Row>
-                <Col sm={9}>
-                    <div style={color: "#666"}>
-                        <em>You can also drag & drop onto the file listing below.</em>
-                    </div>
-                </Col>
-                <Col sm={3}>
-                    {if @props.close
-                        <Row>
-                            <Col sm={12}>{@close_button()}</Col>
-                        </Row>
-                    }
-                </Col>
-            </Row>
-        </>
+            {@render_close_row()}
+        </Fragment>
 
     render_new_file_folder: ->
-        <>
+        <Fragment>
             <Tip
                 title={'Folder'}
                 placement={'left'}
@@ -384,7 +425,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     create_file={@submit}
                 />
             </Tip>
-        </>
+        </Fragment>
 
     render_filename_form: ->
         onChange = =>
@@ -438,7 +479,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
                     <div style={color:"#666", paddingBottom:"5px"}>Select the type of file</div>
-                    <FileTypeSelector create_file={@submit} create_folder={@create_folder}>
+                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id}>
                         <Tip
                             title = {'Download files from the Internet'}
                             icon = {'cloud'}

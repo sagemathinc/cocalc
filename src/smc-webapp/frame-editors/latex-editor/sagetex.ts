@@ -6,6 +6,8 @@ Run sagetex
 
 import { exec, ExecOutput } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
+import { ProcessedLatexLog, Error } from "./latex-log-parser";
+import { BuildLog } from "./actions";
 
 function sagetex_file(base: string): string {
   return base + ".sagetex.sage";
@@ -45,7 +47,7 @@ export async function sagetex(
   return exec({
     allow_post: false, // definitely could take a long time to fully run sage
     timeout: 360,
-    bash: true,   // so timeout is enforced by ulimit
+    bash: true, // so timeout is enforced by ulimit
     command: "sage",
     args: [s],
     project_id: project_id,
@@ -53,4 +55,51 @@ export async function sagetex(
     err_on_exit: false,
     aggregate: hash ? { value: hash } : undefined
   });
+}
+
+/* example error
+ *
+ *    File "sagetex.sagetex.sage.py", line 16
+ *     _st_.inline(_sage_const_1 , latex(_sage_const_3p2 .2))
+ *                                                        ^
+ * SyntaxError: invalid
+ */
+
+export function sagetex_errors(
+  path: string,
+  output: BuildLog
+): ProcessedLatexLog {
+  const pll = new ProcessedLatexLog();
+
+  let err: Error | undefined = undefined;
+
+  // all fine
+  if (output.stderr.indexOf("Sage processing complete") >= 0) {
+    return pll;
+  }
+
+  for (let line of output.stderr.split("\n")) {
+    if (line.trim().length > 0) {
+      // we create an error and then we collect lines
+      if (err == null) {
+        err = {
+          line: null,
+          file: path,
+          level: "error",
+          message: line,
+          content: "",
+          raw: ""
+        };
+        pll.errors.push(err);
+        pll.all.push(err);
+      }
+      err.content += `${line}\n`;
+      // last line is probably the most interesting one
+      err.message = line;
+    } else {
+      // end of block
+      err = undefined;
+    }
+  }
+  return pll;
 }

@@ -55,7 +55,7 @@ export const ProjectRow = rclass<ReactProps>(
         return console.warn(
           `error setting time of project ${this.props.project.project_id} to ${
             this.props.project.last_edited
-          } -- ${e}; please report to help@sagemath.com`
+          } -- ${e}; please report to help@cocalc.com`
         );
       }
     }

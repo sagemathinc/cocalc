@@ -33,7 +33,7 @@ interface Options {
   options: any;
   client: Client;
   throttle_changes?: undefined | number;
-  id : string;
+  id: string;
 }
 
 import { EventEmitter } from "events";
@@ -163,10 +163,20 @@ class SyncTableChannel extends EventEmitter {
     this.synctable.once("closed", this.close.bind(this));
   }
 
-  private async clean_up_sockets(): Promise<void> {
+  private clean_up_sockets(): void {
     if (this.channel != null) {
       this.channel.removeAllListeners();
-      this.channel.end();
+      if (this.channel.conn.writable) {
+        /* The multiplex plugin should probably check that
+           conn is writable before trying to write, but it
+           doesn't.  So we only call end here if the conn
+           hasn't already closed itself.  Not doing this, causes a
+           stacktrace randomly, which isn't good.  (To reproduce,
+           open a file in a project, then close the project tab,
+           then re-open the project tab, and repeat a few times
+           until getting a stacktrace.) */
+        this.channel.end();
+      }
       delete this.channel;
     }
     if (this.websocket != null) {
@@ -175,12 +185,13 @@ class SyncTableChannel extends EventEmitter {
     }
   }
 
-  private close(): void {
+  private async close(): Promise<void> {
     delete cache[this.key];
     this.clean_up_sockets();
     if (this.synctable != null) {
-      this.synctable.close();
+      const s = this.synctable;
       delete this.synctable;
+      await s.close();
     }
   }
 
@@ -250,9 +261,9 @@ const cache: { [key: string]: SyncTableChannel } = {};
 // opts.id below is so important.  I tried several different approaches,
 // and this is the best by far.
 function key(opts: Options): string {
-  return `${opts.id}-${opts.project_id}-${JSON.stringify(opts.query)}-${JSON.stringify(
-    opts.options
-  )}`;
+  return `${opts.id}-${opts.project_id}-${JSON.stringify(
+    opts.query
+  )}-${JSON.stringify(opts.options)}`;
 }
 
 export async function synctable_project(opts: Options): Promise<SyncTable> {

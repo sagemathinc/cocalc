@@ -22,6 +22,10 @@ run_install $SMC_ROOT/smc-webapp
 run_install $SMC_ROOT/smc-webapp/jupyter
 run_install $SMC_ROOT/smc-hub
 
+# get rid of package-lock files
+# DISABLED: causes build issues; we need to understand npm better
+#git ls-files '../*/package-lock.json' | xargs rm -f
+
 # assistant example code snippets
 cd $SMC_ROOT
 git submodule update --init

@@ -7,10 +7,7 @@ All functionality here is of the form:
 
 */
 
-import { callback } from "awaiting";
-const {
-  callback_opts
-} = require("smc-util/async-utils");
+const { callback_opts } = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
 
@@ -24,9 +21,10 @@ export function init_websocket_api(
   primus.on("connection", function(spark) {
     // Now handle the connection
     logger.debug(
-      "primus api",
+      "primus-api",
       `new connection from ${spark.address.ip} -- ${spark.id}`
     );
+
     spark.on("request", async function(data, done) {
       logger.debug("primus-api", "request", typeof data, JSON.stringify(data));
       try {
@@ -35,7 +33,7 @@ export function init_websocket_api(
         done(resp);
       } catch (err) {
         // put this in for debugging...
-        // It's normal to sometimes get errors, e.g., when a Jupyter kernel 
+        // It's normal to sometimes get errors, e.g., when a Jupyter kernel
         // isn't yet available.
         // console.trace(); logger.debug("primus-api error stacktrack", err.stack, err);
         done({ error: err.toString(), status: "error" });
@@ -44,6 +42,13 @@ export function init_websocket_api(
     /*spark.on("data", function(data) {
       logger.debug("primus-api", "data", typeof data, JSON.stringify(data));
     });*/
+  });
+
+  primus.on("disconnection", function(spark) {
+    logger.debug(
+      "primus-api",
+      `end connection from ${spark.address.ip} -- ${spark.id}`
+    );
   });
 }
 
@@ -80,7 +85,13 @@ async function handle_api_call(
     case "x11_channel":
       return await x11_channel(client, primus, logger, data.path, data.display);
     case "synctable_channel":
-      return await synctable_channel(client, primus, logger, data.query, data.options);
+      return await synctable_channel(
+        client,
+        primus,
+        logger,
+        data.query,
+        data.options
+      );
     case "syncdoc_call":
       return await syncdoc_call(data.path, logger, data.mesg);
     case "symmetric_channel":
@@ -94,9 +105,9 @@ async function handle_api_call(
 
 /* implementation of the api calls */
 
-const { get_listing } = require("../directory-listing");
-async function listing(path: string, hidden?: boolean): Promise<object[]> {
-  return await callback(get_listing, path, hidden);
+import { get_listing, ListingEntry } from "../directory-listing";
+async function listing(path: string, hidden?: boolean): Promise<ListingEntry[]> {
+  return await get_listing(path, hidden);
 }
 
 import { handle_request as jupyter } from "../jupyter/websocket-api";

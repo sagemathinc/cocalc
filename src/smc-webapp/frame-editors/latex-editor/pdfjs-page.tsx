@@ -44,8 +44,7 @@ export class Page extends Component<PageProps, {}> {
         "renderer",
         "scale",
         "sync_highlight"
-      ]) ||
-      this.props.doc.pdfInfo.fingerprint !== next_props.doc.pdfInfo.fingerprint
+      ]) || this.props.doc.fingerprint !== next_props.doc.fingerprint
     );
   }
 
@@ -116,7 +115,7 @@ export class Page extends Component<PageProps, {}> {
       // Internal link within the document.
       let dest = await this.props.doc.getDestination(annotation.dest);
       let page: number = (await this.props.doc.getPageIndex(dest[0])) + 1;
-      let page_height = this.props.page.pageInfo.view[3];
+      let page_height = this.props.page.view[3];
       this.props.actions.scroll_pdf_into_view(
         page,
         page_height - dest[3],

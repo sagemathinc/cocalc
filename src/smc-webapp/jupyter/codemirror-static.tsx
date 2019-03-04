@@ -94,8 +94,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       v.push(this.line_number(v.length, line, width));
       line++;
     }
-    // TODO: this was unused code from coffeescript file
-    // let last_type = undefined;  // used for detecting introspection
+
     const append = (text: string, type?: string) => {
       if (type != null) {
         v.push(
@@ -103,10 +102,6 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
             {text}
           </span>
         );
-        // TODO: this was unused code from coffeescript file
-        // if (text.trim().length > 0) {
-        //   last_type = type;
-        // }
       } else {
         v.push(<span key={v.length}>{text}</span>);
       }
@@ -116,7 +111,17 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       }
     };
 
-    CodeMirror.runMode(this.props.value, mode, append);
+    try {
+      CodeMirror.runMode(this.props.value, mode, append);
+    } catch(err) {
+      /* This does happen --
+            https://github.com/sagemathinc/cocalc/issues/3626
+         However, basically silently ignoring it (with a console.log)
+         is probably the best option for now (rather than figuring
+         out every possible bad input that could cause this), since
+         it completely crashes cocalc. */
+      console.log(`WARNING: CodeMirror.runMode failed -- ${err}`);
+    }
     line_numbers = false;
     append("\n"); // TODO: should this have 2 parameters?
 

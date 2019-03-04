@@ -35,6 +35,7 @@ export function init_websocket_server(
 
   init_websocket_api(primus, logger, client);
 
+  /*
   const eval_channel = primus.channel("eval");
   eval_channel.on("connection", function(spark) {
     // Now handle the connection
@@ -51,6 +52,7 @@ export function init_websocket_server(
       }
     });
   });
+  */
 
   const router = express.Router();
   const library: string = primus.library();

@@ -28,7 +28,7 @@ def is_dataframe(obj):
     # CRITICAL: do not import pandas at the top level since it can take up to 3s -- it's **HORRIBLE**.
     try:
         from pandas import DataFrame
-    except:
+    except ImportError:
         return False
     return isinstance(obj, DataFrame)
 
@@ -159,7 +159,6 @@ class InteractCell(object):
             elif len(left) == 0 and len(right) > 0:
                 new_layout.append([''] + right[0])
                 del right[0]
-            i = 0
             while len(left) > 0 and len(right) > 0:
                 new_layout.append(left[0] + ['_salvus_'] + right[0])
                 del left[0]
@@ -624,9 +623,6 @@ class control:
         for k, v in self._opts.iteritems():
             X[k] = jsonable(v)
         return X
-
-
-import types, inspect
 
 
 def list_of_first_n(v, n):
@@ -1586,7 +1582,6 @@ def latex0(s=None, **kwds):
     """
     if s is None:
         return lambda t: latex0(t, **kwds)
-    import os
     if 'filename' not in kwds:
         import tempfile
         delete_file = True
@@ -1840,13 +1835,12 @@ def asy(code=None, **kwds):
     # asy command can also be used to make .eps file
     import tempfile
     import subprocess
-    import os
     fname1 = tempfile.mkstemp(suffix=".asy")[1]
     fname2 = tempfile.mkstemp(suffix=".png")[1]
     with open(fname1, "w") as outf1:
         outf1.write(code + '\n')
     cmd = "/usr/bin/asy -offscreen -f png -o {} {}".format(fname2, fname1)
-    p = subprocess.call(cmd.split())
+    subprocess.call(cmd.split())
     salvus.file(fname2)
     os.unlink(fname1)
     os.unlink(fname2)
@@ -1894,7 +1888,6 @@ def cython(code=None, **kwds):
     finally:
         del sys.path[0]
 
-    import inspect
     defined = []
     for name, value in inspect.getmembers(module):
         if not name.startswith('_') and name != 'init_memory_functions':
@@ -2229,7 +2222,7 @@ def fortran(x, library_paths=[], libraries=[], verbose=False):
         s_lib_path = ""
         s_lib = ""
         for s in library_paths:
-            s_lib_path = s_lib_path + "-L%s "
+            s_lib_path = s_lib_path + "-L%s " % s
 
         for s in libraries:
             s_lib = s_lib + "-l%s " % s

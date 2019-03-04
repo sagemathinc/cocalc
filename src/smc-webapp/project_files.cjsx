@@ -157,6 +157,7 @@ FileRow = rclass
         display_name : rtypes.string  # if given, will display this, and will show true filename in popover
         size         : rtypes.number  # sometimes is NOT known!
         time         : rtypes.number
+        issymlink    : rtypes.bool    # TODO: actually use
         checked      : rtypes.bool
         bordered     : rtypes.bool
         color        : rtypes.string
@@ -173,6 +174,7 @@ FileRow = rclass
         @props.display_name != next.display_name or
         @props.size         != next.size         or
         @props.time         != next.time         or
+        @props.issymlink    != next.issymlink    or
         @props.checked      != next.checked      or
         @props.mask         != next.mask         or
         @props.public_data  != next.public_data  or
@@ -264,7 +266,9 @@ FileRow = rclass
             <div style={color:'#666', display:'inline'}>Invalid Date Time</div>
 
     render_download_button: (url_href) ->
-        <Button style   = {marginLeft: '1em', background:'transparent'}
+        # ugly width 2.5em is to line up with blank space for directory.
+        # TODO: This really should not be in the size column...
+        <Button style   = {marginLeft: '1em', background:'transparent', width:'2.5em'}
                 bsStyle = 'default'
                 bsSize  = 'xsmall'
                 href    = "#{url_href}"
@@ -325,6 +329,8 @@ DirectoryRow = rclass
         color        : rtypes.string
         bordered     : rtypes.bool
         time         : rtypes.number
+        size         : rtypes.number
+        issymlink    : rtypes.bool
         mask         : rtypes.bool
         public_data  : rtypes.object
         is_public    : rtypes.bool
@@ -345,7 +351,9 @@ DirectoryRow = rclass
         @props.is_public    != next.is_public    or
         @props.current_path != next.current_path or
         @props.no_select    != next.no_select    or
-        @props.public_view  != next.public_view
+        @props.public_view  != next.public_view  or
+        @props.issymlink    != next.issymlink
+
 
     handle_mouse_down: (e) ->
         @setState
@@ -391,6 +399,13 @@ DirectoryRow = rclass
                 {misc.trunc_middle(@props.display_name ? @props.name, 50)}
             </a>
 
+    render_size: ->
+        if not @props.size?   # need newer backend project
+            return
+        <span className='pull-right' style={color:'#666', marginRight:'3em'}>
+            {@props.size} {misc.plural(@props.size, 'item')}
+        </span>
+
     render: ->
         row_styles =
             cursor          : 'pointer'
@@ -429,6 +444,7 @@ DirectoryRow = rclass
             </Col>
             <Col sm={4} smPush={5} xs={6}>
                 {@render_time()}
+                {@render_size()}
             </Col>
             <Col sm={5} smPull={4} xs={12} style={directory_styles}>
                 {@render_name_link()}
@@ -653,7 +669,7 @@ FileListing = rclass
     getDefaultProps: ->
         file_search           : ''
 
-    render_row: (name, size, time, mask, isdir, display_name, public_data, index) ->
+    render_row: (name, size, time, mask, isdir, display_name, public_data, issymlink, index) ->
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
         if checked
@@ -671,6 +687,8 @@ FileListing = rclass
                 name         = {name}
                 display_name = {display_name}
                 time         = {time}
+                size         = {size}
+                issymlink    = {issymlink}
                 key          = {index}
                 color        = {color}
                 bordered     = {apply_border}
@@ -689,6 +707,7 @@ FileListing = rclass
                 display_name = {display_name}
                 time         = {time}
                 size         = {size}
+                issymlink    = {issymlink}
                 color        = {color}
                 bordered     = {apply_border}
                 mask         = {mask}
@@ -703,7 +722,7 @@ FileListing = rclass
             />
 
     render_rows: ->
-        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
+        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, a.issymlink, i) for a, i in @props.listing)
 
     render_no_files: ->
         return if @props.show_new
@@ -840,6 +859,7 @@ ProjectFilesButtons = rclass
     propTypes :
         kucalc       : rtypes.string
         show_hidden  : rtypes.bool
+        show_masked  : rtypes.bool
         public_view  : rtypes.bool
         show_new     : rtypes.bool
         show_library : rtypes.bool
@@ -853,6 +873,10 @@ ProjectFilesButtons = rclass
         e.preventDefault()
         @props.actions.setState(show_hidden : not @props.show_hidden)
 
+    handle_masked_toggle: (e) ->
+        e.preventDefault()
+        @props.actions.setState(show_masked : not @props.show_masked)
+
     handle_backup: (e) ->
         e.preventDefault()
         @props.actions.open_directory('.snapshots')
@@ -865,7 +889,16 @@ ProjectFilesButtons = rclass
     render_hidden_toggle: ->
         icon = if @props.show_hidden then 'eye' else 'eye-slash'
         <Button bsSize='small' onClick={@handle_hidden_toggle}>
-            <Icon name={icon} />
+            <Tip title={"Show hidden files"} placement={"bottom"}>
+                <Icon name={icon} />
+            </Tip>
+        </Button>
+
+    render_masked_toggle: ->
+        <Button bsSize='small' onClick={@handle_masked_toggle} active={!@props.show_masked}>
+            <Tip title={"Hide autogenerated/temporary files"} placement={"bottom"}>
+                <Icon name={'mask'} />
+            </Tip>
         </Button>
 
     render_backup: ->
@@ -907,6 +940,7 @@ ProjectFilesButtons = rclass
             <ButtonGroup bsSize='small' className='pull-right'>
                 {@render_refresh()}
                 {@render_hidden_toggle()}
+                {@render_masked_toggle()}
                 {@render_backup()}
             </ButtonGroup>
         </ButtonToolbar>
@@ -1648,7 +1682,7 @@ ProjectFilesActionBox = rclass
                     {@render_how_shared(parent_is_public, single_file_data)}
                 </Col>
             </Row>
-            {if not single_file_data.is_public then undefined else <>
+            {if not single_file_data.is_public then undefined else <Fragment>
                 <Row>
                     <Col sm={4} style={color:'#666'}>
                         <h4>Description</h4>
@@ -1686,7 +1720,7 @@ ProjectFilesActionBox = rclass
                         </Button>
                     </Col>
                 </Row>
-            </>}
+            </Fragment>}
             <Row>
                 <Col sm={12}>
                     <Button onClick={@cancel_action}>
@@ -1720,7 +1754,7 @@ ProjectFilesActionBox = rclass
     render_sharing_options: (single_file_data) ->
         state = @get_sharing_options_state(single_file_data)
         handler = @handle_sharing_options_change(single_file_data)
-        <>
+        <Fragment>
             <FormGroup>
             {if @props.get_total_project_quotas(@props.project_id)?.network then <Radio name="sharing_options" value="public_listed" checked={state == "public_listed"} onChange={handler} inline>
                     <Icon name='eye'/><Space/>
@@ -1740,7 +1774,7 @@ ProjectFilesActionBox = rclass
                 <i>Private</i> - Only collaborators on this project can view this.
               </Radio>
             </FormGroup>
-        </>
+        </Fragment>
 
     render_social_buttons: (single_file) ->
         # sort like in account settings
@@ -2175,6 +2209,7 @@ exports.ProjectFiles = rclass ({name}) ->
             file_action           : rtypes.string
             file_search           : rtypes.string
             show_hidden           : rtypes.bool
+            show_masked           : rtypes.bool
             error                 : rtypes.string
             checked_files         : rtypes.immutable
             selected_file_index   : rtypes.number
@@ -2537,6 +2572,7 @@ exports.ProjectFiles = rclass ({name}) ->
             {if not public_view
                 <ProjectFilesButtons
                     show_hidden  = {@props.show_hidden ? false}
+                    show_masked  = {@props.show_masked ? true}
                     current_path = {@props.current_path}
                     public_view  = {public_view}
                     actions      = {@props.actions}

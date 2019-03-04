@@ -266,7 +266,9 @@ export class SyncDoc extends EventEmitter {
   */
   private async init(): Promise<void> {
     this.assert_not_closed("init");
+    const log = this.dbg("init");
 
+    log("initializing all tables...");
     try {
       //const t0 = new Date();
       await this.init_all();
@@ -274,12 +276,16 @@ export class SyncDoc extends EventEmitter {
       //  `time to open file ${this.path}: ${new Date().valueOf() - t0.valueOf()}`
       //);
     } catch (err) {
-      // completely normal that this could happen - it means
+      if (this.state == "closed") {
+        return;
+      }
+      log(`WARNING -- error initializing ${err}`);
+      // completely normal that this could happen on frontend - it just means
       // that we closed the file before finished opening it...
-      //console.warn("SyncDoc init error -- ", err, err.stack);
-      if (this.state != "closed") {
-        // Error NOT caused by closing during the init_all, so we
-        // report it.
+      if (this.state != "closed" as State) {
+        log(
+          "Error -- NOT caused by closing during the init_all, so we report it."
+        );
         this.emit("error", err);
       }
       await this.close();
@@ -844,16 +850,14 @@ export class SyncDoc extends EventEmitter {
   // fields....
   // Also, this also establishes the correct doctype.
 
-  // Since this MUST succeed before doing anything else, we
-  // keep trying until either it does, or this document is closed.
+  // Since this MUST succeed before doing anything else. This is critical
+  // because the patches table can't be opened anywhere if the syncstring
+  // object doesn't exist, due to how our security works, *AND* that the
+  // patches table uses the string_id, which is a SHA1 hash.
   private async ensure_syncstring_exists_in_db(): Promise<void> {
     const dbg = this.dbg("ensure_syncstring_exists_in_db");
     if (this.ephemeral) {
-      dbg("ephemeral -- nothing to do");
-      return;
-    }
-    if (this.client.is_user()) {
-      dbg("browser client -- nothing to do");
+      dbg("ephemeral -- nothing to do (since database not used)");
       return;
     }
 
@@ -861,9 +865,15 @@ export class SyncDoc extends EventEmitter {
       dbg("wait until connected...", this.client.is_connected());
       await once(this.client, "connected");
     }
+
+    if (this.client.is_user() && !this.client.is_signed_in()) {
+      await once(this.client, "signed_in");
+    }
+
     if (this.state == ("closed" as State)) return;
 
     dbg("do syncstring write query...");
+
     await callback2(this.client.query, {
       query: {
         syncstrings: {
@@ -882,6 +892,7 @@ export class SyncDoc extends EventEmitter {
     options: any[],
     throttle_changes?: undefined | number
   ): Promise<SyncTable> {
+    this.assert_not_closed("synctable");
     if (this.persistent && this.data_server == "project") {
       options = options.concat([{ persistent: true }]);
     }
@@ -979,20 +990,25 @@ export class SyncDoc extends EventEmitter {
     }
     const log = this.dbg("init_all");
 
-    this.assert_not_closed("init_all -- before ensuring syncstring exists");
     log("ensure syncstring exists in database");
+    this.assert_not_closed("init_all -- before ensuring syncstring exists");
     await this.ensure_syncstring_exists_in_db();
+
     log("syncstring_table");
+    this.assert_not_closed("init_all -- before init_syncstring_table");
     await this.init_syncstring_table();
-    this.assert_not_closed("init_all -- before init patch_list");
+
     log("patch_list, cursors, evaluator");
+    this.assert_not_closed("init_all -- before init patch_list, cursors, evaluator");
     await Promise.all([
       this.init_patch_list(),
       this.init_cursors(),
       this.init_evaluator()
     ]);
     this.assert_not_closed("init_all -- after init patch_list");
+
     this.init_table_close_handlers();
+
     log("file_use_interval");
     this.init_file_use_interval();
 
@@ -1010,6 +1026,7 @@ export class SyncDoc extends EventEmitter {
         desc: "syncdoc -- load_from_disk"
       });
       log("done loading from disk");
+      this.assert_not_closed("init_all -- load from disk");
     }
 
     log("wait_until_fully_ready");
@@ -2632,4 +2649,3 @@ export class SyncDoc extends EventEmitter {
     this.before_change = this.doc;
   }
 }
-
