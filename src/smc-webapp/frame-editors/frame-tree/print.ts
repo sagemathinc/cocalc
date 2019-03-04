@@ -111,12 +111,14 @@ function html_with_deps(
             integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
             crossOrigin = "anonymous" />
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.35.0/codemirror.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css"
+            integrity="sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
+            crossorigin="anonymous" />
 
         <link
             rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css"
-            integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei"
+            href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.1/katex.min.css"
+            integrity="sha256-9F0HwgWlvrVxc95krEjTN7gvwm1DLYuPhZA6piUYuNY="
             crossorigin="anonymous" />
 
     </head>

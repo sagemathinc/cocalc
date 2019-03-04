@@ -61,7 +61,9 @@ export const output_style_miniterm: React.CSSProperties = {
   boxShadow: "0px 0px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto",
-  right: 0
+  right: 0,
+  maxWidth: "80%",
+  marginRight: "5px"
 };
 
 const BAD_COMMANDS = {
