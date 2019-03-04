@@ -82,7 +82,7 @@ export class RmdActions extends Actions {
   async _run_rmd_converter(time?: number): Promise<void> {
     // TODO: should only run knitr if at least one frame is visible showing preview?
     // maybe not, since might want to show error.
-    if (this._syncstring == null || this._syncstring.get_state() != 'ready') {
+    if (this._syncstring == null || this._syncstring.get_state() != "ready") {
       // do not run if not ready -- important due to the debounce, which could
       // fire this at any time.
       return;
@@ -134,4 +134,7 @@ export class RmdActions extends Actions {
       };
     }
   }
+
+  // Never delete trailing whitespace for markdown files.
+  delete_trailing_whitespace(): void {}
 }
