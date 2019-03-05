@@ -69,7 +69,7 @@ const {
 const { VideoChatButton } = require("./video-chat");
 const { SMC_Dropwrapper } = require("./smc-dropzone");
 
-const {webapp_client} = require('./webapp_client')
+const { webapp_client } = require("./webapp_client");
 
 interface MessageProps {
   actions?: any;
@@ -1257,7 +1257,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  on_mention = (id) => {
+  on_mention = id => {
     webapp_client.mention({
       project_id: this.props.project_id,
       path: this.props.path,
@@ -1287,6 +1287,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     const user_array = this.props.project_map
       .getIn([this.props.project_id, "users"])
       .keySeq()
+      .filter(account_id => {
+        return account_id !== this.props.account_id;
+      })
       .map(account_id => {
         return {
           id: account_id,

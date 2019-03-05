@@ -508,7 +508,19 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        user_array = @props.project_map.getIn([@props.project_id, 'users']).keySeq().map((account_id) => return {id: account_id, display: @props.redux.getStore('users').get_name(account_id)}).toJS()
+        user_array = @props.project_map
+            .getIn([@props.project_id, "users"])
+            .keySeq()
+            .filter((account_id) =>
+                return account_id != @props.account_id;
+            )
+            .map((account_id) =>
+                return {
+                    id: account_id,
+                    display: @props.redux.getStore("users").get_name(account_id)
+                };
+            )
+        .toJS();
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
