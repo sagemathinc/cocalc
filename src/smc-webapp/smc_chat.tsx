@@ -1281,7 +1281,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     const chat_input_style: React.CSSProperties = {
       margin: "0",
       height: "90px",
-      fontSize: this.props.font_size
+      fontSize: this.props.font_size,
+      border: "1px solid #ccc",
+      borderRadius: "4px",
+      boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
     };
 
     const user_array = this.props.project_map

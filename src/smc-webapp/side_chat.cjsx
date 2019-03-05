@@ -548,7 +548,7 @@ ChatRoom = rclass ({name}) ->
                 <div style={display:'flex', height:'6em'}>
                     <MentionsInput
                         displayTransform = {(id, display, type) => "@" + display}
-                        style          = {width:'85%', height:'100%'}
+                        style          = {backgroundColor: 'white', width:'85%', height:'100%', leftMargin:'2px'}
                         markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
                         ref            = 'input'
