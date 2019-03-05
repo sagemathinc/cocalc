@@ -31,6 +31,8 @@ const misc_page = require("./misc_page");
 
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
+import { MentionsInput, Mention } from "react-mentions";
+
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
 const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
@@ -66,6 +68,8 @@ const {
 
 const { VideoChatButton } = require("./video-chat");
 const { SMC_Dropwrapper } = require("./smc-dropzone");
+
+const {webapp_client} = require('./webapp_client')
 
 interface MessageProps {
   actions?: any;
@@ -753,6 +757,7 @@ interface ChatRoomReduxProps {
   use_saved_position: boolean;
   search: string;
   user_map?: any;
+  project_map: any;
   account_id: string;
   font_size?: number;
   file_use?: any;
@@ -787,6 +792,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
       users: {
         user_map: rtypes.immutable
+      },
+
+      projects: {
+        project_map: rtypes.immutable
       },
 
       account: {
@@ -908,7 +917,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       return send_chat(
         e,
         this.refs.log_container,
-        ReactDOM.findDOMNode(this.refs.input).value,
+        this.props.input,
         this.props.actions
       );
     } else if (
@@ -1248,6 +1257,16 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
+  on_mention = (id) => {
+    webapp_client.mention({
+      project_id: this.props.project_id,
+      path: this.props.path,
+      target: id,
+      cb: console.log,
+      priority: 2
+    });
+  };
+
   render_body() {
     const chat_log_style: React.CSSProperties = {
       overflowY: "auto",
@@ -1264,6 +1283,17 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       height: "90px",
       fontSize: this.props.font_size
     };
+
+    const user_array = this.props.project_map
+      .getIn([this.props.project_id, "users"])
+      .keySeq()
+      .map(account_id => {
+        return {
+          id: account_id,
+          display: this.props.redux.getStore("users").get_name(account_id)
+        };
+      })
+      .toJS();
 
     return (
       <Grid
@@ -1322,23 +1352,28 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 sending: this.start_upload
               }}
             >
-              <FormGroup>
-                <FormControl
-                  autoFocus={!IS_MOBILE || isMobile.Android()}
-                  rows={4}
-                  componentClass="textarea"
-                  ref="input"
-                  onKeyDown={this.keydown}
-                  value={this.props.input}
-                  onPaste={this.handle_paste_event}
-                  placeholder={"Type a message..."}
-                  onChange={(e: any) => {
-                    this.props.actions.set_input(e.target.value);
-                    this.mark_as_read();
-                  }}
-                  style={chat_input_style}
+              <MentionsInput
+                autoFocus={!IS_MOBILE || isMobile.Android()}
+                displayTransform={(_, display) => "@" + display}
+                style={chat_input_style}
+                markup='<span class="user-mention">@__display__</span>'
+                ref="input"
+                onKeyDown={this.keydown}
+                value={this.props.input}
+                placeholder={"Mention people using '@'"}
+                onPaste={this.handle_paste_event}
+                onChange={(e: any) => {
+                  this.props.actions.set_input(e.target.value);
+                  this.mark_as_read();
+                }}
+              >
+                <Mention
+                  trigger="@"
+                  data={user_array}
+                  onAdd={this.on_mention}
+                  appendSpaceOnAdd={true}
                 />
-              </FormGroup>
+              </MentionsInput>
             </SMC_Dropwrapper>
           </Col>
           <Col
