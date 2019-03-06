@@ -87,6 +87,7 @@ class SyncTableChannel extends EventEmitter {
   private async connect(): Promise<void> {
     if (this.synctable == null) return;
     this.set_connected(false);
+    this.clean_up_sockets();
 
     const time_since_last_connect = new Date().valueOf() - this.last_connect;
     if (time_since_last_connect < MIN_CONNECT_WAIT_MS) {
@@ -152,7 +153,6 @@ class SyncTableChannel extends EventEmitter {
     this.channel.on("data", this.handle_mesg_from_project.bind(this));
     this.websocket.on("offline", this.connect);
     this.channel.on("close", this.connect);
-    this.channel.on("open", this.connect);
   }
 
   private init_synctable_handlers(): void {
@@ -164,8 +164,7 @@ class SyncTableChannel extends EventEmitter {
 
   private clean_up_sockets(): void {
     if (this.channel != null) {
-      this.channel.removeListener('close', this.connect);
-      this.channel.removeListener('open', this.connect);
+      this.channel.removeListener("close", this.connect);
       try {
         this.channel.end();
       } catch (err) {
