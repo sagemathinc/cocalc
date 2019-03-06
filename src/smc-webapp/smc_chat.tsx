@@ -1280,17 +1280,17 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
     const chat_input_style: {
       [key: string]:
+        | string
         | React.CSSProperties
         | { [key: string]: React.CSSProperties };
     } = {
       "&multiLine": {
 
         highlighter: {
-          padding: 9
+          padding: 5
         },
 
         input: {
-          margin: "2px 0px 0px 0px",
           height: "90px",
           fontSize: this.props.font_size,
           border: "1px solid #ccc",
