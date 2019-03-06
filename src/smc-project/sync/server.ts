@@ -13,7 +13,7 @@ silently swallowed in persistent mode...
 // limit problems from bugs which crash projects (since each connection uses
 // memory, and it adds up).  Some customers want 100+ simultaneous users,
 // so don't set this too low (except for dev)!
-const MAX_CONNECTIONS = 150;
+const MAX_CONNECTIONS = 500;
 
 // The frontend client code *should* prevent many connections, but some
 // old broken clients may not work properly.   This must be at least 2,
@@ -23,7 +23,7 @@ const MAX_CONNECTIONS = 150;
 // some potentially malicious conduct, and also possible new clients with bugs.
 // It is VERY important that this not be too small, since there is often
 // a delay/timeout before a channel is properly closed.
-const MAX_CONNECTIONS_FROM_ONE_CLIENT = 20;
+const MAX_CONNECTIONS_FROM_ONE_CLIENT = 10;
 
 import {
   synctable_no_changefeed,
@@ -47,7 +47,13 @@ type Query = { [key: string]: any };
 interface Spark {
   address: { ip: string };
   id: string;
-  conn: { id: string; write: (obj: any) => boolean };
+  conn: {
+    id: string;
+    write: (obj: any) => boolean;
+    once: (str: string, fn: Function) => void;
+    on: (str: string, fn: Function) => void;
+    writable: boolean;
+  };
   write: (obj: any) => boolean;
   end: (...args) => void;
   on: (str: string, fn: Function) => void;
@@ -299,6 +305,10 @@ class SyncTableChannel {
         spark.write({ error: `error handling mesg -- ${err}` });
         this.log("error handling mesg -- ", err, err.stack);
       }
+    });
+
+    spark.conn.once("end", () => {
+      spark.end();
     });
   }
 
