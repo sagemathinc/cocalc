@@ -1786,13 +1786,13 @@ schema.mentions = {
       desc:
         "some sort of error occured handling this mention"
     },
-    done: {
-      type: "boolean",
-      desc: "notification has been handled in some way by the backend (e.g., email sent, decision not to send email, etc.)"
+    action: {
+      type: "string",
+      desc: "what action was attempted by the backend - 'email', 'ignore'"
     }
   },
 
-  pg_indexes: ["done"],
+  pg_indexes: ["action"],
 
   user_query: {
     set: {

@@ -2088,6 +2088,10 @@ class exports.Connection extends EventEmitter
             target     : required # account_id (for now)
             priority   : undefined # optional integer; larger number is higher; 0 is default.
             cb         : undefined
+        if not @is_signed_in()
+            # wait until signed in, otherwise query below just fails
+            # with an error and mention is lost
+            await once(@, "signed_in")
         @query
             query :
                 mentions : misc.copy_without(opts, 'cb')

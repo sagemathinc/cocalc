@@ -2,17 +2,35 @@
 Handle all mentions that haven't yet been handled.
 */
 
+const MIN_EMAIL_INTERVAL: string = "8 hours";
+
 import { callback2 } from "smc-util/async-utils";
+import { trunc } from "smc-util/misc2";
 import { callback, delay } from "awaiting";
 
 const { send_email } = require("../email");
 
-const { HELP_EMAIL, SITE_NAME } = require("smc-util/theme");
+const { HELP_EMAIL } = require("smc-util/theme");
+
+// TODO: should be something like notifications@cocalc.com...
+const NOTIFICATIONS_EMAIL = HELP_EMAIL;
+
+// Determine entry in mentions table.
+interface Key {
+  project_id: string;
+  path: string;
+  time: Date;
+  target: string;
+}
+
+type Action = "email" | "ignore";
+
+type Database = any; // TODO
 
 // Handle all notification, then wait for the given time, then again
 // handle all unhandled notifications.
 export async function handle_mentions_loop(
-  db: any,
+  db: Database,
   wait_ms: number = 15000
 ): Promise<void> {
   while (true) {
@@ -31,7 +49,7 @@ export async function handle_all_mentions(db: any): Promise<void> {
   const result = await callback2(db._query, {
     select: ["time", "project_id", "path", "source", "target", "priority"],
     table: "mentions",
-    where: "done is null or done=false"
+    where: "action is null" // no action taken yet.
   });
   if (result == null || result.rows == null) {
     throw Error("invalid result"); // can't happen
@@ -43,35 +61,61 @@ export async function handle_all_mentions(db: any): Promise<void> {
     const source: string = row.source;
     const target: string = row.target;
     const priority: number = row.priority;
-    try {
-      await handle_mention(
-        db,
-        project_id,
-        path,
-        time,
-        source,
-        target,
-        priority
-      );
-    } catch (err) {
-      await record_error(db, project_id, path, time, target, `${err}`);
-    }
+    await handle_mention(
+      db,
+      { project_id, path, time, target },
+      source,
+      priority
+    );
   }
 }
 
+async function determine_action(db: Database, key: Key): Promise<Action> {
+  const { project_id, path, target } = key;
+  const result = await callback2(db._query, {
+    query: `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${MIN_EMAIL_INTERVAL}'`,
+    params: [project_id, path, target]
+  });
+  const count: number = parseInt(result.rows[0].count);
+  if (count > 0) {
+    return "ignore";
+  }
+  return "email";
+}
+
 export async function handle_mention(
-  db,
-  project_id: string,
-  path: string,
-  time: Date,
+  db: Database,
+  key: Key,
   source: string,
-  target: string,
-  _priority: number
+  _priority: number // ignored for now.
 ): Promise<void> {
   // Check that source and target are both currently
   // collaborators on the project.
-  // TODO...
+  const action: string = await determine_action(db, key);
+  try {
+    switch (action) {
+      case "ignore":
+        // Mark that we ignore this.
+        await set_action(db, key, "ignore");
+        return;
+      case "email":
+        await send_email_notification(db, key, source);
+        // Mark that we sent email.
+        await set_action(db, key, "email");
+        return;
+      default:
+        throw Error(`unknown action "${action}"`);
+    }
+  } catch (err) {
+    await record_error(db, key, action, `${err}`);
+  }
+}
 
+async function send_email_notification(
+  db: Database,
+  key: Key,
+  source: string
+): Promise<void> {
   // Gather relevant information to use to construct notification.
   const user_names = await callback2(db.account_ids_to_usernames, {
     account_ids: [source]
@@ -82,24 +126,16 @@ export async function handle_mention(
   const project_title = await callback(
     db._get_project_column,
     "title",
-    project_id
+    key.project_id
   );
-  const subject = `${SITE_NAME} Notification`;
-  const body = `${source_name} mentioned you in a chat at ${path} in ${project_title}`;
-  // TODO: body should probably have a link...
-  let source_email: string = await callback(
-    db.get_user_column,
-    "email_address",
-    source
-  );
+  const subject = `[${trunc(project_title, 40)}] ${key.path}`;
+  const url = `https://cocalc.com/projects/${key.project_id}/files/${key.path}`;
+  const body = `${source_name} mentioned you in <a href="${url}">a chat at ${
+    key.path
+  } in ${project_title}</a>.`;
   let from: string;
-  if (source_email) {
-    from = `${source_name} <${source_email}>`;
-  } else {
-    // maybe they have no email
-    from = `CoCalc <${HELP_EMAIL}>`;
-  }
-  const to = await callback(db.get_user_column, "email_address", target);
+  from = `${source_name} <${NOTIFICATIONS_EMAIL}>`;
+  const to = await callback(db.get_user_column, "email_address", key.target);
   if (!to) {
     throw Error("no implemented way to notify target (no known email address)");
   }
@@ -108,25 +144,29 @@ export async function handle_mention(
 
   // Send email notification.
   await callback2(send_email, { subject, body, from, to, category });
+}
 
-  // Mark done
+async function set_action(
+  db: Database,
+  key: Key,
+  action: string
+): Promise<void> {
   await callback2(db._query, {
-    query: "UPDATE mentions SET done=true",
-    where: { project_id, path, time, target }
+    query: "UPDATE mentions SET action=$1",
+    params: [action],
+    where: key
   });
 }
 
 export async function record_error(
   db,
-  project_id: string,
-  path: string,
-  time: Date,
-  target: string,
+  key: Key,
+  action: string,
   error: string
 ): Promise<void> {
   await callback2(db._query, {
-    query: "UPDATE mentions SET done=true,error=$1",
-    where: { project_id, path, time, target },
-    params: [error]
+    query: "UPDATE mentions SET action=$1,error=$2",
+    where: key,
+    params: [action, error]
   });
 }
