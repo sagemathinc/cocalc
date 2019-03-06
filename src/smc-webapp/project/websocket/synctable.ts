@@ -151,6 +151,8 @@ class SyncTableChannel extends EventEmitter {
 
     this.channel.on("data", this.handle_mesg_from_project.bind(this));
     this.websocket.on("offline", this.connect);
+    this.channel.on("close", this.connect);
+    this.channel.on("open", this.connect);
   }
 
   private init_synctable_handlers(): void {
@@ -162,6 +164,8 @@ class SyncTableChannel extends EventEmitter {
 
   private clean_up_sockets(): void {
     if (this.channel != null) {
+      this.channel.removeListener('close', this.connect);
+      this.channel.removeListener('open', this.connect);
       try {
         this.channel.end();
       } catch (err) {
