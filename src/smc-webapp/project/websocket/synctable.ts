@@ -165,6 +165,14 @@ class SyncTableChannel extends EventEmitter {
   private clean_up_sockets(): void {
     if (this.channel != null) {
       this.channel.removeListener("close", this.connect);
+
+      // Explicitly emit end -- this is a hack,
+      // since this is the only way to force the
+      // channel clean-up code to run in primus-multiplex,
+      // and it gets run async later if we don't do this.
+      // TODO: rewrite primus-multiplex from scratch.
+      this.channel.emit('end');
+
       try {
         this.channel.end();
       } catch (err) {
