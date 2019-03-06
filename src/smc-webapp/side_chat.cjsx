@@ -502,16 +502,62 @@ ChatRoom = rclass ({name}) ->
         @props.redux.getActions('page').erase_active_key_handler()
 
     on_mention: (id, display) ->
-        console.log("id:", id, display, "was mentioned!")
         webapp_client.mention({project_id:@props.project_id, path:@props.path, target:id, cb:console.log, priority:2})
 
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        user_array = @props.project_map.getIn([@props.project_id, 'users']).keySeq().map((account_id) => return {id: account_id, display: @props.redux.getStore('users').get_name(account_id)}).toJS()
+        has_collaborators = false
+
+        user_array = @props.project_map
+            .getIn([@props.project_id, "users"])
+            .keySeq()
+            .filter((account_id) =>
+                return account_id != @props.account_id;
+            )
+            .map((account_id) =>
+                has_collaborators = true
+                return {
+                    id: account_id,
+                    display: @props.redux.getStore("users").get_name(account_id)
+                };
+            )
+        .toJS();
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
+
+        input_style =
+            width: "85%"
+
+            "&multiLine":
+                control:
+                    backgroundColor: 'white'
+                    height:'100%'
+                    leftMargin:'2px'
+                    fontSize: @props.font_size
+
+                highlighter:
+                    padding: 5
+
+                input:
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+
+            suggestions:
+                list:
+                    backgroundColor: "white"
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    fontSize: @props.font_size
+
+                item:
+                    padding: "5px 15px"
+                    borderBottom: "1px solid rgba(0,0,0,0.15)"
+
+                    "&focused":
+                        backgroundColor: "rgb(66, 139, 202, 0.4)"
 
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
@@ -537,13 +583,13 @@ ChatRoom = rclass ({name}) ->
                 <div style={display:'flex', height:'6em'}>
                     <MentionsInput
                         displayTransform = {(id, display, type) => "@" + display}
-                        style          = {width:'85%', height:'100%'}
+                        style          = {input_style}
                         markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
                         ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
-                        placeholder    = {"Mention people using '@'"}
+                        placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
                         onChange       = {(e) => @props.actions.set_input(e.target.value)}
                     >
                         <Mention
