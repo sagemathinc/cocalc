@@ -1287,6 +1287,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
     };
 
+    let has_collaborators = false;
+
     const user_array = this.props.project_map
       .getIn([this.props.project_id, "users"])
       .keySeq()
@@ -1294,6 +1296,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         return account_id !== this.props.account_id;
       })
       .map(account_id => {
+        has_collaborators = true;
         return {
           id: account_id,
           display: this.props.redux.getStore("users").get_name(account_id)
@@ -1366,7 +1369,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 ref="input"
                 onKeyDown={this.keydown}
                 value={this.props.input}
-                placeholder={"Mention people using '@'"}
+                placeholder={
+                  has_collaborators
+                    ? "Type a message, @name..."
+                    : "Type a message..."
+                }
                 onPaste={this.handle_paste_event}
                 onChange={(e: any) => {
                   this.props.actions.set_input(e.target.value);

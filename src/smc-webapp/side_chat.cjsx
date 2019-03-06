@@ -508,6 +508,8 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
+        has_collaborators = false
+
         user_array = @props.project_map
             .getIn([@props.project_id, "users"])
             .keySeq()
@@ -515,6 +517,7 @@ ChatRoom = rclass ({name}) ->
                 return account_id != @props.account_id;
             )
             .map((account_id) =>
+                has_collaborators = true
                 return {
                     id: account_id,
                     display: @props.redux.getStore("users").get_name(account_id)
@@ -554,7 +557,7 @@ ChatRoom = rclass ({name}) ->
                         ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
-                        placeholder    = {"Mention people using '@'"}
+                        placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
                         onChange       = {(e) => @props.actions.set_input(e.target.value)}
                     >
                         <Mention
