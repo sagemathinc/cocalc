@@ -57,6 +57,8 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
+CUSTOM_IMG_PREFIX = 'custom/'
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -807,13 +809,36 @@ ProjectControlPanel = rclass
             <code>{err}</code>
         </Alert>
 
+    render_custom_compute_image: ->
+        # for now, just tell what it is
+        current_image = @props.project.get('compute_image')
+        name = current_image[CUSTOM_IMG_PREFIX.length..]
+        name = name.replace('/', ':')
+
+        <div style={color:'#666'}>
+            <div style={fontSize : '12pt'}>
+                <Icon name={'hdd'} />
+                <Space/>
+                Custom image:
+                <Space/>
+                <span style={color:COLORS.GRAY, fontFamily: "monospace"}>
+                    {name}
+                </span>
+            </div>
+        </div>
+
     render_select_compute_image: ->
+        current_image = @props.project.get('compute_image')
+        return if not current_image?
+
+        if current_image.startsWith(CUSTOM_IMG_PREFIX)
+            return @render_custom_compute_image()
+
         no_value = not @state.compute_image?
         return <Loading/> if no_value or @state.compute_image_changing
         return @render_select_compute_image_error() if COMPUTE_IMAGES.has('error')
         # this will at least return a suitable default value
         selected_image = @state.compute_image
-        current_image = @props.project.get('compute_image')
         default_title = @compute_image_info(DEFAULT_COMPUTE_IMAGE, 'title')
 
         <div style={color:'#666'}>
