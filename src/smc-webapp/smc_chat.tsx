@@ -1278,13 +1278,44 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       flex: 1
     };
 
-    const chat_input_style: React.CSSProperties = {
-      margin: "0",
-      height: "90px",
-      fontSize: this.props.font_size,
-      border: "1px solid #ccc",
-      borderRadius: "4px",
-      boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+    const chat_input_style: {
+      [key: string]:
+        | React.CSSProperties
+        | { [key: string]: React.CSSProperties };
+    } = {
+      "&multiLine": {
+
+        highlighter: {
+          padding: 9
+        },
+
+        input: {
+          margin: "2px 0px 0px 0px",
+          height: "90px",
+          fontSize: this.props.font_size,
+          border: "1px solid #ccc",
+          borderRadius: "4px",
+          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+        }
+      },
+
+      suggestions: {
+        list: {
+          backgroundColor: "white",
+          border: "1px solid #ccc",
+          borderRadius: "4px",
+          fontSize: this.props.font_size
+        },
+
+        item: {
+          padding: "5px 15px",
+          borderBottom: "1px solid rgba(0,0,0,0.15)",
+
+          "&focused": {
+            backgroundColor: "rgb(66, 139, 202, 0.4)"
+          }
+        }
+      }
     };
 
     let has_collaborators = false;
