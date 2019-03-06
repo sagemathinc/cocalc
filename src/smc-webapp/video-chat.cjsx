@@ -108,6 +108,8 @@ class VideoChat
         title = "CoCalc Video Chat: #{misc.trunc_middle(@path, 30)}"
         url   = "#{VIDEO_CHAT_SERVER}/#{room_id}"
         w     = video_window(title, url)
+        # https://github.com/sagemathinc/cocalc/issues/3648
+        return if not w?
         video_windows[room_id] = w
         # disabled -- see https://github.com/sagemathinc/cocalc/issues/1899
         #w.addEventListener "unload", =>

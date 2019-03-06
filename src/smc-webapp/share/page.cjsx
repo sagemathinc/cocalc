@@ -77,13 +77,15 @@ exports.Page = rclass
                     crossOrigin = "anonymous" />
 
                 {### codemirror CDN -- https://cdnjs.com/libraries/codemirror ###}
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.35.0/codemirror.min.css" />
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css"
+                    integrity="sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
+                    crossorigin="anonymous" />
 
                 {### Katex CDN ###}
                 <link
                     rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.9.0/katex.min.css"
-                    integrity="sha384-TEMocfGvRuD1rIAacqrknm5BQZ7W7uWitoih+jMNFXQIbNl16bO8OZmylH/Vi/Ei"
+                    href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.1/katex.min.css"
+                    integrity="sha256-9F0HwgWlvrVxc95krEjTN7gvwm1DLYuPhZA6piUYuNY="
                     crossorigin="anonymous" />
 
                 {@render_favicon()}

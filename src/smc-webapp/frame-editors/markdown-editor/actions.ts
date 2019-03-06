@@ -63,4 +63,7 @@ export class Actions extends CodeEditorActions {
       this.set_error(err);
     }
   }
+
+  // Never delete trailing whitespace for markdown files.
+  delete_trailing_whitespace(): void {}
 }
