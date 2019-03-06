@@ -2,7 +2,16 @@
 Handle all mentions that haven't yet been handled.
 */
 
-const MIN_EMAIL_INTERVAL: string = "8 hours";
+const MIN_EMAIL_INTERVAL: string =
+  process.env.COCALC_MENTIONS_MIN_EMAIL_INTERVAL || "8 hours";
+
+// How long to wait between each round of handling notifications.
+let POLL_INTERVAL_S: number;
+if (process.env.COCALC_MENTIONS_POLL_INTERVAL_S != undefined) {
+  POLL_INTERVAL_S = parseInt(process.env.COCALC_MENTIONS_POLL_INTERVAL_S);
+} else {
+  POLL_INTERVAL_S = 15;
+}
 
 import { callback2 } from "smc-util/async-utils";
 import { trunc } from "smc-util/misc2";
@@ -31,7 +40,7 @@ type Database = any; // TODO
 // handle all unhandled notifications.
 export async function handle_mentions_loop(
   db: Database,
-  wait_ms: number = 15000
+  poll_interval_s: number = POLL_INTERVAL_S
 ): Promise<void> {
   while (true) {
     try {
@@ -41,7 +50,7 @@ export async function handle_mentions_loop(
       console.trace();
     }
 
-    await delay(wait_ms);
+    await delay(poll_interval_s * 1000);
   }
 }
 

@@ -487,7 +487,9 @@ exports.start_server = start_server = (cb) ->
             winston.debug("mentions=#{program.mentions}")
             if program.mentions
                 winston.debug("enabling handling of mentions...")
-                handle_mentions_loop(database, program.mentions)
+                handle_mentions_loop(database)
+            else
+                winston.debug("not handling mentions");
             cb()
         (cb) ->
             if not program.port
@@ -682,10 +684,10 @@ command_line = () ->
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
-        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
-        .option('--mentions <n>', 'if given, periodically handle mentions (time in ms)', ((n) -> parseInt(n)), 15000)
+        .option('--mentions', 'if given, periodically handle mentions')
         .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')
