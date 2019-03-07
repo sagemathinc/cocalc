@@ -947,12 +947,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   button_send_chat = e => {
-    send_chat(
-      e,
-      this.refs.log_container,
-      ReactDOM.findDOMNode(this.refs.input).value,
-      this.props.actions
-    );
+    send_chat(e, this.refs.log_container, this.props.input, this.props.actions);
     ReactDOM.findDOMNode(this.refs.input).focus();
   };
 
@@ -1268,6 +1263,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   render_body() {
+    const grid_style: React.CSSProperties = {
+      maxWidth: "1200px",
+      display: "flex",
+      flexDirection: "column",
+      width: IS_MOBILE ? "100%" : undefined
+    };
+
     const chat_log_style: React.CSSProperties = {
       overflowY: "auto",
       overflowX: "hidden",
@@ -1285,7 +1287,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         | { [key: string]: React.CSSProperties };
     } = {
       "&multiLine": {
-
         highlighter: {
           padding: 5
         },
@@ -1336,11 +1337,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       .toJS();
 
     return (
-      <Grid
-        fluid={true}
-        className="smc-vfill"
-        style={{ maxWidth: "1200px", display: "flex", flexDirection: "column" }}
-      >
+      <Grid fluid={true} className="smc-vfill" style={grid_style}>
         {!IS_MOBILE ? this.render_button_row() : undefined}
         <Row className="smc-vfill">
           <Col
