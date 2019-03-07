@@ -1297,7 +1297,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           border: "1px solid #ccc",
           borderRadius: "4px",
           boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-          overflow: "auto"
+          overflow: "auto",
+          padding: "5px 10px"
         }
       },
 
