@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke test 1`] = `
+<Alert
+  bsClass="alert"
+  bsStyle="danger"
+  closeLabel="Close alert"
+  style={
+    Object {
+      "marginRight": "1ex",
+      "maxWidth": "80ex",
+      "whiteSpace": "pre-line",
+    }
+  }
+>
+  <CloseX
+    on_close={[Function]}
+    style={
+      Object {
+        "fontSize": "11pt",
+      }
+    }
+  />
+  Testing error
+</Alert>
+`;
