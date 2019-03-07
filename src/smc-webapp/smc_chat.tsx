@@ -1296,7 +1296,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           fontSize: this.props.font_size,
           border: "1px solid #ccc",
           borderRadius: "4px",
-          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+          overflow: "auto"
         }
       },
 
@@ -1305,7 +1306,14 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           backgroundColor: "white",
           border: "1px solid #ccc",
           borderRadius: "4px",
-          fontSize: this.props.font_size
+          fontSize: this.props.font_size,
+          position: "absolute",
+          bottom: "10px",
+          overflow: "auto",
+          height: "140px",
+          width: "max-content",
+          display: "flex",
+          flexDirection: "column"
         },
 
         item: {
