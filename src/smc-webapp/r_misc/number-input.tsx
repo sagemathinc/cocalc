@@ -22,7 +22,6 @@ export class NumberInput extends React.Component<Props, State> {
 
   componentWillReceiveProps(next_props) {
     if (this.props.number !== next_props.number) {
-      // so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
       this.setState({ number: next_props.number });
     }
   }
