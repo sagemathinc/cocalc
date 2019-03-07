@@ -47,6 +47,8 @@ editor_chat = require('./editor_chat')
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
 
+{MentionsInput, Mention} = require('react-mentions')
+
 Message = rclass
     displayName: "Message"
 
@@ -219,14 +221,18 @@ Message = rclass
             borderRadius : borderRadius
             color        : color
 
+        class_name = "smc-chat-message"
+
         if sender_is_viewer(@props.account_id, @props.message)
             message_style.marginLeft = '10%'
+            class_name += " chat-sender-is-viewer"
         else
             message_style.marginRight = '10%'
+            class_name += " chat-sender-is-not-viewer"
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className={class_name}  onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
@@ -495,11 +501,63 @@ ChatRoom = rclass ({name}) ->
         # E.g, this is critical for taks lists...
         @props.redux.getActions('page').erase_active_key_handler()
 
+    on_mention: (id, display) ->
+        webapp_client.mention({project_id:@props.project_id, path:@props.path, target:id, cb:console.log, priority:2})
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
+        has_collaborators = false
+
+        user_array = @props.project_map
+            .getIn([@props.project_id, "users"])
+            .keySeq()
+            .filter((account_id) =>
+                return account_id != @props.account_id;
+            )
+            .map((account_id) =>
+                has_collaborators = true
+                return {
+                    id: account_id,
+                    display: @props.redux.getStore("users").get_name(account_id)
+                };
+            )
+        .toJS();
+
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
+
+        input_style =
+            width: "85%"
+
+            "&multiLine":
+                control:
+                    backgroundColor: 'white'
+                    height:'100%'
+                    leftMargin:'2px'
+                    fontSize: @props.font_size
+
+                highlighter:
+                    padding: 5
+
+                input:
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+
+            suggestions:
+                list:
+                    backgroundColor: "white"
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    fontSize: @props.font_size
+
+                item:
+                    padding: "5px 15px"
+                    borderBottom: "1px solid rgba(0,0,0,0.15)"
+
+                    "&focused":
+                        backgroundColor: "rgb(66, 139, 202, 0.4)"
 
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
@@ -523,16 +581,24 @@ ChatRoom = rclass ({name}) ->
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <div style={display:'flex', height:'6em'}>
-                    <FormControl
-                        style          = {width:'85%', height:'100%'}
+                    <MentionsInput
+                        displayTransform = {(id, display, type) => "@" + display}
+                        style          = {input_style}
+                        markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
-                        componentClass = 'textarea'
                         ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
-                        placeholder    = {'Type a message...'}
-                        onChange       = {(e) => @props.actions.set_input(e.target.value);}
-                    />
+                        placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
+                        onChange       = {(e) => @props.actions.set_input(e.target.value)}
+                    >
+                        <Mention
+                            trigger="@"
+                            data={user_array}
+                            onAdd={@on_mention}
+                            appendSpaceOnAdd={true}
+                        />
+                    </MentionsInput>
                     <Button
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@on_send_click}
