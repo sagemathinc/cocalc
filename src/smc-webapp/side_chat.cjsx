@@ -539,7 +539,8 @@ ChatRoom = rclass ({name}) ->
                 input:
                     border: "1px solid #ccc"
                     borderRadius: "4px"
-                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+                    padding: "5px 10px"
 
             suggestions:
                 list:
