@@ -420,6 +420,8 @@ export class Message extends Component<MessageProps, MessageState> {
     let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(this.props.message);
 
+    const is_viewers_message = sender_is_viewer(this.props.account_id, this.props.message)
+
     const {
       background,
       color,
@@ -443,7 +445,7 @@ export class Message extends Component<MessageProps, MessageState> {
 
     if (
       !this.props.is_prev_sender &&
-      sender_is_viewer(this.props.account_id, this.props.message)
+      is_viewers_message
     ) {
       marginTop = "17px";
     }
@@ -473,7 +475,7 @@ export class Message extends Component<MessageProps, MessageState> {
     return (
       <Col key={1} xs={10} sm={9}>
         {!this.props.is_prev_sender &&
-        !sender_is_viewer(this.props.account_id, this.props.message)
+        !is_viewers_message
           ? show_user_name(this.props.sender_name)
           : undefined}
         <Well
