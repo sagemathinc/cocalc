@@ -306,10 +306,6 @@ class SyncTableChannel {
         this.log("error handling mesg -- ", err, err.stack);
       }
     });
-
-    spark.conn.once("end", () => {
-      spark.end();
-    });
   }
 
   private async end_connection(spark: Spark): Promise<void> {

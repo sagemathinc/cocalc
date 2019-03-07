@@ -31,6 +31,8 @@ const misc_page = require("./misc_page");
 
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
+import { MentionsInput, Mention } from "react-mentions";
+
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
 const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
@@ -66,6 +68,8 @@ const {
 
 const { VideoChatButton } = require("./video-chat");
 const { SMC_Dropwrapper } = require("./smc-dropzone");
+
+const { webapp_client } = require("./webapp_client");
 
 interface MessageProps {
   actions?: any;
@@ -753,6 +757,7 @@ interface ChatRoomReduxProps {
   use_saved_position: boolean;
   search: string;
   user_map?: any;
+  project_map: any;
   account_id: string;
   font_size?: number;
   file_use?: any;
@@ -787,6 +792,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
       users: {
         user_map: rtypes.immutable
+      },
+
+      projects: {
+        project_map: rtypes.immutable
       },
 
       account: {
@@ -908,7 +917,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       return send_chat(
         e,
         this.refs.log_container,
-        ReactDOM.findDOMNode(this.refs.input).value,
+        this.props.input,
         this.props.actions
       );
     } else if (
@@ -938,12 +947,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   button_send_chat = e => {
-    send_chat(
-      e,
-      this.refs.log_container,
-      ReactDOM.findDOMNode(this.refs.input).value,
-      this.props.actions
-    );
+    send_chat(e, this.refs.log_container, this.props.input, this.props.actions);
     ReactDOM.findDOMNode(this.refs.input).focus();
   };
 
@@ -1248,7 +1252,24 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
+  on_mention = id => {
+    webapp_client.mention({
+      project_id: this.props.project_id,
+      path: this.props.path,
+      target: id,
+      cb: console.log,
+      priority: 2
+    });
+  };
+
   render_body() {
+    const grid_style: React.CSSProperties = {
+      maxWidth: "1200px",
+      display: "flex",
+      flexDirection: "column",
+      width: IS_MOBILE ? "100%" : undefined
+    };
+
     const chat_log_style: React.CSSProperties = {
       overflowY: "auto",
       overflowX: "hidden",
@@ -1259,18 +1280,64 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       flex: 1
     };
 
-    const chat_input_style: React.CSSProperties = {
-      margin: "0",
-      height: "90px",
-      fontSize: this.props.font_size
+    const chat_input_style: {
+      [key: string]:
+        | string
+        | React.CSSProperties
+        | { [key: string]: React.CSSProperties };
+    } = {
+      "&multiLine": {
+        highlighter: {
+          padding: 5
+        },
+
+        input: {
+          height: "90px",
+          fontSize: this.props.font_size,
+          border: "1px solid #ccc",
+          borderRadius: "4px",
+          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+        }
+      },
+
+      suggestions: {
+        list: {
+          backgroundColor: "white",
+          border: "1px solid #ccc",
+          borderRadius: "4px",
+          fontSize: this.props.font_size
+        },
+
+        item: {
+          padding: "5px 15px",
+          borderBottom: "1px solid rgba(0,0,0,0.15)",
+
+          "&focused": {
+            backgroundColor: "rgb(66, 139, 202, 0.4)"
+          }
+        }
+      }
     };
 
+    let has_collaborators = false;
+
+    const user_array = this.props.project_map
+      .getIn([this.props.project_id, "users"])
+      .keySeq()
+      .filter(account_id => {
+        return account_id !== this.props.account_id;
+      })
+      .map(account_id => {
+        has_collaborators = true;
+        return {
+          id: account_id,
+          display: this.props.redux.getStore("users").get_name(account_id)
+        };
+      })
+      .toJS();
+
     return (
-      <Grid
-        fluid={true}
-        className="smc-vfill"
-        style={{ maxWidth: "1200px", display: "flex", flexDirection: "column" }}
-      >
+      <Grid fluid={true} className="smc-vfill" style={grid_style}>
         {!IS_MOBILE ? this.render_button_row() : undefined}
         <Row className="smc-vfill">
           <Col
@@ -1322,23 +1389,32 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 sending: this.start_upload
               }}
             >
-              <FormGroup>
-                <FormControl
-                  autoFocus={!IS_MOBILE || isMobile.Android()}
-                  rows={4}
-                  componentClass="textarea"
-                  ref="input"
-                  onKeyDown={this.keydown}
-                  value={this.props.input}
-                  onPaste={this.handle_paste_event}
-                  placeholder={"Type a message..."}
-                  onChange={(e: any) => {
-                    this.props.actions.set_input(e.target.value);
-                    this.mark_as_read();
-                  }}
-                  style={chat_input_style}
+              <MentionsInput
+                autoFocus={!IS_MOBILE || isMobile.Android()}
+                displayTransform={(_, display) => "@" + display}
+                style={chat_input_style}
+                markup='<span class="user-mention">@__display__</span>'
+                ref="input"
+                onKeyDown={this.keydown}
+                value={this.props.input}
+                placeholder={
+                  has_collaborators
+                    ? "Type a message, @name..."
+                    : "Type a message..."
+                }
+                onPaste={this.handle_paste_event}
+                onChange={(e: any) => {
+                  this.props.actions.set_input(e.target.value);
+                  this.mark_as_read();
+                }}
+              >
+                <Mention
+                  trigger="@"
+                  data={user_array}
+                  onAdd={this.on_mention}
+                  appendSpaceOnAdd={true}
                 />
-              </FormGroup>
+              </MentionsInput>
             </SMC_Dropwrapper>
           </Col>
           <Col

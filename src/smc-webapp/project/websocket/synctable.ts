@@ -87,6 +87,7 @@ class SyncTableChannel extends EventEmitter {
   private async connect(): Promise<void> {
     if (this.synctable == null) return;
     this.set_connected(false);
+    this.clean_up_sockets();
 
     const time_since_last_connect = new Date().valueOf() - this.last_connect;
     if (time_since_last_connect < MIN_CONNECT_WAIT_MS) {
@@ -151,6 +152,7 @@ class SyncTableChannel extends EventEmitter {
 
     this.channel.on("data", this.handle_mesg_from_project.bind(this));
     this.websocket.on("offline", this.connect);
+    this.channel.on("close", this.connect);
   }
 
   private init_synctable_handlers(): void {
@@ -162,6 +164,15 @@ class SyncTableChannel extends EventEmitter {
 
   private clean_up_sockets(): void {
     if (this.channel != null) {
+      this.channel.removeListener("close", this.connect);
+
+      // Explicitly emit end -- this is a hack,
+      // since this is the only way to force the
+      // channel clean-up code to run in primus-multiplex,
+      // and it gets run async later if we don't do this.
+      // TODO: rewrite primus-multiplex from scratch.
+      this.channel.emit('end');
+
       try {
         this.channel.end();
       } catch (err) {
