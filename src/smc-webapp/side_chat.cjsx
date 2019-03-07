@@ -35,7 +35,7 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, Space, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -48,6 +48,7 @@ editor_chat = require('./editor_chat')
 {AddCollaborators} = require('./collaborators/add-to-project')
 
 {MentionsInput, Mention} = require('react-mentions')
+{ Avatar } = require("./other-users");
 
 Message = rclass
     displayName: "Message"
@@ -492,6 +493,14 @@ ChatRoom = rclass ({name}) ->
             {@render_add_collab()}
         </div>
 
+    render_user_suggestion: (entry) ->
+        <span>
+            <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+            <Space />
+            <Space />
+            {entry.display}
+        </span>
+
     on_focus: ->
         # Remove any active key handler that is next to this side chat.
         # E.g, this is critical for taks lists...
@@ -552,7 +561,7 @@ ChatRoom = rclass ({name}) ->
                     position: "absolute"
                     bottom: "10px"
                     overflow: "auto"
-                    height: "140px"
+                    maxHeight: "145px"
                     width: "max-content"
                     display: "flex"
                     flexDirection: "column"
@@ -602,6 +611,7 @@ ChatRoom = rclass ({name}) ->
                             data={user_array}
                             onAdd={@on_mention}
                             appendSpaceOnAdd={true}
+                            renderSuggestion={@render_user_suggestion}
                         />
                     </MentionsInput>
                     <Button
