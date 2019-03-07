@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`smoke test 1`] = `
+exports[`smoke test: initial render 1`] = `
 <form
   onSubmit={[Function]}
 >
@@ -13,6 +13,60 @@ exports[`smoke test 1`] = `
       onChange={[Function]}
       type="text"
       value="initial"
+    />
+  </FormGroup>
+</form>
+`;
+
+exports[`smoke test: save button appears after text changes from initial render 1`] = `
+<form
+  onSubmit={[Function]}
+>
+  <FormGroup
+    bsClass="form-group"
+  >
+    <FormControl
+      bsClass="form-control"
+      componentClass="input"
+      onChange={[Function]}
+      type="text"
+      value="changed!"
+    />
+  </FormGroup>
+  <Button
+    active={false}
+    block={false}
+    bsClass="btn"
+    bsStyle="success"
+    disabled={false}
+    onClick={[Function]}
+    style={
+      Object {
+        "marginBottom": "15px",
+      }
+    }
+  >
+    <Icon
+      name="save"
+    />
+     Save
+  </Button>
+</form>
+`;
+
+exports[`smoke test: value updated from props 1`] = `
+<form
+  onSubmit={[Function]}
+>
+  <FormGroup
+    bsClass="form-group"
+  >
+    <FormControl
+      bsClass="form-control"
+      componentClass="input"
+      onChange={[Function]}
+      type="text"
+      value="changed from props"
     />
   </FormGroup>
 </form>
