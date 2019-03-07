@@ -540,6 +540,7 @@ ChatRoom = rclass ({name}) ->
                     border: "1px solid #ccc"
                     borderRadius: "4px"
                     boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+                    overflow: "auto",
                     padding: "5px 10px"
 
             suggestions:
@@ -548,6 +549,13 @@ ChatRoom = rclass ({name}) ->
                     border: "1px solid #ccc"
                     borderRadius: "4px"
                     fontSize: @props.font_size
+                    position: "absolute"
+                    bottom: "10px"
+                    overflow: "auto"
+                    height: "140px"
+                    width: "max-content"
+                    display: "flex"
+                    flexDirection: "column"
 
                 item:
                     padding: "5px 15px"
