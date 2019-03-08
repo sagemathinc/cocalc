@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke test 1`] = `
+<Icon
+  name="spinner"
+  spin={true}
+/>
+`;

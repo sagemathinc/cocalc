@@ -94,8 +94,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
       v.push(this.line_number(v.length, line, width));
       line++;
     }
-    // TODO: this was unused code from coffeescript file
-    // let last_type = undefined;  // used for detecting introspection
+
     const append = (text: string, type?: string) => {
       if (type != null) {
         v.push(
@@ -103,10 +102,6 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
             {text}
           </span>
         );
-        // TODO: this was unused code from coffeescript file
-        // if (text.trim().length > 0) {
-        //   last_type = type;
-        // }
       } else {
         v.push(<span key={v.length}>{text}</span>);
       }

@@ -70,6 +70,8 @@ sage       = require('./sage')               # sage server
 auth       = require('./auth')
 base_url   = require('./base-url')
 
+{handle_mentions_loop} = require('./mentions/handle')
+
 local_hub_connection = require('./local_hub_connection')
 hub_proxy            = require('./proxy')
 
@@ -90,7 +92,10 @@ init_smc_version = (db, cb) ->
         cb()
         return
     server_settings = require('./server-settings')(db)
-    server_settings.table.once('init', cb)
+    if server_settings.table._state == 'init'
+        server_settings.table.once('init', => cb())
+    else
+        cb()
     # winston.debug("init smc_version: #{misc.to_json(smc_version.version)}")
     server_settings.table.on 'change', ->
         winston.debug("version changed -- sending updates to clients")
@@ -479,6 +484,14 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            winston.debug("mentions=#{program.mentions}")
+            if program.mentions
+                winston.debug("enabling handling of mentions...")
+                handle_mentions_loop(database)
+            else
+                winston.debug("not handling mentions");
+            cb()
+        (cb) ->
             if not program.port
                 cb(); return
             if not database.is_standby and (program.dev or program.update)
@@ -527,7 +540,7 @@ exports.start_server = start_server = (cb) ->
             # proxy server and http server; Some of this working etc. *relies* on compute_server having been created.
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
-            x = hub_http_server.init_express_http_server
+            x = await hub_http_server.init_express_http_server
                 base_url       : BASE_URL
                 dev            : program.dev
                 compute_server : compute_server
@@ -671,9 +684,10 @@ command_line = () ->
         .option('--blob_maintenance', 'Do blob-related maintenance (dump to tarballs, offload to gcloud)', String, 'yes')
         .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
         .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
-        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+        .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)')
         .option('--foreground', 'If specified, do not run as a deamon')
         .option('--kucalc', 'if given, assume running in the KuCalc kubernetes environment')
+        .option('--mentions', 'if given, periodically handle mentions')
         .option('--test', 'terminate after setting up the hub -- used to test if it starts up properly')
         .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
         .option('--single', 'if given, then run in LESS SAFE single-machine mode')

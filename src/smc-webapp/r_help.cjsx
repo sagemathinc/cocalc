@@ -232,7 +232,7 @@ SUPPORT_LINKS =
     docker_image:
         icon : 'window-maximize'
         href : 'https://github.com/sagemathinc/cocalc/blob/master/src/dev/docker/README.md'
-        link : <span>Docker image for offline usage</span>
+        link : <span>Free open source version of CoCalc to run on your own server (a $799 commercial license is available)</span>
     courses :
         icon : 'users'
         href : 'https://github.com/sagemathinc/cocalc/wiki/Teaching'

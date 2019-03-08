@@ -35,7 +35,7 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, Space, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -46,6 +46,9 @@ editor_chat = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
+
+{MentionsInput, Mention} = require('react-mentions')
+{ Avatar } = require("./other-users");
 
 Message = rclass
     displayName: "Message"
@@ -226,7 +229,7 @@ Message = rclass
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className="smc-chat-message" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
@@ -490,16 +493,87 @@ ChatRoom = rclass ({name}) ->
             {@render_add_collab()}
         </div>
 
+    render_user_suggestion: (entry) ->
+        <span>
+            <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+            <Space />
+            <Space />
+            {entry.display}
+        </span>
+
     on_focus: ->
         # Remove any active key handler that is next to this side chat.
         # E.g, this is critical for taks lists...
         @props.redux.getActions('page').erase_active_key_handler()
 
+    on_mention: (id, display) ->
+        webapp_client.mention({project_id:@props.project_id, path:misc.original_path(@props.path), target:id, priority:2})
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
+        has_collaborators = false
+
+        # the immutable.Map() default is because of admins:
+        # https://github.com/sagemathinc/cocalc/issues/3669
+        user_array = @props.project_map
+            .getIn([@props.project_id, "users"], immutable.Map())
+            .keySeq()
+            .filter((account_id) =>
+                return account_id != @props.account_id;
+            )
+            .map((account_id) =>
+                has_collaborators = true
+                return {
+                    id: account_id,
+                    display: @props.redux.getStore("users").get_name(account_id)
+                };
+            )
+        .toJS();
+
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
+
+        input_style =
+            width: "85%"
+
+            "&multiLine":
+                control:
+                    backgroundColor: 'white'
+                    height:'100%'
+                    leftMargin:'2px'
+                    fontSize: @props.font_size
+
+                highlighter:
+                    padding: 5
+
+                input:
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+                    overflow: "auto",
+                    padding: "5px 10px"
+
+            suggestions:
+                list:
+                    backgroundColor: "white"
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    fontSize: @props.font_size
+                    position: "absolute"
+                    bottom: "10px"
+                    overflow: "auto"
+                    maxHeight: "145px"
+                    width: "max-content"
+                    display: "flex"
+                    flexDirection: "column"
+
+                item:
+                    padding: "5px 15px"
+                    borderBottom: "1px solid rgba(0,0,0,0.15)"
+
+                    "&focused":
+                        backgroundColor: "rgb(66, 139, 202, 0.4)"
 
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
@@ -523,16 +597,25 @@ ChatRoom = rclass ({name}) ->
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <div style={display:'flex', height:'6em'}>
-                    <FormControl
-                        style          = {width:'85%', height:'100%'}
+                    <MentionsInput
+                        displayTransform = {(id, display, type) => "@" + display}
+                        style          = {input_style}
+                        markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
-                        componentClass = 'textarea'
                         ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
-                        placeholder    = {'Type a message...'}
-                        onChange       = {(e) => @props.actions.set_input(e.target.value);}
-                    />
+                        placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
+                        onChange       = {(e) => @props.actions.set_input(e.target.value)}
+                    >
+                        <Mention
+                            trigger="@"
+                            data={user_array}
+                            onAdd={@on_mention}
+                            appendSpaceOnAdd={true}
+                            renderSuggestion={@render_user_suggestion}
+                        />
+                    </MentionsInput>
                     <Button
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@on_send_click}

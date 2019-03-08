@@ -29,16 +29,14 @@
  */
 
 const doc_intro = `\
-## About the API
-
-### Purpose
+## Purpose
 
 The purpose of the CoCalc API (application programming interface) is to make
 essential operations within the CoCalc platform available to automated
 clients. This allows embedding of CoCalc services within other products
 and customizing the external look and feel of the application.
 
-### Protocol and Data Format
+## Protocol and Data Format
 
 Each API command is invoked using an HTTPS PUT request.
 All commands support request parameters in JSON format, with request header
@@ -56,7 +54,7 @@ be completed, a response code other than 200 may be
 returned, and the response body may be a
 generic HTML message rather than a JSON string.
 
-### Authentication
+## Authentication
 
 A valid API key is required on all API requests.
 To obtain a key, log into
@@ -66,26 +64,18 @@ With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
 
-Your API key carries access privileges, just like your
-login and password.
+Your API key carries access privileges, just like your login and password.
 __Keep it secret.__
-Do not share your API key with others or post it in publicly accessible
-forums.
+Do not share your API key with others or post it in publicly accessible forums.
 
-### Additional References
+## Additional References
 
 - The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
-- The CoCalc PostgreSQL schema definition
-[src/smc-util/db-schema.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js)
-has information on tables and fields used with the API \`query\` request.
-- The API test suite
-[src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
-contains mocha unit tests for the API messages.
-- The CoCalc message definition file
-[src/smc-util/message.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.js)
-contains the source for this guide.
+- The CoCalc PostgreSQL schema definition [src/smc-util/db-schema.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js) has information on tables and fields used with the API \`query\` request.
+- The API test suite [src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api) contains mocha unit tests for the API messages.
+- The CoCalc message definition file [src/smc-util/message.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.js) contains the source for this guide.
 
-### API Message Reference
+## API Message Reference
 
 The remainder of this guide explains the individual API endpoints.
 Each API request definition begins with the path of the
@@ -1693,7 +1683,7 @@ API(
       },
       exclude_history: {
         init: false,
-        desc: "if true, exclude all files of the form *.sage-history"
+        desc: "if true, exclude all files of the form `*.sage-history`"
       }
     },
     desc: `\
@@ -1999,7 +1989,7 @@ API(
       },
       exclude_history: {
         init: false,
-        desc: "if true, exclude all files of the form *.sage-history"
+        desc: "if true, exclude all files of the form `*.sage-history`"
       }
     },
     desc: `\
@@ -2307,7 +2297,7 @@ API(
       },
       tags: {
         init: undefined,
-        desc: "a list of tags, like ['member']"
+        desc: "a list of tags, like \`['member']\`"
       },
       account_id: {
         init: undefined,
@@ -2332,27 +2322,26 @@ info will not be returned by \`get_support_tickets\`.
 
 - If \`username\` is not provided, \`email_address\` is used for the name on the ticket.
 
-- \`location\` is used to provide a path to a specific project or file,
-for example
-\`\`\`
-/project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb\`
-\`\`\`
+- \`location\` is used to provide a path to a specific project or file, for example
+  \`\`\`
+  /project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb\`
+  \`\`\`
 
 If present, the \`location\` string will be expanded to a complete URL and
 appended to the body of the ticket.
 
 - The \`info\` dict can be used to provide additional metadata, for example
-\`\`\`
-{"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
-\`\`\`
-- If the ticket concerns a CoCalc course, the project id of the course can
-be included in the \`info\` dict, for example,
-\`\`\`
-{"course":"0c7ae00c-ea43-4981-b454-90d4a8b1ac47"}
-\`\`\`
-In that case, the course
-project_id will be expanded to a URL and appended to the body of the
-ticket.
+  \`\`\`
+  {"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
+  \`\`\`
+
+- If the ticket concerns a CoCalc course, the project id of the course can be included in the \`info\` dict, for example,
+  \`\`\`
+  {"course":"0c7ae00c-ea43-4981-b454-90d4a8b1ac47"}
+  \`\`\`
+
+  In that case, the course project_id will be expanded to a URL and appended to the body of the ticket.
+
 - If \`tags\` or \`info\` are provided, options must be sent as a JSON object.
 
 Example:
@@ -2972,3 +2961,5 @@ message({
   id: undefined,
   path: required
 });
+
+
