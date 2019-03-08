@@ -515,8 +515,10 @@ ChatRoom = rclass ({name}) ->
 
         has_collaborators = false
 
+        # the immutable.Map() default is because of admins:
+        # https://github.com/sagemathinc/cocalc/issues/3669
         user_array = @props.project_map
-            .getIn([@props.project_id, "users"])
+            .getIn([@props.project_id, "users"], immutable.Map())
             .keySeq()
             .filter((account_id) =>
                 return account_id != @props.account_id;
