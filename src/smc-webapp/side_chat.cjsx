@@ -602,7 +602,6 @@ ChatRoom = rclass ({name}) ->
                         style          = {input_style}
                         markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
-                        ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
                         placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
