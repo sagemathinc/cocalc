@@ -1257,7 +1257,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       project_id: this.props.project_id,
       path: this.props.path,
       target: id,
-      cb: console.log,
       priority: 2
     });
   };

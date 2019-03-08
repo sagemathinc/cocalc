@@ -502,7 +502,7 @@ ChatRoom = rclass ({name}) ->
         @props.redux.getActions('page').erase_active_key_handler()
 
     on_mention: (id, display) ->
-        webapp_client.mention({project_id:@props.project_id, path:@props.path, target:id, cb:console.log, priority:2})
+        webapp_client.mention({project_id:@props.project_id, path:@props.path, target:id, priority:2})
 
     render: ->
         if not @props.messages? or not @props.redux?
