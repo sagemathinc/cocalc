@@ -195,7 +195,7 @@ export class SyncTable extends EventEmitter {
   */
   public has_uncommitted_changes(): boolean {
     if (this.state === "closed") {
-      return false;  // if closed, can't have any uncommitted changes.
+      return false; // if closed, can't have any uncommitted changes.
     }
     return len(this.changes) !== 0;
   }
@@ -1517,7 +1517,7 @@ export class SyncTable extends EventEmitter {
       // throw Error("key must not be null");
     }
     let cur_val = this.value.get(key);
-    if (action === 'update') {
+    if (action === "update") {
       // For update actions, we shallow *merge* in the change.
       // For insert action, we just replace the whole thing.
       new_val = cur_val.merge(new_val);

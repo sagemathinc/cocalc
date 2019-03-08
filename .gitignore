@@ -45,6 +45,7 @@ src/static/*.min.js
 src/static/*.map.js
 
 src/scripts/skel/.sagemathcloud
+src/scripts/export-api-doc.js
 
 src/src/*cassandra*
 src/src/*.tar.gz

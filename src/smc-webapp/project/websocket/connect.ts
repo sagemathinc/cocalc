@@ -160,9 +160,12 @@ async function connection_to_project0(project_id: string): Promise<any> {
     update_state("online");
   });
 
+  /*
+  CRITICAL: do NOT consider this as online -- conn emits
+  online before open, and this causes havoc with synctable.
   conn.on("online", () => {
     update_state("online");
-  });
+  });*/
 
   conn.on("offline", () => {
     update_state("offline");

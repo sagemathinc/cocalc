@@ -10,7 +10,7 @@ import { Document, Patch } from "./types";
 
 import { patch_cmp } from "./util";
 
-import { cmp_Date, trunc_middle } from "../../../misc2";
+import { cmp_Date, deep_copy, trunc_middle } from "../../../misc2";
 
 import { Entry, PatchValueCache } from "./patch-value-cache";
 
@@ -462,7 +462,7 @@ export class SortedPatchList extends EventEmitter {
     milliseconds?: boolean;
     trunc?: number;
     log?: Function;
-  }) {
+  } = {}) {
     if (milliseconds === undefined) {
       milliseconds = false;
     }
@@ -573,5 +573,9 @@ export class SortedPatchList extends EventEmitter {
 
   public count(): number {
     return this.patches.length;
+  }
+
+  public export(): Patch[] {
+    return deep_copy(this.patches);
   }
 }

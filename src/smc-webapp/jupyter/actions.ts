@@ -98,6 +98,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   private project_conn: any;
   private cursor_manager?: CursorManager;
+  private last_cursor_move_time : Date = new Date(0);
 
   protected _client: any;
   protected _file_watcher: any;
@@ -1469,6 +1470,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_cursor_locs = (locs: any = [], side_effect?: any) => {
+    this.last_cursor_move_time = new Date();
     if (this.syncdb == null) {
       // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
       return;
@@ -1989,6 +1991,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       cursor_pos = pos;
     }
 
+    const start = new Date();
     let complete;
     try {
       complete = await this._api_call("complete", {
@@ -2002,6 +2005,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
+    if (this.last_cursor_move_time >= start) {
+      // see https://github.com/sagemathinc/cocalc/issues/3611
+      return;
+    }
     if (this._complete_request > req) {
       // future completion or clear happened; so ignore this result.
       return;
