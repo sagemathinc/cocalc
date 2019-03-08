@@ -1,0 +1,152 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smoke testing renders disabled 1`] = `
+<Row
+  bsClass="row"
+  componentClass="div"
+>
+  <Col
+    bsClass="col"
+    componentClass="div"
+    xs={6}
+  >
+    <form
+      onSubmit={[Function]}
+    >
+      <FormGroup
+        bsClass="form-group"
+      >
+        <FormControl
+          bsClass="form-control"
+          componentClass="input"
+          disabled={true}
+          onBlur={[Function]}
+          onChange={[Function]}
+          onKeyDown={[Function]}
+          type="text"
+          value={0}
+        />
+      </FormGroup>
+    </form>
+  </Col>
+  <Col
+    bsClass="col"
+    className="lighten"
+    componentClass="div"
+    xs={6}
+  />
+</Row>
+`;
+
+exports[`smoke testing renders with a unit 1`] = `
+<Row
+  bsClass="row"
+  componentClass="div"
+>
+  <Col
+    bsClass="col"
+    componentClass="div"
+    xs={6}
+  >
+    <form
+      onSubmit={[Function]}
+    >
+      <FormGroup
+        bsClass="form-group"
+      >
+        <FormControl
+          bsClass="form-control"
+          componentClass="input"
+          onBlur={[Function]}
+          onChange={[Function]}
+          onKeyDown={[Function]}
+          type="text"
+          value={0}
+        />
+      </FormGroup>
+    </form>
+  </Col>
+  <Col
+    bsClass="col"
+    className="lighten"
+    componentClass="div"
+    xs={6}
+  >
+    lbs
+  </Col>
+</Row>
+`;
+
+exports[`smoke testing renders with required values 1`] = `
+<Row
+  bsClass="row"
+  componentClass="div"
+>
+  <Col
+    bsClass="col"
+    componentClass="div"
+    xs={6}
+  >
+    <form
+      onSubmit={[Function]}
+    >
+      <FormGroup
+        bsClass="form-group"
+      >
+        <FormControl
+          bsClass="form-control"
+          componentClass="input"
+          onBlur={[Function]}
+          onChange={[Function]}
+          onKeyDown={[Function]}
+          type="text"
+          value={0}
+        />
+      </FormGroup>
+    </form>
+  </Col>
+  <Col
+    bsClass="col"
+    className="lighten"
+    componentClass="div"
+    xs={6}
+  />
+</Row>
+`;
+
+exports[`smoke testing renders with required values 2`] = `
+<Row
+  bsClass="row"
+  componentClass="div"
+>
+  <Col
+    bsClass="col"
+    componentClass="div"
+    xs={6}
+  >
+    <form
+      onSubmit={[Function]}
+    >
+      <FormGroup
+        bsClass="form-group"
+      >
+        <FormControl
+          bsClass="form-control"
+          componentClass="input"
+          onBlur={[Function]}
+          onChange={[Function]}
+          onKeyDown={[Function]}
+          type="text"
+          value={12}
+        />
+      </FormGroup>
+    </form>
+  </Col>
+  <Col
+    bsClass="col"
+    className="lighten"
+    componentClass="div"
+    xs={6}
+  />
+</Row>
+`;

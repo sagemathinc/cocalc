@@ -18,7 +18,7 @@ ports = util.get_ports()
 base_url = util.base_url()
 
 
-cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --share_port=0 --proxy_port=0 --gap=0 --base_url={base_url} {test} start".format(
+cmd = "cd ../../ && . smc-env &&  service_hub.py --dev --foreground --hostname=0.0.0.0 --port={hub_port} --share_port=0 --proxy_port=0 --gap=0 --mentions --base_url={base_url} {test} start".format(
     base_url=base_url, hub_port=ports['hub'], test=util.test())
-
+print(cmd)
 util.cmd(cmd)

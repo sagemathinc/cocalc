@@ -76,6 +76,11 @@ async function init_syncdoc_async(
     syncdoc.close();
   });
 
+  syncdoc.on("error", function(err) {
+    log(`syncdoc error -- ${err}`);
+    syncdoc.close();
+  });
+
   // Extra backend support in some cases, e.g., Jupyter, Sage, etc.
   const ext = filename_extension(opts.path);
   log("ext = ", ext);
