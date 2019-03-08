@@ -1655,6 +1655,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : 'project_id :: UUID = $' : project_id
             cb    : one_result(column, cb)
 
+    get_user_column: (column, account_id, cb) =>
+        if not misc.is_valid_uuid_string(account_id)
+            cb("invalid account_id -- #{account_id}: getting column #{column}")
+            return
+        @_query
+            query : "SELECT #{column} FROM accounts"
+            where : 'account_id :: UUID = $' : account_id
+            cb    : one_result(column, cb)
+
     add_user_to_project: (opts) =>
         opts = defaults opts,
             project_id   : required
