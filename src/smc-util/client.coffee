@@ -2097,6 +2097,11 @@ class exports.Connection extends EventEmitter
                 mentions : misc.copy_without(opts, 'cb')
             cb : opts.cb
 
+    # This is async, so do "await smc_webapp.capabilities(...project_id...)".
+    capabilities: (project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.capabilities()
 
 #################################################
 # Other account Management functionality shared between client and server
