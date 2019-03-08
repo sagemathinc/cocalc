@@ -70,10 +70,17 @@ export async function get_listing_node10(
       entry.mtime = stats.mtime.valueOf() / 1000;
       if (file.isDirectory()) {
         entry.isdir = true;
-        try {
-          entry.size = (await callback(readdir, dir + "/" + entry.name)).length;
-        } catch (err) {
-          // skip
+        const v = await callback(readdir, dir + "/" + entry.name);
+        if (hidden) {
+          entry.size = v.length;
+        } else {
+          // only count non-hidden files
+          entry.size = 0;
+          for (let x of v) {
+            if (x[0] != ".") {
+              entry.size += 1;
+            }
+          }
         }
       } else {
         entry.size = stats.size;
@@ -116,7 +123,7 @@ export async function get_listing(
         entry.issymlink = true;
         try {
           stats = await callback(stat, dir + "/" + entry.name);
-        } catch(err) {
+        } catch (err) {
           // broken link -- just report info about the link itself...
         }
       }
@@ -124,7 +131,18 @@ export async function get_listing(
       if (stats.isDirectory()) {
         entry.isdir = true;
         try {
-          entry.size = (await callback(readdir, dir + "/" + entry.name)).length;
+          const v = await callback(readdir, dir + "/" + entry.name);
+          if (hidden) {
+            entry.size = v.length;
+          } else {
+            // only count non-hidden files
+            entry.size = 0;
+            for (let x of v) {
+              if (x[0] != ".") {
+                entry.size += 1;
+              }
+            }
+          }
         } catch (err) {
           // just ignore -- no size info.
         }
