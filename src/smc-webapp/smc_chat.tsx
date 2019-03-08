@@ -35,7 +35,7 @@ import { MentionsInput, Mention } from "react-mentions";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
+const { Icon, Loading, SearchInput, Space, TimeAgo, Tip } = require("./r_misc");
 import {
   Alert,
   Button,
@@ -420,6 +420,11 @@ export class Message extends Component<MessageProps, MessageState> {
     let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(this.props.message);
 
+    const is_viewers_message = sender_is_viewer(
+      this.props.account_id,
+      this.props.message
+    );
+
     const {
       background,
       color,
@@ -441,10 +446,7 @@ export class Message extends Component<MessageProps, MessageState> {
       marginBottom = "3px";
     }
 
-    if (
-      !this.props.is_prev_sender &&
-      sender_is_viewer(this.props.account_id, this.props.message)
-    ) {
+    if (!this.props.is_prev_sender && is_viewers_message) {
       marginTop = "17px";
     }
 
@@ -472,8 +474,7 @@ export class Message extends Component<MessageProps, MessageState> {
 
     return (
       <Col key={1} xs={10} sm={9}>
-        {!this.props.is_prev_sender &&
-        !sender_is_viewer(this.props.account_id, this.props.message)
+        {!this.props.is_prev_sender && !is_viewers_message
           ? show_user_name(this.props.sender_name)
           : undefined}
         <Well
@@ -759,7 +760,7 @@ interface ChatRoomReduxProps {
   user_map?: any;
   project_map: any;
   account_id: string;
-  font_size?: number;
+  font_size: number;
   file_use?: any;
   is_saving: boolean;
   has_unsaved_changes: boolean;
@@ -773,6 +774,10 @@ interface ChatRoomState {
 }
 
 class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
+  public static defaultProps = {
+    font_size: 14
+  }
+
   public static reduxProps({ name }) {
     return {
       [name]: {
@@ -1190,6 +1195,17 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     );
   }
 
+  render_user_suggestion = (entry: { id: string; display: string }) => {
+    return (
+      <span>
+        <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+        <Space />
+        <Space />
+        {entry.display}
+      </span>
+    );
+  };
+
   generate_temp_upload_text = file => {
     return `[Uploading...]\(${file.name}\)`;
   };
@@ -1257,7 +1273,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       project_id: this.props.project_id,
       path: this.props.path,
       target: id,
-      cb: console.log,
       priority: 2
     });
   };
@@ -1296,7 +1311,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           fontSize: this.props.font_size,
           border: "1px solid #ccc",
           borderRadius: "4px",
-          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+          overflow: "auto",
+          padding: "5px 10px"
         }
       },
 
@@ -1305,11 +1322,18 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           backgroundColor: "white",
           border: "1px solid #ccc",
           borderRadius: "4px",
-          fontSize: this.props.font_size
+          fontSize: this.props.font_size,
+          position: "absolute",
+          bottom: "10px",
+          overflow: "auto",
+          maxHeight: "145px",
+          width: "max-content",
+          display: "flex",
+          flexDirection: "column"
         },
 
         item: {
-          padding: "5px 15px",
+          padding: "5px 15px 5px 10px",
           borderBottom: "1px solid rgba(0,0,0,0.15)",
 
           "&focused": {
@@ -1413,6 +1437,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                   data={user_array}
                   onAdd={this.on_mention}
                   appendSpaceOnAdd={true}
+                  renderSuggestion={this.render_user_suggestion}
                 />
               </MentionsInput>
             </SMC_Dropwrapper>

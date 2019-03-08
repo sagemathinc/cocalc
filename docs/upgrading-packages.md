@@ -7,3 +7,13 @@ Look at https://github.com/sagemathinc/cocalc/pull/3313 and see **all** the plac
 ## CodeMirror
 
 Similar remarks to KaTeX.  Beware!
+
+# Testing
+
+## Jest
+The following must be upgraded together.
+```
+jest
+ts-jest
+@types/jest
+```

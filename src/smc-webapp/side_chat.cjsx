@@ -35,7 +35,7 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, Space, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -48,6 +48,7 @@ editor_chat = require('./editor_chat')
 {AddCollaborators} = require('./collaborators/add-to-project')
 
 {MentionsInput, Mention} = require('react-mentions')
+{ Avatar } = require("./other-users");
 
 Message = rclass
     displayName: "Message"
@@ -221,18 +222,14 @@ Message = rclass
             borderRadius : borderRadius
             color        : color
 
-        class_name = "smc-chat-message"
-
         if sender_is_viewer(@props.account_id, @props.message)
             message_style.marginLeft = '10%'
-            class_name += " chat-sender-is-viewer"
         else
             message_style.marginRight = '10%'
-            class_name += " chat-sender-is-not-viewer"
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" className={class_name}  onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className="smc-chat-message" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
@@ -496,13 +493,21 @@ ChatRoom = rclass ({name}) ->
             {@render_add_collab()}
         </div>
 
+    render_user_suggestion: (entry) ->
+        <span>
+            <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+            <Space />
+            <Space />
+            {entry.display}
+        </span>
+
     on_focus: ->
         # Remove any active key handler that is next to this side chat.
         # E.g, this is critical for taks lists...
         @props.redux.getActions('page').erase_active_key_handler()
 
     on_mention: (id, display) ->
-        webapp_client.mention({project_id:@props.project_id, path:@props.path, target:id, cb:console.log, priority:2})
+        webapp_client.mention({project_id:@props.project_id, path:misc.original_path(@props.path), target:id, priority:2})
 
     render: ->
         if not @props.messages? or not @props.redux?
@@ -510,8 +515,10 @@ ChatRoom = rclass ({name}) ->
 
         has_collaborators = false
 
+        # the immutable.Map() default is because of admins:
+        # https://github.com/sagemathinc/cocalc/issues/3669
         user_array = @props.project_map
-            .getIn([@props.project_id, "users"])
+            .getIn([@props.project_id, "users"], immutable.Map())
             .keySeq()
             .filter((account_id) =>
                 return account_id != @props.account_id;
@@ -543,7 +550,9 @@ ChatRoom = rclass ({name}) ->
                 input:
                     border: "1px solid #ccc"
                     borderRadius: "4px"
-                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)"
+                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+                    overflow: "auto",
+                    padding: "5px 10px"
 
             suggestions:
                 list:
@@ -551,6 +560,13 @@ ChatRoom = rclass ({name}) ->
                     border: "1px solid #ccc"
                     borderRadius: "4px"
                     fontSize: @props.font_size
+                    position: "absolute"
+                    bottom: "10px"
+                    overflow: "auto"
+                    maxHeight: "145px"
+                    width: "max-content"
+                    display: "flex"
+                    flexDirection: "column"
 
                 item:
                     padding: "5px 15px"
@@ -597,6 +613,7 @@ ChatRoom = rclass ({name}) ->
                             data={user_array}
                             onAdd={@on_mention}
                             appendSpaceOnAdd={true}
+                            renderSuggestion={@render_user_suggestion}
                         />
                     </MentionsInput>
                     <Button
