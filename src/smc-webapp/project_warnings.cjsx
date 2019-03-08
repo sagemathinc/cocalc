@@ -7,6 +7,8 @@
 misc = require('smc-util/misc')
 LS = require('misc/local-storage')
 
+OOM_INFO_PAGE = 'https://doc.cocalc.com/howto/low-memory.html'
+
 # alert style, and derived oom alert style. we want to make sure we do not change one of them accidentally...
 alert_style = Object.freeze(
     marginBottom : 0
@@ -81,7 +83,7 @@ exports.RamWarning = rclass ({name}) ->
             <Icon name='exclamation-triangle' /> WARNING: This project is running low on memory.{' '}
             Upgrade Shared RAM memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a>,{' '}
             restart your project or kill some processes.{' '}
-            (<a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>more information</a>; memory usage is updated about once per minute.)
+            (<a href={OOM_INFO_PAGE} target={'_blank'} style={cursor:'pointer'}>more information</a>; memory usage is updated about once per minute.)
         </Alert>
 
 
@@ -164,7 +166,7 @@ exports.OOMWarning = rclass ({name}) ->
                     <Icon name='exclamation-triangle' /> {msg}{' '}
                     You either have to kill some processes, close running Jupyter Notebooks via "Halt", or restart your project.{' '}
                     Increasing "Shared RAM" memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a> could help.{' '}
-                    <a href={'https://github.com/sagemathinc/cocalc/wiki/My-Project-Is-Running-Out-of-Memory'} target={'_blank'} style={cursor:'pointer'}>More information...</a>.
+                    <a href={OOM_INFO_PAGE} target={'_blank'} style={cursor:'pointer'}>More information...</a>.
                 </div>
                 <div style={flex:'0'}>
                     <Button onClick={=>@click(start_ts, oom_kills)} pullright={"true"}>Dismiss</Button>

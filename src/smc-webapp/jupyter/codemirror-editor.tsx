@@ -130,7 +130,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   set_hook_pos = (): void => {
-    if (this.cm == null) {
+    if (this.cm == null || this.props.actions == null) {
       return;
     }
     // Used for maintaining vertical scroll position with multiple simultaneous editors.
@@ -286,6 +286,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   adjacent_cell = (y: number, delta: any): void => {
+    if (this.props.actions == null) return;
     this.props.actions.move_cursor(delta);
     this.props.actions.set_cursor(this.props.actions.store.get("cur_id"), {
       x: 0,
@@ -294,7 +295,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   tab_nothing_selected = (): void => {
-    if (this.cm == null) {
+    if (this.cm == null || this.props.actions == null) {
       return;
     }
     const cur = this.cm.getCursor();

@@ -88,6 +88,7 @@ export interface ProjectStoreState {
   file_action?: string; // undefineds is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
+  show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -192,6 +193,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       show_upload: false,
       create_file_alert: false,
       displayed_listing: undefined, // computed(object),
+      show_masked: true,
 
       // Project Page
       active_project_tab: "files",
@@ -268,7 +270,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "stripped_public_paths",
         "file_search",
         "other_settings",
-        "show_hidden"
+        "show_hidden",
+        "show_masked"
       ]),
       fn: () => {
         const search_escape_char = "/";
@@ -353,6 +356,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
             }
             return result;
           })();
+        }
+
+        if (!this.get("show_masked", true)) {
+          // if we do not gray out files (and hence haven't computed the file mask yet)
+          // we do it now!
+          if (!this.get("other_settings").get("mask_files")) {
+            _compute_file_masks(listing);
+          }
+
+          const filtered: string[] = [];
+          for (let f of listing) {
+            if (!f.mask) filtered.push(f);
+          }
+          listing = filtered;
         }
 
         const map = {};
@@ -506,12 +523,6 @@ function _compute_file_masks(listing) {
     for (let file of listing) {
       // note: never skip already masked files, because of rnw/rtex->tex
       var filename = file.name;
-
-      // mask items beginning with '.'
-      if (misc.startswith(filename, ".")) {
-        file.mask = true;
-        continue;
-      }
 
       // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
       var ext = misc.filename_extension(filename).toLowerCase();
@@ -672,7 +683,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
 
   // public_paths is needed to show file listing and show
   // any individual file, so we just load it...
-  init_table('public_paths');
+  init_table("public_paths");
   // project_log, on the other hand, is only loaded if needed.
 
   store.init_table = init_table;

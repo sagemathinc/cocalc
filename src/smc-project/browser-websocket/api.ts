@@ -7,7 +7,6 @@ All functionality here is of the form:
 
 */
 
-import { callback } from "awaiting";
 const { callback_opts } = require("smc-util/async-utils");
 
 import { browser_symmetric_channel } from "./symmetric_channel";
@@ -50,7 +49,7 @@ export function init_websocket_api(
       "primus-api",
       `end connection from ${spark.address.ip} -- ${spark.id}`
     );
-  })
+  });
 }
 
 import { run_prettier, run_prettier_string } from "../formatters/prettier";
@@ -106,9 +105,12 @@ async function handle_api_call(
 
 /* implementation of the api calls */
 
-const { get_listing } = require("../directory-listing");
-async function listing(path: string, hidden?: boolean): Promise<object[]> {
-  return await callback(get_listing, path, hidden);
+import { get_listing, ListingEntry } from "../directory-listing";
+async function listing(
+  path: string,
+  hidden?: boolean
+): Promise<ListingEntry[]> {
+  return await get_listing(path, hidden);
 }
 
 import { handle_request as jupyter } from "../jupyter/websocket-api";
