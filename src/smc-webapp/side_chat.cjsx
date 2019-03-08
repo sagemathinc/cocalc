@@ -29,13 +29,14 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 {defaults, required} = misc
 {webapp_client} = require('./webapp_client')
+
 {Avatar} = require('./other-users')
 {alert_message} = require('./alerts')
 {analytics_event} = require('./tracker')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, Space, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
@@ -46,6 +47,9 @@ editor_chat = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
+
+{MentionsInput, Mention} = require('react-mentions')
+{ Avatar } = require("./other-users");
 
 Message = rclass
     displayName: "Message"
@@ -87,15 +91,15 @@ Message = rclass
         @setState(new_changes : changes)
 
     shouldComponentUpdate: (next, next_state) ->
-        update = misc.is_different(@props, next, \
-            ['message', 'user_map', 'account_id', 'is_prev_sender',
-            'is_next_sender', 'editor_name', 'saved_mesg']
-        )
-        update or= misc.is_different(@state, next_state, \
-            ['edited_message', 'show_history']
-        )
-        update or= ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
-        return update
+         update = misc.is_different(@props, next, \
+                    ['message', 'user_map', 'account_id', 'is_prev_sender', \
+                    'is_next_sender', 'editor_name', 'saved_mesg']
+         )
+         update or= misc.is_different(@state, next_state, \
+             ['edited_message', 'show_history']
+         )
+         update or= ((not @props.is_prev_sender) and (@props.sender_name != next.sender_name))
+         return update
 
     componentDidMount: ->
         if @refs.editedMessage
@@ -227,7 +231,7 @@ Message = rclass
 
         <Col key={1} xs={xs}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className="smc-chat-message" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
@@ -289,6 +293,7 @@ Message = rclass
                 {<Avatar size={24} account_id={account.account_id} /> if account? and @props.show_avatar}
             </div>
         </Col>
+
 
     render: ->
         if @props.include_avatar_col
@@ -407,17 +412,23 @@ ChatRoom = rclass ({name}) ->
             saved_mesg         : rtypes.string
             use_saved_position : rtypes.bool
             add_collab         : rtypes.bool
-        users  :
-            user_map    : rtypes.immutable
+        users :
+            user_map : rtypes.immutable
         account :
-            account_id  : rtypes.string
-            font_size   : rtypes.number
+            account_id : rtypes.string
+            font_size  : rtypes.number
         file_use :
-            file_use    : rtypes.immutable
+            file_use : rtypes.immutable
         projects :
             project_map : rtypes.immutable.Map
 
     propTypes:
+        redux       : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
+        name        : rtypes.string.isRequired
+        project_id  : rtypes.string.isRequired
+        file_use_id : rtypes.string.isRequired
+        path        : rtypes.string
         redux        : rtypes.object.isRequired
         actions      : rtypes.object.isRequired
         name         : rtypes.string.isRequired
@@ -444,6 +455,7 @@ ChatRoom = rclass ({name}) ->
 
     on_keydown: (e, componentClass) ->
         @mark_as_read()
+
         if e.keyCode == 27  # ESC
             @props.actions.set_input('')
         # shift + enter for larger textarea. just "return" for single line input.
@@ -470,8 +482,8 @@ ChatRoom = rclass ({name}) ->
         @mark_as_read = underscore.throttle(@_mark_as_read, 3000)
         scroll_to_position(@refs.log_container, @props.saved_position,
                            @props.offset, @props.height, @props.use_saved_position, @props.actions)
-        @_mark_as_read() # The act of opening/displaying the chat marks it as seen...
-                         # since this happens when the user shows it.
+        @mark_as_read() # The act of opening/displaying the chat marks it as seen...
+                        # since this happens when the user shows it.
 
     componentWillReceiveProps: (next) ->
         if (@props.messages != next.messages or @props.input != next.input) and is_at_bottom(@props.saved_position, @props.offset, @props.height)
@@ -524,6 +536,7 @@ ChatRoom = rclass ({name}) ->
         if not @props.add_collab
             style =
                 maxHeight    : '1.7em'
+                whiteSpace   : 'nowrap'
                 overflow     : 'hidden'
                 textOverflow : 'ellipsis'
         <div style   = {style}
@@ -536,6 +549,7 @@ ChatRoom = rclass ({name}) ->
 
     render_project_users: ->
         return null if not @props.show_collabs
+
         <div style={margin:'5px 15px', maxHeight: '20%', overflow: 'auto', borderBottom: '1px solid lightgrey'}>
             {@render_collab_list()}
             {@render_add_collab()}
@@ -551,14 +565,44 @@ ChatRoom = rclass ({name}) ->
             <a href={url2} target='_blank'>LaTeX</a>.
         </div>
 
+    render_user_suggestion: (entry) ->
+        <span>
+            <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+            <Space />
+            <Space />
+            {entry.display}
+        </span>
+
     on_focus: ->
         # Remove any active key handler that is next to this side chat.
         # E.g, this is critical for taks lists...
         @props.redux.getActions('page').erase_active_key_handler()
 
+    on_mention: (id, display) ->
+        webapp_client.mention({project_id:@props.project_id, path:misc.original_path(@props.path), target:id, priority:2})
+
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
+
+        has_collaborators = false
+
+        # the immutable.Map() default is because of admins:
+        # https://github.com/sagemathinc/cocalc/issues/3669
+        user_array = @props.project_map
+            .getIn([@props.project_id, "users"], immutable.Map())
+            .keySeq()
+            .filter((account_id) =>
+                return account_id != @props.account_id;
+            )
+            .map((account_id) =>
+                has_collaborators = true
+                return {
+                    id: account_id,
+                    display: @props.redux.getStore("users").get_name(account_id)
+                };
+            )
+        .toJS();
 
         main_style =
             width           : '100%'
@@ -596,6 +640,48 @@ ChatRoom = rclass ({name}) ->
                 input_style       = {width:'80%', padding: '10px'}
                 send_style        = {width:'20%'}
 
+
+        input_style =
+            width: "85%"
+
+            "&multiLine":
+                control:
+                    backgroundColor: 'white'
+                    height:'100%'
+                    leftMargin:'2px'
+                    fontSize: @props.font_size
+
+                highlighter:
+                    padding: 5
+
+                input:
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+                    overflow: "auto",
+                    padding: "5px 10px"
+
+            suggestions:
+                list:
+                    backgroundColor: "white"
+                    border: "1px solid #ccc"
+                    borderRadius: "4px"
+                    fontSize: @props.font_size
+                    position: "absolute"
+                    bottom: "10px"
+                    overflow: "auto"
+                    maxHeight: "145px"
+                    width: "max-content"
+                    display: "flex"
+                    flexDirection: "column"
+
+                item:
+                    padding: "5px 15px"
+                    borderBottom: "1px solid rgba(0,0,0,0.15)"
+
+                    "&focused":
+                        backgroundColor: "rgb(66, 139, 202, 0.4)"
+
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
         <div
@@ -622,26 +708,38 @@ ChatRoom = rclass ({name}) ->
             </div>
             <div style={bottom_style}>
                 <div style={display:'flex', height:height}>
-                    <FormControl
+                    <MentionsInput
+                        displayTransform = {(id, display, type) => "@" + display}
                         style          = {input_style}
+                        markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
-                        componentClass = {componentClass}
-                        ref            = {'input'}
+                        ref            = 'input'
                         onKeyDown      = {(e) => @on_keydown(e, componentClass)}
+                        singleLine     = {componentClass == 'input'}
                         value          = {@props.input}
-                        placeholder    = {'Type a message...'}
-                        onChange       = {(e) => @props.actions.set_input(e.target.value);}
-                    />
+                        placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
+                        onChange       = {(e) => @props.actions.set_input(e.target.value)}
+                    >
+                        <Mention
+                            trigger="@"
+                            data={user_array}
+                            onAdd={@on_mention}
+                            appendSpaceOnAdd={true}
+                            renderSuggestion={@render_user_suggestion}
+                        />
+                    </MentionsInput>
                     <Button
                         style    = {send_style}
                         onClick  = {@on_send_click}
                         disabled = {@props.input==''}
                         bsStyle  = {'success'}
                     >
-                        <Icon name='chevron-circle-right'/> {send}
+                        <Icon name='chevron-circle-right'/>
                     </Button>
                 </div>
-                {@render_help()}
+                <div style={color:"#888", padding:'5px'}>
+                    Shift+enter to send. Double click to edit. Use <a href='https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/' target='_blank' rel='noopener'>Markdown</a> and <a href="https://en.wikibooks.org/wiki/LaTeX/Mathematics" target='_blank' rel='noopener'>LaTeX</a>.
+                </div>
             </div>
         </div>
 
@@ -658,7 +756,7 @@ exports.SideChat = ({path, redux, project_id}) ->
         project_id  = {project_id}
         path        = {path}
         file_use_id = {file_use_id}
-    />
+        />
 
 exports.EmbeddedChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
@@ -678,8 +776,8 @@ exports.EmbeddedChat = ({path, redux, project_id}) ->
         show_heads   = {false}
     />
 
-# Fitting the side chat into non-react parts of CoCalc:
 
+# Fitting the side chat into non-react parts of CoCalc:
 render = (redux, project_id, path) ->
     name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
@@ -710,6 +808,4 @@ exports.free = (project_id, path, dom_node, redux) ->
     # or there will be a huge memory leak.
     redux.removeStore(fname)
     redux.removeActions(fname)
-
-
 

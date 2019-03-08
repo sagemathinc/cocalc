@@ -235,9 +235,6 @@ exports.Listing = rclass
             <Col md={4}>Filename</Col>
             <Col md={2}>Last modified</Col>
             <Col md={4}>Points</Col>
-            {###
-            <Col md={2}>Autograde</Col>
-            ###}
             <Col md={2} style={textAlign:'right'}>Student file</Col>
         </Row>
 

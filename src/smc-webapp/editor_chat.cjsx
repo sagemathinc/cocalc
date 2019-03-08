@@ -90,7 +90,7 @@ exports.message_colors = (account_id, message) ->
     if sender_is_viewer(account_id, message)
         return {background: '#46b1f6', color: '#fff', message_class:'smc-message-from-viewer'}
     else
-        return {background: '#efefef', color: '#000', lighten:{color:'#888'}}
+        return {background: '#efefef', color: '#000', lighten:{color:'#888'}, message_class:'smc-message-from-other'}
 
 exports.render_timeago = (message, edit) ->
     # NOTE: we make click on the timestamp edit the chat since onDoubleClick is completely

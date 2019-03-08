@@ -217,10 +217,6 @@ exports.GradingStudentAssignment = rclass
                         max_points     = {max_points}
                     />
                 </Row>
-                {###
-                Info: <code>{misc.to_json(@props.grading.student_info)}</code>.
-                <br/>
-                ###}
                 <Listing
                     name             = {@props.name}
                     store            = {@state.store}

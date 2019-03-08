@@ -36,17 +36,28 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
-
 {CloseX} = require('./close-x')
 exports.CloseX = CloseX
-
 {CloseX2} = require('./close-x2')
 exports.CloseX2 = CloseX2
-
+{SimpleX} = require('./simple-x')
+exports.SimpleX = SimpleX
 {Saving} = require('./saving')
 exports.Saving = Saving
+{Spinner} = require('./spinner')
+exports.Spinner = Spinner
+{ErrorDisplay} = require('./error-display')
+exports.ErrorDisplay = ErrorDisplay
+{SkinnyError} = require('./skinny-error')
+exports.SkinnyError = SkinnyError
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{TextInput} = require("./text-input")
+exports.TextInput = TextInput
+{NumberInput} = require("./number-input")
+exports.NumberInput = NumberInput
+{LabeledRow} = require('./labeled-row')
+exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
 exports.TimeElapsed = TimeElapsed
 
@@ -160,62 +171,6 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-exports.SimpleX = SimpleX = ({onClick}) ->
-    <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
-        <Icon name='times' />
-    </a>
-
-exports.SkinnyError = ({error_text, on_close}) ->
-    <div style={color:'red'}>
-         <SimpleX onClick={on_close} /> {error_text}
-    </div>
-
-error_text_style =
-    marginRight : '1ex'
-    whiteSpace  : 'pre-line'
-    maxWidth    : '80ex'
-
-exports.ErrorDisplay = ErrorDisplay = rclass
-    displayName : 'Misc-ErrorDisplay'
-
-    propTypes :
-        error           : rtypes.oneOfType([rtypes.string,rtypes.object])
-        error_component : rtypes.any
-        title           : rtypes.string
-        style           : rtypes.object
-        bsStyle         : rtypes.string
-        onClose         : rtypes.func       # TODO: change to on_close everywhere...?
-
-    render_close_button: ->
-        <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
-
-    render_title: ->
-        <h4>{@props.title}</h4>
-
-    render: ->
-        if @props.style?
-            style = misc.copy(error_text_style)
-            misc.merge(style, @props.style)
-        else
-            style = error_text_style
-        if @props.error?
-            if typeof(@props.error) == 'string'
-                error = @props.error
-            else
-                error = misc.to_json(@props.error)
-        else
-            error = @props.error_component
-        bsStyle = @props.bsStyle ? 'danger'
-        <Alert bsStyle={bsStyle} style={style}>
-            {@render_close_button() if @props.onClose?}
-            {@render_title() if @props.title}
-            {error}
-        </Alert>
-
-exports.Spinner = rclass
-    render : ->
-        <Icon name='spinner' spin={true} />
-
 exports.Footer = rclass
     displayName : "Footer"
 
@@ -259,244 +214,7 @@ exports.MessageDisplay = MessageDisplay = rclass
             </Col>
         </Row>
 
-exports.TextInput = rclass
-    displayName : 'Misc-TextInput'
 
-    propTypes :
-        text : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-        type : rtypes.string
-        rows : rtypes.number
-
-    componentWillReceiveProps: (next_props) ->
-        if @props.text != next_props.text
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(text : next_props.text)
-
-    getInitialState: ->
-        text : @props.text
-
-    saveChange: (event) ->
-        event.preventDefault()
-        @props.on_change(@state.text)
-
-    render_save_button: ->
-        if @state.text? and @state.text != @props.text
-            <Button  style={marginBottom:'15px'} bsStyle={'success'} onClick={@saveChange}><Icon name={'save'} /> Save</Button>
-
-    render_input: ->
-        <FormGroup>
-            <FormControl type={@props.type ? 'text'} ref={'input'} rows={@props.rows}
-                       componentClass={if @props.type == 'textarea' then 'textarea' else 'input'}
-                       value={if @state.text? then @state.text else @props.text}
-                       onChange={=>@setState(text:ReactDOM.findDOMNode(@refs.input).value)}
-            />
-        </FormGroup>
-
-    render: ->
-        <form onSubmit={@saveChange}>
-            {@render_input()}
-            {@render_save_button()}
-        </form>
-
-exports.NumberInput = NumberInput = rclass
-    displayName : 'Misc-NumberInput'
-
-    propTypes :
-        number          : rtypes.number
-        min             : rtypes.number.isRequired
-        max             : rtypes.number.isRequired
-        on_change       : rtypes.func.isRequired
-        unit            : rtypes.string
-        disabled        : rtypes.bool
-        formgroupstyle  : rtypes.object
-        plusminus       : rtypes.bool     # if true, show [+] and [-] buttons for convenient adjustments (e.g. mobile devices)
-        speedup         : rtypes.number   # multiplicates the delta of these +/- change buttons
-        select_on_click : rtypes.bool
-        bsSize          : rtypes.string
-        mantissa_length : rtypes.oneOf([0..8]) # default 0: means to truncate to integer, or pick a number from 1 to 8
-        allow_empty     : rtypes.bool          # if allowed, deleting the number leads to "number" to be "undefined/null"
-        empty_text      : rtypes.string        # optional text to display (in lighter color) when there is no value
-
-    getDefaultProps: ->
-        plusminus       : false
-        mantissa_length : 0
-        allow_empty     : false
-        speedup         : 10
-        empty_text      : '(no number)'
-
-    componentWillReceiveProps: (next_props) ->
-        if @props.number != next_props.number
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(number : next_props.number)
-
-    shouldComponentUpdate: (props, state) ->
-        update = misc.is_different(@props, props, \
-            ['number', 'min', 'max', 'unit', 'disabled', 'plusminus', 'speedup', \
-            'select_on_click', 'mantissa_length', 'empty_text', 'allow_empty']
-        )
-        update or= @state.number != state.number
-        return update
-
-    componentDidMount: ->
-        {debounce} = require('underscore')
-        @on_change_debounce = debounce(((n)=>@props.on_change(n)), 50)
-
-    getInitialState: ->
-        number : @props.number
-
-    sanitize_nan: (n) ->
-        if "#{n}" == 'NaN'  # or isNaN(n) ?
-            n = (@props.number ? 0)
-        return n
-
-    sanitize: (n) ->
-        if (not n?) or (n == '') or (n == @props.empty_text)
-            if @props.allow_empty
-                return undefined
-            else
-                n = 0
-
-        n = @sanitize_nan(n)
-
-        # clip min/max
-        if n < @props.min
-            n = @props.min
-        else if n > @props.max
-            n = @props.max
-
-        # rounding to lenth of mantissa
-        if @props.mantissa_length == 0
-            n = parseInt(n)
-        else
-            n = misc.roundN(parseFloat(n), @props.mantissa_length)
-
-        return @sanitize_nan(n)
-
-    saveNumber: (n) ->
-        n = @sanitize(n)
-        @setState(number:n)
-        @props.on_change(n)
-
-    saveChange: (e) ->
-        e?.preventDefault()
-        @saveNumber(@state.number)
-
-    # TODO remove?
-    render_save_button: ->
-        if @state.number? and @state.number != @props.number
-            <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
-
-    plusminus_click: (e, delta) ->
-        if e.shiftKey then delta *= @props.speedup
-        @setState((prevState, props) =>
-            if delta < 0 and props.allow_empty and props.number == props.min
-                n = undefined
-            else
-                n = @sanitize((prevState.number ? 0) + delta)
-            @on_change_debounce(n)
-            return {number:n}
-        )
-
-    plusminus: (delta) ->
-        return null if not @props.plusminus
-        title = "Hold down your shift key while clicking to accellerate changes by #{@props.speedup}x."
-
-        if delta > 0
-            name     = 'plus'
-            disabled = @props.number == @props.max
-        else
-            if @props.allow_empty and @props.number == @props.min
-                disabled = false
-                name     = 'trash'
-                title    = 'Remove the value.'
-            else if @props.allow_empty and (not @props.number?)
-                disabled = true
-                name     = 'ban'
-                title    = 'No value set.'
-            else
-                disabled = @props.number == @props.min
-                name     = 'minus'
-
-        <Tip
-            title     = {title}
-            placement = {'bottom'}
-        >
-            <Button
-                disabled = {disabled}
-                bsSize   = {@props.bsSize}
-                onClick  = {(e)=>@plusminus_click(e, delta)}
-            >
-                <Icon name={name} />
-            </Button>
-        </Tip>
-
-    onClickHandler: (e) ->
-        if @props.select_on_click
-            e.target.select()
-
-    render_unit: (xs) ->
-        return null if not @props.unit?
-        unit = if @props.unit? then "#{@props.unit}" else ''
-        <Col xs={xs} className="lighten">
-            {unit}
-        </Col>
-
-    render: ->
-        xs      = if @props.unit? then 6 else 12
-        fgstyle = @props.formgroupstyle ? {}
-        fgstyle = misc.merge({whiteSpace : 'nowrap'}, fgstyle)
-
-        value      = @state.number ? @props.number
-        form_style = {textAlign:'right'}
-        if not value?
-            form_style.color = COLORS.GRAY_L
-
-        <Row>
-            <Col xs={xs}>
-                <Form onSubmit={@saveChange} inline={@props.plusminus}>
-                    <FormGroup style={fgstyle}>
-                        {@plusminus(-1)}
-                        <FormControl
-                            type     = {'text'}
-                            ref      = {'input'}
-                            bsSize   = {@props.bsSize}
-                            value    = {value ? @props.empty_text}
-                            onChange = {(e)=>@setState(number:e.target.value)}
-                            onBlur   = {@saveChange}
-                            onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
-                            onClick  = {@onClickHandler}
-                            disabled = {@props.disabled}
-                            style    = {form_style}
-                        />
-                        {@plusminus(+1)}
-                    </FormGroup>
-                </Form>
-            </Col>
-            {@render_unit(xs)}
-        </Row>
-
-exports.LabeledRow = LabeledRow = rclass
-    displayName : 'Misc-LabeledRow'
-
-    propTypes :
-        label      : rtypes.any.isRequired
-        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
-        label_cols : rtypes.number    # number between 1 and 11 (default: 4)
-        className  : rtypes.string
-
-    getDefaultProps: ->
-        label_cols : 4
-
-    render: ->
-        <Row style={@props.style} className={@props.className} >
-            <Col xs={@props.label_cols} style={marginTop:'8px'}>
-                {@props.label}
-            </Col>
-            <Col xs={12-@props.label_cols}  style={marginTop:'8px'}>
-                {@props.children}
-            </Col>
-        </Row>
 
 help_text =
   backgroundColor: 'white'

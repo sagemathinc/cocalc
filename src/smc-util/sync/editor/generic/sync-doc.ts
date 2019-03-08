@@ -84,6 +84,8 @@ import { SortedPatchList } from "./sorted-patch-list";
 
 import { patch_cmp } from "./util";
 
+import { export_history, HistoryEntry } from "./export";
+
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
 
@@ -282,7 +284,7 @@ export class SyncDoc extends EventEmitter {
       log(`WARNING -- error initializing ${err}`);
       // completely normal that this could happen on frontend - it just means
       // that we closed the file before finished opening it...
-      if (this.state != "closed" as State) {
+      if (this.state != ("closed" as State)) {
         log(
           "Error -- NOT caused by closing during the init_all, so we report it."
         );
@@ -1003,7 +1005,9 @@ export class SyncDoc extends EventEmitter {
     await this.init_syncstring_table();
 
     log("patch_list, cursors, evaluator");
-    this.assert_not_closed("init_all -- before init patch_list, cursors, evaluator");
+    this.assert_not_closed(
+      "init_all -- before init patch_list, cursors, evaluator"
+    );
     await Promise.all([
       this.init_patch_list(),
       this.init_cursors(),
@@ -2347,6 +2351,13 @@ export class SyncDoc extends EventEmitter {
       await this.wait_for_save_to_disk_done();
     }
     this.update_has_unsaved_changes();
+  }
+
+  /* Export the (currently loaded) history of editing of this
+     document to a JSON string that can be parsed.*/
+  public export_history(): HistoryEntry[] {
+    const users = ["user 0", "user 1", "user 2"]; // TODO
+    return export_history(users, this.patch_list);
   }
 
   private update_has_unsaved_changes(): void {
