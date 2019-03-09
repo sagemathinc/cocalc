@@ -29,6 +29,8 @@ const { Avatar } = require("./other-users");
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 
+import { cmp_Date } from "smc-util/misc2";
+
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
 import { MentionsInput, Mention } from "react-mentions";
@@ -1345,8 +1347,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
     let has_collaborators = false;
 
+    const user_store = this.props.redux.getStore("users");
+    // the immutable.Map() default is because of admins:
+    // https://github.com/sagemathinc/cocalc/issues/3669
     const user_array = this.props.project_map
-      .getIn([this.props.project_id, "users"])
+      .getIn([this.props.project_id, "users"], immutable.Map())
       .keySeq()
       .filter(account_id => {
         return account_id !== this.props.account_id;
@@ -1355,10 +1360,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         has_collaborators = true;
         return {
           id: account_id,
-          display: this.props.redux.getStore("users").get_name(account_id)
+          display: user_store.get_name(account_id),
+          last_active: user_store.get_last_active(account_id)
         };
       })
       .toJS();
+    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
 
     return (
       <Grid fluid={true} className="smc-vfill" style={grid_style}>
