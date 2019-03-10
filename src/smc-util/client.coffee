@@ -1205,6 +1205,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             memory      : undefined    # see message.coffee for the units, etc., for all these settings
+            memory_request : undefined
             cpu_shares  : undefined
             cores       : undefined
             disk_quota  : undefined

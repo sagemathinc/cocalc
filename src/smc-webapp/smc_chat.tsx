@@ -29,6 +29,8 @@ const { Avatar } = require("./other-users");
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 
+import { cmp_Date } from "smc-util/misc2";
+
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
 import { MentionsInput, Mention } from "react-mentions";
@@ -776,7 +778,7 @@ interface ChatRoomState {
 class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   public static defaultProps = {
     font_size: 14
-  }
+  };
 
   public static reduxProps({ name }) {
     return {
@@ -822,9 +824,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     path: rtypes.string
   };
 
+  private input_ref: any;
+
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
     this.state = { preview: "" };
+    this.input_ref = React.createRef<HTMLTextAreaElement>();
   }
 
   private static preview_style: React.CSSProperties = {
@@ -925,10 +930,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         this.props.input,
         this.props.actions
       );
-    } else if (
-      e.keyCode === 38 &&
-      ReactDOM.findDOMNode(this.refs.input).value === ""
-    ) {
+    } else if (e.keyCode === 38 && this.props.input === "") {
       // Up arrow on an empty input
       this.props.actions.set_to_last_input();
     }
@@ -953,7 +955,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   button_send_chat = e => {
     send_chat(e, this.refs.log_container, this.props.input, this.props.actions);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
   };
 
   button_scroll_to_bottom = () => {
@@ -962,12 +964,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   button_off_click = () => {
     this.props.actions.set_is_preview(false);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
   };
 
   button_on_click = () => {
     this.props.actions.set_is_preview(true);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
     if (
       is_at_bottom(
         this.props.saved_position,
@@ -1211,13 +1213,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   start_upload = file => {
-    const text_area = ReactDOM.findDOMNode(this.refs.input);
+    const text_area = this.input_ref.current;
     const temporary_insertion_text = this.generate_temp_upload_text(file);
     const temp_new_text =
       this.props.input.slice(0, text_area.selectionStart) +
       temporary_insertion_text +
       this.props.input.slice(text_area.selectionEnd);
-    return this.props.actions.set_input(temp_new_text);
+    this.props.actions.set_input(temp_new_text);
   };
 
   append_file = file => {
@@ -1242,12 +1244,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.input.slice(0, start_index) +
       final_insertion_text +
       this.props.input.slice(end_index);
-    return this.props.actions.set_input(new_text);
+    this.props.actions.set_input(new_text);
   };
 
   private dropzoneWrapperRef: any;
 
-  handle_paste_event = (e: React.ClipboardEvent<FormControl>) => {
+  handle_paste_event = (e: React.ClipboardEvent<MentionsInput>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -1345,8 +1347,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
     let has_collaborators = false;
 
+    const user_store = this.props.redux.getStore("users");
+    // the immutable.Map() default is because of admins:
+    // https://github.com/sagemathinc/cocalc/issues/3669
     const user_array = this.props.project_map
-      .getIn([this.props.project_id, "users"])
+      .getIn([this.props.project_id, "users"], immutable.Map())
       .keySeq()
       .filter(account_id => {
         return account_id !== this.props.account_id;
@@ -1355,10 +1360,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         has_collaborators = true;
         return {
           id: account_id,
-          display: this.props.redux.getStore("users").get_name(account_id)
+          display: user_store.get_name(account_id),
+          last_active: user_store.get_last_active(account_id)
         };
       })
       .toJS();
+    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
 
     return (
       <Grid fluid={true} className="smc-vfill" style={grid_style}>
@@ -1418,7 +1425,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 displayTransform={(_, display) => "@" + display}
                 style={chat_input_style}
                 markup='<span class="user-mention">@__display__</span>'
-                ref="input"
+                inputRef={this.input_ref}
                 onKeyDown={this.keydown}
                 value={this.props.input}
                 placeholder={

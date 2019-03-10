@@ -515,6 +515,7 @@ ChatRoom = rclass ({name}) ->
 
         has_collaborators = false
 
+        user_store = @props.redux.getStore("users")
         # the immutable.Map() default is because of admins:
         # https://github.com/sagemathinc/cocalc/issues/3669
         user_array = @props.project_map
@@ -527,10 +528,12 @@ ChatRoom = rclass ({name}) ->
                 has_collaborators = true
                 return {
                     id: account_id,
-                    display: @props.redux.getStore("users").get_name(account_id)
+                    display: user_store.get_name(account_id),
+                    last_active: user_store.get_last_active(account_id)
                 };
             )
-        .toJS();
+            .toJS();
+        user_array.sort((x, y) => -misc.cmp_Date(x.last_active, y.last_active));
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
@@ -602,7 +605,6 @@ ChatRoom = rclass ({name}) ->
                         style          = {input_style}
                         markup         = '<span class="user-mention">@__display__</span>'
                         autoFocus      = {false}
-                        ref            = 'input'
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
                         placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
