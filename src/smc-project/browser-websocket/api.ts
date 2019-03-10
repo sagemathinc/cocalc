@@ -63,8 +63,8 @@ async function handle_api_call(
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
-    case "capabilities":
-      return await get_capabilities();
+    case "configuration":
+      return await get_configuration();
     case "prettier":
       return await run_prettier(client, data.path, data.options, logger);
     case "prettier_string":
@@ -135,4 +135,4 @@ import { synctable_channel } from "../sync/server";
 
 import { syncdoc_call } from "../sync/sync-doc";
 
-import { get_capabilities } from "../capabilities";
+import { get_configuration } from "../configuration";

@@ -19,7 +19,7 @@ interface IAPPS {
   };
 }
 
-const APPS: IAPPS = {
+export const APPS: IAPPS = {
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
     icon: "edit",

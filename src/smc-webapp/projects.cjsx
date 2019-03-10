@@ -264,6 +264,8 @@ class ProjectsActions extends Actions
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
         if opts.restore_session
             redux.getActions('page').restore_session(opts.project_id)
+        # initialize project configuration data
+        project_actions.init_configuration()
         # init the library after project started.
         # TODO write a generalized store function that does this in a more robust way
         project_actions.init_library()

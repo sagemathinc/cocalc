@@ -74,6 +74,7 @@ export interface ProjectStoreState {
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
+  configuration?: immutable.Map<string, any>;
 
   // Project Page
   active_project_tab: string;
@@ -194,6 +195,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       create_file_alert: false,
       displayed_listing: undefined, // computed(object),
       show_masked: true,
+      configuration: undefined,
 
       // Project Page
       active_project_tab: "files",

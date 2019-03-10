@@ -220,6 +220,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this
     );
     this.init_library = this.init_library.bind(this);
+    this.init_configuration = this.init_configuration.bind(this);
     this.copy_from_library = this.copy_from_library.bind(this);
     this.set_library_is_copying = this.set_library_is_copying.bind(this);
     this.copy_paths = this.copy_paths.bind(this);
@@ -1766,6 +1767,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       return path;
     }
+  }
+
+  // retrieve project configuration (capabilities, etc.) from the back-end
+  async init_configuration() {
+    const store = this.get_store();
+    if (store == null) {
+      console.warn("project_actions::init_configuration: no store");
+      return;
+    }
+    // already done
+    if (store.get("configuration") != null) return;
+    const config = await webapp_client.configuration(this.project_id);
+    console.log("project_actions::init_configuration", config);
+    this.setState({ configuration: immutable.fromJS(config) });
   }
 
   // this is called once by the project initialization
