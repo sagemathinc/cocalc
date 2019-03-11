@@ -37,7 +37,11 @@ export async function latexmk(
   });
 }
 
-export type Engine = "PDFLaTeX" | "XeLaTeX" | "LuaTex";
+export type Engine =
+  | "PDFLaTeX"
+  | "PDFLaTeX (shell-escape)"
+  | "XeLaTeX"
+  | "LuaTex";
 
 export function build_command(
   engine: Engine,
@@ -47,9 +51,9 @@ export function build_command(
   /*
   errorstopmode recommended by
   http://tex.stackexchange.com/questions/114805/pdflatex-nonstopmode-with-tikz-stops-compiling
-  since in some cases things will hang (using )
+  since in some cases things will hang using
   return "pdflatex -synctex=1 -interact=errorstopmode '#{@filename_tex}'"
-  However, users hate nostopmode, so we use nonstopmode, which can hang in rare cases with tikz.
+  However, users hate errorstopmode, so we use nonstopmode, which can hang in rare cases with tikz.
   See https://github.com/sagemathinc/cocalc/issues/156
   */
   let name: string = "pdf";
@@ -75,8 +79,16 @@ export function build_command(
     synctex: forward/inverse search in pdf
     nonstopmode: continue after errors (otherwise, partial files)
     */
-  return [
-    "latexmk",
+  const head = ["latexmk"];
+
+  // shell escale is potentially dangerous, but pretty much save when tamed inside a cocalc project
+  if (engine == ("PDFLaTeX (shell-escape)" as Engine)) {
+    head.push("-e");
+    // yes, this is in one piece. in a shell it would be enclosed in '...'
+    head.push("$pdflatex=q/pdflatex %O -shell-escape %S/");
+  }
+
+  const tail = [
     `-${name}`,
     "-f",
     "-g",
@@ -85,4 +97,6 @@ export function build_command(
     "-interaction=nonstopmode",
     filename
   ];
+
+  return head.concat(tail);
 }
