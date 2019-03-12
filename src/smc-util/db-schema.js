@@ -1821,9 +1821,13 @@ schema.compute_images = {
       type: "string",
       desc: "docker image 'name:tag', where tag defaults to 'latest'"
     },
+    src: {
+      type: "string",
+      desc: "source of the image (likely https://github [...] .git)"
+    },
     type: {
       type: "string",
-      desc: "for now, this is just 'official' or 'binder'"
+      desc: "for now, this is just 'legacy' or 'binder'"
     },
     display: {
       type: "string",
@@ -1833,9 +1837,9 @@ schema.compute_images = {
       type: "string",
       desc: "(optional) where the user can learn more about it"
     },
-    descr: {
+    desc: {
       type: "string",
-      descr: "(optional) markdown text to talk more about this"
+      desc: "(optional) markdown text to talk more about this"
     }
   }
 };

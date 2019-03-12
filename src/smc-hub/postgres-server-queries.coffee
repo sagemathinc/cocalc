@@ -2596,6 +2596,64 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(undefined, w)
 
     ###
+    Custom software images
+    ###
+
+    # this is 100% for cc-in-cc dev projects only!
+    insert_random_compute_images: (opts) =>
+        opts = defaults opts,
+            cb     : required
+
+        dbg = @_dbg("database::insert_random_compute_images")
+        dbg()
+
+        _ = require('underscore')
+        words = [
+                    'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
+                    'advanced', 'course', 'yellow', 'bioinformatics', 'bag', 'electric', 'sheep',
+                    'theory', 'math', 'physics', 'calculate', 'primer', 'DNA', 'tech'
+                ]
+
+        create = (idx, cb) =>
+            rnd  = _.sample(words, 3)
+            id   = rnd[...2].join('-')
+            disp = rnd[0][0].toUpperCase() + rnd[0][1..] + ' ' + \
+                   rnd[1][0].toUpperCase() + rnd[1][1..]
+            desc = """
+                   # #{disp} by #{rnd[2]}
+
+                   This is some text describing what `#{id}` is.
+                   Here could also be an [external link](https://doc.cocalc.com).
+                   """
+            src = "https://github.com/#{rnd[2]}/#{id}.git"
+
+            @_query
+                query  : "INSERT INTO compute_images"
+                values :
+                    "id      :: TEXT     " : id
+                    "src     :: TEXT     " : src
+                    "type    :: TEXT     " : 'custom'
+                    "desc    :: TEXT     " : desc
+                    "display :: TEXT     " : disp
+                cb     : cb
+
+        # first we wipe the table's content, then we generate some random stuff
+        async.series([
+            (cb) =>
+                @_query
+                    query  : 'DELETE FROM compute_images'
+                    where  : '1 = 1'
+                    cb     : cb
+            (cb) =>
+                async.mapSeries([0..10], create, cb)
+
+        ], (err) =>
+            dbg("all done")
+            opts.cb()
+        )
+
+
+    ###
     Compute servers
     ###
     save_compute_server: (opts) =>
