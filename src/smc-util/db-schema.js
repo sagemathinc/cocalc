@@ -1783,8 +1783,7 @@ schema.mentions = {
     },
     error: {
       type: "string",
-      desc:
-        "some sort of error occured handling this mention"
+      desc: "some sort of error occured handling this mention"
     },
     action: {
       type: "string",
@@ -1802,13 +1801,45 @@ schema.mentions = {
         path: true,
         source: "account_id",
         target: true,
-        priority:true
+        priority: true
       },
       required_fields: {
         project_id: true,
         path: true,
         target: true
       }
+    }
+  }
+};
+
+// what software environments there are available
+schema.compute_images = {
+  primary_key: ["id"],
+  anonymous: true,
+  fields: {
+    id: {
+      type: "string",
+      desc: "basically a docker image base name"
+    },
+    tag: {
+      type: "string",
+      desc: "which particular tag, either a timestamp or by default 'latest'"
+    },
+    type: {
+      type: "string",
+      desc: "for now, this is just 'official' or 'custom'"
+    },
+    display: {
+      type: "string",
+      desc: "what the user is shown"
+    },
+    url: {
+      type: "string",
+      desc: "where the user can learn more about it"
+    },
+    descr: {
+      type: "string",
+      descr: "(optional) markdown text to talk more about this"
     }
   }
 };

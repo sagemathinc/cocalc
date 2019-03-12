@@ -7,27 +7,30 @@ import * as which from "which";
 import { callback } from "awaiting";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
+export type ConfigurationAspect = "main" | "x11";
+
 async function have(name: string): Promise<boolean> {
   const path = await callback(which, name, { nothrow: true });
   return !!path;
 }
 
 // we cache this as long as the project runs
-let conf: object | null = null;
+const conf: { [key in ConfigurationAspect]?: { [key: string]: object } } = {};
 
 async function x11_apps(): Promise<object> {
-  let status = {};
-  for (let key of Object.keys(APPS)) {
+  const status: Promise<boolean>[] = [];
+  const KEYS = Object.keys(APPS);
+  for (let key of KEYS) {
     const app = APPS[key];
-    status[key] = await have(app.command != null ? app.command : key);
+    status.push(have(app.command != null ? app.command : key));
   }
-  return status;
+  const results = Promise.all(status);
+  return status.map((s, idx) => [s, results[idx]]);
 }
 
 // return supported apps if X11 should work, or falsy.
-async function x11(): Promise<object | null> {
-  const xpra = await have("xpra");
-  return xpra ? await x11_apps() : {};
+async function x11(): Promise<boolean> {
+  return await have("xpra");
 }
 
 async function sagews(): Promise<boolean> {
@@ -49,14 +52,24 @@ async function capabilities(): Promise<object> {
   };
 }
 
-export async function get_configuration(): Promise<object> {
-  if (conf != null) return conf;
+export async function get_configuration(
+  aspect: ConfigurationAspect
+): Promise<object> {
+  const cached = conf[aspect];
+  if (cached != null) return cached;
   const t0 = new Date().getTime();
-  const new_conf: any = {
-    timestamp: new Date(),
-    capabilities: await capabilities()
-  };
+  const new_conf: any = (async function() {
+    switch (aspect) {
+      case "main":
+        return {
+          timestamp: new Date(),
+          capabilities: await capabilities()
+        };
+      case "x11":
+        return await x11_apps();
+    }
+  })();
   new_conf.timing_s = (new Date().getTime() - t0) / 1000;
-  conf = new_conf;
+  conf[aspect] = new_conf;
   return new_conf;
 }

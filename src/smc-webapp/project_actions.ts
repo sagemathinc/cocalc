@@ -1778,7 +1778,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     // already done
     if (store.get("configuration") != null) return;
-    const config = await webapp_client.configuration(this.project_id);
+    const config = await webapp_client.configuration(this.project_id, "main");
     console.log("project_actions::init_configuration", config);
     this.setState({ configuration: immutable.fromJS(config) });
   }

@@ -64,7 +64,7 @@ async function handle_api_call(
     case "listing":
       return await listing(data.path, data.hidden);
     case "configuration":
-      return await get_configuration();
+      return await get_configuration(data.aspect);
     case "prettier":
       return await run_prettier(client, data.path, data.options, logger);
     case "prettier_string":

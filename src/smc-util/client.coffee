@@ -2099,10 +2099,10 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
     # This is async, so do "await smc_webapp.configuration(...project_id...)".
-    configuration: (project_id) =>
+    configuration: (project_id, aspect) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
             throw Error("project_id must be a valid uuid")
-        return (await @project_websocket(project_id)).api.configuration()
+        return (await @project_websocket(project_id)).api.configuration(aspect)
 
 #################################################
 # Other account Management functionality shared between client and server
