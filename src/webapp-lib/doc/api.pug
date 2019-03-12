@@ -1,4 +1,4 @@
-//- API documentation page
+//- API documentation page a redirect to https://doc.cocalc.com/api/
 
 extends ../_base.pug
 
@@ -6,62 +6,17 @@ block vars
   -
     navbar_active = 'api';
     var subtitle = "API";
-    var api_root = '/api/v1/';
-    var api_doc = require('smc-util/message').documentation;
-    var markdown = require('smc-webapp/markdown').markdown_to_html;
 
 block header
-  script(type="text/javascript")
-    include:coffee-script api.coffee
   meta(name="description" content=NAME + " " + subtitle)
+  meta(http-equiv="refresh" content="3; URL=https://doc.cocalc.com/api/")
+
 
 block content
 
-  div.container#top
-    div.row
+  div.container
+    div.row#top
       div.col-md-12
         h1 #{NAME} API
-        div!= markdown(api_doc.intro)
-      div.col-md-12
-    - var api_doc_keys = Object.keys(api_doc.events).sort()
-        h2 List of Endpoints:
-          ul
-    each key in api_doc_keys
-          li
-            a(href="#"+key) #{key}
-    h2 Endpoints:
-    each key in api_doc_keys
-      - var val = api_doc.events[key]
-      a(class="anchor" id=key)
-      div.row
-        div.col-md-12
-          h3.api-title
-            = api_root + key
-            a(class="marker" href="#"+key) ¶
-          if val.fields
-            table.table.fields
-              each descr, fld in val.fields
-                tr
-                  td #[code #{fld}]
-                  td!= markdown(descr)
-          p!= markdown(val.description)
-
-  //- CSS comes at the bottom: overwrites styles defined in the header
-  style
-    :sass
-      @import "smc-webapp/_colors.sass"
-      body > div.space
-        margin-top         : 5rem
-      div#top
-        margin-top         : 10rem
-      h3.api-title
-        font-weight        : bold
-        margin-top         : 2em
-      table.fields
-        width              : auto !important
-        tr, td
-          border           : none !important
-          padding          : 5px 10px 0px 0px !important
-        code
-          color            : $COL_GRAY_DD
-          background-color : $COL_GRAY_LLL
+        div(style="min-height: 75vh").
+          The API documentation moved permanently to #[a(href="https://doc.cocalc.com/api/") https://doc.cocalc.com/api/].
