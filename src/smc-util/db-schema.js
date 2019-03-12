@@ -1819,23 +1819,19 @@ schema.compute_images = {
   fields: {
     id: {
       type: "string",
-      desc: "basically a docker image base name"
-    },
-    tag: {
-      type: "string",
-      desc: "which particular tag, either a timestamp or by default 'latest'"
+      desc: "docker image 'name:tag', where tag defaults to 'latest'"
     },
     type: {
       type: "string",
-      desc: "for now, this is just 'official' or 'custom'"
+      desc: "for now, this is just 'official' or 'binder'"
     },
     display: {
       type: "string",
-      desc: "what the user is shown"
+      desc: "(optional) user-visible name (defaults to id)"
     },
     url: {
       type: "string",
-      desc: "where the user can learn more about it"
+      desc: "(optional) where the user can learn more about it"
     },
     descr: {
       type: "string",

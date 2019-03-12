@@ -3,7 +3,7 @@ Create a new project
 */
 import { analytics_event } from "../tracker";
 
-import { Component, React, ReactDOM, redux } from "../app-framework";
+import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
 
 const {
   Row,
@@ -13,13 +13,19 @@ const {
   ButtonToolbar,
   FormControl,
   FormGroup,
+  ControlLabel,
+  ListGroup,
+  ListGroupItem,
   Alert,
+  Radio,
   ErrorDisplay
 } = require("react-bootstrap");
 
 const { Icon, Space } = require("../r_misc");
 
 const misc = require("smc-util/misc");
+
+const COLORS = require("smc-util/theme").COLORS;
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -28,6 +34,8 @@ interface Props {
 
 interface State {
   state: "edit" | "view" | "saving";
+  image: "default" | "custom";
+  image_selected?: string;
   title_text: string;
   error: string;
 }
@@ -38,7 +46,8 @@ export class NewProjectCreator extends Component<Props, State> {
     this.state = {
       state: props.start_in_edit_mode ? "edit" : "view", // view --> edit --> saving --> view
       title_text: "",
-      error: ""
+      error: "",
+      image: "default"
     };
   }
 
@@ -151,12 +160,103 @@ export class NewProjectCreator extends Component<Props, State> {
     );
   }
 
+  select_image(id: string) {
+    this.setState({ image_selected: id });
+  }
+
+  render_custom_image_entries() {
+    const item_style = {
+      width: "100%",
+      margin: "2px 0px",
+      padding: "5px",
+      border: "none",
+      textAlign: "left"
+    };
+    const entries: Rendered[] = [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g",
+      "h",
+      "i",
+      "j"
+    ].map(id => {
+      return (
+        <ListGroupItem
+          key={id}
+          active={this.state.image_selected === id}
+          onClick={() => this.select_image(id)}
+          style={item_style}
+          bsSize={"small"}
+        >
+          {`name of image with id ${id}`}
+        </ListGroupItem>
+      );
+    });
+
+    return <>{entries}</>;
+  }
+
+  render_custom_images() {
+    if (this.state.image !== "custom") return;
+
+    const list_style = {
+      maxHeight: "275px",
+      overflowX: "hidden",
+      overflowY: "scroll",
+      border: `1px solid ${COLORS.GRAY_LL}`,
+      borderRadius: "5px",
+      marginBottom: "0px"
+    };
+
+    return (
+      <ListGroup style={list_style}>
+        {this.render_custom_image_entries()}
+      </ListGroup>
+    );
+  }
+
+  render_selected_custom_image_info() {
+    if (this.state.image !== "custom" || this.state.image_selected == null) {
+      return;
+    }
+    return (
+      <>
+        Description of selected image <code>{this.state.image_selected}</code>.
+      </>
+    );
+  }
+
+  create_disabled() {
+    return (
+      // no name of new project
+      this.state.title_text === "" ||
+      // currently saving (?)
+      this.state.state === "saving" ||
+      // user wants a custom image, but hasn't selected one yet
+      (this.state.image === "custom" && this.state.image_selected == null)
+    );
+  }
+
+  render_no_title() {
+    if (this.state.title_text === "")
+      return (
+        <Alert bsStyle="danger">
+          You have to enter a title above (you can change it later).
+        </Alert>
+      );
+  }
+
   render_input_section() {
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
         <Row>
           <Col sm={6}>
             <FormGroup>
+              <ControlLabel>Title</ControlLabel>
               <FormControl
                 ref="new_project_title"
                 type="text"
@@ -174,11 +274,53 @@ export class NewProjectCreator extends Component<Props, State> {
                 autoFocus
               />
             </FormGroup>
+            {this.render_no_title()}
+          </Col>
+
+          <Col sm={6}>
+            <div style={{ color: "#666" }}>
+              A <b>project</b> is your own computational workspace that you can
+              share with others.
+              <br />
+              You can easily change the project title in project settings.
+            </div>
+          </Col>
+        </Row>
+        <Row>
+          <Col sm={12}>
+            <ControlLabel>Software environment</ControlLabel>
+          </Col>
+
+          <Col sm={6}>
+            <FormGroup>
+              <Radio
+                checked={this.state.image === "default"}
+                id={"default-compute-image"}
+                onChange={() => this.setState({ image: "default" })}
+              >
+                Default
+              </Radio>
+
+              <Radio
+                checked={this.state.image === "custom"}
+                label={"Custom software environment"}
+                id={"custom-compute-image"}
+                onChange={() => this.setState({ image: "custom" })}
+              >
+                Custom
+              </Radio>
+
+              {this.render_custom_images()}
+            </FormGroup>
+          </Col>
+
+          <Col sm={6}>{this.render_selected_custom_image_info()}</Col>
+        </Row>
+        <Row>
+          <Col sm={12}>
             <ButtonToolbar>
               <Button
-                disabled={
-                  this.state.title_text === "" || this.state.state === "saving"
-                }
+                disabled={this.create_disabled()}
                 onClick={() => this.create_project()}
                 bsStyle="success"
               >
@@ -191,14 +333,6 @@ export class NewProjectCreator extends Component<Props, State> {
                 Cancel
               </Button>
             </ButtonToolbar>
-          </Col>
-          <Col sm={6}>
-            <div style={{ color: "#666" }}>
-              A <b>project</b> is your own computational workspace that you can
-              share with others.
-              <br/>
-              You can easily change the project title in project settings.
-            </div>
           </Col>
         </Row>
         <Row>
