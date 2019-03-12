@@ -1336,6 +1336,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 complete: this.append_file,
                 sending: this.start_upload
               }}
+              style={{height: "100%"}}
             >
               <ChatInput
                 input={this.props.input}

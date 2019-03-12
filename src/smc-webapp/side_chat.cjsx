@@ -531,47 +531,6 @@ ChatRoom = rclass ({name}) ->
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
-        input_style =
-            width: "85%"
-
-            "&multiLine":
-                control:
-                    backgroundColor: 'white'
-                    height:'100%'
-                    leftMargin:'2px'
-                    fontSize: @props.font_size
-
-                highlighter:
-                    padding: 5
-
-                input:
-                    border: "1px solid #ccc"
-                    borderRadius: "4px"
-                    boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-                    overflow: "auto",
-                    padding: "5px 10px"
-
-            suggestions:
-                list:
-                    backgroundColor: "white"
-                    border: "1px solid #ccc"
-                    borderRadius: "4px"
-                    fontSize: @props.font_size
-                    position: "absolute"
-                    bottom: "10px"
-                    overflow: "auto"
-                    maxHeight: "145px"
-                    width: "max-content"
-                    display: "flex"
-                    flexDirection: "column"
-
-                item:
-                    padding: "5px 15px"
-                    borderBottom: "1px solid rgba(0,0,0,0.15)"
-
-                    "&focused":
-                        backgroundColor: "rgb(66, 139, 202, 0.4)"
-
         # WARNING: making autofocus true would interfere with chat and terminals -- where chat and terminal are both focused at same time sometimes (esp on firefox).
 
         <div style       = {height:'100%', width:'100%', position:'absolute', display:'flex', flexDirection:'column', backgroundColor:'#efefef'}
@@ -594,20 +553,21 @@ ChatRoom = rclass ({name}) ->
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <div style={display:'flex', height:'6em'}>
-                    <ChatInput
-                        input                = {@props.input}
-                        input_ref            = {@input_ref}
-                        input_style          = {input_style}
-                        enable_mentions      = {has_collaborators}
-                        project_users        = {project_users}
-                        user_store           = {@props.redux.getStore("users")}
-                        font_size            = {@props.font_size}
-                        on_change            = {@on_input_change}
-                        on_clear             = {@on_clear}
-                        on_send              = {@on_input_send}
-                        on_set_to_last_input = {@props.actions.set_to_last_input}
-                        account_id           = {@props.account_id}
-                    />
+                    <div style={width:'85%', height:'100%'}>
+                        <ChatInput
+                            input                = {@props.input}
+                            input_ref            = {@input_ref}
+                            enable_mentions      = {has_collaborators}
+                            project_users        = {project_users}
+                            user_store           = {@props.redux.getStore("users")}
+                            font_size            = {@props.font_size}
+                            on_change            = {@on_input_change}
+                            on_clear             = {@on_clear}
+                            on_send              = {@on_input_send}
+                            on_set_to_last_input = {@props.actions.set_to_last_input}
+                            account_id           = {@props.account_id}
+                        />
+                    </div>
                     <Button
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@on_send_click}

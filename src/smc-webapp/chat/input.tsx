@@ -35,13 +35,21 @@ export class ChatInput extends React.PureComponent<Props> {
 
   input_style = memoizeOne(font_size => {
     return {
+      height: "100%",
+
       "&multiLine": {
         highlighter: {
           padding: 5
         },
 
+        control: {
+          height: "100%",
+          backgroundColor: 'white',
+          leftMargin:'2px'
+        },
+
         input: {
-          height: "90px",
+          height: "100%",
           fontSize: font_size,
           border: "1px solid #ccc",
           borderRadius: "4px",
