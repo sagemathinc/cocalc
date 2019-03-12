@@ -20,7 +20,7 @@ interface ChatState {
   is_saving: boolean;
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
-  unsent_user_mentions: immutable.List<{id: string, display: string}>;
+  unsent_user_mentions: immutable.List<{ id: string; display: string }>;
 }
 
 export class ChatStore extends Store<ChatState> {

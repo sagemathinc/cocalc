@@ -932,10 +932,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  on_send_button_click = (e) => {
+  on_send_button_click = e => {
     e.preventDefault();
     this.on_send(this.props.input);
-  }
+  };
 
   button_scroll_to_bottom = () => {
     scroll_to_bottom(this.refs.log_container, this.props.actions);
@@ -1245,7 +1245,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   on_send = input => {
-    scroll_to_bottom(this.refs.log_container, this.props.actions)
+    scroll_to_bottom(this.refs.log_container, this.props.actions);
     this.props.actions.submit_user_mentions(
       this.props.project_id,
       this.props.path
@@ -1255,8 +1255,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   on_clear = () => {
-    this.props.actions.set_input('');
-  }
+    this.props.actions.set_input("");
+  };
 
   render_body() {
     const grid_style: React.CSSProperties = {
@@ -1336,7 +1336,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 complete: this.append_file,
                 sending: this.start_upload
               }}
-              style={{height: "100%"}}
+              style={{ height: "100%" }}
             >
               <ChatInput
                 input={this.props.input}

@@ -44,8 +44,8 @@ export class ChatInput extends React.PureComponent<Props> {
 
         control: {
           height: "100%",
-          backgroundColor: 'white',
-          leftMargin:'2px'
+          backgroundColor: "white",
+          leftMargin: "2px"
         },
 
         input: {
