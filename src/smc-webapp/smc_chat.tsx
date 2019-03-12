@@ -1239,13 +1239,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   on_input_change = (value, mentions) => {
-    console.log(value, mentions)
     this.props.actions.set_unsent_user_mentions(mentions);
     this.props.actions.set_input(value);
     this.mark_as_read();
   };
 
   on_send = input => {
+    scroll_to_bottom(this.refs.log_container, this.props.actions)
     this.props.actions.submit_user_mentions(
       this.props.project_id,
       this.props.path

@@ -42,12 +42,12 @@ misc_page = require('./misc_page')
 
 editor_chat = require('./editor_chat')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
+{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
 
-{MentionsInput, Mention} = require('react-mentions')
+{ ChatInput } = require('./chat/input')
 { Avatar } = require("./other-users");
 
 Message = rclass
@@ -395,6 +395,10 @@ ChatRoom = rclass ({name}) ->
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
 
+    getInitialState: ->
+        @input_ref = React.createRef();
+        return {}
+
     mark_as_read: ->
         info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
         if not info? or info.is_unseenchat  # only mark chat as read if it is unseen
@@ -402,26 +406,30 @@ ChatRoom = rclass ({name}) ->
             f(@props.project_id, @props.path, 'read')
             f(@props.project_id, @props.path, 'chatseen')
 
-    on_keydown: (e) ->
-        if e.keyCode == 27  # ESC
-            @props.actions.set_input('')
-        else if e.keyCode == 13 and e.shiftKey # shift + enter
-            @button_send_chat(e)
-            analytics_event('side_chat', 'send_chat', 'keyboard')
-        else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
-            @props.actions.set_to_last_input()
-
-    on_input_change: (e, _, __, mentions) ->
-        @props.actions.set_unsent_user_mentions(mentions)
-        @props.actions.set_input(e.target.value)
+    on_input_send: (value) ->
+        @send_chat(value)
+        analytics_event('side_chat', 'send_chat', 'keyboard')
 
     on_send_click: (e) ->
-        @button_send_chat(e)
+        e.preventDefault();
+        @send_chat(@props.input)
         analytics_event('side_chat', 'send_chat', 'click')
 
-    button_send_chat: (e) ->
-        @props.actions.submit_user_mentions(@props.project_id, @props.path)
-        send_chat(e, @refs.log_container, @props.input, @props.actions)
+    send_chat: (value) ->
+        scroll_to_bottom(@refs.log_container, @props.actions)
+        @props.actions.submit_user_mentions(
+            @props.project_id,
+            @props.path
+        )
+        @props.actions.send_chat(value)
+        @input_ref.current.focus();
+
+    on_input_change: (value, mentions) ->
+        @props.actions.set_unsent_user_mentions(mentions)
+        @props.actions.set_input(value)
+
+    on_clear: () ->
+        @props.actions.set_input('')
 
     on_scroll: (e) ->
         @props.actions.set_use_saved_position(true)
@@ -515,27 +523,11 @@ ChatRoom = rclass ({name}) ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
 
-        has_collaborators = false
-
-        user_store = @props.redux.getStore("users")
         # the immutable.Map() default is because of admins:
         # https://github.com/sagemathinc/cocalc/issues/3669
-        user_array = @props.project_map
+        project_users = @props.project_map
             .getIn([@props.project_id, "users"], immutable.Map())
-            .keySeq()
-            .filter((account_id) =>
-                return account_id != @props.account_id;
-            )
-            .map((account_id) =>
-                has_collaborators = true
-                return {
-                    id: account_id,
-                    display: user_store.get_name(account_id),
-                    last_active: user_store.get_last_active(account_id)
-                };
-            )
-            .toJS();
-        user_array.sort((x, y) => -misc.cmp_Date(x.last_active, y.last_active));
+        has_collaborators = project_users.size > 1
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
@@ -602,23 +594,20 @@ ChatRoom = rclass ({name}) ->
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <div style={display:'flex', height:'6em'}>
-                    <MentionsInput
-                        displayTransform = {(id, display, type) => "@" + display}
-                        style          = {input_style}
-                        markup         = '<span class="user-mention" account-id=__id__>@__display__</span>'
-                        autoFocus      = {false}
-                        onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
-                        value          = {@props.input}
-                        placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
-                        onChange       = {@on_input_change}
-                    >
-                        <Mention
-                            trigger="@"
-                            data={user_array}
-                            appendSpaceOnAdd={true}
-                            renderSuggestion={@render_user_suggestion}
-                        />
-                    </MentionsInput>
+                    <ChatInput
+                        input                = {@props.input}
+                        input_ref            = {@input_ref}
+                        input_style          = {input_style}
+                        enable_mentions      = {has_collaborators}
+                        project_users        = {project_users}
+                        user_store           = {@props.redux.getStore("users")}
+                        font_size            = {@props.font_size}
+                        on_change            = {@on_input_change}
+                        on_clear             = {@on_clear}
+                        on_send              = {@on_input_send}
+                        on_set_to_last_input = {@props.actions.set_to_last_input}
+                        account_id           = {@props.account_id}
+                    />
                     <Button
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@on_send_click}

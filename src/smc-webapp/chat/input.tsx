@@ -19,7 +19,7 @@ interface Props {
   project_users: any;
   user_store: any;
   font_size: number;
-  on_paste: (e) => void;
+  on_paste?: (e) => void;
   on_change: (value, mentions) => void;
   on_send: (value) => void;
   on_clear: () => void;
