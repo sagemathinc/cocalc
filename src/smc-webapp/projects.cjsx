@@ -46,6 +46,9 @@ markdown = require('./markdown')
 
 {UpgradeStatus} = require('./upgrades/status')
 
+
+COMPUPTE_IMAGES = require("./compute-images/init").NAME
+
 ###
 TODO:  This entire file should be broken into many small files/components,
 which are in the projects/ subdirectory.
@@ -1260,6 +1263,8 @@ exports.ProjectsPage = ProjectsPage = rclass
             load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
+        compute_images :
+            images        : rtypes.immutable.Map
 
     propTypes :
         redux             : rtypes.object
@@ -1469,7 +1474,8 @@ exports.ProjectsPage = ProjectsPage = rclass
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
                                 default_value={@props.search}
-                                />
+                                images = {@props.images}
+                            />
                         </Col>
                     </Row>
                     <Row>

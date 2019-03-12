@@ -1841,6 +1841,20 @@ schema.compute_images = {
       type: "string",
       desc: "(optional) markdown text to talk more about this"
     }
+  },
+  user_query: {
+    get: {
+      throttle_changes: 30000,
+      pg_where: [],
+      fields: {
+        id: null,
+        src: null,
+        type: null,
+        display: null,
+        url: null,
+        desc: null
+      }
+    }
   }
 };
 

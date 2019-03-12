@@ -5,6 +5,12 @@ import { analytics_event } from "../tracker";
 
 import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
 
+import { ComputeImages, ComputeImage } from "../compute-images/init";
+
+const { SiteName } = require("../customize");
+
+const { Markdown } = require("../r_misc");
+
 const {
   Row,
   Col,
@@ -30,6 +36,7 @@ const COLORS = require("smc-util/theme").COLORS;
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
+  images?: ComputeImages;
 }
 
 interface State {
@@ -172,30 +179,26 @@ export class NewProjectCreator extends Component<Props, State> {
       border: "none",
       textAlign: "left"
     };
-    const entries: Rendered[] = [
-      "a",
-      "b",
-      "c",
-      "d",
-      "e",
-      "f",
-      "g",
-      "h",
-      "i",
-      "j"
-    ].map(id => {
-      return (
-        <ListGroupItem
-          key={id}
-          active={this.state.image_selected === id}
-          onClick={() => this.select_image(id)}
-          style={item_style}
-          bsSize={"small"}
-        >
-          {`name of image with id ${id}`}
-        </ListGroupItem>
-      );
-    });
+    if (this.props.images == null) return;
+
+    const entries: Rendered[] = this.props.images
+      .entrySeq()
+      .map(e => {
+        const id = e[0];
+        const display = e[1].get("display", id);
+        return (
+          <ListGroupItem
+            key={id}
+            active={this.state.image_selected === id}
+            onClick={() => this.select_image(id)}
+            style={item_style}
+            bsSize={"small"}
+          >
+            {display}
+          </ListGroupItem>
+        );
+      })
+      .toArray();
 
     return <>{entries}</>;
   }
@@ -220,12 +223,48 @@ export class NewProjectCreator extends Component<Props, State> {
   }
 
   render_selected_custom_image_info() {
-    if (this.state.image !== "custom" || this.state.image_selected == null) {
+    if (
+      this.state.image !== "custom" ||
+      this.state.image_selected == null ||
+      this.props.images == null
+    ) {
       return;
     }
+
+    const id: string = this.state.image_selected;
+    const data = this.props.images.get(id);
+    if (data == null) {
+      // we have a serious problem
+      console.warn(`compute_image data missing for '${id}'`);
+      return;
+    }
+    const img: ComputeImage = data;
+    const desc: string = img.get("desc", "*No description available.*");
+    const url = img.get("url");
+    const src = img.get("src");
+
     return (
       <>
-        Description of selected image <code>{this.state.image_selected}</code>.
+        <div>
+          <code>ID: {id}</code>
+        </div>
+        <div>
+          <Markdown value={desc} className={"cc-custom-image-desc"} />
+        </div>
+        {src != null ? (
+          <div>
+            Source: <code>{src}</code>
+          </div>
+        ) : (
+          undefined
+        )}
+        {url != null ? (
+          <div>
+            URL: <a href={url}>further information</a>
+          </div>
+        ) : (
+          undefined
+        )}
       </>
     );
   }
@@ -289,16 +328,15 @@ export class NewProjectCreator extends Component<Props, State> {
         <Row>
           <Col sm={12}>
             <ControlLabel>Software environment</ControlLabel>
-          </Col>
 
-          <Col sm={6}>
             <FormGroup>
               <Radio
                 checked={this.state.image === "default"}
                 id={"default-compute-image"}
                 onChange={() => this.setState({ image: "default" })}
               >
-                Default
+                Default: large repository of software, maintained by{" "}
+                <SiteName />.
               </Radio>
 
               <Radio
@@ -307,17 +345,16 @@ export class NewProjectCreator extends Component<Props, State> {
                 id={"custom-compute-image"}
                 onChange={() => this.setState({ image: "custom" })}
               >
-                Custom
+                Custom: 3rd party software environments
               </Radio>
-
-              {this.render_custom_images()}
             </FormGroup>
           </Col>
 
+          <Col sm={6}>{this.render_custom_images()}</Col>
           <Col sm={6}>{this.render_selected_custom_image_info()}</Col>
         </Row>
         <Row>
-          <Col sm={12}>
+          <Col sm={12} style={{ marginTop: "10px" }}>
             <ButtonToolbar>
               <Button
                 disabled={this.create_disabled()}
@@ -367,3 +404,5 @@ export class NewProjectCreator extends Component<Props, State> {
     );
   }
 }
+
+require("compute-images/init");
