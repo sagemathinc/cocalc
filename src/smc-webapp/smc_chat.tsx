@@ -71,8 +71,6 @@ const {
 const { VideoChatButton } = require("./video-chat");
 const { SMC_Dropwrapper } = require("./smc-dropzone");
 
-const { webapp_client } = require("./webapp_client");
-
 interface MessageProps {
   actions?: any;
 
@@ -923,6 +921,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   keydown = (e: any) => {
     // TODO: Add timeout component to is_typing
     if (e.keyCode === 13 && e.shiftKey) {
+      this.props.actions.submit_user_mentions(
+        this.props.project_id,
+        this.props.path
+      );
       // 13: enter key
       return send_chat(
         e,
@@ -954,6 +956,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   button_send_chat = e => {
+    this.props.actions.submit_user_mentions(
+      this.props.project_id,
+      this.props.path
+    );
     send_chat(e, this.refs.log_container, this.props.input, this.props.actions);
     this.input_ref.current.focus();
   };
@@ -1270,13 +1276,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  on_mention = id => {
-    webapp_client.mention({
-      project_id: this.props.project_id,
-      path: this.props.path,
-      target: id,
-      priority: 2
-    });
+  on_input_change = (e, _, __, mentions) => {
+    this.props.actions.set_unsent_user_mentions(mentions);
+    this.props.actions.set_input(e.target.value);
+    this.mark_as_read();
   };
 
   render_body() {
@@ -1424,7 +1427,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 autoFocus={!IS_MOBILE || isMobile.Android()}
                 displayTransform={(_, display) => "@" + display}
                 style={chat_input_style}
-                markup='<span class="user-mention">@__display__</span>'
+                markup='<span class="user-mention" account-id=__id__ >@__display__</span>'
                 inputRef={this.input_ref}
                 onKeyDown={this.keydown}
                 value={this.props.input}
@@ -1434,15 +1437,11 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                     : "Type a message..."
                 }
                 onPaste={this.handle_paste_event}
-                onChange={(e: any) => {
-                  this.props.actions.set_input(e.target.value);
-                  this.mark_as_read();
-                }}
+                onChange={this.on_input_change}
               >
                 <Mention
                   trigger="@"
                   data={user_array}
-                  onAdd={this.on_mention}
                   appendSpaceOnAdd={true}
                   renderSuggestion={this.render_user_suggestion}
                 />

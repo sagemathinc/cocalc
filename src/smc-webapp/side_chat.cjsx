@@ -411,11 +411,16 @@ ChatRoom = rclass ({name}) ->
         else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
             @props.actions.set_to_last_input()
 
+    on_input_change: (e, _, __, mentions) ->
+        @props.actions.set_unsent_user_mentions(mentions)
+        @props.actions.set_input(e.target.value)
+
     on_send_click: (e) ->
         @button_send_chat(e)
         analytics_event('side_chat', 'send_chat', 'click')
 
     button_send_chat: (e) ->
+        @props.actions.submit_user_mentions(@props.project_id, @props.path)
         send_chat(e, @refs.log_container, @props.input, @props.actions)
 
     on_scroll: (e) ->
@@ -505,9 +510,6 @@ ChatRoom = rclass ({name}) ->
         # Remove any active key handler that is next to this side chat.
         # E.g, this is critical for taks lists...
         @props.redux.getActions('page').erase_active_key_handler()
-
-    on_mention: (id, display) ->
-        webapp_client.mention({project_id:@props.project_id, path:misc.original_path(@props.path), target:id, priority:2})
 
     render: ->
         if not @props.messages? or not @props.redux?
@@ -603,17 +605,16 @@ ChatRoom = rclass ({name}) ->
                     <MentionsInput
                         displayTransform = {(id, display, type) => "@" + display}
                         style          = {input_style}
-                        markup         = '<span class="user-mention">@__display__</span>'
+                        markup         = '<span class="user-mention" account-id=__id__>@__display__</span>'
                         autoFocus      = {false}
                         onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
                         value          = {@props.input}
                         placeholder    = {if has_collaborators then "Type a message, @name..." else "Type a message..."}
-                        onChange       = {(e) => @props.actions.set_input(e.target.value)}
+                        onChange       = {@on_input_change}
                     >
                         <Mention
                             trigger="@"
                             data={user_array}
-                            onAdd={@on_mention}
                             appendSpaceOnAdd={true}
                             renderSuggestion={@render_user_suggestion}
                         />

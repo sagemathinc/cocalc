@@ -147,6 +147,20 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
+    set_unsent_user_mentions: (user_mentions) =>
+        @setState(unsent_user_mentions: user_mentions)
+
+    submit_user_mentions: (project_id, path) =>
+        @store.get('unsent_user_mentions').map((mention) =>
+            webapp_client.mention({
+                project_id: project_id
+                path: path
+                target: mention.id
+                priority: 2
+            })
+        )
+        @setState(unsent_user_mentions: immutable.List())
+
     save_scroll_state: (position, height, offset) =>
         # height == 0 means chat room is not rendered
         if height != 0
