@@ -21,7 +21,7 @@
 
 // standard non-CoCalc libraries
 import * as immutable from "immutable";
-const { IS_MOBILE, IS_TOUCH, isMobile } = require("./feature");
+const { IS_MOBILE, IS_TOUCH } = require("./feature");
 import { debounce } from "underscore";
 
 // CoCalc libraries
@@ -29,15 +29,13 @@ const { Avatar } = require("./other-users");
 const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 
-import { cmp_Date } from "smc-util/misc2";
-
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
-import { MentionsInput, Mention } from "react-mentions";
+import { ChatInput } from "./chat/input";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-const { Icon, Loading, SearchInput, Space, TimeAgo, Tip } = require("./r_misc");
+const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
 import {
   Alert,
   Button,
@@ -62,7 +60,6 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  send_chat,
   is_at_bottom,
   scroll_to_bottom,
   scroll_to_position
@@ -918,26 +915,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   }, 300);
 
-  keydown = (e: any) => {
-    // TODO: Add timeout component to is_typing
-    if (e.keyCode === 13 && e.shiftKey) {
-      this.props.actions.submit_user_mentions(
-        this.props.project_id,
-        this.props.path
-      );
-      // 13: enter key
-      return send_chat(
-        e,
-        this.refs.log_container,
-        this.props.input,
-        this.props.actions
-      );
-    } else if (e.keyCode === 38 && this.props.input === "") {
-      // Up arrow on an empty input
-      this.props.actions.set_to_last_input();
-    }
-  };
-
   componentWillUnmount() {
     this._is_mounted = false;
     this.save_scroll_position();
@@ -955,14 +932,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  button_send_chat = e => {
-    this.props.actions.submit_user_mentions(
-      this.props.project_id,
-      this.props.path
-    );
-    send_chat(e, this.refs.log_container, this.props.input, this.props.actions);
-    this.input_ref.current.focus();
-  };
+  on_send_button_click = (e) => {
+    e.preventDefault();
+    this.on_send(this.props.input);
+  }
 
   button_scroll_to_bottom = () => {
     scroll_to_bottom(this.refs.log_container, this.props.actions);
@@ -973,7 +946,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     this.input_ref.current.focus();
   };
 
-  button_on_click = () => {
+  on_preview_button_click = () => {
     this.props.actions.set_is_preview(true);
     this.input_ref.current.focus();
     if (
@@ -1203,17 +1176,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     );
   }
 
-  render_user_suggestion = (entry: { id: string; display: string }) => {
-    return (
-      <span>
-        <Avatar size={this.props.font_size + 12} account_id={entry.id} />
-        <Space />
-        <Space />
-        {entry.display}
-      </span>
-    );
-  };
-
   generate_temp_upload_text = file => {
     return `[Uploading...]\(${file.name}\)`;
   };
@@ -1255,7 +1217,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   private dropzoneWrapperRef: any;
 
-  handle_paste_event = (e: React.ClipboardEvent<MentionsInput>) => {
+  handle_paste_event = (e: React.ClipboardEvent<any>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -1276,11 +1238,25 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  on_input_change = (e, _, __, mentions) => {
+  on_input_change = (value, mentions) => {
+    console.log(value, mentions)
     this.props.actions.set_unsent_user_mentions(mentions);
-    this.props.actions.set_input(e.target.value);
+    this.props.actions.set_input(value);
     this.mark_as_read();
   };
+
+  on_send = input => {
+    this.props.actions.submit_user_mentions(
+      this.props.project_id,
+      this.props.path
+    );
+    this.props.actions.send_chat(input);
+    this.input_ref.current.focus();
+  };
+
+  on_clear = () => {
+    this.props.actions.set_input('');
+  }
 
   render_body() {
     const grid_style: React.CSSProperties = {
@@ -1300,75 +1276,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       flex: 1
     };
 
-    const chat_input_style: {
-      [key: string]:
-        | string
-        | React.CSSProperties
-        | { [key: string]: React.CSSProperties };
-    } = {
-      "&multiLine": {
-        highlighter: {
-          padding: 5
-        },
-
-        input: {
-          height: "90px",
-          fontSize: this.props.font_size,
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-          overflow: "auto",
-          padding: "5px 10px"
-        }
-      },
-
-      suggestions: {
-        list: {
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          fontSize: this.props.font_size,
-          position: "absolute",
-          bottom: "10px",
-          overflow: "auto",
-          maxHeight: "145px",
-          width: "max-content",
-          display: "flex",
-          flexDirection: "column"
-        },
-
-        item: {
-          padding: "5px 15px 5px 10px",
-          borderBottom: "1px solid rgba(0,0,0,0.15)",
-
-          "&focused": {
-            backgroundColor: "rgb(66, 139, 202, 0.4)"
-          }
-        }
-      }
-    };
-
-    let has_collaborators = false;
-
-    const user_store = this.props.redux.getStore("users");
     // the immutable.Map() default is because of admins:
     // https://github.com/sagemathinc/cocalc/issues/3669
-    const user_array = this.props.project_map
-      .getIn([this.props.project_id, "users"], immutable.Map())
-      .keySeq()
-      .filter(account_id => {
-        return account_id !== this.props.account_id;
-      })
-      .map(account_id => {
-        has_collaborators = true;
-        return {
-          id: account_id,
-          display: user_store.get_name(account_id),
-          last_active: user_store.get_last_active(account_id)
-        };
-      })
-      .toJS();
-    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
+    const project_users = this.props.project_map.getIn(
+      [this.props.project_id, "users"],
+      immutable.Map()
+    );
+    const has_collaborators = project_users.size > 1;
 
     return (
       <Grid fluid={true} className="smc-vfill" style={grid_style}>
@@ -1423,29 +1337,20 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 sending: this.start_upload
               }}
             >
-              <MentionsInput
-                autoFocus={!IS_MOBILE || isMobile.Android()}
-                displayTransform={(_, display) => "@" + display}
-                style={chat_input_style}
-                markup='<span class="user-mention" account-id=__id__ >@__display__</span>'
-                inputRef={this.input_ref}
-                onKeyDown={this.keydown}
-                value={this.props.input}
-                placeholder={
-                  has_collaborators
-                    ? "Type a message, @name..."
-                    : "Type a message..."
-                }
-                onPaste={this.handle_paste_event}
-                onChange={this.on_input_change}
-              >
-                <Mention
-                  trigger="@"
-                  data={user_array}
-                  appendSpaceOnAdd={true}
-                  renderSuggestion={this.render_user_suggestion}
-                />
-              </MentionsInput>
+              <ChatInput
+                input={this.props.input}
+                input_ref={this.input_ref}
+                enable_mentions={has_collaborators}
+                project_users={project_users}
+                user_store={this.props.redux.getStore("users")}
+                font_size={this.props.font_size}
+                on_paste={this.handle_paste_event}
+                on_change={this.on_input_change}
+                on_clear={this.on_clear}
+                on_send={this.on_send}
+                on_set_to_last_input={this.props.actions.set_to_last_input}
+                account_id={this.props.account_id}
+              />
             </SMC_Dropwrapper>
           </Col>
           <Col
@@ -1459,7 +1364,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           >
             {!IS_MOBILE ? (
               <Button
-                onClick={this.button_on_click}
+                onClick={this.on_preview_button_click}
                 disabled={this.props.input === ""}
                 bsStyle="info"
                 style={{ height: "50%", width: "100%" }}
@@ -1470,7 +1375,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               undefined
             )}
             <Button
-              onClick={this.button_send_chat}
+              onClick={this.on_send_button_click}
               disabled={this.props.input === ""}
               bsStyle="success"
               style={{ flex: 1, width: "100%" }}

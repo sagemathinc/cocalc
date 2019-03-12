@@ -86,6 +86,7 @@ class ChatActions extends Actions
             date      : time_stamp
         @setState(last_sent: mesg)
         @save()
+        @set_input('')
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
@@ -155,7 +156,7 @@ class ChatActions extends Actions
             webapp_client.mention({
                 project_id: project_id
                 path: path
-                target: mention.id
+                target: mention.get('id')
                 priority: 2
             })
         )
