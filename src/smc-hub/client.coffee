@@ -959,6 +959,7 @@ class exports.Client extends EventEmitter
                     account_id  : @account_id
                     title       : mesg.title
                     description : mesg.description
+                    image       : mesg.image
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>

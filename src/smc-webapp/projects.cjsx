@@ -236,6 +236,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
+            image       : undefined  # if given, sets the compute image (the ID string)
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token; delete opts.token

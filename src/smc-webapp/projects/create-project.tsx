@@ -5,7 +5,12 @@ import { analytics_event } from "../tracker";
 
 import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
 
-import { ComputeImages, ComputeImage } from "../compute-images/init";
+import {
+  ComputeImages,
+  ComputeImage,
+  ComputeImageTypes,
+  custom_image_name
+} from "../compute-images/init";
 
 const { SiteName, CompanyName } = require("../customize");
 
@@ -33,6 +38,10 @@ const misc = require("smc-util/misc");
 
 const COLORS = require("smc-util/theme").COLORS;
 
+// (hsy) hits might seem excessive, but I confused myself too often. it helped.
+const legacy: ComputeImageTypes = "legacy";
+const custom: ComputeImageTypes = "custom";
+
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
@@ -41,7 +50,7 @@ interface Props {
 
 interface State {
   state: "edit" | "view" | "saving";
-  image: "default" | "custom";
+  image_type: ComputeImageTypes;
   image_selected?: string;
   title_text: string;
   error: string;
@@ -54,7 +63,7 @@ export class NewProjectCreator extends Component<Props, State> {
       state: props.start_in_edit_mode ? "edit" : "view", // view --> edit --> saving --> view
       title_text: "",
       error: "",
-      image: "default"
+      image_type: legacy
     };
   }
 
@@ -92,8 +101,13 @@ export class NewProjectCreator extends Component<Props, State> {
     const token = misc.uuid();
     this.setState({ state: "saving" });
     const actions = redux.getActions("projects");
+    const compute_image: string =
+      this.state.image_type == custom && this.state.image_selected != null
+        ? custom_image_name(this.state.image_selected)
+        : "default";
     actions.create_project({
       title: this.state.title_text,
+      image: compute_image,
       token
     });
     analytics_event("create_project", "created_new_project");
@@ -167,9 +181,9 @@ export class NewProjectCreator extends Component<Props, State> {
     );
   }
 
-  select_image(id: string) {
+  select_image = (id: string) => {
     this.setState({ image_selected: id });
-  }
+  };
 
   render_custom_image_entries() {
     const item_style = {
@@ -182,6 +196,7 @@ export class NewProjectCreator extends Component<Props, State> {
     if (this.props.images == null) return;
 
     const entries: Rendered[] = this.props.images
+      .filter(img => img.get("type", "") === custom)
       .sortBy((img, key) => img.get("display", key).toLowerCase())
       .entrySeq()
       .map(e => {
@@ -205,7 +220,7 @@ export class NewProjectCreator extends Component<Props, State> {
   }
 
   render_custom_images() {
-    if (this.state.image !== "custom") return;
+    if (this.state.image_type !== custom) return;
 
     const list_style = {
       maxHeight: "275px",
@@ -225,7 +240,7 @@ export class NewProjectCreator extends Component<Props, State> {
 
   render_selected_custom_image_info() {
     if (
-      this.state.image !== "custom" ||
+      this.state.image_type !== custom ||
       this.state.image_selected == null ||
       this.props.images == null
     ) {
@@ -244,12 +259,18 @@ export class NewProjectCreator extends Component<Props, State> {
     const desc: string = img.get("desc", "*No description available.*");
     const url = img.get("url");
     const src = img.get("src");
+    // show :latest if there is no tag (must match back-end heuristic!)
+    const tag = id.indexOf(":") >= 0 ? "" : ":latest";
 
     return (
       <>
         <h3 style={{ marginTop: 0 }}>{disp}</h3>
         <div>
-          <code>ID: {id}</code>
+          image:{" "}
+          <code>
+            {id}
+            {tag}
+          </code>
         </div>
         <div>
           <Markdown value={desc} className={"cc-custom-image-desc"} />
@@ -279,7 +300,7 @@ export class NewProjectCreator extends Component<Props, State> {
       // currently saving (?)
       this.state.state === "saving" ||
       // user wants a custom image, but hasn't selected one yet
-      (this.state.image === "custom" && this.state.image_selected == null)
+      (this.state.image_type === custom && this.state.image_selected == null)
     );
   }
 
@@ -334,9 +355,9 @@ export class NewProjectCreator extends Component<Props, State> {
 
             <FormGroup>
               <Radio
-                checked={this.state.image === "default"}
+                checked={this.state.image_type === legacy}
                 id={"default-compute-image"}
-                onChange={() => this.setState({ image: "default" })}
+                onChange={() => this.setState({ image_type: legacy })}
               >
                 Default:{" "}
                 <a href={`${window.app_base_url}/doc/software.html`}>
@@ -346,10 +367,10 @@ export class NewProjectCreator extends Component<Props, State> {
               </Radio>
 
               <Radio
-                checked={this.state.image === "custom"}
+                checked={this.state.image_type === custom}
                 label={"Custom software environment"}
                 id={"custom-compute-image"}
-                onChange={() => this.setState({ image: "custom" })}
+                onChange={() => this.setState({ image_type: custom })}
               >
                 Custom: 3rd party software environments
               </Radio>

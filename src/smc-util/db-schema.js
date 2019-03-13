@@ -1827,7 +1827,7 @@ schema.compute_images = {
     },
     type: {
       type: "string",
-      desc: "for now, this is just 'legacy' or 'binder'"
+      desc: "for now, this is just 'legacy' or 'custom'"
     },
     display: {
       type: "string",
@@ -1934,3 +1934,4 @@ class ClientDB {
 }
 
 exports.client_db = new ClientDB();
+

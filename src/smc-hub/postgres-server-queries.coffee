@@ -1536,6 +1536,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id  : required    # initial owner
             title       : undefined
             description : undefined
+            image       : 'default'   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         project_id = misc.uuid()
@@ -1543,12 +1544,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         @_query
             query  : "INSERT INTO projects"
             values :
-                project_id  : project_id
-                title       : opts.title
-                description : opts.description
-                created     : now
-                last_edited : now
-                users       : {"#{opts.account_id}":{group:'owner'}}
+                project_id    : project_id
+                title         : opts.title
+                description   : opts.description
+                compute_image : opts.image
+                created       : now
+                last_edited   : now
+                users         : {"#{opts.account_id}":{group:'owner'}}
             cb : (err, result) =>
                 opts.cb(err, if not err then project_id)
 
@@ -2624,8 +2626,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         _ = require('underscore')
         words = [
                     'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
-                    'advanced', 'course', 'yellow', 'bioinformatics', 'bag', 'electric', 'sheep',
-                    'theory', 'math', 'physics', 'calculate', 'primer', 'DNA', 'tech'
+                    'advanced', 'course', 'yellow', 'bioinformatics', 'R', 'electric', 'sheep',
+                    'theory', 'math', 'physics', 'calculate', 'primer', 'DNA', 'tech', 'space'
                 ]
 
         create = (idx, cb) =>
@@ -2659,6 +2661,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     query  : 'DELETE FROM compute_images'
                     where  : '1 = 1'
                     cb     : cb
+
             (cb) =>
                 async.mapSeries([0..10], create, cb)
 
