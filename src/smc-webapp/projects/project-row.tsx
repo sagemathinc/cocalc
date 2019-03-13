@@ -3,17 +3,33 @@ Render a single project entry, which goes in the list of projects
 */
 
 import * as immutable from "immutable";
-import { AppRedux, Component, React, rclass, rtypes } from "../app-framework";
+import {
+  AppRedux,
+  Component,
+  React,
+  Rendered,
+  rclass,
+  rtypes
+} from "../app-framework";
 import { ProjectUsers } from "./project-users";
 import { analytics_event } from "../tracker";
 
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
+import { id2name } from "./create-project";
+import { ComputeImages } from "../compute-images/init";
+const COLORS = require("smc-util/theme").COLORS;
+
+const image_name_style: React.CSSProperties = {
+  fontSize: "12px",
+  color: COLORS.GRAY
+};
 
 interface ReactProps {
   project: any;
   index: number;
+  images?: ComputeImages;
   redux: AppRedux;
 }
 
@@ -136,6 +152,21 @@ export const ProjectRow = rclass<ReactProps>(
       );
     }
 
+    render_image_name(): Rendered {
+      const ci = this.props.project.compute_image;
+      if (ci == null || this.props.images == null) return;
+      // TODO refactor this with a similar procedure in project_settings
+      const id = ci.startsWith("custom/")
+        ? ci.slice("custom/".length).split("/")[0]
+        : ci;
+      const disp = this.props.images.getIn([id, "display"]);
+      if (disp == null || disp.length == 0) {
+        return <code style={image_name_style}>{id2name(id)}</code>;
+      } else {
+        return <div style={image_name_style}>{disp}</div>;
+      }
+    }
+
     render_project_description() {
       if (this.props.project.description !== "No Description") {
         // don't bother showing that default; it's clutter
@@ -168,7 +199,7 @@ export const ProjectRow = rclass<ReactProps>(
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
-      analytics_event('projects_page', 'opened_a_project')
+      analytics_event("projects_page", "opened_a_project");
     };
 
     open_project_settings = e => {
@@ -205,7 +236,8 @@ export const ProjectRow = rclass<ReactProps>(
                 overflowY: "auto"
               }}
             >
-              {this.render_project_title()}
+              <div>{this.render_project_title()}</div>
+              {this.render_image_name()}
             </Col>
             <Col
               onClick={this.handle_click}

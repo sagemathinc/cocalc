@@ -1776,10 +1776,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       console.warn("project_actions::init_configuration: no store");
       return;
     }
-    // already done
+    // already done?
     if (store.get("configuration") != null) return;
     const config = await webapp_client.configuration(this.project_id, "main");
-    console.log("project_actions::init_configuration", config);
+    // console.log("project_actions::init_configuration", config);
+    const caps = config.capabilities;
+    const hide_ext = (config.hide_ext = [] as string[]);
+    if (!caps.jupyter) hide_ext.push("ipynb");
+    // jupyter-lab and jupyter-notebook → where their buttons are
+    if (!caps.latex) {
+      hide_ext.push(...["tex", "rnw", "rtex"]);
+    }
+    if (!caps.sagews) hide_ext.push("sagews");
+    if (!caps.x11) hide_ext.push("x11");
     this.setState({ configuration: immutable.fromJS(config) });
   }
 

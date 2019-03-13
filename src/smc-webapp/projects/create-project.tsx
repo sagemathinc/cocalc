@@ -45,7 +45,7 @@ const COLORS = require("smc-util/theme").COLORS;
 const legacy: ComputeImageTypes = "legacy";
 const custom: ComputeImageTypes = "custom";
 
-function id2name(id: string): string {
+export function id2name(id: string): string {
   return id
     .split("-")
     .map(capitalize)

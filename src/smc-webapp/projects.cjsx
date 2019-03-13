@@ -1204,6 +1204,7 @@ ProjectList = rclass
     propTypes :
         projects    : rtypes.array.isRequired
         show_all    : rtypes.bool.isRequired
+        images      : rtypes.immutable.Map
         redux       : rtypes.object
 
     getDefaultProps: ->
@@ -1232,6 +1233,7 @@ ProjectList = rclass
                 break
             listing.push <ProjectRow
                              project  = {project}
+                             images   = {@props.images}
                              user_map = {@props.user_map}
                              index    = {i}
                              key      = {i}
@@ -1527,6 +1529,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 projects    = {visible_projects}
                                 show_all    = {@props.show_all}
                                 user_map    = {@props.user_map}
+                                images      = {@props.images}
                                 redux       = {redux} />
                         </Col>
                     </Row>

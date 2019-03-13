@@ -47,6 +47,9 @@ underscore            = require('underscore')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
 
+# treat this as const/readonly
+ALL_FILE_BUTTON_TYPES = ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+
 feature = require('./feature')
 
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
@@ -2123,11 +2126,18 @@ ProjectFilesNew = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
+        configuration : rtypes.immutable
 
     getDefaultProps: ->
         file_search : ''
 
-    new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+    new_file_button_types : ->
+        if @props.configuration?
+            hide_ext = @props.configuration.get('hide_ext')
+            if hide_ext?
+                return ALL_FILE_BUTTON_TYPES.filter (ext) ->
+                    not hide_ext.includes(ext)
+        return ALL_FILE_BUTTON_TYPES
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
@@ -2161,12 +2171,13 @@ ProjectFilesNew = rclass
             analytics_event('project_file_listing', 'search_create_button', 'file')
 
     render: ->
+        # console.log("ProjectFilesNew configuration", @props.configuration?.toJS())
         <SplitButton
             id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
             onClick={@on_create_button_clicked}
         >
-                {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
+                {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types())}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
                     <Icon name='folder' /> Folder
@@ -2220,6 +2231,7 @@ exports.ProjectFiles = rclass ({name}) ->
             show_library          : rtypes.bool
             show_new              : rtypes.bool
             public_paths          : rtypes.immutable  # used only to trigger table init
+            configuration         : rtypes.immutable
 
     propTypes :
         project_id             : rtypes.string
@@ -2371,6 +2383,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions       = {@props.actions}
             create_file   = {@create_file}
             create_folder = {@create_folder}
+            configuration = {@props.configuration}
         />
 
     render_activity: ->
