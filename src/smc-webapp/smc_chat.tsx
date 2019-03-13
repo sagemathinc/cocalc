@@ -1263,7 +1263,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       maxWidth: "1200px",
       display: "flex",
       flexDirection: "column",
-      width: IS_MOBILE ? "100%" : undefined
+      width: "100%"
     };
 
     const chat_log_style: React.CSSProperties = {
