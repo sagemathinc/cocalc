@@ -52,6 +52,8 @@ feature = require('./feature')
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 TERM_MODE_CHAR = '/'
 
+{defer_render} = require('./defer-render')
+
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
 
@@ -2183,7 +2185,7 @@ error_style =
 
 # TODO: change/rewrite ProjectFiles to not have any rtypes.objects and
 # add a shouldComponentUpdate!!
-exports.ProjectFiles = rclass ({name}) ->
+exports.ProjectFiles = defer_render rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
