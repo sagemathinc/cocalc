@@ -642,7 +642,7 @@ pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
 
-FileListing = rclass
+FileListing = defer_render rclass
     displayName: 'ProjectFiles-FileListing'
 
     propTypes:  # TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -2185,7 +2185,7 @@ error_style =
 
 # TODO: change/rewrite ProjectFiles to not have any rtypes.objects and
 # add a shouldComponentUpdate!!
-exports.ProjectFiles = defer_render rclass ({name}) ->
+exports.ProjectFiles = rclass ({name}) ->
     displayName : 'ProjectFiles'
 
     reduxProps :
