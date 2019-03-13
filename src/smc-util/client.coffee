@@ -1810,9 +1810,9 @@ class exports.Connection extends EventEmitter
             cb          : cb
 
     # Remove all upgrades from all projects that this user collaborates on.
-    remove_all_upgrades: (cb) =>
+    remove_all_upgrades: (projects, cb) =>
         @call
-            message     : message.remove_all_upgrades()
+            message     : message.remove_all_upgrades(projects:projects)
             error_event : true
             cb          : cb
 

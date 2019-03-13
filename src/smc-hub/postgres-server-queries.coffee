@@ -2249,17 +2249,31 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     remove_all_user_project_upgrades: (opts) =>
         opts = defaults opts,
             account_id : required
+            projects   : undefined  # if given, only remove from projects with id in this array.
             cb         : required
         if not misc.is_valid_uuid_string(opts.account_id)
             opts.cb("invalid account_id")
             return
         query =  "UPDATE projects SET users=jsonb_set(users, '{#{opts.account_id}}', jsonb(users#>'{#{opts.account_id}}') - 'upgrades')"
-        @_query
-            query : query
-            where : [
+        where = [
                 'users ? $::TEXT' : opts.account_id,                     # this is a user of the project
                 "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
             ]
+        if opts.projects
+            if not misc.is_array(opts.projects)
+                opts.cb("projects must be an array")
+                return
+            w = []
+            for project_id in opts.projects
+                if not misc.is_valid_uuid_string(project_id)
+                    opts.cb('each entry in projects must be a valid uuid')
+                    return
+                w.push("'#{project_id}'")
+            where.push("project_id in (#{w.join(',')})")
+
+        @_query
+            query : query
+            where : where
             cb: opts.cb
         # TODO: any impacted project that is currently running should also (optionally?) get restarted.
         # I'm not going to bother for now, but this DOES need to get implemented, since otherwise users

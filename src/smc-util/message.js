@@ -2907,10 +2907,12 @@ message({
   available: required
 }); // how much of each purchased upgrade is available
 
-// Remove *all* upgrades applied by the signed in user to any projects.
+// Remove *all* upgrades applied by the signed in user to any projects,
+// or just from a specific list.
 // client --> hub
 message({
   event: "remove_all_upgrades",
+  projects: undefined, // optional array of project_id's.
   id: undefined
 });
 

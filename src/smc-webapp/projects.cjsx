@@ -42,12 +42,13 @@ markdown = require('./markdown')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
-{ reuseInFlight } = require("async-await-utils/hof");
+{ reuseInFlight } = require("async-await-utils/hof")
 
 {UpgradeStatus} = require('./upgrades/status')
 
-
 COMPUPTE_IMAGES = require("./compute-images/init").NAME
+
+{ResetProjectsConfirmation} = require('./r_upgrades')
 
 ###
 TODO:  This entire file should be broken into many small files/components,
@@ -990,11 +991,14 @@ ProjectsListingDescription = rclass
         </Button></span>
 
     render_projects_actions_toolbar: ->
-        <ButtonGroup  className = 'pull-right'>
-            {@render_remove_from_all_button() if @props.visible_projects.length > 0}
-            {@render_delete_all_button()      if @props.visible_projects.length > 0 and not @props.deleted}
-            {@render_hide_all_button()        if @props.visible_projects.length > 0 and not @props.hidden}
-        </ButtonGroup>
+        <div>
+            <ButtonGroup>
+                {@render_remove_from_all_button() if @props.visible_projects.length > 0}
+                {@render_delete_all_button()      if @props.visible_projects.length > 0 and not @props.deleted}
+                {@render_hide_all_button()        if @props.visible_projects.length > 0 and not @props.hidden}
+                {@render_remove_upgrades_from_all_button() if @props.visible_projects.length > 0}
+            </ButtonGroup>
+        </div>
 
     render_projects_actions_alert: ->
         switch @state.show_alert
@@ -1002,6 +1006,8 @@ ProjectsListingDescription = rclass
                 return @render_hide_all()
             when 'remove'
                 return @render_remove_from_all()
+            when 'remove-upgrades'
+                return @render_remove_upgrades_from_all()
             when 'delete'
                 return @render_delete_all()
 
@@ -1045,6 +1051,14 @@ ProjectsListingDescription = rclass
             <Icon name='user-times'/>  Remove Myself...
         </Button>
 
+    render_remove_upgrades_from_all_button: ->
+        <Button
+            disabled  = {@state.show_alert == 'remove-upgrades'}
+            onClick   = {=>@setState(show_alert: 'remove-upgrades')}
+            >
+            <Icon name='arrow-circle-down'/>  Remove Upgrades...
+        </Button>
+
     render_hide_all: ->
         if @props.visible_projects.length == 0
             return
@@ -1073,6 +1087,21 @@ ProjectsListingDescription = rclass
     collab_projects: ->
         # Determine visible projects this user does NOT own.
         return (project for project in @props.visible_projects when project.users?[webapp_client.account_id]?.group != 'owner')
+
+    render_remove_upgrades_from_all: ->
+        if @props.visible_projects.length == 0
+            return
+        <ResetProjectsConfirmation
+            on_confirm={=>@setState(show_alert: 'none'); @do_remove_upgrades_from_all()}
+            on_cancel={=>@setState(show_alert: 'none')}
+        />
+
+    do_remove_upgrades_from_all: ->
+        v = (x.project_id for x in @props.visible_projects)
+        webapp_client.remove_all_upgrades v, (err) =>
+            if err
+                err = "Error removing upgrades -- #{err}"
+                alert_message(type:'error', message:err)
 
     render_remove_from_all: ->
         if @props.visible_projects.length == 0
