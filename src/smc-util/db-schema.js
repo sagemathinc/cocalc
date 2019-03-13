@@ -1849,7 +1849,8 @@ schema.compute_images = {
   user_query: {
     get: {
       throttle_changes: 30000,
-      pg_where: ["disabled IS NOT TRUE"],
+      /* pg_where: ["disabled IS NOT TRUE"], */
+      pg_where: [],
       fields: {
         id: null,
         src: null,

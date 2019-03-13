@@ -6,7 +6,7 @@ import { callback } from "awaiting";
 
 import { Channel } from "./types";
 
-import { ConfigurationAspect } from "../../../smc-project/configuration";
+export type ConfigurationAspect = "main" | "x11";
 
 export class API {
   private conn: any;
