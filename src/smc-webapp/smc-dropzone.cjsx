@@ -100,6 +100,7 @@ exports.SMC_Dropwrapper = rclass
         show_upload      : rtypes.bool                 # Whether or not to show upload area
         on_close         : rtypes.func
         disabled         : rtypes.bool
+        style            : rtypes.object               # css styles to apply to the containing div
 
     getDefaultProps: ->
         config         : {}
@@ -215,7 +216,7 @@ exports.SMC_Dropwrapper = rclass
         </div>
 
     render: ->
-        <div>
+        <div style={@props.style}>
             {@render_preview() if not @props.disabled}
             {@props.children}
         </div>
