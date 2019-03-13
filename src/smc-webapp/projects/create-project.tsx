@@ -7,7 +7,7 @@ import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
 
 import { ComputeImages, ComputeImage } from "../compute-images/init";
 
-const { SiteName } = require("../customize");
+const { SiteName, CompanyName } = require("../customize");
 
 const { Markdown } = require("../r_misc");
 
@@ -182,6 +182,7 @@ export class NewProjectCreator extends Component<Props, State> {
     if (this.props.images == null) return;
 
     const entries: Rendered[] = this.props.images
+      .sortBy((img, key) => img.get("display", key).toLowerCase())
       .entrySeq()
       .map(e => {
         const id = e[0];
@@ -239,12 +240,14 @@ export class NewProjectCreator extends Component<Props, State> {
       return;
     }
     const img: ComputeImage = data;
+    const disp = img.get("display", id);
     const desc: string = img.get("desc", "*No description available.*");
     const url = img.get("url");
     const src = img.get("src");
 
     return (
       <>
+        <h3 style={{ marginTop: 0 }}>{disp}</h3>
         <div>
           <code>ID: {id}</code>
         </div>
@@ -318,8 +321,8 @@ export class NewProjectCreator extends Component<Props, State> {
 
           <Col sm={6}>
             <div style={{ color: "#666" }}>
-              A <b>project</b> is your own computational workspace that you can
-              share with others.
+              A <b>project</b> is your own, private computational workspace that
+              you can share with others.
               <br />
               You can easily change the project title in project settings.
             </div>
@@ -335,8 +338,11 @@ export class NewProjectCreator extends Component<Props, State> {
                 id={"default-compute-image"}
                 onChange={() => this.setState({ image: "default" })}
               >
-                Default: large repository of software, maintained by{" "}
-                <SiteName />.
+                Default:{" "}
+                <a href={`${window.app_base_url}/doc/software.html`}>
+                  large repository of software
+                </a>
+                , maintained by <CompanyName />, running <SiteName />.
               </Radio>
 
               <Radio

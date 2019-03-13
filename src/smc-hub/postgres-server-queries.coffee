@@ -2619,13 +2619,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             id   = rnd[...2].join('-')
             disp = rnd[0][0].toUpperCase() + rnd[0][1..] + ' ' + \
                    rnd[1][0].toUpperCase() + rnd[1][1..]
-            desc = """
-                   # #{disp} by #{rnd[2]}
-
-                   This is some text describing what `#{id}` is.
-                   Here could also be an [external link](https://doc.cocalc.com).
-                   """
             src = "https://github.com/#{rnd[2]}/#{id}.git"
+            url = "https://www.google.com/search?q=#{rnd.join('%20')}"
+            desc = """
+                   This is some text describing what **#{disp}** is.
+                   Here could also be an [external link](https://doc.cocalc.com).
+                   It might also mention `#{id}`, or point to
+                   [yet another page](#{url}).
+                   """
 
             @_query
                 query  : "INSERT INTO compute_images"
