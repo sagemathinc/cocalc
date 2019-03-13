@@ -1321,8 +1321,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             </Well>
           </Col>
         </Row>
-        <Row style={{ display: "flex" }}>
-          <Col style={{ flex: "1", padding: "0px 2px 0px 2px" }}>
+        <Row style={{ display: "flex", maxWidth: "100vw"}}>
+          <Col style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}>
             <SMC_Dropwrapper
               ref={node => (this.dropzoneWrapperRef = node)}
               project_id={this.props.project_id}
