@@ -98,7 +98,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   private project_conn: any;
   private cursor_manager?: CursorManager;
-  private last_cursor_move_time : Date = new Date(0);
+  private last_cursor_move_time: Date = new Date(0);
 
   protected _client: any;
   protected _file_watcher: any;
@@ -2371,14 +2371,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // TODO: set_more_output on project-actions is different
+  // NOTE: set_more_output on project-actions is different
   set_more_output = (id: any, more_output: any, _?: any): void => {
-    let left: any;
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    const x =
-      (left = this.store.get("more_output")) != null ? left : immutable.Map();
+    const x = this.store.get("more_output", immutable.Map());
     this.setState({
       more_output: x.set(id, immutable.fromJS(more_output))
     });
@@ -2746,8 +2744,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._jupyter_kernel != null
           ? this._jupyter_kernel.process_attachment
           : undefined,
-      output_handler: this._output_handler
-    }); // undefined in client; defined in project
+      output_handler: this._output_handler // undefined in client; defined in project
+    });
 
     if (data_only) {
       importer.close();
