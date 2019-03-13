@@ -1205,6 +1205,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             memory      : undefined    # see message.coffee for the units, etc., for all these settings
+            memory_request : undefined
             cpu_shares  : undefined
             cores       : undefined
             disk_quota  : undefined
@@ -1809,9 +1810,9 @@ class exports.Connection extends EventEmitter
             cb          : cb
 
     # Remove all upgrades from all projects that this user collaborates on.
-    remove_all_upgrades: (cb) =>
+    remove_all_upgrades: (projects, cb) =>
         @call
-            message     : message.remove_all_upgrades()
+            message     : message.remove_all_upgrades(projects:projects)
             error_event : true
             cb          : cb
 
@@ -2097,6 +2098,11 @@ class exports.Connection extends EventEmitter
                 mentions : misc.copy_without(opts, 'cb')
             cb : opts.cb
 
+    # This is async, so do "await smc_webapp.capabilities(...project_id...)".
+    capabilities: (project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.capabilities()
 
 #################################################
 # Other account Management functionality shared between client and server

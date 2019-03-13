@@ -21,7 +21,7 @@ import { split } from "smc-util/misc2";
 
 import { Engine, build_command } from "./latexmk";
 
-const ENGINES: Engine[] = ["PDFLaTeX", "XeLaTeX", "LuaTex"];
+const ENGINES: Engine[] = ["PDFLaTeX", "PDFLaTeX (shell-escape)", "XeLaTeX", "LuaTex"];
 
 interface Props {
   actions: any;

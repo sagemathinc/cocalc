@@ -2576,6 +2576,7 @@ class exports.Client extends EventEmitter
             return
         @database.remove_all_user_project_upgrades
             account_id : @account_id
+            projects   : mesg.projects
             cb         : (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
