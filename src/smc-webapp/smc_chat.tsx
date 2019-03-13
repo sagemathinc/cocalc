@@ -21,7 +21,7 @@
 
 // standard non-CoCalc libraries
 import * as immutable from "immutable";
-const { IS_MOBILE, IS_TOUCH, isMobile } = require("./feature");
+const { IS_MOBILE, IS_TOUCH } = require("./feature");
 import { debounce } from "underscore";
 
 // CoCalc libraries
@@ -31,11 +31,11 @@ const misc_page = require("./misc_page");
 
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
-import { MentionsInput, Mention } from "react-mentions";
+import { ChatInput } from "./chat/input";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
-const { Icon, Loading, SearchInput, Space, TimeAgo, Tip } = require("./r_misc");
+const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
 import {
   Alert,
   Button,
@@ -60,7 +60,6 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  send_chat,
   is_at_bottom,
   scroll_to_bottom,
   scroll_to_position
@@ -68,8 +67,6 @@ const {
 
 const { VideoChatButton } = require("./video-chat");
 const { SMC_Dropwrapper } = require("./smc-dropzone");
-
-const { webapp_client } = require("./webapp_client");
 
 interface MessageProps {
   actions?: any;
@@ -776,7 +773,7 @@ interface ChatRoomState {
 class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   public static defaultProps = {
     font_size: 14
-  }
+  };
 
   public static reduxProps({ name }) {
     return {
@@ -822,9 +819,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     path: rtypes.string
   };
 
+  private input_ref: any;
+
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
     this.state = { preview: "" };
+    this.input_ref = React.createRef<HTMLTextAreaElement>();
   }
 
   private static preview_style: React.CSSProperties = {
@@ -915,25 +915,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   }, 300);
 
-  keydown = (e: any) => {
-    // TODO: Add timeout component to is_typing
-    if (e.keyCode === 13 && e.shiftKey) {
-      // 13: enter key
-      return send_chat(
-        e,
-        this.refs.log_container,
-        this.props.input,
-        this.props.actions
-      );
-    } else if (
-      e.keyCode === 38 &&
-      ReactDOM.findDOMNode(this.refs.input).value === ""
-    ) {
-      // Up arrow on an empty input
-      this.props.actions.set_to_last_input();
-    }
-  };
-
   componentWillUnmount() {
     this._is_mounted = false;
     this.save_scroll_position();
@@ -951,9 +932,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  button_send_chat = e => {
-    send_chat(e, this.refs.log_container, this.props.input, this.props.actions);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+  on_send_button_click = e => {
+    e.preventDefault();
+    this.on_send(this.props.input);
   };
 
   button_scroll_to_bottom = () => {
@@ -962,12 +943,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   button_off_click = () => {
     this.props.actions.set_is_preview(false);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
   };
 
-  button_on_click = () => {
+  on_preview_button_click = () => {
     this.props.actions.set_is_preview(true);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
     if (
       is_at_bottom(
         this.props.saved_position,
@@ -1195,29 +1176,18 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     );
   }
 
-  render_user_suggestion = (entry: { id: string; display: string }) => {
-    return (
-      <span>
-        <Avatar size={this.props.font_size + 12} account_id={entry.id} />
-        <Space />
-        <Space />
-        {entry.display}
-      </span>
-    );
-  };
-
   generate_temp_upload_text = file => {
     return `[Uploading...]\(${file.name}\)`;
   };
 
   start_upload = file => {
-    const text_area = ReactDOM.findDOMNode(this.refs.input);
+    const text_area = this.input_ref.current;
     const temporary_insertion_text = this.generate_temp_upload_text(file);
     const temp_new_text =
       this.props.input.slice(0, text_area.selectionStart) +
       temporary_insertion_text +
       this.props.input.slice(text_area.selectionEnd);
-    return this.props.actions.set_input(temp_new_text);
+    this.props.actions.set_input(temp_new_text);
   };
 
   append_file = file => {
@@ -1242,12 +1212,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.input.slice(0, start_index) +
       final_insertion_text +
       this.props.input.slice(end_index);
-    return this.props.actions.set_input(new_text);
+    this.props.actions.set_input(new_text);
   };
 
   private dropzoneWrapperRef: any;
 
-  handle_paste_event = (e: React.ClipboardEvent<FormControl>) => {
+  handle_paste_event = (e: React.ClipboardEvent<any>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -1268,13 +1238,24 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  on_mention = id => {
-    webapp_client.mention({
-      project_id: this.props.project_id,
-      path: this.props.path,
-      target: id,
-      priority: 2
-    });
+  on_input_change = (value, mentions) => {
+    this.props.actions.set_unsent_user_mentions(mentions);
+    this.props.actions.set_input(value);
+    this.mark_as_read();
+  };
+
+  on_send = input => {
+    scroll_to_bottom(this.refs.log_container, this.props.actions);
+    this.props.actions.submit_user_mentions(
+      this.props.project_id,
+      this.props.path
+    );
+    this.props.actions.send_chat(input);
+    this.input_ref.current.focus();
+  };
+
+  on_clear = () => {
+    this.props.actions.set_input("");
   };
 
   render_body() {
@@ -1295,70 +1276,13 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       flex: 1
     };
 
-    const chat_input_style: {
-      [key: string]:
-        | string
-        | React.CSSProperties
-        | { [key: string]: React.CSSProperties };
-    } = {
-      "&multiLine": {
-        highlighter: {
-          padding: 5
-        },
-
-        input: {
-          height: "90px",
-          fontSize: this.props.font_size,
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-          overflow: "auto",
-          padding: "5px 10px"
-        }
-      },
-
-      suggestions: {
-        list: {
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          fontSize: this.props.font_size,
-          position: "absolute",
-          bottom: "10px",
-          overflow: "auto",
-          maxHeight: "145px",
-          width: "max-content",
-          display: "flex",
-          flexDirection: "column"
-        },
-
-        item: {
-          padding: "5px 15px 5px 10px",
-          borderBottom: "1px solid rgba(0,0,0,0.15)",
-
-          "&focused": {
-            backgroundColor: "rgb(66, 139, 202, 0.4)"
-          }
-        }
-      }
-    };
-
-    let has_collaborators = false;
-
-    const user_array = this.props.project_map
-      .getIn([this.props.project_id, "users"])
-      .keySeq()
-      .filter(account_id => {
-        return account_id !== this.props.account_id;
-      })
-      .map(account_id => {
-        has_collaborators = true;
-        return {
-          id: account_id,
-          display: this.props.redux.getStore("users").get_name(account_id)
-        };
-      })
-      .toJS();
+    // the immutable.Map() default is because of admins:
+    // https://github.com/sagemathinc/cocalc/issues/3669
+    const project_users = this.props.project_map.getIn(
+      [this.props.project_id, "users"],
+      immutable.Map()
+    );
+    const has_collaborators = project_users.size > 1;
 
     return (
       <Grid fluid={true} className="smc-vfill" style={grid_style}>
@@ -1412,34 +1336,22 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 complete: this.append_file,
                 sending: this.start_upload
               }}
+              style={{ height: "100%" }}
             >
-              <MentionsInput
-                autoFocus={!IS_MOBILE || isMobile.Android()}
-                displayTransform={(_, display) => "@" + display}
-                style={chat_input_style}
-                markup='<span class="user-mention">@__display__</span>'
-                ref="input"
-                onKeyDown={this.keydown}
-                value={this.props.input}
-                placeholder={
-                  has_collaborators
-                    ? "Type a message, @name..."
-                    : "Type a message..."
-                }
-                onPaste={this.handle_paste_event}
-                onChange={(e: any) => {
-                  this.props.actions.set_input(e.target.value);
-                  this.mark_as_read();
-                }}
-              >
-                <Mention
-                  trigger="@"
-                  data={user_array}
-                  onAdd={this.on_mention}
-                  appendSpaceOnAdd={true}
-                  renderSuggestion={this.render_user_suggestion}
-                />
-              </MentionsInput>
+              <ChatInput
+                input={this.props.input}
+                input_ref={this.input_ref}
+                enable_mentions={has_collaborators}
+                project_users={project_users}
+                user_store={this.props.redux.getStore("users")}
+                font_size={this.props.font_size}
+                on_paste={this.handle_paste_event}
+                on_change={this.on_input_change}
+                on_clear={this.on_clear}
+                on_send={this.on_send}
+                on_set_to_last_input={this.props.actions.set_to_last_input}
+                account_id={this.props.account_id}
+              />
             </SMC_Dropwrapper>
           </Col>
           <Col
@@ -1453,7 +1365,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           >
             {!IS_MOBILE ? (
               <Button
-                onClick={this.button_on_click}
+                onClick={this.on_preview_button_click}
                 disabled={this.props.input === ""}
                 bsStyle="info"
                 style={{ height: "50%", width: "100%" }}
@@ -1464,7 +1376,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               undefined
             )}
             <Button
-              onClick={this.button_send_chat}
+              onClick={this.on_send_button_click}
               disabled={this.props.input === ""}
               bsStyle="success"
               style={{ flex: 1, width: "100%" }}
