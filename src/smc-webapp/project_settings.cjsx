@@ -181,6 +181,7 @@ QuotaConsole = rclass
             cpu_shares  : Math.round(@state.cpu_shares * 256)
             disk_quota  : @state.disk_quota
             memory      : @state.memory
+            memory_request : @state.memory_request
             mintime     : Math.floor(@state.mintime * 3600)
             network     : @state.network
             member_host : @state.member_host

@@ -39,10 +39,9 @@ exports.stripe_sync = (opts) ->
                 logger   : opts.logger
                 cb       : cb
         (cb) ->
-            dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
-            # TODO: we could make this faster by putting an index on the stripe_customer_id field.
+            dbg("get all customers from the database with stripe that have been active in the last month")
             opts.database._query
-                query : 'SELECT account_id, stripe_customer_id, stripe_customer FROM accounts WHERE stripe_customer_id IS NOT NULL'
+                query : "SELECT account_id, stripe_customer_id, stripe_customer FROM accounts WHERE stripe_customer_id IS NOT NULL AND last_active >= NOW() - INTERVAL '1 MONTH'"
                 cb    : (err, x) ->
                     users = x?.rows
                     cb(err)
@@ -67,3 +66,4 @@ exports.stripe_sync = (opts) ->
             dbg("updated all customer info successfully")
         opts.cb?(err)
     )
+

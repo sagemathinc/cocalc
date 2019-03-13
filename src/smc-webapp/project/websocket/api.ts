@@ -28,6 +28,10 @@ export class API {
     );
   }
 
+  async capabilities(): Promise<object[]> {
+    return await this.call({ cmd: "capabilities" }, 15000);
+  }
+
   async prettier(path: string, options: any): Promise<any> {
     return await this.call(
       { cmd: "prettier", path: path, options: options },
