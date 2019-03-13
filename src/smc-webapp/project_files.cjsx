@@ -21,7 +21,7 @@
 
 
 # Todo move out with FileListing
-{TerminalModeDisplay} = require("./file-listing/terminal-mode-display")
+{TerminalModeDisplay, NoFiles} = require("./file-listing")
 
 #
 {React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
@@ -510,124 +510,6 @@ FirstSteps = rclass
                 </span>
             </Row>
         </Col>
-
-NoFiles = rclass
-    propTypes :
-        actions       : rtypes.object.isRequired
-        create_folder : rtypes.func.isRequired
-        create_file   : rtypes.func.isRequired
-        public_view   : rtypes.bool
-        file_search   : rtypes.string
-        current_path  : rtypes.string
-
-    displayName : 'ProjectFiles-NoFiles'
-
-    getDefaultProps: ->
-        file_search : ''
-
-    # Go to the new file tab if there is no file search
-    handle_click: ->
-        if @props.file_search.length == 0
-            #@props.actions.set_active_tab('new')
-            @props.actions.toggle_new(true)
-            analytics_event('project_file_listing', 'listing_create_button', 'empty')
-        else if @props.file_search[@props.file_search.length - 1] == '/'
-            @props.create_folder()
-            analytics_event('project_file_listing', 'listing_create_button', 'folder')
-        else
-            @props.create_file()
-            analytics_event('project_file_listing', 'listing_create_button', 'file')
-
-    # Returns the full file_search text in addition to the default extension if applicable
-    full_path_text: ->
-        if @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
-            ext = "sagews"
-        if ext and @props.file_search.slice(-1) isnt '/'
-            "#{@props.file_search}.#{ext}"
-        else
-            "#{@props.file_search}"
-
-    # Text for the large create button
-    button_text: ->
-        if @props.file_search.length == 0
-            "Create or Upload Files..."
-        else
-            "Create #{@full_path_text()}"
-
-    render_create_button: ->
-        <Button
-            style   = {fontSize:'40px', color:'#888', maxWidth:'100%'}
-            onClick = {=>@handle_click()} >
-            <Icon name='plus-circle' /> {@button_text()}
-        </Button>
-
-    render_help_alert: ->
-        last_folder_index = @props.file_search.lastIndexOf('/')
-        if @props.file_search.indexOf('\\') != -1
-            <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
-                Warning: \ is an illegal character
-            </Alert>
-        else if @props.file_search.indexOf('/') == 0
-            <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
-                Warning: Names cannot begin with /
-            </Alert>
-        else if ['.', '..'].indexOf(@props.file_search) > -1
-            <Alert style={marginTop: '10px', fontWeight : 'bold'} bsStyle='danger'>
-                Warning: Cannot create a file named . or ..
-            </Alert>
-        # Non-empty search and there is a file divisor ('/')
-        else if @props.file_search.length > 0 and last_folder_index > 0
-            <Alert style={marginTop: '10px'} bsStyle='info'>
-                {@render_help_text(last_folder_index)}
-            </Alert>
-
-    render_help_text: (last_folder_index) ->
-        # Ends with a '/' ie. only folders
-        if last_folder_index == @props.file_search.length - 1
-            if last_folder_index isnt @props.file_search.indexOf('/')
-                # More than one sub folder
-                <div>
-                    <span style={fontWeight:'bold'}>
-                            {@props.file_search}
-                        </span> will be created as a <span style={fontWeight:'bold'}>folder path</span> if non-existant
-                </div>
-            else
-                # Only one folder
-                <div>
-                    Creates a <span style={fontWeight:'bold'}>folder</span> named <span style={fontWeight:'bold'}>
-                        {@props.file_search}
-                    </span>
-                </div>
-        else
-            <div>
-                <span style={fontWeight:'bold'}>
-                    {@full_path_text().slice(last_folder_index + 1)}
-                </span> will be created under the folder path <span style={fontWeight:'bold'}>
-                    {@props.file_search.slice(0, last_folder_index + 1)}
-                </span>
-            </div>
-
-    render_file_type_selection: ->
-        <div>
-            <h4 style={color:"#666"}>Or select a file type</h4>
-            <FileTypeSelector
-                create_file = {@props.create_file}
-                create_folder = {@props.create_folder}
-            />
-        </div>
-
-    render: ->
-        <Row style={textAlign:'left', color:'#888', marginTop:'20px', wordWrap:'break-word'} >
-            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-                <span style={fontSize:'20px'}>
-                    No files found
-                </span>
-                <hr/>
-                {@render_create_button() if not @props.public_view}
-                {@render_help_alert()}
-                {@render_file_type_selection() if @props.file_search.length > 0}
-            </Col>
-        </Row>
 
 pager_range = (page_size, page_number) ->
     start_index = page_size*page_number

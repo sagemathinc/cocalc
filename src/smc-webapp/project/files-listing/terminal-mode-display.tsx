@@ -1,5 +1,5 @@
 import * as React from "react";
-{Alert, Row, Col} = require("react-bootstrap")
+const { Alert, Row, Col } = require("react-bootstrap");
 
 const row_style: React.CSSProperties = {
   textAlign: "left",
