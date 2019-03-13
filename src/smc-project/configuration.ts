@@ -8,6 +8,7 @@ import { callback } from "awaiting";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
 export type ConfigurationAspect = "main" | "x11";
+type Configuration = { [key: string]: object };
 
 async function have(name: string): Promise<boolean> {
   const path = await callback(which, name, { nothrow: true });
@@ -15,7 +16,7 @@ async function have(name: string): Promise<boolean> {
 }
 
 // we cache this as long as the project runs
-const conf: { [key in ConfigurationAspect]?: { [key: string]: object } } = {};
+const conf: { [key in ConfigurationAspect]?: Configuration } = {};
 
 async function x11_apps(): Promise<object> {
   const status: Promise<boolean>[] = [];

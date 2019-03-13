@@ -366,14 +366,18 @@ export class NewProjectCreator extends Component<Props, State> {
                 , maintained by <CompanyName />, running <SiteName />.
               </Radio>
 
-              <Radio
-                checked={this.state.image_type === custom}
-                label={"Custom software environment"}
-                id={"custom-compute-image"}
-                onChange={() => this.setState({ image_type: custom })}
-              >
-                Custom: 3rd party software environments
-              </Radio>
+              {this.props.images != null && this.props.images.size > 0 ? (
+                <Radio
+                  checked={this.state.image_type === custom}
+                  label={"Custom software environment"}
+                  id={"custom-compute-image"}
+                  onChange={() => this.setState({ image_type: custom })}
+                >
+                  Custom: 3rd party software environments
+                </Radio>
+              ) : (
+                undefined
+              )}
             </FormGroup>
           </Col>
 

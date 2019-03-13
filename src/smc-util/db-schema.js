@@ -1840,12 +1840,16 @@ schema.compute_images = {
     desc: {
       type: "string",
       desc: "(optional) markdown text to talk more about this"
+    },
+    disabled: {
+      type: "boolean",
+      desc: "(optional) if set and true, do not offer as a selection"
     }
   },
   user_query: {
     get: {
       throttle_changes: 30000,
-      pg_where: [],
+      pg_where: ["disabled IS NOT TRUE"],
       fields: {
         id: null,
         src: null,
@@ -1934,4 +1938,3 @@ class ClientDB {
 }
 
 exports.client_db = new ClientDB();
-
