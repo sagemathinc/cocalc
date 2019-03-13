@@ -84,7 +84,7 @@ import { SortedPatchList } from "./sorted-patch-list";
 
 import { patch_cmp } from "./util";
 
-import { export_history, HistoryEntry } from "./export";
+import { export_history, HistoryEntry, HistoryExportOptions } from "./export";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -2354,10 +2354,15 @@ export class SyncDoc extends EventEmitter {
   }
 
   /* Export the (currently loaded) history of editing of this
-     document to a JSON string that can be parsed.*/
-  public export_history(): HistoryEntry[] {
-    const users = ["user 0", "user 1", "user 2"]; // TODO
-    return export_history(users, this.patch_list);
+     document to a simple JSON-able object. */
+  public export_history(options: HistoryExportOptions = {}): HistoryEntry[] {
+    this.assert_is_ready("export_history");
+    const info = this.syncstring_table.get_one();
+    if (info == null || !info.has("users")) {
+      throw Error("syncstring table must be defined and users initialized");
+    }
+    const account_ids: string[] = info.get("users").toJS();
+    return export_history(account_ids, this.patch_list, options);
   }
 
   private update_has_unsaved_changes(): void {

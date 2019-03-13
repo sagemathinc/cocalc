@@ -20,6 +20,7 @@ interface ChatState {
   is_saving: boolean;
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
+  unsent_user_mentions: immutable.List<{ id: string; display: string }>;
 }
 
 export class ChatStore extends Store<ChatState> {
@@ -39,7 +40,8 @@ export class ChatStore extends Store<ChatState> {
       add_collab: true,
       is_saving: false,
       has_uncommitted_changes: false,
-      has_unsaved_changes: false
+      has_unsaved_changes: false,
+      unsent_user_mentions: immutable.List()
     };
   };
 }

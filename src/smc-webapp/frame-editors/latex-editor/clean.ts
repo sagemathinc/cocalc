@@ -18,7 +18,9 @@ const EXTENSIONS: string[] = [
   ".sagetex.sout",
   ".pdfsync",
   "-concordance.tex",
-  ".pytxcode"
+  ".pytxcode",
+  ".pgf-plot.gnuplot",
+  ".pgf-plot.table"
 ];
 
 export async function clean(

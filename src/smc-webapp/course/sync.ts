@@ -36,6 +36,7 @@ export let create_sync_db = (redux, actions, store, filename) => {
 
   const project_id = store.get("course_project_id");
   const path = store.get("course_filename");
+  actions.setState({loading:true});
 
   const syncdb = webapp_client.sync_db2({
     project_id,
@@ -64,7 +65,8 @@ export let create_sync_db = (redux, actions, store, filename) => {
       },
       assignments: {},
       students: {},
-      handouts: {}
+      handouts: {},
+      loading : false
     };
     for (let x of syncdb.get().toJS()) {
       if (x.table === "settings") {

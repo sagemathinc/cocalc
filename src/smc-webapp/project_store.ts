@@ -59,7 +59,7 @@ const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
-  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME".split(
+  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME pgf-plot.gnuplot pgf-plot.table".split(
     " "
   ),
   rnw: ["tex", "NODOT-concordance.tex"],

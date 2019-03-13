@@ -22,7 +22,14 @@ export class API {
   }
 
   async listing(path: string, hidden?: boolean): Promise<object[]> {
-    return await this.call({ cmd: "listing", path: path, hidden: hidden }, 15000);
+    return await this.call(
+      { cmd: "listing", path: path, hidden: hidden },
+      15000
+    );
+  }
+
+  async capabilities(): Promise<object[]> {
+    return await this.call({ cmd: "capabilities" }, 15000);
   }
 
   async prettier(path: string, options: any): Promise<any> {
@@ -64,31 +71,40 @@ export class API {
   }
 
   async terminal(path: string, options: object = {}): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "terminal",
-      path: path,
-      options
-    }, 60000);
+    const channel_name = await this.call(
+      {
+        cmd: "terminal",
+        path: path,
+        options
+      },
+      60000
+    );
     //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
   }
 
   // Get the lean *channel* for the given '.lean' path.
   async lean_channel(path: string): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "lean_channel",
-      path: path
-    }, 60000);
+    const channel_name = await this.call(
+      {
+        cmd: "lean_channel",
+        path: path
+      },
+      60000
+    );
     return this.conn.channel(channel_name);
   }
 
   // Get the x11 *channel* for the given '.x11' path.
   async x11_channel(path: string, display: number): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "x11_channel",
-      path,
-      display
-    }, 60000);
+    const channel_name = await this.call(
+      {
+        cmd: "x11_channel",
+        path,
+        display
+      },
+      60000
+    );
     return this.conn.channel(channel_name);
   }
 
@@ -97,11 +113,14 @@ export class API {
     query: { [field: string]: any },
     options: { [field: string]: any }[]
   ): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "synctable_channel",
-      query,
-      options
-    }, 10000);
+    const channel_name = await this.call(
+      {
+        cmd: "synctable_channel",
+        query,
+        options
+      },
+      10000
+    );
     // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
   }
@@ -129,10 +148,13 @@ export class API {
   // sync_channel, but obviously a more nuanced protocol
   // was required.
   async symmetric_channel(name: string): Promise<Channel> {
-    const channel_name = await this.call({
-      cmd: "symmetric_channel",
-      name
-    }, 30000);
+    const channel_name = await this.call(
+      {
+        cmd: "symmetric_channel",
+        name
+      },
+      30000
+    );
     return this.conn.channel(channel_name);
   }
 }

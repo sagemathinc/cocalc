@@ -137,6 +137,7 @@ export interface CourseState {
   expanded_skip_gradings: Set<string>;
   active_feedback_edits: IsGradingMap;
   handouts: HandoutsMap;
+  loading: boolean;  // initially loading the syncdoc from disk.
   saving: boolean;
   settings: CourseSettingsRecord;
   show_save_button: boolean;

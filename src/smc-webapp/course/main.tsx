@@ -190,6 +190,7 @@ interface CourseReduxProps {
   handouts: HandoutsMap;
   settings: CourseSettingsRecord;
   unsaved: boolean;
+  loading: boolean;
 
   user_map: UserMap;
 
@@ -203,6 +204,7 @@ export const CourseEditor = rclass<CourseReactProps>(
     static reduxProps = ({ name }) => {
       return {
         [name]: {
+          loading: rtypes.bool,
           error: rtypes.string,
           tab: rtypes.string,
           activity: rtypes.immutable.Map, // status messages about current activity happening (e.g., things being assigned)
@@ -355,8 +357,20 @@ export const CourseEditor = rclass<CourseReactProps>(
       );
     }
 
+    render_loading() {
+      if (!this.props.loading) {
+        return;
+      }
+      return (
+        <div style={{ textAlign: "center" }}>
+          <Loading theme={"medium"} />
+        </div>
+      );
+    }
+
     render_students() {
       if (
+        !this.props.loading &&
         this.props.redux != null &&
         this.props.students != null &&
         this.props.user_map != null &&
@@ -380,6 +394,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 
     render_assignments() {
       if (
+        !this.props.loading &&
         this.props.redux != null &&
         this.props.assignments != null &&
         this.props.user_map != null &&
@@ -404,6 +419,7 @@ export const CourseEditor = rclass<CourseReactProps>(
 
     render_handouts() {
       if (
+        !this.props.loading &&
         this.props.redux != null &&
         this.props.assignments != null &&
         this.props.user_map != null &&
@@ -429,7 +445,11 @@ export const CourseEditor = rclass<CourseReactProps>(
     }
 
     render_configuration() {
-      if (this.props.redux != null && this.props.settings != null) {
+      if (
+        !this.props.loading &&
+        this.props.redux != null &&
+        this.props.settings != null
+      ) {
         return (
           <ConfigurationPanel
             redux={this.props.redux}
@@ -451,7 +471,11 @@ export const CourseEditor = rclass<CourseReactProps>(
     }
 
     render_shared_project() {
-      if (this.props.redux != null && this.props.settings != null) {
+      if (
+        !this.props.loading &&
+        this.props.redux != null &&
+        this.props.settings != null
+      ) {
         return (
           <SharedProjectPanel
             redux={this.props.redux}
@@ -469,6 +493,9 @@ export const CourseEditor = rclass<CourseReactProps>(
     }
 
     render_tabs() {
+      if (this.props.loading) {
+        return;
+      }
       return (
         <Tabs
           id={"course-tabs"}
@@ -527,6 +554,7 @@ export const CourseEditor = rclass<CourseReactProps>(
           {this.render_files_button()}
           {this.render_save_timetravel()}
           {this.render_tabs()}
+          {this.render_loading()}
         </div>
       );
     }
