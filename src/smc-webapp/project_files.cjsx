@@ -19,6 +19,11 @@
 #
 ###############################################################################
 
+
+# Todo move out with FileListing
+{TerminalModeDisplay} = require("./file-listing/terminal-mode-display")
+
+#
 {React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
@@ -450,20 +455,6 @@ DirectoryRow = rclass
             </Col>
             <Col sm={5} smPull={4} xs={12} style={directory_styles}>
                 {@render_name_link()}
-            </Col>
-        </Row>
-
-TerminalModeDisplay = rclass
-    render: ->
-        <Row style={textAlign:'left', color:'#888', marginTop:'5px', wordWrap:'break-word'} >
-            <Col sm={2}>
-            </Col>
-            <Col sm={8}>
-                <Alert style={marginTop: '5px', fontWeight : 'bold'} bsStyle='info'>
-                    You are in <a target="_blank" href="https://github.com/sagemathinc/cocalc/wiki/File-Listing#terminal-mode">terminal mode</a>.
-                </Alert>
-            </Col>
-            <Col sm={2}>
             </Col>
         </Row>
 
