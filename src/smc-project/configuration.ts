@@ -7,7 +7,7 @@ import * as which from "which";
 import { callback } from "awaiting";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
-import { ConfigurationAspect } from "smc-webapp/project/websocket/api";
+import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
 export type Configuration = { [key: string]: object };
 
 async function have(name: string): Promise<boolean> {
