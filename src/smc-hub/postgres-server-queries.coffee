@@ -2632,17 +2632,35 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
         create = (idx, cb) =>
             rnd  = _.sample(words, 3)
-            id   = rnd[...2].join('-')
-            disp = rnd[0][0].toUpperCase() + rnd[0][1..] + ' ' + \
-                   rnd[1][0].toUpperCase() + rnd[1][1..]
+            id   = rnd[...2].join('-') + "-#{idx}"
             src = "https://github.com/#{rnd[2]}/#{id}.git"
-            url = "https://www.google.com/search?q=#{rnd.join('%20')}"
-            desc = """
-                   This is some text describing what **#{disp}** is.
-                   Here could also be an [external link](https://doc.cocalc.com).
-                   It might also mention `#{id}`, or point to
-                   [yet another page](#{url}).
-                   """
+
+            # not all of them have a display-title, url, desc, ...
+            if Math.random() > .75
+                disp = rnd[0][0].toUpperCase() + rnd[0][1..] + ' ' + \
+                       rnd[1][0].toUpperCase() + rnd[1][1..] + ' ' + \
+                       "(#{_.sample(words)})"
+            else
+                if Math.random() > .5
+                    disp = undefined
+                else
+                    disp = ''
+
+            if Math.random() > .5
+                url = "https://www.google.com/search?q=#{rnd.join('%20')}"
+            else
+                url = undefined
+
+            if Math.random() > .5
+                desc = """
+                       This is some text describing what **#{disp}** is.
+                       Here could also be an [external link](https://doc.cocalc.com).
+                       It might also mention `#{id}`, or point to
+                       [yet another page](#{url}).
+                       """
+            else
+                desc = undefined
+
 
             @_query
                 query  : "INSERT INTO compute_images"
@@ -2663,7 +2681,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb     : cb
 
             (cb) =>
-                async.mapSeries([0..10], create, cb)
+                async.mapSeries([0..20], create, cb)
 
         ], (err) =>
             dbg("all done")

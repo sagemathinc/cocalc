@@ -5,9 +5,12 @@ import { analytics_event } from "../tracker";
 
 import { Component, React, ReactDOM, redux, Rendered } from "../app-framework";
 
+const { capitalize } = require("smc-util/misc");
+
 import {
   ComputeImages,
   ComputeImage,
+  ComputeImageKeys,
   ComputeImageTypes,
   custom_image_name
 } from "../compute-images/init";
@@ -41,6 +44,25 @@ const COLORS = require("smc-util/theme").COLORS;
 // (hsy) hits might seem excessive, but I confused myself too often. it helped.
 const legacy: ComputeImageTypes = "legacy";
 const custom: ComputeImageTypes = "custom";
+
+function id2name(id: string): string {
+  return id
+    .split("-")
+    .map(capitalize)
+    .join(" ");
+}
+
+function fallback(
+  img: ComputeImage,
+  key: ComputeImageKeys,
+  replace: (img?: ComputeImage) => string
+): string {
+  const ret = img.get(key);
+  if (ret == null || ret.length == 0) {
+    return replace(img);
+  }
+  return ret;
+}
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -201,7 +223,7 @@ export class NewProjectCreator extends Component<Props, State> {
       .entrySeq()
       .map(e => {
         const id = e[0];
-        const display = e[1].get("display", id);
+        const display = fallback(e[1], "display", _ => id2name(id));
         return (
           <ListGroupItem
             key={id}
@@ -254,9 +276,15 @@ export class NewProjectCreator extends Component<Props, State> {
       console.warn(`compute_image data missing for '${id}'`);
       return;
     }
+    // ATTN: deriving disp, desc, etc. must be robust against null and empty strings
     const img: ComputeImage = data;
-    const disp = img.get("display", id);
-    const desc: string = img.get("desc", "*No description available.*");
+    let disp = fallback(img, "display", _ => id2name(id));
+
+    const desc: string = fallback(
+      img,
+      "desc",
+      _ => "*No description available.*"
+    );
     const url = img.get("url");
     const src = img.get("src");
     // show :latest if there is no tag (must match back-end heuristic!)

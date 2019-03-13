@@ -9,6 +9,7 @@ import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
 import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
 export type Configuration = { [key: string]: object };
+export type Capabilities = { [key: string]: boolean };
 
 async function have(name: string): Promise<boolean> {
   const path = await callback(which, name, { nothrow: true });
@@ -39,18 +40,27 @@ async function sagews(): Promise<boolean> {
   return await have("sage");
 }
 
+async function jupyter(): Promise<Capabilities> {
+  return {
+    jupyter: await have("jupyter"),
+    "jupyter-lab": await have("jupyter-lab"),
+    "jupyter-notebook": await have("jupyter-notebook")
+  };
+}
+
 async function latex(): Promise<boolean> {
   const pdf = have("pdflatex");
   const latexmk = have("latexmk");
   return (await pdf) && (await latexmk);
 }
 
-async function capabilities(): Promise<object> {
-  return {
+async function capabilities(): Promise<Capabilities> {
+  const caps: Capabilities = {
     latex: await latex(),
     sagews: await sagews(),
     x11: await x11()
   };
+  return Object.assign(caps, await jupyter());
 }
 
 export async function get_configuration(
