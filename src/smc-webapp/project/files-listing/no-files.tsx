@@ -22,7 +22,7 @@ interface Props {
 export class NoFiles extends React.PureComponent<Props> {
   static defaultProps = { file_search: "" };
 
-  handle_click() {
+  handle_click = () => {
     if (this.props.file_search.length === 0) {
       this.props.actions.toggle_new(true);
       analytics_event("project_file_listing", "listing_create_button", "empty");

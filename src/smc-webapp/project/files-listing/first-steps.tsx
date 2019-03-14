@@ -31,11 +31,11 @@ const library_comment_style: React.CSSProperties = {
 };
 
 export class FirstSteps extends React.PureComponent<Props> {
-  get_first_steps() {
+  get_first_steps = () => {
     this.props.actions.copy_from_library({ entry: "first_steps" });
   }
 
-  dismiss_first_steps() {
+  dismiss_first_steps = () => {
     this.props.redux
       .getTable("account")
       .set({ other_settings: { first_steps: false } });
