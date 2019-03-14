@@ -9,10 +9,14 @@ import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
 import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
 export type Configuration = { [key: string]: object };
-export type Capabilities = { [key: string]: boolean };
+export type Capabilities = { [key: string]: boolean | Capabilities };
+
+function which_nothrow(name, cb) {
+  return which(name, { nothrow: true }, cb);
+}
 
 async function have(name: string): Promise<boolean> {
-  const path = await callback(which, name, { nothrow: true });
+  const path = await callback(which_nothrow, name);
   return !!path;
 }
 
@@ -41,11 +45,14 @@ async function sagews(): Promise<boolean> {
 }
 
 async function jupyter(): Promise<Capabilities> {
-  return {
-    jupyter: await have("jupyter"),
-    "jupyter-lab": await have("jupyter-lab"),
-    "jupyter-notebook": await have("jupyter-notebook")
-  };
+  const jupyter = (await have("jupyter"))
+    ? {
+        lab: await have("jupyter-lab"),
+        notebook: await have("jupyter-notebook"),
+        kernelspec: await have("jupyter-kernelspec")
+      }
+    : false;
+  return { jupyter };
 }
 
 async function latex(): Promise<boolean> {
@@ -55,12 +62,13 @@ async function latex(): Promise<boolean> {
 }
 
 async function capabilities(): Promise<Capabilities> {
+  const j_prom = jupyter();
   const caps: Capabilities = {
     latex: await latex(),
     sagews: await sagews(),
     x11: await x11()
   };
-  return Object.assign(caps, await jupyter());
+  return Object.assign(caps, await j_prom);
 }
 
 export async function get_configuration(

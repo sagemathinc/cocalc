@@ -2623,7 +2623,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("database::insert_random_compute_images")
         dbg()
 
-        _ = require('underscore')
+        sample = require('underscore').sample
         words = [
                     'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
                     'advanced', 'course', 'yellow', 'bioinformatics', 'R', 'electric', 'sheep',
@@ -2631,15 +2631,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 ]
 
         create = (idx, cb) =>
-            rnd  = _.sample(words, 3)
+            rnd  = sample(words, 3)
             id   = rnd[...2].join('-') + "-#{idx}"
             src = "https://github.com/#{rnd[2]}/#{id}.git"
 
             # not all of them have a display-title, url, desc, ...
-            if Math.random() > .75
+            if Math.random() > .25
                 disp = rnd[0][0].toUpperCase() + rnd[0][1..] + ' ' + \
                        rnd[1][0].toUpperCase() + rnd[1][1..] + ' ' + \
-                       "(#{_.sample(words)})"
+                       "(#{sample(words)})"
             else
                 if Math.random() > .5
                     disp = undefined
@@ -2653,7 +2653,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
             if Math.random() > .5
                 desc = """
-                       This is some text describing what **#{disp}** is.
+                       This is some text describing what **#{disp or id}** is.
                        Here could also be an [external link](https://doc.cocalc.com).
                        It might also mention `#{id}`, or point to
                        [yet another page](#{url}).

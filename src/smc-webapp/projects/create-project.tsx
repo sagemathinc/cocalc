@@ -70,23 +70,34 @@ interface Props {
   images?: ComputeImages;
 }
 
+type EditState = "edit" | "view" | "saving";
+
 interface State {
-  state: "edit" | "view" | "saving";
+  state: EditState;
   image_type: ComputeImageTypes;
   image_selected?: string;
   title_text: string;
+  // only for custom images, and troggles form true → false after first edit
+  title_prefill: boolean;
   error: string;
 }
+
+const INIT_STATE: Readonly<State> = Object.freeze({
+  title_text: "",
+  error: "",
+  title_prefill: true,
+  image_selected: undefined,
+  image_type: legacy,
+  state: "view" as EditState
+});
 
 export class NewProjectCreator extends Component<Props, State> {
   constructor(props) {
     super(props);
-    this.state = {
-      state: props.start_in_edit_mode ? "edit" : "view", // view --> edit --> saving --> view
-      title_text: "",
-      error: "",
-      image_type: legacy
-    };
+    this.state = Object.assign({}, INIT_STATE, {
+      // view --> edit --> saving --> view
+      state: props.start_in_edit_mode ? "edit" : "view"
+    });
   }
 
   start_editing() {
@@ -104,11 +115,7 @@ export class NewProjectCreator extends Component<Props, State> {
   }
 
   cancel_editing = () => {
-    this.setState({
-      state: "view",
-      title_text: "",
-      error: ""
-    });
+    this.setState(Object.assign({}, INIT_STATE, { state: "view" }));
   };
 
   toggle_editing = () => {
@@ -132,7 +139,6 @@ export class NewProjectCreator extends Component<Props, State> {
       image: compute_image,
       token
     });
-    analytics_event("create_project", "created_new_project");
     redux
       .getStore("projects")
       .wait_until_project_created(token, 30, (err, project_id) => {
@@ -148,14 +154,7 @@ export class NewProjectCreator extends Component<Props, State> {
           this.cancel_editing();
         }
       });
-  };
-
-  handle_keypress = e => {
-    if (e.keyCode === 27) {
-      this.cancel_editing();
-    } else if (e.keyCode === 13 && this.state.title_text !== "") {
-      this.create_project();
-    }
+    analytics_event("create_project", "created_new_project");
   };
 
   render_info_alert() {
@@ -203,8 +202,12 @@ export class NewProjectCreator extends Component<Props, State> {
     );
   }
 
-  select_image = (id: string) => {
+  select_image = (id: string, display: string) => {
     this.setState({ image_selected: id });
+    // always overwrite the text, until the user edits it once
+    if (this.state.title_prefill) {
+      this.setState({ title_text: display });
+    }
   };
 
   render_custom_image_entries() {
@@ -228,7 +231,7 @@ export class NewProjectCreator extends Component<Props, State> {
           <ListGroupItem
             key={id}
             active={this.state.image_selected === id}
-            onClick={() => this.select_image(id)}
+            onClick={() => this.select_image(id, display)}
             style={item_style}
             bsSize={"small"}
           >
@@ -341,6 +344,22 @@ export class NewProjectCreator extends Component<Props, State> {
       );
   }
 
+  input_on_change = (): void => {
+    const text = ReactDOM.findDOMNode(this.refs.new_project_title).value;
+    this.setState({
+      title_text: text,
+      title_prefill: false
+    });
+  };
+
+  handle_keypress = e => {
+    if (e.keyCode === 27) {
+      this.cancel_editing();
+    } else if (e.keyCode === 13 && this.state.title_text !== "") {
+      this.create_project();
+    }
+  };
+
   render_input_section() {
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
@@ -354,13 +373,7 @@ export class NewProjectCreator extends Component<Props, State> {
                 placeholder="Project title"
                 disabled={this.state.state === "saving"}
                 value={this.state.title_text}
-                onChange={() =>
-                  this.setState({
-                    title_text: ReactDOM.findDOMNode(
-                      this.refs.new_project_title
-                    ).value
-                  })
-                }
+                onChange={this.input_on_change}
                 onKeyDown={this.handle_keypress}
                 autoFocus
               />

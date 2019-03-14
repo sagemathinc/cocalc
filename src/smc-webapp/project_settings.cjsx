@@ -818,13 +818,12 @@ ProjectControlPanel = rclass
 
         <div style={color:'#666'}>
             <div style={fontSize : '12pt'}>
-                <Icon name={'hdd'} />
-                <Space/>
-                Custom image:
-                <Space/>
-                <span style={color:COLORS.GRAY, fontFamily: "monospace"}>
+                <div>
+                    <Icon name={'hdd'} /> Custom image:
+                </div>
+                <div style={color:COLORS.GRAY, fontFamily: "monospace"}>
                     {name}
-                </span>
+                </div>
             </div>
         </div>
 

@@ -1780,16 +1780,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (store.get("configuration") != null) return;
     const config = await webapp_client.configuration(this.project_id, "main");
     // console.log("project_actions::init_configuration", config);
+
     const caps = config.capabilities;
     const hide_ext = (config.hide_ext = [] as string[]);
     if (!caps.jupyter) hide_ext.push("ipynb");
+    // don't show jupyter classic buttons if there is no jupyter
     // jupyter-lab and jupyter-notebook → where their buttons are
-    if (!caps.latex) {
-      hide_ext.push(...["tex", "rnw", "rtex"]);
-    }
+    if (!caps.latex) hide_ext.push("tex", "rnw", "rtex");
     if (!caps.sagews) hide_ext.push("sagews");
     if (!caps.x11) hide_ext.push("x11");
-    this.setState({ configuration: immutable.fromJS(config) });
+
+    const configuration = immutable.fromJS(config);
+    console.log("project_actions::init_configuration", configuration);
+    this.setState({ configuration });
   }
 
   // this is called once by the project initialization
