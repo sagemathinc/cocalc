@@ -21,7 +21,7 @@
 
 
 # Todo move out with FileListing
-{TerminalModeDisplay, NoFiles} = require("./file-listing")
+{TerminalModeDisplay, NoFiles} = require("./project/files-listing")
 
 #
 {React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
