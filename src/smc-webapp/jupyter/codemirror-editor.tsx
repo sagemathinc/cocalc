@@ -207,7 +207,19 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   shift_tab_key = (): void => {
-    this.cm != null ? this.cm.unindent_selection() : undefined;
+    if (this.cm == null) return;
+    if (this.cm.somethingSelected() || this.whitespace_before_cursor()) {
+      // Something is selected or there is whitespace before
+      // the cursor: unindent.
+      this.cm.unindent_selection();
+      return;
+    }
+    // Otherwise, Shift+tab in Jupyter is introspect.
+    this.props.actions.introspect_at_pos(
+      this.cm.getValue(),
+      0,
+      this.cm.getCursor()
+    );
   };
 
   tab_key = (): void => {
@@ -294,13 +306,17 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     });
   };
 
+  whitespace_before_cursor = (): boolean => {
+    if (this.cm == null) return false;
+    const cur = this.cm.getCursor();
+    return cur.ch === 0 || /\s/.test(this.cm.getLine(cur.line)[cur.ch - 1]);
+  };
+
   tab_nothing_selected = (): void => {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    const cur = this.cm.getCursor();
-    if (cur.ch === 0 || /\s/.test(this.cm.getLine(cur.line)[cur.ch - 1])) {
-      // whitespace before cursor
+    if (this.whitespace_before_cursor()) {
       if (this.cm.options.indentWithTabs) {
         CodeMirror.commands.defaultTab(this.cm);
       } else {
@@ -308,6 +324,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       }
       return;
     }
+    const cur = this.cm.getCursor();
     const pos = this.cm.cursorCoords(cur, "local");
     const top = pos.bottom;
     const { left } = pos;
@@ -406,7 +423,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       const editor = {
         save: this._cm_save,
         set_cursor: this._cm_set_cursor,
-        tab_key: this.tab_key
+        tab_key: this.tab_key,
+        shift_tab_key : this.shift_tab_key
       };
       this.props.actions.register_input_editor(this.props.id, editor);
     }

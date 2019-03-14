@@ -264,7 +264,7 @@ class PDF extends Component<PDFProps> {
     }
     return (
       <div style={OUT_STYLE}>
-        <a href={href} target="_blank" style={{ cursor: "pointer" }}>
+        <a href={href} target="_blank" style={{ cursor: "pointer" }}  rel="noopener">
           View PDF
         </a>
       </div>
