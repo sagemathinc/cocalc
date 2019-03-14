@@ -34,8 +34,6 @@ lodash = require('lodash')
 
 {file_associations} = require('./file-associations')
 
-{defer_render} = require('./defer-render')
-
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
 
@@ -399,7 +397,7 @@ matches = (s, words) ->
             return false
     return true
 
-exports.ProjectLog = defer_render rclass ({name}) ->
+exports.ProjectLog = rclass ({name}) ->
     displayName : 'ProjectLog'
 
     reduxProps:
