@@ -3,6 +3,7 @@ import * as React from "react";
 import { ProjectActions } from "../../project_actions";
 
 const { Icon } = require("../../r_misc");
+const misc = require("smc-util/misc");
 
 interface Props {
   name?: string;

@@ -1,6 +1,8 @@
+import { ProjectActions } from "../../project_actions";
 
-export const TERM_MODE_CHAR = '/';
+const { file_actions } = require("../../project_store");
 
+export const TERM_MODE_CHAR = "/";
 
 // Returns the full file_search text in addition to the default extension if applicable
 export function full_path_text(file_search: string) {
@@ -15,16 +17,10 @@ export function full_path_text(file_search: string) {
   }
 }
 
-const { file_actions } = require("../../project_store");
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 export function generate_click_for(
-  file_action_name,
-  full_path,
-  project_actions
+  file_action_name: string,
+  full_path: string,
+  project_actions: ProjectActions
 ) {
   return e => {
     e.preventDefault();
@@ -33,6 +29,6 @@ export function generate_click_for(
       project_actions.set_all_files_unchecked();
     }
     project_actions.set_file_checked(full_path, true);
-    return project_actions.set_file_action(file_action_name);
+    project_actions.set_file_action(file_action_name);
   };
 }

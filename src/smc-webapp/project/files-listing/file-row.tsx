@@ -1,12 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 
 import { ProjectActions } from "../../project_actions";
@@ -64,12 +55,14 @@ export class FileRow extends React.Component<Props, State> {
 
   render_icon() {
     // get the file_associations[ext] just like it is defined in the editor
-    let left;
+    let name: string;
     const { file_options } = require("../../editor");
-    const name =
-      (left = __guard__(file_options(this.props.name), x => x.icon)) != null
-        ? left
-        : "file";
+    const info = file_options(this.props.name)
+    if (info != undefined) {
+      name = info.icon
+    } else {
+      name = "file"
+    }
     const style = {
       color: this.props.mask ? "#bbbbbb" : undefined,
       verticalAlign: "sub"
@@ -96,7 +89,7 @@ export class FileRow extends React.Component<Props, State> {
 
   render_name() {
     let name =
-      this.props.display_name != null
+      this.props.display_name != undefined
         ? this.props.display_name
         : this.props.name;
     const name_and_ext = misc.separate_file_extension(name);
@@ -104,7 +97,7 @@ export class FileRow extends React.Component<Props, State> {
     const { ext } = name_and_ext;
 
     const show_tip =
-      (this.props.display_name != null &&
+      (this.props.display_name != undefined &&
         this.props.name !== this.props.display_name) ||
       name.length > 50;
 
@@ -168,8 +161,8 @@ export class FileRow extends React.Component<Props, State> {
     });
   }
 
-  handle_click(e) {
-    if (this.state == null) {
+  handle_click = (e) => {
+    if (this.state == undefined) {
       // see https://github.com/sagemathinc/cocalc/issues/3442
       return;
     }
@@ -185,7 +178,7 @@ export class FileRow extends React.Component<Props, State> {
       if (foreground) {
         this.props.actions.set_file_search("");
       }
-      return analytics_event(
+      analytics_event(
         "project_file_listing",
         "clicked_file_row",
         misc.filename_extension(this.full_path())
@@ -193,10 +186,10 @@ export class FileRow extends React.Component<Props, State> {
     }
   }
 
-  handle_download_click(e) {
+  handle_download_click = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    return this.props.actions.download_file({
+    this.props.actions.download_file({
       path: this.full_path(),
       log: true
     });
@@ -285,8 +278,3 @@ export class FileRow extends React.Component<Props, State> {
   }
 }
 
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}

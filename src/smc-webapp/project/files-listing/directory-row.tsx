@@ -1,10 +1,3 @@
-/*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 
 import { ProjectActions } from "../../project_actions";
@@ -59,14 +52,14 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
     );
   }
 
-  handle_mouse_down() {
+  handle_mouse_down = () => {
     this.setState({
       selection_at_last_mouse_down: window.getSelection().toString()
     });
   }
 
-  handle_click() {
-    if (this.state == null) {
+  handle_click = () => {
+    if (this.state == undefined) {
       // see https://github.com/sagemathinc/cocalc/issues/3442
       return;
     }
@@ -108,7 +101,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
   }
 
   render_time() {
-    if (this.props.time != null) {
+    if (this.props.time != undefined) {
       try {
         return (
           <TimeAgo
@@ -143,7 +136,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
         >
           <a style={{ color: this.props.mask ? "#bbbbbb" : undefined }}>
             {misc.trunc_middle(
-              this.props.display_name != null
+              this.props.display_name != undefined
                 ? this.props.display_name
                 : this.props.name,
               50
@@ -155,7 +148,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
       return (
         <a style={{ color: this.props.mask ? "#bbbbbb" : undefined }}>
           {misc.trunc_middle(
-            this.props.display_name != null
+            this.props.display_name != undefined
               ? this.props.display_name
               : this.props.name,
             50
@@ -166,7 +159,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
   }
 
   render_size() {
-    if (this.props.size == null) {
+    if (this.props.size == undefined) {
       // need newer backend project
       return;
     }

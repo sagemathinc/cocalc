@@ -8,13 +8,13 @@
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 import * as React from "react";
-import * as immutable from "immutable"
+import * as immutable from "immutable";
 
 const misc = require("smc-util/misc");
-const { Col } = require("react-bootstrap")
+const { Col } = require("react-bootstrap");
+const { VisibleMDLG } = require("../../r_misc");
 
-import { VisibleMDLG } from "../../r_misc";
-import { ProjectActions } from "../../ProjectActions";
+import { ProjectActions } from "../../project_actions";
 import { AppRedux } from "../../app-framework";
 
 import { NoFiles } from "./no-files";
