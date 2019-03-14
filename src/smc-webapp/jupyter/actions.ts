@@ -3162,11 +3162,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             `Formatting code cells is impossible, because their language is not known.`
           );
         } else {
-          switch (language) {
+          switch (language.toLowerCase()) {
             case "python":
+            case "python3":
               options = { parser: "python" };
               break;
-            case "r":
+            case "r": // in the wild, the language is "R"
               options = { parser: "r" };
               break;
             default:
