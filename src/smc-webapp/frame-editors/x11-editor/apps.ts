@@ -8,7 +8,18 @@ interface APPS_Interface {
   };
 }
 
-export const APPS: APPS_Interface = {
+export const APPS: Readonly<APPS_Interface> = Object.freeze({
+  unknown_test: {
+    icon: "skull-crossbones",
+    desc: "I don't exist, I'm just a test",
+    label: "Unknown App"
+  },
+  drracket: {
+    icon: "laugh",
+    label: "DrRacket",
+    desc:
+      "Racket is a general-purpose programming language as well as the world’s first ecosystem for language-oriented programming."
+  },
   /* xclock: { icon: "clock", desc:"Shows UTC time" }, */
   emacs: {
     icon: "edit",
@@ -218,4 +229,4 @@ export const APPS: APPS_Interface = {
     label: "Cadabra 2",
     desc: "A field-theory motivated approach to computer algebra"
   }
-};
+});

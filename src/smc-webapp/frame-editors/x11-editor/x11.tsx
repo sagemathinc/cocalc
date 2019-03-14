@@ -34,6 +34,7 @@ interface Props {
   // reduxProps:
   windows: Map<string, any>;
   x11_is_idle: boolean;
+  disabled: boolean;
 }
 
 class X11Component extends Component<Props, {}> {
@@ -47,7 +48,8 @@ class X11Component extends Component<Props, {}> {
     return {
       [name]: {
         windows: rtypes.immutable.Map,
-        x11_is_idle: rtypes.bool
+        x11_is_idle: rtypes.bool,
+        disabled: rtypes.bool
       }
     };
   }
@@ -106,7 +108,8 @@ class X11Component extends Component<Props, {}> {
       "id",
       "windows",
       "is_current",
-      "x11_is_idle"
+      "x11_is_idle",
+      "disabled"
     ]);
   }
 
@@ -352,6 +355,13 @@ class X11Component extends Component<Props, {}> {
   }
 
   render(): Rendered {
+    if (this.props.disabled) {
+      return (
+        <div className="smc-vfill" style={{ padding: "100px auto auto auto" }}>
+          X11 is not available
+        </div>
+      );
+    }
     return (
       <div className="smc-vfill" style={{ position: "relative" }}>
         {this.render_idle()}

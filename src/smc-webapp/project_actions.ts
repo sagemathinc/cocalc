@@ -10,6 +10,7 @@ import { to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback2 } from "smc-util/async-utils";
 import { ConfigurationAspect } from "project/websocket/api";
+import { Configuration, Capabilities } from "smc-project/configuration";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -653,7 +654,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open the given file in this project.
-  open_file(opts: {
+  async open_file(opts: {
     path: string;
     foreground?: boolean;
     foreground_project?: boolean;
@@ -662,7 +663,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
     change_history?: boolean;
-  }): void {
+  }): Promise<void> {
     opts = defaults(opts, {
       path: required,
       foreground: true,
@@ -674,6 +675,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history: true
     });
     opts.path = normalize(opts.path);
+    const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
+
     // intercept any requests if in kiosk mode
     if (
       !opts.ignore_kiosk &&
@@ -688,6 +691,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
+
+    if (!(await this.can_open_file_ext(ext))) return;
 
     if (opts.new_browser_window) {
       // options other than path don't do anything yet.
@@ -744,9 +749,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             }
 
             const is_public = group === "public";
-            const ext = misc
-              .filename_extension_notilde(opts.path)
-              .toLowerCase();
 
             if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
               // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
@@ -1769,7 +1771,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // retrieve project configuration (capabilities, etc.) from the back-end
-  async init_configuration(aspect: ConfigurationAspect = "main") {
+  // also return it as a convenience
+  async init_configuration(
+    aspect: ConfigurationAspect = "main"
+  ): Promise<immutable.Map<string, any> | void> {
     const store = this.get_store();
     if (store == null) {
       console.warn("project_actions::init_configuration: no store");
@@ -1781,15 +1786,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // but here (next line) TS thinks it retrieves an object (or other types)?
     const prev = immutable.fromJS(store.get("configuration"));
     if (prev != null) {
-      if (prev.get(aspect) != null) return;
+      const conf = prev.get(aspect);
+      if (conf != null) return conf;
     }
 
     // the actual API call, returning an object
-    const config = await webapp_client.configuration(this.project_id, aspect);
+    const config: Configuration = await webapp_client.configuration(
+      this.project_id,
+      aspect
+    );
     // console.log("project_actions::init_configuration", aspect, config);
 
     if (aspect == ("main" as ConfigurationAspect)) {
-      const caps = config.capabilities;
+      const caps = config.capabilities as Capabilities;
+      caps.x11 = false; // TEST x11 disabilities
       const hide_ext = (config.hide_ext = [] as string[]);
       if (!caps.jupyter) hide_ext.push("ipynb");
       // don't show jupyter classic buttons if there is no jupyter
@@ -1805,10 +1815,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const next = prev.merge(upd);
       // console.log("project_actions::configuration/next", next);
       this.setState({ configuration: next });
+      return next;
     } else {
       // console.log("project_actions::configuration/upd", upd);
       this.setState({ configuration: upd });
+      return upd;
     }
+  }
+
+  // returns false, if this project isn't capable of opening a file with given extension
+  async can_open_file_ext(ext: string): Promise<boolean> {
+    // to make sure we know about disabled file types
+    const conf = await this.init_configuration("main");
+    // if we don't know anything, we're optimistic and skip this check
+    if (conf == null) return true;
+    const hide_ext = conf.get("hide_ext");
+    if (hide_ext == null) return true;
+    const cant_open = hide_ext.contains(ext);
+    if (cant_open) {
+      alert_message({
+        type: "error",
+        message: `This CoCalc Project cannot open ${ext} files!`,
+        timeout: 20
+      });
+    }
+    return !cant_open;
   }
 
   // this is called once by the project initialization

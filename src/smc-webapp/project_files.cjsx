@@ -2133,7 +2133,7 @@ ProjectFilesNew = rclass
 
     new_file_button_types : ->
         if @props.configuration?
-            hide_ext = @props.configuration.get('hide_ext')
+            hide_ext = @props.configuration.getIn(['main', 'hide_ext'])
             if hide_ext?
                 return ALL_FILE_BUTTON_TYPES.filter (ext) ->
                     not hide_ext.includes(ext)
