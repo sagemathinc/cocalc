@@ -11,27 +11,28 @@ import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
 export type Configuration = { [key: string]: object };
 export type Capabilities = { [key: string]: boolean | Capabilities };
 
-function which_nothrow(name, cb) {
-  return which(name, { nothrow: true }, cb);
-}
-
 async function have(name: string): Promise<boolean> {
-  const path = await callback(which_nothrow, name);
-  return !!path;
+  try {
+    return !!(await callback(which, name));
+  } catch {
+    return false;
+  }
 }
 
 // we cache this as long as the project runs
 const conf: { [key in ConfigurationAspect]?: Configuration } = {};
 
-async function x11_apps(): Promise<object> {
+async function x11_apps(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
   const KEYS = Object.keys(APPS);
   for (let key of KEYS) {
     const app = APPS[key];
     status.push(have(app.command != null ? app.command : key));
   }
-  const results = Promise.all(status);
-  return status.map((s, idx) => [s, results[idx]]);
+  const results = await Promise.all(status);
+  const ret: { [key: string]: boolean } = {};
+  KEYS.map((name, idx) => (ret[name] = results[idx]));
+  return ret;
 }
 
 // return supported apps if X11 should work, or falsy.
@@ -73,7 +74,7 @@ async function capabilities(): Promise<Capabilities> {
 
 export async function get_configuration(
   aspect: ConfigurationAspect
-): Promise<object> {
+): Promise<Configuration> {
   const cached = conf[aspect];
   if (cached != null) return cached;
   const t0 = new Date().getTime();
@@ -92,3 +93,6 @@ export async function get_configuration(
   conf[aspect] = new_conf;
   return new_conf;
 }
+
+// run ts-node configuration.ts  for testing
+// (async () => { console.log(await x11_apps()); })()

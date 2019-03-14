@@ -7,10 +7,9 @@ import * as immutable from "immutable";
 import * as os_path from "path";
 
 import { to_user_string } from "smc-util/misc2";
-
 import { query as client_query } from "./frame-editors/generic/client";
-
 import { callback2 } from "smc-util/async-utils";
+import { ConfigurationAspect } from "project/websocket/api";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -1770,29 +1769,46 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // retrieve project configuration (capabilities, etc.) from the back-end
-  async init_configuration() {
+  async init_configuration(aspect: ConfigurationAspect = "main") {
     const store = this.get_store();
     if (store == null) {
       console.warn("project_actions::init_configuration: no store");
       return;
     }
+
     // already done?
-    if (store.get("configuration") != null) return;
-    const config = await webapp_client.configuration(this.project_id, "main");
-    // console.log("project_actions::init_configuration", config);
+    // TODO I don't understand this. I'm storing an immutable map in the store,
+    // but here (next line) TS thinks it retrieves an object (or other types)?
+    const prev = immutable.fromJS(store.get("configuration"));
+    if (prev != null) {
+      if (prev.get(aspect) != null) return;
+    }
 
-    const caps = config.capabilities;
-    const hide_ext = (config.hide_ext = [] as string[]);
-    if (!caps.jupyter) hide_ext.push("ipynb");
-    // don't show jupyter classic buttons if there is no jupyter
-    // jupyter-lab and jupyter-notebook → where their buttons are
-    if (!caps.latex) hide_ext.push("tex", "rnw", "rtex");
-    if (!caps.sagews) hide_ext.push("sagews");
-    if (!caps.x11) hide_ext.push("x11");
+    // the actual API call, returning an object
+    const config = await webapp_client.configuration(this.project_id, aspect);
+    // console.log("project_actions::init_configuration", aspect, config);
 
-    const configuration = immutable.fromJS(config);
-    console.log("project_actions::init_configuration", configuration);
-    this.setState({ configuration });
+    if (aspect == ("main" as ConfigurationAspect)) {
+      const caps = config.capabilities;
+      const hide_ext = (config.hide_ext = [] as string[]);
+      if (!caps.jupyter) hide_ext.push("ipynb");
+      // don't show jupyter classic buttons if there is no jupyter
+      // jupyter-lab and jupyter-notebook → where their buttons are
+      if (!caps.latex) hide_ext.push("tex", "rnw", "rtex");
+      if (!caps.sagews) hide_ext.push("sagews");
+      if (!caps.x11) hide_ext.push("x11");
+    }
+
+    const upd = immutable.fromJS({ [aspect]: config });
+    if (upd == null) return;
+    if (prev != null) {
+      const next = prev.merge(upd);
+      // console.log("project_actions::configuration/next", next);
+      this.setState({ configuration: next });
+    } else {
+      // console.log("project_actions::configuration/upd", upd);
+      this.setState({ configuration: upd });
+    }
   }
 
   // this is called once by the project initialization

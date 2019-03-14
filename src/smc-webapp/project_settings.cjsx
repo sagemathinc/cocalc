@@ -607,6 +607,30 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 
+ProjectCapabilitiesPanel = rclass ({name}) ->
+    displayName : 'ProjectSettings-ProjectCapabilitiesPanel'
+
+    propTypes :
+        project           : rtypes.object.isRequired
+
+    reduxProps :
+        "#{name}" :
+            configuration         : rtypes.immutable
+
+    shouldComponentUpdate: (props) ->
+        return misc.is_different(@props, props, ['project', 'configuration'])
+
+    render : ->
+        conf = @props.configuration
+
+        <ProjectSettingsPanel
+            title={'Configuration and capabilities'}
+            icon={'clipboard-check'}
+        >
+            {<pre>{JSON.stringify(conf, '', 2)}</pre> if conf?}
+        </ProjectSettingsPanel>
+
+
 
 ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
@@ -1032,7 +1056,11 @@ ProjectSettingsBody = rclass ({name}) ->
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
-
+                    {<ProjectCapabilitiesPanel
+                        name={name}
+                        key={'capabilities'}
+                        project={@props.project}
+                     /> if @props.kucalc == 'yes'}
                 </Col>
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
