@@ -1033,13 +1033,10 @@ ProjectSettingsBody = rclass ({name}) ->
 
         {commercial} = require('./customize')
 
-        # jupyter is immutable map or false-boolean
-        jupyter = @props.configuration?.getIn(["main", "capabilities", "jupyter"])
-        if (not jupyter?) or jupyter == false
-            have_jupyter_lab = have_jupyter_notebook = false
-        else
-            have_jupyter_lab = jupyter.get("lab", false)
-            have_jupyter_notebook = jupyter.get("notebook", false)
+        {is_available} = require('./project_configuration')
+        available = is_available(@props.configuration)
+        have_jupyter_lab = available.jupyter_lab
+        have_jupyter_notebook = available.jupyter_notebook
 
         <div>
             {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}

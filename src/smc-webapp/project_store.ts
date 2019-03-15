@@ -49,7 +49,7 @@ import {
 
 import { literal } from "./app-framework/literal";
 
-import { Configuration } from "../smc-project/configuration";
+// import { Configuration } from "../smc-project/configuration";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -76,7 +76,7 @@ export interface ProjectStoreState {
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
-  configuration?: Configuration;
+  configuration?: immutable.Map<string, any>; // this is "Configuration"
 
   // Project Page
   active_project_tab: string;

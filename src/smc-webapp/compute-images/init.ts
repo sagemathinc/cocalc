@@ -1,3 +1,6 @@
+// Manage DB <-> UI integration of available *custom* compute images
+// TODO: also get rid of hardcoded legacy software images
+
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
 
@@ -61,7 +64,7 @@ class ComputeImagesTable extends Table {
     const actions = this.redux.getActions(NAME);
     if (actions == null) throw Error("actions must be defined");
     const data = table.get();
-    console.log("ComputeImagesTable data:", data);
+    // console.log("ComputeImagesTable data:", data);
     actions.setState({ images: data });
   }
 }

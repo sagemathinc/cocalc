@@ -164,6 +164,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         create_folder : rtypes.func  #.required
         styles        : rtypes.object
         project_id    : rtypes.string.isRequired
+        configuration : rtypes.immutable
 
     getInitialState :->
         show_jupyter_server_panel : false
@@ -175,19 +176,22 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         row_style =
             marginBottom:'8px'
 
+        {is_available} = require('./project_configuration')
+        available = is_available(@props.configuration)
+
         <Fragment>
             <Row style={row_style}>
                 <Col sm={12}>
-                    <Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
+                    {<Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
-                    </Tip>
-                    <Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
+                    </Tip> if available.sagews}
+                    {<Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
                         <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
-                    </Tip>
-                    <Tip title='LaTeX Document'   icon='cc-icon-tex-file'
+                    </Tip> if available.jupyter_notebook}
+                    {<Tip title='LaTeX Document'   icon='cc-icon-tex-file'
                         tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
                         <NewFileButton icon='cc-icon-tex-file' name='LaTeX document' on_click={@props.create_file} ext='tex' />
-                    </Tip>
+                    </Tip> if available.latex}
                 </Col>
             </Row>
             <Row style={row_style}>
@@ -208,10 +212,10 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip='Create a Markdown formatted document with real-time preview.'>
                         <NewFileButton icon='cc-icon-markdown' name='Markdown' on_click={@props.create_file} ext='md' />
                     </Tip>
-                    <Tip title='RMarkdown File'  icon='cc-icon-r'
+                    {<Tip title='RMarkdown File'  icon='cc-icon-r'
                         tip='RMarkdown document with real-time preview.'>
                         <NewFileButton icon='cc-icon-r' name='RMarkdown' on_click={@props.create_file} ext='rmd' />
-                    </Tip>
+                    </Tip> if available.rmd}
                     <Tip title='Task list'   icon='tasks'
                         tip='Create a todo list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.'>
                         <NewFileButton icon='tasks' name='Task list' on_click={@props.create_file} ext='tasks' />
@@ -228,29 +232,29 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                         tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
                         <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
-                    <Tip title='X11 Desktop'   icon='window-restore'
+                    {<Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
                         <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
-                    </Tip>
+                    </Tip> if available.jupyter_notebook}
                    {@props.children}
                 </Col>
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    <Tip title={'Jupyter Server'}  icon={'cc-icon-ipynb'}
+                    {<Tip title={'Jupyter Server'}  icon={'cc-icon-ipynb'}
                         tip={"Start a Jupyter notebook server..."}>
                         <NewFileButton  name={'Jupyter Classic...'}
                         icon={'cc-icon-ipynb'}
                         on_click={=>@setState(show_jupyter_server_panel:true)}
                         disabled={@state.show_jupyter_server_panel}/>
-                    </Tip>
-                    <Tip title={'JupyterLab Server'} icon={'cc-icon-ipynb'}
+                    </Tip> if available.jupyter_notebook}
+                    {<Tip title={'JupyterLab Server'} icon={'cc-icon-ipynb'}
                         tip={'Start a JupyterLab server...'}>
                         <NewFileButton name={'JupyterLab...'}
                         icon={'cc-icon-ipynb'}
                         on_click={=>@setState(show_jupyterlab_server_panel:true)}
                         disabled={@state.show_jupyterlab_server_panel}/>
-                    </Tip>
+                    </Tip> if available.jupyter_lab}
                 </Col>
             </Row>
             <Row style={row_style}>
@@ -271,6 +275,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             current_path        : rtypes.string
             default_filename    : rtypes.string
             file_creation_error : rtypes.string
+            configuration       : rtypes.immutable
         projects :
             project_map              : rtypes.immutable
             get_total_project_quotas : rtypes.func
@@ -479,7 +484,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
                     <div style={color:"#666", paddingBottom:"5px"}>Select the type of file</div>
-                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id}>
+                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id} configuration={@props.configuration}>
                         <Tip
                             title = {'Download files from the Internet'}
                             icon = {'cloud'}

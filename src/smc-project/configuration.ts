@@ -7,8 +7,11 @@ import * as which from "which";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
 import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
-export type Configuration = { [key: string]: object };
-export type Capabilities = { [key: string]: boolean | Capabilities };
+import {
+  Configuration,
+  Capabilities,
+  MainCapabilities
+} from "../smc-webapp/project_configuration";
 
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>((resolve, _reject) => {
@@ -48,7 +51,7 @@ async function sagews(): Promise<boolean> {
   return await have("sage");
 }
 
-async function jupyter(): Promise<Capabilities> {
+async function jupyter(): Promise<Capabilities | boolean> {
   const jupyter = (await have("jupyter"))
     ? {
         lab: await have("jupyter-lab"),
@@ -56,7 +59,7 @@ async function jupyter(): Promise<Capabilities> {
         kernelspec: await have("jupyter-kernelspec")
       }
     : false;
-  return { jupyter };
+  return jupyter;
 }
 
 async function latex(): Promise<boolean> {
@@ -65,14 +68,26 @@ async function latex(): Promise<boolean> {
   return (await pdf) && (await latexmk);
 }
 
-async function capabilities(): Promise<Capabilities> {
-  const j_prom = jupyter();
-  const caps: Capabilities = {
+async function spellcheck(): Promise<boolean> {
+  return await have("aspell");
+}
+
+// this is for rnw RMarkdown files.
+// This just tests R, which as knitr by default?
+async function rnw(): Promise<boolean> {
+  return await have("R");
+}
+
+async function capabilities(): Promise<MainCapabilities> {
+  const caps: MainCapabilities = {
+    jupyter: await jupyter(),
     latex: await latex(),
     sagews: await sagews(),
-    x11: await x11()
+    x11: await x11(),
+    rnw: await rnw(),
+    spellcheck: await spellcheck()
   };
-  return Object.assign(caps, await j_prom);
+  return caps;
 }
 
 export async function get_configuration(

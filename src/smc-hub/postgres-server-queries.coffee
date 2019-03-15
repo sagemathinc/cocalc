@@ -2623,6 +2623,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("database::insert_random_compute_images")
         dbg()
 
+        capitalize = require('smc-util/misc').capitalize
         sample = require('underscore').sample
         words = [
                     'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
@@ -2637,9 +2638,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
             # not all of them have a display-title, url, desc, ...
             if Math.random() > .25
-                disp = rnd[0][0].toUpperCase() + rnd[0][1..] + ' ' + \
-                       rnd[1][0].toUpperCase() + rnd[1][1..] + ' ' + \
-                       "(#{sample(words)})"
+                if Math.random() > .5
+                    extra = "(#{sample(words)})"
+                else
+                    extra = sample(words, 2)
+                disp = (capitalize(_) for _ in rnd[...2].concat(extra)).join(' ')
             else
                 if Math.random() > .5
                     disp = undefined

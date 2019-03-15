@@ -10,8 +10,8 @@ import { to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback2 } from "smc-util/async-utils";
 import { ConfigurationAspect } from "project/websocket/api";
-import { Configuration, Capabilities } from "smc-project/configuration";
-import { KNITR_EXTS } from "frame-editors/latex-editor/util";
+//import { Configuration, Capabilities } from "smc-project/configuration";
+import { get_configuration } from "project_configuration";
 
 const { SITE_NAME } = require("smc-util/theme");
 
@@ -695,12 +695,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const can_open_file = !(await this.can_open_file_ext(ext));
+    const can_open_file = await this.can_open_file_ext(ext);
     if (!can_open_file) {
-      console.log("aborting project_actions::open_file");
+      const SiteName =
+        redux.getStore("customize").get("site_name") || SITE_NAME;
+      alert_message({
+        type: "error",
+        message: `This ${SiteName} project cannot open ${ext} files!`,
+        timeout: 20
+      });
+      console.log(
+        `abort project_actions::open_file due to lack of support for "${ext}" files`
+      );
       return;
     }
-
 
     if (opts.new_browser_window) {
       // options other than path don't do anything yet.
@@ -1790,57 +1798,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     // already done?
-    // TODO I don't understand this. I'm storing an immutable map in the store,
-    // but here (next line) TS thinks it retrieves an object (or other types)?
     const prev = immutable.fromJS(store.get("configuration"));
     if (prev != null) {
       const conf = prev.get(aspect);
       if (conf != null) return conf;
     }
 
-    // the actual API call, returning an object
-    const config: Configuration = await webapp_client.configuration(
+    const next = await get_configuration(
+      webapp_client,
       this.project_id,
-      aspect
+      aspect,
+      prev
     );
-    // console.log("project_actions::init_configuration", aspect, config);
-
-    if (aspect == ("main" as ConfigurationAspect)) {
-      const caps = config.capabilities as Capabilities;
-      // TEST x11 disabilities
-      //caps.x11 = false;
-
-      // don't show jupyter buttons if there is no jupyter
-      const jupyter = caps.jupyter;
-      if (typeof jupyter !== "boolean") {
-        // TEST no jupyter lab or notebook
-        // jupyter.lab = false;
-        // TEST no kernelspec → we can't read any kernels → entirely disable jupyter
-        // jupyter.kernelspec = false;
-        if (!jupyter.kernelspec) caps.jupyter = false;
-      }
-
-      // disable/hide certain file extensions if certain capabilities are missing
-      // (the associated editors shouldn't initialize at all!)
-      const disabled_ext = (config.disabled_ext = [] as string[]);
-      if (!caps.jupyter) disabled_ext.push("ipynb");
-      if (!caps.latex) disabled_ext.push(...KNITR_EXTS.concat(["tex"]));
-      if (!caps.sagews) disabled_ext.push("sagews");
-      if (!caps.x11) disabled_ext.push("x11");
-    }
-
-    const upd = immutable.fromJS({ [aspect]: config });
-    if (upd == null) return;
-    if (prev != null) {
-      const next = prev.merge(upd);
-      // console.log("project_actions::configuration/next", next);
-      this.setState({ configuration: next });
-      return next;
-    } else {
-      // console.log("project_actions::configuration/upd", upd);
-      this.setState({ configuration: upd });
-      return upd;
-    }
+    this.setState({ configuration: next });
+    return next;
   }
 
   // returns false, if this project isn't capable of opening a file with given extension
@@ -1851,17 +1822,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (conf == null) return true;
     const disabled_ext = conf.get("disabled_ext");
     if (disabled_ext == null) return true;
-    const cant_open = disabled_ext.contains(ext);
-    if (cant_open) {
-      const SiteName =
-        redux.getStore("customize").get("site_name") || SITE_NAME;
-      alert_message({
-        type: "error",
-        message: `This ${SiteName} project cannot open ${ext} files!`,
-        timeout: 20
-      });
-    }
-    return cant_open;
+    return !disabled_ext.contains(ext);
   }
 
   // this is called once by the project initialization
