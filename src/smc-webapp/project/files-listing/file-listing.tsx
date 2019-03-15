@@ -18,7 +18,7 @@ import { ProjectActions } from "../../project_actions";
 import { AppRedux } from "../../app-framework";
 
 import { NoFiles } from "./no-files";
-import { FirstSteps } from "./first-steps";
+// import { FirstSteps } from "./first-steps";
 import { TerminalModeDisplay } from "./terminal-mode-display";
 import { ListingHeader } from "./listing-header";
 import { DirectoryRow } from "./directory-row";
@@ -168,6 +168,7 @@ export class FileListing extends React.Component<Props> {
 
   render_first_steps() {
     return; // See https://github.com/sagemathinc/cocalc/issues/3138
+    /*
     const name = "first_steps";
     if (this.props.public_view) {
       return;
@@ -197,6 +198,7 @@ export class FileListing extends React.Component<Props> {
     }
 
     return <FirstSteps actions={this.props.actions} redux={this.props.redux} />;
+    */
   }
 
   render_terminal_mode() {
