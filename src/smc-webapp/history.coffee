@@ -130,17 +130,26 @@ exports.load_target = load_target = (target, ignore_kiosk=false, change_history=
             if not logged_in
                 return
             redux.getActions('page').set_active_tab('account', change_history)
+
             if segments[1] == 'account'
                 redux.getActions('account').set_active_tab('account')
+
             if segments[1] == 'billing'
                 redux.getActions('billing').update_customer()
                 redux.getActions('account').set_active_tab('billing')
+
             if segments[1] == 'upgrades'
                 redux.getActions('account').set_active_tab('upgrades')
+
             if segments[1] == 'support'
                 redux.getActions('account').set_active_tab('support')
+
             if segments[1] == 'ssh-keys'
                 redux.getActions('account').set_active_tab('ssh-keys')
+
+            if segments[1] == 'notifications'
+                redux.getActions('account').set_active_tab('notifications')
+
         when 'file-use', 'admin'
             if not logged_in
                 return
