@@ -10,12 +10,14 @@ import { to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback2 } from "smc-util/async-utils";
 import { ConfigurationAspect } from "project/websocket/api";
-//import { Configuration, Capabilities } from "smc-project/configuration";
 import {
+  Configuration,
+  // Capabilities,
+  ProjectConfiguration,
   get_configuration,
   LIBRARY_INDEX_FILE,
   is_available as feature_is_available
-} from "project_configuration";
+} from "./project_configuration";
 const { SITE_NAME } = require("smc-util/theme");
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
@@ -1793,7 +1795,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // also return it as a convenience
   async init_configuration(
     aspect: ConfigurationAspect = "main"
-  ): Promise<immutable.Map<string, any> | void> {
+  ): Promise<Configuration | void> {
     const store = this.get_store();
     if (store == null) {
       console.warn("project_actions::init_configuration: no store");
@@ -1801,9 +1803,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     // already done?
-    const prev = immutable.fromJS(store.get("configuration"));
+    const prev = store.get("configuration") as ProjectConfiguration;
     if (prev != null) {
-      const conf = prev.get(aspect);
+      const conf = prev.get(aspect) as Configuration;
       if (conf != null) return conf;
     }
 
@@ -1813,12 +1815,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       aspect,
       prev
     );
-    console.log("feature_is_available(next)", feature_is_available(next));
+    if (next == null) return;
     this.setState({
       configuration: next,
       available_features: feature_is_available(next)
     });
-    return next;
+    return next.get(aspect) as Configuration;
   }
 
   // returns false, if this project isn't capable of opening a file with given extension
@@ -1827,9 +1829,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const conf = await this.init_configuration("main");
     // if we don't know anything, we're optimistic and skip this check
     if (conf == null) return true;
-    const disabled_ext = conf.get("disabled_ext");
+    const disabled_ext = conf.disabled_ext;
     if (disabled_ext == null) return true;
-    return !disabled_ext.contains(ext);
+    return !(disabled_ext as string[]).includes(ext);
   }
 
   // this is called once by the project initialization

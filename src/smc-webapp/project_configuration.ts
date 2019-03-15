@@ -1,14 +1,16 @@
 // manages project configuration aspects
-import { Map as iMap, fromJS } from "immutable";
+import { Map as iMap } from "immutable";
 import { ConfigurationAspect } from "./project/websocket/api";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
-export type Configuration = { [key: string]: object };
 export type Capabilities = {
-  [key: string]: boolean | Capabilities | Capabilities;
+  [key: string]: boolean | Capabilities;
 };
+// ideally, this maps to Capabilities, but there are exceptions
+export type Configuration = { [key: string]: object };
+export type ProjectConfiguration = iMap<ConfigurationAspect, Configuration>;
 
 export interface MainCapabilities {
   jupyter: boolean | Capabilities;
@@ -45,31 +47,27 @@ const NO_AVAIL: Available = {
 };
 
 // derive available types of files from the configuration map
-export function is_available(configuration?: iMap<string, any>): Available {
+export function is_available(configuration?: ProjectConfiguration): Available {
   if (configuration == null) return NO_AVAIL;
 
-  const capabilities: iMap<string, any> = configuration.getIn([
-    "main",
-    "capabilities"
-  ]);
+  const main: Configuration | undefined = configuration.get("main");
+  if (main == null) return NO_AVAIL;
+  const capabilities = main.capabilities as Capabilities;
   if (capabilities == null) return NO_AVAIL;
-  const jupyter: iMap<string, any> | boolean = configuration.getIn(
-    ["main", "capabilities", "jupyter"],
-    false
-  );
+  const jupyter: Capabilities | boolean = capabilities.jupyter;
 
   if (typeof jupyter !== "boolean") {
-    const kernelspec: boolean = jupyter.get("kernelspec", false);
+    const kernelspec: boolean = !!jupyter.kernelspec;
     return {
-      jupyter_lab: kernelspec && jupyter.get("lab", false),
-      jupyter_notebook: kernelspec && jupyter.get("notebook", false),
+      jupyter_lab: kernelspec && !!jupyter.lab,
+      jupyter_notebook: kernelspec && !!jupyter.notebook,
       jupyter: kernelspec,
-      sage: capabilities.get("sagews", false),
-      latex: capabilities.get("latex", false),
-      rmd: capabilities.get("rmd", false),
-      x11: capabilities.get("x11", false),
-      spellcheck: capabilities.get("spellcheck", false),
-      library: capabilities.get("library", false)
+      sage: !!capabilities.sagews,
+      latex: !!capabilities.latex,
+      rmd: !!capabilities.rmd,
+      x11: !!capabilities.x11,
+      spellcheck: !!capabilities.spellcheck,
+      library: !!capabilities.library
     };
   } else {
     return NO_AVAIL;
@@ -80,8 +78,8 @@ export async function get_configuration(
   webapp_client: any,
   project_id: string,
   aspect: ConfigurationAspect = "main",
-  prev: iMap<string, any>
-): Promise<iMap<string, any> | undefined> {
+  prev: ProjectConfiguration
+): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
   const config: Configuration = await webapp_client.configuration(
     project_id,
@@ -117,14 +115,13 @@ export async function get_configuration(
     if (!caps.x11) disabled_ext.push("x11");
   }
 
-  const upd = fromJS({ [aspect]: config });
-  if (upd == null) return undefined;
+  if (config == null) return prev;
   if (prev != null) {
-    const next = prev.merge(upd) as iMap<string, any>;
+    const next = prev.set(aspect, config);
     // console.log("project_actions::configuration/next", next);
     return next;
   } else {
-    // console.log("project_actions::configuration/upd", upd);
-    return upd;
+    // console.log("project_actions::configuration/upd", config);
+    return iMap<ConfigurationAspect, Configuration>([[aspect, config]]);
   }
 }
