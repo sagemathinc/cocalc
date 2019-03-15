@@ -45,7 +45,7 @@ underscore            = require('underscore')
 {webapp_client}       = require('./webapp_client')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
-{FileListing, TERM_MODE_CHAR} = require("./project/files-listing")
+{FileListing, TERM_MODE_CHAR} = require("./project/file-listing")
 feature = require('./feature')
 
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
