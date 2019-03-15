@@ -69,6 +69,8 @@ import { connection_to_project } from "../project/websocket/connect";
 
 import { CursorManager } from "./cursor-manager";
 
+import { codemirror_to_jupyter_pos } from "./util";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -1226,7 +1228,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    this.unselect_all_cells(); // for whatever reason, any running of a cell deselects in official jupyter
+    // for whatever reason, any running of a cell deselects
+    // in official jupyter
+    this.unselect_all_cells();
 
     const cell_type = (left = cell.get("cell_type")) != null ? left : "code";
     switch (cell_type) {
@@ -1906,12 +1910,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const method = editor[name];
     if (method != null) {
       method(...args);
+    } else {
+      console.warn("Jupyter: call_input_editor_method -- no such method", name);
     }
   }
 
   // Press tab key in editor of currently selected cell.
   tab_key = () => {
     this.call_input_editor_method(this.store.get("cur_id"), "tab_key");
+  };
+
+  // Press tab key in editor of currently selected cell.
+  shift_tab_key = () => {
+    this.call_input_editor_method(this.store.get("cur_id"), "shift_tab_key");
   };
 
   set_cursor = (id: string, pos: any): void => {
@@ -1983,10 +1994,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // pos can be either a {line:?, ch:?} object as in codemirror,
     // or a number.
     if (misc.is_object(pos)) {
-      const lines = code.split("\n");
-      cursor_pos =
-        misc.sum(__range__(0, pos.line, false).map(i => lines[i].length + 1)) +
-        pos.ch;
+      cursor_pos = codemirror_to_jupyter_pos(code, pos);
     } else {
       cursor_pos = pos;
     }
@@ -2126,10 +2134,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  introspect_at_pos = async (
+    code: string,
+    level: 0 | 1 = 0,
+    pos: { ch: number; line: number }
+  ): Promise<void> => {
+    if (code === "") return;
+    await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
+  };
+
   introspect = async (
-    code: any,
-    level: any,
-    cursor_pos?: any
+    code: string,
+    level: 0 | 1,
+    cursor_pos?: number
   ): Promise<void> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
