@@ -20,19 +20,23 @@ export interface IFrameState {
 
 export class IFrame extends Component<IFrameProps, IFrameState> {
   private timeout: any; // TODO: WARNING: check this - its a different pattern than the original component, see https://github.com/facebook/react/issues/5465
+
   constructor(props: IFrameProps, context: any) {
     super(props, context);
     this.state = { attempts: 0, show: false };
   }
+
   clearTimeout = () => {
     if (this.timeout !== undefined) {
       clearTimeout(this.timeout);
       this.timeout = undefined;
     }
   };
+
   componentWillUmount() {
     this.clearTimeout();
   }
+
   load_error = () => {
     if (this.state.attempts < 5) {
       this.clearTimeout();
@@ -42,6 +46,7 @@ export class IFrame extends Component<IFrameProps, IFrameState> {
       );
     }
   };
+
   render_iframe = () => {
     const src =
       get_blob_url(this.props.project_id, "html", this.props.sha1) +
@@ -57,6 +62,7 @@ export class IFrame extends Component<IFrameProps, IFrameState> {
       />
     );
   };
+
   render() {
     if (this.state.show) {
       return this.render_iframe();

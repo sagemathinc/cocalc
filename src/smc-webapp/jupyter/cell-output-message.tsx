@@ -1,14 +1,4 @@
 /*
- * decaffeinate suggestions:
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-/*
 Handling of output messages.
 
 TODO: most components should instead be in separate files.
@@ -16,17 +6,21 @@ TODO: most components should instead be in separate files.
 
 declare const $: any;
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+const { Markdown, HTML } = require("../r_misc");
+const Ansi = require("ansi-to-react");
+
+import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { Button } from "react-bootstrap";
 import * as immutable from "immutable";
-const misc = require("smc-util/misc");
-const { Icon, Markdown, HTML } = require("../r_misc");
-// const { sanitize_html } = require("../misc_page");
-const Ansi = require("ansi-to-react");
-const { IFrame } = require("./cell-output-iframe");
-const { get_blob_url } = require("./server-urls");
-const { javascript_eval } = require("./javascript-eval");
-const { is_redux, is_redux_actions } = require("../app-framework");
+import { Icon } from "../r_misc/icon";
+import { IFrame } from "./cell-output-iframe";
+import { get_blob_url } from "./server-urls";
+import { javascript_eval } from "./javascript-eval";
+
+import { delay } from "awaiting";
+import { JupyterActions } from "./actions";
+
+import { endswith, is_array, merge } from "smc-util/misc2";
 
 const OUT_STYLE: React.CSSProperties = {
   whiteSpace: "pre-wrap",
@@ -39,25 +33,25 @@ const OUT_STYLE: React.CSSProperties = {
 
 // const ANSI_STYLE: React.CSSProperties = OUT_STYLE;
 const STDOUT_STYLE: React.CSSProperties = OUT_STYLE;
-const STDERR_STYLE: React.CSSProperties = misc.merge(
+const STDERR_STYLE: React.CSSProperties = merge(
   { backgroundColor: "#fdd" },
   STDOUT_STYLE
 );
-const TRACEBACK_STYLE: React.CSSProperties = misc.merge(
+const TRACEBACK_STYLE: React.CSSProperties = merge(
   { backgroundColor: "#f9f2f4" },
   OUT_STYLE
 );
 
 interface StdoutProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
 }
 
 export class Stdout extends Component<StdoutProps> {
-  shouldComponentUpdate(nextProps) {
-    return !immutable_equals(this.props, nextProps);
+  shouldComponentUpdate(nextProps: StdoutProps): boolean {
+    return !this.props.message.equals(nextProps.message);
   }
 
-  render() {
+  render(): Rendered {
     const value = this.props.message.get("text");
     if (is_ansi(value)) {
       return (
@@ -77,14 +71,15 @@ export class Stdout extends Component<StdoutProps> {
 }
 
 interface StderrProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
 }
 
 export class Stderr extends Component<StderrProps> {
-  shouldComponentUpdate(nextProps) {
-    return !immutable_equals(this.props, nextProps);
+  shouldComponentUpdate(nextProps: StderrProps): boolean {
+    return !this.props.message.equals(nextProps.message);
   }
-  render() {
+
+  render(): Rendered {
     const value = this.props.message.get("text");
     if (is_ansi(value)) {
       return (
@@ -93,7 +88,7 @@ export class Stderr extends Component<StderrProps> {
         </div>
       );
     }
-    // span below?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958
+    // span -- see https://github.com/sagemathinc/cocalc/issues/1958
     return (
       <div style={STDERR_STYLE}>
         <span>{value}</span>
@@ -116,39 +111,36 @@ interface ImageState {
 }
 
 class Image extends Component<ImageProps, ImageState> {
-  private _is_mounted: any; // TODO: dont do this
+  private is_mounted: any; // TODO: dont do this
 
   constructor(props: ImageProps, context: any) {
     super(props, context);
     this.state = { attempts: 0 };
   }
 
-  load_error = () => {
-    if (this.state.attempts < 5 && this._is_mounted) {
-      const f = () => {
-        if (this._is_mounted) {
-          return this.setState({ attempts: this.state.attempts + 1 });
-        }
-      };
-      return setTimeout(f, 500);
+  load_error = async (): Promise<void> => {
+    if (this.state.attempts < 5 && this.is_mounted) {
+      await delay(500);
+      if (!this.is_mounted) return;
+      this.setState({ attempts: this.state.attempts + 1 });
     }
   };
 
-  componentDidMount() {
-    return (this._is_mounted = true);
+  componentDidMount(): void {
+    this.is_mounted = true;
   }
 
-  componentWillUnmount() {
-    return (this._is_mounted = false);
+  componentWillUnmount(): void {
+    this.is_mounted = false;
   }
 
-  extension = () => {
+  extension = (): string => {
     return this.props.type.split("/")[1].split("+")[0];
   };
 
-  render_using_server() {
+  render_using_server(project_id: string, sha1: string): Rendered {
     const src =
-      get_blob_url(this.props.project_id, this.extension(), this.props.sha1) +
+      get_blob_url(project_id, this.extension(), sha1) +
       `&attempts=${this.state.attempts}`;
     return (
       <img
@@ -160,7 +152,7 @@ class Image extends Component<ImageProps, ImageState> {
     );
   }
 
-  encoding = () => {
+  encoding = (): string => {
     switch (this.props.type) {
       case "image/svg+xml":
         return "utf8";
@@ -169,27 +161,23 @@ class Image extends Component<ImageProps, ImageState> {
     }
   };
 
-  render_locally() {
-    if (this.props.value == null) {
-      // should never happen
-      return <span />;
-    }
+  render_locally(value: string): Rendered {
     // The encodeURIComponent is definitely necessary these days.
     // See https://github.com/sagemathinc/cocalc/issues/3197 and the comments at
     // https://css-tricks.com/probably-dont-base64-svg/
     const src = `data:${
       this.props.type
-    };${this.encoding()},${encodeURIComponent(this.props.value)}`;
+    };${this.encoding()},${encodeURIComponent(value)}`;
     return (
       <img src={src} width={this.props.width} height={this.props.height} />
     );
   }
 
-  render() {
+  render(): Rendered {
     if (this.props.value != null) {
-      return this.render_locally();
+      return this.render_locally(this.props.value);
     } else if (this.props.sha1 != null && this.props.project_id != null) {
-      return this.render_using_server();
+      return this.render_using_server(this.props.project_id, this.props.sha1);
     } else {
       // not enough info to render
       return <span>[unavailable {this.extension()} image]</span>;
@@ -203,7 +191,7 @@ interface TextPlainProps {
 
 class TextPlain extends Component<TextPlainProps> {
   render() {
-    // span?  what? -- See https://github.com/sagemathinc/cocalc/issues/1958
+    // span? -- see https://github.com/sagemathinc/cocalc/issues/1958
     return (
       <div style={STDOUT_STYLE}>
         <span>{this.props.value}</span>
@@ -225,46 +213,59 @@ class UntrustedJavascript extends Component<UntrustedJavascriptProps> {
 }
 
 interface JavascriptProps {
-  value: any | string; // TODO: not used?
+  value: string | immutable.List<string>;
 }
 
 class Javascript extends Component<JavascriptProps> {
   private node: HTMLElement;
-  componentDidMount() {
+
+  componentDidMount(): void {
     const element = $(this.node);
     element.empty();
-    let { value } = this.props;
-    if (typeof value !== "string") {
-      value = value.toJS();
+    let value: string[];
+    if (typeof this.props.value == "string") {
+      value = [this.props.value];
+    } else {
+      const x = this.props.value.toJS();
+      if (!is_array(x)) {
+        console.warn("not evaluating javascript since wrong type:", x);
+        return;
+      } else {
+        value = x;
+      }
     }
-    if (!misc.is_array(value)) {
-      value = [value];
+    let block: string;
+    for (block of value) {
+      javascript_eval(block, element);
     }
-    return value.map(line => javascript_eval(line, element));
   }
 
-  render() {
-    return <div ref={(node: any) => (this.node = node)} />;
+  render(): Rendered {
+    return <div />;
   }
 }
 
 interface PDFProps {
-  project_id?: string;
-  value: any | string;
+  project_id: string;
+  value: string | immutable.Map<string, any>;
 }
 
 class PDF extends Component<PDFProps> {
-  render() {
-    let href;
-    if (misc.is_string(this.props.value)) {
+  render(): Rendered {
+    let href: string;
+    if (typeof this.props.value == "string") {
       href = get_blob_url(this.props.project_id, "pdf", this.props.value);
     } else {
-      const value = this.props.value.get("value");
-      href = `data:application/pdf;base64,${value}`;
+      href = `data:application/pdf;base64,${this.props.value.get("value")}`;
     }
     return (
       <div style={OUT_STYLE}>
-        <a href={href} target="_blank" style={{ cursor: "pointer" }}  rel="noopener">
+        <a
+          href={href}
+          target="_blank"
+          style={{ cursor: "pointer" }}
+          rel="noopener"
+        >
           View PDF
         </a>
       </div>
@@ -273,19 +274,24 @@ class PDF extends Component<PDFProps> {
 }
 
 interface DataProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
   id?: string;
-  actions?: any;
+  actions?: JupyterActions;
   trust?: boolean;
 }
 
 class Data extends Component<DataProps> {
-  shouldComponentUpdate(nextProps) {
-    return !immutable_equals(this.props, nextProps);
+  shouldComponentUpdate(nextProps): boolean {
+    return (
+      !this.props.message.equals(nextProps.message) ||
+      this.props.id != nextProps.id ||
+      this.props.trust != nextProps.trust
+    );
   }
-  render_html(value: any) {
+
+  render_html(value: string): Rendered {
     return (
       <div>
         <HTML
@@ -298,7 +304,8 @@ class Data extends Component<DataProps> {
       </div>
     );
   }
-  render_markdown(value: any) {
+
+  render_markdown(value: string): Rendered {
     return (
       <div>
         <Markdown
@@ -311,18 +318,20 @@ class Data extends Component<DataProps> {
       </div>
     );
   }
-  render() {
-    let type: any = undefined;
-    let value: any = undefined;
+
+  render(): Rendered {
     const data = this.props.message.get("data");
-    __guardMethod__(data, "forEach", o =>
-      o.forEach(function(v, k) {
-        type = k;
-        value = v;
-        return false;
-      })
-    );
-    if (type) {
+    if (data == null || typeof data.forEach != "function") return;
+
+    let type: string = "";
+    let value: any = undefined;
+    data.forEach(function(v, k) {
+      type = k;
+      value = v;
+      return false;
+    });
+
+    if (type != "") {
       const [a, b] = type.split("/");
       switch (a) {
         case "text":
@@ -336,13 +345,16 @@ class Data extends Component<DataProps> {
                 );
               }
               return <TextPlain value={value} />;
+
             case "html":
             case "latex": // put latex as HTML, since jupyter requires $'s anyways.
               return this.render_html(value);
+
             case "markdown":
               return this.render_markdown(value);
           }
           break;
+
         case "image":
           let height: any;
           let width: any;
@@ -376,8 +388,10 @@ class Data extends Component<DataProps> {
               height={height}
             />
           );
+
         case "iframe":
           return <IFrame sha1={value} project_id={this.props.project_id} />;
+
         case "application":
           switch (b) {
             case "javascript":
@@ -385,12 +399,18 @@ class Data extends Component<DataProps> {
                 return <Javascript value={value} />;
               }
               return <UntrustedJavascript value={value} />;
+
             case "pdf":
+              if (this.props.project_id == null || value == null) {
+                console.warn("PDF: project_id and value must be specified");
+                return <pre>Invalid PDF output</pre>
+              }
               return <PDF value={value} project_id={this.props.project_id} />;
           }
           break;
       }
     }
+
     return (
       <pre>
         Unsupported message: {JSON.stringify(this.props.message.toJS())}
@@ -400,43 +420,50 @@ class Data extends Component<DataProps> {
 }
 
 interface TracebackProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
 }
 
 class Traceback extends Component<TracebackProps> {
-  shouldComponentUpdate(nextProps) {
-    return !immutable_equals(this.props, nextProps);
+  shouldComponentUpdate(nextProps: TracebackProps): boolean {
+    return !this.props.message.equals(nextProps.message);
   }
-  render() {
-    const v: any[] = [];
-    let n = 0;
+
+  render(): Rendered {
+    const v: Rendered[] = [];
+    let n: number = 0;
+
     this.props.message.get("traceback").forEach(function(x) {
-      if (!misc.endswith(x, "\n")) {
+      if (!endswith(x, "\n")) {
         x += "\n";
       }
       v.push(<Ansi key={n}>{x}</Ansi>);
       n += 1;
     });
+
     return <div style={TRACEBACK_STYLE}>{v}</div>;
   }
 }
 
 interface MoreOutputProps {
-  message: immutable.Map<any, any>;
-  actions?: any; // if not set, then can't get more ouput
+  message: immutable.Map<string, any>;
   id: string;
+  actions?: JupyterActions; // if not set, then can't get more output
 }
 
 class MoreOutput extends Component<MoreOutputProps> {
-  shouldComponentUpdate(nextProps) {
-    return nextProps.message !== this.props.message;
+  shouldComponentUpdate(nextProps: MoreOutputProps) {
+    return (
+      nextProps.message !== this.props.message || nextProps.id != this.props.id
+    );
   }
-  show_more_output = () => {
-    return this.props.actions != null
+
+  show_more_output = (): void => {
+    this.props.actions != null
       ? this.props.actions.fetch_more_output(this.props.id)
       : undefined;
   };
-  render() {
+
+  render(): Rendered {
     if (this.props.actions == null || this.props.message.get("expired")) {
       return (
         <Button bsStyle="info" disabled>
@@ -459,19 +486,15 @@ const INPUT_STYLE: React.CSSProperties = {
 };
 
 interface InputDoneProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
 }
 
 class InputDone extends Component<InputDoneProps> {
-  render() {
-    let left: any;
-    let left1: any;
-    const value = (left = this.props.message.get("value")) != null ? left : "";
+  render(): Rendered {
+    const value: string = this.props.message.getIn(["opts", "prompt"], "");
     return (
       <div style={STDOUT_STYLE}>
-        {(left1 = this.props.message.getIn(["opts", "prompt"])) != null
-          ? left1
-          : ""}
+        {value}
         <input
           style={INPUT_STYLE}
           type={
@@ -479,7 +502,7 @@ class InputDone extends Component<InputDoneProps> {
           }
           size={Math.max(47, value.length + 10)}
           readOnly={true}
-          value={value}
+          value={this.props.message.get("value", "")}
         />
       </div>
     );
@@ -487,8 +510,8 @@ class InputDone extends Component<InputDoneProps> {
 }
 
 interface InputProps {
-  message: immutable.Map<any, any>;
-  actions?: any;
+  message: immutable.Map<string, any>;
+  actions?: JupyterActions;
   id: string;
 }
 
@@ -502,39 +525,36 @@ class Input extends Component<InputProps, InputState> {
     this.state = { value: "" };
   }
 
-  key_down = (evt: any) => {
+  key_down = async (evt: React.KeyboardEvent): Promise<void> => {
     if (evt.keyCode === 13) {
       evt.stopPropagation();
       this.submit();
     }
-    // Official docs: If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return), raise EOFError.
-    // The Jupyter notebook does *NOT* properly implement this.  We do something at least similar
-    // and send an interrupt on control d or control z.
+    // Official docs: If the user hits EOF (*nix: Ctrl-D, Windows: Ctrl-Z+Return),
+    // raise EOFError.
+    // The Jupyter notebook does *NOT* properly implement this.  We do
+    // something at least similar and send an interrupt on
+    // control d or control z.
     if ((evt.keyCode === 68 || evt.keyCode === 90) && evt.ctrlKey) {
       evt.stopPropagation();
       if (this.props.actions != null) {
         this.props.actions.signal("SIGINT");
       }
-      return setTimeout(this.submit, 10);
+      await delay(10);
+      this.submit();
     }
   };
 
-  submit = () => {
-    if (this.props.actions != null) {
-      this.props.actions.submit_input(this.props.id, this.state.value);
-    }
-    return this.props.actions != null
-      ? this.props.actions.focus_unlock()
-      : undefined;
+  submit = (): void => {
+    if (this.props.actions == null) return;
+    this.props.actions.submit_input(this.props.id, this.state.value);
+    this.props.actions.focus_unlock();
   };
 
-  render() {
-    let left: any;
+  render(): Rendered {
     return (
       <div style={STDOUT_STYLE}>
-        {(left = this.props.message.getIn(["opts", "prompt"])) != null
-          ? left
-          : ""}
+        {this.props.message.getIn(["opts", "prompt"], "")}
         <input
           style={INPUT_STYLE}
           autoFocus={true}
@@ -564,13 +584,14 @@ class Input extends Component<InputProps, InputState> {
 }
 
 interface NotImplementedProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
 }
 
 class NotImplemented extends Component<NotImplementedProps> {
-  shouldComponentUpdate(nextProps) {
-    return !immutable_equals(this.props, nextProps);
+  shouldComponentUpdate(nextProps: NotImplementedProps): boolean {
+    return !this.props.message.equals(nextProps.message);
   }
+
   render() {
     return (
       <pre style={STDERR_STYLE}>
@@ -580,7 +601,7 @@ class NotImplemented extends Component<NotImplementedProps> {
   }
 }
 
-const message_component = function(message: immutable.Map<any, any>) {
+function message_component(message: immutable.Map<string, any>): any {
   if (message.get("more_output") != null) {
     return MoreOutput;
   }
@@ -604,13 +625,13 @@ const message_component = function(message: immutable.Map<any, any>) {
     return Traceback;
   }
   return NotImplemented;
-};
+}
 
 interface CellOutputMessageProps {
-  message: immutable.Map<any, any>;
+  message: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
-  actions?: any; // optional  - not needed by most messages
+  actions?: JupyterActions; // optional  - not needed by most messages
   id?: string; // optional, and not usually needed either
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
 }
@@ -641,11 +662,11 @@ const OUTPUT_STYLE: React.CSSProperties = {
   marginLeft: "1px"
 };
 
-const OUTPUT_STYLE_SCROLLED = misc.merge({ maxHeight: "40vh" }, OUTPUT_STYLE);
+const OUTPUT_STYLE_SCROLLED = merge({ maxHeight: "40vh" }, OUTPUT_STYLE);
 
 interface CellOutputMessagesProps {
   actions?: any; // optional actions
-  output: immutable.Map<any, any>; // the actual messages
+  output: immutable.Map<string, any>; // the actual messages
   project_id?: string;
   directory?: string;
   scrolled?: boolean;
@@ -654,17 +675,15 @@ interface CellOutputMessagesProps {
 }
 
 export class CellOutputMessages extends Component<CellOutputMessagesProps> {
-  shouldComponentUpdate(nextProps) {
+  shouldComponentUpdate(nextProps): boolean {
     return (
-      nextProps.output !== this.props.output ||
+      !nextProps.output.equals(this.props.output) ||
       nextProps.scrolled !== this.props.scrolled ||
       nextProps.trust !== this.props.trust
     );
   }
-  render_output_message(n: any, mesg: any) {
-    if (mesg == null) {
-      return;
-    }
+
+  render_output_message(n: string, mesg: immutable.Map<string, any>): Rendered {
     return (
       <CellOutputMessage
         key={n}
@@ -677,7 +696,8 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
       />
     );
   }
-  message_list = () => {
+
+  message_list = (): immutable.Map<string, any>[] => {
     const v: any[] = [];
     let k = 0;
     // TODO: use caching to make this more efficient...
@@ -691,7 +711,7 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
       // output object, e.g., undefined or not immmutable js.
       // Also, we're checking that get is defined --
       //   see https://github.com/sagemathinc/cocalc/issues/2404
-      if (mesg == null || typeof mesg.get != 'function') {
+      if (mesg == null || typeof mesg.get != "function") {
         console.warn(`Jupyter -- ignoring invalid mesg ${mesg}`);
         continue;
       }
@@ -713,17 +733,18 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
     }
     return v;
   };
-  render() {
+
+  render(): Rendered {
     // (yes, I know n is a string in the next line, but that's fine since it is used only as a key)
-    const v = (() => {
-      const result: any[] = [];
-      const object = this.message_list();
-      for (let n in object) {
-        const mesg = object[n];
-        result.push(this.render_output_message(n, mesg));
+    const v: Rendered[] = [];
+    const object: immutable.Map<string, any>[] = this.message_list();
+    let n: string;
+    for (n in object) {
+      const mesg = object[n];
+      if (mesg != null) {
+        v.push(this.render_output_message(n, mesg));
       }
-      return result;
-    })();
+    }
     return (
       <div
         style={this.props.scrolled ? OUTPUT_STYLE_SCROLLED : OUTPUT_STYLE}
@@ -734,68 +755,7 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
     );
   }
 }
-function is_ansi(s?: string) {
+
+function is_ansi(s?: string): boolean {
   return s != null && s.indexOf("\u001b") !== -1;
-}
-
-// TODO: this function came from "../r_misc" because it wasn't exported.
-function immutable_equals(objA: any, objB: any) {
-  if (immutable.is(objA, objB)) {
-    return true;
-  }
-  const keysA = misc.keys(objA);
-  const keysB = misc.keys(objB);
-  if (keysA.length !== keysB.length) {
-    return false;
-  }
-
-  for (let key of keysA) {
-    if (
-      !objB.hasOwnProperty(key) ||
-      !immutable_equals_single(objA[key], objB[key])
-    ) {
-      return false;
-    }
-  }
-  return true;
-}
-
-// TODO: this function came from "../r_misc" because it wasn't exported.
-// Checks whether two immutable variables (either ImmutableJS objects or actual
-// immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
-function immutable_equals_single(a: any, b: any) {
-  if (typeof a === "object" || typeof b === "object") {
-    if (
-      (is_redux(a) && is_redux(b)) ||
-      (is_redux_actions(a) && is_redux_actions(b))
-    ) {
-      return a === b;
-    }
-    // TODO: use immutable.isImmutable
-    if (
-      (immutable as any).Iterable.isIterable(a) &&
-      (immutable as any).Iterable.isIterable(b)
-    ) {
-      return immutable.is(a, b);
-    }
-    if ((a != null && b == null) || (a == null && b != null)) {
-      // if one is undefined and the other is defined, they aren't equal
-      return false;
-    }
-    console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b);
-    return false;
-  }
-  return a === b;
-}
-
-function __guardMethod__(obj: any, methodName: any, transform: any) {
-  if (
-    typeof obj !== "undefined" &&
-    obj !== null &&
-    typeof obj[methodName] === "function"
-  ) {
-    return transform(obj, methodName);
-  } else {
-    return undefined;
-  }
 }

@@ -3,7 +3,7 @@ Evaluate a line of code with the scope containing only a jquery wrapped
 element and whatever is available on window.  Obviously not "safe", but
 maybe safer/cleaner than nothing.
 */
-export function javascript_eval(line: string, element: any) {
+export function javascript_eval(line: string, element: any) : void {
   let requirejs: any;
   let require: any;
   require = requirejs = () =>
@@ -17,8 +17,8 @@ export function javascript_eval(line: string, element: any) {
   // TODO: element is jquery wrapped element
   // "element" is possibly used in eval.
   try {
-    return eval(line);
+    eval(line);
   } catch (err) {
-    return console.warn(`Jupyter Eval Error: ${err}`);
+    console.warn(`Jupyter Eval Error: ${err} -- evaluating "${line}"`);
   }
 }
