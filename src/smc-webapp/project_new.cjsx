@@ -160,11 +160,11 @@ exports.FileTypeSelector = FileTypeSelector = rclass
     displayName : 'ProjectNew-FileTypeSelector'
 
     propTypes :
-        create_file   : rtypes.func  #.required # commented, causes an exception upon init
-        create_folder : rtypes.func  #.required
-        styles        : rtypes.object
-        project_id    : rtypes.string.isRequired
-        configuration : rtypes.immutable
+        create_file        : rtypes.func  #.required # commented, causes an exception upon init
+        create_folder      : rtypes.func  #.required
+        styles             : rtypes.object
+        project_id         : rtypes.string.isRequired
+        available_features : rtypes.object
 
     getInitialState :->
         show_jupyter_server_panel : false
@@ -176,15 +176,15 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         row_style =
             marginBottom:'8px'
 
-        {is_available} = require('./project_configuration')
-        available = is_available(@props.configuration)
+        # why is available_features immutable?
+        available = @props.available_features?.toJS?() ? {}
 
         <Fragment>
             <Row style={row_style}>
                 <Col sm={12}>
                     {<Tip icon='cc-icon-sagemath-bold' title='Sage worksheet' tip='Create an interactive worksheet for using the SageMath mathematical software, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.'>
                         <NewFileButton icon='cc-icon-sagemath-bold' name='Sage worksheet' on_click={@props.create_file} ext='sagews' />
-                    </Tip> if available.sagews}
+                    </Tip> if available.sage}
                     {<Tip icon='cc-icon-jupyter' title='Jupyter notebook' tip='Create an interactive notebook for using Python, Julia, R and more.'>
                         <NewFileButton icon='cc-icon-jupyter' name='Jupyter notebook' on_click={@props.create_file} ext={'ipynb'} />
                     </Tip> if available.jupyter_notebook}
@@ -275,7 +275,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             current_path        : rtypes.string
             default_filename    : rtypes.string
             file_creation_error : rtypes.string
-            configuration       : rtypes.immutable
+            available_features  : rtypes.immutable
         projects :
             project_map              : rtypes.immutable
             get_total_project_quotas : rtypes.func
@@ -484,7 +484,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
                     <div style={color:"#666", paddingBottom:"5px"}>Select the type of file</div>
-                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id} configuration={@props.configuration}>
+                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id} available_features={@props.available_features}>
                         <Tip
                             title = {'Download files from the Internet'}
                             icon = {'cloud'}

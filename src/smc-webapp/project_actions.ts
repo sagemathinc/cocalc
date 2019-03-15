@@ -11,8 +11,11 @@ import { query as client_query } from "./frame-editors/generic/client";
 import { callback2 } from "smc-util/async-utils";
 import { ConfigurationAspect } from "project/websocket/api";
 //import { Configuration, Capabilities } from "smc-project/configuration";
-import { get_configuration } from "project_configuration";
-
+import {
+  get_configuration,
+  LIBRARY_INDEX_FILE,
+  is_available as feature_is_available
+} from "project_configuration";
 const { SITE_NAME } = require("smc-util/theme");
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
@@ -1810,7 +1813,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       aspect,
       prev
     );
-    this.setState({ configuration: next });
+    console.log("feature_is_available(next)", feature_is_available(next));
+    this.setState({
+      configuration: next,
+      available_features: feature_is_available(next)
+    });
     return next;
   }
 
@@ -1895,7 +1902,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const index_json_url = webapp_client.read_file_from_project({
       project_id: this.project_id,
-      path: "/ext/library/cocalc-examples/index.json"
+      path: LIBRARY_INDEX_FILE
     });
 
     const fetch = cb => {

@@ -860,13 +860,14 @@ ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
 
     propTypes :
-        kucalc       : rtypes.string
-        show_hidden  : rtypes.bool
-        show_masked  : rtypes.bool
-        public_view  : rtypes.bool
-        show_new     : rtypes.bool
-        show_library : rtypes.bool
-        actions      : rtypes.object.isRequired
+        kucalc             : rtypes.string
+        show_hidden        : rtypes.bool
+        show_masked        : rtypes.bool
+        public_view        : rtypes.bool
+        show_new           : rtypes.bool
+        show_library       : rtypes.bool
+        available_features : rtypes.object
+        actions            : rtypes.object.isRequired
 
     handle_refresh: (e) ->
         e.preventDefault()
@@ -937,7 +938,7 @@ ProjectFilesButtons = rclass
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
-                {@render_library_button()}
+                {@render_library_button() if @props.available_features?.library}
                 {@render_upload_button()}
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
@@ -2232,6 +2233,7 @@ exports.ProjectFiles = rclass ({name}) ->
             show_new              : rtypes.bool
             public_paths          : rtypes.immutable  # used only to trigger table init
             configuration         : rtypes.immutable
+            available_features    : rtypes.object
 
     propTypes :
         project_id             : rtypes.string
@@ -2592,6 +2594,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     show_new     = {@props.show_new}
                     show_library = {@props.show_library}
                     kucalc       = {@props.kucalc}
+                    available_features = {@props.available_features}
                 />
             }
         </div>

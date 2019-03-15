@@ -38,6 +38,7 @@ import * as immutable from "immutable";
 
 const misc = require("smc-util/misc");
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
+import { Available as AvailableFeatures } from "./project_configuration";
 
 import {
   project_redux_name,
@@ -77,6 +78,7 @@ export interface ProjectStoreState {
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
   configuration?: immutable.Map<string, any>; // this is "Configuration"
+  available_features?: AvailableFeatures;
 
   // Project Page
   active_project_tab: string;

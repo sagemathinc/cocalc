@@ -4,17 +4,18 @@
  */
 
 import * as which from "which";
+import { access as fs_access, constants as fs_constaints } from "fs";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
-
 import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
 import {
   Configuration,
   Capabilities,
-  MainCapabilities
+  MainCapabilities,
+  LIBRARY_INDEX_FILE
 } from "../smc-webapp/project_configuration";
 
 async function have(name: string): Promise<boolean> {
-  return new Promise<boolean>((resolve, _reject) => {
+  return new Promise<boolean>(resolve => {
     which(name, function(error, path) {
       if (error || path == null) {
         resolve(false);
@@ -46,8 +47,9 @@ async function x11(): Promise<boolean> {
   return await have("xpra");
 }
 
-async function sagews(): Promise<boolean> {
-  // TODO probably also check if smc_sagews is working
+async function sage(): Promise<boolean> {
+  // TODO probably also check if smc_sagews is working?
+  // without sage, sagews files are disabled
   return await have("sage");
 }
 
@@ -74,18 +76,28 @@ async function spellcheck(): Promise<boolean> {
 
 // this is for rnw RMarkdown files.
 // This just tests R, which as knitr by default?
-async function rnw(): Promise<boolean> {
+async function rmd(): Promise<boolean> {
   return await have("R");
+}
+
+// just check if we can read that json file
+async function library(): Promise<boolean> {
+  return new Promise<boolean>(resolve => {
+    fs_access(LIBRARY_INDEX_FILE, fs_constaints.R_OK, err => {
+      resolve(err ? false : true);
+    });
+  });
 }
 
 async function capabilities(): Promise<MainCapabilities> {
   const caps: MainCapabilities = {
     jupyter: await jupyter(),
     latex: await latex(),
-    sagews: await sagews(),
+    sage: await sage(),
     x11: await x11(),
-    rnw: await rnw(),
-    spellcheck: await spellcheck()
+    rmd: await rmd(),
+    spellcheck: await spellcheck(),
+    library: await library()
   };
   return caps;
 }
