@@ -1,12 +1,14 @@
 import * as React from "react";
+import memoizeOne from "memoize-one";
 
 import { ProjectActions } from "../../project_actions";
 
 import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
+import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
 
-const { COLORS, TimeAgo, Tip, FileCheckbox, Icon } = require("../../r_misc");
+const { COLORS, TimeAgo, Tip, Icon } = require("../../r_misc");
 
 const { Row, Col } = require("react-bootstrap");
 const misc = require("smc-util/misc");
@@ -33,7 +35,29 @@ interface State {
   selection_at_last_mouse_down: string;
 }
 
-export class DirectoryRow extends React.PureComponent<Props, State> {
+function compute_row_style(bordered, color): React.CSSProperties {
+  return {
+    cursor: "pointer",
+    borderRadius: "4px",
+    backgroundColor: color,
+    borderStyle: "solid",
+    borderColor: bordered ? COLORS.BLUE_BG : color
+  };
+}
+
+const directory_style: React.CSSProperties = {
+  fontWeight: "bold",
+  whiteSpace: "pre-wrap",
+  wordWrap: "break-word",
+  overflowWrap: "break-word",
+  verticalAlign: "sub"
+};
+
+function compute_link_style(mask): React.CSSProperties {
+  return { color: mask ? "#bbbbbb" : undefined };
+}
+
+export class DirectoryRow extends React.Component<Props, State> {
   shouldComponentUpdate(next) {
     return (
       this.props.name !== next.name ||
@@ -56,7 +80,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
     this.setState({
       selection_at_last_mouse_down: window.getSelection().toString()
     });
-  }
+  };
 
   handle_click = () => {
     if (this.state == undefined) {
@@ -70,27 +94,28 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
       this.props.actions.open_directory(this.full_path());
       this.props.actions.set_file_search("");
     }
-  }
+  };
+
+  row_style = memoizeOne(compute_row_style);
+  link_style = memoizeOne(compute_link_style);
+
+  generate_on_copy_click = memoizeOne((full_path: string) => {
+    return generate_click_for("copy", full_path, this.props.actions);
+  });
+
+  generate_on_share_click = memoizeOne((full_path: string) => {
+    return generate_click_for("share", full_path, this.props.actions);
+  });
 
   render_public_directory_info() {
     if (this.props.public_view) {
       return (
-        <CopyButton
-          on_click={generate_click_for(
-            "copy",
-            this.full_path(),
-            this.props.actions
-          )}
-        />
+        <CopyButton on_click={this.generate_on_copy_click(this.full_path())} />
       );
     } else if (this.props.is_public) {
       return (
         <PublicButton
-          on_click={generate_click_for(
-            "share",
-            this.full_path(),
-            this.props.actions
-          )}
+          on_click={this.generate_on_share_click(this.full_path())}
         />
       );
     }
@@ -120,6 +145,8 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
   }
 
   render_name_link() {
+    const link_style = this.link_style(this.props.mask);
+
     if (
       (this.props.display_name &&
         this.props.display_name !== this.props.name) ||
@@ -134,7 +161,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
           }
           tip={this.props.name}
         >
-          <a style={{ color: this.props.mask ? "#bbbbbb" : undefined }}>
+          <a style={link_style}>
             {misc.trunc_middle(
               this.props.display_name != undefined
                 ? this.props.display_name
@@ -146,7 +173,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
       );
     } else {
       return (
-        <a style={{ color: this.props.mask ? "#bbbbbb" : undefined }}>
+        <a style={link_style}>
           {misc.trunc_middle(
             this.props.display_name != undefined
               ? this.props.display_name
@@ -158,41 +185,13 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
     }
   }
 
-  render_size() {
-    if (this.props.size == undefined) {
-      // need newer backend project
-      return;
-    }
-    return (
-      <span
-        className="pull-right"
-        style={{ color: "#666", marginRight: "3em" }}
-      >
-        {this.props.size} {misc.plural(this.props.size, "item")}
-      </span>
-    );
-  }
-
   render() {
-    const row_styles = {
-      cursor: "pointer",
-      borderRadius: "4px",
-      backgroundColor: this.props.color,
-      borderStyle: "solid",
-      borderColor: this.props.bordered ? COLORS.BLUE_BG : this.props.color
-    };
-
-    const directory_styles = {
-      fontWeight: "bold",
-      whiteSpace: "pre-wrap",
-      wordWrap: "break-word",
-      overflowWrap: "break-word",
-      verticalAlign: "sub"
-    };
+    const row_style = this.row_style(this.props.bordered, this.props.color);
+    const link_style = this.link_style(this.props.mask);
 
     return (
       <Row
-        style={row_styles}
+        style={row_style}
         onMouseDown={this.handle_mouse_down}
         onClick={this.handle_click}
         className={this.props.no_select ? "noselect" : undefined}
@@ -208,7 +207,7 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
           {this.render_public_directory_info()}
         </Col>
         <Col sm={1} xs={3}>
-          <a style={{ color: this.props.mask ? "#bbbbbb" : undefined }}>
+          <a style={link_style}>
             <Icon
               name="folder-open-o"
               style={{ fontSize: "14pt", verticalAlign: "sub" }}
@@ -225,12 +224,26 @@ export class DirectoryRow extends React.PureComponent<Props, State> {
         </Col>
         <Col sm={4} smPush={5} xs={6}>
           {this.render_time()}
-          {this.render_size()}
+          <Size size={this.props.size} />
         </Col>
-        <Col sm={5} smPull={4} xs={12} style={directory_styles}>
+        <Col sm={5} smPull={4} xs={12} style={directory_style}>
           {this.render_name_link()}
         </Col>
       </Row>
     );
   }
+}
+
+const size_style = { color: "#666", marginRight: "3em" };
+
+function Size({ size }) {
+  if (size == undefined) {
+    return null;
+  }
+
+  return (
+    <span className="pull-right" style={size_style}>
+      {size} {misc.plural(size, "item")}
+    </span>
+  );
 }

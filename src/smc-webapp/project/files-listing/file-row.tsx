@@ -1,13 +1,15 @@
 import * as React from "react";
+import memoizeOne from "memoize-one";
 
 import { ProjectActions } from "../../project_actions";
-import { analytics_event} from "../../tracker"
+import { analytics_event } from "../../tracker";
 
 import { CopyButton } from "./copy-button";
 import { PublicButton } from "./public-button";
+import { FileCheckbox } from "./file-checkbox";
 import { generate_click_for } from "./utils";
 
-const { COLORS, TimeAgo, Tip, FileCheckbox, Icon } = require("../../r_misc");
+const { COLORS, TimeAgo, Tip, Icon } = require("../../r_misc");
 
 const { Button, Row, Col } = require("react-bootstrap");
 const misc = require("smc-util/misc");
@@ -57,11 +59,11 @@ export class FileRow extends React.Component<Props, State> {
     // get the file_associations[ext] just like it is defined in the editor
     let name: string;
     const { file_options } = require("../../editor");
-    const info = file_options(this.props.name)
+    const info = file_options(this.props.name);
     if (info != undefined) {
-      name = info.icon
+      name = info.icon;
     } else {
-      name = "file"
+      name = "file";
     }
     const style = {
       color: this.props.mask ? "#bbbbbb" : undefined,
@@ -127,25 +129,23 @@ export class FileRow extends React.Component<Props, State> {
     }
   }
 
+  generate_on_copy_click = memoizeOne((full_path: string) => {
+    return generate_click_for("copy", full_path, this.props.actions);
+  });
+
+  generate_on_share_click = memoizeOne((full_path: string) => {
+    return generate_click_for("share", full_path, this.props.actions);
+  });
+
   render_public_file_info() {
     if (this.props.public_view) {
       return (
-        <CopyButton
-          on_click={generate_click_for(
-            "copy",
-            this.full_path(),
-            this.props.actions
-          )}
-        />
+        <CopyButton on_click={this.generate_on_copy_click(this.full_path())} />
       );
     } else if (this.props.is_public) {
       return (
         <PublicButton
-          on_click={generate_click_for(
-            "share",
-            this.full_path(),
-            this.props.actions
-          )}
+          on_click={this.generate_on_share_click(this.full_path())}
         />
       );
     }
@@ -159,9 +159,9 @@ export class FileRow extends React.Component<Props, State> {
     this.setState({
       selection_at_last_mouse_down: window.getSelection().toString()
     });
-  }
+  };
 
-  handle_click = (e) => {
+  handle_click = e => {
     if (this.state == undefined) {
       // see https://github.com/sagemathinc/cocalc/issues/3442
       return;
@@ -184,16 +184,16 @@ export class FileRow extends React.Component<Props, State> {
         misc.filename_extension(this.full_path())
       );
     }
-  }
+  };
 
-  handle_download_click = (e) => {
+  handle_download_click = e => {
     e.preventDefault();
     e.stopPropagation();
     this.props.actions.download_file({
       path: this.full_path(),
       log: true
     });
-  }
+  };
 
   render_timestamp() {
     try {
@@ -277,4 +277,3 @@ export class FileRow extends React.Component<Props, State> {
     );
   }
 }
-

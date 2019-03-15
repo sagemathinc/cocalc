@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { analytics_event } from "../../tracker";
 import { Icon } from "../../r_misc/icon";
-import { ProjectActions } from "../../project_actions"
+import { ProjectActions } from "../../project_actions";
 
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
@@ -18,6 +18,15 @@ interface Props {
   file_search: string;
   current_path?: string;
 }
+
+const row_style = {
+  textAlign: "left",
+  color: "#888",
+  marginTop: "20px",
+  wordWrap: "break-word"
+};
+
+const create_button_style = { fontSize: "40px", color: "#888", maxWidth: "100%" }
 
 export class NoFiles extends React.PureComponent<Props> {
   static defaultProps = { file_search: "" };
@@ -39,7 +48,7 @@ export class NoFiles extends React.PureComponent<Props> {
       this.props.create_file();
       analytics_event("project_file_listing", "listing_create_button", "file");
     }
-  }
+  };
 
   render_create_button() {
     let button_text: string;
@@ -52,7 +61,7 @@ export class NoFiles extends React.PureComponent<Props> {
 
     return (
       <Button
-        style={{ fontSize: "40px", color: "#888", maxWidth: "100%" }}
+        style={create_button_style}
         onClick={() => this.handle_click()}
       >
         <Icon name="plus-circle" /> {button_text}
@@ -74,14 +83,7 @@ export class NoFiles extends React.PureComponent<Props> {
 
   render() {
     return (
-      <Row
-        style={{
-          textAlign: "left",
-          color: "#888",
-          marginTop: "20px",
-          wordWrap: "break-word"
-        }}
-      >
+      <Row style={row_style}>
         <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
           <span style={{ fontSize: "20px" }}>No files found</span>
           <hr />

@@ -46,7 +46,7 @@ interface Props {
   shift_is_down: boolean;
   sort_by: (heading: string) => void; // TODO: should be data
   library: object;
-  other_settings: immutable.Map<any, any>;
+  other_settings?: immutable.Map<any, any>;
   show_new: boolean;
 }
 
@@ -129,7 +129,7 @@ export class FileListing extends React.Component<Props> {
   }
 
   render_rows() {
-    return Array.from(this.props.listing).map((a, i) =>
+    return this.props.listing.map((a, i) =>
       this.render_row(
         a.name,
         a.size,
@@ -167,7 +167,6 @@ export class FileListing extends React.Component<Props> {
   }
 
   render_first_steps() {
-    let left;
     return; // See https://github.com/sagemathinc/cocalc/issues/3138
     const name = "first_steps";
     if (this.props.public_view) {
@@ -176,14 +175,11 @@ export class FileListing extends React.Component<Props> {
     if (!this.props.library[name]) {
       return;
     }
-    if (
-      !((left =
-        this.props.other_settings != null
-          ? this.props.other_settings.get(name)
-          : undefined) != null
-        ? left
-        : false)
-    ) {
+    let setting: string | undefined;
+    if (this.props.other_settings !== undefined) {
+      setting = (this.props.other_settings as any).get(name)
+    }
+    if (!setting) {
       return;
     }
     if (this.props.current_path !== "") {
