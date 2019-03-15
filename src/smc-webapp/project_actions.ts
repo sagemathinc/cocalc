@@ -11,6 +11,9 @@ import { query as client_query } from "./frame-editors/generic/client";
 import { callback2 } from "smc-util/async-utils";
 import { ConfigurationAspect } from "project/websocket/api";
 import { Configuration, Capabilities } from "smc-project/configuration";
+import { KNITR_EXTS } from "frame-editors/latex-editor/util";
+
+const { SITE_NAME } = require("smc-util/theme");
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -692,7 +695,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    if (!(await this.can_open_file_ext(ext))) return;
+    const can_open_file = !(await this.can_open_file_ext(ext));
+    if (!can_open_file) {
+      console.log("aborting project_actions::open_file");
+      return;
+    }
+
 
     if (opts.new_browser_window) {
       // options other than path don't do anything yet.
@@ -1799,14 +1807,26 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     if (aspect == ("main" as ConfigurationAspect)) {
       const caps = config.capabilities as Capabilities;
-      caps.x11 = false; // TEST x11 disabilities
-      const hide_ext = (config.hide_ext = [] as string[]);
-      if (!caps.jupyter) hide_ext.push("ipynb");
-      // don't show jupyter classic buttons if there is no jupyter
-      // jupyter-lab and jupyter-notebook → where their buttons are
-      if (!caps.latex) hide_ext.push("tex", "rnw", "rtex");
-      if (!caps.sagews) hide_ext.push("sagews");
-      if (!caps.x11) hide_ext.push("x11");
+      // TEST x11 disabilities
+      //caps.x11 = false;
+
+      // don't show jupyter buttons if there is no jupyter
+      const jupyter = caps.jupyter;
+      if (typeof jupyter !== "boolean") {
+        // TEST no jupyter lab or notebook
+        // jupyter.lab = false;
+        // TEST no kernelspec → we can't read any kernels → entirely disable jupyter
+        // jupyter.kernelspec = false;
+        if (!jupyter.kernelspec) caps.jupyter = false;
+      }
+
+      // disable/hide certain file extensions if certain capabilities are missing
+      // (the associated editors shouldn't initialize at all!)
+      const disabled_ext = (config.disabled_ext = [] as string[]);
+      if (!caps.jupyter) disabled_ext.push("ipynb");
+      if (!caps.latex) disabled_ext.push(...KNITR_EXTS.concat(["tex"]));
+      if (!caps.sagews) disabled_ext.push("sagews");
+      if (!caps.x11) disabled_ext.push("x11");
     }
 
     const upd = immutable.fromJS({ [aspect]: config });
@@ -1829,17 +1849,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const conf = await this.init_configuration("main");
     // if we don't know anything, we're optimistic and skip this check
     if (conf == null) return true;
-    const hide_ext = conf.get("hide_ext");
-    if (hide_ext == null) return true;
-    const cant_open = hide_ext.contains(ext);
+    const disabled_ext = conf.get("disabled_ext");
+    if (disabled_ext == null) return true;
+    const cant_open = disabled_ext.contains(ext);
     if (cant_open) {
+      const SiteName =
+        redux.getStore("customize").get("site_name") || SITE_NAME;
       alert_message({
         type: "error",
-        message: `This CoCalc Project cannot open ${ext} files!`,
+        message: `This ${SiteName} project cannot open ${ext} files!`,
         timeout: 20
       });
     }
-    return !cant_open;
+    return cant_open;
   }
 
   // this is called once by the project initialization

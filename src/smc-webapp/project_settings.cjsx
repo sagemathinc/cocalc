@@ -1012,9 +1012,11 @@ ProjectSettingsBody = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
             compute_images : rtypes.immutable.Map
+        "#{name}" :
+            configuration         : rtypes.immutable
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images']) or \
+        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images', 'configuration']) or \
                 (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
@@ -1030,6 +1032,14 @@ ProjectSettingsBody = rclass ({name}) ->
         all_upgrades_to_this_project         = @props.get_upgrades_to_project(id)
 
         {commercial} = require('./customize')
+
+        # jupyter is immutable map or false-boolean
+        jupyter = @props.configuration?.getIn(["main", "capabilities", "jupyter"])
+        if (not jupyter?) or jupyter == false
+            have_jupyter_lab = have_jupyter_notebook = false
+        else
+            have_jupyter_lab = jupyter.get("lab", false)
+            have_jupyter_notebook = jupyter.get("notebook", false)
 
         <div>
             {if commercial and total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrade_type='member_host' upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={webapp_client.account_id} email_address={@props.email_address} />}
@@ -1067,8 +1077,14 @@ ProjectSettingsBody = rclass ({name}) ->
                     <AddCollaboratorsPanel key='new-collabs' project={@props.project} user_map={@props.user_map} on_invite={=>analytics_event('project_settings', 'add collaborator')} />
                     <ProjectControlPanel key='control' project={@props.project} allow_ssh={@props.kucalc != 'yes'} />
                     <SageWorksheetPanel  key='worksheet' project={@props.project} />
-                    <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
-                    <JupyterLabServerPanel  key='jupyterlab' project_id={@props.project_id} />
+                    {
+                        if have_jupyter_notebook
+                            <JupyterServerPanel  key='jupyter' project_id={@props.project_id} />
+                    }
+                    {
+                        if have_jupyter_lab
+                            <JupyterLabServerPanel  key='jupyterlab' project_id={@props.project_id} />
+                    }
                 </Col>
             </Row>
         </div>

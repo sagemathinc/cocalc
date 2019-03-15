@@ -4,7 +4,6 @@
  */
 
 import * as which from "which";
-import { callback } from "awaiting";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
 
 import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
@@ -12,11 +11,15 @@ export type Configuration = { [key: string]: object };
 export type Capabilities = { [key: string]: boolean | Capabilities };
 
 async function have(name: string): Promise<boolean> {
-  try {
-    return !!(await callback(which, name));
-  } catch {
-    return false;
-  }
+  return new Promise<boolean>((resolve, _reject) => {
+    which(name, function(error, path) {
+      if (error || path == null) {
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
 }
 
 // we cache this as long as the project runs

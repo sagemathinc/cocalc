@@ -2133,10 +2133,10 @@ ProjectFilesNew = rclass
 
     new_file_button_types : ->
         if @props.configuration?
-            hide_ext = @props.configuration.getIn(['main', 'hide_ext'])
-            if hide_ext?
+            disabled_ext = @props.configuration.getIn(['main', 'disabled_ext'])
+            if disabled_ext?
                 return ALL_FILE_BUTTON_TYPES.filter (ext) ->
-                    not hide_ext.includes(ext)
+                    not disabled_ext.includes(ext)
         return ALL_FILE_BUTTON_TYPES
 
     file_dropdown_icon: ->
