@@ -209,6 +209,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   shift_tab_key = (): void => {
     if (this.cm == null) return;
     if (this.cm.somethingSelected() || this.whitespace_before_cursor()) {
+      this.props.actions.introspect_close();  // make sure introspect page closes
       // Something is selected or there is whitespace before
       // the cursor: unindent.
       this.cm.unindent_selection();

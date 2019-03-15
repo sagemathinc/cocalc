@@ -10,9 +10,9 @@ const { merge } = require("smc-util/misc"); // TODO: import types
 const { CellOutputMessage } = require("./cell-output-message"); // TODO: import types
 
 const STYLE: React.CSSProperties = {
-  padding: "10px 20px 5px",
+  padding: "10px 25px 5px",
   overflowY: "auto",
-  border: "1px solid #888",
+  borderTop: "2px solid #ccc",
   height: "100vh"
 };
 
@@ -26,7 +26,7 @@ const INNER_STYLE: React.CSSProperties = {
 const CLOSE_STYLE: React.CSSProperties = {
   cursor: "pointer",
   position: "absolute",
-  right: "18px",
+  right: "5px",
   fontSize: "14pt",
   color: "#666",
   marginTop: "-5px"
@@ -42,7 +42,8 @@ export class Introspect extends Component<IntrospectProps> {
   close = () => this.props.actions.clear_introspect();
   render_content() {
     const found = this.props.introspect.get("found");
-    if (found != null && !found) { // TODO: is "found" a boolean? if so this should be `found === false`
+    if (found != null && !found) {
+      // TODO: is "found" a boolean? if so this should be `found === false`
       return <div>Nothing found</div>;
     }
     return <CellOutputMessage message={this.props.introspect} />;
