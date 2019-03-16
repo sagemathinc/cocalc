@@ -11,7 +11,7 @@ const CLIENT_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 
 import { Channel } from "smc-webapp/project/websocket/types";
 
-import { Map, Set as immutableSet, List, fromJS } from "immutable";
+import { Map, Set as immutableSet, fromJS } from "immutable";
 
 import { project_api } from "../generic/client";
 
@@ -19,6 +19,12 @@ const copypaste = require("smc-webapp/copy-paste-buffer");
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
+
+import {
+  X11Configuration,
+  Capabilities,
+  isMainConfiguration
+} from "../../project_configuration";
 
 const WID_HISTORY_LENGTH = 40;
 
@@ -39,7 +45,7 @@ interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;
   x11_is_idle: boolean;
   disabled: boolean;
-  hide_apps: List<string>;
+  x11_apps: Readonly<Capabilities>;
 }
 
 export class Actions extends BaseActions<X11EditorState> {
@@ -51,7 +57,7 @@ export class Actions extends BaseActions<X11EditorState> {
   client: XpraClient;
 
   async _init2(): Promise<void> {
-    // const abort = await this.check_capabilities();
+    this.check_capabilities();
     //if (abort) return;
     // TODO this doesn't work, client isn't set, x11.tsx calls this keyboard action → bang
     // console.log("X11 Actions → _init2 → abort:", abort);
@@ -71,42 +77,34 @@ export class Actions extends BaseActions<X11EditorState> {
     }
   }
 
-  //  async check_capabilities(): Promise<boolean> {
-  //    const proj_actions = this.redux.getProjectActions(this.project_id);
-  //    const proj_store = proj_actions.get_store();
-  //    if (proj_store == null) return true;
-  //
-  //    // we should already know that:
-  //    await proj_actions.init_configuration("main");
-  //    const conf1 = fromJS(proj_store.get("configuration"));
-  //    if (conf1 == null) return true;
-  //    if (conf1.getIn(["main", "x11"]) == false) {
-  //      // we know that there is no xpra
-  //      this.setState({ disabled: true });
-  //      return true;
-  //    }
-  //
-  //    // next, we check for specific apps
-  //    await proj_actions.init_configuration("x11");
-  //    const conf = fromJS(proj_store.get("configuration"));
-  //    if (conf == null) return true;
-  //    const x11_apps = conf.get("x11");
-  //    if (x11_apps != null) {
-  //      const hide_apps: List<string> = x11_apps
-  //        .filter(available => available == false)
-  //        .keySeq()
-  //        .toList();
-  //      this.setState({
-  //        disabled: false,
-  //        hide_apps
-  //      });
-  //      return false;
-  //    }
-  //
-  //    // fallback
-  //    this.setState({ disabled: true });
-  //    return true;
-  //  }
+  // returns false if there is a serious problem (no x11 available)
+  async check_capabilities(): Promise<boolean> {
+    const proj_actions = this.redux.getProjectActions(this.project_id);
+
+    let x11_apps: Readonly<Capabilities> = {};
+    const ok = await (async () => {
+      // we should already know that:
+      const main_conf = await proj_actions.init_configuration("main");
+      if (main_conf == null) return false;
+      if (!isMainConfiguration(main_conf)) return false;
+      if (main_conf.capabilities.x11 === false) {
+        // we know that there is no xpra
+        this.setState({ disabled: true });
+        return false;
+      }
+
+      // next, we check for specific apps
+      const x11_conf = (await proj_actions.init_configuration(
+        "x11"
+      )) as X11Configuration;
+      if (x11_conf == null) return false;
+      x11_apps = Object.freeze(x11_conf.capabilities);
+      if (x11_apps == null) return false;
+      return true;
+    })();
+    this.setState({ disabled: !ok, x11_apps });
+    return ok;
+  }
 
   /*
   _raw_default_frame_tree(): FrameTree {

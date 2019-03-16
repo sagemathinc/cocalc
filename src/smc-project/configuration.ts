@@ -1,3 +1,4 @@
+
 /*
  * derive configuratino and capabilities of the given project.
  * this is used in the UI to only show those elements, which should work.
@@ -6,7 +7,7 @@
 import * as which from "which";
 import { access as fs_access, constants as fs_constaints } from "fs";
 import { APPS } from "../smc-webapp/frame-editors/x11-editor/apps";
-import { ConfigurationAspect } from "../smc-webapp/project/websocket/api";
+import { ConfigurationAspect } from "../smc-webapp/project_configuration";
 import {
   Configuration,
   Capabilities,
@@ -116,11 +117,14 @@ export async function get_configuration(
           capabilities: await capabilities()
         };
       case "x11":
-        return await x11_apps();
+        return {
+          timestamp: new Date(),
+          capabilities: await x11_apps()
+        };
     }
   })();
   new_conf.timing_s = (new Date().getTime() - t0) / 1000;
-  conf[aspect] = new_conf;
+  conf[aspect] = await new_conf;
   return new_conf;
 }
 

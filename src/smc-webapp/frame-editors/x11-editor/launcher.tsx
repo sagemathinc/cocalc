@@ -10,12 +10,12 @@ import {
   rtypes
 } from "../../app-framework";
 import { debounce, keys, sortBy } from "underscore";
-import { List } from "immutable";
 const { Button } = require("react-bootstrap");
 const { Icon } = require("r_misc");
 import { APPS } from "./apps";
 import { is_different } from "smc-util/misc2";
 import { Actions } from "./actions";
+import { Capabilities } from "../../project_configuration";
 
 function sort_apps(k): string {
   const label = APPS[k].label;
@@ -23,11 +23,13 @@ function sort_apps(k): string {
   return name.toLowerCase();
 }
 
-const APP_KEYS: string[] = sortBy(keys(APPS), sort_apps);
+const APP_KEYS: ReadonlyArray<string> = Object.freeze(
+  sortBy(keys(APPS), sort_apps)
+);
 
 interface Props {
   actions: Actions;
-  hide_apps?: List<string>;
+  x11_apps?: Readonly<Capabilities>;
 }
 
 export class LauncherComponent extends Component<Props, {}> {
@@ -41,13 +43,13 @@ export class LauncherComponent extends Component<Props, {}> {
   static reduxProps({ name }) {
     return {
       [name]: {
-        hide_apps: rtypes.array
+        x11_apps: rtypes.object
       }
     };
   }
 
   shouldComponentUpdate(next): boolean {
-    return is_different(this.props, next, ["hide_apps"]);
+    return is_different(this.props, next, ["x11_apps"]);
   }
 
   launch(app: string): void {
@@ -81,14 +83,10 @@ export class LauncherComponent extends Component<Props, {}> {
   }
 
   render_launchers(): Rendered[] {
-    const v: Rendered[] = [];
-    for (let app of APP_KEYS) {
-      if (this.props.hide_apps != null) {
-        if (this.props.hide_apps.includes(app)) continue;
-      }
-      v.push(this.render_launcher(app));
-    }
-    return v;
+    // i.e. wait until we know which apps exist …
+    const available = this.props.x11_apps;
+    if (available == null) return [];
+    return APP_KEYS.filter(app => available[app]).map(this.render_launcher);
   }
 
   render(): Rendered {
