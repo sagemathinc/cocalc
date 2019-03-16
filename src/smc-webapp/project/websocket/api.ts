@@ -6,7 +6,7 @@ import { callback } from "awaiting";
 
 import { Channel } from "./types";
 
-export type ConfigurationAspect = "main" | "x11";
+import { ConfigurationAspect } from "../../project_configuration";
 
 export class API {
   private conn: any;
@@ -187,4 +187,3 @@ function call(conn: any, mesg: object, timeout_ms: number, cb: Function): void {
     cb(undefined, resp);
   });
 }
-

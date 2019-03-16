@@ -1,15 +1,26 @@
 // manages project configuration aspects
 import { Map as iMap } from "immutable";
-import { ConfigurationAspect } from "./project/websocket/api";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
 
 export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
-export type Capabilities = {
-  [key: string]: boolean | Capabilities;
-};
-// ideally, this maps to Capabilities, but there are exceptions
-export type Configuration = { [key: string]: object };
+export type ConfigurationAspect = "main" | "x11";
+
+export interface MainConfiguration {
+  capabilities: MainCapabilities;
+  timestamp: string;
+  disabled_ext: string[];
+}
+
+export type Capabilities = { [key: string]: boolean };
+
+export interface X11Configuration {
+  timestamp: string;
+  capabilities: Capabilities;
+}
+
+export type Configuration = MainConfiguration | X11Configuration;
+
 export type ProjectConfiguration = iMap<ConfigurationAspect, Configuration>;
 
 export interface MainCapabilities {
@@ -46,13 +57,37 @@ const NO_AVAIL: Available = {
   library: false
 };
 
+function isMainCapabilities(
+  caps: MainCapabilities | Capabilities
+): caps is MainCapabilities {
+  const mcaps = <MainCapabilities>caps;
+  return (
+    mcaps.jupyter != null &&
+    ["object", "boolean"].includes(typeof mcaps.jupyter) &&
+    typeof mcaps.spellcheck === "boolean" &&
+    typeof mcaps.library === "boolean"
+  );
+}
+
+export function isMainConfiguration(
+  config: MainConfiguration | X11Configuration
+): config is MainConfiguration {
+  const mconf = <MainConfiguration>config;
+  // don't test for disabled_ext, because that's added later
+  return (
+    isMainCapabilities(mconf.capabilities) &&
+    mconf.timestamp != null &&
+    typeof mconf.timestamp == "string"
+  );
+}
+
 // derive available types of files from the configuration map
 export function is_available(configuration?: ProjectConfiguration): Available {
   if (configuration == null) return NO_AVAIL;
 
   const main: Configuration | undefined = configuration.get("main");
   if (main == null) return NO_AVAIL;
-  const capabilities = main.capabilities as Capabilities;
+  const capabilities = main.capabilities as MainCapabilities;
   if (capabilities == null) return NO_AVAIL;
   const jupyter: Capabilities | boolean = capabilities.jupyter;
 
@@ -62,7 +97,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       jupyter_lab: kernelspec && !!jupyter.lab,
       jupyter_notebook: kernelspec && !!jupyter.notebook,
       jupyter: kernelspec,
-      sage: !!capabilities.sagews,
+      sage: !!capabilities.sage,
       latex: !!capabilities.latex,
       rmd: !!capabilities.rmd,
       x11: !!capabilities.x11,
@@ -85,10 +120,12 @@ export async function get_configuration(
     project_id,
     aspect
   );
+  if (config == null) return prev;
   // console.log("project_actions::init_configuration", aspect, config);
 
   if (aspect == ("main" as ConfigurationAspect)) {
-    const caps = config.capabilities as Capabilities;
+    if (!isMainConfiguration(config)) return;
+    const caps = config.capabilities;
     // TEST x11/latex/sage disabilities
     // caps.x11 = false;
     // caps.latex = false;
@@ -115,7 +152,6 @@ export async function get_configuration(
     if (!caps.x11) disabled_ext.push("x11");
   }
 
-  if (config == null) return prev;
   if (prev != null) {
     const next = prev.set(aspect, config);
     // console.log("project_actions::configuration/next", next);

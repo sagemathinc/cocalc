@@ -5,11 +5,14 @@ import * as async from "async";
 import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
-
+const { reuseInFlight } = require("async-await-utils/hof");
 import { to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback2 } from "smc-util/async-utils";
-import { ConfigurationAspect } from "project/websocket/api";
+import {
+  ConfigurationAspect,
+  isMainConfiguration
+} from "./project_configuration";
 import {
   Configuration,
   // Capabilities,
@@ -228,7 +231,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this
     );
     this.init_library = this.init_library.bind(this);
-    this.init_configuration = this.init_configuration.bind(this);
+    this.init_configuration = reuseInFlight(this.init_configuration.bind(this));
     this.copy_from_library = this.copy_from_library.bind(this);
     this.set_library_is_copying = this.set_library_is_copying.bind(this);
     this.copy_paths = this.copy_paths.bind(this);
@@ -1829,13 +1832,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const conf = await this.init_configuration("main");
     // if we don't know anything, we're optimistic and skip this check
     if (conf == null) return true;
+    if (!isMainConfiguration(conf)) return true;
     const disabled_ext = conf.disabled_ext;
-    if (disabled_ext == null) return true;
-    return !(disabled_ext as string[]).includes(ext);
+    return !disabled_ext.includes(ext);
   }
 
   // this is called once by the project initialization
-  init_library() {
+  async init_library() {
+    const conf = await this.init_configuration("main");
+    if (conf != null && conf.capabilities.library === false) return;
+
     //if DEBUG then console.log("init_library")
     // Deprecated: this only tests the existence
     const check = (v, k, cb) => {
@@ -1882,7 +1888,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     async.series([cb => async.eachOfSeries(LIBRARY, check, cb)]);
   }
 
-  init_library_index() {
+  async init_library_index() {
+    const conf = await this.init_configuration("main");
+    if (conf != null && conf.capabilities.library === false) return;
+
     let library, store: ProjectStore | undefined;
     if (_init_library_index_cache[this.project_id] != null) {
       const data = _init_library_index_cache[this.project_id];
