@@ -38,6 +38,7 @@ export class LauncherComponent extends Component<Props, {}> {
   constructor(props) {
     super(props);
     this.launch = debounce(this.launch.bind(this), 500, true);
+    this.render_launcher = this.render_launcher.bind(this);
   }
 
   static reduxProps({ name }) {
