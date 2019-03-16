@@ -1419,7 +1419,7 @@ ProjectFilesNew = rclass
 
     new_file_button_types : ->
         if @props.configuration?
-            disabled_ext = @props.configuration.getIn(['main', 'disabled_ext'])
+            disabled_ext = @props.configuration.get('main', {}).disabled_ext
             if disabled_ext?
                 return ALL_FILE_BUTTON_TYPES.filter (ext) ->
                     not disabled_ext.includes(ext)
