@@ -232,7 +232,7 @@ export class IPynbImporter {
   };
 
   // Mutate content to be of the format we use internally
-  _import_cell_output_content = (content: any) => {
+  _import_cell_output_content = (content: any): void => {
     content = this._update_output_format(content); // old versions
     this._join_array_strings_obj(content.data); // arrays --> strings
     if (misc.is_array(content.text)) {
@@ -240,7 +240,6 @@ export class IPynbImporter {
     }
     remove_redundant_reps(content.data); // multiple output formats
     delete content.prompt_number; // redundant; in some files
-    return content;
   };
 
   _id_is_available = (id: any) => {
@@ -280,33 +279,31 @@ export class IPynbImporter {
   };
 
   _get_cell_output = (outputs: any, alt_outputs: any, id: any) => {
-    if ((outputs != null ? outputs.length : undefined) > 0) {
-      let handler: any;
-      const cell: any = { id, output: {} };
-      if (this._output_handler != null) {
-        handler = this._output_handler(cell);
-      }
-      for (let k in outputs) {
-        // it's fine/good that k is a string here.
-        let content = outputs[k];
-        const cocalc_alt = alt_outputs != null ? alt_outputs[k] : undefined;
-        if (cocalc_alt != null) {
-          content = cocalc_alt;
-        }
-        this._import_cell_output_content(content);
-        if (handler != null) {
-          handler.message(content);
-        } else {
-          cell.output[k] = content;
-        }
-      }
-      if (handler != null && typeof handler.done === "function") {
-        handler.done();
-      }
-      return cell.output;
-    } else {
+    if (outputs == null || outputs.length == 0) {
       return null;
     }
+    let handler: any;
+    const cell: any = { id, output: {} };
+    if (this._output_handler != null) {
+      handler = this._output_handler(cell);
+    }
+    let k : string; // it's perfectly fine that k is a string here.
+    for (k in outputs) {
+      let content = outputs[k];
+      if (alt_outputs != null && alt_outputs[k] != null) {
+        content = alt_outputs[k];
+      }
+      this._import_cell_output_content(content);
+      if (handler != null) {
+        handler.message(content);
+      } else {
+        cell.output[k] = content;
+      }
+    }
+    if (handler != null && typeof handler.done === "function") {
+      handler.done();
+    }
+    return cell.output;
   };
 
   _get_cell_input(source) {

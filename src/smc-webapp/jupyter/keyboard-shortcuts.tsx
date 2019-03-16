@@ -452,7 +452,7 @@ export class KeyboardShortcuts extends Component<KeyboardShortcutsProps, Keyboar
       <div style={{ color: "#666", marginBottom: "10px" }}>
         Click a command to perform it.
         <br />
-        NOTE: Keyboard shortcuts are not customizable yet.
+        NOTE: Keyboard shortcuts are <a href="https://github.com/sagemathinc/cocalc/issues/3242" target="_blank" rel="noopener">not yet</a> customizable.
         {
           undefined // To add a keyboard shortcut, click plus next to the key combination then type the new keys.
         }

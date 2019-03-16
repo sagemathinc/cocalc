@@ -43,10 +43,10 @@ exports.virtual_hosts = (opts) ->
             host = req.query.host
         else
             host = req.headers.host?.toLowerCase()
-        dbg("host = ", host, 'req.url=', req.url)
+        # dbg("host = ", host, 'req.url=', req.url)
         info = public_paths?.get_vhost(host)
         if not info?
-            dbg("not a virtual host path")
+            # dbg("not a virtual host path")
             return next()
 
         # TODO:
@@ -65,7 +65,7 @@ exports.virtual_hosts = (opts) ->
             logger : opts.logger
 
         if not is_auth
-            dbg("not authenticated -- denying")
+            dbg("virtual host: not authenticated -- denying  host='#{host}', path='#{path}'")
             return
 
         dir = util.path_to_files(opts.share_path, os_path.join(info.get('project_id'), info.get('path')))
