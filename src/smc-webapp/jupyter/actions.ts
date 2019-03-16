@@ -2134,12 +2134,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  introspect_close = () => {
+    if (this.store.get("introspect") != null) {
+      this.setState({ introspect: undefined });
+    }
+  };
+
   introspect_at_pos = async (
     code: string,
     level: 0 | 1 = 0,
     pos: { ch: number; line: number }
   ): Promise<void> => {
-    if (code === "") return;
+    // If the introspection window is currently open, close it.
+    if (this.store.get("introspect") != null) {
+      this.setState({ introspect: undefined });
+      return;
+    }
+
+    // Introspection is not opened, try to introspect...
+    if (code === "") return; // no-op if there is no code (should never happen)
     await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
   };
 

@@ -60,6 +60,11 @@ exports.share_router = (opts) ->
     dbg("base_url = ", opts.base_url)
     dbg("path = ", opts.path)
 
+
+    log_ip = (req) ->
+        ip_addresses = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        dbg("remote='#{ip_addresses}' requests url='#{req.url}'")
+
     if opts.path.indexOf('[project_id]') == -1
         # VERY BAD
         throw RuntimeError("opts.path must contain '[project_id]'")
@@ -105,6 +110,7 @@ exports.share_router = (opts) ->
         """)
 
     router.get '/', (req, res) ->
+        log_ip(req)
         if req.originalUrl.split('?')[0].slice(-1) != '/'
             # note: req.path already has the slash added.
             res.redirect(301, req.baseUrl + req.path)
@@ -120,6 +126,7 @@ exports.share_router = (opts) ->
             r(res, page, "#{page_number} of #{PAGE_SIZE}")
 
     router.get '/:id/*?', (req, res) ->
+        log_ip(req)
         ready ->
             if misc.is_valid_uuid_string(req.params.id)
                 # explicit project_id specified instead of sha1 hash id of share.

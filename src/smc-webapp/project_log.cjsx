@@ -34,7 +34,6 @@ lodash = require('lodash')
 
 {file_associations} = require('./file-associations')
 
-
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
 
