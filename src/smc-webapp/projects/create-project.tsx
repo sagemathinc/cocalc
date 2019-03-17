@@ -222,11 +222,11 @@ export class NewProjectCreator extends Component<Props, State> {
 
     const entries: Rendered[] = this.props.images
       .filter(img => img.get("type", "") === custom)
-      .sortBy((img, key) => img.get("display", key).toLowerCase())
+      .map((img, key) => fallback(img, "display", _ => id2name(key)))
+      .sortBy(display => display.toLowerCase())
       .entrySeq()
       .map(e => {
-        const id = e[0];
-        const display = fallback(e[1], "display", _ => id2name(id));
+        const [id, display] = e;
         return (
           <ListGroupItem
             key={id}
