@@ -3,19 +3,22 @@ Evaluate a line of code with the scope containing only a jquery wrapped
 element and whatever is available on window.  Obviously not "safe", but
 maybe safer/cleaner than nothing.
 */
+// element type = jquery wrapped element
 export function javascript_eval(line: string, element: any) : void {
   let requirejs: any;
   let require: any;
   require = requirejs = () =>
     console.warn(
       // TODO: replace "CoCalc"?
-      "require is not available in CoCalc; if you need a Javascript library, please request it."
+      "require is not available in CoCalc; if you need a Javascript library, please email help@cocalc.com."
     );
   require = require = requirejs = requirejs;
   require = require; // Same as below
-  element = element; // I know, it's so typescript thinks that "element" is being used so this will compile.
-  // TODO: element is jquery wrapped element
-  // "element" is possibly used in eval.
+
+  // "element" is possibly used in eval.  Do this assign, so typescript thinks
+  // that "element" is being used so this will compile.
+  element = element;
+
   try {
     eval(line);
   } catch (err) {
