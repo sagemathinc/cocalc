@@ -235,7 +235,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
                     {<Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
                         <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
-                    </Tip> if available.jupyter_notebook}
+                    </Tip> if available.x11}
                    {@props.children}
                 </Col>
             </Row>
