@@ -19,6 +19,7 @@ const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
 import { id2name } from "./create-project";
 import { ComputeImages } from "../compute-images/init";
+import { custom_img2name } from "./create-project";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
@@ -155,15 +156,17 @@ export const ProjectRow = rclass<ReactProps>(
     render_image_name(): Rendered {
       const ci = this.props.project.compute_image;
       if (ci == null || this.props.images == null) return;
-      // TODO refactor this with a similar procedure in project_settings
-      const id = ci.startsWith("custom/")
-        ? ci.slice("custom/".length).split("/")[0]
-        : ci;
-      const disp = this.props.images.getIn([id, "display"]);
-      if (disp == null || disp.length == 0) {
-        return <code style={image_name_style}>{id2name(id)}</code>;
+      // TODO refactor this together with a similar procedure in project_settings
+      if (ci.startsWith("custom/")) {
+        const id = ci.slice("custom/".length).split("/")[0];
+        const img = this.props.images.get(id);
+        if (img == null) return;
+        const name = custom_img2name(img, id);
+        return <div style={image_name_style}>{name} (custom)</div>;
       } else {
-        return <div style={image_name_style}>{disp}</div>;
+        // legacy
+        const name = id2name(ci);
+        return <div style={image_name_style}>{name} (legacy)</div>;
       }
     }
 

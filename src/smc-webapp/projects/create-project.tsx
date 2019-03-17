@@ -64,6 +64,10 @@ function fallback(
   return ret;
 }
 
+export function custom_img2name(img: ComputeImage, id: string) {
+ return fallback(img, "display", _ => id2name(id))
+}
+
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
@@ -222,7 +226,7 @@ export class NewProjectCreator extends Component<Props, State> {
 
     const entries: Rendered[] = this.props.images
       .filter(img => img.get("type", "") === custom)
-      .map((img, key) => fallback(img, "display", _ => id2name(key)))
+      .map((img, id) => custom_img2name(img, id))
       .sortBy(display => display.toLowerCase())
       .entrySeq()
       .map(e => {
