@@ -3,7 +3,7 @@ import { List } from "immutable";
 
 interface UntrustedJavascriptProps {
   // TODO: not used now; however, we may show the untrusted javascript at some point.
-  value: string | List<string>;
+  value?: string | List<string>;
 }
 
 export class UntrustedJavascript extends Component<UntrustedJavascriptProps> {

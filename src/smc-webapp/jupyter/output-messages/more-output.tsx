@@ -7,11 +7,11 @@ import { JupyterActions } from "../actions";
 interface MoreOutputProps {
   message: Map<string, any>;
   id: string;
-  actions?: JupyterActions; // if not set, then can't get more output
+  actions?: JupyterActions; // if not set, then can't get more output (button disabled)
 }
 
 export class MoreOutput extends Component<MoreOutputProps> {
-  shouldComponentUpdate(nextProps: MoreOutputProps) : boolean {
+  shouldComponentUpdate(nextProps: MoreOutputProps): boolean {
     return (
       nextProps.message !== this.props.message || nextProps.id != this.props.id
     );
