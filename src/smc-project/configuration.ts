@@ -116,7 +116,7 @@ async function capabilities(): Promise<MainCapabilities> {
     sage: await sage(),
     x11: await x11(),
     rmd: await rmd(),
-    spellcheck: !(await spellcheck()),
+    spellcheck: await spellcheck(),
     library: await library(),
     sshd: await sshd()
   };

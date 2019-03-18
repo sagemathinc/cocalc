@@ -1466,9 +1466,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
     if (this._state == "closed") return;
-    const proj_store = redux.getProjectStore(this.project_id);
+    const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
-      if (proj_store.get("available_features").spellcheck === false) {
+      // TODO why is this immutable map?
+      const available = proj_store.get("available_features") as Map<
+        string,
+        boolean
+      >;
+      if (available != null && !available.get("spellcheck", false)) {
         console.log("Spellcheck not available");
         return;
       }
