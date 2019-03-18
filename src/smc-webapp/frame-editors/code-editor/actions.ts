@@ -530,7 +530,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
-    // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
+  // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
   _assert_is_leaf_id(id: string, caller: string) {
     if (!this._is_leaf_id(id)) {
       throw Error(`${caller} -- no leaf with id ${id}`);
@@ -1466,6 +1466,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
     if (this._state == "closed") return;
+    const proj_store = redux.getProjectStore(this.project_id);
+    if (proj_store != null) {
+      if (proj_store.get("available_features").spellcheck === false) {
+        console.log("Spellcheck not available");
+        return;
+      }
+    }
+
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
     const lang = (this.store.get("settings") as Map<string, any>).get("spell");

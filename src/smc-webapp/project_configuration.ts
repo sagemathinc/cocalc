@@ -25,12 +25,14 @@ export type ProjectConfiguration = iMap<ConfigurationAspect, Configuration>;
 
 export interface MainCapabilities {
   jupyter: boolean | Capabilities;
+  formatting: Capabilities; // yapf & co.
   latex: boolean;
   sage: boolean;
   x11: boolean;
   rmd: boolean;
   spellcheck: boolean;
   library: boolean;
+  sshd: boolean;
 }
 
 export interface Available {
@@ -45,7 +47,7 @@ export interface Available {
   library: boolean;
 }
 
-const NO_AVAIL: Available = {
+const NO_AVAIL: Available = Object.freeze({
   jupyter_lab: false,
   jupyter_notebook: false,
   jupyter: false,
@@ -55,7 +57,19 @@ const NO_AVAIL: Available = {
   x11: false,
   spellcheck: false,
   library: false
-};
+});
+
+export const ALL_AVAIL: Available = Object.freeze({
+  jupyter_lab: true,
+  jupyter_notebook: true,
+  jupyter: true,
+  sage: true,
+  latex: true,
+  rmd: true,
+  x11: true,
+  spellcheck: true,
+  library: true
+});
 
 function isMainCapabilities(
   caps: MainCapabilities | Capabilities

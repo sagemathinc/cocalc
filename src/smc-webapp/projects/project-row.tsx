@@ -155,6 +155,7 @@ export const ProjectRow = rclass<ReactProps>(
 
     render_image_name(): Rendered {
       const ci = this.props.project.compute_image;
+
       if (ci == null || this.props.images == null) return;
       // TODO refactor this together with a similar procedure in project_settings
       if (ci.startsWith("custom/")) {
@@ -173,7 +174,12 @@ export const ProjectRow = rclass<ReactProps>(
     render_project_description() {
       if (this.props.project.description !== "No Description") {
         // don't bother showing that default; it's clutter
-        return <Markdown value={this.props.project.description} />;
+        return (
+          <Markdown
+            style={{ color: "#666" }}
+            value={this.props.project.description}
+          />
+        );
       }
     }
 
@@ -232,29 +238,24 @@ export const ProjectRow = rclass<ReactProps>(
           <Row>
             <Col
               onClick={this.handle_click}
-              sm={2}
+              sm={3}
               style={{
-                fontWeight: "bold",
                 maxHeight: "7em",
                 overflowY: "auto"
               }}
             >
-              <div>{this.render_project_title()}</div>
-              {this.render_image_name()}
+              <div style={{ fontWeight: "bold" }}>
+                {this.render_project_title()}
+              </div>
+              {this.render_project_description()}
             </Col>
             <Col
               onClick={this.handle_click}
-              sm={2}
+              sm={3}
               style={{ color: "#666", maxHeight: "7em", overflowY: "auto" }}
             >
               {this.render_last_edited()}
-            </Col>
-            <Col
-              onClick={this.handle_click}
-              sm={2}
-              style={{ color: "#666", maxHeight: "7em", overflowY: "auto" }}
-            >
-              {this.render_project_description()}
+              {this.render_image_name()}
             </Col>
             <Col sm={4}>{this.render_collab()}</Col>
             <Col sm={2} onClick={this.open_project_settings}>

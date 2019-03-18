@@ -1,4 +1,3 @@
-
 /*
  * derive configuratino and capabilities of the given project.
  * this is used in the UI to only show those elements, which should work.
@@ -18,11 +17,7 @@ import {
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>(resolve => {
     which(name, function(error, path) {
-      if (error || path == null) {
-        resolve(false);
-      } else {
-        resolve(true);
-      }
+      resolve(error == null && path != null);
     });
   });
 }
@@ -71,8 +66,14 @@ async function latex(): Promise<boolean> {
   return (await pdf) && (await latexmk);
 }
 
+// plain text editors (md, tex, ...) use aspell → disable calling aspell if not available.
 async function spellcheck(): Promise<boolean> {
   return await have("aspell");
+}
+
+// without sshd we cannot copy to this project. that's vital for courses.
+async function sshd(): Promise<boolean> {
+  return await have("sshd");
 }
 
 // this is for rnw RMarkdown files.
@@ -90,15 +91,34 @@ async function library(): Promise<boolean> {
   });
 }
 
+// formatting code, e.g. python, javascript, etc.
+// we check this here, because the frontend should offer these choices if available.
+// in some cases like python, there could be multiple ways (yapf, yapf3, black, autopep8, ...)
+async function formatting(): Promise<Capabilities> {
+  return <Capabilities>{
+    yapf: await have("yapf"),
+    yapf3: await have("yapf3"),
+    black: await have("black"),
+    autopep8: await have("autopep8"),
+    latexindent: await have("latexindent"),
+    gofmt: await have("gofmt"),
+    // for bib-format
+    biber: await have("biber"),
+    "clang-format": await have("clang-format")
+  };
+}
+
 async function capabilities(): Promise<MainCapabilities> {
   const caps: MainCapabilities = {
     jupyter: await jupyter(),
+    formatting: await formatting(),
     latex: await latex(),
     sage: await sage(),
     x11: await x11(),
     rmd: await rmd(),
-    spellcheck: await spellcheck(),
-    library: await library()
+    spellcheck: !(await spellcheck()),
+    library: await library(),
+    sshd: await sshd()
   };
   return caps;
 }

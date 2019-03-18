@@ -17,6 +17,8 @@ import { copy, is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
+import { Available as AvailableFeatures } from "../../project_configuration";
+
 interface FrameTreeEditorReactProps {
   name: string;
   actions: any;
@@ -50,6 +52,7 @@ interface FrameTreeEditorReduxProps {
   settings: Map<string, any>;
   complete: Map<string, any>;
   derived_file_types: Set<string>;
+  available_features: AvailableFeatures;
 }
 
 type FrameTreeEditorProps = FrameTreeEditorReactProps &
@@ -105,7 +108,9 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         complete: rtypes.immutable.Map.isRequired,
 
-        derived_file_types: rtypes.immutable.Set
+        derived_file_types: rtypes.immutable.Set,
+
+        available_features: rtypes.object
       }
     };
   }
@@ -142,7 +147,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
         "terminal",
         "settings",
         "complete",
-        "derived_file_types"
+        "derived_file_types",
+        "available_features"
       ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
@@ -201,6 +207,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
           status={this.props.status}
           complete={this.props.complete}
           derived_file_types={this.props.derived_file_types}
+          available_features={this.props.available_features}
         />
       </div>
     );
