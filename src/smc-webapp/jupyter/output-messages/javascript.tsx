@@ -1,5 +1,6 @@
 import { List } from "immutable";
-declare const $: any;
+//declare const $: any;
+const $ = require('jquery');
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { is_array } from "smc-util/misc2";
 import { javascript_eval } from "./javascript-eval";

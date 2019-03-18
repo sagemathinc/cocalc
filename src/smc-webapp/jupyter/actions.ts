@@ -1936,6 +1936,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_kernel = (kernel: any) => {
+    if (this.syncdb.get_state() != 'ready') {
+      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
+      return;
+    }
     if (this.store.get("kernel") !== kernel) {
       return this._set({
         type: "settings",
