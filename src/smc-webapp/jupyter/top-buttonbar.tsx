@@ -5,7 +5,7 @@ The static buttonbar at the top.
 import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 import { Button, ButtonGroup, Form, FormControl } from "react-bootstrap";
-const { Icon } = require("../r_misc");
+const { Icon, VisibleMDLG, VisibleLG } = require("../r_misc");
 const misc = require("smc-util/misc");
 const { UncommittedChanges } = require("./uncommitted-changes");
 
@@ -167,7 +167,11 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   }
 
   render_group_move() {
-    return this.render_button_group(["move cell up", "move cell down"], true);
+    return (
+      <VisibleLG>
+        {this.render_button_group(["move cell up", "move cell down"], true)}
+      </VisibleLG>
+    );
   }
 
   render_group_run() {
@@ -179,7 +183,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     }
 
     return this.render_button_group([
-      { name: "run cell and select next", label: "Run" },
+      { name: "run cell and select next", label: <VisibleLG>Run</VisibleLG> },
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
       "confirm restart kernel and run all cells",
@@ -229,38 +233,42 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   render_assistant() {
     return this.render_button("assistant", {
       name: "show code assistant",
-      label: "Assistant",
-      className: "pull-right",
-      style: { marginRight: "1px" }
+      label: <VisibleMDLG>Assistant</VisibleMDLG>
     });
   }
 
   render_group_undo_redo() {
-    return this.render_button_group(["global undo", "global redo"]);
+    return (
+      <VisibleLG>
+        {this.render_button_group(["global undo", "global redo"])}
+      </VisibleLG>
+    );
   }
 
   render_group_zoom() {
     return (
-      <ButtonGroup>
-        <Button
-          onClick={() => {
-            this.props.actions.zoom(-1);
-            return this.focus();
-          }}
-          title="Zoom out (make text smaller)"
-        >
-          <Icon name="font" style={{ fontSize: "7pt" }} />
-        </Button>
-        <Button
-          onClick={() => {
-            this.props.actions.zoom(1);
-            return this.focus();
-          }}
-          title="Zoom in (make text larger)"
-        >
-          <Icon name="font" style={{ fontSize: "11pt" }} />
-        </Button>
-      </ButtonGroup>
+      <VisibleLG>
+        <ButtonGroup>
+          <Button
+            onClick={() => {
+              this.props.actions.zoom(-1);
+              return this.focus();
+            }}
+            title="Zoom out (make text smaller)"
+          >
+            <Icon name="font" style={{ fontSize: "7pt" }} />
+          </Button>
+          <Button
+            onClick={() => {
+              this.props.actions.zoom(1);
+              return this.focus();
+            }}
+            title="Zoom in (make text larger)"
+          >
+            <Icon name="font" style={{ fontSize: "11pt" }} />
+          </Button>
+        </ButtonGroup>
+      </VisibleLG>
     );
   }
 
@@ -292,7 +300,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     const obj = {
       name: "close and halt",
       disabled: false,
-      label: "Halt"
+      label: <VisibleMDLG>Halt</VisibleMDLG>
     };
     return this.render_button("close and halt", obj);
   }
@@ -320,8 +328,9 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           bsStyle="info"
           onClick={() => this.props.actions.show_history_viewer()}
         >
-          <Icon name="history" /> <span className="hidden-sm">TimeTravel</span>
+          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
         </Button>
+        {this.render_assistant()}
         {this.render_close_and_halt()}
         {/*this.render_switch_button()*/}
       </ButtonGroup>
@@ -349,7 +358,6 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           {this.render_keyboard()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_save_timetravel()}
-          {this.render_assistant()}
         </Form>
       </div>
     );

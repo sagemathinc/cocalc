@@ -119,13 +119,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public syncdb: any;
   public util: any; // TODO: check if this is used publicly
 
-  _init = async (
+  _init = (
     project_id: string,
     path: string,
     syncdb: any,
     store: any,
     client: any
-  ) => {
+  ): void => {
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -1936,6 +1936,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_kernel = (kernel: any) => {
+    if (this.syncdb.get_state() != 'ready') {
+      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
+      return;
+    }
     if (this.store.get("kernel") !== kernel) {
       return this._set({
         type: "settings",
@@ -2134,12 +2138,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  introspect_close = () => {
+    if (this.store.get("introspect") != null) {
+      this.setState({ introspect: undefined });
+    }
+  };
+
   introspect_at_pos = async (
     code: string,
     level: 0 | 1 = 0,
     pos: { ch: number; line: number }
   ): Promise<void> => {
-    if (code === "") return;
+    // If the introspection window is currently open, close it.
+    if (this.store.get("introspect") != null) {
+      this.setState({ introspect: undefined });
+      return;
+    }
+
+    // Introspection is not opened, try to introspect...
+    if (code === "") return; // no-op if there is no code (should never happen)
     await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
   };
 
