@@ -65,7 +65,7 @@ function fallback(
 }
 
 export function custom_img2name(img: ComputeImage, id: string) {
- return fallback(img, "display", _ => id2name(id))
+  return fallback(img, "display", _ => id2name(id));
 }
 
 interface Props {
@@ -78,6 +78,7 @@ type EditState = "edit" | "view" | "saving";
 
 interface State {
   state: EditState;
+  show_advanced: boolean;
   image_type: ComputeImageTypes;
   image_selected?: string;
   title_text: string;
@@ -87,12 +88,13 @@ interface State {
 }
 
 const INIT_STATE: Readonly<State> = Object.freeze({
+  state: "view" as EditState,
   title_text: "",
   error: "",
+  show_advanced: false,
   title_prefill: true,
   image_selected: undefined,
-  image_type: legacy,
-  state: "view" as EditState
+  image_type: legacy
 });
 
 export class NewProjectCreator extends Component<Props, State> {
@@ -339,15 +341,6 @@ export class NewProjectCreator extends Component<Props, State> {
     );
   }
 
-  render_no_title() {
-    if (this.state.title_text === "")
-      return (
-        <Alert bsStyle="danger">
-          You have to enter a title above (you can change it later).
-        </Alert>
-      );
-  }
-
   input_on_change = (): void => {
     const text = ReactDOM.findDOMNode(this.refs.new_project_title).value;
     this.setState({
@@ -364,13 +357,59 @@ export class NewProjectCreator extends Component<Props, State> {
     }
   };
 
+  render_advanced() {
+    if (!this.state.show_advanced) return;
+    return (
+      <Row>
+        <Col sm={12}>
+          <ControlLabel>Software environment</ControlLabel>
+
+          <FormGroup>
+            <Radio
+              checked={this.state.image_type === legacy}
+              id={"default-compute-image"}
+              onChange={() => this.setState({ image_type: legacy })}
+            >
+              <b>Default</b>: large repository of software, maintained by{" "}
+              <CompanyName />, running <SiteName />.{" "}
+              <a
+                href={`${window.app_base_url}/doc/software.html`}
+                target={"_blank"}
+              >
+                More details...
+              </a>
+            </Radio>
+
+            {this.props.images != null && this.props.images.size > 0 ? (
+              <Radio
+                checked={this.state.image_type === custom}
+                label={"Custom software environment"}
+                id={"custom-compute-image"}
+                onChange={() => this.setState({ image_type: custom })}
+              >
+                <b>Custom</b>: 3rd party software environments, e.g.{" "}
+                <a href={"https://mybinder.org/"} target={"_blank"}>
+                  MyBinder
+                </a>
+              </Radio>
+            ) : (
+              "There are no customized compute images available."
+            )}
+          </FormGroup>
+        </Col>
+
+        <Col sm={6}>{this.render_custom_images()}</Col>
+        <Col sm={6}>{this.render_selected_custom_image_info()}</Col>
+      </Row>
+    );
+  }
+
   render_input_section() {
     return (
       <Well style={{ backgroundColor: "#FFF" }}>
         <Row>
           <Col sm={6}>
             <FormGroup>
-              <ControlLabel>Title</ControlLabel>
               <FormControl
                 ref="new_project_title"
                 type="text"
@@ -382,7 +421,6 @@ export class NewProjectCreator extends Component<Props, State> {
                 autoFocus
               />
             </FormGroup>
-            {this.render_no_title()}
           </Col>
 
           <Col sm={6}>
@@ -392,43 +430,17 @@ export class NewProjectCreator extends Component<Props, State> {
               <br />
               You can easily change the project title in project settings.
             </div>
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={12}>
-            <ControlLabel>Software environment</ControlLabel>
-
-            <FormGroup>
-              <Radio
-                checked={this.state.image_type === legacy}
-                id={"default-compute-image"}
-                onChange={() => this.setState({ image_type: legacy })}
+            <div>
+              <a
+                onClick={() => this.setState({ show_advanced: true })}
+                style={{ cursor: "pointer" }}
               >
-                Default:{" "}
-                <a href={`${window.app_base_url}/doc/software.html`}>
-                  large repository of software
-                </a>
-                , maintained by <CompanyName />, running <SiteName />.
-              </Radio>
-
-              {this.props.images != null && this.props.images.size > 0 ? (
-                <Radio
-                  checked={this.state.image_type === custom}
-                  label={"Custom software environment"}
-                  id={"custom-compute-image"}
-                  onChange={() => this.setState({ image_type: custom })}
-                >
-                  Custom: 3rd party software environments
-                </Radio>
-              ) : (
-                undefined
-              )}
-            </FormGroup>
+                Advanced ...
+              </a>
+            </div>
           </Col>
-
-          <Col sm={6}>{this.render_custom_images()}</Col>
-          <Col sm={6}>{this.render_selected_custom_image_info()}</Col>
         </Row>
+        {this.render_advanced()}
         <Row>
           <Col sm={12} style={{ marginTop: "10px" }}>
             <ButtonToolbar>
