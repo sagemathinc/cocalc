@@ -10,15 +10,19 @@ const { IS_MOBILE, isMobile } = require("../feature");
 
 const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
+export const USER_MENTION_MARKUP_WITHOUT_PLACEHOLDERS =
+  '<span class="user-mention" account-id= ></span>';
 
 interface Props {
   input: string;
   input_ref: any;
   input_style?: any; // Used to override defaults
+  intermediate_ref?: any;
   enable_mentions: boolean;
   project_users: any;
   user_store: any;
   font_size: number;
+  height: string;
   on_paste?: (e) => void;
   on_change: (value, mentions) => void;
   on_send: (value) => void;
@@ -30,12 +34,13 @@ interface Props {
 export class ChatInput extends React.PureComponent<Props> {
   static defaultProps = {
     enable_mentions: true,
-    font_size: 14
+    font_size: 14,
+    height: "100%"
   };
 
-  input_style = memoizeOne(font_size => {
+  input_style = memoizeOne((font_size: number, height: string)  => {
     return {
-      height: "100%",
+      height: height,
 
       "&multiLine": {
         highlighter: {
@@ -141,10 +146,11 @@ export class ChatInput extends React.PureComponent<Props> {
     const user_array = this.mentions_data(this.props.project_users);
 
     const style =
-      this.props.input_style || this.input_style(this.props.font_size);
+      this.props.input_style || this.input_style(this.props.font_size, this.props.height);
 
     return (
       <MentionsInput
+        ref={this.props.intermediate_ref}
         autoFocus={!IS_MOBILE || isMobile.Android()}
         displayTransform={(_, display) => "@" + display}
         style={style}
