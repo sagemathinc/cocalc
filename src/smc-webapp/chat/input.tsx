@@ -38,7 +38,31 @@ export class ChatInput extends React.PureComponent<Props> {
     height: "100%"
   };
 
-  input_style = memoizeOne((font_size: number, height: string)  => {
+  private mentions_input_ref: any;
+  private input_ref: any;
+
+  constructor(props) {
+    super(props);
+    this.mentions_input_ref = React.createRef();
+    this.input_ref = props.input_ref || React.createRef();
+  }
+
+  // Hack around updating mentions when pasting an image (which we have to handle ourselves)
+  // Without this, MentionsInput does not correctly update its internal representation.
+  componentDidUpdate(prev_props) {
+    if (
+      this.props.on_paste != undefined &&
+      prev_props.input != this.props.input
+    ) {
+      window.setTimeout(() => {
+        this.mentions_input_ref.current.wrappedInstance.handleChange({
+          target: this.input_ref.current
+        });
+      }, 0);
+    }
+  }
+
+  input_style = memoizeOne((font_size: number, height: string) => {
     return {
       height: height,
 
@@ -146,11 +170,12 @@ export class ChatInput extends React.PureComponent<Props> {
     const user_array = this.mentions_data(this.props.project_users);
 
     const style =
-      this.props.input_style || this.input_style(this.props.font_size, this.props.height);
+      this.props.input_style ||
+      this.input_style(this.props.font_size, this.props.height);
 
     return (
       <MentionsInput
-        ref={this.props.intermediate_ref}
+        ref={this.mentions_input_ref}
         autoFocus={!IS_MOBILE || isMobile.Android()}
         displayTransform={(_, display) => "@" + display}
         style={style}
