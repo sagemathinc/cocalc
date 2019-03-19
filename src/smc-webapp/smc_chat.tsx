@@ -1031,7 +1031,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         <div
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
-          Shift+Enter to send your message. Double click chat bubbles to edit
+          Shift+Enter to send your message. Use @name to mention a collaborator on this project. Double click chat bubbles to edit
           them. Format using{" "}
           <a
             href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
