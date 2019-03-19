@@ -45,7 +45,7 @@ Draggable = require('react-draggable')
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
@@ -134,12 +134,17 @@ FreeProjectWarning = rclass ({name}) ->
         <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
     render_learn_more: (color) ->
-        <a
-            href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
-            target = "_blank"
-            style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
-            <Space/> &mdash; more info... <Space/>
-        </a>
+        <Fragment>
+            {' &mdash; '}
+            <a
+                href   = "https://doc.cocalc.com/trial.html"
+                target = "_blank"
+                style  = {fontWeight : 'bold', color:color, cursor:'pointer'}
+            >
+                more info
+            </a>
+            {'...'}
+        </Fragment>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
     render: ->
