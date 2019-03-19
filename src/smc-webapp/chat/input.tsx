@@ -3,21 +3,16 @@ import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
 import { MentionsInput, Mention } from "react-mentions";
 
+import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
 const { Space } = require("../r_misc");
 const { Avatar } = require("../other-users");
 const { IS_MOBILE, isMobile } = require("../feature");
 
-const USER_MENTION_MARKUP =
-  '<span class="user-mention" account-id=__id__ >@__display__</span>';
-export const USER_MENTION_MARKUP_WITHOUT_PLACEHOLDERS =
-  '<span class="user-mention" account-id= ></span>';
-
 interface Props {
   input: string;
   input_ref: any;
   input_style?: any; // Used to override defaults
-  intermediate_ref?: any;
   enable_mentions: boolean;
   project_users: any;
   user_store: any;
