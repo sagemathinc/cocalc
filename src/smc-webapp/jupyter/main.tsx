@@ -28,6 +28,10 @@ const KERNEL_STYLE: React.CSSProperties = {
   right: 0,
   paddingLeft: "5px",
   backgroundColor: "#eee",
+  height: "32px",
+  display: "block",
+  overflow: "hidden",
+  borderLeft: "1px solid #aaa"
 };
 
 interface JupyterEditorProps {
@@ -117,8 +121,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         editor_settings: rtypes.immutable.Map,
         raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
-        trust: rtypes.bool,
-      },
+        trust: rtypes.bool
+      }
     };
   }
 
@@ -165,7 +169,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_heading() {
     return (
-      <div style={{ boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)", zIndex: 100 }}>
+      <div
+        style={{
+          boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
+          zIndex: 100
+        }}
+      >
         {this.render_kernel()}
         {this.render_menubar()}
         {this.props.toolbar ? this.render_buttonbar() : undefined}
@@ -181,7 +190,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     ) {
       return (
         <Loading
-          style={{ fontSize: "24pt", textAlign: "center", marginTop: "15px", color: "#888" }}
+          style={{
+            fontSize: "24pt",
+            textAlign: "center",
+            marginTop: "15px",
+            color: "#888"
+          }}
         />
       );
     }
@@ -264,7 +278,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       return;
     }
     const cell =
-      this.props.cells != null ? this.props.cells.get(this.props.edit_attachments) : undefined;
+      this.props.cells != null
+        ? this.props.cells.get(this.props.edit_attachments)
+        : undefined;
     if (cell == null) {
       return;
     }
@@ -282,7 +298,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         metadata={this.props.edit_cell_metadata.get("metadata")}
         font_size={this.props.font_size}
         cm_options={
-          this.props.cm_options != null ? this.props.cm_options.get("options") : undefined
+          this.props.cm_options != null
+            ? this.props.cm_options.get("options")
+            : undefined
         }
       />
     );
@@ -306,7 +324,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
 
   render_confirm_dialog() {
     return (
-      <ConfirmDialog actions={this.props.actions} confirm_dialog={this.props.confirm_dialog} />
+      <ConfirmDialog
+        actions={this.props.actions}
+        confirm_dialog={this.props.confirm_dialog}
+      />
     );
   }
 
@@ -372,7 +393,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
     return (
       <div
-        style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "hidden" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflowY: "hidden"
+        }}
       >
         {this.render_error()}
         {this.render_about()}
