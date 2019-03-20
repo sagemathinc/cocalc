@@ -60,10 +60,14 @@ async function jupyter(): Promise<Capabilities | boolean> {
   return jupyter;
 }
 
-async function latex(): Promise<boolean> {
-  const pdf = have("pdflatex");
-  const latexmk = have("latexmk");
-  return (await pdf) && (await latexmk);
+async function latex(hashsums: Capabilities): Promise<boolean> {
+  const prereq: Promise<boolean>[] = [
+    "pdflatex",
+    "latexmk",
+    "synctex"
+  ].map(have);
+  const prepreq_all = Promise.all(prereq).reduce((a, b) => a && b);
+  return hashsums.sha1sum && prereq_all;
 }
 
 // plain text editors (md, tex, ...) use aspell → disable calling aspell if not available.
@@ -108,11 +112,21 @@ async function formatting(): Promise<Capabilities> {
   };
 }
 
+async function hashsums(): Promise<Capabilites> {
+  return {
+    sha1sum: await have("sha1sum"),
+    sha256sum: await have("sha256sum"),
+    md5sum: await have("md5sum")
+  };
+}
+
 async function capabilities(): Promise<MainCapabilities> {
+  const hashsums = await hashsums();
   const caps: MainCapabilities = {
     jupyter: await jupyter(),
     formatting: await formatting(),
-    latex: await latex(),
+    hashsums,
+    latex: await latex(hashsums),
     sage: await sage(),
     x11: await x11(),
     rmd: await rmd(),

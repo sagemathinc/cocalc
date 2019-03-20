@@ -421,15 +421,6 @@ export class NewProjectCreator extends Component<Props, State> {
                 autoFocus
               />
             </FormGroup>
-          </Col>
-
-          <Col sm={6}>
-            <div style={{ color: "#666" }}>
-              A <b>project</b> is your own, private computational workspace that
-              you can share with others.
-              <br />
-              You can easily change the project title in project settings.
-            </div>
             <div>
               <a
                 onClick={() => this.setState({ show_advanced: true })}
@@ -437,6 +428,14 @@ export class NewProjectCreator extends Component<Props, State> {
               >
                 Advanced ...
               </a>
+            </div>
+          </Col>
+          <Col sm={6}>
+            <div style={{ color: "#666" }}>
+              A <b>project</b> is your own, private computational workspace that
+              you can share with others.
+              <br />
+              You can easily change the project title in project settings.
             </div>
           </Col>
         </Row>
