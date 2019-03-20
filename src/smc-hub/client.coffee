@@ -33,6 +33,8 @@ db_schema            = require('smc-util/db-schema')
 
 underscore = require('underscore')
 
+{callback} = require('awaiting')
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -2603,6 +2605,25 @@ class exports.Client extends EventEmitter
                 else
                     cb()
 
+    _check_syncdoc_access: (string_id, cb) =>
+        if not @account_id?
+            cb('you must be signed in to access syncdoc')
+            return
+        if not typeof string_id == 'string' and string_id.length == 40
+            cb('string_id must be specified and valid')
+            return
+        @database._query
+            query : "SELECT project_id FROM syncstrings"
+            where : {"string_id = $::CHAR(40)" : string_id}
+            cb    : (err, results) =>
+                if err
+                    cb(err)
+                else if results.rows.length != 1
+                    cb("no such syncdoc")
+                else
+                    project_id = results.rows[0].project_id
+                    @_check_project_access(project_id, cb)
+
     mesg_disconnect_from_project: (mesg) =>
         dbg = @dbg('mesg_disconnect_from_project')
         @_check_project_access mesg.project_id, (err) =>
@@ -2638,3 +2659,18 @@ class exports.Client extends EventEmitter
             else
                 @push_to_client(message.success(id:mesg.id))
         )
+
+    mesg_get_syncdoc_history: (mesg) =>
+        dbg = @dbg('mesg_syncdoc_history')
+        dbg("checking conditions")
+        try
+            # this raises an error if user does not have access
+            await callback(@_check_syncdoc_access, mesg.string_id)
+            # get the history
+            history = await @database.syncdoc_history_async(mesg.string_id, mesg.patches)
+            dbg("success!")
+            @push_to_client(message.syncdoc_history(id:mesg.id, history:history))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}")
+

@@ -2749,3 +2749,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb(undefined, await syncdoc_history(@, opts.string_id, opts.patches))
         catch err
             opts.cb(err)
+
+    syncdoc_history_async : (string_id, patches) =>
+        return await syncdoc_history(@, string_id, patches)

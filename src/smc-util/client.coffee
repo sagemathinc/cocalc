@@ -2104,6 +2104,20 @@ class exports.Connection extends EventEmitter
             throw Error("project_id must be a valid uuid")
         return (await @project_websocket(project_id)).api.capabilities()
 
+    syncdoc_history: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            patches : false
+            cb      : required
+        @call
+            message : message.get_syncdoc_history(string_id:opts.string_id, patches:opts.patches)
+            error_event: true
+            allow_post : false
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.history)
 #################################################
 # Other account Management functionality shared between client and server
 #################################################
