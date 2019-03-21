@@ -1409,7 +1409,7 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
-    // Rendering doesnt rely on props...
+    # Rendering doesnt rely on props...
     shouldComponentUpdate: ->
         false
 

@@ -1229,7 +1229,7 @@ ProjectList = rclass
                              project  = {project}
                              user_map = {@props.user_map}
                              index    = {i}
-                             key      = {i}
+                             key      = {project.project_id}
                              redux    = {redux} />
             i += 1
 
