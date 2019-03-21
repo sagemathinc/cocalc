@@ -2,7 +2,7 @@ import { Component, React, Rendered } from "../app-framework";
 
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 
-const { SiteName, CompanyName } = require("../customize");
+const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
 
 const { Markdown, SearchInput } = require("../r_misc");
 
@@ -138,6 +138,9 @@ export class CustomSoftware extends Component<CSProps, CSState> {
           />
         </div>
         {this.render_custom_image_entries()}
+        <div style={{ color: COLORS.GRAY, margin: "10px 0" }}>
+          Contact us to add more: <HelpEmailLink color={COLORS.GRAY} />.
+        </div>
       </>
     );
   }
@@ -169,7 +172,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     const tag = id.indexOf(":") >= 0 ? "" : ":latest";
 
     const render_source = () => {
-      if (src == null) return;
+      if (src == null || src.length == 0) return;
       return (
         <div style={{ marginTop: "5px" }}>
           Source: <code>{src}</code>
@@ -178,7 +181,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     };
 
     const render_url = () => {
-      if (url == null) return;
+      if (url == null || url.length == 0) return;
       return (
         <div style={{ marginTop: "5px" }}>
           URL: <a href={url}>further information</a>
@@ -192,7 +195,9 @@ export class CustomSoftware extends Component<CSProps, CSState> {
         <div style={{ marginTop: "5px" }}>
           Image ID: <code>{`${id}${tag}`}</code>
         </div>
-        <div style={{ marginTop: "10px" }}>
+        <div
+          style={{ marginTop: "10px", overflowY: "auto", maxHeight: "200px" }}
+        >
           <Markdown value={desc} className={"cc-custom-image-desc"} />
         </div>
         {render_source()}
@@ -201,46 +206,52 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     );
   }
 
+  render_type_selection() {
+    return (
+      <>
+        <ControlLabel>Software environment</ControlLabel>
+
+        <FormGroup>
+          <Radio
+            checked={this.props.image_type === legacy}
+            id={"default-compute-image"}
+            onChange={() => this.props.setParentState({ image_type: legacy })}
+          >
+            <b>Default</b>: large repository of software, maintained by{" "}
+            <CompanyName />, running <SiteName />.{" "}
+            <a
+              href={`${window.app_base_url}/doc/software.html`}
+              target={"_blank"}
+            >
+              More details...
+            </a>
+          </Radio>
+
+          {this.props.images != null && this.props.images.size > 0 ? (
+            <Radio
+              checked={this.props.image_type === custom}
+              label={"Custom software environment"}
+              id={"custom-compute-image"}
+              onChange={() => this.props.setParentState({ image_type: custom })}
+            >
+              <b>Custom</b>: 3rd party software environments, e.g.{" "}
+              <a href={"https://mybinder.org/"} target={"_blank"}>
+                Binder
+              </a>
+            </Radio>
+          ) : (
+            "There are no customized compute images available."
+          )}
+        </FormGroup>
+      </>
+    );
+  }
+
   render() {
     return (
       <Row>
         <Col sm={12} style={{ marginTop: "10px" }}>
-          <ControlLabel>Software environment</ControlLabel>
-
-          <FormGroup>
-            <Radio
-              checked={this.props.image_type === legacy}
-              id={"default-compute-image"}
-              onChange={() => this.props.setParentState({ image_type: legacy })}
-            >
-              <b>Default</b>: large repository of software, maintained by{" "}
-              <CompanyName />, running <SiteName />.{" "}
-              <a
-                href={`${window.app_base_url}/doc/software.html`}
-                target={"_blank"}
-              >
-                More details...
-              </a>
-            </Radio>
-
-            {this.props.images != null && this.props.images.size > 0 ? (
-              <Radio
-                checked={this.props.image_type === custom}
-                label={"Custom software environment"}
-                id={"custom-compute-image"}
-                onChange={() =>
-                  this.props.setParentState({ image_type: custom })
-                }
-              >
-                <b>Custom</b>: 3rd party software environments, e.g.{" "}
-                <a href={"https://mybinder.org/"} target={"_blank"}>
-                  Binder
-                </a>
-              </Radio>
-            ) : (
-              "There are no customized compute images available."
-            )}
-          </FormGroup>
+          {this.render_type_selection()}
         </Col>
 
         <Col sm={6}>{this.render_custom_images()}</Col>

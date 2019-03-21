@@ -2655,11 +2655,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 url = undefined
 
             if Math.random() > .5
+                if Math.random() > .5
+                    verylong = Array(100).fill('very long *text* for **testing**, ').join(" ")
                 desc = """
                        This is some text describing what **#{disp or id}** is.
                        Here could also be an [external link](https://doc.cocalc.com).
                        It might also mention `#{id}`, or point to
                        [yet another page](#{url}).
+
+                       #{verylong ? ''}
                        """
             else
                 desc = undefined

@@ -57,7 +57,7 @@ export function id2name(id: string): string {
 function fallback(
   img: ComputeImage,
   key: ComputeImageKeys,
-  replace: (img?: ComputeImage) => string
+  replace: (img: ComputeImage) => string
 ): string {
   const ret = img.get(key);
   if (ret == null || ret.length == 0) {
@@ -72,6 +72,23 @@ function display_fallback(img: ComputeImage, id: string) {
 
 function desc_fallback(img: ComputeImage) {
   return fallback(img, "desc", _ => "*No description available.*");
+}
+
+function url_fallback(img: ComputeImage) {
+  const planB = (img: ComputeImage) => {
+    const src = img.get("src", undefined);
+    if (src != null && src.length > 0) {
+      if (src.indexOf("://github.com") > 0) {
+        if (src.endsWith(".git")) {
+          return src.slice(0, -".git".length);
+        } else {
+          return src;
+        }
+      }
+    }
+    return "";
+  };
+  return fallback(img, "url", planB);
 }
 
 class ComputeImagesTable extends Table {
@@ -93,12 +110,14 @@ class ComputeImagesTable extends Table {
     return data.map((img, id) => {
       const display = display_fallback(img, id);
       const desc = desc_fallback(img);
+      const url = url_fallback(img);
       const search_str = `${id} ${display} ${desc}`.toLowerCase();
 
       return img
         .set("display", display)
         .set("desc", desc)
-        .set("search_str", search_str);
+        .set("search_str", search_str)
+        .set("url", url);
     });
   }
 
