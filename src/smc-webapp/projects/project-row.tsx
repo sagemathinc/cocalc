@@ -22,7 +22,8 @@ const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
   fontSize: "12px",
-  color: COLORS.GRAY
+  color: COLORS.GRAY,
+  marginTop: "5px"
 };
 
 interface ReactProps {

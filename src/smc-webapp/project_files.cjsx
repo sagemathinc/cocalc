@@ -33,6 +33,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {Library} = require('./library')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
+{compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./compute-images/util')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -50,6 +51,11 @@ underscore            = require('underscore')
 # treat this as const/readonly
 ALL_FILE_BUTTON_TYPES = ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
+ROW_INFO_STYLE = Object.freeze
+    color      : COLORS.GRAY
+    height     : '22px'
+    margin     : '5px 3px'
+
 {FileListing, TERM_MODE_CHAR} = require("./project/file-listing")
 
 feature = require('./feature')
@@ -59,6 +65,51 @@ Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the co
 pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
+
+ProjectInfo = rclass
+    displayName  : 'ProjectFiles-ProjectInfo'
+
+    propTypes :
+        project_id    : rtypes.string
+        images        : rtypes.immutable.Map
+        project_map   : rtypes.immutable.Map
+        actions       : rtypes.object.isRequired
+
+    render: ->
+        ci = @props.project_map?.getIn([@props.project_id, 'compute_image'])
+        return if not ci?
+        return if not ci.startsWith(CUSTOM_IMG_PREFIX)
+        img = @props.images?.get(compute_image2basename(ci))
+        return if not img?
+
+        style = Object.assign({}, ROW_INFO_STYLE,
+            paddingLeft: '10px'
+            display: 'flex'
+            color: COLORS.GRAY_D
+        )
+
+        title_style =
+            textOverflow: "ellipsis"
+            maxWidth: "30%"
+            whiteSpace: "nowrap"
+            overflow: "hidden"
+
+
+        ci_name = compute_image2name(ci)
+
+        <div style={style}>
+            <div style={title_style}>{img.get("display")}</div>
+            <Button
+                bsSize={"small"}
+                onClick={=>@props.actions.open_file(path:'nb.ipynb')}
+            >
+                open nb.ipynb
+            </Button>
+            <Button bsSize={"small"}>
+                Start Jupyter
+            </Button>
+        </div>
+
 
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
@@ -238,12 +289,15 @@ ProjectFilesActions = rclass
     displayName : 'ProjectFiles-ProjectFilesActions'
 
     propTypes :
+        project_id    : rtypes.string
         checked_files : rtypes.object
         listing       : rtypes.array
         page_number   : rtypes.number
         page_size     : rtypes.number
         public_view   : rtypes.bool.isRequired
         current_path  : rtypes.string
+        project_map   : rtypes.immutable.Map
+        images        : rtypes.immutable.Map
         actions       : rtypes.object.isRequired
 
     getInitialState: ->
@@ -307,10 +361,7 @@ ProjectFilesActions = rclass
     render_currently_selected: ->
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
-        style =
-            color      : COLORS.GRAY
-            height     : '22px'
-            margin     : '5px 3px'
+        style = ROW_INFO_STYLE
 
         if checked is 0
             <div style={style}>
@@ -392,6 +443,17 @@ ProjectFilesActions = rclass
             {(@render_action_button(v) for v in action_buttons)}
         </ButtonGroup>
 
+    render_button_area: ->
+        if @props.checked_files.size is 0
+            return <ProjectInfo
+                        project_id = {@props.project_id}
+                        images = {@props.images}
+                        project_map = {@props.project_map}
+                        actions = {@props.actions}
+                    />
+        else
+            return @render_action_buttons()
+
     render: ->
         <div style={flex: '1 0 auto'}>
             <div style={flex: '1 0 auto'}>
@@ -399,7 +461,7 @@ ProjectFilesActions = rclass
                     <ButtonGroup>
                         {@render_check_all_button()}
                     </ButtonGroup>
-                    {@render_action_buttons()}
+                    {@render_button_area()}
                 </ButtonToolbar>
             </div>
             <div style={flex: '1 0 auto'}>
@@ -1496,7 +1558,8 @@ exports.ProjectFiles = rclass ({name}) ->
             customer       : rtypes.object
         customize :
             kucalc : rtypes.string
-
+        compute_images :
+            images        : rtypes.immutable.Map
         "#{name}" :
             active_file_sort      : rtypes.object
             current_path          : rtypes.string
@@ -1646,6 +1709,7 @@ exports.ProjectFiles = rclass ({name}) ->
     render_files_actions: (listing, public_view) ->
         if listing.length > 0
             <ProjectFilesActions
+                project_id    = {@props.project_id}
                 checked_files = {@props.checked_files}
                 file_action   = {@props.file_action}
                 page_number   = {@props.page_number}
@@ -1653,7 +1717,16 @@ exports.ProjectFiles = rclass ({name}) ->
                 public_view   = {public_view}
                 current_path  = {@props.current_path}
                 listing       = {listing}
+                project_map   = {@props.project_map}
+                images        = {@props.images}
                 actions       = {@props.actions} />
+        else
+            <ProjectInfo
+                project_id = {@props.project_id}
+                images = {@props.images}
+                project_map = {@props.project_map}
+                actions = {@props.actions}
+            />
 
     render_miniterm: ->
         <MiniTerminal

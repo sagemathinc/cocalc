@@ -1827,7 +1827,7 @@ schema.compute_images = {
     },
     type: {
       type: "string",
-      desc: "for now, this is just 'legacy' or 'custom'"
+      desc: "for now, this is either 'legacy' or 'custom'"
     },
     display: {
       type: "string",
@@ -1840,6 +1840,11 @@ schema.compute_images = {
     desc: {
       type: "string",
       desc: "(optional) markdown text to talk more about this"
+    },
+    path: {
+      type: "string",
+      desc:
+        "(optional) point user to either a filename like index.ipynb or a directory/"
     },
     disabled: {
       type: "boolean",

@@ -2668,6 +2668,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             else
                 desc = undefined
 
+            path = if Math.random() > .5 then "index.ipynb" else undefined
+
 
             @_query
                 query  : "INSERT INTO compute_images"
@@ -2677,6 +2679,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     "type    :: TEXT     " : 'custom'
                     "desc    :: TEXT     " : desc
                     "display :: TEXT     " : disp
+                    "path    :: TEXT     " : path
                 cb     : cb
 
         # first we wipe the table's content, then we generate some random stuff

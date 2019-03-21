@@ -57,7 +57,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
-CUSTOM_IMG_PREFIX = 'custom/'
+{CUSTOM_IMG_PREFIX, compute_image2name} = require('./compute-images/util')
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -837,8 +837,7 @@ ProjectControlPanel = rclass
     render_custom_compute_image: ->
         # for now, just tell what it is
         current_image = @props.project.get('compute_image')
-        name = current_image[CUSTOM_IMG_PREFIX.length..]
-        name = name.replace('/', ':')
+        name = compute_image2name(current_image)
 
         <div style={color:'#666'}>
             <div style={fontSize : '12pt'}>

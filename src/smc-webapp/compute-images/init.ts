@@ -13,7 +13,7 @@ export const NAME = "compute_images";
 // custom iamges are "custom/<image-id>/<tag, usually latest>"
 export type ComputeImageTypes = "legacy" | "custom";
 
-// this must match db-schema.compute_images → field keys
+// this must be compatible with db-schema.compute_images → field keys
 export type ComputeImageKeys =
   | "id"
   | "src"
@@ -111,7 +111,11 @@ class ComputeImagesTable extends Table {
       const display = display_fallback(img, id);
       const desc = desc_fallback(img);
       const url = url_fallback(img);
-      const search_str = `${id} ${display} ${desc}`.toLowerCase();
+      const search_str = `${id} ${display} ${desc} ${url}`
+        .split(" ")
+        .filter(x => x.length > 0)
+        .join(" ")
+        .toLowerCase();
 
       return img
         .set("display", display)
