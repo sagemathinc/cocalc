@@ -17,9 +17,7 @@ import { analytics_event } from "../tracker";
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
-import { id2name } from "./create-project";
-import { ComputeImages } from "../compute-images/init";
-import { custom_img2name } from "./create-project";
+import { id2name, ComputeImages } from "../compute-images/init";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
@@ -162,7 +160,7 @@ export const ProjectRow = rclass<ReactProps>(
         const id = ci.slice("custom/".length).split("/")[0];
         const img = this.props.images.get(id);
         if (img == null) return;
-        const name = custom_img2name(img, id);
+        const name = img.get("display");
         return <div style={image_name_style}>{name} (custom)</div>;
       } else {
         // legacy

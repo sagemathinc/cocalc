@@ -1474,7 +1474,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         boolean
       >;
       if (available != null && !available.get("spellcheck", false)) {
-        console.log("Spellcheck not available");
+        // console.log("Spellcheck not available");
         return;
       }
     }

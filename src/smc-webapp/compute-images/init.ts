@@ -4,6 +4,8 @@
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
 
+const { capitalize } = require("smc-util/misc");
+
 export const NAME = "compute_images";
 
 // this must match db-schema.compute_images → field type → allowed values
@@ -18,7 +20,8 @@ export type ComputeImageKeys =
   | "type"
   | "display"
   | "url"
-  | "desc";
+  | "desc"
+  | "search_str";
 
 export type ComputeImage = iMap<ComputeImageKeys, string>;
 export type ComputeImages = iMap<string, ComputeImage>;
@@ -44,6 +47,33 @@ class ComputeImagesActions<ComputeImagesState> extends Actions<
   ComputeImagesState
 > {}
 
+export function id2name(id: string): string {
+  return id
+    .split("-")
+    .map(capitalize)
+    .join(" ");
+}
+
+function fallback(
+  img: ComputeImage,
+  key: ComputeImageKeys,
+  replace: (img?: ComputeImage) => string
+): string {
+  const ret = img.get(key);
+  if (ret == null || ret.length == 0) {
+    return replace(img);
+  }
+  return ret;
+}
+
+function display_fallback(img: ComputeImage, id: string) {
+  return fallback(img, "display", _ => id2name(id));
+}
+
+function desc_fallback(img: ComputeImage) {
+  return fallback(img, "desc", _ => "*No description available.*");
+}
+
 class ComputeImagesTable extends Table {
   constructor(NAME, redux) {
     super(NAME, redux);
@@ -58,14 +88,27 @@ class ComputeImagesTable extends Table {
     return [];
   }
 
+  prepare(data: ComputeImages): ComputeImages {
+    // console.log("ComputeImagesTable data:", data);
+    return data.map((img, id) => {
+      const display = display_fallback(img, id);
+      const desc = desc_fallback(img);
+      const search_str = `${id} ${display} ${desc}`.toLowerCase();
+
+      return img
+        .set("display", display)
+        .set("desc", desc)
+        .set("search_str", search_str);
+    });
+  }
+
   _change(table, _keys): void {
     const store: ComputeImagesStore | undefined = this.redux.getStore(NAME);
     if (store == null) throw Error("store must be defined");
     const actions = this.redux.getActions(NAME);
     if (actions == null) throw Error("actions must be defined");
     const data = table.get();
-    // console.log("ComputeImagesTable data:", data);
-    actions.setState({ images: data });
+    actions.setState({ images: this.prepare(data) });
   }
 }
 

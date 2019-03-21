@@ -1648,7 +1648,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  set_file_action(action?: string, get_basename?: () => string ): void {
+  set_file_action(action?: string, get_basename?: () => string): void {
     let store = this.get_store();
     if (store == undefined) {
       return;
