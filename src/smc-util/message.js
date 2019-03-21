@@ -2966,12 +2966,14 @@ message({
 });
 
 // client --> hub
-message({
-  event: "get_syncdoc_history",
-  id: undefined,
-  string_id: required,
-  patches: undefined
-});
+API(
+  message({
+    event: "get_syncdoc_history",
+    id: undefined,
+    string_id: required,
+    patches: undefined
+  })
+);
 
 // hub --> client
 message({
