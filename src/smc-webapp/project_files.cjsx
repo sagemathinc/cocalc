@@ -1409,6 +1409,10 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
+    // Rendering doesnt rely on props...
+    shouldComponentUpdate: ->
+        false
+
     new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
