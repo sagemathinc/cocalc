@@ -2461,7 +2461,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     path,
     opts: {
       description?: string;
-      unlisted?: string;
+      unlisted?: boolean;
     } = {}
   ) {
     let store = this.get_store();

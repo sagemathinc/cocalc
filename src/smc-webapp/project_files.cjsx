@@ -401,8 +401,6 @@ ProjectFilesActions = rclass
             </div>
         </div>
 
-WIKI_SHARE_HELP_URL = 'https://doc.cocalc.com/share.html'
-
 # Commands such as CD throw a setState error.
 # Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass

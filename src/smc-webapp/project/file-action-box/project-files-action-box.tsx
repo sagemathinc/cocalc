@@ -1,19 +1,21 @@
 import * as React from "react";
 import * as immutable from "immutable";
 
-import { AppRedux, rclass, rtypes } from "../app-framework";
+import { rclass, rtypes } from "../../app-framework";
 import { ProjectActions } from "../../project_actions";
 import { ProjectMap } from "../../todo-types";
 
 import { Compress } from "./compress";
 import { Delete } from "./delete";
+import { valid_copy_destination } from "./utils";
+import { Copy } from "./copy";
+
+const WIKI_SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 const {
   Col,
   Row,
   ButtonToolbar,
-  ButtonGroup,
-  MenuItem,
   Button,
   Well,
   FormControl,
@@ -35,6 +37,8 @@ const { file_actions } = require("../../project_store");
 const { analytics_event } = require("../../tracker");
 
 const account = require("../../account");
+
+const Combobox = require("react-widgets/lib/Combobox"); // TODO: delete this when the combobox is in r_misc
 
 /*
  * decaffeinate suggestions:
@@ -67,9 +71,9 @@ type FileAction =
   | "share"
   | undefined;
 
-interface Props {
+interface ReactProps {
   file_action: FileAction;
-  checked_files?: immutable.Set<string>;
+  checked_files: immutable.Set<string>;
   current_path: string;
   project_id: string;
   public_view?: boolean;
@@ -80,21 +84,21 @@ interface Props {
 }
 
 interface ReduxProps {
-  get_project_select_list: func;
+  get_project_select_list: (project_id: string) => any;
   // get_total_project_quotas relys on this data
   // Will be removed by #1084
   project_map: ProjectMap;
-  get_total_project_quotas: (project_id: string) => ;
-  get_user_type: func;
+  get_total_project_quotas: (project_id: string) => any;
+  get_user_type: () => any;
   site_name: string;
 }
 
 interface State {
-  copy_destination_directory: string;
-  copy_destination_project_id: string;
   move_destination: string;
   new_name: string;
   show_different_project: boolean;
+  delete_extra_files?: boolean;
+  overwrite_newer?: boolean;
 }
 
 export const ProjectFilesActionBox = rclass<ReactProps>(
@@ -124,13 +128,9 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
     constructor(props) {
       super(props);
       this.state = {
-        copy_destination_directory: "",
-        copy_destination_project_id: this.props.public_view
-          ? ""
-          : this.props.project_id,
         move_destination: "",
         new_name: this.props.new_name,
-        show_different_project: this.props.public_view
+        show_different_project: !!this.props.public_view
       };
     }
 
@@ -150,8 +150,6 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
               this.submit_action_duplicate();
             case "move":
               this.submit_action_move();
-            case "copy":
-              this.submit_action_copy();
             case "share":
               this.submit_action_share();
             default:
@@ -187,7 +185,6 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
           size={this.props.checked_files.size}
           on_compress={this.compress}
           on_cancel={this.cancel_action}
-          on_keydown={this.action_key}
         />
       );
     }
@@ -206,7 +203,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       return (
         <Delete
           selected_files_display={this.render_selected_files_list()}
-          current_path={this.prop.current_path}
+          current_path={this.props.current_path}
           size={this.props.checked_files.size}
           on_delete={this.delete_click}
           on_cancel={this.cancel_action}
@@ -439,211 +436,18 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
       }
     }
 
-    render_different_project_dialog() {
-      if (this.state.show_different_project) {
-        const data = this.props.get_project_select_list(this.props.project_id);
-        if (data == null) {
-          return <Loading />;
-        }
-        return (
-          <Col sm={4} style={{ color: "#666", marginBottom: "15px" }}>
-            <h4>In the project</h4>
-            <Combobox
-              valueField="id"
-              textField="title"
-              data={data}
-              filter="contains"
-              defaultValue={
-                !this.props.public_view ? this.props.project_id : undefined
-              }
-              placeholder="Select a project..."
-              onSelect={value =>
-                this.setState({ copy_destination_project_id: value.id })
-              }
-              messages={{ emptyFilter: "", emptyList: "" }}
-            />
-            {this.render_copy_different_project_options()}
-          </Col>
-        );
-      }
-    }
-
-    render_copy_different_project_options() {
-      if (this.props.project_id !== this.state.copy_destination_project_id) {
-        return (
-          <div>
-            <Checkbox
-              ref="delete_extra_files_checkbox"
-              onChange={e =>
-                this.setState({ delete_extra_files: e.target.checked })
-              }
-            >
-              Delete extra files in target directory
-            </Checkbox>
-            <Checkbox
-              ref="overwrite_newer_checkbox"
-              onChange={e =>
-                this.setState({ overwrite_newer: e.target.checked })
-              }
-            >
-              Overwrite newer versions of files
-            </Checkbox>
-          </div>
-        );
-      }
-    }
-
-    different_project_button() {
-      return (
-        <Button
-          bsSize="large"
-          onClick={() => this.setState({ show_different_project: true })}
-          style={{ padding: "0px 5px" }}
-        >
-          A Different Project
-        </Button>
-      );
-    }
-
-    copy_click() {
-      const destination_directory = this.state.copy_destination_directory;
-      const destination_project_id = this.state.copy_destination_project_id;
-      const { overwrite_newer } = this.state;
-      const { delete_extra_files } = this.state;
-      const paths = this.props.checked_files.toArray();
-      if (
-        destination_project_id != null &&
-        this.props.project_id !== destination_project_id
-      ) {
-        this.props.actions.copy_paths_between_projects({
-          public: this.props.public_view,
-          src_project_id: this.props.project_id,
-          src: paths,
-          target_project_id: destination_project_id,
-          target_path: destination_directory,
-          overwrite_newer,
-          delete_missing: delete_extra_files
-        });
-        analytics_event("project_file_listing", "copy between projects");
-      } else {
-        this.props.actions.copy_paths({
-          src: paths,
-          dest: destination_directory
-        });
-        analytics_event("project_file_listing", "copy within a project");
-      }
-
-      return this.props.actions.set_file_action();
-    }
-
-    valid_copy_input() {
-      const src_path = misc.path_split(this.props.checked_files.first()).head;
-      const input = this.state.copy_destination_directory;
-      if (
-        input === src_path &&
-        this.props.project_id === this.state.copy_destination_project_id
-      ) {
-        return false;
-      }
-      if (this.state.copy_destination_project_id === "") {
-        return false;
-      }
-      if (input === this.props.current_directory) {
-        return false;
-      }
-      if (misc.startswith(input, "/")) {
-        return false;
-      }
-      return true;
-    }
-
     render_copy() {
-      const { size } = this.props.checked_files;
-      const signed_in = this.props.get_user_type() === "signed_in";
-      if (this.props.public_view && !signed_in) {
-        return (
-          <div>
-            <LoginLink />
-            <Row>
-              <Col sm={12}>
-                <ButtonToolbar>
-                  <Button bsStyle="primary" disabled={true}>
-                    <Icon name="files-o" /> Copy {size}{" "}
-                    {misc.plural(size, "item")}
-                  </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                </ButtonToolbar>
-              </Col>
-            </Row>
-          </div>
-        );
-      } else {
-        return (
-          <div>
-            <Row>
-              <Col
-                sm={this.state.show_different_project ? 4 : 5}
-                style={{ color: "#666" }}
-              >
-                <h4>
-                  Copy to a folder or{" "}
-                  {this.state.show_different_project
-                    ? "project"
-                    : this.different_project_button()}
-                </h4>
-                {this.render_selected_files_list()}
-              </Col>
-              {this.render_different_project_dialog()}
-              <Col
-                sm={this.state.show_different_project ? 4 : 5}
-                style={{ color: "#666" }}
-              >
-                <h4
-                  style={
-                    !this.state.show_different_project
-                      ? { height: "25px" }
-                      : undefined
-                  }
-                >
-                  Destination
-                </h4>
-                <DirectoryInput
-                  autoFocus={true}
-                  on_change={value =>
-                    this.setState({ copy_destination_directory: value })
-                  }
-                  key="copy_destination_directory"
-                  placeholder="Home directory"
-                  default_value=""
-                  project_id={this.state.copy_destination_project_id}
-                  on_key_up={this.action_key}
-                />
-              </Col>
-            </Row>
-            <Row>
-              <Col sm={12}>
-                <ButtonToolbar>
-                  <Button
-                    bsStyle="primary"
-                    onClick={this.copy_click}
-                    disabled={!this.valid_copy_input()}
-                  >
-                    <Icon name="files-o" /> Copy {size}{" "}
-                    {misc.plural(size, "Item")}
-                  </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                </ButtonToolbar>
-              </Col>
-            </Row>
-          </div>
-        );
-      }
-    }
-
-    submit_action_copy() {
-      if (this.valid_copy_input()) {
-        return this.copy_click();
-      }
+      return <Copy
+        actions={this.props.actions}
+        public_view= {this.props.public_view}
+        checked_files={this.props.checked_files}
+        get_user_type={this.props.get_user_type}
+        get_project_select_list={this.props.get_project_select_list}
+        on_cancel={this.cancel_action}
+        items_display={this.render_selected_files_list()}
+        project_id={this.props.project_id}
+        current_path={this.props.current_path}
+       />
     }
 
     share_click() {
@@ -1066,7 +870,7 @@ export const ProjectFilesActionBox = rclass<ReactProps>(
           return btns.length + 1;
         }
       });
-      const ret = [];
+      const ret: any[] = [];
       for (let b of Array.from(btn_keys)) {
         (b => {
           const [title, icon] = btns[b];
@@ -1174,7 +978,11 @@ body=A file is shared with you: ${public_url}`;
     }
 
     render_download_single(single_item) {
-      const target = this.props.actions.get_store().get_raw_link(single_item);
+      const store = this.props.actions.get_store();
+      if (store == undefined) {
+        return undefined;
+      }
+      const target = store.get_raw_link(single_item);
       return (
         <div>
           <h4>Download link</h4>
@@ -1276,10 +1084,11 @@ body=A file is shared with you: ${public_url}`;
 
     render() {
       const action = this.props.file_action;
-      const action_button = file_actions[action];
-      if (action_button == null) {
+      if (action == undefined) {
         return <div>Undefined action</div>;
       }
+      const action_button = file_actions[action];
+
       if (this.props.file_map == null) {
         return <Loading />;
       } else {
