@@ -162,6 +162,7 @@ export class FileListing extends React.Component<Props> {
         file_search={this.props.file_search}
         create_folder={this.props.create_folder}
         create_file={this.props.create_file}
+        project_id={this.props.project_id}
       />
     );
   }
