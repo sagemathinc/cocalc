@@ -56,7 +56,7 @@ export async function syncdoc_history(
   string_id: string,
   include_patches: boolean = false
 ): Promise<Patch[]> {
-  const where = { "string_id = $::TEXT": string_id };
+  const where = { "string_id = $::CHAR(40)": string_id };
   const users: User[] = await get_users(db, where);
 
   const order_by = "time";
