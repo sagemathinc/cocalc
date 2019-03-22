@@ -4,7 +4,7 @@ Express HTTP API server
 This is meant to be used from within the project via localhost, both
 to get info from the project, and to cause the project to do things.
 
-Requests must be authenticated using the secret token ~/.smc/secret_token
+Requests must be authenticated using the secret token.
 */
 
 import * as express from "express";
@@ -19,6 +19,8 @@ const { client_db } = require("../smc-util/db-schema");
 export interface Client {
   project_id: string;
   secret_token: string;
+  get_syncdoc_history: (string_id: string) => Promise<any>;
+  dbg: (name: string) => Function;
 }
 
 interface ServerOpts {
@@ -28,6 +30,8 @@ interface ServerOpts {
 }
 
 export async function start_server(opts: ServerOpts): Promise<void> {
+  const dbg: Function = opts.client.dbg("api_server");
+
   const server: express.Application = express();
 
   server.use(json({ limit: "3mb" }));
@@ -37,9 +41,11 @@ export async function start_server(opts: ServerOpts): Promise<void> {
 
   server.post("/api/v1/*", async (req, res) => {
     try {
+      dbg(`POST to ${req.path}`);
       handle_auth(req, opts.client.secret_token);
       await handle_post(req, res, opts.client);
     } catch (err) {
+      dbg(`failed handling POST ${err}`);
       res.status(400).send({ error: `${err}` });
     }
   });
@@ -53,7 +59,7 @@ export async function start_server(opts: ServerOpts): Promise<void> {
   }
 
   server.listen(opts.port, () => {
-    console.log(`server listening at http://localhost:${opts.port}`);
+    dbg(`server listening at http://localhost:${opts.port}`);
   });
 }
 
@@ -89,7 +95,6 @@ function handle_auth(req, secret_token: string): void {
 
 async function handle_post(req, res, client: Client): Promise<void> {
   const endpoint: string = req.path.slice(req.path.lastIndexOf("/") + 1);
-
   try {
     switch (endpoint) {
       case "get_syncdoc_history":
@@ -104,12 +109,13 @@ async function handle_post(req, res, client: Client): Promise<void> {
 }
 
 async function get_syncdoc_history(body, client: Client): Promise<any> {
-  console.log("get_syncdoc_history", body);
+  const dbg = client.dbg("get_syncdoc_history");
   const path = body.path;
+  dbg(`path="${path}"`);
   if (typeof path != "string") {
     throw Error("provide the path as a string");
   }
   // compute the string_id
   const string_id = client_db.sha1(client.project_id, path);
-  return { string_id };
+  return await client.get_syncdoc_history(string_id);
 }
