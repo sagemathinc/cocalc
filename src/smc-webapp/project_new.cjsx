@@ -171,7 +171,8 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         show_jupyterlab_server_panel : false
 
     render: ->
-        return if not @props.create_file or not @props.create_file or not @props.project_id
+        if not @props.create_file or not @props.create_file or not @props.project_id
+            return null
 
         row_style =
             marginBottom:'8px'
