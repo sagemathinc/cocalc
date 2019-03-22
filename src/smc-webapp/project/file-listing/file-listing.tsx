@@ -91,7 +91,7 @@ export class FileListing extends React.Component<Props> {
           time={time}
           size={size}
           issymlink={issymlink}
-          key={"dir-" + name}
+          key={index}
           color={color}
           bordered={apply_border}
           mask={mask}
@@ -118,7 +118,7 @@ export class FileListing extends React.Component<Props> {
           public_data={public_data}
           is_public={is_public}
           checked={checked}
-          key={"file-" + name}
+          key={index}
           current_path={this.props.current_path}
           actions={this.props.actions}
           no_select={this.props.shift_is_down}
