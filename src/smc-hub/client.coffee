@@ -2662,8 +2662,8 @@ class exports.Client extends EventEmitter
 
     mesg_get_syncdoc_history: (mesg) =>
         dbg = @dbg('mesg_syncdoc_history')
-        dbg("checking conditions")
         try
+            dbg("checking conditions")
             # this raises an error if user does not have access
             await callback(@_check_syncdoc_access, mesg.string_id)
             # get the history

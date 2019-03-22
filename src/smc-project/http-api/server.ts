@@ -12,7 +12,7 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { split } from "../smc-util/misc2";
+import { endswith, split } from "../smc-util/misc2";
 import { json, urlencoded } from "body-parser";
 
 const { free_port } = require("../../smc-util-node/misc_node");
@@ -22,7 +22,7 @@ const RateLimit = require("express-rate-limit");
 export interface Client {
   project_id: string;
   secret_token: string;
-  get_syncdoc_history: (string_id: string) => Promise<any>;
+  get_syncdoc_history: (string_id: string, patches: boolean) => Promise<any>;
   dbg: (name: string) => Function;
 }
 
@@ -34,9 +34,46 @@ interface ServerOpts {
 
 export async function start_server(opts: ServerOpts): Promise<void> {
   const dbg: Function = opts.client.dbg("api_server");
-
   const server: express.Application = express();
 
+  dbg("configuring server...");
+  configure(opts, server, dbg);
+
+  if (opts.port == null) {
+    dbg("getting free port...");
+    opts.port = await callback(free_port);
+    dbg(`got port=${opts.port}`);
+  }
+
+  if (opts.port_path) {
+    dbg(`writing port to file "${opts.port_path}"`);
+    await callback(writeFile, opts.port_path, opts.port);
+  }
+
+  // TODO/RANT: I cannot figure out how to catch an error
+  // due to port being taken.  I couldn't find any useful
+  // docs on this.  The callback function doesn't get called
+  // with an error, and there is no "error" event, since
+  // the only event is "mount" --
+  // https://expressjs.com/en/4x/api.html#app.onmount
+  // I wasted way too much time on this.  Googling is also
+  // miserable, since the express api has changed dramatically
+  // so many times.  At least it doesn't hang, and instead
+  // exits the process.
+  function start(cb: Function): void {
+    server.listen(opts.port, () => {
+      cb();
+    });
+  }
+  await callback(start);
+  dbg(`express server successfully listening at http://localhost:${opts.port}`);
+}
+
+function configure(
+  opts: ServerOpts,
+  server: express.Application,
+  dbg: Function
+): void {
   server.use(json({ limit: "3mb" }));
   server.use(urlencoded({ extended: true, limit: "3mb" }));
 
@@ -45,26 +82,14 @@ export async function start_server(opts: ServerOpts): Promise<void> {
   server.get("/", handle_get);
 
   server.post("/api/v1/*", async (req, res) => {
+    dbg(`POST to ${req.path}`);
     try {
-      dbg(`POST to ${req.path}`);
       handle_auth(req, opts.client.secret_token);
       await handle_post(req, res, opts.client);
     } catch (err) {
       dbg(`failed handling POST ${err}`);
       res.status(400).send({ error: `${err}` });
     }
-  });
-
-  if (opts.port == null) {
-    opts.port = await callback(free_port);
-  }
-
-  if (opts.port_path) {
-    await callback(writeFile, opts.port_path, opts.port);
-  }
-
-  server.listen(opts.port, () => {
-    dbg(`server listening at http://localhost:${opts.port}`);
   });
 }
 
@@ -126,12 +151,19 @@ async function handle_post(req, res, client: Client): Promise<void> {
 
 async function get_syncdoc_history(body, client: Client): Promise<any> {
   const dbg = client.dbg("get_syncdoc_history");
-  const path = body.path;
+  let path = body.path;
   dbg(`path="${path}"`);
   if (typeof path != "string") {
     throw Error("provide the path as a string");
   }
+
+  // transform jupyter path -- TODO: this should
+  // be more centralized... since this is brittle.
+  if (endswith(path, ".ipynb")) {
+    path = "." + path + ".sage-jupyter2";
+  }
+
   // compute the string_id
   const string_id = client_db.sha1(client.project_id, path);
-  return await client.get_syncdoc_history(string_id);
+  return await client.get_syncdoc_history(string_id, !!body.patches);
 }
