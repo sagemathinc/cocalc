@@ -7,6 +7,8 @@ to get info from the project, and to cause the project to do things.
 Requests must be authenticated using the secret token.
 */
 
+const MAX_REQUESTS_PER_MINUTE = 50;
+
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
@@ -15,6 +17,7 @@ import { json, urlencoded } from "body-parser";
 
 const { free_port } = require("../../smc-util-node/misc_node");
 const { client_db } = require("../smc-util/db-schema");
+const RateLimit = require("express-rate-limit");
 
 export interface Client {
   project_id: string;
@@ -36,6 +39,8 @@ export async function start_server(opts: ServerOpts): Promise<void> {
 
   server.use(json({ limit: "3mb" }));
   server.use(urlencoded({ extended: true, limit: "3mb" }));
+
+  rate_limit(server);
 
   server.get("/", handle_get);
 
@@ -61,6 +66,17 @@ export async function start_server(opts: ServerOpts): Promise<void> {
   server.listen(opts.port, () => {
     dbg(`server listening at http://localhost:${opts.port}`);
   });
+}
+
+function rate_limit(server: express.Application): void {
+  // (suggested by LGTM):
+  // set up rate limiter -- maximum of 50 requests per minute
+  const limiter = new RateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: MAX_REQUESTS_PER_MINUTE
+  });
+  // apply rate limiter to all requests
+  server.use(limiter);
 }
 
 function handle_get(_req, res): void {
