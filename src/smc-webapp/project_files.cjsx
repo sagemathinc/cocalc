@@ -24,6 +24,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
+{trunc} = require('smc-util/misc2')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
 SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM, CloseX2} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
@@ -34,6 +35,8 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
 {compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./compute-images/util')
+{ ButtonRetryUntilSuccess } = require("./widgets-misc/link-retry")
+{jupyterlab_server_url} = require('./project/jupyterlab-server')
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -75,40 +78,65 @@ ProjectInfo = rclass
         project_map   : rtypes.immutable.Map
         actions       : rtypes.object.isRequired
 
+    render_path: (path) ->
+        return null if path.length is 0
+        if path.endsWith('/')
+            onClick = =>@props.actions.open_directory(path)
+        else
+            onClick = =>@props.actions.open_file(path:path)
+        <Button
+             onClick={onClick}
+        >
+            <Tip title={"Opens '#{path}'"} placement={"bottom"}>
+                <Icon name={'rocket'} /> Open {'"'}{misc.trunc_middle(path, 40)}{'"'}
+            </Tip>
+        </Button>
+
+    img_info: (img) ->
+        disp = img.get("display", "")
+        id = img.get("id", "")
+        return "#{disp} (#{id})"
+
     render: ->
         ci = @props.project_map?.getIn([@props.project_id, 'compute_image'])
-        return if not ci?
-        return if not ci.startsWith(CUSTOM_IMG_PREFIX)
+        return null if not ci?
+        return null if not ci.startsWith(CUSTOM_IMG_PREFIX)
         img = @props.images?.get(compute_image2basename(ci))
-        return if not img?
+        return null if not img?
+        path = img.get("path", "")
 
         style = Object.assign({}, ROW_INFO_STYLE,
             paddingLeft: '10px'
-            display: 'flex'
+            display: 'inline-flex'
             color: COLORS.GRAY_D
         )
 
         title_style =
             textOverflow: "ellipsis"
-            maxWidth: "30%"
             whiteSpace: "nowrap"
             overflow: "hidden"
+            paddingLeft: '10px'
+            margin: '5px 10px'
+            color: COLORS.GRAY
 
 
         ci_name = compute_image2name(ci)
 
-        <div style={style}>
-            <div style={title_style}>{img.get("display")}</div>
-            <Button
-                bsSize={"small"}
-                onClick={=>@props.actions.open_file(path:'nb.ipynb')}
-            >
-                open nb.ipynb
-            </Button>
-            <Button bsSize={"small"}>
-                Start Jupyter
-            </Button>
-        </div>
+        href = => await jupyterlab_server_url(@props.project_id)
+
+        <Fragment>
+            <ButtonGroup bsSize={'small'} style={whiteSpace:'nowrap'}>
+                {@render_path(path)}
+                <ButtonRetryUntilSuccess get_href={href}>
+                    <Icon name={"cc-icon-ipynb"} /> Jupyter Lab…
+                </ButtonRetryUntilSuccess>
+            </ButtonGroup>
+            <div style={title_style}>
+                <Tip title={@img_info(img)} placement={'bottom'}>
+                    {trunc(img.get("display", ""), 100)}
+                </Tip>
+            </div>
+        </Fragment>
 
 
 # One segment of the directory links at the top of the files listing.
@@ -329,6 +357,8 @@ ProjectFilesActions = rclass
             @clear_selection()
 
     render_check_all_button: ->
+        if @props.listing.length is 0
+            return
         if @props.checked_files.size is 0
             button_icon = 'square-o'
             button_text = 'Check All'
@@ -359,6 +389,8 @@ ProjectFilesActions = rclass
                 </Button>
 
     render_currently_selected: ->
+        if @props.listing.length is 0
+            return
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
         style = ROW_INFO_STYLE
@@ -1707,26 +1739,18 @@ exports.ProjectFiles = rclass ({name}) ->
         </Row>
 
     render_files_actions: (listing, public_view) ->
-        if listing.length > 0
-            <ProjectFilesActions
-                project_id    = {@props.project_id}
-                checked_files = {@props.checked_files}
-                file_action   = {@props.file_action}
-                page_number   = {@props.page_number}
-                page_size     = {@file_listing_page_size()}
-                public_view   = {public_view}
-                current_path  = {@props.current_path}
-                listing       = {listing}
-                project_map   = {@props.project_map}
-                images        = {@props.images}
-                actions       = {@props.actions} />
-        else
-            <ProjectInfo
-                project_id = {@props.project_id}
-                images = {@props.images}
-                project_map = {@props.project_map}
-                actions = {@props.actions}
-            />
+        <ProjectFilesActions
+            project_id    = {@props.project_id}
+            checked_files = {@props.checked_files}
+            file_action   = {@props.file_action}
+            page_number   = {@props.page_number}
+            page_size     = {@file_listing_page_size()}
+            public_view   = {public_view}
+            current_path  = {@props.current_path}
+            listing       = {listing}
+            project_map   = {@props.project_map}
+            images        = {@props.images}
+            actions       = {@props.actions} />
 
     render_miniterm: ->
         <MiniTerminal

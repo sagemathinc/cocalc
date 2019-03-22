@@ -2668,7 +2668,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             else
                 desc = undefined
 
-            path = if Math.random() > .5 then "index.ipynb" else undefined
+            path = if Math.random() > .5 then "index.ipynb" else "subdir/"
+            tag = if Math.random() > .25 then "master" else null
 
 
             @_query

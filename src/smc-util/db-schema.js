@@ -1829,6 +1829,11 @@ schema.compute_images = {
       type: "string",
       desc: "for now, this is either 'legacy' or 'custom'"
     },
+    tag: {
+      type: "string",
+      desc:
+        "(optional) tag, e.g. 'stable' or a git reference. (implicit default: 'latest')"
+    },
     display: {
       type: "string",
       desc: "(optional) user-visible name (defaults to id)"
@@ -1859,9 +1864,11 @@ schema.compute_images = {
       fields: {
         id: null,
         src: null,
+        tag: null,
         type: null,
         display: null,
         url: null,
+        path: null,
         desc: null
       }
     }

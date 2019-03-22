@@ -163,7 +163,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         create_file        : rtypes.func  #.required # commented, causes an exception upon init
         create_folder      : rtypes.func  #.required
         styles             : rtypes.object
-        project_id         : rtypes.string.isRequired
+        project_id         : rtypes.string
         available_features : rtypes.object
 
     getInitialState :->
@@ -171,7 +171,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass
         show_jupyterlab_server_panel : false
 
     render: ->
-        return if not @props.create_file or not @props.create_file
+        return if not @props.create_file or not @props.create_file or not @props.project_id
 
         row_style =
             marginBottom:'8px'

@@ -21,7 +21,9 @@ export type ComputeImageKeys =
   | "display"
   | "url"
   | "desc"
-  | "search_str";
+  | "path"
+  | "search_str"
+  | "display_tag";
 
 export type ComputeImage = iMap<ComputeImageKeys, string>;
 export type ComputeImages = iMap<string, ComputeImage>;
@@ -116,12 +118,16 @@ class ComputeImagesTable extends Table {
         .filter(x => x.length > 0)
         .join(" ")
         .toLowerCase();
+      // derive the displayed tag, docker-like
+      const tag = id.indexOf(":") >= 0 ? "" : ":latest";
+      const disp_tag = `${id}${tag}`;
 
       return img
         .set("display", display)
         .set("desc", desc)
         .set("search_str", search_str)
-        .set("url", url);
+        .set("url", url)
+        .set("display_tag", disp_tag);
     });
   }
 

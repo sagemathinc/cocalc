@@ -40,7 +40,7 @@ const CS_INIT_STATE: Readonly<CSState> = Object.freeze({
 });
 
 const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
-  maxHeight: "275px",
+  height: "250px",
   overflowX: "hidden" as "hidden",
   overflowY: "scroll" as "scroll",
   border: `1px solid ${COLORS.GRAY_LL}`,
@@ -167,9 +167,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
     const desc = img.get("desc", "");
     const url = img.get("url");
     const src = img.get("src");
-
-    // show :latest if there is no tag (must match back-end heuristic!)
-    const tag = id.indexOf(":") >= 0 ? "" : ":latest";
+    const disp_tag = img.get("display_tag");
 
     const render_source = () => {
       if (src == null || src.length == 0) return;
@@ -193,7 +191,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
       <>
         <h3 style={{ marginTop: "5px" }}>{disp}</h3>
         <div style={{ marginTop: "5px" }}>
-          Image ID: <code>{`${id}${tag}`}</code>
+          Image ID: <code>{disp_tag}</code>
         </div>
         <div
           style={{ marginTop: "10px", overflowY: "auto", maxHeight: "200px" }}

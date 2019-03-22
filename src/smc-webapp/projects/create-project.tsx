@@ -158,11 +158,11 @@ export class NewProjectCreator extends Component<Props, State> {
       <Row>
         <Col sm={4}>
           <Button
-            bsStyle="success"
+            bsStyle={"success"}
             active={this.state.state !== "view"}
             disabled={this.state.state !== "view"}
             block
-            type="submit"
+            type={"submit"}
             onClick={this.toggle_editing}
           >
             <Icon name="plus-circle" /> Create New Project...
