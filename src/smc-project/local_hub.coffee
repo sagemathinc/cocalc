@@ -335,6 +335,7 @@ start_server = (tcp_port, raw_port, cb) ->
                 else
                     the_secret_token = token
                     console_sessions.set_secret_token(token)
+                    client.secret_token = token
                     cb()
         (cb) ->
             winston.debug("starting tcp server...")

@@ -3,6 +3,15 @@ require("ts-node").register({
   cacheDirectory: "/tmp"
 });
 
-require('coffeescript/register');
+require("coffeescript/register");
 
-require("./server.ts").start_server({port:8080,port_path:'/tmp/port'});
+const client = {
+  secret_token: "secret",
+  project_id: "e11c1abe-52a0-4959-ac1a-391e14088bf5"
+};
+
+require("./server.ts").start_server({
+  port: 8080,
+  port_path: "/tmp/port",
+  client
+});
