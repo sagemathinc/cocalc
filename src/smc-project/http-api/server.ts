@@ -12,6 +12,7 @@ const MAX_REQUESTS_PER_MINUTE = 50;
 import * as express from "express";
 import { writeFile } from "fs";
 import { callback } from "awaiting";
+import { meta_file } from "../smc-util/misc";
 import { endswith, split } from "../smc-util/misc2";
 import { json, urlencoded } from "body-parser";
 
@@ -160,7 +161,7 @@ async function get_syncdoc_history(body, client: Client): Promise<any> {
   // transform jupyter path -- TODO: this should
   // be more centralized... since this is brittle.
   if (endswith(path, ".ipynb")) {
-    path = "." + path + ".sage-jupyter2";
+    path = meta_file(path, 'jupyter2')
   }
 
   // compute the string_id
