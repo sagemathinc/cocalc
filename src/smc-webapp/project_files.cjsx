@@ -1524,7 +1524,7 @@ exports.ProjectFiles = rclass ({name}) ->
         shift_is_down : false
 
     componentDidMount: ->
-        window.setTimeout(@props.redux.getActions('billing')?.update_customer, 200)
+        setTimeout(@props.redux.getActions('billing')?.update_customer, 200)
         $(window).on("keydown", @handle_files_key_down)
         $(window).on("keyup", @handle_files_key_up)
 
