@@ -2968,3 +2968,20 @@ message({
   id: undefined,
   path: required
 });
+
+// client --> hub
+API(
+  message({
+    event: "get_syncdoc_history",
+    id: undefined,
+    string_id: required,
+    patches: undefined
+  })
+);
+
+// hub --> client
+message({
+  event: "syncdoc_history",
+  id: undefined,
+  history: required
+});
