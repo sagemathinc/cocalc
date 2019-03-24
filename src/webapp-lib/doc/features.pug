@@ -16,12 +16,12 @@ block content
     :sass
       @import "smc-webapp/_colors.sass"
       div.row#top
-        min-height: 50vh
+        min-height: 75vh
         ul
           li
             margin-top    : 10px
             margin-bottom : 10px
-            a
+            > a:first-child
               font-weight   : bold
               padding-right : 10px
 
@@ -33,7 +33,9 @@ block content
       ul
         li
           a(href='jupyter-notebook.html') Jupyter Notebooks:
-          span #{NAME} offers a platform-specific edition of notebooks with real-time collaboration, chat, and precise edit-history
+          span.
+            #{NAME} offers a platform-specific edition of notebooks with real-time collaboration, chat, and precise edit-history.
+            Explore it in more detail in #[a(href="https://doc.cocalc.com/jupyter.html") the documentation].
 
         li
           a(href='r-statistical-software.html') R statistical software:
@@ -41,13 +43,30 @@ block content
 
         li
           a(href='latex-editor.html') LaTeX Editor:
-          span learn how #{NAME}'s LaTeX editor can help you being a productive author online
+          span.
+             learn how #{NAME}'s LaTeX editor can help you being a productive author online,
+             or check out #[a(href="https://doc.cocalc.com/latex.html") its documentation].
 
         li
           a(href='x11.html') Graphical Software:
-          span run graphical applications in #{NAME}'s remote virtual display environment
+          span.
+            run graphical applications in #{NAME}'s remote virtual display environment.
+            Read more about it in the #[a(href="https://doc.cocalc.com/x11.html") X11 documentation].
 
         li
-          span There is much more to explore. Just to name a few, there are Sage Worksheets, Course management, Task management, Chat, etc.
+          a(href="https://doc.cocalc.com/terminal.html") Linux Terminal:
+          span work in a full remote Linux shell.
+
+        li
+          a(href='https://doc.cocalc.com/api/') API interface:
+          span programmatically control #{NAME} via your own software.
+
+        li
+          a(href='https://doc.cocalc.com/api/') There is much more to explore:
+          span.
+            Just to name a few, there are
+            #[a(href="https://doc.cocalc.com/sagews.html") Sage Worksheets],
+            #[a(href="https://doc.cocalc.com/teaching-instructors.html") Course management],
+            #[a(href="https://doc.cocalc.com/tasks.html") Task management], Chat, etc.
 
 

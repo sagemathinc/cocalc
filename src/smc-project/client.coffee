@@ -24,7 +24,7 @@ fs     = require('fs')
 
 {EventEmitter} = require('events')
 
-{once} = require("smc-util/async-utils");
+{callback2, once} = require("smc-util/async-utils");
 
 async   = require('async')
 winston = require('winston')
@@ -584,3 +584,12 @@ class exports.Client extends EventEmitter
     # no-op
     touch_project: (opts) =>
         opts.cb?()
+
+    # async
+    get_syncdoc_history: (string_id, patches=false) =>
+        dbg = @dbg("get_syncdoc_history")
+        dbg(string_id, patches)
+        mesg = message.get_syncdoc_history
+            string_id : string_id
+            patches   : patches
+        return await callback2(@call, {message:mesg})

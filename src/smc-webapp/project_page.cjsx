@@ -45,7 +45,7 @@ Draggable = require('react-draggable')
 project_file = require('./project_file')
 {file_associations} = require('./file-associations')
 
-{React, ReactDOM, rclass, redux, rtypes, Redux} = require('./app-framework')
+{React, ReactDOM, rclass, redux, rtypes, Redux, Fragment} = require('./app-framework')
 {DeletedProjectWarning, ErrorBoundary, Icon, Loading, Space} = require('./r_misc')
 
 {ChatIndicator} = require('./chat-indicator')
@@ -134,18 +134,21 @@ FreeProjectWarning = rclass ({name}) ->
         <a style={dismiss_styles} onClick={@actions(project_id: @props.project_id).close_free_warning}>×</a>
 
     render_learn_more: (color) ->
-        <a
-            href   = "https://github.com/sagemathinc/cocalc/wiki/TrialServer"
-            target = "_blank"
-            style  = {fontWeight : 'bold', color:color, cursor:'pointer'}>
-            <Space/> &mdash; more info... <Space/>
-        </a>
+        <Fragment>
+            {' '}&mdash;{' '}
+            <a
+                href   = "https://doc.cocalc.com/trial.html"
+                target = "_blank"
+                style  = {fontWeight : 'bold', color:color, cursor:'pointer'}
+            >
+                more info
+            </a>
+            {'...'}
+        </Fragment>
         #<a onClick={=>@actions(project_id: @props.project_id).show_extra_free_warning()} style={color:'white', cursor:'pointer'}> learn more...</a>
 
     render: ->
         if @props.other_settings?.get('no_free_warnings')
-            return null
-        if not @props.project_log?
             return null
         if not require('./customize').commercial
             return null
@@ -162,22 +165,22 @@ FreeProjectWarning = rclass ({name}) ->
         if not host and not internet
             return null
 
-        font_size = Math.min(18, 12 + Math.round((@props.project_log?.size ? 0) / 30))
+        font_size = Math.min(18, 10 + (@props.project_log?.size ? 0) / 30)
         styles =
-            padding      : "5px 30px"
+            padding      : "5px 10px"
             marginBottom : 0
             fontSize     : "#{font_size}pt"
 
-        if host
+        if host and font_size > 11
             styles.color      = 'white'
             styles.background = 'red'
 
         if host and internet
-            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b> and has no network access.  Expect very bad performance.</span>
+            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b> and has no internet access.  Expect very bad performance.</span>
         else if host
-            mesg = <span>Upgrade this project.  It is on an <b>unpaid trial server</b>. Expect very bad performance.</span>
+            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b>. Expect very bad performance.</span>
         else if internet
-            mesg = <span>This project does not have network access.</span>
+            mesg = <span>This project does not have access to the internet.</span>
 
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>

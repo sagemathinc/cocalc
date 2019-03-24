@@ -13,7 +13,7 @@ import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
 import { ErrorStyles } from "../frame-tree/types";
 
-import { copy, is_different } from "smc-util/misc2";
+import { copy, is_different, filename_extension } from "smc-util/misc2";
 
 import { SetMap } from "./types";
 
@@ -117,37 +117,33 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     )
       return true;
     return (
-      is_different(
-        this.props,
-        next,
-        [
-          // do NOT include editor_spec below -- it is assumed to never change
-          "is_public",
-          "has_unsaved_changes",
-          "has_uncommitted_changes",
-          "read_only",
-          "is_loaded",
-          "local_view_state",
-          "error",
-          "errorstyle",
-          "cursors",
-          "status",
-          "load_time_estimate",
-          "value",
-          "reload",
-          "resize",
-          "misspelled_words",
-          "has_unsaved_changes",
-          "has_uncommitted_changes",
-          "is_saving",
-          "gutter_markers",
-          "editor_settings",
-          "terminal",
-          "settings",
-          "complete",
-          "derived_file_types"
-        ]
-      ) ||
+      is_different(this.props, next, [
+        // do NOT include editor_spec below -- it is assumed to never change
+        "is_public",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "read_only",
+        "is_loaded",
+        "local_view_state",
+        "error",
+        "errorstyle",
+        "cursors",
+        "status",
+        "load_time_estimate",
+        "value",
+        "reload",
+        "resize",
+        "misspelled_words",
+        "has_unsaved_changes",
+        "has_uncommitted_changes",
+        "is_saving",
+        "gutter_markers",
+        "editor_settings",
+        "terminal",
+        "settings",
+        "complete",
+        "derived_file_types"
+      ]) ||
       this.props.editor_settings.get("extra_button_bar") !==
         next.editor_settings.get("extra_button_bar")
     );
@@ -163,7 +159,7 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
       return (
         <FormatBar
           actions={this.props.actions}
-          extension={"html"}
+          extension={filename_extension(this.props.path)}
           exclude={this.props.format_bar_exclude}
         />
       );

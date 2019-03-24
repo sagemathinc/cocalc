@@ -4,7 +4,8 @@ React component that describes the output of a cell
 
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
-const { CellOutputMessages } = require("./cell-output-message");
+import { CellOutputMessages } from "./output-messages/message";
+
 const { OutputPrompt } = require("./prompt");
 const { OutputToggle, CollapsedOutput } = require("./cell-output-toggle");
 
@@ -25,7 +26,10 @@ export class CellOutput extends Component<CellOutputProps> {
         return true;
       }
     }
-    if (this.props.more_output !== nextProps.more_output || this.props.trust !== nextProps.trust) {
+    if (
+      this.props.more_output !== nextProps.more_output ||
+      this.props.trust !== nextProps.trust
+    ) {
       return true;
     }
     const new_output = nextProps.cell.get("output");
@@ -44,7 +48,7 @@ export class CellOutput extends Component<CellOutputProps> {
     let exec_count = undefined;
     const output = this.props.cell.get("output");
     if (output != null) {
-      output.forEach((x) => {
+      output.forEach(x => {
         if (x.has("exec_count")) {
           exec_count = x.get("exec_count");
           return false;
@@ -58,7 +62,12 @@ export class CellOutput extends Component<CellOutputProps> {
         collapsed={collapsed}
       />
     );
-    if (this.props.actions == null || collapsed || output == null || output.size === 0) {
+    if (
+      this.props.actions == null ||
+      collapsed ||
+      output == null ||
+      output.size === 0
+    ) {
       return prompt;
     }
     if (this.props.actions != null) {
@@ -124,7 +133,10 @@ export class CellOutput extends Component<CellOutputProps> {
       return <div />;
     }
     return (
-      <div key="out" style={{ display: "flex", flexDirection: "row", alignItems: "stretch" }}>
+      <div
+        key="out"
+        style={{ display: "flex", flexDirection: "row", alignItems: "stretch" }}
+      >
         {this.render_output_prompt()}
         {this.render_output_value()}
       </div>

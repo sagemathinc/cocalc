@@ -331,7 +331,7 @@ export class FormatBar extends Component<Props, {}> {
 
   render_font_dropdowns(): Rendered {
     if (this.props.extension === "tex") {
-      // these are mostly not implemented for latex... yet!
+      // these are mostly not implemented for latex... yet! (except heading, sort of).
       return;
     }
     return (

@@ -69,6 +69,8 @@ import { connection_to_project } from "../project/websocket/connect";
 
 import { CursorManager } from "./cursor-manager";
 
+import { codemirror_to_jupyter_pos } from "./util";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -98,7 +100,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private update_keyboard_shortcuts: any;
   private project_conn: any;
   private cursor_manager?: CursorManager;
-  private last_cursor_move_time : Date = new Date(0);
+  private last_cursor_move_time: Date = new Date(0);
 
   protected _client: any;
   protected _file_watcher: any;
@@ -117,13 +119,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public syncdb: any;
   public util: any; // TODO: check if this is used publicly
 
-  _init = async (
+  _init = (
     project_id: string,
     path: string,
     syncdb: any,
     store: any,
     client: any
-  ) => {
+  ): void => {
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -1226,7 +1228,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    this.unselect_all_cells(); // for whatever reason, any running of a cell deselects in official jupyter
+    // for whatever reason, any running of a cell deselects
+    // in official jupyter
+    this.unselect_all_cells();
 
     const cell_type = (left = cell.get("cell_type")) != null ? left : "code";
     switch (cell_type) {
@@ -1906,12 +1910,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const method = editor[name];
     if (method != null) {
       method(...args);
+    } else {
+      console.warn("Jupyter: call_input_editor_method -- no such method", name);
     }
   }
 
   // Press tab key in editor of currently selected cell.
   tab_key = () => {
     this.call_input_editor_method(this.store.get("cur_id"), "tab_key");
+  };
+
+  // Press tab key in editor of currently selected cell.
+  shift_tab_key = () => {
+    this.call_input_editor_method(this.store.get("cur_id"), "shift_tab_key");
   };
 
   set_cursor = (id: string, pos: any): void => {
@@ -1925,6 +1936,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_kernel = (kernel: any) => {
+    if (this.syncdb.get_state() != 'ready') {
+      console.warn("Jupyter syncdb not yet ready -- not setting kernel");
+      return;
+    }
     if (this.store.get("kernel") !== kernel) {
       return this._set({
         type: "settings",
@@ -1983,10 +1998,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // pos can be either a {line:?, ch:?} object as in codemirror,
     // or a number.
     if (misc.is_object(pos)) {
-      const lines = code.split("\n");
-      cursor_pos =
-        misc.sum(__range__(0, pos.line, false).map(i => lines[i].length + 1)) +
-        pos.ch;
+      cursor_pos = codemirror_to_jupyter_pos(code, pos);
     } else {
       cursor_pos = pos;
     }
@@ -2126,10 +2138,32 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  introspect_close = () => {
+    if (this.store.get("introspect") != null) {
+      this.setState({ introspect: undefined });
+    }
+  };
+
+  introspect_at_pos = async (
+    code: string,
+    level: 0 | 1 = 0,
+    pos: { ch: number; line: number }
+  ): Promise<void> => {
+    // If the introspection window is currently open, close it.
+    if (this.store.get("introspect") != null) {
+      this.setState({ introspect: undefined });
+      return;
+    }
+
+    // Introspection is not opened, try to introspect...
+    if (code === "") return; // no-op if there is no code (should never happen)
+    await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
+  };
+
   introspect = async (
-    code: any,
-    level: any,
-    cursor_pos?: any
+    code: string,
+    level: 0 | 1,
+    cursor_pos?: number
   ): Promise<void> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
@@ -2371,14 +2405,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // TODO: set_more_output on project-actions is different
+  // NOTE: set_more_output on project-actions is different
   set_more_output = (id: any, more_output: any, _?: any): void => {
-    let left: any;
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    const x =
-      (left = this.store.get("more_output")) != null ? left : immutable.Map();
+    const x = this.store.get("more_output", immutable.Map());
     this.setState({
       more_output: x.set(id, immutable.fromJS(more_output))
     });
@@ -2746,8 +2778,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this._jupyter_kernel != null
           ? this._jupyter_kernel.process_attachment
           : undefined,
-      output_handler: this._output_handler
-    }); // undefined in client; defined in project
+      output_handler: this._output_handler // undefined in client; defined in project
+    });
 
     if (data_only) {
       importer.close();

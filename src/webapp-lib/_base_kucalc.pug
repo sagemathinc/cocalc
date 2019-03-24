@@ -117,6 +117,9 @@ html.no-js(lang="en")
           .get-started
             color        : $COL_BS_GREEN_DD
             font-weight  : bold
+          .documentation
+            color        : $COL_BLUE_DOC
+            font-weight  : bold
           .navbar-header
             margin-top     : 5px;
             img.icon
@@ -219,6 +222,8 @@ html.no-js(lang="en")
           font-size: 1.5rem
           padding-top: 5px
           padding-bottom: 5px
+          &.documentation
+            color: $COL_BLUE_DOC
 
     nav.navbar.navbar-default.navbar-fixed-top
       div.container
@@ -241,11 +246,11 @@ html.no-js(lang="en")
             li(class=navbar_highlight('pricing'))
               a(href=PREFIX + "policies/pricing.html") Pricing
 
-            li(class=navbar_highlight('api'))
-              a(href=PREFIX + "doc/api.html") API
-
             li(class=navbar_highlight("policies"))
               a(href=PREFIX + "policies/index.html") Policies
+
+            li
+              a.documentation(href="https://doc.cocalc.com/") Doc
 
             li
               a.get-started(href=PREFIX + "app") Sign In
@@ -261,6 +266,8 @@ html.no-js(lang="en")
                 a(href=PREFIX + "doc/r-statistical-software.html") R Statistics
               li(class=subnavbar_highlight('x11'))
                 a(href=PREFIX + "doc/x11.html") X11
+              li
+                a.documentation(href="https://doc.cocalc.com/api/") API
 
         if navbar_active == 'software'
           div.collapse.navbar-collapse
