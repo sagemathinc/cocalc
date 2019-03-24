@@ -24,11 +24,11 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
-{trunc} = require('smc-util/misc2')
+misc2 = require('smc-util/misc2')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
 SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM, CloseX2} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
-{FileTypeSelector, NewFileButton, ProjectNewForm} = require('./project_new')
+{NewFileButton, ProjectNewForm} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
 {Library} = require('./library')
@@ -84,11 +84,12 @@ ProjectInfo = rclass
             onClick = =>@props.actions.open_directory(path)
         else
             onClick = =>@props.actions.open_file(path:path)
+        display_path = misc2.path_split(path).tail
         <Button
              onClick={onClick}
         >
-            <Tip title={"Opens '#{path}'"} placement={"bottom"}>
-                <Icon name={'rocket'} /> Open {'"'}{misc.trunc_middle(path, 40)}{'"'}
+            <Tip title={"Opens '#{display_path}'"} placement={"bottom"}>
+                <Icon name={'rocket'} /> Open {misc.trunc_middle(display_path, 40)}
             </Tip>
         </Button>
 
@@ -133,7 +134,7 @@ ProjectInfo = rclass
             </ButtonGroup>
             <div style={title_style}>
                 <Tip title={@img_info(img)} placement={'bottom'}>
-                    {trunc(img.get("display", ""), 100)}
+                    {misc2.trunc(img.get("display", ""), 100)}
                 </Tip>
             </div>
         </Fragment>
@@ -1873,6 +1874,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 disabled       = {public_view}
             >
                 <FileListing
+                    name                   = {name}
                     active_file_sort       = {@props.active_file_sort}
                     listing                = {listing}
                     page_size              = {@file_listing_page_size()}
@@ -2034,3 +2036,4 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
+

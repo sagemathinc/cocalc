@@ -4,7 +4,7 @@ import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
 
 const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
 
-const { Markdown, SearchInput } = require("../r_misc");
+const { Markdown, SearchInput, Icon } = require("../r_misc");
 
 const legacy: ComputeImageTypes = "legacy";
 const custom: ComputeImageTypes = "custom";
@@ -138,8 +138,8 @@ export class CustomSoftware extends Component<CSProps, CSState> {
           />
         </div>
         {this.render_custom_image_entries()}
-        <div style={{ color: COLORS.GRAY, margin: "10px 0" }}>
-          Contact us to add more: <HelpEmailLink color={COLORS.GRAY} />.
+        <div style={{ color: COLORS.GRAY_D, margin: "15px 0" }}>
+          Contact us to add more: <HelpEmailLink color={COLORS.GRAY_D} />.
         </div>
       </>
     );
@@ -161,7 +161,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
       console.warn(`compute_image data missing for '${id}'`);
       return;
     }
-    // ATTN: deriving disp, desc, etc. must be robust against null and empty strings
+    // some fields are derived in the "Table" when the data comes in
     const img: ComputeImage = data;
     const disp = img.get("display");
     const desc = img.get("desc", "");
@@ -182,7 +182,9 @@ export class CustomSoftware extends Component<CSProps, CSState> {
       if (url == null || url.length == 0) return;
       return (
         <div style={{ marginTop: "5px" }}>
-          URL: <a href={url}>further information</a>
+          <a href={url}>
+            <Icon name="external-link-alt" /> Website
+          </a>
         </div>
       );
     };
@@ -232,10 +234,15 @@ export class CustomSoftware extends Component<CSProps, CSState> {
               id={"custom-compute-image"}
               onChange={() => this.props.setParentState({ image_type: custom })}
             >
-              <b>Custom</b>: 3rd party software environments, e.g.{" "}
+              <b>Custom</b>
+              <sup>
+                <em>beta</em>
+              </sup>
+              : 3rd party software environments, e.g.{" "}
               <a href={"https://mybinder.org/"} target={"_blank"}>
                 Binder
               </a>
+              .
             </Radio>
           ) : (
             "There are no customized compute images available."

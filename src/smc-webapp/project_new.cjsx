@@ -156,15 +156,18 @@ NewFileDropdown = rclass
 
 # Use Rows and Cols to append more buttons to this class.
 # Could be changed to auto adjust to a list of pre-defined button names.
-exports.FileTypeSelector = FileTypeSelector = rclass
+exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
     displayName : 'ProjectNew-FileTypeSelector'
+
+    reduxProps :
+        "#{name}" :
+            available_features  : rtypes.immutable
 
     propTypes :
         create_file        : rtypes.func  #.required # commented, causes an exception upon init
         create_folder      : rtypes.func  #.required
         styles             : rtypes.object
         project_id         : rtypes.string
-        available_features : rtypes.object
 
     getInitialState :->
         show_jupyter_server_panel : false
@@ -179,6 +182,8 @@ exports.FileTypeSelector = FileTypeSelector = rclass
 
         # why is available_features immutable?
         available = @props.available_features?.toJS?() ? {}
+
+        console.log("FileTypeSelector: available", available)
 
         <Fragment>
             <Row style={row_style}>
@@ -440,6 +445,10 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             else
                 @setState(filename : ReactDOM.findDOMNode(@refs.project_new_filename).value)
 
+        onKey = (e) =>
+            if e.keyCode == 27
+                @props.close?()
+
         <form onSubmit={@submit_via_enter}>
             <FormGroup>
                 <FormControl
@@ -450,6 +459,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     disabled    = {@state.extension_warning}
                     placeholder = {'Name your file, folder, or a URL to download from...'}
                     onChange    = {onChange}
+                    onKeyDown   = {onKey}
                 />
             </FormGroup>
         </form>
@@ -485,7 +495,12 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
                     {if @state.extension_warning then @render_no_extension_alert()}
                     {if @props.file_creation_error then @render_error()}
                     <div style={color:"#666", paddingBottom:"5px"}>Select the type of file</div>
-                    <FileTypeSelector create_file={@submit} create_folder={@create_folder} project_id={@props.project_id} available_features={@props.available_features}>
+                    <FileTypeSelector
+                        name={name}
+                        create_file={@submit}
+                        create_folder={@create_folder}
+                        project_id={@props.project_id}
+                    >
                         <Tip
                             title = {'Download files from the Internet'}
                             icon = {'cloud'}

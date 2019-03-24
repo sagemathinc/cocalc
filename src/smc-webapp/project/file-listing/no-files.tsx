@@ -11,12 +11,14 @@ const { FileTypeSelector } = require("../../project_new");
 const { Button, Row, Col } = require("react-bootstrap");
 
 interface Props {
+  name: string;
   actions: ProjectActions;
   create_folder: () => void;
   create_file: () => void;
   public_view?: boolean;
   file_search: string;
   current_path?: string;
+  project_id: string;
 }
 
 const row_style = {
@@ -26,7 +28,11 @@ const row_style = {
   wordWrap: "break-word"
 };
 
-const create_button_style = { fontSize: "40px", color: "#888", maxWidth: "100%" }
+const create_button_style = {
+  fontSize: "40px",
+  color: "#888",
+  maxWidth: "100%"
+};
 
 export class NoFiles extends React.PureComponent<Props> {
   static defaultProps = { file_search: "" };
@@ -60,10 +66,7 @@ export class NoFiles extends React.PureComponent<Props> {
     }
 
     return (
-      <Button
-        style={create_button_style}
-        onClick={() => this.handle_click()}
-      >
+      <Button style={create_button_style} onClick={() => this.handle_click()}>
         <Icon name="plus-circle" /> {button_text}
       </Button>
     );
@@ -74,8 +77,10 @@ export class NoFiles extends React.PureComponent<Props> {
       <div>
         <h4 style={{ color: "#666" }}>Or select a file type</h4>
         <FileTypeSelector
+          name={this.props.name}
           create_file={this.props.create_file}
           create_folder={this.props.create_folder}
+          project_id={this.props.project_id}
         />
       </div>
     );

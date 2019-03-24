@@ -109,6 +109,7 @@ class ComputeImagesTable extends Table {
 
   prepare(data: ComputeImages): ComputeImages {
     // console.log("ComputeImagesTable data:", data);
+    // deriving disp, desc, etc. must be robust against null and empty strings
     return data.map((img, id) => {
       const display = display_fallback(img, id);
       const desc = desc_fallback(img);
@@ -122,12 +123,14 @@ class ComputeImagesTable extends Table {
       const tag = id.indexOf(":") >= 0 ? "" : ":latest";
       const disp_tag = `${id}${tag}`;
 
-      return img
-        .set("display", display)
-        .set("desc", desc)
-        .set("search_str", search_str)
-        .set("url", url)
-        .set("display_tag", disp_tag);
+      return img.withMutations(img =>
+        img
+          .set("display", display)
+          .set("desc", desc)
+          .set("search_str", search_str)
+          .set("url", url)
+          .set("display_tag", disp_tag)
+      );
     });
   }
 

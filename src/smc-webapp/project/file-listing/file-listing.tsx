@@ -30,6 +30,7 @@ interface Props {
   actions: ProjectActions;
   redux: AppRedux;
 
+  name: string;
   active_file_sort?: any;
   listing: any[];
   file_map: object;
@@ -156,12 +157,14 @@ export class FileListing extends React.Component<Props> {
     }
     return (
       <NoFiles
+        name={this.props.name}
         current_path={this.props.current_path}
         actions={this.props.actions}
         public_view={this.props.public_view}
         file_search={this.props.file_search}
         create_folder={this.props.create_folder}
         create_file={this.props.create_file}
+        project_id={this.props.project_id}
       />
     );
   }
