@@ -153,7 +153,7 @@ exports.APIKeySetting = rclass
             <span style={color:'#666'}>
             NOTE: If you do not have a password set, there is <a href="https://github.com/sagemathinc/cocalc/wiki/password" target="_blank" rel="noopener">a workaround to generate your API key.</a>
             <br/><br/>
-            See the <a href="#{window.app_base_url}/doc/api.html" target="_blank" rel="noopener">CoCalc API documentation</a> to learn about the API.
+            See the <a href="https://doc.cocalc.com/api/" target="_blank" rel="noopener">CoCalc API documentation</a> to learn about the API.
             </span>
         </div>
 

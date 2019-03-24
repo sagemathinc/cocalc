@@ -1637,11 +1637,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  set_file_action(action, get_basename): void {
+  set_file_action(action?: string, get_basename?: () => string ): void {
     let store = this.get_store();
     if (store == undefined) {
       return;
     }
+    let basename: string = "";
 
     switch (action) {
       case "move":
@@ -1657,12 +1658,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         );
         break;
       case "duplicate":
+        if (get_basename != undefined) {
+          basename = get_basename();
+        }
         this.setState({
-          new_name: this._suggest_duplicate_filename(get_basename())
+          new_name: this._suggest_duplicate_filename(basename)
         });
         break;
       case "rename":
-        this.setState({ new_name: misc.path_split(get_basename()).tail });
+        if (get_basename != undefined) {
+          basename = get_basename();
+        }
+        this.setState({ new_name: misc.path_split(basename).tail });
         break;
     }
     this.setState({ file_action: action });

@@ -4,6 +4,14 @@ import * as immutable from "immutable";
 // Internal Libraries
 import { Store } from "../app-framework/Store";
 
+export type MentionList = immutable.List<{
+  id: string;
+  display: string;
+  type?: string;
+  index: number;
+  plainTextIndex: number;
+}>;
+
 interface ChatState {
   height: number; // 0 means not rendered; otherwise is the height of the chat editor
   input: string; // content of the input box
@@ -20,7 +28,7 @@ interface ChatState {
   is_saving: boolean;
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
-  unsent_user_mentions: immutable.List<{ id: string; display: string }>;
+  unsent_user_mentions: MentionList;
 }
 
 export class ChatStore extends Store<ChatState> {

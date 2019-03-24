@@ -400,7 +400,7 @@ export class JupyterActions extends JupyterActions0 {
     const identity = this._running_cells[id];
     if (identity == null) return;
     if (this._jupyter_kernel.identity == identity) {
-      dbg("cancelling")
+      dbg("cancelling");
       this._jupyter_kernel.cancel_execute(id);
     } else {
       dbg("not canceling since wrong identity");
@@ -472,14 +472,11 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     handler.on("more_output", (mesg, mesg_length) => {
-      return this.set_more_output(cell.id, mesg, mesg_length);
+      this.set_more_output(cell.id, mesg, mesg_length);
     });
 
     handler.on("process", mesg => {
-      if (
-        this._jupyter_kernel != null &&
-        this._jupyter_kernel.get_state() == "running"
-      ) {
+      if (this._jupyter_kernel != null) {
         this._jupyter_kernel.process_output(mesg);
       }
     });
@@ -507,10 +504,9 @@ export class JupyterActions extends JupyterActions0 {
 
     this.ensure_backend_kernel_setup();
 
-
     try {
       await this.ensure_backend_kernel_is_running();
-      if (this._state == 'closed') return;
+      if (this._state == "closed") return;
     } catch (err) {
       // if this fails, give up on this evaluation.
       return;
@@ -655,7 +651,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  set_more_output = (id: any, mesg: any, length: any) => {
+  set_more_output = (id: any, mesg: any, length: any): void => {
     if (this.store._more_output == null) {
       this.store._more_output = {};
     }
@@ -675,7 +671,6 @@ export class JupyterActions extends JupyterActions0 {
     output.messages.push(mesg);
 
     const goal_length = 10 * this.store.get("max_output_length");
-    const result: any[] = [];
     while (output.length > goal_length) {
       let need: any;
       let did_truncate = false;
@@ -701,8 +696,8 @@ export class JupyterActions extends JupyterActions0 {
       // check if there is a text/plain field, which we can thus also safely truncate
       if (!did_truncate && output.messages[0].data != null) {
         for (let field in output.messages[0].data) {
-          const val = output.messages[0].data[field];
           if (field === "text/plain") {
+            const val = output.messages[0].data[field];
             len = val.length;
             if (len != null) {
               need = output.length - goal_length + 50;
@@ -728,9 +723,8 @@ export class JupyterActions extends JupyterActions0 {
       const n = output.lengths.shift();
       output.messages.shift();
       output.length -= n;
-      result.push((output.discarded += 1));
+      output.discarded += 1;
     }
-    return result;
   };
 
   init_file_watcher = () => {
@@ -907,7 +901,7 @@ export class JupyterActions extends JupyterActions0 {
       throw Error(error);
     }
     this.syncdb.delete({ type: "fatal" });
-    this.set_to_ipynb(parsed_content);
+    await this.set_to_ipynb(parsed_content);
     this.set_last_load();
   };
 

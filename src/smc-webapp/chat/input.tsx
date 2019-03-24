@@ -3,13 +3,11 @@ import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
 import { MentionsInput, Mention } from "react-mentions";
 
+import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
 const { Space } = require("../r_misc");
 const { Avatar } = require("../other-users");
 const { IS_MOBILE, isMobile } = require("../feature");
-
-const USER_MENTION_MARKUP =
-  '<span class="user-mention" account-id=__id__ >@__display__</span>';
 
 interface Props {
   input: string;
@@ -19,6 +17,7 @@ interface Props {
   project_users: any;
   user_store: any;
   font_size: number;
+  height: string;
   on_paste?: (e) => void;
   on_change: (value, mentions) => void;
   on_send: (value) => void;
@@ -42,7 +41,37 @@ export class ChatInput extends React.PureComponent<Props> {
   input_style = memoizeOne((font_size, input_height) => {
     return {
       height: input_height == "default" ? "100%" : "80%",
-      padding: input_height == "small" ? "10px" : undefined,
+      padding: input_height == "small" ? "10px" : undefined
+    };
+  });
+
+  private mentions_input_ref: any;
+  private input_ref: any;
+
+  constructor(props) {
+    super(props);
+    this.mentions_input_ref = React.createRef();
+    this.input_ref = props.input_ref || React.createRef();
+  }
+
+  // Hack around updating mentions when pasting an image (which we have to handle ourselves)
+  // Without this, MentionsInput does not correctly update its internal representation.
+  componentDidUpdate(prev_props) {
+    if (
+      this.props.on_paste != undefined &&
+      prev_props.input != this.props.input
+    ) {
+      window.setTimeout(() => {
+        this.mentions_input_ref.current.wrappedInstance.handleChange({
+          target: this.input_ref.current
+        });
+      }, 0);
+    }
+  }
+
+  input_style = memoizeOne((font_size: number, height: string) => {
+    return {
+      height: height,
 
       "&multiLine": {
         highlighter: {
@@ -152,10 +181,11 @@ export class ChatInput extends React.PureComponent<Props> {
 
     const style =
       this.props.input_style ||
-      this.input_style(this.props.font_size, this.props.input_height);
+      this.input_style(this.props.font_size, this.props.height);
 
     return (
       <MentionsInput
+        ref={this.mentions_input_ref}
         autoFocus={!IS_MOBILE || isMobile.Android()}
         displayTransform={(_, display) => "@" + display}
         style={style}
