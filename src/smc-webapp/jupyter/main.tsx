@@ -29,7 +29,11 @@ const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
   right: 0,
   paddingLeft: "5px",
-  backgroundColor: "#eee"
+  backgroundColor: "#eee",
+  height: "32px",
+  display: "block",
+  overflow: "hidden",
+  borderLeft: "1px solid #aaa"
 };
 
 interface JupyterEditorProps {
@@ -220,7 +224,16 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.cm_options == null ||
       this.props.kernels == null
     ) {
-      return this.render_loading();
+      return (
+        <Loading
+          style={{
+            fontSize: "24pt",
+            textAlign: "center",
+            marginTop: "15px",
+            color: "#888"
+          }}
+        />
+      );
     }
     return (
       <CellList

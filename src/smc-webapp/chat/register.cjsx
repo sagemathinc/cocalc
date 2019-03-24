@@ -5,13 +5,13 @@
 {webapp_client} = require('../webapp_client')
 
 # Sibling Libraries
-util = require('./util')
+utils = require('./utils')
 {ChatStore} = require('./store')
 {ChatActions} = require('./actions')
 {ChatRoom} = require('../smc_chat')
 
 exports.init = init = (path, redux, project_id) ->
-    name = util.generate_name(project_id, path)
+    name = utils.generate_name(project_id, path)
     if redux.getActions(name)?
         return name  # already initialized
 
@@ -40,7 +40,7 @@ exports.init = init = (path, redux, project_id) ->
     return name
 
 exports.remove = remove = (path, redux, project_id) ->
-    name = util.generate_name(project_id, path)
+    name = utils.generate_name(project_id, path)
     actions = redux.getActions(name)
     actions?.syncdb?.close()
     store = redux.getStore(name)
@@ -54,7 +54,7 @@ exports.remove = remove = (path, redux, project_id) ->
     return name
 
 ChatEditorGenerator = (path, redux, project_id) ->
-    name = util.generate_name(project_id, path)
+    name = utils.generate_name(project_id, path)
     C_ChatRoom = ({actions}) ->
         <ChatRoom
             redux       = {redux}

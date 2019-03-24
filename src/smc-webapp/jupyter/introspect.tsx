@@ -2,12 +2,13 @@
 Introspection display panel
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 
 const { Icon } = require("../r_misc"); // TODO: import types
 const { merge } = require("smc-util/misc"); // TODO: import types
-const { CellOutputMessage } = require("./cell-output-message"); // TODO: import types
+
+import { CellOutputMessage } from "./output-messages/message";
 
 const STYLE: React.CSSProperties = {
   padding: "10px 25px 5px",
@@ -39,8 +40,11 @@ export interface IntrospectProps {
 }
 
 export class Introspect extends Component<IntrospectProps> {
-  close = () => this.props.actions.clear_introspect();
-  render_content() {
+  close = (): void => {
+    this.props.actions.clear_introspect();
+  };
+
+  render_content(): Rendered {
     const found = this.props.introspect.get("found");
     if (found != null && !found) {
       // TODO: is "found" a boolean? if so this should be `found === false`
@@ -48,7 +52,8 @@ export class Introspect extends Component<IntrospectProps> {
     }
     return <CellOutputMessage message={this.props.introspect} />;
   }
-  render() {
+
+  render(): Rendered {
     let inner_style: any;
     if (this.props.font_size != null) {
       inner_style = merge({ fontSize: this.props.font_size }, INNER_STYLE);

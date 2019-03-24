@@ -121,7 +121,7 @@ function message(obj) {
     return defaults(opts, obj, false, strict);
   };
   return obj;
-};
+}
 
 // message2 for "version 2" of the message definitions
 // TODO document it, for now just search for "message2" to see examples
@@ -134,7 +134,7 @@ function message2(obj) {
       desc += ` (default: ${misc.to_json(val.init)})`;
     }
     return desc;
-  };
+  }
 
   // reassembling a version 1 message from a version 2 message
   const mesg_v1 = _.mapObject(obj.fields, val => val.init);
@@ -150,7 +150,7 @@ function message2(obj) {
   // wrapped version 1 message
   message(mesg_v1);
   return obj;
-};
+}
 
 // messages that can be used by the HTTP api.   {'event':true, ...}
 exports.api_messages = {};
@@ -2298,7 +2298,7 @@ API(
       },
       tags: {
         init: undefined,
-        desc: "a list of tags, like \`['member']\`"
+        desc: "a list of tags, like `['member']`"
       },
       account_id: {
         init: undefined,
@@ -2965,4 +2965,19 @@ message({
   path: required
 });
 
+// client --> hub
+API(
+  message({
+    event: "get_syncdoc_history",
+    id: undefined,
+    string_id: required,
+    patches: undefined
+  })
+);
 
+// hub --> client
+message({
+  event: "syncdoc_history",
+  id: undefined,
+  history: required
+});
