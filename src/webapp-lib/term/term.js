@@ -392,13 +392,8 @@
           return false;
         }
 
-        if (ev.metaKey && isMac) {
-          // totally ignore meta=command key on Mac's.
-          return false;
-        }
-
         if (!isMac) {
-          // we handle metaKey on OS X above; also, on OS X ctrl-C does *not* copy, so we don't need to do this.
+          // on OS X ctrl-C does *not* copy, so we don't need to do this.
           if (ev.ctrlKey && ev.keyCode == 67 && getSelectionHtml() != "") {
             // copy
             return false;
@@ -3299,7 +3294,7 @@
 
     if (!this.prefix) {
       if (this.is("xterm") || this.is("rxvt-unicode") || this.is("screen")) {
-        // This causes enormous pain - I don't understand it. 
+        // This causes enormous pain - I don't understand it.
         // To trigger this pain in CoCalc,
         // type this into a terminal:
         //   printf "\E[c\n" ; sleep 1 ; echo

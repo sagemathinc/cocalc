@@ -22,3 +22,15 @@ export const JUPYTER_MIMETYPES = [
   "application/pdf",
   "text/plain"
 ];
+
+export function codemirror_to_jupyter_pos(
+  code: string,
+  pos: { ch: number; line: number }
+): number {
+  const lines = code.split("\n");
+  let s = pos.ch;
+  for (let i = 0; i < pos.line; i++) {
+    s += lines[i].length + 1;
+  }
+  return s;
+}

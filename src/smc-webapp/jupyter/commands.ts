@@ -704,8 +704,13 @@ export function commands(actions: any) {
     },
 
     "tab key": {
-      m: "Tab key (completion)...",
+      m: "Tab key (completion)",
       f: () => actions.tab_key()
+    },
+
+    "shift+tab key": {
+      m: "Shift+Tab introspection (show function docstring)",
+      f: () => actions.shift_tab_key()
     },
 
     "time travel": {
