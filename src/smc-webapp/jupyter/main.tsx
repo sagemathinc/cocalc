@@ -444,10 +444,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_main() {
-    console.log("render_main", {
-      check_select_kernel_init: this.props.check_select_kernel_init,
-      show_kernel_selector: this.props.show_kernel_selector
-    });
     if (!this.props.check_select_kernel_init) {
       return this.render_loading();
     } else if (this.props.show_kernel_selector) {

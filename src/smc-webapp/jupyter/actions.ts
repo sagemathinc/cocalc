@@ -3308,10 +3308,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     let unknown_kernel = false;
 
-    console.log("jupyter::check_select_kernel", {
-      kernels: this.store.get("kernels"),
-      info: this.store.get_kernel_info(kernel)
-    });
+    //console.log("jupyter::check_select_kernel", {
+    //  kernels: this.store.get("kernels"),
+    //  info: this.store.get_kernel_info(kernel)
+    //});
 
     if (this.store.get("kernels") != null)
       unknown_kernel = this.store.get_kernel_info(kernel) == null;
