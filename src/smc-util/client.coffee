@@ -1582,6 +1582,10 @@ class exports.Connection extends EventEmitter
         @_stripe_call message.stripe_get_customer(), (err, mesg) =>
             if err
                 opts.cb(err)
+            else if not mesg?
+                # evidently this happened -- see
+                #   https://github.com/sagemathinc/cocalc/issues/3711
+                opts.cb("mesg must be defined")
             else
                 resp =
                     stripe_publishable_key : mesg.stripe_publishable_key
