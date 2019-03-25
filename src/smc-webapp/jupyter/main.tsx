@@ -368,8 +368,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_select_kernel() {
-    const do_not_ask_again = this.props.editor_settings.get(
-      "dont_ask_jupyter_kernel"
+    const ask_jupyter_kernel = this.props.editor_settings.get(
+      "ask_jupyter_kernel"
     );
     return (
       <KernelSelector
@@ -382,7 +382,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         default_kernel={this.props.default_kernel}
         closestKernel={this.props.closestKernel}
         site_name={this.props.site_name}
-        do_not_ask_again={do_not_ask_again == null ? false : do_not_ask_again}
+        ask_jupyter_kernel={ask_jupyter_kernel == null ? true : ask_jupyter_kernel}
       />
     );
   }

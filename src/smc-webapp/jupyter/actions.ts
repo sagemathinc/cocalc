@@ -967,11 +967,31 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_init_kernel = (): void => {
-    console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
+    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
       if (!this._is_project) {
-        this.show_select_kernel("bad kernel");
+        // we either let the user select a kernel, or use a stored one
+        let using_default_kernel = false;
+
+        const account_store = this.redux.getStore("account") as any;
+        const editor_settings = account_store.get("editor_settings") as any;
+        if (
+          editor_settings != null &&
+          !editor_settings.get("ask_jupyter_kernel")
+        ) {
+          const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
+          // TODO: check if kernel is actually known
+          if (default_kernel != null) {
+            this.set_kernel(default_kernel);
+            using_default_kernel = true;
+          }
+        }
+
+        if (!using_default_kernel) {
+          // otherwise we let the user choose a kernel
+          this.show_select_kernel("bad kernel");
+        }
         // we also finalize the kernel selection check, because it doesn't switch to true
         // if there is no kernel at all.
         this.setState({ check_select_kernel_init: true });
@@ -1937,7 +1957,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_kernel = (kernel: any) => {
-    if (this.syncdb.get_state() != 'ready') {
+    if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
     }
@@ -2916,21 +2936,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_default_kernel = (kernel: any): void => {
-    let left: any;
-    if (this._is_project) {
-      // doesn't make sense for project (right now at least)
-      return;
-    }
-    const s = this.redux.getStore("account") as any;
-    if (s == null) {
-      return;
-    }
-    const cur =
-      (left = __guard__(s.getIn(["editor_settings", "jupyter"]), x =>
-        x.toJS()
-      )) != null
-        ? left
-        : {};
+    // doesn't make sense for project (right now at least)
+    if (this._is_project) return;
+    const account_store = this.redux.getStore("account") as any;
+    if (account_store == null) return;
+    const acc_jup = account_store.getIn(["editor_settings", "jupyter"]);
+    if (acc_jup == null) return;
+    let tmp: any;
+    const cur = (tmp = acc_jup.toJS()) != null ? tmp : {};
     cur.kernel = kernel;
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur }
@@ -3372,11 +3385,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   kernel_dont_ask_again = (dont_ask: boolean): void => {
-    console.log("dont_ask_again_click", dont_ask);
     // why is "as any" necessary?
     const account_table = this.redux.getTable("account") as any;
     account_table.set({
-      editor_settings: { dont_ask_jupyter_kernel: dont_ask }
+      editor_settings: { ask_jupyter_kernel: !dont_ask }
     });
   };
 }

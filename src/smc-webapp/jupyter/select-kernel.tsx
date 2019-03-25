@@ -38,7 +38,7 @@ interface KernelSelectorProps {
   kernel?: string;
   kernel_info?: any;
   default_kernel?: string;
-  do_not_ask_again?: boolean;
+  ask_jupyter_kernel?: boolean;
   kernel_selection?: ImmutableMap<string, string>;
   kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
   kernels_by_language?: OrderedMap<string, List<string>>;
@@ -113,6 +113,8 @@ export class KernelSelector extends Component<
     if (lang != null && show_icon) {
       if (["python", "r", "sagemath", "octave", "julia"].indexOf(lang) >= 0) {
         icon = <Icon name={`cc-icon-${lang}`} />;
+      } else if (lang.startsWith("bash")) {
+        icon = <Icon name={"terminal"} />;
       }
       // TODO do other languages have icons?
     }
@@ -213,7 +215,7 @@ export class KernelSelector extends Component<
 
     return (
       <Row style={row_style}>
-        <h4>All kernels</h4>
+        <h4>All kernels by language</h4>
         <Col>{this.render_all_langs()}</Col>
       </Row>
     );
@@ -225,14 +227,14 @@ export class KernelSelector extends Component<
       <Row style={row_style}>
         <h4>Quick selection</h4>
         <div>
-          The most recently selected kernel is{" "}
+          Your most recently selected kernel is{" "}
           {this.render_kernel_button(this.props.default_kernel)}.
         </div>
       </Row>
     );
   }
 
-  dont_ask_again_click(checked:boolean) {
+  dont_ask_again_click(checked: boolean) {
     this.props.actions.kernel_dont_ask_again(checked);
   }
 
@@ -241,7 +243,7 @@ export class KernelSelector extends Component<
       <Row style={row_style}>
         <div>
           <Checkbox
-            checked={this.props.do_not_ask_again}
+            checked={!this.props.ask_jupyter_kernel}
             onChange={e => this.dont_ask_again_click(e.target.checked)}
           >
             Do not ask again
@@ -272,15 +274,15 @@ export class KernelSelector extends Component<
       return (
         <Row style={row_style}>
           <strong>{msg}</strong> A working kernel is required in order to
-          evaluate the code in the notebook. Based on the programming language
-          you want to work with, you have to select one.
+          evaluate the code in the notebook. Please select one for the
+          programming language you want to work with.
         </Row>
       );
     } else {
       return (
         <Row style={row_style}>
-          <strong>Select a new kernel.</strong> Currently selected:{" "}
-          {this.render_kernel_button(this.props.kernel, "small")}.
+          <strong>Select a new kernel.</strong> The currently selected kernel is{" "}
+          "{this.kernel_name(this.props.kernel)}".
         </Row>
       );
     }
