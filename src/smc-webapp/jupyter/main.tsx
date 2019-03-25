@@ -23,7 +23,7 @@ const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
 const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
-import { Kernel, Kernels } from "./util";
+import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
@@ -44,7 +44,7 @@ interface JupyterEditorProps {
   name: string; // TODO: is this correct?
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
-  kernels?: Kernels;
+  kernels?: KernelsType;
   site_name: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
@@ -89,7 +89,7 @@ interface JupyterEditorProps {
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
   default_kernel?: string;
-  closestKernel?: Kernel;
+  closestKernel?: KernelType;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {

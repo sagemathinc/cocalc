@@ -3345,7 +3345,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernel = this.store.get("kernel");
     const kernel_info = this.store.get_kernel_info(kernel);
     // unknown kernel, we try to find a close match
-    if (kernel_info == null && kernel != null && kernels != null) {
+    if (kernel_info == null && kernel != null) {
       // kernel & kernels must be defined
       closestKernel = misc.closest_kernel_match(kernel, kernels);
     }
