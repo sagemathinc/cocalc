@@ -13,6 +13,7 @@ import {
   MainCapabilities,
   LIBRARY_INDEX_FILE
 } from "../smc-webapp/project_configuration";
+import { config as formatter_config } from "../smc-util/code-formatter";
 
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>(resolve => {
@@ -95,17 +96,16 @@ async function library(): Promise<boolean> {
 // we check this here, because the frontend should offer these choices if available.
 // in some cases like python, there could be multiple ways (yapf, yapf3, black, autopep8, ...)
 async function formatting(): Promise<Capabilities> {
-  return <Capabilities>{
-    yapf: await have("yapf"),
-    yapf3: await have("yapf3"),
-    black: await have("black"),
-    autopep8: await have("autopep8"),
-    latexindent: await have("latexindent"),
-    gofmt: await have("gofmt"),
-    // for bib-format
-    biber: await have("biber"),
-    "clang-format": await have("clang-format")
-  };
+  const status: Promise<boolean>[] = [];
+  const tools = Object.values(formatter_config);
+  tools.push("yapf3", "black", "autopep8");
+  for (let tool in tools) {
+    status.push(have(tool));
+  }
+  const results = await Promise.all(status);
+  const ret: Capabilities = {};
+  tools.map((tool, idx) => (ret[tool] = results[idx]));
+  return ret;
 }
 
 async function get_hashsums(): Promise<Capabilities> {

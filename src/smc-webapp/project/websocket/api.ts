@@ -3,16 +3,23 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { callback } from "awaiting";
-
 import { Channel } from "./types";
-
-import { ConfigurationAspect } from "../../project_configuration";
+import {
+  ConfigurationAspect,
+  Capabilities,
+  ProjectConfiguration,
+  isMainConfiguration
+} from "../../project_configuration";
+import { redux } from "../../app-framework";
+import { config as formatter_config } from "../../../smc-util/code-formatter";
 
 export class API {
   private conn: any;
+  private project_id: string;
 
-  constructor(conn: string) {
+  constructor(conn: string, project_id: string) {
     this.conn = conn;
+    this.project_id = project_id;
   }
 
   async call(mesg: object, timeout_ms: number): Promise<any> {
@@ -41,7 +48,34 @@ export class API {
     );
   }
 
+  get_formatting(): Capabilities {
+    const project_store = redux.getProjectStore(this.project_id) as any;
+    const configuration = project_store.get(
+      "configuration"
+    ) as ProjectConfiguration;
+    const main = configuration.get("main");
+    if (main != null && isMainConfiguration(main)) {
+      return main.capabilities.formatting;
+    } else {
+      return {} as Capabilities;
+    }
+  }
+
   async prettier_string(str: string, options: any): Promise<any> {
+    const formatting: Capabilities = this.get_formatting();
+    // TODO refactor the assocated formatter and smc-project into a common configuration object
+    const tool = formatter_config[options.parser];
+    if (tool == null) {
+      throw new Error(`No known tool for '${options.parser}' available`);
+    }
+    if (formatting[tool] !== true) {
+      throw new Error(
+        `In this project, code formatter '${tool}' for language '${
+          options.parser
+        }' is not available.`
+      );
+    }
+
     return await this.call(
       {
         cmd: "prettier_string",

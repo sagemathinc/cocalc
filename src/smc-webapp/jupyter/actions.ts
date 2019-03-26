@@ -47,6 +47,7 @@ const commands = require("./commands");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
+//import { ProjectConfiguration } from "../project_configuration";
 
 // map project_id (string) -> kernels (immutable)
 let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
@@ -1936,7 +1937,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_kernel = (kernel: any) => {
-    if (this.syncdb.get_state() != 'ready') {
+    if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
     }
