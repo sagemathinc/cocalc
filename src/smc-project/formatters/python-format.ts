@@ -22,14 +22,18 @@ function yapf(input_path) {
 }
 
 // from a full stacktrace, only show user the last line (encodes some reason and line number) ... everything else does not help.
-function last_line(str: string): string {
-  return (
-    str
-      .trim()
-      .split(/\r?\n/)
-      .slice(-1)
-      .pop() || ""
-  );
+function last_line(str?: string): string {
+  if (str == null) {
+    return "Problem running formatter.";
+  } else {
+    return (
+      str
+        .trim()
+        .split(/\r?\n/)
+        .slice(-1)
+        .pop() || ""
+    );
+  }
 }
 
 export async function python_format(
@@ -43,6 +47,9 @@ export async function python_format(
 
   // spawn the python formatter
   const util = options.util || "yapf";
+  if (util !== "yapf") {
+    throw new Error("This project only supports 'yapf' for formatting Python");
+  }
   const py_formatter = yapf(input_path);
 
   // stdout/err capture
@@ -55,8 +62,8 @@ export async function python_format(
   let code = await callback(close, py_formatter);
   // only last line
   // stdout = last_line(stdout);
-  stderr = last_line(stderr);
   if (code) {
+    stderr = last_line(stderr);
     const err_msg = `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`;
     logger.debug(`format python error: ${err_msg}`);
     throw new Error(err_msg);
