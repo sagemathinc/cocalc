@@ -21,7 +21,7 @@
 
 
 {React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Form, FormControl, ControlLabel, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
@@ -1216,6 +1216,85 @@ ProjectFilesActionBox = rclass
                 </Row>
             </Well>
 
+
+ProjectNewFilename2 = rclass ->
+    displayName : "ProjectFiles-ProjectNewFilename2"
+
+    propTypes:
+        actions            : rtypes.object.isRequired
+        filename_selection : rtypes.string
+        current_path       : rtypes.string
+
+    getInitialState: ->
+        new_name : account.default_filename()
+
+    componentDidMount: ->
+        @setState(new_name : account.default_filename())
+
+    new_filename_cancel: ->
+        @props.actions.setState(filename_selection:undefined)
+
+    new_filename_create: (name, focus) ->
+        console.log("create file #{name}.#{@props.filename_selection}")
+        @props.actions.setState(filename_selection:undefined)
+        @props.actions.create_file
+            name         : name
+            ext          : @props.filename_selection
+            current_path : @props.current_path
+            switch_over  : focus
+
+    new_filename_submit: (val, opts) ->
+        @new_filename_create(val, not opts.ctrl_down)
+
+    new_filename_create_click: ->
+        @new_filename_create(@state.new_name, true)
+
+    new_filename_change: (val) ->
+        @setState(new_name:val)
+
+    render_filename: ->
+        {file_options} = require('./editor')
+        data = file_options("foo.#{@props.filename_selection}")
+        return data.name
+
+    render: ->
+        <Row>
+            <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
+                <ControlLabel>Enter filename for new {@render_filename()}:</ControlLabel>
+                <Form>
+                    <SearchInput
+                        autoFocus    = {not feature.IS_TOUCH}
+                        autoSelect   = {not feature.IS_TOUCH}
+                        ref          = {'new_filename2'}
+                        key          = {'new_filename2'}
+                        type         = {'text'}
+                        value        = {@state.new_name}
+                        placeholder  = {'Enter filename...'}
+                        on_submit    = {@new_filename_submit}
+                        on_escape    = {@new_filename_cancel}
+                        on_change    = {@new_filename_change}
+                    />
+                    <ButtonToolbar
+                         style={whiteSpace:'nowrap', padding: '0'}
+                         className={'pull-right'}
+                    >
+                        <Button
+                            bsStyle={"primary"}
+                            onClick={@new_filename_create_click}
+                            disabled={@state.new_name.length == 0}
+                        >
+                            Create
+                        </Button>
+                        <Button
+                            onClick={@new_filename_cancel}
+                        >
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Form>
+            </Col>
+        </Row>
+
 # Commands such as CD throw a setState error.
 # Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
@@ -1386,7 +1465,7 @@ ProjectFilesSearch = rclass
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
                 on_clear    = {@on_clear}
-                disabled    = {@props.disabled}
+                disabled    = {@props.disabled or (!!@props.filename_selection)}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -1405,6 +1484,7 @@ ProjectFilesNew = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
+        disabled      : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
@@ -1426,7 +1506,7 @@ ProjectFilesNew = rclass
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0
             # Tell state to render an error in file search
-            @props.actions.setState(file_creation_error : "You must enter a filename above.")
+            @props.actions.setState(filename_selection : ext)
         else
             @props.create_file(ext)
 
@@ -1447,6 +1527,7 @@ ProjectFilesNew = rclass
             id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
             onClick={@on_create_button_clicked}
+            disabled={@props.disabled}
         >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -1496,6 +1577,7 @@ exports.ProjectFiles = rclass ({name}) ->
             checked_files         : rtypes.immutable
             selected_file_index   : rtypes.number
             file_creation_error   : rtypes.string
+            filename_selection    : rtypes.string
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
             library               : rtypes.object
@@ -1653,6 +1735,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions       = {@props.actions}
             create_file   = {@create_file}
             create_folder = {@create_folder}
+            disabled      = {!!@props.filename_selection}
         />
 
     render_activity: ->
@@ -1896,6 +1979,12 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_error()}
             {@render_activity()}
             {@render_control_row(public_view, visible_listing)}
+            {<ProjectNewFilename2
+                actions            = {@props.actions}
+                current_path       = {@props.current_path}
+                filename_selection = {@props.filename_selection}
+            /> if @props.filename_selection}
+            {@render_new()}
 
             <div style={flex_row_style}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
@@ -1904,7 +1993,6 @@ exports.ProjectFiles = rclass ({name}) ->
                 {@render_project_files_buttons(public_view)}
             </div>
 
-            {@render_new()}
             {@render_library() if @props.show_library}
 
             {if @props.checked_files.size > 0 and @props.file_action?
