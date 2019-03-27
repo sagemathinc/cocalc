@@ -95,7 +95,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   _report_started = (): void => {
-    if (this._state == 'closed' || this._n > 0) {
+    if (this._state == "closed" || this._n > 0) {
       // do nothing -- already getting output or done.
       return;
     }
@@ -219,7 +219,7 @@ export class OutputHandler extends EventEmitter {
     this._clean_mesg(mesg);
 
     if (misc.len(mesg) === 0) {
-      // don't even both saving this message; nothing useful here.
+      // don't even bother saving this message; nothing useful here.
       return;
     }
 
@@ -228,7 +228,8 @@ export class OutputHandler extends EventEmitter {
       mesg.exec_count = this._opts.cell.exec_count;
     }
 
-    // hook to process message (e.g., this may mutate mesg, e.g., to remove big images)
+    // hook to process message (e.g., this may mutate mesg,
+    // e.g., to remove big images)
     this.emit("process", mesg);
 
     if (this._clear_before_next_output) {

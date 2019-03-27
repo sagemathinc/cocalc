@@ -10,6 +10,7 @@ import { UntrustedJavascript } from "./untrusted-javascript";
 import { PDF } from "./pdf";
 import { STDOUT_STYLE } from "./style";
 import { TextPlain } from "./text-plain";
+import { Widget } from "./widget";
 
 interface DataProps {
   message: Map<string, any>;
@@ -57,18 +58,7 @@ export class Data extends Component<DataProps> {
     );
   }
 
-  render(): Rendered {
-    const data = this.props.message.get("data");
-    if (data == null || typeof data.forEach != "function") return;
-
-    let type: string = "";
-    let value: any = undefined;
-    data.forEach(function(v, k) {
-      type = k;
-      value = v;
-      return false;
-    });
-
+  render_data(type: string, value: any): Rendered {
     if (type != "") {
       const [a, b] = type.split("/");
       switch (a) {
@@ -148,6 +138,9 @@ export class Data extends Component<DataProps> {
                 return <pre>Invalid PDF output</pre>;
               }
               return <PDF value={value} project_id={this.props.project_id} />;
+
+            case "vnd.jupyter.widget-view+json":
+              return <Widget value={value} />;
           }
           break;
       }
@@ -155,8 +148,21 @@ export class Data extends Component<DataProps> {
 
     return (
       <pre>
-        Unsupported message: {JSON.stringify(this.props.message.toJS())}
+        Unsupported message: {type}, {JSON.stringify(value.toJS())}
       </pre>
     );
+  }
+
+  render(): Rendered | Rendered[] {
+    const data = this.props.message.get("data");
+    if (data == null || typeof data.forEach != "function") return;
+
+    const v: Rendered[] = [];
+    let n: number = 0;
+    data.forEach((value, type) => {
+      v.push(<div key={n}>{this.render_data(type, value)}</div>);
+      n += 1;
+    });
+    return v;
   }
 }

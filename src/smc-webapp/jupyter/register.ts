@@ -108,3 +108,9 @@ require("./register-nbviewer").register(webapp_client);
 
 // Temporary so long as we support jupyter classic
 require("./jupyter-classic-support");
+
+// TODO: for testing/dev
+if (window != null && (window as any).Element) {
+  require('./widgets/manager');
+}
+

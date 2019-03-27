@@ -647,27 +647,27 @@ schema.eval_outputs = {
 schema.eval_outputs.project_query = schema.eval_outputs.user_query;
 
 schema.ipywidgets_state = {
-  primary_key: ["string_id", "msg_id"],
+  primary_key: ["string_id", "n"],
   durability: "soft", // actually only used as ephemeral table!
   fields: {
     string_id: {
       pg_type: "CHAR(40)",
       desc: "id of the syncstring that this patch belongs to."
     },
-    msg_id: {
-      pg_type: "CHAR(33)",
-      desc: "id of the message"
+    n: {
+      type: "integer",
+      desc: "number of the message"
     },
     msg: {
       type: "map",
-      desc: "the actual message"
+      desc: "the message"
     }
   },
   user_query: {
     get: {
       fields: {
         string_id: null,
-        msg_id: null,
+        n: null,
         msg: null
       },
       check_hook(db, obj, account_id, project_id, cb) {
@@ -682,12 +682,12 @@ schema.ipywidgets_state = {
     set: {
       fields: {
         string_id: true,
-        msg_id: true,
+        n: true,
         msg: true
       },
       required_fields: {
         string_id: true,
-        msg_id: true,
+        n: true,
         msg: true
       },
       check_hook(db, obj, account_id, project_id, cb) {

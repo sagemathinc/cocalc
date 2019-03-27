@@ -9,8 +9,6 @@ import { CellOutputMessages } from "./output-messages/message";
 const { OutputPrompt } = require("./prompt");
 const { OutputToggle, CollapsedOutput } = require("./cell-output-toggle");
 
-require('./widgets/manager'); // TODO: for testing/dev
-
 interface CellOutputProps {
   actions?: any;
   id: string;

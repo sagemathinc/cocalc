@@ -16,6 +16,7 @@ export class IpywidgetsState {
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
+  private msg_number: number = 0;
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
     this.syncdoc = syncdoc;
@@ -34,7 +35,7 @@ export class IpywidgetsState {
       ipywidgets_state: [
         {
           string_id: this.syncdoc.get_string_id(),
-          msg_id: null,
+          n: null,
           msg: null
         }
       ]
@@ -67,14 +68,15 @@ export class IpywidgetsState {
     const dbg = this.dbg("write");
     dbg(msg);
     this.assert_state("ready");
-    const msg_id = msg.header.msg_id;
+    const n = this.msg_number;
+    this.msg_number += 1;
     const content = msg.content;
     const string_id = this.syncdoc.get_string_id();
-    this.table.set({ string_id, msg_id, msg: content });
+    this.table.set({ string_id, n, msg: content });
     await this.table.save();
   }
 
-  public async clear() : Promise<void> {
+  public async clear(): Promise<void> {
     // TODO -- delete everything from table.
     // This is needed when we restart the kernel.
     const dbg = this.dbg("clear");
