@@ -7,6 +7,8 @@ import {
   CellMeasurerCache
 } from "react-virtualized";
 
+import { debounce } from "lodash";
+
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");
 const { VisibleMDLG } = require("../../r_misc");
@@ -45,6 +47,7 @@ interface Props {
   library: object;
   other_settings?: immutable.Map<any, any>;
   show_new: boolean;
+  scroll_top?: number;
 }
 
 export class FileListing extends React.Component<Props> {
@@ -66,6 +69,9 @@ export class FileListing extends React.Component<Props> {
   componentDidUpdate() {
     if (this.props.listing.length > 0) {
       this.list_ref.current.forceUpdateGrid();
+      if (this.props.scroll_top != undefined) {
+        this.list_ref.current.scrollToPosition(this.props.scroll_top);
+      }
     }
   }
 
@@ -170,6 +176,10 @@ export class FileListing extends React.Component<Props> {
     }
   }
 
+  on_scroll = debounce(({ scrollTop }: { scrollTop: number }) => {
+    this.props.actions.setFileListingScroll(scrollTop);
+  });
+
   render_rows() {
     return (
       <AutoSizer>
@@ -184,6 +194,8 @@ export class FileListing extends React.Component<Props> {
             rowRenderer={this.render_cached_row_at}
             width={width}
             scrollToIndex={this.props.selected_file_index}
+            onScroll={this.on_scroll}
+            scrollToAlignment={"center"}
           />
         )}
       </AutoSizer>
