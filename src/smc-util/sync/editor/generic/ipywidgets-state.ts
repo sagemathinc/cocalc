@@ -69,10 +69,6 @@ export class IpywidgetsState {
     this.assert_state("ready");
     const msg_id = msg.header.msg_id;
     const content = msg.content;
-    delete content.target_name;
-    if (content.target_module == null) {
-      delete content.target_module;
-    }
     const string_id = this.syncdoc.get_string_id();
     this.table.set({ string_id, msg_id, msg: content });
     await this.table.save();

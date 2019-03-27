@@ -6,6 +6,10 @@
   "directories": {},
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.3.1",
+    "@jupyter-widgets/base": "^1.2.3",
+    "@jupyter-widgets/controls": "^1.4.3",
+    "@jupyterlab/services": "^3.2.1",
+    "@phosphor/widgets": "^1.6.0",
     "@types/chai": "^4.1.6",
     "@types/codemirror": "0.0.56",
     "@types/expect": "^1.20.3",
