@@ -31,7 +31,6 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   public_view: boolean;
-  style: React.CSSProperties;
 }
 
 interface State {
@@ -230,13 +229,14 @@ export class FileRow extends React.Component<Props, State> {
   }
 
   render() {
-    const row_styles = Object.assign({}, this.props.style, {
+    const row_styles = {
       cursor: "pointer",
       borderRadius: "4px",
       backgroundColor: this.props.color,
       borderStyle: "solid",
-      borderColor: this.props.bordered ? COLORS.BLUE_BG : this.props.color
-    });
+      borderColor: this.props.bordered ? COLORS.BLUE_BG : this.props.color,
+      margin: "1px 1px 5px 1px"
+    };
 
     // See https://github.com/sagemathinc/cocalc/issues/1020
     // support right-click → copy url for the download button

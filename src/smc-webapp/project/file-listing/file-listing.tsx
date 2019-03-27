@@ -8,7 +8,7 @@ import {
 } from "react-virtualized";
 
 const misc = require("smc-util/misc");
-const { Col } = require("react-bootstrap");
+const { Col, Row } = require("react-bootstrap");
 const { VisibleMDLG } = require("../../r_misc");
 
 import { ProjectActions } from "../../project_actions";
@@ -22,27 +22,6 @@ import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
 
-const test_data = [
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"],
-  ["1, 2, 3, 10"]
-];
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
   actions: ProjectActions;
@@ -72,21 +51,25 @@ export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
 
   private cache: CellMeasurerCache;
+  private list_ref;
 
   constructor(props) {
     super(props);
 
     this.cache = new CellMeasurerCache({
       fixedWidth: true,
-      minHeight: 50
+      keyMapper: () => 1
     });
+    this.list_ref = React.createRef();
+  }
+
+  componentDidUpdate() {
+    if (this.props.listing.length > 0) {
+      this.list_ref.current.forceUpdateGrid();
+    }
   }
 
   render_cached_row_at = ({ index, key, parent, style }) => {
-    function render_row(i) {
-      return <div style={style}>{test_data[i]}</div>;
-    }
-    /*
     const a = this.props.listing[index];
     const row = this.render_row(
       a.name,
@@ -97,10 +80,8 @@ export class FileListing extends React.Component<Props> {
       a.display_name,
       a.public,
       a.issymlink,
-      index,
-      style
+      index
     );
-    */
     return (
       <CellMeasurer
         cache={this.cache}
@@ -109,7 +90,7 @@ export class FileListing extends React.Component<Props> {
         rowIndex={index}
         parent={parent}
       >
-        {render_row(index)}
+        <div style={style}>{row}</div>
       </CellMeasurer>
     );
   };
@@ -123,8 +104,7 @@ export class FileListing extends React.Component<Props> {
     display_name,
     public_data,
     issymlink,
-    index,
-    style?
+    index
   ) {
     let color;
     const checked = this.props.checked_files.has(
@@ -164,7 +144,6 @@ export class FileListing extends React.Component<Props> {
           actions={this.props.actions}
           no_select={this.props.shift_is_down}
           public_view={this.props.public_view}
-          style={style}
         />
       );
     } else {
@@ -186,45 +165,28 @@ export class FileListing extends React.Component<Props> {
           actions={this.props.actions}
           no_select={this.props.shift_is_down}
           public_view={this.props.public_view}
-          style={style}
         />
       );
     }
   }
 
-  render_rows1() {
+  render_rows() {
     return (
-      <AutoSizer className="autosizer-wrapper">
+      <AutoSizer>
         {({ height, width }) => (
           <List
-            ref="List"
-            className={"none"}
+            ref={this.list_ref}
             deferredMeasurementCache={this.cache}
-            height={height || 200}
-            overscanRowCount={2}
-            rowCount={test_data.length || this.props.listing.length}
+            height={height}
+            overscanRowCount={10}
+            rowCount={this.props.listing.length}
             rowHeight={this.cache.rowHeight}
             rowRenderer={this.render_cached_row_at}
-            width={width || 1200}
+            width={width}
+            scrollToIndex={this.props.selected_file_index}
           />
         )}
       </AutoSizer>
-    );
-  }
-
-  render_rows() {
-    return this.props.listing.map((a, i) =>
-      this.render_row(
-        a.name,
-        a.size,
-        a.mtime,
-        a.mask,
-        a.isdir,
-        a.display_name,
-        a.public,
-        a.issymlink,
-        i
-      )
     );
   }
 
@@ -295,19 +257,25 @@ export class FileListing extends React.Component<Props> {
   render() {
     return (
       <>
-        <Col sm={12} style={{ zIndex: 1, display: "flex", flexDirection: "column" }}>
-          {!this.props.public_view ? this.render_terminal_mode() : undefined}
-          {this.props.listing.length > 0 ? (
+        <Col
+          sm={12}
+          style={{
+            zIndex: 1,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%"
+          }}
+        >
+          {!this.props.public_view && this.render_terminal_mode()}
+          {this.props.listing.length > 0 && (
             <ListingHeader
               active_file_sort={this.props.active_file_sort}
               sort_by={this.props.sort_by}
             />
-          ) : (
-            undefined
           )}
-          <div style={{ flex: '1 1 auto' }}>
-            {this.render_rows1()}
-          </div>
+          {this.props.listing.length > 0 && (
+            <Row style={{ flex: "1" }}>{this.render_rows()}</Row>
+          )}
           {this.render_no_files()}
         </Col>
         <VisibleMDLG>{this.render_first_steps()}</VisibleMDLG>

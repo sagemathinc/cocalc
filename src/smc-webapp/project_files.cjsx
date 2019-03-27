@@ -1764,6 +1764,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 event_handlers = {complete : => @props.actions.fetch_directory_listing()}
                 config         = {clickable : ".upload-button"}
                 disabled       = {public_view}
+                style          = {flex: "1"}
             >
                 <FileListing
                     active_file_sort       = {@props.active_file_sort}
@@ -1899,7 +1900,7 @@ exports.ProjectFiles = rclass ({name}) ->
             justifyContent: 'space-between'
             alignItems: 'stretch'
 
-        <div style={padding:'5px'}>
+        <div style={display: "flex", flexDirection: "column", padding:'5px', height: '100%'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}
