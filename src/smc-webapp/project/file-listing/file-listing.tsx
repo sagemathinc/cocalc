@@ -1,14 +1,11 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 import * as immutable from "immutable";
+import {
+  AutoSizer,
+  List,
+  CellMeasurer,
+  CellMeasurerCache
+} from "react-virtualized";
 
 const misc = require("smc-util/misc");
 const { Col } = require("react-bootstrap");
@@ -25,6 +22,27 @@ import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
 
+const test_data = [
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"],
+  ["1, 2, 3, 10"]
+];
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
   actions: ProjectActions;
@@ -53,6 +71,49 @@ interface Props {
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
 
+  private cache: CellMeasurerCache;
+
+  constructor(props) {
+    super(props);
+
+    this.cache = new CellMeasurerCache({
+      fixedWidth: true,
+      minHeight: 50
+    });
+  }
+
+  render_cached_row_at = ({ index, key, parent, style }) => {
+    function render_row(i) {
+      return <div style={style}>{test_data[i]}</div>;
+    }
+    /*
+    const a = this.props.listing[index];
+    const row = this.render_row(
+      a.name,
+      a.size,
+      a.mtime,
+      a.mask,
+      a.isdir,
+      a.display_name,
+      a.public,
+      a.issymlink,
+      index,
+      style
+    );
+    */
+    return (
+      <CellMeasurer
+        cache={this.cache}
+        columnIndex={0}
+        key={key}
+        rowIndex={index}
+        parent={parent}
+      >
+        {render_row(index)}
+      </CellMeasurer>
+    );
+  };
+
   render_row(
     name,
     size,
@@ -62,7 +123,8 @@ export class FileListing extends React.Component<Props> {
     display_name,
     public_data,
     issymlink,
-    index
+    index,
+    style?
   ) {
     let color;
     const checked = this.props.checked_files.has(
@@ -102,6 +164,7 @@ export class FileListing extends React.Component<Props> {
           actions={this.props.actions}
           no_select={this.props.shift_is_down}
           public_view={this.props.public_view}
+          style={style}
         />
       );
     } else {
@@ -123,9 +186,30 @@ export class FileListing extends React.Component<Props> {
           actions={this.props.actions}
           no_select={this.props.shift_is_down}
           public_view={this.props.public_view}
+          style={style}
         />
       );
     }
+  }
+
+  render_rows1() {
+    return (
+      <AutoSizer className="autosizer-wrapper">
+        {({ height, width }) => (
+          <List
+            ref="List"
+            className={"none"}
+            deferredMeasurementCache={this.cache}
+            height={height || 200}
+            overscanRowCount={2}
+            rowCount={test_data.length || this.props.listing.length}
+            rowHeight={this.cache.rowHeight}
+            rowRenderer={this.render_cached_row_at}
+            width={width || 1200}
+          />
+        )}
+      </AutoSizer>
+    );
   }
 
   render_rows() {
@@ -211,7 +295,7 @@ export class FileListing extends React.Component<Props> {
   render() {
     return (
       <>
-        <Col sm={12} style={{ zIndex: 1 }}>
+        <Col sm={12} style={{ zIndex: 1, display: "flex", flexDirection: "column" }}>
           {!this.props.public_view ? this.render_terminal_mode() : undefined}
           {this.props.listing.length > 0 ? (
             <ListingHeader
@@ -221,7 +305,9 @@ export class FileListing extends React.Component<Props> {
           ) : (
             undefined
           )}
-          {this.render_rows()}
+          <div style={{ flex: '1 1 auto' }}>
+            {this.render_rows1()}
+          </div>
           {this.render_no_files()}
         </Col>
         <VisibleMDLG>{this.render_first_steps()}</VisibleMDLG>

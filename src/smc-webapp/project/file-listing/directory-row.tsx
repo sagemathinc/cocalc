@@ -29,6 +29,7 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   public_view: boolean;
+  style: React.CSSProperties;
 }
 
 interface State {
@@ -186,7 +187,11 @@ export class DirectoryRow extends React.Component<Props, State> {
   }
 
   render() {
-    const row_style = this.row_style(this.props.bordered, this.props.color);
+    const row_style = Object.assign(
+      {},
+      this.props.style,
+      this.row_style(this.props.bordered, this.props.color)
+    );
     const link_style = this.link_style(this.props.mask);
 
     return (
