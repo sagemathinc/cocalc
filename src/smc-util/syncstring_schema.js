@@ -519,7 +519,7 @@ schema.eval_inputs = {
   fields: {
     string_id: {
       pg_type: "CHAR(40)",
-      desc: "id of the syncdoc that this eval_inputs table."
+      desc: "id of the syncdoc that this eval_inputs table is attached to"
     },
     time: {
       type: "timestamp",
@@ -645,3 +645,61 @@ schema.eval_outputs = {
 };
 
 schema.eval_outputs.project_query = schema.eval_outputs.user_query;
+
+schema.ipywidgets_state = {
+  primary_key: ["string_id", "msg_id"],
+  durability: "soft", // actually only used as ephemeral table!
+  fields: {
+    string_id: {
+      pg_type: "CHAR(40)",
+      desc: "id of the syncstring that this patch belongs to."
+    },
+    msg_id: {
+      pg_type: "CHAR(33)",
+      desc: "id of the message"
+    },
+    msg: {
+      type: "map",
+      desc: "the actual message"
+    }
+  },
+  user_query: {
+    get: {
+      fields: {
+        string_id: null,
+        msg_id: null,
+        msg: null
+      },
+      check_hook(db, obj, account_id, project_id, cb) {
+        return db._syncstring_access_check(
+          obj.string_id,
+          account_id,
+          project_id,
+          cb
+        );
+      }
+    },
+    set: {
+      fields: {
+        string_id: true,
+        msg_id: true,
+        msg: true
+      },
+      required_fields: {
+        string_id: true,
+        msg_id: true,
+        msg: true
+      },
+      check_hook(db, obj, account_id, project_id, cb) {
+        return db._syncstring_access_check(
+          obj.string_id,
+          account_id,
+          project_id,
+          cb
+        );
+      }
+    }
+  }
+};
+
+schema.ipywidgets_state.project_query = schema.ipywidgets_state.user_query;

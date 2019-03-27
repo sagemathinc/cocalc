@@ -1,10 +1,3 @@
-/*
- OTHER TODO:
-
- make sure backend taking over works -- I might have made handle_output
- too restrictive by setting user_id.
-
- */
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation in the Cloud
@@ -15,7 +8,7 @@
 /*
 Evaluation of code with streaming output built on both the clients and
 server (local hub) using a sync_table.  This evaluator is associated
-to a syncstring editing session, and provides code evaluation that
+to a syncdoc editing session, and provides code evaluation that
 may be used to enhance the experience of document editing.
 */
 

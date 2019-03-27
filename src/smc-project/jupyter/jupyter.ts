@@ -154,8 +154,7 @@ Jupyter Kernel interface.
 
 The kernel does *NOT* start up until either spawn is explicitly called, or
 code execution is explicitly requested.  This makes it possible to
-call process_output without spawning an actual kernel.  This is needed,
-e.g., when importing an ipynb file.
+call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels = {};
 
@@ -774,6 +773,12 @@ export class JupyterKernel extends EventEmitter
 
   process_attachment(base64, mime): string {
     return blob_store.save(base64, mime);
+  }
+
+  handle_comm_mesg(mesg) : void {
+    const dbg = this.dbg("handle_comm_mesg");
+    dbg(mesg);
+    this._actions.handle_comm_mesg(mesg);
   }
 }
 

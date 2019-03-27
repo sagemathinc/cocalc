@@ -231,6 +231,8 @@ export class JupyterActions extends JupyterActions0 {
       actions: this
     });
 
+    this.syncdb.ipywidgets_state.clear();
+
     if (this._jupyter_kernel == null) {
       // to satisfy compiler.
       throw Error("Jupter kernel must be defined");
@@ -1130,5 +1132,11 @@ export class JupyterActions extends JupyterActions0 {
         }
       });
     }
+  };
+
+  handle_comm_mesg = async (mesg: any): Promise<void> => {
+    const dbg = this.dbg("handle_comm_mesg");
+    dbg(mesg);
+    await this.syncdb.ipywidgets_state.write(mesg);
   };
 }

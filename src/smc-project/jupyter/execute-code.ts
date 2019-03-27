@@ -164,7 +164,14 @@ export class CodeExecutionEmitter extends EventEmitter
       (mesg.content != null ? mesg.content.execution_state : undefined) ===
       "idle";
 
-    this._push_mesg(mesg);
+    if (
+      (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
+    ) {
+      // A comm message that is a result of execution of this code.
+      this._push_comm(mesg);
+    } else {
+      this._push_mesg(mesg);
+    }
 
     if (this.iopub_done && this.shell_done) {
       this._finish();
@@ -198,13 +205,21 @@ export class CodeExecutionEmitter extends EventEmitter
     // dbg("push_mesg", mesg);
     const header = mesg.header;
     mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
-    // dbg("push_mesg after copy_with", mesg);
     mesg = deep_copy(mesg);
     if (header !== undefined) {
       mesg.msg_type = header.msg_type;
     }
     // dbg("push_mesg after copying msg_type", mesg);
     this.emit_output(mesg);
+  }
+
+  _push_comm(mesg): void {
+    mesg = copy_with(mesg, ["content", "header"]);
+    mesg = deep_copy(mesg);
+    if (this.id != null) {
+      mesg.content.cell_id = this.id;
+    }
+    this.kernel.handle_comm_mesg(mesg);
   }
 
   async go(): Promise<object[]> {
