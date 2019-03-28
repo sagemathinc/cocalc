@@ -28,7 +28,6 @@ export class FileCheckbox extends React.PureComponent<Props> {
     } else {
       this.props.actions.set_file_checked(full_name, !this.props.checked);
     }
-
     this.props.actions.set_most_recent_file_click(full_name);
   };
 

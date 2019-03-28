@@ -1262,7 +1262,7 @@ OtherSettings = rclass
             </Checkbox>
 
     render_page_size_warning: ->
-        BIG_PAGE_SIZE = 500
+        BIG_PAGE_SIZE = 5000
         if @props.other_settings.get('page_size') > BIG_PAGE_SIZE
             <Alert bsStyle='warning'>
                 Your file listing page size is set to {@props.other_settings.get('page_size')}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.

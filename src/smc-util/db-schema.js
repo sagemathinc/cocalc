@@ -325,7 +325,7 @@ schema.accounts = {
           katex: true,
           confirm_close: false,
           mask_files: true,
-          page_size: 50,
+          page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
           show_global_info2: null,
