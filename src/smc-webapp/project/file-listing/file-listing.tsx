@@ -202,7 +202,7 @@ export class FileListing extends React.Component<Props> {
 
   on_scroll = debounce(({ scrollTop }: { scrollTop: number }) => {
     this.current_scroll_top = scrollTop;
-  }, 32);
+  }, SCROLL_DEBOUNCE_MS);
 
   on_rows_rendered = debounce(
     ({ startIndex, stopIndex }: { startIndex: number; stopIndex: number }) => {
@@ -210,7 +210,7 @@ export class FileListing extends React.Component<Props> {
         startIndex <= this.props.selected_file_index &&
         this.props.selected_file_index <= stopIndex;
     },
-    32
+    SCROLL_DEBOUNCE_MS
   );
 
   render_rows() {
@@ -328,3 +328,5 @@ export class FileListing extends React.Component<Props> {
     );
   }
 }
+
+const SCROLL_DEBOUNCE_MS = 32;
