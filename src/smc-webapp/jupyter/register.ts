@@ -13,7 +13,7 @@ const { webapp_client } = require("../webapp_client");
 
 const { JupyterEditor } = require("./main");
 const { JupyterActions } = require("./browser-actions");
-const { JupyterStore } = require("./store");
+const { JupyterStore, initial_jupyter_store_state } = require("./store");
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 
@@ -34,7 +34,11 @@ export function register() {
       }
 
       const actions = redux.createActions(name, JupyterActions);
-      const store = redux.createStore(name, JupyterStore);
+      const store = redux.createStore(
+        name,
+        JupyterStore,
+        initial_jupyter_store_state
+      );
       const sync_path = misc.meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
 
       const syncdb = new_syncdb({

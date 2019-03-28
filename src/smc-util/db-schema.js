@@ -318,7 +318,8 @@ schema.accounts = {
           jupyter_classic: false,
           show_exec_warning: true,
           physical_keyboard: "default",
-          keyboard_variant: ""
+          keyboard_variant: "",
+          ask_jupyter_kernel: true
         },
         other_settings: {
           katex: true,
@@ -1783,8 +1784,7 @@ schema.mentions = {
     },
     error: {
       type: "string",
-      desc:
-        "some sort of error occured handling this mention"
+      desc: "some sort of error occured handling this mention"
     },
     action: {
       type: "string",
@@ -1802,7 +1802,7 @@ schema.mentions = {
         path: true,
         source: "account_id",
         target: true,
-        priority:true
+        priority: true
       },
       required_fields: {
         project_id: true,
