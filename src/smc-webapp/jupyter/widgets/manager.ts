@@ -1,19 +1,45 @@
 import * as base from "@jupyter-widgets/base";
 import * as controls from "@jupyter-widgets/controls";
 import * as pWidget from "@phosphor/widgets";
-import { Kernel } from "@jupyterlab/services";
+//import { Kernel } from "@jupyterlab/services";
+
+import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
+import { once } from "smc-util/async-utils";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
-  private element: HTMLElement;
+  private ipywidgets_state: IpywidgetsState;
 
-  constructor(element: HTMLElement) {
+  constructor(ipywidgets_state: IpywidgetsState) {
     super();
-    this.element = element;
+    this.ipywidgets_state = ipywidgets_state;
+    if (this.ipywidgets_state.get_state() == "closed") {
+      throw Error("ipywidgets_state must not be closed");
+    }
+    this.init_ipywidgets_state();
+  }
+
+  private async init_ipywidgets_state(): Promise<void> {
+    if (this.ipywidgets_state.get_state() != "ready") {
+      // wait until ready to use.
+      await once(this.ipywidgets_state, "ready");
+    }
+    // Handle any messages already there.
+    for (let message in this.ipywidgets_state.get_messages()) {
+      await this.handle_message(message);
+    }
+
+    // Starting handling any messages that arrive henceforth.
+    // TODO: worry about ensuring messages are handled in order by numerical sequence.
+    this.ipywidgets_state.on("message", this.handle_message.bind(this));
+  }
+
+  private async handle_message(message): Promise<void> {
+    console.log("handle_message", message);
   }
 
   public display_view(msg, view, options) {
     console.log("display_view", msg, view, options);
-    pWidget.Widget.attach(view.pWidget, this.element);
+    pWidget.Widget.attach(view.pWidget, options.element);
     view.on("remove", function() {
       console.log("view removed", view);
     });
@@ -30,13 +56,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     console.log(
       `TODO: _create_comm(${target_name}, ${model_id}, ${data}, ${metadata})`
     );
-    return await new base.shims.services.Comm({} as Kernel.IComm); // TODO
+    throw Error("_create_comm not implemented");
+    //return await new base.shims.services.Comm({} as Kernel.IComm); // TODO
   }
 
   // Get the currently-registered comms.
   async _get_comm_info(): Promise<any> {
     console.log(`TODO: _get_comm_info`);
-    return {};
+    throw Error("_get_comm_info not implemented");
+    //return {};
   }
 
   async loader(): Promise<any> {

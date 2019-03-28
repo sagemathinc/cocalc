@@ -12,7 +12,7 @@ import { redux_name } from "../app-framework";
 const { webapp_client } = require("../webapp_client");
 
 const { JupyterEditor } = require("./main");
-const { JupyterActions } = require("./actions");
+const { JupyterActions } = require("./browser-actions");
 const { JupyterStore } = require("./store");
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
@@ -108,9 +108,4 @@ require("./register-nbviewer").register(webapp_client);
 
 // Temporary so long as we support jupyter classic
 require("./jupyter-classic-support");
-
-// TODO: for testing/dev
-if (window != null && (window as any).Element) {
-  require('./widgets/manager');
-}
 

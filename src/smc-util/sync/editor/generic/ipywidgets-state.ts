@@ -1,3 +1,5 @@
+import { EventEmitter } from "events";
+
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { Client } from "./types";
@@ -9,7 +11,11 @@ interface CommMessage {
   content: any;
 }
 
-export class IpywidgetsState {
+export interface Message {
+  // don't know yet...
+}
+
+export class IpywidgetsState extends EventEmitter {
   private syncdoc: SyncDoc;
   private client: Client;
   private table: SyncTable;
@@ -19,6 +25,7 @@ export class IpywidgetsState {
   private msg_number: number = 0;
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
+    super();
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
@@ -45,6 +52,31 @@ export class IpywidgetsState {
     // TODO: here the project should clear the table.
 
     this.set_state("ready");
+
+    this.table.on("change", this.emit_message.bind(this));
+  }
+
+  private emit_message(key): void {
+    const mesg = this.table.get(key);
+    if (mesg == null) return;
+    const msg = mesg.get("msg");
+    if (msg == null) return;
+    this.emit('message', msg.toJS());
+  }
+
+  public get_messages(): Message[] {
+    // TODO: make sure this is in order!
+    const v: Message[] = [];
+    const all = this.table.get();
+    if (all == null) {
+      return v;
+    }
+    all.forEach((mesg, _key) => {
+      if (mesg != null) {
+        v.push(mesg.toJS());
+      }
+    });
+    return v;
   }
 
   public async close(): Promise<void> {
@@ -85,6 +117,10 @@ export class IpywidgetsState {
 
   private set_state(state: State): void {
     this.state = state;
+  }
+
+  public get_state(): State {
+    return this.state;
   }
 
   private assert_state(state: string): void {
