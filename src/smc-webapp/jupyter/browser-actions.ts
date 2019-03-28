@@ -1,3 +1,8 @@
+/*
+browser-actions: additional actions that are only available in the
+web browser frontend.
+*/
+
 import { debounce, isEqual } from "underscore";
 
 import { merge_copy } from "smc-util/misc";
@@ -13,7 +18,7 @@ const { instantiate_assistant } = require("../assistant/main");
 const { commands } = require("./commands");
 
 export class JupyterActions extends JupyterActions0 {
-  private widget_manager?: WidgetManager;
+  public widget_manager?: WidgetManager;
   private cursor_manager: CursorManager;
   private assistant_actions: any;
   private _account_change_editor_settings: any;
@@ -90,7 +95,6 @@ export class JupyterActions extends JupyterActions0 {
 
       this.init_scroll_pos_hook();
     }
-
   }
 
   protected close_client_only(): void {
@@ -254,9 +258,9 @@ export class JupyterActions extends JupyterActions0 {
 
   command = (name: any): void => {
     if (this._commands == null) return;
-    const f = this._commands[name];
-    if (f != null) {
-      f();
+    const cmd = this._commands[name];
+    if (cmd != null && cmd.f != null) {
+      cmd.f();
     } else {
       this.set_error(`Command '${name}' is not implemented`);
     }

@@ -1,5 +1,7 @@
 import { EventEmitter } from "events";
 
+import { cmp } from "../../../misc2";
+
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { Client } from "./types";
@@ -56,27 +58,45 @@ export class IpywidgetsState extends EventEmitter {
     this.table.on("change", this.emit_message.bind(this));
   }
 
-  private emit_message(key): void {
-    const mesg = this.table.get(key);
-    if (mesg == null) return;
-    const msg = mesg.get("msg");
-    if (msg == null) return;
-    this.emit('message', msg.toJS());
+  private emit_message(keys: string[]): void {
+    for (let key of keys) {
+      console.log("ipywidgets-state.emit_message", key);
+      const mesg = this.table.get(key);
+      if (mesg == null) {
+        console.log("mesg is null");
+        return;
+      }
+      console.log("got mesg = ", mesg.toJS());
+      const msg = mesg.get("msg");
+      if (msg == null) {
+        console.log("msg is null");
+        return;
+      }
+      this.emit("message", msg.toJS());
+    }
   }
 
   public get_messages(): Message[] {
     // TODO: make sure this is in order!
-    const v: Message[] = [];
+    const v: any[] = [];
     const all = this.table.get();
     if (all == null) {
       return v;
     }
     all.forEach((mesg, _key) => {
       if (mesg != null) {
-        v.push(mesg.toJS());
+        const m = mesg.get("msg");
+        if (m != null) {
+          v.push([mesg.get("n"), m.toJS()]);
+        }
       }
     });
-    return v;
+    v.sort((a, b) => cmp(a[0], b[0]));
+    const w: Message[] = [];
+    for (let x of v) {
+      w.push(x[1]);
+    }
+    return w;
   }
 
   public async close(): Promise<void> {
@@ -104,6 +124,14 @@ export class IpywidgetsState extends EventEmitter {
     this.msg_number += 1;
     const content = msg.content;
     const string_id = this.syncdoc.get_string_id();
+
+    // delete any null fields, to avoid wasting space.
+    for (let k in content) {
+      if (content[k] == null) {
+        delete content[k];
+      }
+    }
+
     this.table.set({ string_id, n, msg: content });
     await this.table.save();
   }

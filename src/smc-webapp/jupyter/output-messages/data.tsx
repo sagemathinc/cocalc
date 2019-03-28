@@ -1,7 +1,7 @@
 import { Map } from "immutable";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 const { Markdown, HTML } = require("../../r_misc");
-import { JupyterActions } from "../actions";
+import { JupyterActions } from "../browser-actions";
 import { Ansi, is_ansi } from "./ansi";
 import { Image } from "./image";
 import { IFrame } from "./iframe";
@@ -140,7 +140,7 @@ export class Data extends Component<DataProps> {
               return <PDF value={value} project_id={this.props.project_id} />;
 
             case "vnd.jupyter.widget-view+json":
-              return <Widget value={value} />;
+              return <Widget value={value} actions={this.props.actions} />;
           }
           break;
       }
