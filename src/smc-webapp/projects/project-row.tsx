@@ -12,7 +12,13 @@ const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
 
 interface ReactProps {
-  project: any;
+  project: {
+    project_id: string;
+    state;
+    last_edited;
+    description: string;
+    title: string;
+  };
   index: number;
   redux: AppRedux;
 }
@@ -168,7 +174,7 @@ export const ProjectRow = rclass<ReactProps>(
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
-      analytics_event('projects_page', 'opened_a_project')
+      analytics_event("projects_page", "opened_a_project");
     };
 
     open_project_settings = e => {

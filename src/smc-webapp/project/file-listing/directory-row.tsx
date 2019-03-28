@@ -41,7 +41,8 @@ function compute_row_style(bordered, color): React.CSSProperties {
     borderRadius: "4px",
     backgroundColor: color,
     borderStyle: "solid",
-    borderColor: bordered ? COLORS.BLUE_BG : color
+    borderColor: bordered ? COLORS.BLUE_BG : color,
+    margin: "1px 1px 1px 1px"
   };
 }
 
