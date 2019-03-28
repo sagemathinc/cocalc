@@ -235,7 +235,7 @@ export class FileRow extends React.Component<Props, State> {
       backgroundColor: this.props.color,
       borderStyle: "solid",
       borderColor: this.props.bordered ? COLORS.BLUE_BG : this.props.color,
-      margin: "1px 1px 5px 1px"
+      margin: "1px 1px 1px 1px"
     };
 
     // See https://github.com/sagemathinc/cocalc/issues/1020
