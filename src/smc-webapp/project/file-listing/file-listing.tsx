@@ -47,7 +47,7 @@ interface Props {
   library: object;
   other_settings?: immutable.Map<any, any>;
   show_new: boolean;
-  scroll_top?: number;
+  last_scroll_top?: number;
 }
 
 export class FileListing extends React.Component<Props> {
@@ -55,24 +55,48 @@ export class FileListing extends React.Component<Props> {
 
   private cache: CellMeasurerCache;
   private list_ref;
+  private current_scroll_top: number | undefined;
+  private selected_index_is_rendered: boolean | undefined;
 
   constructor(props) {
     super(props);
 
     this.cache = new CellMeasurerCache({
       fixedWidth: true,
+      minHeight: 34,
       keyMapper: () => 1
     });
     this.list_ref = React.createRef();
   }
 
+  // Restore scroll position if one was set.
+  componentDidMount() {
+    if (this.props.last_scroll_top != undefined) {
+      this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
+      this.current_scroll_top = this.props.last_scroll_top;
+    }
+  }
+
+  // Updates usually mean someone changed so we update (not rerender) everything.
+  // This avoids doing a bunch of diffs since things probably changed.
   componentDidUpdate() {
     if (this.props.listing.length > 0) {
       this.list_ref.current.forceUpdateGrid();
-      if (this.props.scroll_top != undefined) {
-        this.list_ref.current.scrollToPosition(this.props.scroll_top);
-      }
     }
+  }
+
+  // Clear the selected file index if we scrolled and the index
+  // is not in the render view. Prevents being unable to decide
+  // Whether to scroll to selected index or old scroll position
+  // on future rerender
+  componentWillUnmount() {
+    if (
+      this.current_scroll_top != this.props.last_scroll_top &&
+      !this.selected_index_is_rendered
+    ) {
+      this.props.actions.clear_selected_file_index();
+    }
+    this.props.actions.set_file_listing_scroll(this.current_scroll_top);
   }
 
   render_cached_row_at = ({ index, key, parent, style }) => {
@@ -177,8 +201,17 @@ export class FileListing extends React.Component<Props> {
   }
 
   on_scroll = debounce(({ scrollTop }: { scrollTop: number }) => {
-    this.props.actions.setFileListingScroll(scrollTop);
-  });
+    this.current_scroll_top = scrollTop;
+  }, 32);
+
+  on_rows_rendered = debounce(
+    ({ startIndex, stopIndex }: { startIndex: number; stopIndex: number }) => {
+      this.selected_index_is_rendered =
+        startIndex <= this.props.selected_file_index &&
+        this.props.selected_file_index <= stopIndex;
+    },
+    32
+  );
 
   render_rows() {
     return (
@@ -195,7 +228,7 @@ export class FileListing extends React.Component<Props> {
             width={width}
             scrollToIndex={this.props.selected_file_index}
             onScroll={this.on_scroll}
-            scrollToAlignment={"center"}
+            onRowsRendered={this.on_rows_rendered}
           />
         )}
       </AutoSizer>

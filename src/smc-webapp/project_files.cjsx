@@ -1506,6 +1506,7 @@ exports.ProjectFiles = rclass ({name}) ->
             show_library          : rtypes.bool
             show_new              : rtypes.bool
             public_paths          : rtypes.immutable  # used only to trigger table init
+            file_listing_scroll_top: rtypes.number
 
     propTypes :
         project_id             : rtypes.string
@@ -1787,6 +1788,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     library                = {@props.library}
                     redux                  = {@props.redux}
                     show_new               = {@props.show_new}
+                    last_scroll_top        = {@props.file_listing_scroll_top}
                 />
             </SMC_Dropwrapper>
         else
