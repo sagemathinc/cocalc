@@ -2626,38 +2626,59 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg()
 
         capitalize = require('smc-util/misc').capitalize
-        sample = require('underscore').sample
+
         words = [
                     'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
                     'advanced', 'course', 'yellow', 'bioinformatics', 'R', 'electric', 'sheep',
                     'theory', 'math', 'physics', 'calculate', 'primer', 'DNA', 'tech', 'space'
                 ]
 
+        # deterministically sample distinct words (such that this is stable after a restart)
+        sample = (idx=0, n=1) ->
+            N = words.length
+            K = (idx * 997) %% N
+            ret = []
+            for i in [0..n]
+                for j in [0..N]
+                    w = words[(K + 97 * i + j) %% N]
+                    if ret.includes(w)
+                        continue
+                    else
+                        ret.push(w)
+                        break
+            return ret
+
+        rseed = 123
+        random = ->
+            x = Math.sin(rseed++)
+            r = x - Math.floor(x)
+            return r
+
         create = (idx, cb) =>
-            rnd  = sample(words, 3)
+            rnd  = sample(idx, 3)
             id   = rnd[...2].join('-') + "-#{idx}"
             src = "https://github.com/#{rnd[2]}/#{id}.git"
 
             # not all of them have a display-title, url, desc, ...
-            if Math.random() > .25
-                if Math.random() > .5
-                    extra = "(#{sample(words)})"
+            if random() > .25
+                if random() > .5
+                    extra = "(#{sample(idx + 2)})"
                 else
-                    extra = sample(words, 2)
+                    extra = sample(idx+5, 2)
                 disp = (capitalize(_) for _ in rnd[...2].concat(extra)).join(' ')
             else
-                if Math.random() > .5
+                if random() > .5
                     disp = undefined
                 else
                     disp = ''
 
-            if Math.random() > .5
+            if random() > .5
                 url = "https://www.google.com/search?q=#{rnd.join('%20')}"
             else
                 url = undefined
 
-            if Math.random() > .5
-                if Math.random() > .5
+            if random() > .5
+                if random() > .5
                     verylong = Array(100).fill('very long *text* for **testing**, ').join(" ")
                 desc = """
                        This is some text describing what **#{disp or id}** is.
@@ -2670,8 +2691,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             else
                 desc = undefined
 
-            path = if Math.random() > .5 then "index.ipynb" else "subdir/"
-            tag = if Math.random() > .25 then "master" else null
+            path = if random() > .5 then "index.ipynb" else "subdir/"
+            tag = if random() > .25 then "master" else null
 
 
             @_query

@@ -58,6 +58,9 @@ import { TerminalManager } from "../terminal-editor/terminal-manager";
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
+import { Options as FormatterOptions } from "smc-project/formatters/prettier";
+import { Parser as FormatterParser } from "smc-util/code-formatter";
+
 interface gutterMarkerParams {
   line: number;
   gutter_id: string;
@@ -1616,7 +1619,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
 
     cm.focus();
-    let parser;
+    let parser: FormatterParser;
     switch (filename_extension(this.path)) {
       case "js":
       case "jsx":
@@ -1673,10 +1676,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       default:
         return;
     }
-    const options = {
+    const options: FormatterOptions = {
       parser,
-      tabWidth: cm.getOption("tabSize"),
-      useTabs: cm.getOption("indentWithTabs")
+      tabWidth: cm.getOption("tabSize") as number,
+      useTabs: cm.getOption("indentWithTabs") as boolean
     };
 
     this.set_status("Running code formatter...");

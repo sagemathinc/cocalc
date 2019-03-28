@@ -13,7 +13,10 @@ import {
   MainCapabilities,
   LIBRARY_INDEX_FILE
 } from "../smc-webapp/project_configuration";
-import { config as formatter_config } from "../smc-util/code-formatter";
+import {
+  config as formatter_config,
+  Tool as FormatTool
+} from "../smc-util/code-formatter";
 
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>(resolve => {
@@ -74,7 +77,7 @@ async function spellcheck(): Promise<boolean> {
 
 // without sshd we cannot copy to this project. that's vital for courses.
 async function sshd(): Promise<boolean> {
-  return await have("sshd");
+  return await have("/usr/sbin/sshd");
 }
 
 // this is for rnw RMarkdown files.
@@ -97,10 +100,17 @@ async function library(): Promise<boolean> {
 // in some cases like python, there could be multiple ways (yapf, yapf3, black, autopep8, ...)
 async function formatting(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
-  const tools = Object.values(formatter_config);
+  const tools = new Array(
+    ...new Set(Object.keys(formatter_config).map(k => formatter_config[k]))
+  );
   tools.push("yapf3", "black", "autopep8");
-  for (let tool in tools) {
-    status.push(have(tool));
+  for (let tool of tools) {
+    if (tool === ("formatR" as FormatTool)) {
+      // TODO special case. must check for package "formatR" in "R" -- for now just test for R
+      status.push(have("R"));
+    } else {
+      status.push(have(tool));
+    }
   }
   const results = await Promise.all(status);
   const ret: Capabilities = {};

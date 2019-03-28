@@ -12,6 +12,7 @@ import {
 } from "../../project_configuration";
 import { redux } from "../../app-framework";
 import { config as formatter_config } from "../../../smc-util/code-formatter";
+import { Options as FormatterOptions } from "../../../smc-project/formatters/prettier";
 
 export class API {
   private conn: any;
@@ -41,7 +42,7 @@ export class API {
     return await this.call({ cmd: "configuration", aspect }, 15000);
   }
 
-  async prettier(path: string, options: any): Promise<any> {
+  async prettier(path: string, options: FormatterOptions): Promise<any> {
     return await this.call(
       { cmd: "prettier", path: path, options: options },
       15000
@@ -61,7 +62,7 @@ export class API {
     }
   }
 
-  async prettier_string(str: string, options: any): Promise<any> {
+  async prettier_string(str: string, options: FormatterOptions): Promise<any> {
     const formatting: Capabilities = this.get_formatting();
     // TODO refactor the assocated formatter and smc-project into a common configuration object
     const tool = formatter_config[options.parser];

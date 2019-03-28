@@ -37,6 +37,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./compute-images/util')
 { ButtonRetryUntilSuccess } = require("./widgets-misc/link-retry")
 {jupyterlab_server_url} = require('./project/jupyterlab-server')
+{ jupyter_server_url } = require("./editor_jupyter")
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -73,10 +74,11 @@ ProjectInfo = rclass
     displayName  : 'ProjectFiles-ProjectInfo'
 
     propTypes :
-        project_id    : rtypes.string
-        images        : rtypes.immutable.Map
-        project_map   : rtypes.immutable.Map
-        actions       : rtypes.object.isRequired
+        project_id            : rtypes.string
+        images                : rtypes.immutable.Map
+        project_map           : rtypes.immutable.Map
+        actions               : rtypes.object.isRequired
+        available_features    : rtypes.object
 
     render_path: (path) ->
         return null if path.length is 0
@@ -89,9 +91,31 @@ ProjectInfo = rclass
              onClick={onClick}
         >
             <Tip title={"Opens '#{display_path}'"} placement={"bottom"}>
-                <Icon name={'rocket'} /> Open {misc.trunc_middle(display_path, 40)}
+                <Icon name={'rocket'} /> {misc.trunc_middle(display_path, 40)}
             </Tip>
         </Button>
+
+    render_notebooks: ->
+        return null if not @props.available_features?
+
+        href_jl = => await jupyterlab_server_url(@props.project_id)
+        href_jc = => await jupyter_server_url(@props.project_id)
+
+        have_jl = @props.available_features.jupyter_lab ? false
+        have_jc = @props.available_features.jupyter_notebook ? false
+
+        <Fragment>
+            {<ButtonRetryUntilSuccess get_href={href_jc}>
+                <Tip title={"Start the classical Jupyter server"} placement={"bottom"}>
+                    <Icon name={"cc-icon-ipynb"} /> Jupyter
+                </Tip>
+            </ButtonRetryUntilSuccess> if have_jc}
+            {<ButtonRetryUntilSuccess get_href={href_jl}>
+                <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
+                    <Icon name={"cc-icon-ipynb"} /> JupyterLab
+                </Tip>
+            </ButtonRetryUntilSuccess> if have_jl}
+        </Fragment>
 
     img_info: (img) ->
         disp = img.get("display", "")
@@ -120,17 +144,12 @@ ProjectInfo = rclass
             margin: '5px 10px'
             color: COLORS.GRAY
 
-
         ci_name = compute_image2name(ci)
-
-        href = => await jupyterlab_server_url(@props.project_id)
 
         <Fragment>
             <ButtonGroup bsSize={'small'} style={whiteSpace:'nowrap'}>
                 {@render_path(path)}
-                <ButtonRetryUntilSuccess get_href={href}>
-                    <Icon name={"cc-icon-ipynb"} /> Jupyter Lab…
-                </ButtonRetryUntilSuccess>
+                {@render_notebooks()}
             </ButtonGroup>
             <div style={title_style}>
                 <Tip title={@img_info(img)} placement={'bottom'}>
@@ -328,6 +347,7 @@ ProjectFilesActions = rclass
         project_map   : rtypes.immutable.Map
         images        : rtypes.immutable.Map
         actions       : rtypes.object.isRequired
+        available_features  : rtypes.object
 
     getInitialState: ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
@@ -483,6 +503,7 @@ ProjectFilesActions = rclass
                         images = {@props.images}
                         project_map = {@props.project_map}
                         actions = {@props.actions}
+                        available_features = {@props.available_features}
                     />
         else
             return @render_action_buttons()
@@ -1751,7 +1772,9 @@ exports.ProjectFiles = rclass ({name}) ->
             listing       = {listing}
             project_map   = {@props.project_map}
             images        = {@props.images}
-            actions       = {@props.actions} />
+            actions       = {@props.actions}
+            available_features = {@props.available_features}
+        />
 
     render_miniterm: ->
         <MiniTerminal

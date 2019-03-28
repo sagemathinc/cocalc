@@ -72,6 +72,8 @@ import { CursorManager } from "./cursor-manager";
 
 import { codemirror_to_jupyter_pos } from "./util";
 
+import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -3170,7 +3172,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     const code = this._get_cell_input(id).trim();
-    let options: any; // TODO type this with a global interface
+    let options: FormatterOptions;
     const cell_type = cell.get("cell_type", "code");
     const language = this.store.get_kernel_language();
     switch (cell_type) {
