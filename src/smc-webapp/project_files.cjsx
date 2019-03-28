@@ -1409,6 +1409,10 @@ ProjectFilesNew = rclass
     getDefaultProps: ->
         file_search : ''
 
+    # Rendering doesnt rely on props...
+    shouldComponentUpdate: ->
+        false
+
     new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
@@ -1502,6 +1506,7 @@ exports.ProjectFiles = rclass ({name}) ->
             show_library          : rtypes.bool
             show_new              : rtypes.bool
             public_paths          : rtypes.immutable  # used only to trigger table init
+            file_listing_scroll_top: rtypes.number
 
     propTypes :
         project_id             : rtypes.string
@@ -1520,7 +1525,11 @@ exports.ProjectFiles = rclass ({name}) ->
         shift_is_down : false
 
     componentDidMount: ->
-        @props.redux.getActions('billing')?.update_customer()
+        # Update AFTER react draws everything
+        # Should probably be moved elsewhere
+        # Prevents cascading changes which impact responsiveness
+        # https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
+        setTimeout(@props.redux.getActions('billing')?.update_customer, 200)
         $(window).on("keydown", @handle_files_key_down)
         $(window).on("keyup", @handle_files_key_up)
 
@@ -1756,6 +1765,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 event_handlers = {complete : => @props.actions.fetch_directory_listing()}
                 config         = {clickable : ".upload-button"}
                 disabled       = {public_view}
+                style          = {flex: "1"}
             >
                 <FileListing
                     active_file_sort       = {@props.active_file_sort}
@@ -1778,6 +1788,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     library                = {@props.library}
                     redux                  = {@props.redux}
                     show_new               = {@props.show_new}
+                    last_scroll_top        = {@props.file_listing_scroll_top}
                 />
             </SMC_Dropwrapper>
         else
@@ -1891,7 +1902,7 @@ exports.ProjectFiles = rclass ({name}) ->
             justifyContent: 'space-between'
             alignItems: 'stretch'
 
-        <div style={padding:'5px'}>
+        <div style={display: "flex", flexDirection: "column", padding:'5px', height: '100%'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}
