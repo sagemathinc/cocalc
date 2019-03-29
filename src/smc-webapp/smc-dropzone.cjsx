@@ -2,7 +2,12 @@
 Drag'n'Drop dropzone area
 ###
 
-MAX_FILE_SIZE_MB    = 10000 # 10GB
+# This limit is mainly to show a nice error message.
+# The actual limit is imposed somewhere else mysteriously
+# along the chain of proxies (e.g., cloudflare?), and
+# is about 200MB.  I completely failed to figure out
+# how to raise this.  See https://github.com/sagemathinc/cocalc/issues/3716
+MAX_FILE_SIZE_MB    = 200 # 200MB
 
 ReactDOMServer      = require('react-dom/server')   # for dropzone below
 Dropzone            = require('dropzone')
