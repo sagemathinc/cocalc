@@ -318,13 +318,14 @@ schema.accounts = {
           jupyter_classic: false,
           show_exec_warning: true,
           physical_keyboard: "default",
-          keyboard_variant: ""
+          keyboard_variant: "",
+          ask_jupyter_kernel: true
         },
         other_settings: {
           katex: true,
           confirm_close: false,
           mask_files: true,
-          page_size: 50,
+          page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
           show_global_info2: null,

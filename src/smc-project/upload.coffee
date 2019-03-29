@@ -27,6 +27,9 @@ exports.upload_endpoint = (express, logger) ->
             uploadDir      : process.env.HOME + '/' + req.query.dest_dir
             keepExtensions : true
         form = new formidable.IncomingForm(options)
+        # ADD THIS LINE to increase file size limit to 10 GB; default is 200 MB
+        # See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
+        form.maxFileSize = 10 * 1024 * 1024 * 1024;
         async.series([
             (cb) ->
                 # ensure target path exists
@@ -34,6 +37,7 @@ exports.upload_endpoint = (express, logger) ->
             (cb) ->
                 form.parse req, (err, fields, files) ->
                     if err or not files.file? or not files.file.path? or not files.file.name?
+                        dbg("upload of '#{files.file.name}' to '#{files.file.path}' FAILED ", err)
                         cb(err)
                         return
                     dbg("upload of '#{files.file.name}' to '#{files.file.path}' worked")

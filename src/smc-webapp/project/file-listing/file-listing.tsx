@@ -1,17 +1,16 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS206: Consider reworking classes to avoid initClass
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 import * as React from "react";
 import * as immutable from "immutable";
+import {
+  AutoSizer,
+  List,
+  CellMeasurer,
+  CellMeasurerCache
+} from "react-virtualized";
+
+import { debounce } from "lodash";
 
 const misc = require("smc-util/misc");
-const { Col } = require("react-bootstrap");
+const { Col, Row } = require("react-bootstrap");
 const { VisibleMDLG } = require("../../r_misc");
 
 import { ProjectActions } from "../../project_actions";
@@ -49,10 +48,83 @@ interface Props {
   library: object;
   other_settings?: immutable.Map<any, any>;
   show_new: boolean;
+  last_scroll_top?: number;
 }
 
 export class FileListing extends React.Component<Props> {
   static defaultProps = { file_search: "" };
+
+  private cache: CellMeasurerCache;
+  private list_ref;
+  private current_scroll_top: number | undefined;
+  private selected_index_is_rendered: boolean | undefined;
+
+  constructor(props) {
+    super(props);
+
+    this.cache = new CellMeasurerCache({
+      fixedWidth: true,
+      minHeight: 34,
+      keyMapper: () => 1
+    });
+    this.list_ref = React.createRef();
+  }
+
+  // Restore scroll position if one was set.
+  componentDidMount() {
+    if (this.props.last_scroll_top != undefined) {
+      this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
+      this.current_scroll_top = this.props.last_scroll_top;
+    }
+  }
+
+  // Updates usually mean someone changed so we update (not rerender) everything.
+  // This avoids doing a bunch of diffs since things probably changed.
+  componentDidUpdate() {
+    if (this.props.listing.length > 0) {
+      this.list_ref.current.forceUpdateGrid();
+    }
+  }
+
+  // Clear the selected file index if we scrolled and the index
+  // is not in the render view. Prevents being unable to decide
+  // Whether to scroll to selected index or old scroll position
+  // on future rerender
+  componentWillUnmount() {
+    if (
+      this.current_scroll_top != this.props.last_scroll_top &&
+      !this.selected_index_is_rendered
+    ) {
+      this.props.actions.clear_selected_file_index();
+    }
+    this.props.actions.set_file_listing_scroll(this.current_scroll_top);
+  }
+
+  render_cached_row_at = ({ index, key, parent, style }) => {
+    const a = this.props.listing[index];
+    const row = this.render_row(
+      a.name,
+      a.size,
+      a.mtime,
+      a.mask,
+      a.isdir,
+      a.display_name,
+      a.public,
+      a.issymlink,
+      index
+    );
+    return (
+      <CellMeasurer
+        cache={this.cache}
+        columnIndex={0}
+        key={key}
+        rowIndex={index}
+        parent={parent}
+      >
+        <div style={style}>{row}</div>
+      </CellMeasurer>
+    );
+  };
 
   render_row(
     name,
@@ -129,19 +201,38 @@ export class FileListing extends React.Component<Props> {
     }
   }
 
+  on_scroll = debounce(({ scrollTop }: { scrollTop: number }) => {
+    this.current_scroll_top = scrollTop;
+  }, SCROLL_DEBOUNCE_MS);
+
+  on_rows_rendered = debounce(
+    ({ startIndex, stopIndex }: { startIndex: number; stopIndex: number }) => {
+      this.selected_index_is_rendered =
+        startIndex <= this.props.selected_file_index &&
+        this.props.selected_file_index <= stopIndex;
+    },
+    SCROLL_DEBOUNCE_MS
+  );
+
   render_rows() {
-    return this.props.listing.map((a, i) =>
-      this.render_row(
-        a.name,
-        a.size,
-        a.mtime,
-        a.mask,
-        a.isdir,
-        a.display_name,
-        a.public,
-        a.issymlink,
-        i
-      )
+    return (
+      <AutoSizer>
+        {({ height, width }) => (
+          <List
+            ref={this.list_ref}
+            deferredMeasurementCache={this.cache}
+            height={height}
+            overscanRowCount={10}
+            rowCount={this.props.listing.length}
+            rowHeight={this.cache.rowHeight}
+            rowRenderer={this.render_cached_row_at}
+            width={width}
+            scrollToIndex={this.props.selected_file_index}
+            onScroll={this.on_scroll}
+            onRowsRendered={this.on_rows_rendered}
+          />
+        )}
+      </AutoSizer>
     );
   }
 
@@ -213,17 +304,25 @@ export class FileListing extends React.Component<Props> {
   render() {
     return (
       <>
-        <Col sm={12} style={{ zIndex: 1 }}>
-          {!this.props.public_view ? this.render_terminal_mode() : undefined}
-          {this.props.listing.length > 0 ? (
+        <Col
+          sm={12}
+          style={{
+            zIndex: 1,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%"
+          }}
+        >
+          {!this.props.public_view && this.render_terminal_mode()}
+          {this.props.listing.length > 0 && (
             <ListingHeader
               active_file_sort={this.props.active_file_sort}
               sort_by={this.props.sort_by}
             />
-          ) : (
-            undefined
           )}
-          {this.render_rows()}
+          {this.props.listing.length > 0 && (
+            <Row style={{ flex: "1" }}>{this.render_rows()}</Row>
+          )}
           {this.render_no_files()}
         </Col>
         <VisibleMDLG>{this.render_first_steps()}</VisibleMDLG>
@@ -231,3 +330,5 @@ export class FileListing extends React.Component<Props> {
     );
   }
 }
+
+const SCROLL_DEBOUNCE_MS = 32;

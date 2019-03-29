@@ -78,6 +78,7 @@ export class NoFiles extends React.PureComponent<Props> {
         <h4 style={{ color: "#666" }}>Or select a file type</h4>
         <FileTypeSelector
           name={this.props.name}
+          project_id={this.props.project_id}
           create_file={this.props.create_file}
           create_folder={this.props.create_folder}
           project_id={this.props.project_id}

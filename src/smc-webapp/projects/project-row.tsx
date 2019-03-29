@@ -27,7 +27,13 @@ const image_name_style: React.CSSProperties = {
 };
 
 interface ReactProps {
-  project: any;
+  project: {
+    project_id: string;
+    state;
+    last_edited;
+    description: string;
+    title: string;
+  };
   index: number;
   images?: ComputeImages;
   redux: AppRedux;
