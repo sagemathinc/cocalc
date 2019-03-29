@@ -2,6 +2,8 @@
 Drag'n'Drop dropzone area
 ###
 
+MAX_FILE_SIZE_MB    = 10000 # 10GB
+
 ReactDOMServer      = require('react-dom/server')   # for dropzone below
 Dropzone            = require('dropzone')
 {DropzoneComponent} = require('react-dropzone-component')
@@ -82,7 +84,7 @@ exports.SMC_Dropzone = rclass
                 <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
-                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())}
+                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template()), maxFilesize:MAX_FILE_SIZE_MB}
                 />
             </div>
         </div>
@@ -115,7 +117,7 @@ exports.SMC_Dropwrapper = rclass
             url : @postUrl()
             previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
-            maxFilesize       : 10000
+            maxFilesize       : MAX_FILE_SIZE_MB
         , true
         return misc.merge(with_defaults, @props.config)
 
