@@ -616,18 +616,43 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             configuration         : rtypes.immutable
+            available_features    : rtypes.object
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project', 'configuration'])
+        return misc.is_different(@props, props, ['project', 'configuration', 'available_features'])
+
+    render_available: ->
+        avail = @props.available_features
+        return null if not avail?
+        feature_map = [['spellcheck', 'Spellchecking'],
+                       ['rmd', 'RMarkdown'],
+                       ['sage', 'SageMath Worksheets'],
+                       ['jupyter_notebook', 'Classical Jupyter Notebook'],
+                       ['jupyter_lab', 'Jupyter Lab'],
+                       ['library', 'Library of documents'],
+                       ['x11', 'Graphical applications'],
+                       ['latex', 'LaTeX editor']]
+        features = []
+        for [key, display] in feature_map
+            if avail[key] then features.push(display)
+        features.sort()
+
+        <React.Fragment>
+            <h3>Available features</h3>
+            <div>
+                {misc.to_human_list(features)}
+            </div>
+        </React.Fragment>
 
     render : ->
         conf = @props.configuration
 
         <ProjectSettingsPanel
-            title={'Configuration and capabilities'}
+            title={'Features and configuration'}
             icon={'clipboard-check'}
         >
-            {<pre>{JSON.stringify(conf, '', 2)}</pre> if conf?}
+            {<pre>{JSON.stringify(conf, '', 2)}</pre> if conf? and DEBUG}
+            {@render_available()}
         </ProjectSettingsPanel>
 
 
@@ -1013,9 +1038,10 @@ ProjectSettingsBody = rclass ({name}) ->
             compute_images : rtypes.immutable.Map
         "#{name}" :
             configuration         : rtypes.immutable
+            available_features    : rtypes.object
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images', 'configuration']) or \
+        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images', 'configuration', 'available_features']) or \
                 (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
