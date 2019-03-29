@@ -31,31 +31,36 @@ export class Widget extends Component<WidgetProps> {
   }
 
   async init_view(): Promise<void> {
-    const model_id: string | undefined = this.props.value.get("model_id");
-    if (model_id == null) return; // probably never happens ?
-    if (this.props.actions == null) {
-      console.log("no actions");
-      return; // no way to do anything right now(?)
-      // TODO: maybe can still render widget based on some stored state somewhere?
-    }
-    const widget_manager = this.props.actions.widget_manager;
-    if (widget_manager == null) {
-      console.log("no widget_manager");
-      return;
-    }
-    const model = await widget_manager.get_model(model_id);
-    if (model == null) {
-      // no way to render at present.-
-      return;
-    }
-    console.log("model = ", model);
+    try {
+      const model_id: string | undefined = this.props.value.get("model_id");
+      if (model_id == null) return; // probably never happens ?
+      if (this.props.actions == null) {
+        console.log("no actions");
+        return; // no way to do anything right now(?)
+        // TODO: maybe can still render widget based on some stored state somewhere?
+      }
+      const widget_manager = this.props.actions.widget_manager;
+      if (widget_manager == null) {
+        console.log("no widget_manager");
+        return;
+      }
+      const model = await widget_manager.get_model(model_id);
+      if (model == null) {
+        // no way to render at present.-
+        return;
+      }
+      console.log("model = ", model);
 
-    const view = await widget_manager.create_view(model);
-    console.log("view = ", view);
-    this.view = view as any;
+      const view = await widget_manager.create_view(model);
+      console.log("view = ", view);
+      this.view = view as any;
 
-    const elt = ReactDOM.findDOMNode(this);
-    pWidget.Widget.attach(this.view.pWidget, elt);
+      const elt = ReactDOM.findDOMNode(this);
+      pWidget.Widget.attach(this.view.pWidget, elt);
+    } catch (err) {
+      console.trace();
+      console.warn("widget.tsx: init_view -- failed ", err);
+    }
   }
 
   remove_view(): void {

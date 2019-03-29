@@ -58,13 +58,20 @@ export class Data extends Component<DataProps> {
     );
   }
 
-  render_data(type: string, value: any): Rendered {
+  render_data(type: string, value: any, data: Map<string, any>): Rendered {
     if (type != "") {
       const [a, b] = type.split("/");
       switch (a) {
         case "text":
           switch (b) {
             case "plain":
+              if (
+                data.has("application/vnd.jupyter.widget-view+json") &&
+                this.props.actions != null
+              ) {
+                // TODO: this is pretty dumb for now, but it'll do *temporarily*...
+                return;
+              }
               if (is_ansi(value)) {
                 return (
                   <div style={STDOUT_STYLE}>
@@ -160,7 +167,7 @@ export class Data extends Component<DataProps> {
     const v: Rendered[] = [];
     let n: number = 0;
     data.forEach((value, type) => {
-      v.push(<div key={n}>{this.render_data(type, value)}</div>);
+      v.push(<div key={n}>{this.render_data(type, value, data)}</div>);
       n += 1;
     });
     return v;

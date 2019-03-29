@@ -5,6 +5,7 @@ import * as pWidget from "@phosphor/widgets";
 
 import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
+import { is_array } from "smc-util/misc2";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
@@ -115,16 +116,48 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // Now store the model in the
   }
 
+  /*
+  Documention for IPY_MODEL_ reference spec:
+
+      https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v7-4.md#model-state
+
+  TODO: there's no way I can see how to tell which values will be references,
+  so we just search from everything for now, at least as a string (layout, style) or
+  array of strings (children, axes, buttons).  I wish I knew that those 5 were the
+  only keys to consider...  I'm also worried because what if some random value
+  just happens to look like a reference?
+  */
+
+  private async dereference_model_link(val: string): Promise<any> {
+    const model_id = val.slice(10);
+    const model = await this.get_model(model_id);
+    if (model != null) {
+      return model;
+    } else {
+      console.warn("UT OH -- model doesn't resolve!?", model_id);
+      return val; // leave it unchanged
+    }
+  }
+
   private async dereference_model_links(state): Promise<void> {
     for (let key in state) {
       const val = state[key];
-      if (typeof val === "string" && val.slice(0, 10) === "IPY_MODEL_") {
-        const model_id = val.slice(10);
-        const model = await this.get_model(model_id);
-        if (model != null) {
-          state[key] = model;
-        } else {
-          console.warn("UT OH -- model doesn't resolve!?", model_id);
+      if (typeof val === "string") {
+        // single string
+        if (val.slice(0, 10) === "IPY_MODEL_") {
+          // that is a reference
+          state[key] = await this.dereference_model_link(val);
+        }
+      } else if (is_array(val)) {
+        // array of stuff
+        for (let i in val) {
+          if (
+            typeof val[i] === "string" &&
+            val[i].slice(0, 10) === "IPY_MODEL_"
+          ) {
+            // this one is a string reference
+            val[i] = await this.dereference_model_link(val[i]);
+          }
         }
       }
     }
