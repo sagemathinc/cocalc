@@ -8,6 +8,8 @@ import { JupyterActions } from "../browser-actions";
 
 import * as pWidget from "@phosphor/widgets";
 
+require("@jupyter-widgets/controls/css/widgets.css");
+
 interface WidgetProps {
   value: Map<string, any>;
   actions?: JupyterActions;

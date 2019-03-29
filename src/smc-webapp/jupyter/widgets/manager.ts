@@ -40,8 +40,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         return;
       }
       if (message.target_name === "jupyter.widget") {
-        // handle creation of a widget
-        await this.create_jupyter_widget(message);
+        // handle creation of a model that describes a widget
+        await this.parse_model(message);
         return;
       }
 
@@ -67,7 +67,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model.set_state(state);
   }
 
-  private async create_jupyter_widget(message): Promise<void> {
+  private async parse_model(message): Promise<void> {
     const model_id: string | undefined = message.comm_id;
     if (model_id == null) {
       throw Error("comm_id must be defined");
@@ -106,10 +106,28 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       model_module_version
     });
 
+    // Dereference links to other models.
+    await this.dereference_model_links(state);
+
     // Initialize the model
     model.set(state);
 
     // Now store the model in the
+  }
+
+  private async dereference_model_links(state): Promise<void> {
+    for (let key in state) {
+      const val = state[key];
+      if (typeof val === "string" && val.slice(0, 10) === "IPY_MODEL_") {
+        const model_id = val.slice(10);
+        const model = await this.get_model(model_id);
+        if (model != null) {
+          state[key] = model;
+        } else {
+          console.warn("UT OH -- model doesn't resolve!?", model_id);
+        }
+      }
+    }
   }
 
   public display_view(msg, view, options) {
