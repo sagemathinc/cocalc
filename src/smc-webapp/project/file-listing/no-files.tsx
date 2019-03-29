@@ -10,6 +10,8 @@ import { full_path_text } from "./utils";
 const { FileTypeSelector } = require("../../project_new");
 const { Button, Row, Col } = require("react-bootstrap");
 
+import { MainConfiguration } from "../../project_configuration";
+
 interface Props {
   name: string;
   actions: ProjectActions;
@@ -19,6 +21,7 @@ interface Props {
   file_search: string;
   current_path?: string;
   project_id: string;
+  configuration_main?: MainConfiguration;
 }
 
 const row_style = {
@@ -56,13 +59,13 @@ export class NoFiles extends React.PureComponent<Props> {
     }
   };
 
-  render_create_button() {
+  render_create_button(actual_new_filename: string) {
     let button_text: string;
 
     if (this.props.file_search.length === 0) {
       button_text = "Create or Upload Files...";
     } else {
-      button_text = `Create ${full_path_text(this.props.file_search)}`;
+      button_text = `Create ${actual_new_filename}`;
     }
 
     return (
@@ -81,20 +84,29 @@ export class NoFiles extends React.PureComponent<Props> {
           project_id={this.props.project_id}
           create_file={this.props.create_file}
           create_folder={this.props.create_folder}
-          project_id={this.props.project_id}
         />
       </div>
     );
   }
 
   render() {
+    if (this.props.configuration_main == null) return;
+    const actual_new_filename =
+      this.props.file_search.length === 0
+        ? ""
+        : full_path_text(this.props.file_search, this.props.configuration_main.disabled_ext);
     return (
       <Row style={row_style}>
         <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
           <span style={{ fontSize: "20px" }}>No files found</span>
           <hr />
-          {!this.props.public_view ? this.render_create_button() : undefined}
-          <HelpAlert file_search={this.props.file_search} />
+          {!this.props.public_view
+            ? this.render_create_button(actual_new_filename)
+            : undefined}
+          <HelpAlert
+            file_search={this.props.file_search}
+            actual_new_filename={actual_new_filename}
+          />
           {this.props.file_search.length > 0
             ? this.render_file_type_selection()
             : undefined}

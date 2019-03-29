@@ -26,14 +26,17 @@ const image_name_style: React.CSSProperties = {
   marginTop: "5px"
 };
 
+interface Project {
+  project_id: string;
+  state;
+  last_edited;
+  description: string;
+  title: string;
+  compute_image: string;
+}
+
 interface ReactProps {
-  project: {
-    project_id: string;
-    state;
-    last_edited;
-    description: string;
-    title: string;
-  };
+  project: Project;
   index: number;
   images?: ComputeImages;
   redux: AppRedux;

@@ -52,8 +52,14 @@ underscore            = require('underscore')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
 
-# treat this as const/readonly
-ALL_FILE_BUTTON_TYPES = ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
+# treat this as const/readonly.
+# the order of these buttons also determines the precedence of suggested file extensions
+# see project/file-listing/utils.ts
+ALL_FILE_BUTTON_TYPES = exports.ALL_FILE_BUTTON_TYPES =
+    Object.freeze(['sagews', 'ipynb',  'tex', 'term',  'x11',
+        'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat'
+    ])
+
 
 ROW_INFO_STYLE = Object.freeze
     color      : COLORS.GRAY
@@ -1935,6 +1941,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     redux                  = {@props.redux}
                     show_new               = {@props.show_new}
                     last_scroll_top        = {@props.file_listing_scroll_top}
+                    configuration_main     = {@props.configuration?.get("main")}
                 />
             </SMC_Dropwrapper>
         else
