@@ -182,7 +182,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
       if (url == null || url.length == 0) return;
       return (
         <div style={{ marginTop: "5px" }}>
-          <a href={url}>
+          <a href={url} target={"_blank"} rel={"noopener"}>
             <Icon name="external-link-alt" /> Website
           </a>
         </div>
