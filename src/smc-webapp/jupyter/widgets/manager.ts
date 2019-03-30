@@ -9,10 +9,18 @@ import { is_array } from "smc-util/misc2";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
+  private widget_model_ids_add: Function;
 
-  constructor(ipywidgets_state: IpywidgetsState) {
+  // widget_model_ids_add gets called after each model is created.
+  // This makes it so UI that is waiting on comm state so it
+  // can render will try again.
+  constructor(
+    ipywidgets_state: IpywidgetsState,
+    widget_model_ids_add: Function
+  ) {
     super();
     this.ipywidgets_state = ipywidgets_state;
+    this.widget_model_ids_add = widget_model_ids_add;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
     }
@@ -35,14 +43,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_message(message): Promise<void> {
-    console.log("handle_message", message);
+    // console.log("handle_message", message);
     try {
       if (message == null) {
         return;
       }
       if (message.target_name === "jupyter.widget") {
         // handle creation of a model that describes a widget
-        await this.parse_model(message);
+        await this.cocalc_unpack_models(message);
         return;
       }
 
@@ -64,11 +72,11 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async update_model(model_id: string, state: object): Promise<void> {
     const model = await this.get_model(model_id);
-    console.log(`setting state of model "${model_id}" to `, state);
+    //console.log(`setting state of model "${model_id}" to `, state);
     model.set_state(state);
   }
 
-  private async parse_model(message): Promise<void> {
+  private async cocalc_unpack_models(message): Promise<void> {
     const model_id: string | undefined = message.comm_id;
     if (model_id == null) {
       throw Error("comm_id must be defined");
@@ -113,7 +121,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     // Initialize the model
     model.set(state);
 
-    // Now store the model in the
+    // Inform client that we just created this model.
+    this.widget_model_ids_add(model_id);
   }
 
   /*
@@ -129,6 +138,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   */
 
   private async dereference_model_link(val: string): Promise<any> {
+    if (val.slice(0, 10) !== "IPY_MODEL_") {
+      // just in case...
+      return val;
+    }
     const model_id = val.slice(10);
     const model = await this.get_model(model_id);
     if (model != null) {
@@ -163,13 +176,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
-  public display_view(msg, view, options) {
-    console.log("display_view", msg, view, options);
-    pWidget.Widget.attach(view.pWidget, options.element);
-    view.on("remove", function() {
-      console.log("view removed", view);
-    });
-    return view;
+  public display_view(_msg, _view, _options): Promise<HTMLElement> {
+    throw Error("display_view not implemented");
   }
 
   // Create a comm.
@@ -203,7 +211,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    console.log("loadClass", className, moduleName, moduleVersion);
+    // console.log("loadClass", className, moduleName, moduleVersion);
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
@@ -223,29 +231,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         `Class ${className} not found in module ${moduleName}@${moduleVersion}`
       );
     }
-  }
-
-  async create_widget(
-    widgetType: string,
-    value: any,
-    description: string = ""
-  ): Promise<any> {
-    // Create the widget model.
-    const model = await this.new_model({
-      model_module: "@jupyter-widgets/controls",
-      model_name: `${widgetType}Model`,
-      model_id: "widget-1",
-      model_module_version: "" // no clue
-    });
-    console.log(widgetType + " model created");
-    model.set({ description, value });
-    console.log("Model = ", model);
-
-    const view = await this.create_view(model);
-    console.log(widgetType + " view created", view);
-
-    this.display_view(null, view, {});
-    return view;
   }
 }
 

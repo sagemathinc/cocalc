@@ -2,19 +2,13 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
-
+import { Set } from "immutable";
 import { debounce, isEqual } from "underscore";
-
 import { merge_copy } from "smc-util/misc";
-
 import { JupyterActions as JupyterActions0 } from "./actions";
-
 import { WidgetManager } from "./widgets/manager";
-
 import { CursorManager } from "./cursor-manager";
-
 const { instantiate_assistant } = require("../assistant/main");
-
 const { commands } = require("./commands");
 
 export class JupyterActions extends JupyterActions0 {
@@ -58,7 +52,10 @@ export class JupyterActions extends JupyterActions0 {
     this.init_project_conn();
 
     this.syncdb.once("ready", () => {
-      this.widget_manager = new WidgetManager(this.syncdb.ipywidgets_state);
+      this.widget_manager = new WidgetManager(
+        this.syncdb.ipywidgets_state,
+        this.widget_model_ids_add.bind(this)
+      );
       console.log(this.widget_manager);
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
@@ -95,6 +92,13 @@ export class JupyterActions extends JupyterActions0 {
 
       this.init_scroll_pos_hook();
     }
+  }
+
+  private widget_model_ids_add(model_id: string): void {
+    const widget_model_ids: Set<string> = this.store
+      .get("widget_model_ids")
+      .add(model_id);
+    this.setState({ widget_model_ids });
   }
 
   protected close_client_only(): void {

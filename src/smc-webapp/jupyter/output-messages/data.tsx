@@ -18,6 +18,7 @@ interface DataProps {
   directory?: string;
   id?: string;
   actions?: JupyterActions;
+  name?: string;
   trust?: boolean;
 }
 
@@ -70,6 +71,8 @@ export class Data extends Component<DataProps> {
                 this.props.actions != null
               ) {
                 // TODO: this is pretty dumb for now, but it'll do *temporarily*...
+                // used for history, and maybe share server.  Obviously, we want
+                // as much to be "alive" as possible at some point!
                 return;
               }
               if (is_ansi(value)) {
@@ -147,7 +150,17 @@ export class Data extends Component<DataProps> {
               return <PDF value={value} project_id={this.props.project_id} />;
 
             case "vnd.jupyter.widget-view+json":
-              return <Widget value={value} actions={this.props.actions} />;
+              if (this.props.name == null || this.props.actions == null) {
+                // TODO...
+                return;
+              }
+              return (
+                <Widget
+                  value={value}
+                  actions={this.props.actions}
+                  name={this.props.name}
+                />
+              );
           }
           break;
       }
