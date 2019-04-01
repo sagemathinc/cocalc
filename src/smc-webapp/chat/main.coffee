@@ -1,6 +1,6 @@
 
 info = require('./info')
-{generate_name} = require('./util')
+{generate_name} = require('./utils')
 
 # Not used or implemented yet
 exports.SideChat   = require('./side_chat').SideChat

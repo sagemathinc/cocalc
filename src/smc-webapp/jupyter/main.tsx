@@ -2,7 +2,7 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
 const { ErrorDisplay, Loading } = require("../r_misc");
 // React components that implement parts of the Jupyter notebook.
@@ -18,10 +18,12 @@ const { EditAttachments } = require("./edit-attachments");
 const { EditCellMetadata } = require("./edit-cell-metadata");
 const { FindAndReplace } = require("./find-and-replace");
 const { ConfirmDialog } = require("./confirm-dialog");
+const { KernelSelector } = require("./select-kernel");
 const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
 const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
+import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
   position: "absolute",
@@ -31,7 +33,8 @@ const KERNEL_STYLE: React.CSSProperties = {
   height: "32px",
   display: "block",
   overflow: "hidden",
-  borderLeft: "1px solid #aaa"
+  borderLeft: "1px solid #aaa",
+  whiteSpace: "nowrap"
 };
 
 interface JupyterEditorProps {
@@ -42,6 +45,8 @@ interface JupyterEditorProps {
   name: string; // TODO: is this correct?
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
+  kernels?: KernelsType;
+  site_name: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
   toolbar?: boolean;
@@ -74,10 +79,18 @@ interface JupyterEditorProps {
   insert_image?: boolean; // show insert image dialog
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
-  editor_settings?: immutable.Map<any, any>;
+  editor_settings: immutable.Map<any, any>;
   raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
+  kernel_info: immutable.Map<any, any>;
+  check_select_kernel_init: boolean;
+  show_kernel_selector?: boolean;
+  kernel_selection?: immutable.Map<string, any>;
+  kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
+  kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
+  default_kernel?: string;
+  closestKernel?: KernelType;
 }
 
 class JupyterEditor0 extends Component<JupyterEditorProps> {
@@ -86,6 +99,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       [name]: {
         view_mode: rtypes.oneOf(["normal", "json", "raw"]),
         kernel: rtypes.string, // string name of the kernel
+        kernels: rtypes.immutable.List,
         error: rtypes.string,
         fatal: rtypes.string, // *FATAL* error; user must edit file to fix.
         toolbar: rtypes.bool,
@@ -118,11 +132,20 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         insert_image: rtypes.bool, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
-        editor_settings: rtypes.immutable.Map,
         raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
-        trust: rtypes.bool
-      }
+        trust: rtypes.bool,
+        kernel_info: rtypes.immutable.Map,
+        check_select_kernel_init: rtypes.bool,
+        show_kernel_selector: rtypes.bool,
+        kernel_selection: rtypes.immutable.Map,
+        kernels_by_name: rtypes.immutable.Map,
+        kernels_by_language: rtypes.immutable.Map,
+        default_kernel: rtypes.string,
+        closestKernel: rtypes.immutable.Map
+      },
+      customize: { site_name: rtypes.string },
+      account: { editor_settings: rtypes.immutable.Map }
     };
   }
 
@@ -182,11 +205,25 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
+  render_loading(): Rendered {
+    return (
+      <Loading
+        style={{
+          fontSize: "24pt",
+          textAlign: "center",
+          marginTop: "15px",
+          color: "#888"
+        }}
+      />
+    );
+  }
+
   render_cells() {
     if (
       this.props.cell_list == null ||
       this.props.font_size == null ||
-      this.props.cm_options == null
+      this.props.cm_options == null ||
+      this.props.kernels == null
     ) {
       return (
         <Loading
@@ -331,6 +368,26 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
+  render_select_kernel() {
+    const ask_jupyter_kernel = this.props.editor_settings.get(
+      "ask_jupyter_kernel"
+    );
+    return (
+      <KernelSelector
+        actions={this.props.actions}
+        kernel={this.props.kernel}
+        kernel_info={this.props.kernel_info}
+        kernel_selection={this.props.kernel_selection}
+        kernels_by_name={this.props.kernels_by_name}
+        kernels_by_language={this.props.kernels_by_language}
+        default_kernel={this.props.default_kernel}
+        closestKernel={this.props.closestKernel}
+        site_name={this.props.site_name}
+        ask_jupyter_kernel={ask_jupyter_kernel == null ? true : ask_jupyter_kernel}
+      />
+    );
+  }
+
   render_keyboard_shortcuts() {
     return (
       <KeyboardShortcuts
@@ -387,6 +444,21 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
   }
 
+  render_main() {
+    if (!this.props.check_select_kernel_init) {
+      return this.render_loading();
+    } else if (this.props.show_kernel_selector) {
+      return this.render_select_kernel();
+    } else {
+      return (
+        <>
+          {this.render_main_view()}
+          {this.render_introspect()}
+        </>
+      );
+    }
+  }
+
   render() {
     if (this.props.fatal) {
       return this.render_fatal();
@@ -411,8 +483,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         {this.render_assistant_dialog()}
         {this.render_confirm_dialog()}
         {this.render_heading()}
-        {this.render_main_view()}
-        {this.render_introspect()}
+        {this.render_main()}
       </div>
     );
   }

@@ -6,13 +6,22 @@ declare const localStorage: any;
 
 const misc = require("smc-util/misc");
 import { Store } from "../app-framework";
-import { Set } from "immutable";
+import {
+  Set,
+  Map as ImmutableMap,
+  List as ImmutableList,
+  OrderedMap,
+  fromJS as immutableFromJS
+} from "immutable";
 const { export_to_ipynb } = require("./export-to-ipynb");
 const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
+import { Kernels, Kernel } from "./util";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
 let global_clipboard: any = undefined;
+
+export type show_kernel_selector_reasons = "bad kernel" | "user request";
 
 export interface JupyterStoreState {
   nbconvert_dialog: any;
@@ -28,9 +37,9 @@ export interface JupyterStoreState {
   fatal: string;
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
-  kernel: any | string;
-  kernels: any;
-  kernel_info: any;
+  kernel?: string;
+  kernels?: Kernels;
+  kernel_info?: any;
   max_output_length: number;
   metadata: any;
   md_edit_ids: Set<string>;
@@ -57,7 +66,22 @@ export interface JupyterStoreState {
   confirm_dialog: any;
   insert_image: any;
   scroll: any;
+  check_select_kernel_init: boolean;
+  show_kernel_selector: boolean;
+  show_kernel_selector_reason?: show_kernel_selector_reasons;
+  kernel_selection?: ImmutableMap<string, string>;
+  kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
+  kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
+  default_kernel?: string;
+  closestKernel?: Kernel;
 }
+
+export const initial_jupyter_store_state: {
+  [K in keyof JupyterStoreState]?: JupyterStoreState[K]
+} = {
+  check_select_kernel_init: false,
+  show_kernel_selector:false
+};
 
 export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
@@ -162,7 +186,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
   };
 
-  get_kernel_info = (kernel: any) => {
+  get_kernel_info = (kernel: any): any | undefined => {
     // slow/inefficient, but ok since this is rarely called
     let info: any = undefined;
     const kernels = this.get("kernels");
@@ -290,6 +314,98 @@ export class JupyterStore extends Store<JupyterStoreState> {
         return msg_list.toJS();
       }
     }
+  };
+
+  get_default_kernel = (): string | undefined => {
+    const account = this.redux.getStore("account");
+    if (account != null) {
+      // TODO: getIn types
+      return account.getIn(["editor_settings", "jupyter", "kernel"] as any);
+    } else {
+      return undefined;
+    }
+  };
+
+  /*
+   * select all kernels, which are ranked highest for a specific language
+   * and do have a priority weight > 0.
+   *
+   * kernel metadata looks like that
+   *
+   *  "display_name": ...,
+   *  "argv":, ...
+   *  "language": "sagemath",
+   *  "metadata": {
+   *    "cocalc": {
+   *      "priority": 10,
+   *      "description": "Open-source mathematical software system",
+   *      "url": "https://www.sagemath.org/"
+   *    }
+   *  }
+   *
+   * Return dict of language <-> kernel_name
+   */
+  get_kernel_selection = (kernels: Kernels): ImmutableMap<string, string> => {
+    const data: any = {};
+    kernels
+      .filter(entry => entry.get("language") != null)
+      .groupBy(entry => entry.get("language"))
+      .forEach((kernels, lang) => {
+        const top: any = kernels
+          .sort((a, b) => {
+            const va = -a.getIn(["metadata", "cocalc", "priority"], 0);
+            const vb = -b.getIn(["metadata", "cocalc", "priority"], 0);
+            return misc.cmp(va, vb);
+          })
+          .first();
+        if (top == null || lang == null) return true;
+        const name = top.get("name");
+        if (name == null) return true;
+        data[lang] = name;
+      });
+
+    return ImmutableMap<string, string>(data);
+  };
+
+  get_kernels_by_name_or_language = (
+    kernels: Kernels
+  ): [
+    OrderedMap<string, ImmutableMap<string, string>>,
+    OrderedMap<string, ImmutableList<string>>
+  ] => {
+    let data_name: any = {};
+    let data_lang: any = {};
+    const add_lang = (lang, entry) => {
+      if (data_lang[lang] == null) data_lang[lang] = [];
+      data_lang[lang].push(entry);
+    };
+    kernels.map(entry => {
+      const name = entry.get("name");
+      const lang = entry.get("language");
+      if (name != null) data_name[name] = entry;
+      if (lang == null) {
+        // we collect all kernels without a language under "misc"
+        add_lang("misc", entry);
+      } else {
+        add_lang(lang, entry);
+      }
+    });
+    const by_name = OrderedMap<string, ImmutableMap<string, string>>(
+      data_name
+    ).sortBy((v, k) => {
+      return v.get("display_name", v.get("name", k)).toLowerCase();
+    });
+    // data_lang, we're only interested in the kernel names, not the entry itself
+    data_lang = immutableFromJS(data_lang).map((v, k) => {
+      v = v
+        .sortBy(v => v.get("display_name", v.get("name", k)).toLowerCase())
+        .map(v => v.get("name"));
+      return v;
+    });
+    const by_lang = OrderedMap<string, ImmutableList<string>>(data_lang).sortBy(
+      (_v, k) => k.toLowerCase()
+    );
+    return [by_name, by_lang];
   };
 
   get_raw_link = (path: any) => {
