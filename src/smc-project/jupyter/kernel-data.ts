@@ -2,6 +2,8 @@
 Use nteracts kernelspecs module to get data about all installed Jupyter kernels.
 
 The result is cached for 5s to avoid wasted effort in case of a flurry of calls.
+
+Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 */
 
 import { findAll } from "kernelspecs";
@@ -25,7 +27,10 @@ export async function get_kernel_data(): Promise<any> {
     v.push({
       name: kernel,
       display_name: value.spec.display_name,
-      language: value.spec.language
+      language: value.spec.language,
+      interrupt_mode: value.spec.interrupt_mode,
+      env: value.spec.env,
+      metadata: value.spec.metadata
     });
   }
   v.sort(field_cmp("display_name"));

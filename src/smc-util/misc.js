@@ -3500,6 +3500,7 @@ exports.jupyter_language_to_name = function(lang) {
 // Find the kernel whose name is closest to the given name.
 exports.closest_kernel_match = function(name, kernel_list) {
   name = name.toLowerCase().replace("matlab", "octave");
+  name = name === "python" ? "python3" : name;
   let bestValue = -1;
   let bestMatch = null;
   for (
@@ -3508,6 +3509,8 @@ exports.closest_kernel_match = function(name, kernel_list) {
     asc ? i++ : i--
   ) {
     const k = kernel_list.get(i);
+    // filter out kernels with negative priority (using the priority would be great, though)
+    if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
     const kernel_name = k.get("name").toLowerCase();
     let v = 0;
     for (
@@ -3521,7 +3524,6 @@ exports.closest_kernel_match = function(name, kernel_list) {
         break;
       }
     }
-    // TODO: don't use regular name comparison, use compareVersionStrings
     if (
       v > bestValue ||
       (v === bestValue &&

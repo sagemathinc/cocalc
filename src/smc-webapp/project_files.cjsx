@@ -21,7 +21,7 @@
 
 
 {React, ReactDOM, rtypes, rclass, redux, Redux, Fragment} = require('./app-framework')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, FormControl, FormGroup, Radio,
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Form, FormControl, ControlLabel, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
@@ -47,6 +47,7 @@ underscore            = require('underscore')
 {UsersViewing}        = require('./other-users')
 {FileListing, TERM_MODE_CHAR} = require("./project/file-listing")
 feature = require('./feature')
+{AskNewFilename}      = require('./project/ask-filename')
 
 Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the combobox is in r_misc
 
@@ -1216,6 +1217,7 @@ ProjectFilesActionBox = rclass
                 </Row>
             </Well>
 
+
 # Commands such as CD throw a setState error.
 # Search WARNING to find the line in this class.
 ProjectFilesSearch = rclass
@@ -1386,7 +1388,7 @@ ProjectFilesSearch = rclass
                 on_up       = {@on_up_press}
                 on_down     = {@on_down_press}
                 on_clear    = {@on_clear}
-                disabled    = {@props.disabled}
+                disabled    = {@props.disabled or (!!@props.ext_selection)}
             />
             {@render_file_creation_error()}
             {@render_help_info()}
@@ -1405,9 +1407,14 @@ ProjectFilesNew = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
+        disabled      : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
+
+    # Rendering doesnt rely on props...
+    shouldComponentUpdate: ->
+        false
 
     new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
@@ -1426,7 +1433,7 @@ ProjectFilesNew = rclass
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0
             # Tell state to render an error in file search
-            @props.actions.setState(file_creation_error : "You must enter a filename above.")
+            @props.actions.setState(ext_selection : ext)
         else
             @props.create_file(ext)
 
@@ -1447,6 +1454,7 @@ ProjectFilesNew = rclass
             id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
             onClick={@on_create_button_clicked}
+            disabled={@props.disabled}
         >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
@@ -1496,12 +1504,14 @@ exports.ProjectFiles = rclass ({name}) ->
             checked_files         : rtypes.immutable
             selected_file_index   : rtypes.number
             file_creation_error   : rtypes.string
+            ext_selection         : rtypes.string
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
             library               : rtypes.object
             show_library          : rtypes.bool
             show_new              : rtypes.bool
             public_paths          : rtypes.immutable  # used only to trigger table init
+            file_listing_scroll_top: rtypes.number
 
     propTypes :
         project_id             : rtypes.string
@@ -1520,7 +1530,11 @@ exports.ProjectFiles = rclass ({name}) ->
         shift_is_down : false
 
     componentDidMount: ->
-        @props.redux.getActions('billing')?.update_customer()
+        # Update AFTER react draws everything
+        # Should probably be moved elsewhere
+        # Prevents cascading changes which impact responsiveness
+        # https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
+        setTimeout(@props.redux.getActions('billing')?.update_customer, 200)
         $(window).on("keydown", @handle_files_key_down)
         $(window).on("keyup", @handle_files_key_up)
 
@@ -1653,6 +1667,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions       = {@props.actions}
             create_file   = {@create_file}
             create_folder = {@create_folder}
+            disabled      = {!!@props.ext_selection}
         />
 
     render_activity: ->
@@ -1756,6 +1771,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 event_handlers = {complete : => @props.actions.fetch_directory_listing()}
                 config         = {clickable : ".upload-button"}
                 disabled       = {public_view}
+                style          = {flex: "1"}
             >
                 <FileListing
                     active_file_sort       = {@props.active_file_sort}
@@ -1778,6 +1794,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     library                = {@props.library}
                     redux                  = {@props.redux}
                     show_new               = {@props.show_new}
+                    last_scroll_top        = {@props.file_listing_scroll_top}
                 />
             </SMC_Dropwrapper>
         else
@@ -1891,11 +1908,17 @@ exports.ProjectFiles = rclass ({name}) ->
             justifyContent: 'space-between'
             alignItems: 'stretch'
 
-        <div style={padding:'5px'}>
+        <div style={display: "flex", flexDirection: "column", padding:'5px', height: '100%'}>
             {if pay? then @render_course_payment_warning(pay)}
             {@render_error()}
             {@render_activity()}
             {@render_control_row(public_view, visible_listing)}
+            {<AskNewFilename
+                actions            = {@props.actions}
+                current_path       = {@props.current_path}
+                ext_selection      = {@props.ext_selection}
+            /> if @props.ext_selection}
+            {@render_new()}
 
             <div style={flex_row_style}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
@@ -1904,7 +1927,6 @@ exports.ProjectFiles = rclass ({name}) ->
                 {@render_project_files_buttons(public_view)}
             </div>
 
-            {@render_new()}
             {@render_library() if @props.show_library}
 
             {if @props.checked_files.size > 0 and @props.file_action?

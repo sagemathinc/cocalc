@@ -421,6 +421,7 @@ exports.SearchInput = rclass
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
+
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.element
         input_class     : rtypes.string  # className for the InputGroup element
