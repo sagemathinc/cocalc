@@ -179,7 +179,7 @@ file_associations["html"] = {
   name: "html"
 };
 
-file_associations["md"] = {
+file_associations["md"] = file_associations["markdown"] = {
   icon: "cc-icon-markdown",
   opts: { indent_unit: 4, tab_size: 4, mode: codemirror_associations["md"] },
   name: "markdown"
