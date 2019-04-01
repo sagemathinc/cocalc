@@ -138,8 +138,9 @@ export class CustomSoftware extends Component<CSProps, CSState> {
           />
         </div>
         {this.render_custom_image_entries()}
-        <div style={{ color: COLORS.GRAY_D, margin: "15px 0" }}>
-          Contact us to add more: <HelpEmailLink color={COLORS.GRAY_D} />.
+        <div style={{ color: COLORS.GRAY, margin: "15px 0" }}>
+          Contact us to add more or give feedback:{" "}
+          <HelpEmailLink color={COLORS.GRAY} />.
         </div>
       </>
     );
