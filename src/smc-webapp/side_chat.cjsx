@@ -450,7 +450,7 @@ ChatRoom = rclass ({name}) ->
         @input_ref = React.createRef();
         return {}
 
-    mark_as_read: ->
+    _mark_as_read: ->
         info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
         if not info? or info.is_unseenchat  # only mark chat as read if it is unseen
             f = @props.redux.getActions('file_use').mark_file
@@ -686,7 +686,7 @@ ChatRoom = rclass ({name}) ->
                             on_set_to_last_input = {@props.actions.set_to_last_input}
                             account_id           = {@props.account_id}
                             componentClass       = {componentClass}
-                            input_height         = {input_height}
+                            input_height         = {@props.input_height}
                             singleLine           = {componentClass == 'input'}
                         />
                     </div>
@@ -718,7 +718,8 @@ exports.SideChat = ({path, redux, project_id}) ->
         project_id  = {project_id}
         path        = {path}
         file_use_id = {file_use_id}
-        />
+        input_height = {'default'}
+    />
 
 exports.EmbeddedChat = ({path, redux, project_id}) ->
     name        = redux_name(project_id, path)
