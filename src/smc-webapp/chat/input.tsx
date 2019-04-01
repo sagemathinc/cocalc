@@ -9,6 +9,8 @@ const { Space } = require("../r_misc");
 const { Avatar } = require("../other-users");
 const { IS_MOBILE, isMobile } = require("../feature");
 
+type InputHeight = "default" | "small";
+
 interface Props {
   input: string;
   input_ref: any;
@@ -25,7 +27,7 @@ interface Props {
   on_set_to_last_input: () => void;
   account_id: string;
   componentClass?: string;
-  input_height?: "default" | "small";
+  input_height: InputHeight;
   singleLine?: boolean;
 }
 
@@ -37,13 +39,6 @@ export class ChatInput extends React.PureComponent<Props> {
     input_height: "default",
     singleLine: false
   };
-
-  input_style = memoizeOne((font_size, input_height) => {
-    return {
-      height: input_height == "default" ? "100%" : "80%",
-      padding: input_height == "small" ? "10px" : undefined
-    };
-  });
 
   private mentions_input_ref: any;
   private input_ref: any;
@@ -69,58 +64,67 @@ export class ChatInput extends React.PureComponent<Props> {
     }
   }
 
-  input_style = memoizeOne((font_size: number, height: string) => {
-    return {
-      height: height,
+  input_style = memoizeOne(
+    (font_size: number, height: string, input_height: InputHeight) => {
+      // TODO not sure what's going on with all these heights
+      if (input_height == "small") {
+        height = "80%";
+      }
+      const height_inner = input_height == "default" ? "100%" : "80%";
+      const padding = input_height == "small" ? "10px" : "5px 10px";
 
-      "&multiLine": {
-        highlighter: {
-          padding: 5
+      return {
+        height: height,
+
+        "&multiLine": {
+          highlighter: {
+            padding: 5
+          },
+
+          control: {
+            height: height_inner,
+            backgroundColor: "white",
+            leftMargin: "2px"
+          },
+
+          input: {
+            height: height_inner,
+            fontSize: font_size,
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+            overflow: "auto",
+            padding: padding
+          }
         },
 
-        control: {
-          height: "100%",
-          backgroundColor: "white",
-          leftMargin: "2px"
-        },
+        suggestions: {
+          list: {
+            backgroundColor: "white",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            fontSize: font_size,
+            position: "absolute",
+            bottom: "10px",
+            overflow: "auto",
+            maxHeight: "145px",
+            width: "max-content",
+            display: "flex",
+            flexDirection: "column"
+          },
 
-        input: {
-          height: "100%",
-          fontSize: font_size,
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-          overflow: "auto",
-          padding: "5px 10px"
-        }
-      },
+          item: {
+            padding: "5px 15px 5px 10px",
+            borderBottom: "1px solid rgba(0,0,0,0.15)",
 
-      suggestions: {
-        list: {
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-          fontSize: font_size,
-          position: "absolute",
-          bottom: "10px",
-          overflow: "auto",
-          maxHeight: "145px",
-          width: "max-content",
-          display: "flex",
-          flexDirection: "column"
-        },
-
-        item: {
-          padding: "5px 15px 5px 10px",
-          borderBottom: "1px solid rgba(0,0,0,0.15)",
-
-          "&focused": {
-            backgroundColor: "rgb(66, 139, 202, 0.4)"
+            "&focused": {
+              backgroundColor: "rgb(66, 139, 202, 0.4)"
+            }
           }
         }
-      }
-    };
-  });
+      };
+    }
+  );
 
   mentions_data = memoizeOne((project_users: immutable.Map<string, any>) => {
     const user_array = project_users
