@@ -28,9 +28,6 @@ const microsoft_word =
 const microsoft_ppt =
   'Microsoft PowerPoint -- Create an ["X11" file](https://doc.cocalc.com/x11.html) and open the "Impress" application.';
 
-// We should obviously implement an audio player.  See https://github.com/sagemathinc/cocalc/issues/3685
-const audio_file = "This appears to be an audio file.  Download it to your computer to play it."
-
 // ext: markdown string.
 const INFO = {
   h4: hdf_file,
@@ -62,10 +59,6 @@ Read more: [Saving-Data-on-Unexpected-Exits](https://www.gnu.org/software/octave
   "noext-a.out":
     "This is a binary executable, which you can run in a Terminal by typing ./a.out."
 };
-
-for (let ext of ['wav', 'mp3', 'aiff', 'flac', 'asnd', 'aif', 'au', 'snd']) {
-  INFO[ext] = audio_file;
-}
 
 interface Props {
   project_id: string;
