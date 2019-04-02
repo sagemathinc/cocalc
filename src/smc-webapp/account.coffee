@@ -111,5 +111,5 @@ redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_UR
 # this is just a wrapper for backwards compatibility
 {random_filename} = require('project/utils')
 exports.default_filename = (ext) ->
-    return random_filename(ext, true)
+    return random_filename(ext, undefined, true)
 

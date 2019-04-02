@@ -328,7 +328,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // if ext == null → hide dialog; otherwise ask for name with given extension
   ask_filename(ext?: string): void {
     if (ext != null) {
-      this.setState({ new_filename: random_filename(ext) });
+      const filenames = this._get_filenames_in_dir();
+      this.setState({ new_filename: random_filename(ext, filenames) });
     }
     this.setState({ ext_selection: ext });
   }
@@ -1601,7 +1602,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  private _suggest_duplicate_filename(name: string): string | undefined {
+  private _get_filenames_in_dir(): { [name : string]: boolean } | undefined {
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -1619,13 +1620,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         : undefined;
     if (typeof listing === "string") {
       // must be an error
-      return name; // simple fallback
+      return undefined; // simple fallback
     }
     if (listing != null) {
       listing.map(function(x) {
         files_in_dir[x.get("name")] = true;
       });
     }
+    return files_in_dir;
+  }
+
+  private _suggest_duplicate_filename(name: string): string | undefined {
+    let store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+
+    // fallback to name, simple fallback
+    const files_in_dir = this._get_filenames_in_dir() || name;
     // This loop will keep trying new names until one isn't in the directory
     while (true) {
       name = misc.suggest_duplicate_filename(name);
