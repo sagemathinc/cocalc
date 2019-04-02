@@ -45,5 +45,5 @@ python3 -m pytest --site=../cocalc.yaml [--display=yes]
 
 1. Test project must be created before testing.
 1. Test project must be in recent history and running.
-1. Initial URL must be specified with IP address.
+1. In some cases, test URL must be specified with IP address.
 1. Password may be displayed during log & error output.
