@@ -1107,11 +1107,11 @@ API(
       },
       project_id: {
         init: required,
-        desc: "id of project containing file to be read"
+        desc: "id of project containing file to be read (or array of project_id's)"
       },
       path: {
         init: required,
-        desc: "path to file to be read in target project"
+        desc: "path to file to be read in target project (or array of paths)"
       }
     },
     desc: `\
@@ -1120,6 +1120,13 @@ User must be owner or collaborator in the target project.
 Argument 'path' is relative to home directory in target project.
 Unix user in the target project must have permissions to read file
 and containing directories if they do not already exist.
+
+You can also read multiple project_id/path's at once by
+making project_id and path arrays (of the same length).
+In that case, the resulting content will be an array
+of the resulting content strings, in the same order
+in which they were requested.
+
 
 Example:
 
@@ -1143,6 +1150,7 @@ message({
   id: required,
   content: required
 });
+
 
 // The write_file_to_project message is sent from the hub to the
 // project_server to tell the project_server to write a file to a
