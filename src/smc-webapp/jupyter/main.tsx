@@ -33,7 +33,8 @@ const KERNEL_STYLE: React.CSSProperties = {
   height: "32px",
   display: "block",
   overflow: "hidden",
-  borderLeft: "1px solid #aaa"
+  borderLeft: "1px solid #aaa",
+  whiteSpace: "nowrap"
 };
 
 interface JupyterEditorProps {
