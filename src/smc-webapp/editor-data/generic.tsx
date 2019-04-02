@@ -38,6 +38,8 @@ const INFO = {
   docx: microsoft_word,
   ppt: microsoft_ppt,
   pptx: microsoft_ppt,
+  jar:
+    "Run JAVA jar archives in a [Terminal](https://doc.cocalc.com/terminal.html) via `java -jar <filename.jar>`",
   raw:
     "You may be able to use this file via a Python library or use it in some other way.",
   tiff:
