@@ -1490,6 +1490,9 @@ exports.ProjectFiles = rclass ({name}) ->
         customize :
             kucalc : rtypes.string
 
+        account :
+            other_settings : rtypes.immutable.Map
+
         "#{name}" :
             active_file_sort      : rtypes.object
             current_path          : rtypes.string
@@ -1919,6 +1922,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 current_path       = {@props.current_path}
                 ext_selection      = {@props.ext_selection}
                 new_filename       = {@props.new_filename}
+                other_settings     = {@props.other_settings}
             /> if @props.ext_selection}
             {@render_new()}
 

@@ -8,14 +8,16 @@ const {
   Button,
   Form
 } = require("react-bootstrap");
-const { SearchInput } = require("../r_misc");
+const { SearchInput, SelectorInput } = require("../r_misc");
 const { IS_TOUCH } = require("../feature");
+import { RandomFilenameFamilies } from "smc-webapp/project/utils";
 
 interface Props {
   actions: any;
   ext_selection: string;
   current_path: string;
   new_filename?: string;
+  other_settings: any;
 }
 
 interface State {}
@@ -61,6 +63,11 @@ export class AskNewFilename extends Component<Props, State> {
     return data.name;
   }
 
+  change_random = (family: string) => {
+    this.props.actions.set_random_filename_family(family);
+    this.shuffle();
+  };
+
   render(): Rendered {
     if (this.props.new_filename == null) return <div>Loading …</div>;
     return (
@@ -82,20 +89,32 @@ export class AskNewFilename extends Component<Props, State> {
               on_escape={this.cancel}
               on_change={this.change}
             />
-            <ButtonToolbar
-              style={{ whiteSpace: "nowrap", padding: "0" }}
-              className={"pull-right"}
-            >
-              <Button
-                bsStyle={"primary"}
-                onClick={this.create_click}
-                disabled={this.props.new_filename.length == 0}
-              >
-                Create
-              </Button>
-              <Button onClick={this.shuffle}>Shuffle</Button>
-              <Button onClick={this.cancel}>Cancel</Button>
-            </ButtonToolbar>
+            <Row>
+              <Col md={6}>
+                <SelectorInput
+                  selected={this.props.other_settings.get("random_filenames")}
+                  options={RandomFilenameFamilies}
+                  on_change={this.change_random}
+                />
+              </Col>
+
+              <Col md={6}>
+                <ButtonToolbar
+                  style={{ whiteSpace: "nowrap", padding: "0" }}
+                  className={"pull-right"}
+                >
+                  <Button
+                    bsStyle={"primary"}
+                    onClick={this.create_click}
+                    disabled={this.props.new_filename.length == 0}
+                  >
+                    Create
+                  </Button>
+                  <Button onClick={this.shuffle}>Shuffle</Button>
+                  <Button onClick={this.cancel}>Cancel</Button>
+                </ButtonToolbar>
+              </Col>
+            </Row>
           </Form>
         </Col>
       </Row>

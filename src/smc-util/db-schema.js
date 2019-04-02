@@ -328,6 +328,7 @@ schema.accounts = {
           page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
+          random_filenames: null,
           show_global_info2: null,
           first_steps: true,
           newsletter: false,

@@ -12,7 +12,7 @@ import { query as client_query } from "./frame-editors/generic/client";
 
 import { callback2 } from "smc-util/async-utils";
 
-import { random_filename } from "smc-webapp/project/utils";
+import { RandomFilenames } from "smc-webapp/project/utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -329,9 +329,26 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ask_filename(ext?: string): void {
     if (ext != null) {
       const filenames = this._get_filenames_in_dir();
-      this.setState({ new_filename: random_filename(ext, filenames) });
+      const acc_store = this.redux.getStore("account") as any;
+      const type = (function() {
+        if (acc_store != null) {
+          return acc_store.getIn(["other_settings", "random_filenames"]);
+        } else {
+          return RandomFilenames.default_family;
+        }
+      })();
+      this.setState({
+        new_filename: new RandomFilenames(ext, false, type).gen(filenames)
+      });
     }
     this.setState({ ext_selection: ext });
+  }
+
+  set_random_filename_family(family: string): void {
+    const acc_table = redux.getTable("account");
+    if (acc_table != null) {
+      acc_table.set({ other_settings: { random_filenames: family } });
+    }
   }
 
   toggle_library(show?: boolean): void {
@@ -1602,7 +1619,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  private _get_filenames_in_dir(): { [name : string]: boolean } | undefined {
+  private _get_filenames_in_dir(): { [name: string]: boolean } | undefined {
     let store = this.get_store();
     if (store == undefined) {
       return;

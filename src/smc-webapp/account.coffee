@@ -109,7 +109,8 @@ redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_UR
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # this is just a wrapper for backwards compatibility
-{random_filename} = require('project/utils')
+{RandomFilenames} = require('project/utils')
 exports.default_filename = (ext) ->
-    return random_filename(ext, undefined, true)
+    type = redux.getStore("account")?.getIn(["other_settings", "random_filenames"]) ? RandomFilenames.default_family
+    return new RandomFilenames(ext, true, type).gen()
 
