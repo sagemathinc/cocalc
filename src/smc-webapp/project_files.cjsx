@@ -1433,7 +1433,7 @@ ProjectFilesNew = rclass
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0
             # Tell state to render an error in file search
-            @props.actions.setState(ext_selection : ext)
+            @props.actions.ask_filename(ext)
         else
             @props.create_file(ext)
 
@@ -1505,6 +1505,7 @@ exports.ProjectFiles = rclass ({name}) ->
             selected_file_index   : rtypes.number
             file_creation_error   : rtypes.string
             ext_selection         : rtypes.string
+            new_filename          : rtypes.string
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
             library               : rtypes.object
@@ -1917,6 +1918,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 actions            = {@props.actions}
                 current_path       = {@props.current_path}
                 ext_selection      = {@props.ext_selection}
+                new_filename       = {@props.new_filename}
             /> if @props.ext_selection}
             {@render_new()}
 

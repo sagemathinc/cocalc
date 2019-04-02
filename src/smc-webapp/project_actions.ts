@@ -12,6 +12,8 @@ import { query as client_query } from "./frame-editors/generic/client";
 
 import { callback2 } from "smc-util/async-utils";
 
+import { random_filename } from "smc-webapp/project/utils";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -255,6 +257,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.load_target = this.load_target.bind(this);
     this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
     this.close_free_warning = this.close_free_warning.bind(this);
+    this.ask_filename = this.ask_filename.bind(this);
 
     this._log_open_time = {};
     this._activity_indicator_timers = {};
@@ -320,6 +323,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (store == undefined) return;
       this.setState({ [name]: !store.get(name) });
     }
+  }
+
+  // if ext == null → hide dialog; otherwise ask for name with given extension
+  ask_filename(ext?: string): void {
+    if (ext != null) {
+      this.setState({ new_filename: random_filename(ext) });
+    }
+    this.setState({ ext_selection: ext });
   }
 
   toggle_library(show?: boolean): void {
@@ -1272,7 +1283,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (is_adjacent || is_nested) {
       history_path = path;
     }
-    if (store.get('current_path') != path) {
+    if (store.get("current_path") != path) {
       this.clear_file_listing_scroll();
     }
     this.setState({

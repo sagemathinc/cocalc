@@ -108,21 +108,8 @@ webapp_client.on "remember_me_failed", () ->
 redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 
 # Return a default filename with the given ext (or not extension if ext not given)
-# FUTURE: make this configurable with different schemas.
-exports.default_filename = (ext, is_folder) ->
-    return default_filename_iso(ext)
-    #return default_filename_mac(ext)
+# this is just a wrapper for backwards compatibility
+{random_filename} = require('project/utils')
+exports.default_filename = (ext) ->
+    return random_filename(ext, true)
 
-default_filename_iso = (ext, is_folder) ->
-    base = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-    if ext
-        base += '.' + ext
-    return base
-
-# This isn't used yet -- will not a config option in account settings.
-default_filename_mac = (ext, is_folder) ->
-    switch ext
-        when 'zip'
-            return 'Archive.zip'
-        else
-            return 'untitled ' + (if is_folder then 'folder' else 'file')

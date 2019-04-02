@@ -1,5 +1,4 @@
 import { Component, React, Rendered } from "../app-framework";
-const { default_filename } = require("../account.coffee");
 const { file_options } = require("../editor");
 const {
   Col,
@@ -16,30 +15,27 @@ interface Props {
   actions: any;
   ext_selection: string;
   current_path: string;
+  new_filename?: string;
 }
-interface State {
-  new_name: string;
-}
+
+interface State {}
 
 export class AskNewFilename extends Component<Props, State> {
   displayName = "ProjectFiles-AskNewFilename";
   constructor(props) {
     super(props);
-    this.state = {
-      new_name: default_filename()
-    };
-  }
-
-  componentDidMount() {
-    this.setState({ new_name: default_filename() });
   }
 
   cancel = (): void => {
-    this.props.actions.setState({ ext_selection: undefined });
+    this.props.actions.ask_filename(undefined);
+  };
+
+  shuffle = (): void => {
+    this.props.actions.ask_filename(this.props.ext_selection);
   };
 
   create = (name, focus): void => {
-    this.props.actions.setState({ ext_selection: undefined });
+    this.props.actions.ask_filename(undefined);
     this.props.actions.create_file({
       name: name,
       ext: this.props.ext_selection,
@@ -53,11 +49,11 @@ export class AskNewFilename extends Component<Props, State> {
   };
 
   create_click = (): void => {
-    this.create(this.state.new_name, true);
+    this.create(this.props.new_filename, true);
   };
 
   change = (val: string): void => {
-    this.setState({ new_name: val });
+    this.props.actions.setState({ new_filename: val });
   };
 
   render_filename() {
@@ -66,8 +62,9 @@ export class AskNewFilename extends Component<Props, State> {
   }
 
   render(): Rendered {
+    if (this.props.new_filename == null) return <div>Loading …</div>;
     return (
-      <Row>
+      <Row style={{ marginBottom: "10px" }}>
         <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
           <ControlLabel>
             Enter name for new {this.render_filename()} file:
@@ -79,7 +76,7 @@ export class AskNewFilename extends Component<Props, State> {
               ref={"new_filename2"}
               key={"new_filename2"}
               type={"text"}
-              value={this.state.new_name}
+              value={this.props.new_filename}
               placeholder={"Enter filename..."}
               on_submit={this.submit}
               on_escape={this.cancel}
@@ -92,10 +89,11 @@ export class AskNewFilename extends Component<Props, State> {
               <Button
                 bsStyle={"primary"}
                 onClick={this.create_click}
-                disabled={this.state.new_name.length == 0}
+                disabled={this.props.new_filename.length == 0}
               >
                 Create
               </Button>
+              <Button onClick={this.shuffle}>Shuffle</Button>
               <Button onClick={this.cancel}>Cancel</Button>
             </ButtonToolbar>
           </Form>
