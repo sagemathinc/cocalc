@@ -1,4 +1,4 @@
-import { Component, React, Rendered } from "../app-framework";
+import { Component, React, /* ReactDOM,*/ Rendered } from "../app-framework";
 const { file_options } = require("../editor");
 const {
   Col,
@@ -8,7 +8,7 @@ const {
   Button,
   Form
 } = require("react-bootstrap");
-const { SearchInput, SelectorInput } = require("../r_misc");
+const { SearchInput, SelectorInput, Icon } = require("../r_misc");
 const { IS_TOUCH } = require("../feature");
 import { RandomFilenameFamilies } from "smc-webapp/project/utils";
 
@@ -23,9 +23,10 @@ interface Props {
 interface State {}
 
 export class AskNewFilename extends Component<Props, State> {
-  displayName = "ProjectFiles-AskNewFilename";
+  private searchRef: React.RefObject<HTMLInputElement>;
   constructor(props) {
     super(props);
+    this.searchRef = React.createRef();
   }
 
   cancel = (): void => {
@@ -34,6 +35,11 @@ export class AskNewFilename extends Component<Props, State> {
 
   shuffle = (): void => {
     this.props.actions.ask_filename(this.props.ext_selection);
+    // TODO somehow focus & select the new random text
+    //const el = this.searchRef.current;
+    //if (el != null) {
+    //  ReactDOM.findDOMNode(el.refs.input).select();
+    //}
   };
 
   create = (name, focus): void => {
@@ -80,8 +86,7 @@ export class AskNewFilename extends Component<Props, State> {
             <SearchInput
               autoFocus={!IS_TOUCH}
               autoSelect={!IS_TOUCH}
-              ref={"new_filename2"}
-              key={"new_filename2"}
+              ref={this.searchRef}
               type={"text"}
               value={this.props.new_filename}
               placeholder={"Enter filename..."}
@@ -90,7 +95,7 @@ export class AskNewFilename extends Component<Props, State> {
               on_change={this.change}
             />
             <Row>
-              <Col md={6}>
+              <Col md={5}>
                 <SelectorInput
                   selected={this.props.other_settings.get("random_filenames")}
                   options={RandomFilenameFamilies}
@@ -98,20 +103,22 @@ export class AskNewFilename extends Component<Props, State> {
                 />
               </Col>
 
-              <Col md={6}>
-                <ButtonToolbar
-                  style={{ whiteSpace: "nowrap", padding: "0" }}
-                  className={"pull-right"}
-                >
+              <Col md={7}>
+                <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
+                  <Button onClick={this.shuffle}>
+                    <Icon name={"dice"} />
+                  </Button>
                   <Button
+                    className={"pull-right"}
                     bsStyle={"primary"}
                     onClick={this.create_click}
                     disabled={this.props.new_filename.length == 0}
                   >
-                    Create
+                    <Icon name={"plus-circle"} /> Create
                   </Button>
-                  <Button onClick={this.shuffle}>Shuffle</Button>
-                  <Button onClick={this.cancel}>Cancel</Button>
+                  <Button className={"pull-right"} onClick={this.cancel}>
+                    Cancel
+                  </Button>
                 </ButtonToolbar>
               </Col>
             </Row>

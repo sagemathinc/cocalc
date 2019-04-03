@@ -8,8 +8,8 @@ const dogNames = require("dog-names");
 export type RandomFilenameTypes =
   | "iso"
   | "heroku"
-  | "ymd_heroku"
   | "pet"
+  | "ymd_heroku"
   | "ymd_pet";
 
 export const RandomFilenameFamilies = Object.freeze<
@@ -19,7 +19,7 @@ export const RandomFilenameFamilies = Object.freeze<
   heroku: "Heroku-like",
   ymd_heroku: "Heroku-like (prefix today)",
   pet: "Pet names",
-  ymd_pet: "Pre names (prefix today)"
+  ymd_pet: "Pet names (prefix today)"
 });
 
 export class RandomFilenames {
@@ -37,11 +37,13 @@ export class RandomFilenames {
     this.type = type;
   }
 
+  // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(avoid?: { [name: string]: boolean }) {
     if (avoid == null) {
       return this.random_filename();
     } else {
-      while (true) {
+      // this is a sanitized while(true)
+      for (let i = 0; i < 100; i++) {
         const new_name = this.random_filename();
         if (!avoid[new_name]) return new_name;
       }

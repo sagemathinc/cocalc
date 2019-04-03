@@ -328,7 +328,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // if ext == null → hide dialog; otherwise ask for name with given extension
   ask_filename(ext?: string): void {
     if (ext != null) {
+      // this is either cached or undefined; that's good enough
       const filenames = this._get_filenames_in_dir();
+      // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
       const type = (function() {
         if (acc_store != null) {
