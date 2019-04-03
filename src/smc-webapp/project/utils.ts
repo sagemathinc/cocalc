@@ -15,7 +15,7 @@ export type RandomFilenameTypes =
 export const RandomFilenameFamilies = Object.freeze<
   Readonly<{ [name in RandomFilenameTypes]: string }>
 >({
-  iso: "Current time (UTC)",
+  iso: "Current time",
   heroku: "Heroku-like",
   ymd_heroku: "Heroku-like (prefix today)",
   pet: "Pet names",
@@ -70,11 +70,11 @@ export class RandomFilenames {
         return `${tokens.map(capitalize).join("")}.java`;
       default:
         // e.g. for python, join using "_"
-        const fill = this.filler();
-        return (
-          tokens.join(fill) +
-          (this.fullname && this.ext != null ? `.${this.ext}` : "")
-        );
+        let fn = tokens.join(this.filler());
+        if (this.fullname && this.ext != null) {
+          fn += `.${this.ext}`;
+        }
+        return fn;
     }
   }
   // plain tokens to build the filename
@@ -82,6 +82,7 @@ export class RandomFilenames {
   private tokens(): string[] | void {
     switch (this.type) {
       case "iso":
+        // local time of user
         return to_iso_path(new Date()).split("-");
 
       case "pet":
