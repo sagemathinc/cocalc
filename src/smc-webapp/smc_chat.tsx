@@ -33,6 +33,10 @@ import { SaveButton } from "./frame-editors/frame-tree/save-button";
 
 import { ChatInput } from "./chat/input";
 
+import { compute_cursor_offset_position } from "./chat/utils";
+
+import { MentionList } from "./chat/store";
+
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
 const { Icon, Loading, SearchInput, TimeAgo, Tip } = require("./r_misc");
@@ -762,6 +766,7 @@ interface ChatRoomReduxProps {
   is_saving: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
+  unsent_user_mentions: MentionList;
 }
 
 type ChatRoomProps = ChatRoomOwnProps & ChatRoomReduxProps;
@@ -789,7 +794,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         search: rtypes.string,
         is_saving: rtypes.bool,
         has_unsaved_changes: rtypes.bool,
-        has_uncommitted_changes: rtypes.bool
+        has_uncommitted_changes: rtypes.bool,
+        unsent_user_mentions: rtypes.immutable.List
       },
 
       users: {
@@ -1025,7 +1031,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         <div
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
-          Shift+Enter to send your message. Double click chat bubbles to edit
+          Shift+Enter to send your message. Use @name to mention a collaborator on this project. Double click chat bubbles to edit
           them. Format using{" "}
           <a
             href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
@@ -1183,10 +1189,20 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   start_upload = file => {
     const text_area = this.input_ref.current;
     const temporary_insertion_text = this.generate_temp_upload_text(file);
+    const start_pos = compute_cursor_offset_position(
+      text_area.selectionStart,
+      this.props.unsent_user_mentions
+    );
+    const end_pos = compute_cursor_offset_position(
+      text_area.selectionEnd,
+      this.props.unsent_user_mentions
+    );
     const temp_new_text =
-      this.props.input.slice(0, text_area.selectionStart) +
+      this.props.input.slice(0, start_pos) +
       temporary_insertion_text +
-      this.props.input.slice(text_area.selectionEnd);
+      this.props.input.slice(end_pos);
+    text_area.selectionStart = end_pos;
+    text_area.selectionEnd = end_pos;
     this.props.actions.set_input(temp_new_text);
   };
 
@@ -1263,7 +1279,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       maxWidth: "1200px",
       display: "flex",
       flexDirection: "column",
-      width: IS_MOBILE ? "100%" : undefined
+      width: "100%"
     };
 
     const chat_log_style: React.CSSProperties = {
@@ -1321,8 +1337,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             </Well>
           </Col>
         </Row>
-        <Row style={{ display: "flex" }}>
-          <Col style={{ flex: "1", padding: "0px 2px 0px 2px" }}>
+        <Row style={{ display: "flex", maxWidth: "100vw" }}>
+          <Col
+            style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}
+          >
             <SMC_Dropwrapper
               ref={node => (this.dropzoneWrapperRef = node)}
               project_id={this.props.project_id}
@@ -1345,6 +1363,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 project_users={project_users}
                 user_store={this.props.redux.getStore("users")}
                 font_size={this.props.font_size}
+                height={"100px"}
                 on_paste={this.handle_paste_event}
                 on_change={this.on_input_change}
                 on_clear={this.on_clear}

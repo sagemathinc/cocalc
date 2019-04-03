@@ -1094,8 +1094,8 @@ class exports.Connection extends EventEmitter
 
     read_text_file_from_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            path       : required
+            project_id : required  # string or array of strings
+            path       : required  # string or array of strings
             cb         : required
             timeout    : DEFAULT_TIMEOUT
 
@@ -1582,6 +1582,10 @@ class exports.Connection extends EventEmitter
         @_stripe_call message.stripe_get_customer(), (err, mesg) =>
             if err
                 opts.cb(err)
+            else if not mesg?
+                # evidently this happened -- see
+                #   https://github.com/sagemathinc/cocalc/issues/3711
+                opts.cb("mesg must be defined")
             else
                 resp =
                     stripe_publishable_key : mesg.stripe_publishable_key
@@ -2104,6 +2108,20 @@ class exports.Connection extends EventEmitter
             throw Error("project_id must be a valid uuid")
         return (await @project_websocket(project_id)).api.capabilities()
 
+    syncdoc_history: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            patches : false
+            cb      : required
+        @call
+            message : message.get_syncdoc_history(string_id:opts.string_id, patches:opts.patches)
+            error_event: true
+            allow_post : false
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.history)
 #################################################
 # Other account Management functionality shared between client and server
 #################################################
