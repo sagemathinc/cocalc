@@ -293,7 +293,7 @@ class AccountStore extends Store
         return ups? and (v for k, v of ups).reduce(((a, b) -> a + b), 0) > 0
 
     get_page_size: =>
-        return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
+        return @getIn(['other_settings', 'page_size']) ? 500  # at least have a valid value if loading (actual default is in db-schema.js)
 
 
 # Register account store

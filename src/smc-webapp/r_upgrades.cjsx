@@ -237,7 +237,7 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     confirm_reset: (e) ->
-        webapp_client.remove_all_upgrades (err) =>
+        webapp_client.remove_all_upgrades undefined, (err) =>
             @setState
                 expand_remove_all_upgrades : false
                 remove_all_upgrades_error  : err
@@ -302,10 +302,10 @@ exports.ProjectUpgradesTable = ProjectUpgradesTable = rclass
             {@render_upgraded_projects_rows(upgraded_projects)}
         </Panel>
 
-ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
+exports.ResetProjectsConfirmation = ResetProjectsConfirmation = ({on_confirm, on_cancel}) ->
     <Well style={marginBottom:'0px', marginTop:'10px', background:'white'}>
-        Are you sure you want to remove all your upgrades from all projects?<br/>
-        You will have all your upgrades available to use.<br/>
+        Are you sure you want to remove all upgrades that you have contributed to these projects?<br/>
+        Your upgrades will then be available to use on projects.<br/>
         <UpgradeRestartWarning style={display:'inline-block', margin:'15px 0'} />
         <ButtonToolbar>
             <Button bsStyle='warning' onClick={on_confirm}>

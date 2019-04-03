@@ -55,7 +55,7 @@ const MASKED_FILE_EXTENSIONS = {
   py: ["pyc"],
   java: ["class"],
   cs: ["exe"],
-  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME".split(
+  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME pgf-plot.gnuplot pgf-plot.table".split(
     " "
   ),
   rnw: ["tex", "NODOT-concordance.tex"],
@@ -96,6 +96,7 @@ export interface ProjectStoreState {
   most_recent_file_click?: string;
   show_library: boolean;
   show_new: boolean;
+  file_listing_scroll_top?: number;
 
   // Project Log
   project_log?: any; // immutable,
@@ -207,6 +208,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       checked_files: immutable.Set(),
       show_library: false,
       show_new: false,
+      file_listing_scroll_top: undefined,
 
       // Project New
       library: immutable.Map({}),

@@ -1,39 +1,44 @@
 /*
-Handle iframe output messages involving a srcdoc.
+Handle iframe output messages involving a src doc.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
-
-const { get_blob_url } = require("./server-urls"); // TODO: import and type
-const { Icon } = require("../r_misc"); // TODO: import and type
+import { React, Component, Rendered } from "smc-webapp/app-framework";
+import { get_blob_url } from "../server-urls";
+const { Icon } = require("smc-webapp/r_misc"); // TODO: import and type
 import { Button } from "react-bootstrap";
 
-export interface IFrameProps {
-  sha1?: string;
-  project_id?: string;
+interface IFrameProps {
+  sha1: string;
+  project_id: string;
 }
 
-export interface IFrameState {
+interface IFrameState {
   show: boolean;
   attempts: number;
 }
 
 export class IFrame extends Component<IFrameProps, IFrameState> {
-  private timeout: any; // TODO: WARNING: check this - its a different pattern than the original component, see https://github.com/facebook/react/issues/5465
+  // TODO: WARNING: check this - it's a different pattern than the original
+  // component, see https://github.com/facebook/react/issues/5465
+  private timeout: any;
+
   constructor(props: IFrameProps, context: any) {
     super(props, context);
     this.state = { attempts: 0, show: false };
   }
-  clearTimeout = () => {
+
+  clearTimeout = (): void => {
     if (this.timeout !== undefined) {
       clearTimeout(this.timeout);
       this.timeout = undefined;
     }
   };
-  componentWillUmount() {
+
+  componentWillUmount(): void {
     this.clearTimeout();
   }
-  load_error = () => {
+
+  load_error = (): void => {
     if (this.state.attempts < 5) {
       this.clearTimeout();
       this.timeout = setTimeout(
@@ -42,7 +47,8 @@ export class IFrame extends Component<IFrameProps, IFrameState> {
       );
     }
   };
-  render_iframe = () => {
+
+  render_iframe = (): Rendered => {
     const src =
       get_blob_url(this.props.project_id, "html", this.props.sha1) +
       `&attempts=${this.state.attempts}`;
@@ -57,6 +63,7 @@ export class IFrame extends Component<IFrameProps, IFrameState> {
       />
     );
   };
+
   render() {
     if (this.state.show) {
       return this.render_iframe();

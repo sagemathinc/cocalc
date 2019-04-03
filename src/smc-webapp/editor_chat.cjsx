@@ -183,17 +183,6 @@ exports.get_user_name = get_user_name = (account_id, user_map) ->
         account_name = "Unknown"
 
 ### ChatRoom Methods ###
-exports.send_chat = send_chat = (e, log_container, mesg, actions) ->
-    scroll_to_bottom(log_container, actions)
-    e.preventDefault()
-    # block sending empty messages
-    if mesg.length? and mesg.trim().length >= 1
-        actions.send_chat(mesg)
-        clear_input(actions)
-
-exports.clear_input = clear_input = (actions) ->
-    actions.set_input('')
-
 exports.is_at_bottom = is_at_bottom = (saved_position, offset, height) ->
     # 20 for covering margin of bottom message
     saved_position + offset + 20 > height

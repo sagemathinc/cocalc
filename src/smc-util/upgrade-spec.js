@@ -54,7 +54,7 @@ upgrades.max_per_project = {
   disk_quota: 20000,
   memory: 16000,
   memory_request: 8000,
-  cores: 4,
+  cores: 2,
   network: 1,
   cpu_shares: 1024 * 3,
   mintime: 24 * 3600 * 90,

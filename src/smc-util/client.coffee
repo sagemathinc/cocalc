@@ -1094,8 +1094,8 @@ class exports.Connection extends EventEmitter
 
     read_text_file_from_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            path       : required
+            project_id : required  # string or array of strings
+            path       : required  # string or array of strings
             cb         : required
             timeout    : DEFAULT_TIMEOUT
 
@@ -1205,6 +1205,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id  : required
             memory      : undefined    # see message.coffee for the units, etc., for all these settings
+            memory_request : undefined
             cpu_shares  : undefined
             cores       : undefined
             disk_quota  : undefined
@@ -1581,6 +1582,10 @@ class exports.Connection extends EventEmitter
         @_stripe_call message.stripe_get_customer(), (err, mesg) =>
             if err
                 opts.cb(err)
+            else if not mesg?
+                # evidently this happened -- see
+                #   https://github.com/sagemathinc/cocalc/issues/3711
+                opts.cb("mesg must be defined")
             else
                 resp =
                     stripe_publishable_key : mesg.stripe_publishable_key
@@ -1809,9 +1814,9 @@ class exports.Connection extends EventEmitter
             cb          : cb
 
     # Remove all upgrades from all projects that this user collaborates on.
-    remove_all_upgrades: (cb) =>
+    remove_all_upgrades: (projects, cb) =>
         @call
-            message     : message.remove_all_upgrades()
+            message     : message.remove_all_upgrades(projects:projects)
             error_event : true
             cb          : cb
 
@@ -2097,7 +2102,26 @@ class exports.Connection extends EventEmitter
                 mentions : misc.copy_without(opts, 'cb')
             cb : opts.cb
 
+    # This is async, so do "await smc_webapp.capabilities(...project_id...)".
+    capabilities: (project_id) =>
+        if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
+            throw Error("project_id must be a valid uuid")
+        return (await @project_websocket(project_id)).api.capabilities()
 
+    syncdoc_history: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            patches : false
+            cb      : required
+        @call
+            message : message.get_syncdoc_history(string_id:opts.string_id, patches:opts.patches)
+            error_event: true
+            allow_post : false
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.history)
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

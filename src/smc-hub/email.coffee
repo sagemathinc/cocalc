@@ -264,15 +264,15 @@ In #{SITE_NAME} your work happens inside <strong>private projects</strong>.
 These are personal workspaces which contain your files, computational worksheets, and data.
 You can run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
 #{SITE_NAME} supports online editing of
-    <a href="http://jupyter.org/">Jupyter Notebooks</a>,
-    <a href="http://www.sagemath.org/">Sage Worksheets</a>,
+    <a href="https://jupyter.org/">Jupyter Notebooks</a>,
+    <a href="https://www.sagemath.org/">Sage Worksheets</a>,
     <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
 </p>
 
 <p><strong>Software:</strong>
 <ul>
 <li style="margin-top:0;margin-bottom:10px;">Mathematical calculation:
-    <a href="http://www.sagemath.org/">SageMath</a>,
+    <a href="https://www.sagemath.org/">SageMath</a>,
     <a href="https://www.sympy.org/">SymPy</a>, etc.
 </li>
 <li style="margin-top:0;margin-bottom:10px;">Statistics and Data Science:

@@ -94,6 +94,7 @@ class UsersStore extends Store
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(@get_last_name(a.account_id), @get_last_name(b.account_id))
 
+
 # Register user store
 store = redux.createStore('users', UsersStore)
 

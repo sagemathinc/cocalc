@@ -8,7 +8,8 @@ misc = require('smc-util/misc')
 
 {FLAGS} = require('smc-util/sagews')
 
-{Stdout, Stderr} = require('../jupyter/cell-output-message')
+{Stdout} = require('../jupyter/output-messages/stdout')
+{Stderr} = require('../jupyter/output-messages/stderr')
 
 {HTML, Markdown} = require('../r_misc')
 
