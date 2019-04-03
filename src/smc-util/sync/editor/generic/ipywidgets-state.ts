@@ -60,16 +60,16 @@ export class IpywidgetsState extends EventEmitter {
 
   private emit_message(keys: string[]): void {
     for (let key of keys) {
-      console.log("ipywidgets-state.emit_message", key);
+      // console.log("ipywidgets-state.emit_message", key);
       const mesg = this.table.get(key);
       if (mesg == null) {
-        console.log("mesg is null");
+        console.warn("mesg is null");
         return;
       }
-      console.log("got mesg = ", mesg.toJS());
+      // console.log("got mesg = ", mesg.toJS());
       const msg = mesg.get("msg");
       if (msg == null) {
-        console.log("msg is null");
+        console.warn("msg is null");
         return;
       }
       this.emit("message", msg.toJS());

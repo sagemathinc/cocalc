@@ -1,11 +1,9 @@
 import * as base from "@jupyter-widgets/base";
 import * as controls from "@jupyter-widgets/controls";
 import * as pWidget from "@phosphor/widgets";
-//import { Kernel } from "@jupyterlab/services";
 
 import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
-import { is_array } from "smc-util/misc2";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
@@ -49,14 +47,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         return;
       }
       if (message.target_name === "jupyter.widget") {
-        // handle creation of a model that describes a widget
-        await this.cocalc_unpack_models(message);
+        // handle creation of a widget.
+        await this.process_new_widget_message(message);
         return;
       }
 
       const data = message.data;
       if (data == null) {
-        // nothing to do.
+        // nothing to do?
+        console.warn("handle_message --- message.data = null?", message);
         return;
       }
       if (data.method === "update") {
@@ -64,6 +63,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         await this.update_model(message.comm_id, data.state);
         return;
       }
+      console.warn("handle_message --- UNHANDLED ", message);
     } catch (err) {
       console.trace();
       console.log("ERROR handling message", message, err);
@@ -71,12 +71,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async update_model(model_id: string, state: object): Promise<void> {
-    const model = await this.get_model(model_id);
+    const model: base.DOMWidgetModel = await this.get_model(model_id);
     //console.log(`setting state of model "${model_id}" to `, state);
     model.set_state(state);
   }
 
-  private async cocalc_unpack_models(message): Promise<void> {
+  private async process_new_widget_message(message): Promise<void> {
     const model_id: string | undefined = message.comm_id;
     if (model_id == null) {
       throw Error("comm_id must be defined");
@@ -90,11 +90,24 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (data == null) {
       throw Error("data must be set");
     }
+
     const state = data.state;
     if (state == null) {
       throw Error("state must be set");
     }
 
+    const view_name: string | undefined = state._view_name;
+    if (view_name == null) {
+      throw Error("_view_name must be defined");
+    }
+    const view_module: string | undefined = state._view_module;
+    if (view_module == null) {
+      throw Error("_view_module must be defined");
+    }
+    const view_module_version: string | undefined = state._view_module_version;
+    if (view_module_version == null) {
+      throw Error("_view_module_version must be defined");
+    }
     const model_name: string | undefined = state._model_name;
     if (model_name == null) {
       throw Error("_model_name must be defined");
@@ -108,72 +121,22 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (model_module_version == null) {
       throw Error("_model_module_version must be defined");
     }
-    const model = await this.new_model({
-      model_module,
-      model_name,
-      model_id,
-      model_module_version
-    });
 
-    // Dereference links to other models.
-    await this.dereference_model_links(state);
+    await this.new_widget(
+      {
+        model_id,
+        view_module,
+        view_name,
+        view_module_version,
+        model_module,
+        model_name,
+        model_module_version
+      },
+      state
+    );
 
-    // Initialize the model
-    model.set(state);
-
-    // Inform client that we just created this model.
+    // Inform CoCalc/React client that we just created this model.
     this.widget_model_ids_add(model_id);
-  }
-
-  /*
-  Documention for IPY_MODEL_ reference spec:
-
-      https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v7-4.md#model-state
-
-  TODO: there's no way I can see how to tell which values will be references,
-  so we just search from everything for now, at least as a string (layout, style) or
-  array of strings (children, axes, buttons).  I wish I knew that those 5 were the
-  only keys to consider...  I'm also worried because what if some random value
-  just happens to look like a reference?
-  */
-
-  private async dereference_model_link(val: string): Promise<any> {
-    if (val.slice(0, 10) !== "IPY_MODEL_") {
-      // just in case...
-      return val;
-    }
-    const model_id = val.slice(10);
-    const model = await this.get_model(model_id);
-    if (model != null) {
-      return model;
-    } else {
-      console.warn("UT OH -- model doesn't resolve!?", model_id);
-      return val; // leave it unchanged
-    }
-  }
-
-  private async dereference_model_links(state): Promise<void> {
-    for (let key in state) {
-      const val = state[key];
-      if (typeof val === "string") {
-        // single string
-        if (val.slice(0, 10) === "IPY_MODEL_") {
-          // that is a reference
-          state[key] = await this.dereference_model_link(val);
-        }
-      } else if (is_array(val)) {
-        // array of stuff
-        for (let i in val) {
-          if (
-            typeof val[i] === "string" &&
-            val[i].slice(0, 10) === "IPY_MODEL_"
-          ) {
-            // this one is a string reference
-            val[i] = await this.dereference_model_link(val[i]);
-          }
-        }
-      }
-    }
   }
 
   public display_view(_msg, _view, _options): Promise<HTMLElement> {
@@ -188,7 +151,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     metadata?: any
   ): Promise<base.shims.services.Comm> {
     console.log(
-      `TODO: _create_comm(${target_name}, ${model_id}, ${data}, ${metadata})`
+      `TODO: _create_comm(${target_name}, ${model_id}`,
+      data,
+      metadata
     );
     throw Error("_create_comm not implemented");
     //return await new base.shims.services.Comm({} as Kernel.IComm); // TODO
