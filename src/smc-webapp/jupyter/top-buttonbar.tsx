@@ -340,7 +340,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   render() {
     return (
       <div style={{ margin: "1px 1px 0px 1px", backgroundColor: "#fff" }}>
-        <Form inline>
+        <Form inline style={{ whiteSpace: "nowrap" }}>
           {this.render_add_cell()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_edit()}
