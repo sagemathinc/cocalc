@@ -1095,8 +1095,8 @@ class exports.Connection extends EventEmitter
 
     read_text_file_from_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            path       : required
+            project_id : required  # string or array of strings
+            path       : required  # string or array of strings
             cb         : required
             timeout    : DEFAULT_TIMEOUT
 
