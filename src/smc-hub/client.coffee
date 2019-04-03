@@ -1016,7 +1016,38 @@ class exports.Client extends EventEmitter
                     else
                         @push_to_client(message.file_written_to_project(id:mesg.id))
 
+    mesg_read_text_files_from_projects: (mesg) =>
+        if not misc.is_array(mesg.project_id)
+            @error_to_client(id:mesg.id, error:"project_id must be an array")
+            return
+        if not misc.is_array(mesg.path) or mesg.path.length != mesg.project_id.length
+            @error_to_client(id:mesg.id, error:"if project_id is an array, then path must be an array of the same length")
+            return
+        v = []
+        f = (mesg, cb) =>
+            @get_project mesg, 'read', (err, project) =>
+                if err
+                    cb(err)
+                    return
+                project.read_file
+                    path : mesg.path
+                    cb   : (err, content) =>
+                        if not err
+                            v.push(content.blob.toString())
+                        cb(err)
+        paths = []
+        for i in [0...mesg.project_id.length]
+            paths.push({id:mesg.id, path:mesg.path[i], project_id:mesg.project_id[i]})
+        async.mapLimit paths, 20, f, (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.text_file_read_from_project(id:mesg.id, content:v))
+
     mesg_read_text_file_from_project: (mesg) =>
+        if misc.is_array(mesg.project_id)
+            @mesg_read_text_files_from_projects(mesg)
+            return
         @get_project mesg, 'read', (err, project) =>
             if err
                 return

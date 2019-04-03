@@ -39,7 +39,11 @@ import * as awaiting from "awaiting";
 const misc = require("smc-util/misc");
 const { required, defaults } = misc;
 import { Actions } from "../app-framework";
-import { JupyterStoreState, JupyterStore } from "./store";
+import {
+  JupyterStoreState,
+  JupyterStore,
+  show_kernel_selector_reasons
+} from "./store";
 const util = require("./util");
 const parsing = require("./parsing");
 const keyboard = require("./keyboard");
@@ -49,13 +53,10 @@ const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
 
 // map project_id (string) -> kernels (immutable)
-let jupyter_kernels = immutable.Map<string, immutable.Map<string, any>>();
+import { Kernels, Kernel } from "./util";
+let jupyter_kernels = immutable.Map<string, Kernels>();
 
 const { IPynbImporter } = require("./import-from-ipynb");
-
-// DEFAULT_KERNEL = 'python2'
-// DEFAULT_KERNEL = "anaconda3";
-const DEFAULT_KERNEL = "sagemath";
 
 // Using require due to project import path issue... :-(
 // import { three_way_merge } from "smc-util/sync/editor/generic/util";
@@ -410,18 +411,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ kernels });
     // We must also update the kernel info (e.g., display name), now that we
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
-    this.setState({
-      kernel_info: this.store.get_kernel_info(this.store.get("kernel"))
-    });
+    const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
+    this.setState({ kernel_info });
   };
 
-  set_jupyter_kernels = () => {
+  set_jupyter_kernels = async () => {
     const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
     if (kernels != null) {
       this.setState({ kernels });
     } else {
-      this.fetch_jupyter_kernels();
+      await this.fetch_jupyter_kernels();
     }
+    this.update_select_kernel_data();
+    this.check_select_kernel();
   };
 
   set_error = (err: any): void => {
@@ -931,6 +933,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               this.set_backend_kernel_info();
               this.set_cm_options();
             }
+
             break;
         }
       });
@@ -955,6 +958,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "init") {
         this._state = "ready";
       }
+      this.check_select_kernel();
 
       if (this.store.get("view_mode") === "raw") {
         this.set_raw_ipynb();
@@ -963,21 +967,38 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_init_kernel = (): void => {
-    const account = this.redux.getStore("account");
-    const default_kernel =
-      account != null
-        ? // TODO: getIn types
-          account.getIn(
-            ["editor_settings", "jupyter", "kernel"] as any,
-            DEFAULT_KERNEL
-          )
-        : undefined;
+    // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      const kernel = default_kernel || DEFAULT_KERNEL;
-      this.set_kernel(kernel);
+      if (!this._is_project) {
+        // we either let the user select a kernel, or use a stored one
+        let using_default_kernel = false;
+
+        const account_store = this.redux.getStore("account") as any;
+        const editor_settings = account_store.get("editor_settings") as any;
+        if (
+          editor_settings != null &&
+          !editor_settings.get("ask_jupyter_kernel")
+        ) {
+          const default_kernel = editor_settings.getIn(["jupyter", "kernel"]);
+          // TODO: check if kernel is actually known
+          if (default_kernel != null) {
+            this.set_kernel(default_kernel);
+            using_default_kernel = true;
+          }
+        }
+
+        if (!using_default_kernel) {
+          // otherwise we let the user choose a kernel
+          this.show_select_kernel("bad kernel");
+        }
+        // we also finalize the kernel selection check, because it doesn't switch to true
+        // if there is no kernel at all.
+        this.setState({ check_select_kernel_init: true });
+      }
     } else {
       // Opening an existing notebook
+      const default_kernel = this.store.get_default_kernel();
       if (default_kernel == null) {
         // But user has no default kernel, since they never before explicitly set one.
         // So we set it.  This is so that a user's default
@@ -1936,15 +1957,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_kernel = (kernel: any) => {
-    if (this.syncdb.get_state() != 'ready') {
+    if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
     }
     if (this.store.get("kernel") !== kernel) {
-      return this._set({
+      this._set({
         type: "settings",
         kernel
       });
+    }
+    if (this.store.get("show_kernel_selector")) {
+      this.hide_select_kernel();
     }
   };
 
@@ -2713,14 +2737,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_to_ipynb = async (ipynb: any, data_only = false) => {
     /*
-        set_to_ipynb - set from ipynb object.  This is
-        mainly meant to be run on the backend in the project,
-        but is also run on the frontend too, e.g.,
-        for client-side nbviewer (in which case it won't remove images, etc.).
-
-        See the documentation for load_ipynb_file in project-actions.ts for
-        documentation about the data_only input variable.
-        */
+     * set_to_ipynb - set from ipynb object.  This is
+     * mainly meant to be run on the backend in the project,
+     * but is also run on the frontend too, e.g.,
+     * for client-side nbviewer (in which case it won't remove images, etc.).
+     *
+     * See the documentation for load_ipynb_file in project-actions.ts for
+     * documentation about the data_only input variable.
+     */
     //dbg = @dbg("set_to_ipynb")
     let set, trust;
     this._state = "load";
@@ -2738,7 +2762,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             ipynb.metadata != null ? ipynb.metadata.kernelspec : undefined,
             x => x.name
           )
-        : DEFAULT_KERNEL; // very like to work since official ipynb file without this kernelspec is invalid.
+        : undefined;
     //dbg("kernel in ipynb: name='#{kernel}'")
 
     const existing_ids = this.get_cell_list().toJS();
@@ -2912,21 +2936,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_default_kernel = (kernel: any): void => {
-    let left: any;
-    if (this._is_project) {
-      // doesn't make sense for project (right now at least)
-      return;
-    }
-    const s = this.redux.getStore("account") as any;
-    if (s == null) {
-      return;
-    }
-    const cur =
-      (left = __guard__(s.getIn(["editor_settings", "jupyter"]), x =>
-        x.toJS()
-      )) != null
-        ? left
-        : {};
+    // doesn't make sense for project (right now at least)
+    if (this._is_project) return;
+    const account_store = this.redux.getStore("account") as any;
+    if (account_store == null) return;
+    const acc_jup = account_store.getIn(["editor_settings", "jupyter"]);
+    if (acc_jup == null) return;
+    let tmp: any;
+    const cur = (tmp = acc_jup.toJS()) != null ? tmp : {};
     cur.kernel = kernel;
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur }
@@ -3284,6 +3301,96 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Close the file
     this.file_action("close_file");
   };
+
+  check_select_kernel = (): void => {
+    const kernel = this.store.get("kernel");
+    if (kernel == null) return;
+
+    let unknown_kernel = false;
+
+    //console.log("jupyter::check_select_kernel", {
+    //  kernels: this.store.get("kernels"),
+    //  info: this.store.get_kernel_info(kernel)
+    //});
+
+    if (this.store.get("kernels") != null)
+      unknown_kernel = this.store.get_kernel_info(kernel) == null;
+
+    // a kernel is set, but we don't know it
+    if (unknown_kernel) {
+      this.show_select_kernel("bad kernel");
+    } else {
+      // we got a kernel, close dialog if not requested by user
+      if (
+        this.store.get("show_kernel_selector") &&
+        this.store.get("show_kernel_selector_reason") === "bad kernel"
+      ) {
+        this.hide_select_kernel();
+      }
+    }
+    this.setState({ check_select_kernel_init: true });
+  };
+
+  update_select_kernel_data = (): void => {
+    const kernels = jupyter_kernels.get(this.store.jupyter_kernel_key());
+    if (kernels == null) return;
+    const kernel_selection = this.store.get_kernel_selection(kernels);
+    const [
+      kernels_by_name,
+      kernels_by_language
+    ] = this.store.get_kernels_by_name_or_language(kernels);
+    const default_kernel = this.store.get_default_kernel();
+    // do we have a similar kernel?
+    let closestKernel: Kernel | undefined = undefined;
+    const kernel = this.store.get("kernel");
+    const kernel_info = this.store.get_kernel_info(kernel);
+    // unknown kernel, we try to find a close match
+    if (kernel_info == null && kernel != null) {
+      // kernel & kernels must be defined
+      closestKernel = misc.closest_kernel_match(kernel, kernels);
+    }
+    this.setState({
+      kernel_selection,
+      kernels_by_name,
+      kernels_by_language,
+      default_kernel,
+      closestKernel
+    });
+  };
+
+  show_select_kernel = (reason: show_kernel_selector_reasons): void => {
+    this.update_select_kernel_data();
+    // we might not have the "kernels" data yet (but we will, once fetching it is complete)
+    // the select dialog will show a loading spinner
+    this.setState({
+      show_kernel_selector_reason: reason,
+      show_kernel_selector: true
+    });
+  };
+
+  hide_select_kernel = (): void => {
+    this.setState({
+      show_kernel_selector_reason: undefined,
+      show_kernel_selector: false,
+      kernel_selection: undefined,
+      kernels_by_name: undefined
+    });
+  };
+
+  select_kernel = (kernel_name: string): void => {
+    this.set_kernel(kernel_name);
+    this.set_default_kernel(kernel_name);
+    this.focus(true);
+    this.hide_select_kernel();
+  };
+
+  kernel_dont_ask_again = (dont_ask: boolean): void => {
+    // why is "as any" necessary?
+    const account_table = this.redux.getTable("account") as any;
+    account_table.set({
+      editor_settings: { ask_jupyter_kernel: !dont_ask }
+    });
+  };
 }
 
 function __guard__(value: any, transform: any) {
@@ -3291,7 +3398,7 @@ function __guard__(value: any, transform: any) {
     ? transform(value)
     : undefined;
 }
-function __range__(left: any, right: any, inclusive: any) {
+function __range__(left: number, right: number, inclusive: boolean) {
   let range: any[] = [];
   let ascending = left < right;
   let end = !inclusive ? right : ascending ? right + 1 : right - 1;
@@ -3300,6 +3407,7 @@ function __range__(left: any, right: any, inclusive: any) {
   }
   return range;
 }
+
 function __guardMethod__(obj: any, methodName: any, transform: any) {
   if (
     typeof obj !== "undefined" &&
