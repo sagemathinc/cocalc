@@ -1094,8 +1094,8 @@ class exports.Connection extends EventEmitter
 
     read_text_file_from_project: (opts) =>
         opts = defaults opts,
-            project_id : required
-            path       : required
+            project_id : required  # string or array of strings
+            path       : required  # string or array of strings
             cb         : required
             timeout    : DEFAULT_TIMEOUT
 
@@ -1582,6 +1582,10 @@ class exports.Connection extends EventEmitter
         @_stripe_call message.stripe_get_customer(), (err, mesg) =>
             if err
                 opts.cb(err)
+            else if not mesg?
+                # evidently this happened -- see
+                #   https://github.com/sagemathinc/cocalc/issues/3711
+                opts.cb("mesg must be defined")
             else
                 resp =
                     stripe_publishable_key : mesg.stripe_publishable_key

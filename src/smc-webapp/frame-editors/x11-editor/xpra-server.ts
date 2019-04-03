@@ -108,6 +108,7 @@ export class XpraServer {
       `:${this.display}`,
       //"-d",
       //"all",
+      "--mdns=no", // disable dynamic dns via avahi
       "--compression_level=1",
       "--socket-dir=/tmp/xpra",
       "--tray=no",

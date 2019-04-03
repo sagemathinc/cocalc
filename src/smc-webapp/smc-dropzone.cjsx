@@ -2,6 +2,13 @@
 Drag'n'Drop dropzone area
 ###
 
+# This limit is mainly to show a nice error message.
+# The actual limit is imposed somewhere else mysteriously
+# along the chain of proxies (e.g., cloudflare?), and
+# is about 200MB.  I completely failed to figure out
+# how to raise this.  See https://github.com/sagemathinc/cocalc/issues/3716
+MAX_FILE_SIZE_MB    = 200 # 200MB
+
 ReactDOMServer      = require('react-dom/server')   # for dropzone below
 Dropzone            = require('dropzone')
 {DropzoneComponent} = require('react-dropzone-component')
@@ -82,7 +89,7 @@ exports.SMC_Dropzone = rclass
                 <DropzoneComponent
                     config        = {postUrl: @postUrl()}
                     eventHandlers = {@props.dropzone_handler}
-                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template())}
+                    djsConfig     = {previewTemplate: ReactDOMServer.renderToStaticMarkup(@dropzone_template()), maxFilesize:MAX_FILE_SIZE_MB}
                 />
             </div>
         </div>
@@ -115,7 +122,7 @@ exports.SMC_Dropwrapper = rclass
             url : @postUrl()
             previewsContainer : ReactDOM.findDOMNode(@refs.preview_container) ? ""
             previewTemplate   : ReactDOMServer.renderToStaticMarkup(@preview_template())
-            maxFilesize       : 10000
+            maxFilesize       : MAX_FILE_SIZE_MB
         , true
         return misc.merge(with_defaults, @props.config)
 

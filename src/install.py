@@ -65,7 +65,7 @@ def install_project():
 
     thread_map(
         f,
-        './smc-util ./smc-util-node ./smc-project ./smc-webapp coffee-script forever'.
+        './smc-util ./smc-util-node ./smc-project ./smc-webapp coffeescript forever'.
         split())
 
     # UGLY; hard codes the path -- TODO: fix at some point.

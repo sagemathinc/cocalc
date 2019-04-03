@@ -1272,7 +1272,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (is_adjacent || is_nested) {
       history_path = path;
     }
-
+    if (store.get('current_path') != path) {
+      this.clear_file_listing_scroll();
+    }
     this.setState({
       current_path: path,
       history_path,
@@ -1622,7 +1624,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  set_file_action(action?: string, get_basename?: () => string ): void {
+  set_file_action(action?: string, get_basename?: () => string): void {
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -2683,6 +2685,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.process_search_results(err, output, max_results, max_output, cmd);
       }
     });
+  }
+
+  set_file_listing_scroll(scroll_top) {
+    this.setState({ file_listing_scroll_top: scroll_top });
+  }
+
+  clear_file_listing_scroll() {
+    this.setState({ file_listing_scroll_top: undefined });
   }
 
   // Loads path in this project from string
