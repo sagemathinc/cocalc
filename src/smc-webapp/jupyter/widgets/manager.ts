@@ -1,9 +1,9 @@
 import * as base from "@jupyter-widgets/base";
 import * as controls from "@jupyter-widgets/controls";
 import * as pWidget from "@phosphor/widgets";
-
 import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
+import { Comm } from "./comm";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
@@ -149,14 +149,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     data?: any,
     metadata?: any
-  ): Promise<base.shims.services.Comm> {
+  ): Promise<Comm> {
     console.log(
-      `TODO: _create_comm(${target_name}, ${model_id}`,
+      `_create_comm(${target_name}, ${model_id}`,
       data,
       metadata
     );
-    throw Error("_create_comm not implemented");
-    //return await new base.shims.services.Comm({} as Kernel.IComm); // TODO
+    const comm = new Comm(target_name, model_id);
+    return comm;
   }
 
   // Get the currently-registered comms.
