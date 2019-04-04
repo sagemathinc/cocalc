@@ -1490,6 +1490,23 @@ class exports.Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    # NOTE: this is different than invite_collab, in that it is
+    # much more similar to remove_collaborator.  It also supports
+    # adding multiple collabs to multiple projects in one
+    # transaction.
+    mesg_add_collaborator: (mesg) =>
+        @touch()
+        if not misc.is_array(mesg.project_id)
+            projects = [mesg.project_id]
+            accounts = [mesg.account_id]
+        else
+            projects = mesg.project_id
+            accounts = mesg.account_id
+        try
+            await @database.add_collaborators_to_projects(@account_id, accounts, projects)
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            @error_to_client(id:mesg.id, error:"#{err}")
 
     mesg_remove_blob_ttls: (mesg) =>
         if not @account_id?
