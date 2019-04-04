@@ -17,7 +17,7 @@ import { analytics_event } from "../tracker";
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
-import { id2name, ComputeImages } from "../compute-images/init";
+import { id2name, ComputeImages } from "../custom-software/init";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {

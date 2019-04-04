@@ -57,7 +57,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
-{CUSTOM_IMG_PREFIX, compute_image2name} = require('./compute-images/util')
+{CUSTOM_IMG_PREFIX, compute_image2name} = require('./custom-software/util')
 
 URLBox = rclass
     displayName : 'URLBox'

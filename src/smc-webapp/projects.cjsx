@@ -46,7 +46,7 @@ markdown = require('./markdown')
 
 {UpgradeStatus} = require('./upgrades/status')
 
-COMPUPTE_IMAGES = require("./compute-images/init").NAME
+COMPUPTE_IMAGES = require("./custom-software/init").NAME
 
 {ResetProjectsConfirmation} = require('./r_upgrades')
 

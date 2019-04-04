@@ -9,9 +9,9 @@ import {
   ComputeImages,
   ComputeImageTypes,
   custom_image_name
-} from "../compute-images/init";
+} from "../custom-software/init";
 
-import { CustomSoftware } from "../compute-images/selector";
+import { CustomSoftware } from "../custom-software/selector";
 
 const {
   Row,

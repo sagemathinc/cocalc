@@ -246,7 +246,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
               .
             </Radio>
           ) : (
-            "There are no customized compute images available."
+            "There are no customized software environments available."
           )}
         </FormGroup>
       </>

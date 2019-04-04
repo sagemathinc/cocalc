@@ -34,7 +34,7 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {Library} = require('./library')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
-{compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./compute-images/util')
+{compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./custom-software/util')
 { ButtonRetryUntilSuccess } = require("./widgets-misc/link-retry")
 {jupyterlab_server_url} = require('./project/jupyterlab-server')
 { jupyter_server_url } = require("./editor_jupyter")
