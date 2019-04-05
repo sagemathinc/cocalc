@@ -420,6 +420,7 @@ exports.SearchInput = rclass
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
+
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.element
         input_class     : rtypes.string  # className for the InputGroup element
@@ -1501,7 +1502,7 @@ exports.UpgradeAdjustor = rclass
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<div>
-                    <h3><Icon name='arrow-circle-up' /> Adjust you quota contributions to this project</h3>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your quota contributions to this project</h3>
 
                     <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
                     </div>

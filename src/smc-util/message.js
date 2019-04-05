@@ -121,7 +121,7 @@ function message(obj) {
     return defaults(opts, obj, false, strict);
   };
   return obj;
-};
+}
 
 // message2 for "version 2" of the message definitions
 // TODO document it, for now just search for "message2" to see examples
@@ -134,7 +134,7 @@ function message2(obj) {
       desc += ` (default: ${misc.to_json(val.init)})`;
     }
     return desc;
-  };
+  }
 
   // reassembling a version 1 message from a version 2 message
   const mesg_v1 = _.mapObject(obj.fields, val => val.init);
@@ -150,7 +150,7 @@ function message2(obj) {
   // wrapped version 1 message
   message(mesg_v1);
   return obj;
-};
+}
 
 // messages that can be used by the HTTP api.   {'event':true, ...}
 exports.api_messages = {};
@@ -1107,11 +1107,11 @@ API(
       },
       project_id: {
         init: required,
-        desc: "id of project containing file to be read"
+        desc: "id of project containing file to be read (or array of project_id's)"
       },
       path: {
         init: required,
-        desc: "path to file to be read in target project"
+        desc: "path to file to be read in target project (or array of paths)"
       }
     },
     desc: `\
@@ -1120,6 +1120,13 @@ User must be owner or collaborator in the target project.
 Argument 'path' is relative to home directory in target project.
 Unix user in the target project must have permissions to read file
 and containing directories if they do not already exist.
+
+You can also read multiple project_id/path's at once by
+making project_id and path arrays (of the same length).
+In that case, the resulting content will be an array
+of the resulting content strings, in the same order
+in which they were requested.
+
 
 Example:
 
@@ -1143,6 +1150,7 @@ message({
   id: required,
   content: required
 });
+
 
 // The write_file_to_project message is sent from the hub to the
 // project_server to tell the project_server to write a file to a
@@ -1416,13 +1424,14 @@ API(
       },
       subject: {
         init: undefined,
-        desc: "Subject line of invitiation email"
+        desc: "Subject line of invitation email"
       }
     },
     desc: `\
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner
-or collaborator on the target project.
+or collaborator on the target project.  The user
+will receive an email notification.
 
 Example:
 \`\`\`
@@ -1430,6 +1439,49 @@ Example:
     -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
     -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
     https://cocalc.com/api/v1/invite_collaborator
+  ==> {"event":"success",
+       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
+\`\`\`\
+`
+  })
+);
+
+API(
+  message2({
+    event: "add_collaborator",
+    fields: {
+      id: {
+        init: undefined,
+        desc: "A unique UUID for the query"
+      },
+      project_id: {
+        init: required,
+        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
+      },
+      account_id: {
+        init: required,
+        desc: "account_id of user (can be an array to add multiple users to multiple projects)"
+      }
+    },
+    desc: `\
+Directly add a user to a CoCalc project.
+You must be owner or collaborator on the target project.
+You cannot remove the project owner.
+The user is NOT notified via email that they were added, and there
+is no confirmation process.  (Eventually, there will be
+an accept process, or this endpoint will only work
+with a notion of "managed accounts".)
+
+You can optionally add multiple user to multiple projects by padding
+an array of strings for project_id and account_id.  The arrays
+must have the same length.
+
+Example:
+\`\`\`
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
+    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
+    https://cocalc.com/api/v1/add_collaborator
   ==> {"event":"success",
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
@@ -1458,6 +1510,7 @@ API(
 Remove a user from a CoCalc project.
 You must be owner or collaborator on the target project.
 You cannot remove the project owner.
+The user is NOT notified via email that they were removed.
 
 Example:
 \`\`\`
@@ -2298,7 +2351,7 @@ API(
       },
       tags: {
         init: undefined,
-        desc: "a list of tags, like \`['member']\`"
+        desc: "a list of tags, like `['member']`"
       },
       account_id: {
         init: undefined,
@@ -2965,4 +3018,19 @@ message({
   path: required
 });
 
+// client --> hub
+API(
+  message({
+    event: "get_syncdoc_history",
+    id: undefined,
+    string_id: required,
+    patches: undefined
+  })
+);
 
+// hub --> client
+message({
+  event: "syncdoc_history",
+  id: undefined,
+  history: required
+});

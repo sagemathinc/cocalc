@@ -8,6 +8,8 @@ part of CoCalc
 (c) SageMath, Inc., 2017
 */
 
+import * as immutable from "immutable";
+
 // This list is inspired by OutputArea.output_types in https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/outputarea.js
 // The order matters -- we only keep the left-most type (see import-from-ipynb.coffee)
 
@@ -22,6 +24,9 @@ export const JUPYTER_MIMETYPES = [
   "application/pdf",
   "text/plain"
 ];
+
+export type Kernel = immutable.Map<string, string>;
+export type Kernels = immutable.List<Kernel>;
 
 export function codemirror_to_jupyter_pos(
   code: string,

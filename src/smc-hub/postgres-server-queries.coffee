@@ -26,6 +26,9 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
+{syncdoc_history} = require('./postgres/syncdoc-history')
+collab = require('./postgres/collab')
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
     log: (opts) =>
@@ -1736,6 +1739,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where     : {'project_id :: UUID = $' : opts.project_id}
             cb        : opts.cb
 
+    # async
+    add_collaborators_to_projects: (account_id, accounts, projects) =>
+        await collab.add_collaborators_to_projects(@, account_id, accounts, projects)
+
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
         opts = defaults opts,
@@ -2737,3 +2744,16 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         where : locals.where
                         cb    : cb
         ], opts.cb)
+
+    syncdoc_history: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            patches   : false      # if true, include actual patches
+            cb        : required
+        try
+            opts.cb(undefined, await syncdoc_history(@, opts.string_id, opts.patches))
+        catch err
+            opts.cb(err)
+
+    syncdoc_history_async : (string_id, patches) =>
+        return await syncdoc_history(@, string_id, patches)
