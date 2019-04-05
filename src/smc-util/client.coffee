@@ -1477,6 +1477,23 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, result)
 
+    # Directly add one (or more) collaborators to (one or more) projects via
+    # a single API call.  There is no invite process, etc.
+    project_add_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id : required   # string or array of strings
+            account_id : required   # string or array of strings
+            cb         : (err) =>
+        @call
+            message : message.add_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else if result.event == 'error'
+                    opts.cb(result.error)
+                else
+                    opts.cb(undefined, result)
+
     ###
     Bulk information about several accounts (may be used by chat, etc.).
     Currently used for admin and public views, mainly.
