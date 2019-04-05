@@ -1,7 +1,9 @@
 import * as base from "@jupyter-widgets/base";
 import * as controls from "@jupyter-widgets/controls";
-import * as pWidget from "@phosphor/widgets";
-import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
+import {
+  IpywidgetsState,
+  ModelState
+} from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
 
@@ -10,23 +12,20 @@ export type SendCommFunction = (string, data) => string;
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
   private widget_model_ids_add: Function;
-  private send_comm_message_to_kernel: SendCommFunction;
 
   // widget_model_ids_add gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
   // can render will try again.
   constructor(
     ipywidgets_state: IpywidgetsState,
-    widget_model_ids_add: Function,
-    send_comm_message_to_kernel: SendCommFunction
+    widget_model_ids_add: Function
   ) {
     super();
     this.ipywidgets_state = ipywidgets_state;
-    this.send_comm_message_to_kernel = send_comm_message_to_kernel;
-    this.widget_model_ids_add = widget_model_ids_add;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
     }
+    this.widget_model_ids_add = widget_model_ids_add;
     this.init_ipywidgets_state();
   }
 
@@ -35,68 +34,74 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       // wait until ready to use.
       await once(this.ipywidgets_state, "ready");
     }
-    // Handle any messages already there.
-    for (let message of this.ipywidgets_state.get_messages()) {
-      await this.handle_message(message);
-    }
 
-    // Starting handling any messages that arrive henceforth.
-    // TODO: do we want to handle only message at a time?  Probably.
-    this.ipywidgets_state.on("message", this.handle_message.bind(this));
+    // Now process all info currently in the table.
+    this.handle_table_state_change(this.ipywidgets_state.keys());
+
+    this.ipywidgets_state.on(
+      "change",
+      this.handle_table_state_change.bind(this)
+    );
   }
 
-  private async handle_message(message): Promise<void> {
-    // console.log("handle_message", message);
-    try {
-      if (message == null) {
-        return;
+  private async handle_table_state_change(keys): Promise<void> {
+    for (let key of keys) {
+      const [, comm_id, type] = JSON.parse(key);
+      switch (type) {
+        case "state":
+          await this.handle_model_state_change(comm_id);
+          break;
+        case "value":
+          await this.handle_model_value_change(comm_id);
+          break;
+        default:
+          throw Error(`unknown state type '${type}'`);
       }
-      if (message.target_name === "jupyter.widget") {
-        // handle creation of a widget.
-        await this.process_new_widget_message(message);
-        return;
-      }
-
-      const data = message.data;
-      if (data == null) {
-        // nothing to do?
-        console.warn("handle_message --- message.data = null?", message);
-        return;
-      }
-      if (data.method === "update") {
-        // TODO: what about data.buffer_paths?
-        await this.update_model(message.comm_id, data.state);
-        return;
-      }
-      console.warn("handle_message --- UNHANDLED ", message);
-    } catch (err) {
-      console.trace();
-      console.log("ERROR handling message", message, err);
     }
   }
 
-  private async update_model(model_id: string, state: object): Promise<void> {
-    const model: base.DOMWidgetModel = await this.get_model(model_id);
-    //console.log(`setting state of model "${model_id}" to `, state);
-    model.set_state(state);
-  }
-
-  private async process_new_widget_message(message): Promise<void> {
-    const model_id: string | undefined = message.comm_id;
-    if (model_id == null) {
-      throw Error("comm_id must be defined");
-    }
-    if ((await this.get_model(model_id)) != null) {
-      // already created.
+  private async handle_model_state_change(model_id: string): Promise<void> {
+    const state: ModelState | undefined = this.ipywidgets_state.get_model_state(
+      model_id
+    );
+    if (state == null) {
+      // nothing to do...
       return;
     }
 
-    const data = message.data;
-    if (data == null) {
-      throw Error("data must be set");
+    const model: base.DOMWidgetModel = await this.get_model(model_id);
+    if (model == null) {
+      // create model
+      await this.create_new_model(model_id, state);
+    } else {
+      await this.update_model(model_id, state);
+    }
+  }
+
+  private async handle_model_value_change(model_id: string): Promise<void> {
+    const value = this.ipywidgets_state.get_model_value(model_id);
+    await this.update_model(model_id, { value });
+  }
+
+  private async update_model(
+    model_id: string,
+    state: ModelState
+  ): Promise<void> {
+    const model: base.DOMWidgetModel | undefined = await this.get_model(
+      model_id
+    );
+    if (model != null) {
+      //console.log(`setting state of model "${model_id}" to `, state);
+      model.set_state(state);
+    }
+  }
+
+  private async create_new_model(model_id: string, state: any): Promise<void> {
+    if ((await this.get_model(model_id)) != null) {
+      // already created -- shouldn't happen?
+      return;
     }
 
-    const state = data.state;
     if (state == null) {
       throw Error("state must be set");
     }
@@ -159,9 +164,13 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     const comm = new Comm(
       target_name,
       model_id,
-      this.send_comm_message_to_kernel
+      this.process_comm_message_from_browser.bind(this)
     );
     return comm;
+  }
+
+  private process_comm_message_from_browser(msg): void {
+    console.log("TODO: process_comm_message_from_browser", msg);
   }
 
   // Get the currently-registered comms.
@@ -203,5 +212,3 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 }
-
-(window as any).widgets = { base, pWidget, WidgetManager };

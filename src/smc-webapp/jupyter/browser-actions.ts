@@ -10,7 +10,6 @@ import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 const { instantiate_assistant } = require("../assistant/main");
 const { commands } = require("./commands");
-import { uuid } from "smc-util/misc2";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -55,10 +54,8 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.once("ready", () => {
       this.widget_manager = new WidgetManager(
         this.syncdb.ipywidgets_state,
-        this.widget_model_ids_add.bind(this),
-        this.send_comm_message_to_kernel.bind(this)
+        this.widget_model_ids_add.bind(this)
       );
-      console.log(this.widget_manager);
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
       // This should not be necessary, and may indicate a bug in the sync layer?
@@ -272,9 +269,11 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
+  /*
   public send_comm_message_to_kernel(comm_id: string, data: any): string {
     const msg_id = uuid();
     this._api_call("comm", [msg_id, comm_id, data]);
     return msg_id;
   }
+  */
 }

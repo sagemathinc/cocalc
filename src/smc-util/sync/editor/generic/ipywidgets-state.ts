@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
-
-import { cmp } from "../../../misc2";
+import { Map as iMap } from "immutable";
 
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
@@ -17,6 +16,8 @@ export interface Message {
   // don't know yet...
 }
 
+export type ModelState = { [key: string]: any };
+
 export class IpywidgetsState extends EventEmitter {
   private syncdoc: SyncDoc;
   private client: Client;
@@ -24,7 +25,6 @@ export class IpywidgetsState extends EventEmitter {
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
-  private msg_number: number = 0;
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
     super();
@@ -41,11 +41,12 @@ export class IpywidgetsState extends EventEmitter {
 
   public async init(): Promise<void> {
     const query = {
-      ipywidgets_state: [
+      ipywidgets: [
         {
           string_id: this.syncdoc.get_string_id(),
-          n: null,
-          msg: null
+          model_id: null,
+          type: null,
+          data: null
         }
       ]
     };
@@ -55,48 +56,89 @@ export class IpywidgetsState extends EventEmitter {
 
     this.set_state("ready");
 
-    this.table.on("change", this.emit_message.bind(this));
+    //this.table.on("change", this.emit_message.bind(this));
   }
 
-  private emit_message(keys: string[]): void {
-    for (let key of keys) {
-      // console.log("ipywidgets-state.emit_message", key);
-      const mesg = this.table.get(key);
-      if (mesg == null) {
-        console.warn("mesg is null");
-        return;
-      }
-      // console.log("got mesg = ", mesg.toJS());
-      const msg = mesg.get("msg");
-      if (msg == null) {
-        console.warn("msg is null");
-        return;
-      }
-      this.emit("message", msg.toJS());
+  public keys(): any {
+    // return type is immutable js iterator
+    this.assert_state("ready");
+    const x = this.table.get();
+    if (x == null) {
+      return [];
+    } else {
+      return x.keys();
     }
   }
 
-  public get_messages(): Message[] {
-    // TODO: make sure this is in order!
-    const v: any[] = [];
-    const all = this.table.get();
-    if (all == null) {
-      return v;
+  public get(model_id: string, type: string): iMap<string, any> | undefined {
+    const key: string = JSON.stringify([
+      this.syncdoc.get_string_id(),
+      model_id,
+      type
+    ]);
+    const record = this.table.get(key);
+    if (record == null) {
+      return undefined;
     }
-    all.forEach((mesg, _key) => {
-      if (mesg != null) {
-        const m = mesg.get("msg");
-        if (m != null) {
-          v.push([mesg.get("n"), m.toJS()]);
-        }
+    return record.get("data");
+  }
+
+  // assembles together state we know about the widget with given model_id
+  // from info in the table, and returns it as a Javascript object.
+  public get_model_state(model_id: string): ModelState | undefined {
+    this.assert_state("ready");
+    const state = this.get(model_id, "state");
+    if (state == null) {
+      return undefined;
+    }
+    const state_js = state.toJS();
+    let value = this.get(model_id, "value");
+    if (value != null) {
+      value = value.toJS();
+      if (value == null) {
+        throw Error("value must be a map");
       }
-    });
-    v.sort((a, b) => cmp(a[0], b[0]));
-    const w: Message[] = [];
-    for (let x of v) {
-      w.push(x[1]);
+      state_js["value"] = value["value"];
     }
-    return w;
+    return state_js;
+  }
+
+  public get_model_value(model_id: string): any {
+    this.assert_state("ready");
+    let value = this.get(model_id, "value");
+    if (value == null) {
+      return undefined;
+    }
+    value = value.toJS();
+    if (value == null) {
+      return undefined;
+    }
+    return value["value"];
+  }
+
+  public set_model_value(model_id: string, value: any): void {
+    this.set(model_id, "value", value);
+  }
+
+  public set_model_state(model_id: string, state: any): void {
+    this.set(model_id, "state", state);
+  }
+
+  // Do any setting of the underlying table through this function.
+  public set(model_id: string, type: "value" | "state", data: any): void {
+    if (type === "value") {
+      // wrap as a map
+      data = { value: data };
+    }
+    const string_id = this.syncdoc.get_string_id();
+    if (typeof data != "object") {
+      throw Error("TypeError -- data must be a map");
+    }
+    this.table.set({ string_id, type, data, model_id });
+  }
+
+  public async save(): Promise<void> {
+    await this.table.save();
   }
 
   public async close(): Promise<void> {
@@ -115,34 +157,15 @@ export class IpywidgetsState extends EventEmitter {
       return (..._) => {};
     }
   }
-
-  public async write(msg: CommMessage): Promise<void> {
-    const dbg = this.dbg("write");
-    dbg(msg);
-    this.assert_state("ready");
-    const n = this.msg_number;
-    this.msg_number += 1;
-    const content = msg.content;
-    const string_id = this.syncdoc.get_string_id();
-
-    // delete any null fields, to avoid wasting space.
-    for (let k in content) {
-      if (content[k] == null) {
-        delete content[k];
-      }
-    }
-
-    this.table.set({ string_id, n, msg: content });
-    await this.table.save();
-  }
-
   public async clear(): Promise<void> {
     // TODO -- delete everything from table.
     // This is needed when we restart the kernel.
+    this.assert_state("ready");
     const dbg = this.dbg("clear");
     dbg("NOT IMPLEMENTED");
   }
 
+  // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'
   private set_state(state: State): void {
     this.state = state;
   }
@@ -154,6 +177,95 @@ export class IpywidgetsState extends EventEmitter {
   private assert_state(state: string): void {
     if (this.state != state) {
       throw Error(`state must be "${state}" but it is "${this.state}"`);
+    }
+  }
+
+  /*
+  process_comm_message_from_kernel gets called whenever the kernel emits a comm
+  message related to widgets.  This updates the state of the table, which
+  results in frontends creating or updating widgets.
+  */
+  public async process_comm_message_from_kernel(
+    msg: CommMessage
+  ): Promise<void> {
+    const dbg = this.dbg("process_comm_message_from_kernel");
+    dbg(msg);
+    this.assert_state("ready");
+
+    const { content } = msg;
+
+    if (content == null) {
+      dbg("content is null -- ignoring message");
+      return;
+    }
+
+    let { comm_id } = content;
+    if (comm_id == null) {
+      if (msg.header != null) {
+        comm_id = msg.header.msg_id;
+      }
+      if (comm_id == null) {
+        dbg("comm_id is null -- ignoring message");
+        return;
+      }
+    }
+    const model_id: string = comm_id;
+
+    const { data } = content;
+    if (data == null) {
+      dbg("content.data is null -- ignoring message");
+      return;
+    }
+
+    // TODO: handle buffers somehow.
+
+    const { state } = data;
+    if (state == null) {
+      dbg("state is null -- ignoring message");
+      return;
+    }
+
+    delete_null_fields(state);
+    const { value } = state;
+
+    switch (content.data.method) {
+      case "update":
+        if (value == null) {
+          dbg("value is null -- ignoring update message");
+          return;
+        }
+        this.set(model_id, "value", value);
+        break;
+
+      default:
+        this.set(model_id, "state", state);
+        if (value != null) {
+          this.set(model_id, "value", value);
+        }
+    }
+    await this.save();
+  }
+
+  /*
+  process_comm_message_from_widget gets called whenever a browser client emits a comm
+  message related to widgets.  This updates the state of the table, which
+  results in other frontends updating their widget state, *AND* the backend
+  kernel changing the value of variables (and possibly updating other widgets).
+  */
+  public async process_comm_message_from_browser(
+    msg: CommMessage
+  ): Promise<void> {
+    const dbg = this.dbg("process_comm_message_from_browser");
+    dbg(msg);
+    this.assert_state("ready");
+  }
+}
+
+// delete any null fields, to avoid wasting space.
+function delete_null_fields(obj: object): void {
+  for (let k in obj) {
+    if (obj[k] == null) {
+      delete obj[k];
     }
   }
 }

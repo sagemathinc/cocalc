@@ -282,6 +282,13 @@ export class JupyterKernel extends EventEmitter
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
       }
+      if (
+        (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
+      ) {
+        // A comm message, which gets handled directly.
+        this.process_comm_message_from_kernel(mesg);
+        return;
+      }
 
       return this.emit("iopub", mesg);
     });
@@ -778,10 +785,10 @@ export class JupyterKernel extends EventEmitter
     return blob_store.save(base64, mime);
   }
 
-  handle_comm_mesg(mesg): void {
-    const dbg = this.dbg("handle_comm_mesg");
+  process_comm_message_from_kernel(mesg): void {
+    const dbg = this.dbg("process_comm_message_from_kernel");
     dbg(mesg);
-    this._actions.handle_comm_mesg(mesg);
+    this._actions.process_comm_message_from_kernel(mesg);
   }
 
   public send_comm_message_to_kernel(

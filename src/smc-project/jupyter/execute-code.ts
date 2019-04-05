@@ -168,7 +168,9 @@ export class CodeExecutionEmitter extends EventEmitter
       (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
     ) {
       // A comm message that is a result of execution of this code.
-      this._push_comm(mesg);
+      // IGNORE here -- all comm messages are handles at a higher
+      // level in jupyter.ts.  Also, this case should never happen, since
+      // we do not emit an event from jupyter.ts in this case anyways.
     } else {
       this._push_mesg(mesg);
     }
@@ -211,15 +213,6 @@ export class CodeExecutionEmitter extends EventEmitter
     }
     // dbg("push_mesg after copying msg_type", mesg);
     this.emit_output(mesg);
-  }
-
-  _push_comm(mesg): void {
-    mesg = copy_with(mesg, ["content", "header"]);
-    mesg = deep_copy(mesg);
-    if (this.id != null) {
-      mesg.content.cell_id = this.id;
-    }
-    this.kernel.handle_comm_mesg(mesg);
   }
 
   async go(): Promise<object[]> {

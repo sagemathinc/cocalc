@@ -10,7 +10,15 @@ import { UntrustedJavascript } from "./untrusted-javascript";
 import { PDF } from "./pdf";
 import { STDOUT_STYLE } from "./style";
 import { TextPlain } from "./text-plain";
-import { Widget } from "./widget";
+
+// share server can't handle this, so we have to use require.
+// import { Widget } from "./widget";
+let Widget : any = undefined;
+try {
+  Widget = require("./widget").Widget;
+} catch (err) {
+  console.log("Widget rendering not available");
+}
 
 interface DataProps {
   message: Map<string, any>;
@@ -150,7 +158,7 @@ export class Data extends Component<DataProps> {
               return <PDF value={value} project_id={this.props.project_id} />;
 
             case "vnd.jupyter.widget-view+json":
-              if (this.props.name == null || this.props.actions == null) {
+              if (Widget == null || this.props.name == null || this.props.actions == null) {
                 // TODO...
                 return;
               }

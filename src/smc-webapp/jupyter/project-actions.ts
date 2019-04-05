@@ -1134,9 +1134,9 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  handle_comm_mesg = async (mesg: any): Promise<void> => {
-    const dbg = this.dbg("handle_comm_mesg");
+  public async process_comm_message_from_kernel(mesg: any): Promise<void> {
+    const dbg = this.dbg("process_comm_message_from_kernel");
     dbg(mesg);
-    await this.syncdb.ipywidgets_state.write(mesg);
-  };
+    await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
+  }
 }
