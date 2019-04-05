@@ -56,7 +56,9 @@ export class IpywidgetsState extends EventEmitter {
 
     this.set_state("ready");
 
-    //this.table.on("change", this.emit_message.bind(this));
+    this.table.on("change", keys => {
+      this.emit("change", keys);
+    });
   }
 
   public keys(): any {
@@ -98,7 +100,9 @@ export class IpywidgetsState extends EventEmitter {
       if (value == null) {
         throw Error("value must be a map");
       }
-      state_js["value"] = value["value"];
+      if (value["value"] != null) {
+        state_js["value"] = value["value"];
+      }
     }
     return state_js;
   }

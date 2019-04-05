@@ -6,6 +6,7 @@ import {
 } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
+import { uuid } from "smc-util/misc2";
 
 export type SendCommFunction = (string, data) => string;
 
@@ -45,14 +46,16 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_state_change(keys): Promise<void> {
+    console.log("handle_table_state_change", keys);
     for (let key of keys) {
-      const [, comm_id, type] = JSON.parse(key);
+      const [, model_id, type] = JSON.parse(key);
+      console.log("handle_table_state_change - one key", key, model_id, type);
       switch (type) {
         case "state":
-          await this.handle_model_state_change(comm_id);
+          await this.handle_model_state_change(model_id);
           break;
         case "value":
-          await this.handle_model_value_change(comm_id);
+          await this.handle_model_value_change(model_id);
           break;
         default:
           throw Error(`unknown state type '${type}'`);
@@ -80,6 +83,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async handle_model_value_change(model_id: string): Promise<void> {
     const value = this.ipywidgets_state.get_model_value(model_id);
+    console.log("handle_model_value_change", model_id, value);
     await this.update_model(model_id, { value });
   }
 
@@ -169,8 +173,29 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     return comm;
   }
 
-  private process_comm_message_from_browser(msg): void {
-    console.log("TODO: process_comm_message_from_browser", msg);
+  private process_comm_message_from_browser(
+    model_id: string,
+    data: any
+  ): string {
+    console.log("TODO: process_comm_message_from_browser", model_id, data);
+    if (data == null) {
+      throw Error("data must not be null");
+    }
+    if (data.method == "update") {
+      const state = data.state;
+      if (state == null) {
+        throw Error("state must not be null");
+      }
+      this.ipywidgets_state.set_model_value(model_id, state.value);
+      this.ipywidgets_state.save();
+    } else {
+      throw Error(
+        `TODO: process_comm_message_from_browser with method '${
+          data.method
+        }' not implemented`
+      );
+    }
+    return uuid();
   }
 
   // Get the currently-registered comms.
