@@ -810,7 +810,8 @@ export class JupyterKernel extends EventEmitter
     };
 
     dbg("sending ", JSON.stringify(message));
-    this._channels.iopub.next(message);
+    // "The Kernel listens for these messages on the Shell channel,
+    // and the Frontend listens for them on the IOPub channel." -- docs
     this._channels.shell.next(message);
   }
 }

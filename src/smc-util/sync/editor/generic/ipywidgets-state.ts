@@ -1,6 +1,8 @@
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
 
+import { delete_null_fields } from "../../../misc2";
+
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { Client } from "./types";
@@ -265,11 +267,3 @@ export class IpywidgetsState extends EventEmitter {
   }
 }
 
-// delete any null fields, to avoid wasting space.
-function delete_null_fields(obj: object): void {
-  for (let k in obj) {
-    if (obj[k] == null) {
-      delete obj[k];
-    }
-  }
-}

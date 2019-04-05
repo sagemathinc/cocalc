@@ -112,6 +112,12 @@ export class JupyterActions extends JupyterActions0 {
 
     // Listen for changes...
     this.syncdb.on("change", this._backend_syncdb_change);
+
+    // Listen for model state changes...
+    this.syncdb.ipywidgets_state.on(
+      "change",
+      this.handle_ipywidgets_state_change.bind(this)
+    );
   };
 
   _first_load = async () => {
@@ -1133,6 +1139,30 @@ export class JupyterActions extends JupyterActions0 {
       });
     }
   };
+
+  private handle_ipywidgets_state_change(keys): void {
+    const dbg = this.dbg("handle_ipywidgets_state_change");
+    dbg(keys);
+    if (this._jupyter_kernel == null) {
+      dbg("no kernel, so ignoring changes to ipywidgets");
+      return;
+    }
+    for (let key of keys) {
+      dbg("key = ", key);
+      const [, model_id, type] = JSON.parse(key);
+      if (type === "value") {
+        const value = this.syncdb.ipywidgets_state.get_model_value(model_id);
+        const data = { method: "update", state: { value } };
+        this._jupyter_kernel.send_comm_message_to_kernel(
+          misc.uuid(),
+          model_id,
+          data
+        );
+      } else {
+        dbg("type isn't 'value', so ignorning");
+      }
+    }
+  }
 
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");

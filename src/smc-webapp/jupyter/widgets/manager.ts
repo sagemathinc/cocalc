@@ -6,13 +6,14 @@ import {
 } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
-import { uuid } from "smc-util/misc2";
+import { is_array, uuid } from "smc-util/misc2";
 
 export type SendCommFunction = (string, data) => string;
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
   private widget_model_ids_add: Function;
+  private incomplete_model_ids: Set<string> = new Set();
 
   // widget_model_ids_add gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
@@ -59,6 +60,16 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
           break;
         default:
           throw Error(`unknown state type '${type}'`);
+      }
+    }
+    while (this.incomplete_model_ids.size > 0) {
+      const size_before = this.incomplete_model_ids.size;
+      for (let model_id of this.incomplete_model_ids) {
+        await this.handle_model_state_change(model_id);
+      }
+      if (this.incomplete_model_ids.size >= size_before) {
+        // no shrink -- avoid infinite loop; will try after next change.
+        return;
       }
     }
   }
@@ -136,18 +147,28 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       throw Error("_model_module_version must be defined");
     }
 
-    await this.new_widget(
-      {
-        model_id,
-        view_module,
-        view_name,
-        view_module_version,
-        model_module,
-        model_name,
-        model_module_version
-      },
-      state
-    );
+    const success = await this.dereference_model_links(state);
+    if (!success) {
+      this.incomplete_model_ids.add(model_id);
+      return;
+    } else {
+      this.incomplete_model_ids.delete(model_id);
+    }
+
+    const model: base.DOMWidgetModel = await this.new_model({
+      model_module,
+      model_name,
+      model_id,
+      model_module_version
+    });
+
+    console.log(view_module, view_name, view_module_version);
+
+    // Initialize the model
+    model.set(state);
+
+    // Start listing to model changes.
+    model.on("change", this.handle_model_change.bind(this));
 
     // Inform CoCalc/React client that we just created this model.
     this.widget_model_ids_add(model_id);
@@ -157,7 +178,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     throw Error("display_view not implemented");
   }
 
-  // Create a comm.
+  // Create a comm -- THIS IS NOT USED AT ALL
   async _create_comm(
     target_name: string,
     model_id: string,
@@ -173,11 +194,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     return comm;
   }
 
+  // TODO: NOT USED since we just directly listen for change events on the model.
   private process_comm_message_from_browser(
     model_id: string,
     data: any
   ): string {
-    console.log("TODO: process_comm_message_from_browser", model_id, data);
+    //console.log("TODO: process_comm_message_from_browser", model_id, data);
     if (data == null) {
       throw Error("data must not be null");
     }
@@ -196,6 +218,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       );
     }
     return uuid();
+  }
+
+  private handle_model_change(model: base.DOMWidgetModel): void {
+    this.ipywidgets_state.set_model_value(
+      model.model_id,
+      model.attributes.value
+    );
+    this.ipywidgets_state.save();
   }
 
   // Get the currently-registered comms.
@@ -235,5 +265,70 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         `Class ${className} not found in module ${moduleName}@${moduleVersion}`
       );
     }
+  }
+
+  /*
+  We do our own model dereferencing (partly replicating code in ipywidgets),
+  so that models can be created in random
+  order, rather than in exactly the order they are created by the kernel.
+  This is important for realtime sync, multiple users, etc.
+
+  Documention for IPY_MODEL_ reference spec:
+
+      https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/jupyterwidgetmodels.v7-4.md#model-state
+
+  TODO: there's no way I can see how to tell which values will be references,
+  so we just search from everything for now, at least as a string (layout, style) or
+  array of strings (children, axes, buttons).  I wish I knew that those 5 were the
+  only keys to consider...  I'm also worried because what if some random value
+  just happens to look like a reference?
+  */
+
+  // Returns undefined if it is not able to resolve the reference.  In
+  // this case, we'll try again later after parsing everything else.
+  private async dereference_model_link(
+    val: string
+  ): Promise<base.DOMWidgetModel | undefined> {
+    if (val.slice(0, 10) !== "IPY_MODEL_") {
+      throw Error(`val (="${val}") is not a model reference.`);
+    }
+
+    const model_id = val.slice(10);
+    return await this.get_model(model_id);
+  }
+
+  private async dereference_model_links(state): Promise<boolean> {
+    for (let key in state) {
+      const val = state[key];
+      if (typeof val === "string") {
+        // single string
+        if (val.slice(0, 10) === "IPY_MODEL_") {
+          // that is a reference
+          const model = await this.dereference_model_link(val);
+          if (model != null) {
+            state[key] = model;
+          } else {
+            return false; // something can't be resolved yet.
+          }
+        }
+      } else if (is_array(val)) {
+        // array of stuff
+        for (let i in val) {
+          if (
+            typeof val[i] === "string" &&
+            val[i].slice(0, 10) === "IPY_MODEL_"
+          ) {
+            // this one is a string reference
+            const model = await this.dereference_model_link(val[i]);
+            if (model != null) {
+              val[i] = model;
+            } else {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    return true;
   }
 }

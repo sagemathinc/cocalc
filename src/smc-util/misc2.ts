@@ -458,3 +458,12 @@ export function is_object(obj: any): boolean {
 export function is_date(obj: any): boolean {
   return obj instanceof Date;
 }
+
+// delete any null fields, to avoid wasting space.
+export function delete_null_fields(obj: object): void {
+  for (let k in obj) {
+    if (obj[k] == null) {
+      delete obj[k];
+    }
+  }
+}
