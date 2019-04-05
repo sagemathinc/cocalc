@@ -277,9 +277,12 @@ export class JupyterKernel extends EventEmitter
     this._channels.stdin.subscribe(mesg => this.emit("stdin", mesg));
 
     this._channels.iopub.subscribe(mesg => {
+      this.dbg("IOPUB")(JSON.stringify(mesg));
+
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
       }
+
       return this.emit("iopub", mesg);
     });
 
@@ -775,10 +778,33 @@ export class JupyterKernel extends EventEmitter
     return blob_store.save(base64, mime);
   }
 
-  handle_comm_mesg(mesg) : void {
+  handle_comm_mesg(mesg): void {
     const dbg = this.dbg("handle_comm_mesg");
     dbg(mesg);
     this._actions.handle_comm_mesg(mesg);
+  }
+
+  public send_comm_message_to_kernel(
+    msg_id: string,
+    comm_id: string,
+    data: any
+  ): void {
+    const dbg = this.dbg("send_comm_message_to_kernel");
+
+    const message = {
+      content: { comm_id, data },
+      header: {
+        msg_id,
+        username: "user",
+        session: "",
+        msg_type: "comm_msg",
+        version: VERSION
+      }
+    };
+
+    dbg("sending ", JSON.stringify(message));
+    this._channels.iopub.next(message);
+    this._channels.shell.next(message);
   }
 }
 

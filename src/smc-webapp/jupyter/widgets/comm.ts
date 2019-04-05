@@ -1,12 +1,28 @@
 import { IClassicComm } from "@jupyter-widgets/base";
 
+import { SendCommFunction } from "./manager";
+
 export class Comm implements IClassicComm {
   comm_id: string;
   target_name: string;
+  callbacks: { [name: string]: Function } = {};
+  private send_comm_message_to_kernel: SendCommFunction;
 
-  constructor(target_name: string, comm_id: string) {
+  constructor(
+    target_name: string,
+    comm_id: string,
+    send_comm_message_to_kernel: SendCommFunction
+  ) {
     this.comm_id = comm_id;
     this.target_name = target_name;
+    this.send_comm_message_to_kernel = send_comm_message_to_kernel;
+  }
+
+  private dbg(name: string): Function {
+    const s = `Comm(id="${this.comm_id}").${name}`;
+    return (...args) => {
+      console.log(s, ...args);
+    };
   }
 
   open(
@@ -15,7 +31,8 @@ export class Comm implements IClassicComm {
     metadata?: any,
     buffers?: ArrayBuffer[] | ArrayBufferView[]
   ): string {
-    console.log("Comm.open", data, callbacks, metadata, buffers);
+    this.dbg("open")(data, callbacks, metadata, buffers);
+    throw Error("Comm.open not yet implemented");
     return "";
   }
 
@@ -25,8 +42,7 @@ export class Comm implements IClassicComm {
     metadata?: any,
     buffers?: ArrayBuffer[] | ArrayBufferView[]
   ): string {
-    console.log(
-      "Comm.send",
+    this.dbg("send")(
       "data=",
       data,
       "callbacks=",
@@ -36,7 +52,10 @@ export class Comm implements IClassicComm {
       "buffer=",
       buffers
     );
-    return "";
+    callbacks.iopub.status({ content: { execution_state: "idle" } }); // TODO: fake
+    const msg_id = this.send_comm_message_to_kernel(this.comm_id, data);
+    this.dbg("send")("msg_id = ", msg_id);
+    return msg_id;
   }
 
   close(
@@ -45,12 +64,15 @@ export class Comm implements IClassicComm {
     metadata?: any,
     buffers?: ArrayBuffer[] | ArrayBufferView[]
   ): string {
-    console.log("Comm.close", data, callbacks, metadata, buffers);
+    this.dbg("close")(data, callbacks, metadata, buffers);
+    if (this.callbacks.on_close != null) this.callbacks.on_close();
+    delete this.callbacks;
     return "";
   }
 
   on_msg(callback: (x: any) => void): void {
-    console.log("Comm.on_msg", callback);
+    //this.dbg("on_msg")(callback);
+    this.callbacks.on_msg = callback;
   }
 
   /**
@@ -58,6 +80,7 @@ export class Comm implements IClassicComm {
    * @param  callback, which is given a message
    */
   on_close(callback: (x: any) => void): void {
-    console.log("Comm.on_close", callback);
+    //this.dbg("on_close")(callback);
+    this.callbacks.on_close = callback;
   }
 }

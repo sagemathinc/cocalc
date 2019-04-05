@@ -5,19 +5,24 @@ import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
 
+export type SendCommFunction = (string, data) => string;
+
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
   private widget_model_ids_add: Function;
+  private send_comm_message_to_kernel: SendCommFunction;
 
   // widget_model_ids_add gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
   // can render will try again.
   constructor(
     ipywidgets_state: IpywidgetsState,
-    widget_model_ids_add: Function
+    widget_model_ids_add: Function,
+    send_comm_message_to_kernel: SendCommFunction
   ) {
     super();
     this.ipywidgets_state = ipywidgets_state;
+    this.send_comm_message_to_kernel = send_comm_message_to_kernel;
     this.widget_model_ids_add = widget_model_ids_add;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
@@ -150,12 +155,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     data?: any,
     metadata?: any
   ): Promise<Comm> {
-    console.log(
-      `_create_comm(${target_name}, ${model_id}`,
-      data,
-      metadata
+    console.log(`_create_comm(${target_name}, ${model_id}`, data, metadata);
+    const comm = new Comm(
+      target_name,
+      model_id,
+      this.send_comm_message_to_kernel
     );
-    const comm = new Comm(target_name, model_id);
     return comm;
   }
 

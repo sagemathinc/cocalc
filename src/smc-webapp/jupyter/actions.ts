@@ -211,7 +211,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   );
 
   // private api call function
-  _api_call = async (
+  protected _api_call = async (
     endpoint: string,
     query?: any,
     timeout_ms?: number
