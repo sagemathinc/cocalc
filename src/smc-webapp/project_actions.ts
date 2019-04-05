@@ -154,9 +154,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _log_open_time: { [key: string]: { id: string; start: number } };
   private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
+  private random_filenames;
 
   constructor(a, b) {
     super(a, b);
+    this.random_filenames =  new RandomFilenames('', false);
     this.destroy = this.destroy.bind(this);
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
@@ -339,8 +341,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           return RandomFilenames.default_family;
         }
       })();
+      this.random_filenames.set_ext(ext);
       this.setState({
-        new_filename: new RandomFilenames(ext, false, type).gen(filenames)
+        new_filename: this.random_filenames.gen(type, filenames)
       });
     }
     this.setState({ ext_selection: ext });
