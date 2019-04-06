@@ -22,14 +22,13 @@ export class JupyterActions extends JupyterActions0 {
   // Only run this code on the browser frontend (not in project).
   protected init_client_only(): void {
     const do_set = () => {
-      return this.setState({
-        has_unsaved_changes:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
-        has_uncommitted_changes:
-          this.syncdb != null
-            ? this.syncdb.has_uncommitted_changes()
-            : undefined
-      });
+      if (this.syncdb == null) return;
+      const has_unsaved_changes = this.syncdb.has_unsaved_changes();
+      const has_uncommitted_changes = this.syncdb.has_uncommitted_changes();
+      this.setState({ has_unsaved_changes, has_uncommitted_changes });
+      if (has_uncommitted_changes) {
+        this.syncdb.save(); // save them.
+      }
     };
     const f = () => {
       do_set();

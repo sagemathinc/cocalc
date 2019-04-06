@@ -8,6 +8,8 @@ import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
 import { is_array, uuid } from "smc-util/misc2";
 
+import * as output from "./output";
+
 export type SendCommFunction = (string, data) => string;
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
@@ -108,6 +110,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (model != null) {
       //console.log(`setting state of model "${model_id}" to `, state);
       model.set_state(state);
+    } else {
+      console.log(`WARNING: update_model -- unknown model ${model_id}`);
     }
   }
 
@@ -245,14 +249,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    // console.log("loadClass", className, moduleName, moduleVersion);
+    console.log("loadClass", className, moduleName, moduleVersion);
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
     } else if (moduleName === "@jupyter-widgets/controls") {
       module = controls;
     } else if (moduleName === "@jupyter-widgets/output") {
-      throw Error("TODO -- will involve our react code");
+      module = output;
     } else if (this.loader !== undefined) {
       throw Error("TODO -- no clue -- maybe can't support?");
     } else {

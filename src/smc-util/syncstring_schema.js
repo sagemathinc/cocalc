@@ -663,7 +663,7 @@ schema.ipywidgets = {
     },
     type: {
       pg_type: "CHAR(5)",
-      desc: "type of info associated to this comm: 'state' or 'value'"
+      desc: "type of info associated to this comm: 'state' or 'value' or 'outpu'"
     },
     data: {
       type: "map",

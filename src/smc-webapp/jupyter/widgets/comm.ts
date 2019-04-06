@@ -1,3 +1,5 @@
+// TODO: this is NOT used at all.
+
 import { IClassicComm } from "@jupyter-widgets/base";
 
 import { SendCommFunction } from "./manager";

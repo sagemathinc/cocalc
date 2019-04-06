@@ -77,6 +77,7 @@ export class Widget0 extends Component<WidgetProps> {
   }
 
   async init_view(model_id: string | undefined): Promise<void> {
+    console.log("init_view", model_id);
     if (this.init_view_is_running) {
       // it's already running right now.
       return;
@@ -99,14 +100,36 @@ export class Widget0 extends Component<WidgetProps> {
         // no way to render at present; wait for widget_counter to increase and try again.
         return;
       }
+      console.log("model = ", model);
 
-      const view = await widget_manager.create_view(model);
-      if (!this.mounted) return;
-      this.view = view as any;
+      switch (model.module) {
+        case "@jupyter-widgets/controls":
+        case "@jupyter-widgets/base":
+          // We use phosphor views for base and controls
+          const view = await widget_manager.create_view(model);
+          if (!this.mounted) return;
+          this.view = view as any;
 
-      const elt = ReactDOM.findDOMNode(this);
-      pWidget.Widget.attach(this.view.pWidget, elt);
+          const elt = ReactDOM.findDOMNode(this);
+          pWidget.Widget.attach(this.view.pWidget, elt);
+          break;
+        case "@jupyter-widgets/output":
+          // We use our own react code for output.
+          const f = () => {
+            const elt = ReactDOM.findDOMNode(this);
+            const state = model.get_state(true);
+            const value = state.value;
+
+            $(elt).text(JSON.stringify(value));
+          };
+          model.on("change", f);
+          f();
+          break;
+        default:
+          throw Error(`Not implemented widget module ${model.module}`);
+      }
     } catch (err) {
+      // TODO -- show an error component somehow...
       console.trace();
       console.warn("widget.tsx: init_view -- failed ", err);
     } finally {

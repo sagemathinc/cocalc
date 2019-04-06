@@ -232,14 +232,15 @@ export class IpywidgetsState extends EventEmitter {
     }
 
     delete_null_fields(state);
-    const { value } = state;
+    let { value } = state;
+    if (value == null && state.outputs != null) {
+      // the output widget stores its "value" in "outputs",
+      // rather than in value, but we just simplify things.
+      value = state.outputs;
+    }
 
     switch (content.data.method) {
       case "update":
-        if (value == null) {
-          dbg("value is null -- ignoring update message");
-          return;
-        }
         this.set(model_id, "value", value);
         break;
 
@@ -266,4 +267,3 @@ export class IpywidgetsState extends EventEmitter {
     this.assert_state("ready");
   }
 }
-
