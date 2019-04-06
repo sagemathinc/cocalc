@@ -1467,7 +1467,7 @@ API(
 Directly add a user to a CoCalc project.
 You must be owner or collaborator on the target project.
 You cannot remove the project owner.
-The user is NOT notified via email that they added, and there
+The user is NOT notified via email that they were added, and there
 is no confirmation process.  (Eventually, there will be
 an accept process, or this endpoint will only work
 with a notion of "managed accounts".)

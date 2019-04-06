@@ -153,20 +153,22 @@ exports.OOMWarning = rclass ({name}) ->
 
         # first time message is different from later ones
         if oom_dismissed == 0
-            msg = <span>WARNING: There {misc.plural(oom_kills, 'was', 'were')} {oom_kills} out-of-memory {misc.plural(oom_kills, 'event')} in your project, because your calculations are too memory intensive.</span>
+            if oom_kills > 1
+                msg = <span>WARNING: Several programs in your project just crashed because they ran out of memory.</span>
+            else
+                msg = <span>WARNING: A program in your project just crashed because it ran out of memory.</span>
             style = 'info'
         else
             diff = oom_kills - oom_dismissed
-            msg = <span>WARNING: There {misc.plural(diff, 'was', 'were')} {diff} additional out-of-memory {misc.plural(diff, 'event')} in your project.</span>
+            msg = <span>WARNING: Another program in your project has crashed because it ran out of memory.</span>
             style = 'danger'
 
         <Alert bsStyle={style} style={oom_alert_style}>
             <div style={display: 'flex'}>
                 <div style={flex:'1'}>
                     <Icon name='exclamation-triangle' /> {msg}{' '}
-                    You either have to kill some processes, close running Jupyter Notebooks via "Halt", or restart your project.{' '}
-                    Increasing "Shared RAM" memory in <a onClick={=>@actions(project_id: @props.project_id).set_active_tab('settings')} style={cursor:'pointer'}>settings</a> could help.{' '}
-                    <a href={OOM_INFO_PAGE} target={'_blank'} style={cursor:'pointer'}>More information...</a>.
+                    You may want to try{' '}
+                    <a href={OOM_INFO_PAGE} target={'_blank'} style={cursor:'pointer'}>some common solutions</a> to avoid this.
                 </div>
                 <div style={flex:'0'}>
                     <Button onClick={=>@click(start_ts, oom_kills)} pullright={"true"}>Dismiss</Button>
