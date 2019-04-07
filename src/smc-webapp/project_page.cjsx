@@ -224,6 +224,7 @@ ProjectContentViewer = rclass
     displayName: 'ProjectContentViewer'
 
     propTypes :
+        is_visible      : rtypes.bool.isRequired
         project_id      : rtypes.string.isRequired
         project_name    : rtypes.string.isRequired
         active_tab_name : rtypes.string
@@ -361,14 +362,16 @@ ProjectContentViewer = rclass
                 <ProjectSearch name={@props.project_name} />
             when 'settings'
                 <ProjectSettings project_id={@props.project_id} name={@props.project_name} group={@props.group} />
-            else
+            else  # @props.active_tab_name = "editor-<filename>"
                 if not @props.opened_file? or not @props.active_tab_name?
                     <Loading />
                 else
                     @render_editor_tab()
 
     render: ->
-        <div style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
+        <div
+            className = {if not @props.is_visible then "hide"}
+            style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
             {@render_tab_content()}
         </div>
 
@@ -509,6 +512,43 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             </div>
         </div>
 
+    render_editor_tabs: (active_path, group) ->
+        v = []
+        @props.open_files_order.map (path, index) =>
+            if not path
+                return
+            tab_name = 'editor-' + path
+            v.push <ProjectContentViewer
+                key             = {tab_name}
+                is_visible      = {@props.active_project_tab == tab_name}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {tab_name}
+                opened_file     = {@props.open_files.getIn([path])}
+                file_path       = {path}
+                group           = {group}
+                save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
+            />
+        return v
+
+
+    render_project_content: (active_path, group) ->
+        v = []
+        if @props.active_project_tab.slice(0, 7) != 'editor-'  # fixed tab
+            v.push <ProjectContentViewer
+                key             = {@props.active_project_tab}
+                is_visible      = {true}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {@props.active_project_tab}
+                opened_file     = {@props.open_files.getIn([active_path])}
+                file_path       = {active_path}
+                group           = {group}
+                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
+                />
+        return v.concat(@render_editor_tabs(active_path, group))
+
+
     render : ->
         if not @props.open_files_order?
             return <Loading />
@@ -529,15 +569,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             <FreeProjectWarning project_id={@props.project_id} name={name} />
             {@render_file_tabs(group == 'public') if not @props.fullscreen}
             {<DeletedProjectWarning /> if project?.get('deleted')}
-            <ProjectContentViewer
-                project_id      = {@props.project_id}
-                project_name    = {@props.name}
-                active_tab_name = {@props.active_project_tab}
-                opened_file     = {@props.open_files.getIn([active_path])}
-                file_path       = {active_path}
-                group           = {group}
-                save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}
-            />
+            {@render_project_content(active_path, group)}
         </div>
 
 exports.MobileProjectPage = rclass ({name}) ->
