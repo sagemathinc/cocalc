@@ -369,6 +369,7 @@ ProjectContentViewer = rclass
                     @render_editor_tab()
 
     render: ->
+        console.log("Render ProjectContentViewer ", @props.is_visible)
         <div
             className = {if not @props.is_visible then "hide"}
             style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
@@ -548,7 +549,6 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 />
         return v.concat(@render_editor_tabs(active_path, group))
 
-
     render : ->
         if not @props.open_files_order?
             return <Loading />
@@ -697,6 +697,7 @@ exports.MobileProjectPage = rclass ({name}) ->
             </div> if not @props.fullscreen}
             <ErrorBoundary>
                 <ProjectContentViewer
+                    is_visible      = {true}
                     project_id      = {@props.project_id}
                     project_name    = {@props.name}
                     active_tab_name = {@props.active_project_tab}
