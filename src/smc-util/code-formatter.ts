@@ -26,7 +26,7 @@ export type Parser =
 export type Tool =
   | "yapf"
   | "knitr"
-| "formatR"
+  | "formatR"
   | "clang-format"
   | "latexindent"
   | "gofmt"

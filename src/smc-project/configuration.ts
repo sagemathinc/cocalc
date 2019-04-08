@@ -115,6 +115,8 @@ async function formatting(): Promise<Capabilities> {
   const results = await Promise.all(status);
   const ret: Capabilities = {};
   tools.map((tool, idx) => (ret[tool] = results[idx]));
+  // just for testing
+  // ret['yapf'] = false;
   return ret;
 }
 

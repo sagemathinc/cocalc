@@ -52,17 +52,30 @@ export async function python_format(
   }
   const py_formatter = yapf(input_path);
 
+  py_formatter.on("error", err => {
+    // ATTN do not throw an error here, because this is triggered by the subprocess!
+    logger.debug(
+      `Formatting utility exited with error no ${(err as any).errno}`
+    );
+  });
+
   // stdout/err capture
   let stdout: string = "";
   let stderr: string = "";
   // read data as it is produced.
   py_formatter.stdout.on("data", data => (stdout += data.toString()));
   py_formatter.stderr.on("data", data => (stderr += data.toString()));
+
   // wait for subprocess to close.
   let code = await callback(close, py_formatter);
+
   // only last line
   // stdout = last_line(stdout);
   if (code) {
+    if (code === -2) {
+      // ENOENT
+      throw new Error(`Formatting utility "${util}" is not installed`);
+    }
     stderr = last_line(stderr);
     const err_msg = `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`;
     logger.debug(`format python error: ${err_msg}`);
