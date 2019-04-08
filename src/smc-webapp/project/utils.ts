@@ -54,6 +54,8 @@ export class RandomFilenames {
     type = RandomFilenames.default_family,
     avoid?: { [name: string]: boolean }
   ) {
+    // reset the enumeration
+    if (this.type != type) this.start = 0;
     this.type = type;
     if (avoid == null) {
       return this.random_filename(this.fullname);
@@ -111,29 +113,35 @@ export class RandomFilenames {
   }
 
   private semantic(): string[] {
-    const tokens: string[] = ((): string[] => {
-      switch (this.effective_ext) {
-        case "ipynb":
-          return ["notebook"];
-        case "sagews":
-          return ["worksheet"];
-        case "md":
-          return ["notes"];
-        case "tex":
-        case "rmd":
-          return ["document"];
-        case "sage":
-          return ["sage", "code"];
-        case "py":
-          return ["python", "code"];
-        default:
-          const info: any = file_options(`foo.${this.effective_ext}`);
-          // the "Spec" for file associations makes sure that "name" != null
-          return info.name.toLowerCase().split(" ");
-      }
-    })();
+    switch (this.effective_ext) {
+      case "ipynb":
+        return ["notebook"];
+      case "sagews":
+        return ["worksheet"];
+      case "md":
+        return ["notes"];
+      case "tex":
+      case "rmd":
+      case "rnw":
+      case "rtex":
+        return ["document"];
+      case "sage":
+        return ["sage", "code"];
+      case "py":
+        return ["python", "code"];
+      default:
+        const info: any = file_options(`foo.${this.effective_ext}`);
+        // the "Spec" for file associations makes sure that "name" != null
+        return info.name.toLowerCase().split(" ");
+    }
+  }
 
-    return tokens;
+  // some superb words contain characters we want to avoid
+  private get_superb(): string {
+    while (true) {
+      let ret = superb.random();
+      if (ret.match(/^[a-zA-Z0-9]+$/)) return ret;
+    }
   }
 
   // plain tokens to build the filename
@@ -148,7 +156,7 @@ export class RandomFilenames {
       case "ymd_pet":
         const n =
           Math.random() > 0.5 ? catNames.random() : dogNames.allRandom();
-        const p = superb.random();
+        const p = this.get_superb();
         return [p, n.toLowerCase()];
 
       case "ymd_heroku":
