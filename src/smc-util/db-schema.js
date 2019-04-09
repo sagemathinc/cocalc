@@ -1856,7 +1856,8 @@ schema.compute_images = {
   user_query: {
     get: {
       throttle_changes: 30000,
-      pg_where: ["disabled != true"],
+      pg_where: [],
+      //pg_where: ["disabled != true"],
       //pg_where: [{ "disabled IS NOT $::BOOLEAN": true }],
       //pg_where(obj, db) {
       //  return [{ "disabled != $::BOOLEAN": true }];
