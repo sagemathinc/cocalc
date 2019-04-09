@@ -1795,6 +1795,20 @@ schema.mentions = {
   pg_indexes: ["action"],
 
   user_query: {
+    get: {
+      pg_where: ["time >= NOW() - interval '14 days'", "projects"],
+      pg_changefeed: "projects",
+      options: [{ order_by: "-time" }, { limit: 100 }], // limit is arbitrary
+      throttle_changes: 3000,
+      fields: {
+        time: null,
+        project_id: null,
+        path: null,
+        source: null,
+        target: null,
+        priority: null
+      }
+    },
     set: {
       fields: {
         time: () => new Date(),

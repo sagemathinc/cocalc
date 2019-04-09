@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { redux } from "../app-framework";
+
 const { Avatar } = require("../other-users");
 const { Icon, TimeAgo } = require("../r_misc");
 
@@ -18,16 +20,35 @@ const options_style: React.CSSProperties = {
   color: "#ccc"
 };
 
-export function NotificationRow() {
+export function NotificationRow({
+  account_id,
+  timestamp,
+  path,
+  project_id
+}: {
+  account_id: string;
+  timestamp: number;
+  path: string;
+  project_id: string;
+}) {
+  const click = () => {
+    redux.getProjectActions(project_id).open_file({ path: path, chat: true });
+  };
   return (
-    <div style={row_style}>
+    <div style={row_style} onClick={click}>
       <div style={avatar_wrapping_style}>
-        <Avatar account_id={"21046e70-9a9e-4eaa-8861-ab324ae3a8f9"} />
+        <Avatar account_id={account_id} />
       </div>
       <div style={description_style}>
-        <strong>Tiffany Tao</strong> mentioned you in a comment
+        <strong>
+          {redux
+            .getStore("users")
+            .get_name(account_id)
+            .trim()}
+        </strong>{" "}
+        mentioned you in a comment.
         <br />
-        <Icon name={"comment"} /> <TimeAgo date={1235897090}  />
+        <Icon name={"comment"} /> <TimeAgo date={timestamp} />
       </div>
       <div style={options_style}>
         <Icon name={"ellipsis-h"} />
