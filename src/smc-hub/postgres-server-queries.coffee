@@ -2709,6 +2709,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     "desc    :: TEXT     " : desc
                     "display :: TEXT     " : disp
                     "path    :: TEXT     " : path
+                    "disabled:: BOOLEAN  " : idx == 1
                 cb     : cb
 
         # first we wipe the table's content, then we generate some random stuff

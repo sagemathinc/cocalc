@@ -1852,11 +1852,16 @@ schema.compute_images = {
       desc: "(optional) if set and true, do not offer as a selection"
     }
   },
+  //pg_indexes: ["disabled"],
   user_query: {
     get: {
       throttle_changes: 30000,
-      /* pg_where: ["disabled IS NOT TRUE"], */
-      pg_where: [],
+      pg_where: ["disabled != true"],
+      //pg_where: [{ "disabled IS NOT $::BOOLEAN": true }],
+      //pg_where(obj, db) {
+      //  return [{ "disabled != $::BOOLEAN": true }];
+      //},
+      //options: [{ order_by: "disabled" }],
       fields: {
         id: null,
         src: null,
@@ -1864,7 +1869,8 @@ schema.compute_images = {
         display: null,
         url: null,
         desc: null,
-        path: null
+        path: null,
+        disabled: null
       }
     }
   }
