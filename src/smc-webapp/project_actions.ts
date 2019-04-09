@@ -163,6 +163,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _log_open_time: { [key: string]: { id: string; start: number } };
   private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
+  private _init_done = false;
 
   constructor(a, b) {
     super(a, b);
@@ -1298,7 +1299,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (is_adjacent || is_nested) {
       history_path = path;
     }
-    if (store.get('current_path') != path) {
+    if (store.get("current_path") != path) {
       this.clear_file_listing_scroll();
     }
     this.setState({
@@ -1803,6 +1804,45 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // this is called in "projects.cjsx", but more then once
+  // this is calling init methods just once, though
+  init(): void {
+    if (this._init_done) {
+      console.warn("ProjectActions::init called more than once");
+      return;
+    }
+    this._init_done = true;
+    // initialize project configuration data
+    this.init_configuration();
+    this.init_runstate_watcher();
+    // init the library after project started.
+    this.init_library();
+    this.init_library_index();
+  }
+
+  // listen on certain runstate events and trigger associated actions
+  // this method should only be called once
+  private init_runstate_watcher(): void {
+    const store = this.get_store();
+    if (store == null) return;
+    store.on("started", () => {
+      this.clear_configuration();
+      this.init_configuration("main");
+    });
+
+    store.on("stopped", () => {
+      this.clear_configuration();
+    });
+  }
+
+  // invalidates configuration cache and call it again
+  private clear_configuration(): void {
+    this.setState({
+      configuration: undefined,
+      available_features: undefined
+    });
+  }
+
   // retrieve project configuration (capabilities, etc.) from the back-end
   // also return it as a convenience
   async init_configuration(
@@ -1847,7 +1887,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // this is called once by the project initialization
-  async init_library() {
+  private async init_library() {
     const conf = await this.init_configuration("main");
     if (conf != null && conf.capabilities.library === false) return;
 
@@ -1897,7 +1937,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     async.series([cb => async.eachOfSeries(LIBRARY, check, cb)]);
   }
 
-  async init_library_index() {
+  private async init_library_index() {
     const conf = await this.init_configuration("main");
     if (conf != null && conf.capabilities.library === false) return;
 
