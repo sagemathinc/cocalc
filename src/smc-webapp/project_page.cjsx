@@ -54,6 +54,8 @@ project_file = require('./project_file')
 
 {FileTab, DEFAULT_FILE_TAB_STYLES} = require('./project/file-tab')
 
+file_editors = require('./file-editors')
+
 misc = require('misc')
 misc_page = require('./misc_page')
 
@@ -369,7 +371,6 @@ ProjectContentViewer = rclass
                     @render_editor_tab()
 
     render: ->
-        console.log("Render ProjectContentViewer ", @props.is_visible)
         <div
             className = {if not @props.is_visible then "hide"}
             style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
@@ -515,21 +516,23 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     render_editor_tabs: (active_path, group) ->
         v = []
+
         @props.open_files_order.map (path, index) =>
             if not path
                 return
             tab_name = 'editor-' + path
-            v.push <ProjectContentViewer
-                key             = {tab_name}
-                is_visible      = {@props.active_project_tab == tab_name}
-                project_id      = {@props.project_id}
-                project_name    = {@props.name}
-                active_tab_name = {tab_name}
-                opened_file     = {@props.open_files.getIn([path])}
-                file_path       = {path}
-                group           = {group}
-                save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
-            />
+            if @props.active_project_tab == tab_name or file_editors.no_unmount(path, group=='public')
+                v.push <ProjectContentViewer
+                    key             = {tab_name}
+                    is_visible      = {@props.active_project_tab == tab_name}
+                    project_id      = {@props.project_id}
+                    project_name    = {@props.name}
+                    active_tab_name = {tab_name}
+                    opened_file     = {@props.open_files.getIn([path])}
+                    file_path       = {path}
+                    group           = {group}
+                    save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
+                />
         return v
 
 
