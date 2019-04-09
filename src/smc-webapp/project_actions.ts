@@ -653,6 +653,144 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
+  public open_in_new_browser_window(path: string): void {
+    let url =
+      (window.app_base_url != null ? window.app_base_url : "") +
+      this._url_in_project(`files/${path}`);
+    url += "?session=&fullscreen=default";
+    require("./misc_page").open_popup_window(url, {
+      width: 800,
+      height: 640
+    });
+  }
+
+  // get user's group releative to this project.
+  // Can't easily use wait, since this depends on both the account
+  // and project stores changing.
+  // TODO: actually properly use wait somehow, since obviously it is
+  // possible (just not easy).
+  private async get_my_group(): Promise<string> {
+    return await retry_until_success({
+      f: async () => {
+        let projects_store = this.redux.getStore("projects");
+        if (!projects_store) {
+          throw Error("projects store not defined");
+        }
+        const group : string | undefined = projects_store.get_my_group(this.project_id);
+        if (group) {
+          return group;
+        } else {
+          throw Error("group not yet known");
+        }
+      },
+      max_time: 60000,
+      max_delay: 3000
+    });
+  }
+
+  private async open_sagenb_worksheet(opts): Promise<void> {
+    // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
+    alert_message({
+      type: "info",
+      message: `Opening converted CoCalc worksheet file instead of '${
+        opts.path
+      }...`
+    });
+    try {
+      const path: string = await callback(
+        this.convert_sagenb_worksheet,
+        opts.path
+      );
+      await this.open_file({
+        path,
+        foreground: opts.foreground,
+        foreground_project: opts.foreground_project,
+        chat: opts.chat
+      });
+    } catch (err) {
+      alert_message({
+        type: "error",
+        message: `Error converting Sage Notebook sws file -- ${err}`
+      });
+    }
+  }
+
+  private async open_word_document(opts): Promise<void> {
+    // Microsoft Word Document
+    alert_message({
+      type: "info",
+      message: `Opening converted plain text file instead of '${opts.path}...`
+    });
+    try {
+      const path: string = await callback(this.convert_docx_file, opts.path);
+      await this.open_file({
+        path,
+        foreground: opts.foreground,
+        foreground_project: opts.foreground_project,
+        chat: opts.chat
+      });
+    } catch (err) {
+      alert_message({
+        type: "error",
+        message: `Error converting Microsoft docx file -- ${err}`
+      });
+    }
+  }
+
+  private log_file_open(path: string): void {
+    if (this.redux.hasActions("file_use")) {
+      // if the user is anonymous they don't have a file_use Actions (yet)
+      (this.redux.getActions("file_use") as any).mark_file(
+        this.project_id,
+        path,
+        "open"
+      );
+    }
+    const event = {
+      event: "open",
+      action: "open",
+      filename: path
+    };
+    const id = this.log(event);
+
+    // Save the log entry id, so it is possible to optionally
+    // record how long it took for the file to open.  This
+    // may happen via a call from random places in our codebase,
+    // since the idea of "finishing opening and rendering" is
+    // not simple to define.
+    if (id !== undefined) {
+      this._log_open_time[path] = {
+        id,
+        start: misc.server_time()
+      };
+    }
+  }
+
+  private get_side_chat_state(opts: {
+    path: string;
+    chat?: boolean;
+    chat_width?: number;
+  }): void {
+    // grab chat state from local storage
+    const { local_storage } = require("./editor");
+    if (local_storage != null) {
+      if (opts.chat == null) {
+        opts.chat = local_storage(this.project_id, opts.path, "is_chat_open");
+      }
+      if (opts.chat_width == null) {
+        opts.chat_width = local_storage(
+          this.project_id,
+          opts.path,
+          "chat_width"
+        );
+      }
+    }
+
+    if (misc.filename_extension(opts.path) === "sage-chat") {
+      opts.chat = false;
+    }
+  }
+
   // Open the given file in this project.
   public async open_file(opts: {
     path: string;
@@ -675,6 +813,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history: true
     });
     opts.path = normalize(opts.path);
+
     // intercept any requests if in kiosk mode
     if (
       !opts.ignore_kiosk &&
@@ -691,15 +830,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     if (opts.new_browser_window) {
-      // options other than path don't do anything yet.
-      let url =
-        (window.app_base_url != null ? window.app_base_url : "") +
-        this._url_in_project(`files/${opts.path}`);
-      url += "?session=&fullscreen=default";
-      require("./misc_page").open_popup_window(url, {
-        width: 800,
-        height: 640
-      });
+      // options other than path are ignored in this case.
+      this.open_in_new_browser_window(opts.path);
       return;
     }
 
@@ -708,7 +840,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
-        error: `opening file '${
+        error: `Error opening file '${
           opts.path
         }' (error ensuring project is open) -- ${err}`
       });
@@ -716,28 +848,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     // Next get the group.
-    // Can't easily use wait, since this depends on both the account
-    // and project stores changing.
-    // TODO: actually properly use wait somehow, since obviously it is
-    // possible (just not easy).
     let group: string;
     try {
-      group = await retry_until_success({
-        f: async () => {
-          let projects_store = this.redux.getStore("projects");
-          if (!projects_store) {
-            throw Error("projects store not defined");
-          }
-          group = projects_store.get_my_group(this.project_id);
-          if (group) {
-            return group;
-          } else {
-            throw Error("group not yet known");
-          }
-        },
-        max_time: 60000,
-        max_delay: 3000
-      });
+      group = await this.get_my_group();
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
@@ -750,115 +863,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
 
     if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
-      // sagenb worksheet (or backup of it created during unzip of multiple worksheets with same name)
-      alert_message({
-        type: "info",
-        message: `Opening converted CoCalc worksheet file instead of '${
-          opts.path
-        }...`
-      });
-      try {
-        const path: string = await callback(
-          this.convert_sagenb_worksheet,
-          opts.path
-        );
-        this.open_file({
-          path,
-          foreground: opts.foreground,
-          foreground_project: opts.foreground_project,
-          chat: opts.chat
-        });
-      } catch (err) {
-        alert_message({
-          type: "error",
-          message: `Error converting Sage Notebook sws file -- ${err}`
-        });
-      }
+      await this.open_sagenb_worksheet(opts);
       return;
     }
 
     if (!is_public && ext === "docx") {
-      // Microsoft Word Document
-      alert_message({
-        type: "info",
-        message: `Opening converted plain text file instead of '${opts.path}...`
-      });
-      try {
-        const path: string = await callback(this.convert_docx_file, opts.path);
-        this.open_file({
-          path,
-          foreground: opts.foreground,
-          foreground_project: opts.foreground_project,
-          chat: opts.chat
-        });
-      } catch (err) {
-        alert_message({
-          type: "error",
-          message: `Error converting Microsoft docx file -- ${err}`
-        });
-      }
+      await this.open_word_document(opts);
       return;
     }
 
     if (!is_public) {
-      if (this.redux.hasActions("file_use")) {
-        // if the user is anonymous they don't have a file_use Actions (yet)
-        (this.redux.getActions("file_use") as any).mark_file(
-          this.project_id,
-          opts.path,
-          "open"
-        );
-      }
-      const event = {
-        event: "open",
-        action: "open",
-        filename: opts.path
-      };
-      const id = this.log(event);
-
-      // Save the log entry id, so it is possible to optionally
-      // record how long it took for the file to open.  This
-      // may happen via a call from random places in our codebase,
-      // since the idea of "finishing opening and rendering" is
-      // not simple to define.
-      if (id !== undefined) {
-        this._log_open_time[opts.path] = {
-          id,
-          start: misc.server_time()
-        };
-      }
-
-      // grab chat state from local storage
-      const { local_storage } = require("./editor");
-      if (local_storage != null) {
-        if (opts.chat == null) {
-          opts.chat = local_storage(this.project_id, opts.path, "is_chat_open");
-        }
-        if (opts.chat_width == null) {
-          opts.chat_width = local_storage(
-            this.project_id,
-            opts.path,
-            "chat_width"
-          );
-        }
-      }
-
-      if (misc.filename_extension(opts.path) === "sage-chat") {
-        opts.chat = false;
-      }
+      this.log_file_open(opts.path);
+      this.get_side_chat_state(opts);
     }
 
     let store = this.get_store();
     if (store == undefined) {
+      // e.g., the project got closed along the way...
       return;
     }
-    let open_files = store.get("open_files");
 
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes
-    let file_info = open_files.getIn([opts.path, "component"]) || {
+    let open_files = store.get("open_files");
+    const file_info = open_files.getIn([opts.path, "component"], {
       is_public: false
-    };
+    });
     if (!open_files.has(opts.path) || file_info.is_public !== is_public) {
       const was_public = file_info.is_public;
 
@@ -899,7 +929,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       open_files = open_files.setIn([opts.path, "component"], info);
       open_files = open_files.setIn([opts.path, "is_chat_open"], opts.chat);
       open_files = open_files.setIn([opts.path, "chat_width"], opts.chat_width);
-      let index = open_files_order.indexOf(opts.path);
+      let index : number = open_files_order.indexOf(opts.path);
       if (opts.chat) {
         require("./chat/register").init(
           misc.meta_file(opts.path, "chat"),
