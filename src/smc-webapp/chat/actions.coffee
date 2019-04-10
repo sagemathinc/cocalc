@@ -170,7 +170,7 @@ class ChatActions extends Actions
             @setState(saved_position:position, height:height, offset:offset)
 
     show: =>
-        if (not IS_MOBILE or isMobile.Android())
+        # if IS_MOBILE or isMobile.Android())
             # TODO: The chat is shown, but it might already have been mounted,
             # so we manually autofocus the input.
             # I haven't figured out how to do this, and it is NOT
