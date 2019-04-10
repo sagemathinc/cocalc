@@ -530,7 +530,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
-    // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
+  // removed : void return decl due to codemirror highlighting issue -- https://github.com/sagemathinc/cocalc/issues/3545
   _assert_is_leaf_id(id: string, caller: string) {
     if (!this._is_leaf_id(id)) {
       throw Error(`${caller} -- no leaf with id ${id}`);
@@ -1882,5 +1882,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // any launched terminals.
   get_term_env(): any {
     return undefined;
+  }
+
+  public async show(): Promise<void> {
+    if (this._cm == null) return;
+
+    await delay(0); // wait until next render loop
+    for (let id in this._cm) {
+      const cm: CodeMirror.Editor | undefined = this._cm[id];
+      if (cm != null) {
+        cm.refresh();
+      }
+    }
+    this.focus();
+  }
+
+  public hide(): void {
   }
 }

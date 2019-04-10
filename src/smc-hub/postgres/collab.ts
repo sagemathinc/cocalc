@@ -2,9 +2,9 @@
 
 import { PostgreSQL } from "./types";
 
-import { is_array, is_valid_uuid_string } from "smc-util/misc2";
+import { is_array, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { callback2 } from "smc-util/async-utils";
+import { callback2 } from "../smc-util/async-utils";
 
 export async function add_collaborators_to_projects(
   db: PostgreSQL,
