@@ -4,6 +4,8 @@ import { MentionRow } from "./mention-row";
 
 import { redux } from "../app-framework";
 
+const { ProjectTitleAuto } = require("../projects");
+
 const { Panel } = require("react-bootstrap");
 
 /*
@@ -38,13 +40,13 @@ export function NotificationList({ style }) {
   if (store == undefined) {
     return null;
   }
-  const account_id = redux.getStore("account").get("account_id");
   const mentions = store.get("mentions");
   if (mentions == undefined) {
     return null;
   }
+  const account_id = redux.getStore("account").get("account_id");
   let mentions_per_project: any = {};
-  let project_list: any = [];
+  let project_panels: any = [];
 
   mentions.map(notification => {
     const { path, project_id, source, target, time } = notification.toJS();
@@ -65,11 +67,13 @@ export function NotificationList({ style }) {
   });
 
   const entries = Object.entries(mentions_per_project);
-  for (const [project_id, rows] of entries) {
-    const project_title = redux.getStore("projects").get_title(project_id);
-    project_list.push(
-      <Panel key={project_id} header={<h3>{project_title}</h3>}>
-        <ul>{rows}</ul>
+  for (const [project_id, mention_rows] of entries) {
+    project_panels.push(
+      <Panel
+        key={project_id}
+        header={<ProjectTitleAuto project_id={project_id} />}
+      >
+        <ul>{mention_rows}</ul>
       </Panel>
     );
   }
@@ -79,7 +83,7 @@ export function NotificationList({ style }) {
       className={"smc-notificationlist"}
       style={Object.assign({}, notification_list_style, style)}
     >
-      {project_list}
+      {project_panels}
     </div>
   );
 }

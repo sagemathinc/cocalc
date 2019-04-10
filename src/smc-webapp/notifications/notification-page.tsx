@@ -16,10 +16,10 @@ const container_style: React.CSSProperties = {
 };
 
 const nav_style: React.CSSProperties = {
-  margin: "15px"
+  margin: "15px 15px 15px 0px"
 };
 
 const list_style: React.CSSProperties = {
   flex: "1",
-  margin: "15px"
+  margin: "15px 0px 15px 15px"
 };
