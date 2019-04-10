@@ -21,5 +21,5 @@ const nav_style: React.CSSProperties = {
 
 const list_style: React.CSSProperties = {
   flex: "1",
-  margin: "10px"
+  margin: "15px"
 };

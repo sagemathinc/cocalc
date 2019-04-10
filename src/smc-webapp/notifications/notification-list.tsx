@@ -66,8 +66,9 @@ export function NotificationList({ style }) {
 
   const entries = Object.entries(mentions_per_project);
   for (const [project_id, rows] of entries) {
+    const project_title = redux.getStore("projects").get_title(project_id);
     project_list.push(
-      <Panel key={project_id} header={`Project_title: ${project_id}`}>
+      <Panel key={project_id} header={<h3>{project_title}</h3>}>
         <ul>{rows}</ul>
       </Panel>
     );
