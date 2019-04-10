@@ -12,8 +12,7 @@ import { Available as AvailableFeatures } from "../project_configuration";
 const { jupyterlab_server_url } = require("../project/jupyterlab-server");
 const { jupyter_server_url } = require("../editor_jupyter");
 const { ButtonRetryUntilSuccess } = require("../widgets-misc/link-retry");
-
-const help_url = "https://doc.cocalc.com/software/custom.html";
+import { CUSTOM_SOFTWARE_HELP_URL as help_url } from "./util";
 
 const title_style: React.CSSProperties = Object.freeze({
   textOverflow: "ellipsis",

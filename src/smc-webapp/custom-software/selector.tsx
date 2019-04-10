@@ -1,10 +1,10 @@
 import { Component, React, Rendered } from "../app-framework";
-
 import { ComputeImages, ComputeImage, ComputeImageTypes } from "./init";
-
 const { SiteName, CompanyName, HelpEmailLink } = require("../customize");
-
 const { Markdown, SearchInput, Icon } = require("../r_misc");
+import { CUSTOM_SOFTWARE_HELP_URL } from "./util";
+
+const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
 const legacy: ComputeImageTypes = "legacy";
 const custom: ComputeImageTypes = "custom";
@@ -223,8 +223,9 @@ export class CustomSoftware extends Component<CSProps, CSState> {
             <a
               href={`${window.app_base_url}/doc/software.html`}
               target={"_blank"}
+              rel={"noopener"}
             >
-              More details...
+              More info...
             </a>
           </Radio>
 
@@ -240,10 +241,13 @@ export class CustomSoftware extends Component<CSProps, CSState> {
                 <em>beta</em>
               </sup>
               : 3rd party software environments, e.g.{" "}
-              <a href={"https://mybinder.org/"} target={"_blank"}>
+              <a href={BINDER_URL} target={"_blank"} rel={"noopener"}>
                 Binder
               </a>
-              .
+              .{" "}
+              <a href={CUSTOM_SOFTWARE_HELP_URL} target={"_blank"}>
+                More info...
+              </a>
             </Radio>
           ) : (
             "There are no customized software environments available."
