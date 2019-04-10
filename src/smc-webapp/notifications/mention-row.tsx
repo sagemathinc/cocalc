@@ -5,14 +5,6 @@ import { redux } from "../app-framework";
 const { Avatar } = require("../other-users");
 const { Icon, TimeAgo } = require("../r_misc");
 
-const row_style: React.CSSProperties = {
-  borderBottom: "1px solid rgb(221, 221, 221)",
-  cursor: "pointer",
-  flex: "1",
-  display: "flex",
-  padding: "6px 12px 5px 13px"
-};
-
 const avatar_wrapping_style: React.CSSProperties = {
   marginTop: "4px",
   marginRight: "5px"
@@ -41,7 +33,7 @@ export function MentionRow({
     redux.getProjectActions(project_id).open_file({ path: path, chat: true });
   };
   return (
-    <div style={row_style} onClick={click}>
+    <li onClick={click}>
       <div style={avatar_wrapping_style}>
         <Avatar account_id={account_id} />
       </div>
@@ -60,6 +52,6 @@ export function MentionRow({
         <Icon name={"ellipsis-h"} />
         <Icon name={"dot-circle"} />
       </div>
-    </div>
+    </li>
   );
 }

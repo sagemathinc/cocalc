@@ -4,6 +4,8 @@ import { MentionRow } from "./mention-row";
 
 import { redux } from "../app-framework";
 
+const { Panel } = require("react-bootstrap");
+
 /*
 
 type User = any; //todo
@@ -28,8 +30,7 @@ interface Props {
 const notification_list_style: React.CSSProperties = {
   height: "100%",
   width: "100%",
-  display: "flex",
-  flexDirection: "column"
+  padding: "0px"
 };
 
 export function NotificationList({ style }) {
@@ -42,12 +43,16 @@ export function NotificationList({ style }) {
   if (mentions == undefined) {
     return null;
   }
-  let list: any = [];
+  let mentions_per_project: any = {};
+  let project_list: any = [];
 
   mentions.map(notification => {
     const { path, project_id, source, target, time } = notification.toJS();
     if (target == account_id) {
-      list.push(
+      if (mentions_per_project[project_id] == undefined) {
+        mentions_per_project[project_id] = [];
+      }
+      mentions_per_project[project_id].push(
         <MentionRow
           key={path + time.getTime()}
           account_id={source}
@@ -59,7 +64,21 @@ export function NotificationList({ style }) {
     }
   });
 
+  const entries = Object.entries(mentions_per_project);
+  for (const [project_id, rows] of entries) {
+    project_list.push(
+      <Panel key={project_id} header={`Project_title: ${project_id}`}>
+        <ul>{rows}</ul>
+      </Panel>
+    );
+  }
+
   return (
-    <div style={Object.assign({}, notification_list_style, style)}>{list}</div>
+    <div
+      className={"smc-notificationlist"}
+      style={Object.assign({}, notification_list_style, style)}
+    >
+      {project_list}
+    </div>
   );
 }
