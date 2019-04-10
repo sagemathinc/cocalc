@@ -5,10 +5,16 @@ import { redux } from "../app-framework";
 const { Avatar } = require("../other-users");
 const { Icon, TimeAgo } = require("../r_misc");
 
-const row_style: React.CSSProperties = { flex: "1", display: "flex" };
+const row_style: React.CSSProperties = {
+  borderBottom: "1px solid rgb(221, 221, 221)",
+  cursor: "pointer",
+  flex: "1",
+  display: "flex",
+  padding: "6px 12px 5px 13px"
+};
 
 const avatar_wrapping_style: React.CSSProperties = {
-  marginTop: "5px",
+  marginTop: "4px",
   marginRight: "5px"
 };
 
