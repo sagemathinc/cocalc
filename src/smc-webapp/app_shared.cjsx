@@ -41,28 +41,37 @@ feature = require('./feature')
 # same as nav bar height?
 exports.announce_bar_offset = announce_bar_offset = 40
 
-exports.ActiveAppContent = ({active_top_tab, render_small}) ->
+exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
+    if open_projects?
+        v = []
+        open_projects.forEach (project_id) ->
+            project_name = redux.getProjectStore(project_id).name
+            if render_small
+                x = <MobileProjectPage name={project_name} project_id={project_id}/>
+            else
+                x = <ProjectPage name={project_name} project_id={project_id}/>
+            cls = 'smc-vfill'
+            if project_id != active_top_tab
+                cls += ' hide'
+            v.push(<div key={project_id} className={cls}>{x}</div>)
+
+
     switch active_top_tab
         when 'projects'
-            return <ProjectsPage />
+            v.push <ProjectsPage key={'projects'}/>
         when 'account'
-            return <AccountPage />
+            v.push <AccountPage key={'account'}/>
         when 'about'
-            return <HelpPage />
+            v.push <HelpPage key={'about'}/>
         when 'help'
-            return <div>To be implemented</div>
+            v.push <div key={'help'}>To be implemented</div>
         when 'file-use'
-            return <FileUsePage redux={redux} />
+            v.push <FileUsePage redux={redux} key={'file-use'}/>
         when 'admin'
-            return <AdminPage redux={redux} />
+            v.push <AdminPage redux={redux} key={'admin'}/>
         when undefined
-            return <div>Broken... active_top_tab is undefined</div>
-        else
-            project_name = redux.getProjectStore(active_top_tab).name
-            if render_small
-                <MobileProjectPage name={project_name} project_id={active_top_tab} />
-            else
-                <ProjectPage name={project_name} project_id={active_top_tab} />
+            v.push <div key={'broken'}>Broken... active_top_tab is undefined</div>
+    return v
 
 exports.NavTab = rclass
     displayName : "NavTab"

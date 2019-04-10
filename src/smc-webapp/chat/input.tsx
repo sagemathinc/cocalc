@@ -10,6 +10,7 @@ const { Avatar } = require("../other-users");
 const { IS_MOBILE, isMobile } = require("../feature");
 
 interface Props {
+  name:string;
   input: string;
   input_ref: any;
   input_style?: any; // Used to override defaults

@@ -7,6 +7,8 @@ immutable = require('immutable')
 
 {delay} = require('awaiting')
 
+{ IS_MOBILE, isMobile } = require("../feature")
+
 # Sibling Libraries
 
 class ChatActions extends Actions
@@ -166,5 +168,12 @@ class ChatActions extends Actions
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
+
+    show: =>
+        if (not IS_MOBILE or isMobile.Android())
+            # TODO: The chat is shown, but it might already have been mounted,
+            # so we manually autofocus the input.
+            # I haven't figured out how to do this, and it is NOT
+            # too important, so I'm going to give up for now.
 
 exports.ChatActions = ChatActions
