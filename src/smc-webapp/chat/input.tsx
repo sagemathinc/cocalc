@@ -1,8 +1,9 @@
 import * as React from "react";
 import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
-import { MentionsInput, Mention } from "react-mentions";
+const sha1 = require("sha1");
 
+import { MentionsInput, Mention } from "react-mentions";
 import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
 const { Space } = require("../r_misc");
@@ -10,7 +11,7 @@ const { Avatar } = require("../other-users");
 const { IS_MOBILE, isMobile } = require("../feature");
 
 interface Props {
-  name:string;
+  name: string;
   input: string;
   input_ref: any;
   input_style?: any; // Used to override defaults
@@ -169,8 +170,14 @@ export class ChatInput extends React.PureComponent<Props> {
       this.props.input_style ||
       this.input_style(this.props.font_size, this.props.height);
 
+    let id: string | undefined = undefined;
+    if (this.props.name) {
+      id = sha1(this.props.name);
+    }
+
     return (
       <MentionsInput
+        id={id}
         ref={this.mentions_input_ref}
         autoFocus={!IS_MOBILE || isMobile.Android()}
         displayTransform={(_, display) => "@" + display}

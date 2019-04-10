@@ -1,5 +1,6 @@
 # 3rd Party Libraries
 immutable = require('immutable')
+sha1 = require("sha1");
 
 # Internal Libraries
 {Actions} = require('../app-framework')
@@ -170,10 +171,11 @@ class ChatActions extends Actions
             @setState(saved_position:position, height:height, offset:offset)
 
     show: =>
-        # if IS_MOBILE or isMobile.Android())
+        if (not IS_MOBILE or isMobile.Android()) and @name
             # TODO: The chat is shown, but it might already have been mounted,
-            # so we manually autofocus the input.
-            # I haven't figured out how to do this, and it is NOT
-            # too important, so I'm going to give up for now.
+            # so we must manually autofocus the input box.
+            # We use sha1 for uniqueness of id and it being a simple string.
+            await delay(0)
+            $("#" + sha1(@name)).focus()
 
 exports.ChatActions = ChatActions
