@@ -5,7 +5,14 @@ import { ComputeImages } from "../custom-software/init";
 const misc = require("smc-util/misc");
 import * as misc2 from "smc-util/misc2";
 const { open_new_tab } = require("smc-webapp/misc_page");
-const { Icon, COLORS, Tip } = require("../r_misc");
+const {
+  Icon,
+  COLORS,
+  Tip,
+  HiddenXSSM,
+  VisibleMDLG,
+  VisibleXSSM
+} = require("../r_misc");
 const { ButtonGroup, Button } = require("react-bootstrap");
 import { Available as AvailableFeatures } from "../project_configuration";
 //const { ROW_INFO_STYLE } = require("../project_files");
@@ -50,7 +57,8 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     return (
       <Button onClick={onClick}>
         <Tip title={`Open '${path}'`} placement={"bottom"}>
-          <Icon name={"rocket"} /> {misc.trunc_middle(display_path, 40)}
+          <Icon name={"rocket"} />{" "}
+          <VisibleMDLG>{misc.trunc_middle(display_path, 40)}</VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -74,7 +82,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
               title={"Start the classical Jupyter server"}
               placement={"bottom"}
             >
-              <Icon name={"cc-icon-ipynb"} /> Jupyter
+              <Icon name={"cc-icon-ipynb"} /> <HiddenXSSM>Jupyter</HiddenXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
         ) : (
@@ -83,7 +91,9 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
         {have_jl ? (
           <ButtonRetryUntilSuccess get_href={href_jl}>
             <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
-              <Icon name={"cc-icon-ipynb"} /> JupyterLab
+              <Icon name={"cc-icon-ipynb"} />{" "}
+              <VisibleMDLG>JupyterLab</VisibleMDLG>
+              <VisibleXSSM>Lab</VisibleXSSM>
             </Tip>
           </ButtonRetryUntilSuccess>
         ) : (

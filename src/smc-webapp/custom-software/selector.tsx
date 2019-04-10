@@ -48,6 +48,14 @@ const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
   marginBottom: "0px"
 });
 
+const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
+  width: "100%",
+  margin: "2px 0px",
+  padding: "5px",
+  border: "none",
+  textAlign: "left" as "left"
+});
+
 export class CustomSoftware extends Component<CSProps, CSState> {
   constructor(props) {
     super(props);
@@ -64,13 +72,6 @@ export class CustomSoftware extends Component<CSProps, CSState> {
   };
 
   render_custom_image_entries() {
-    const item_style = {
-      width: "100%",
-      margin: "2px 0px",
-      padding: "5px",
-      border: "none",
-      textAlign: "left"
-    };
     if (this.props.images == null) return;
 
     const search_hit = (() => {
@@ -97,7 +98,7 @@ export class CustomSoftware extends Component<CSProps, CSState> {
             key={id}
             active={this.props.image_selected === id}
             onClick={() => this.select_image(id, display)}
-            style={item_style}
+            style={entries_item_style}
             bsSize={"small"}
           >
             {display}

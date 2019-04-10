@@ -42,7 +42,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {User} = require('./users')
 
 {HelpEmailLink}   = require('./customize')
@@ -57,7 +57,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {AddCollaboratorsPanel,CurrentCollaboratorsPanel} = require("./collaborators")
 
-{CUSTOM_IMG_PREFIX, compute_image2name} = require('./custom-software/util')
+{CUSTOM_IMG_PREFIX, CUSTOM_SOFTWARE_HELP_URL, compute_image2name, compute_image2basename} = require('./custom-software/util')
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -673,7 +673,9 @@ ProjectControlPanel = rclass
 
     reduxProps :
         customize :
-            kucalc : rtypes.string
+            kucalc        : rtypes.string
+        compute_images :
+            images        : rtypes.immutable.Map
 
     componentWillReceiveProps: (props) ->
         return if @state.compute_image_focused
@@ -860,18 +862,36 @@ ProjectControlPanel = rclass
         </Alert>
 
     render_custom_compute_image: ->
-        # for now, just tell what it is
         current_image = @props.project.get('compute_image')
         name = compute_image2name(current_image)
+        return null if not @props.images?
+        img_id = compute_image2basename(current_image)
+        img_data = @props.images.get(img_id)
+        if not img_data?
+            # this is quite unlikely, use ID as fallback
+            display = img_id
+        else
+            display = <Fragment>
+                        {img_data.get("display")}
+                        <div style={color:COLORS.GRAY, fontFamily: "monospace"}>
+                            ({name})
+                        </div>
+                      </Fragment>
 
         <div style={color:'#666'}>
-            <div style={fontSize : '12pt'}>
+            <div style={fontSize : '11pt'}>
                 <div>
                     <Icon name={'hdd'} /> Custom image:
                 </div>
-                <div style={color:COLORS.GRAY, fontFamily: "monospace"}>
-                    {name}
-                </div>
+                {display}
+                <Space/>
+                <span style={color:COLORS.GRAY, fontSize : '11pt'}>
+                    <br/> You cannot change a custom software image.{' '}
+                    Instead, create a new project and select it there.{' '}
+                    <a href={CUSTOM_SOFTWARE_HELP_URL} target={'_blank'} rel={'noopener'}>
+                        Learn more...
+                    </a>
+                </span>
             </div>
         </div>
 
