@@ -36,7 +36,7 @@ require('./redux_account')
 {Icon, Loading}                                   = require('./r_misc')
 {set_url}                                = require('./history')
 
-{NotificationList}                       = require('./notifications')
+{NotificationPage}                       = require('./notifications')
 
 ACCOUNT_SPEC =  # WARNING: these must ALL be comparable with == and != !!!!!
     account_id              : rtypes.string
@@ -176,7 +176,7 @@ exports.AccountPage = rclass
             {<SupportPage/> if @props.active_page == 'support'}
         </Tab>
         v.push <Tab key='notifications' eventKey="notifications" title={<span><Icon name='bell'/> Notifications</span>}>
-            {<NotificationList/> if @props.active_page == 'notifications'}
+            {<NotificationPage/> if @props.active_page == 'notifications'}
         </Tab>
         return v
 

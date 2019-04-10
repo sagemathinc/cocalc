@@ -26,7 +26,7 @@ const options_style: React.CSSProperties = {
   color: "#ccc"
 };
 
-export function NotificationRow({
+export function MentionRow({
   account_id,
   timestamp,
   path,

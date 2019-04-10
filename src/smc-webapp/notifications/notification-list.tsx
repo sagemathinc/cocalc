@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { NotificationRow } from "./notification-row";
+import { MentionRow } from "./mention-row";
 
 import { redux } from "../app-framework";
 
@@ -48,7 +48,7 @@ export function NotificationList() {
     const { path, project_id, source, target, time } = notification.toJS();
     if (true || target == account_id) {
       list.push(
-        <NotificationRow
+        <MentionRow
           key={path + time.getTime()}
           account_id={source}
           timestamp={time.getTime()}
