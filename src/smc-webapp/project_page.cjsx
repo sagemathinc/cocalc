@@ -255,12 +255,13 @@ ProjectContentViewer = rclass
     restore_scroll_position: ->
         saved_scroll = @props.opened_file?.get('component')?.scroll_position
         if saved_scroll?
-            $(@refs.editor_inner_container).children()[0].scrollTop = saved_scroll
+            $(@refs.editor_inner_container).children()[0]?.scrollTop = saved_scroll
 
     save_scroll_position: ->
         if @refs.editor_inner_container? and @props.save_scroll?
-            val = $(@refs.editor_inner_container).children()[0].scrollTop
-            @props.save_scroll(val)
+            val = $(@refs.editor_inner_container).children()[0]?.scrollTop
+            if val?
+                @props.save_scroll(val)
 
     # TRULY HORRIBLE: force an update soon
     update_soon: ->

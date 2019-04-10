@@ -42,8 +42,8 @@ feature = require('./feature')
 exports.announce_bar_offset = announce_bar_offset = 40
 
 exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
+    v = []
     if open_projects?
-        v = []
         open_projects.forEach (project_id) ->
             project_name = redux.getProjectStore(project_id).name
             if render_small
@@ -54,7 +54,15 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
             if project_id != active_top_tab
                 cls += ' hide'
             v.push(<div key={project_id} className={cls}>{x}</div>)
-
+    else  # open_projects not used (e.g., on mobile).
+        if active_top_tab?.length == 36
+            project_id = active_top_tab
+            project_name = redux.getProjectStore(project_id).name
+            if render_small
+                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id}/>
+            else
+                x = <ProjectPage key={project_id} name={project_name} project_id={project_id}/>
+            v.push(x)
 
     switch active_top_tab
         when 'projects'
