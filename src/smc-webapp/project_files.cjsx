@@ -48,7 +48,7 @@ underscore            = require('underscore')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
-{CustomSoftwareInfo}  = require('./custom-software/ui')
+{CustomSoftwareInfo}  = require('./custom-software/info-bar')
 
 # treat this as const/readonly.
 # the order of these buttons also determines the precedence of suggested file extensions
@@ -265,6 +265,7 @@ ProjectFilesActions = rclass
         images        : rtypes.immutable.Map
         actions       : rtypes.object.isRequired
         available_features  : rtypes.object
+        show_custom_software_reset : rtypes.bool
 
     getInitialState: ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
@@ -425,6 +426,12 @@ ProjectFilesActions = rclass
         else
             return @render_action_buttons()
 
+    render_custom_software_reset: ->
+        return null if not @props.show_custom_software_reset
+        <div style={flex: '1 0 auto'}>
+            Reset!
+        </div>
+
     render: ->
         <div style={flex: '1 0 auto'}>
             <div style={flex: '1 0 auto'}>
@@ -435,6 +442,7 @@ ProjectFilesActions = rclass
                     {@render_button_area()}
                 </ButtonToolbar>
             </div>
+            {@render_custom_software_reset()}
             <div style={flex: '1 0 auto'}>
                 {@render_currently_selected()}
             </div>
@@ -1562,6 +1570,7 @@ exports.ProjectFiles = rclass ({name}) ->
             configuration         : rtypes.immutable
             available_features    : rtypes.object
             file_listing_scroll_top: rtypes.number
+            show_custom_software_reset : rtypes.bool
 
     propTypes :
         project_id             : rtypes.string
@@ -1704,6 +1713,7 @@ exports.ProjectFiles = rclass ({name}) ->
             images        = {@props.images}
             actions       = {@props.actions}
             available_features = {@props.available_features}
+            show_custom_software_reset = {@props.show_custom_software_reset}
         />
 
     render_miniterm: ->

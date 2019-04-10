@@ -325,6 +325,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ activity: undefined });
   }
 
+  toggle_custom_software_reset(show: boolean): void {
+    this.setState({ show_custom_software_reset: show });
+  }
+
   toggle_panel(name: keyof ProjectStoreState, show?: boolean): void {
     if (show != null) {
       this.setState({ [name]: show });

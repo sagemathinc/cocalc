@@ -79,6 +79,7 @@ export interface ProjectStoreState {
   displayed_listing?: any; // computed(object),
   configuration?: ProjectConfiguration;
   available_features?: AvailableFeatures;
+  show_custom_software_reset: boolean;
 
   // Project Page
   active_project_tab: string;
@@ -219,6 +220,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       displayed_listing: undefined, // computed(object),
       show_masked: true,
       configuration: undefined,
+      show_custom_software_reset: false,
 
       // Project Page
       active_project_tab: "files",

@@ -1,7 +1,11 @@
 import { Component, React } from "../app-framework";
 import { Map as iMap } from "immutable";
-import { compute_image2basename, CUSTOM_IMG_PREFIX } from "./util";
-import { ComputeImages } from "../custom-software/init";
+import {
+  compute_image2basename,
+  CUSTOM_IMG_PREFIX,
+  CUSTOM_SOFTWARE_HELP_URL as help_url
+} from "./util";
+import { ComputeImages } from "./init";
 const misc = require("smc-util/misc");
 import * as misc2 from "smc-util/misc2";
 const { open_new_tab } = require("smc-webapp/misc_page");
@@ -19,7 +23,6 @@ import { Available as AvailableFeatures } from "../project_configuration";
 const { jupyterlab_server_url } = require("../project/jupyterlab-server");
 const { jupyter_server_url } = require("../editor_jupyter");
 const { ButtonRetryUntilSuccess } = require("../widgets-misc/link-retry");
-import { CUSTOM_SOFTWARE_HELP_URL as help_url } from "./util";
 
 const title_style: React.CSSProperties = Object.freeze({
   textOverflow: "ellipsis",
@@ -99,6 +102,12 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
         ) : (
           undefined
         )}
+
+        <Button
+          onClick={() => this.props.actions.toggle_custom_software_reset(true)}
+        >
+          <Icon name={"broom"} /> <VisibleMDLG>Reset...</VisibleMDLG>
+        </Button>
 
         <Button onClick={() => open_new_tab(help_url)}>
           <Icon name={"question-circle"} />
