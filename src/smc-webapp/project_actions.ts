@@ -6,11 +6,11 @@ import * as underscore from "underscore";
 import * as immutable from "immutable";
 import * as os_path from "path";
 
-import { to_user_string } from "smc-util/misc2";
+import { startswith, to_user_string } from "smc-util/misc2";
 
 import { query as client_query } from "./frame-editors/generic/client";
 
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
@@ -429,7 +429,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     if (
       prev_active_project_tab !== key &&
-      prev_active_project_tab.slice(0, "editor-".length) === "editor-"
+      startswith(prev_active_project_tab, "editor-")
     ) {
       this.hide_file(misc.tab_to_path(prev_active_project_tab));
     }
@@ -2890,6 +2890,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ project_log: undefined });
     store.init_table("project_log_all");
     this.remove_table("project_log");
+  }
+
+  // called when project page is shown
+  async show(): Promise<void> {
+    let store = this.get_store();
+    if (store == undefined) return; // project closed
+    const a = store.get("active_project_tab");
+    if (!startswith(a, "editor-")) return;
+    await delay(0);
+    this.show_file(misc.tab_to_path(a));
+  }
+
+  // called when project page is hidden
+  async hide(): Promise<void> {
+    let store = this.get_store();
+    if (store == undefined) return; // project closed
+    const a = store.get("active_project_tab");
+    if (!startswith(a, "editor-")) return;
+    this.hide_file(misc.tab_to_path(a));
   }
 }
 
