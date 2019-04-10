@@ -38,12 +38,9 @@ exports.register_file_editor = (opts) ->
         remove    : undefined
         icon      : 'file-o'
         save      : undefined # optional; If given, doing opts.save(path, redux, project_id) should save the document.
-        no_unmount: true      # optional: if True, editor might *not* be unmounted from DOM when tab not shown
 
     if typeof(opts.ext) == 'string'
         opts.ext = [opts.ext]
-
-    no_unmount_cache = {}    # clear that cache
 
     # Assign to the extension(s)
     for ext in opts.ext
@@ -57,16 +54,7 @@ exports.register_file_editor = (opts) ->
             init      : opts.init
             remove    : opts.remove
             save      : opts.save
-            no_unmount: opts.no_unmount
 
-
-no_unmount_cache = {}
-exports.no_unmount = (path, is_public) ->
-    key = "#{is_public}-#{path}"
-    a = no_unmount_cache[key]
-    if a?
-        return a
-    return no_unmount_cache[key] = get_ed(path, is_public)?.no_unmount ? false
 
 get_ed = (path, is_public) ->
     is_public = !!is_public

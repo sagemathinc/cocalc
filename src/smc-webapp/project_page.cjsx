@@ -520,18 +520,17 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
             if not path
                 return
             tab_name = 'editor-' + path
-            if @props.active_project_tab == tab_name or file_editors.no_unmount(path, group=='public')
-                v.push <ProjectContentViewer
-                    key             = {tab_name}
-                    is_visible      = {@props.active_project_tab == tab_name}
-                    project_id      = {@props.project_id}
-                    project_name    = {@props.name}
-                    active_tab_name = {tab_name}
-                    opened_file     = {@props.open_files.get(path)}
-                    file_path       = {path}
-                    group           = {group}
-                    save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
-                />
+            v.push <ProjectContentViewer
+                key             = {tab_name}
+                is_visible      = {@props.active_project_tab == tab_name}
+                project_id      = {@props.project_id}
+                project_name    = {@props.name}
+                active_tab_name = {tab_name}
+                opened_file     = {@props.open_files.get(path)}
+                file_path       = {path}
+                group           = {group}
+                save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
+            />
         return v
 
 

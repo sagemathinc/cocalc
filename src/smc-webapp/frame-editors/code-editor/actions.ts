@@ -1894,6 +1894,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         cm.refresh();
       }
     }
+    this.focus();
   }
 
   public hide(): void {
