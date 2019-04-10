@@ -32,7 +32,7 @@ const notification_list_style: React.CSSProperties = {
   flexDirection: "column"
 };
 
-export function NotificationList() {
+export function NotificationList({ style }) {
   const store = redux.getStore("mentions");
   if (store == undefined) {
     return null;
@@ -59,5 +59,7 @@ export function NotificationList() {
     }
   });
 
-  return <div style={notification_list_style}>{list}</div>;
+  return (
+    <div style={Object.assign({}, notification_list_style, style)}>{list}</div>
+  );
 }
