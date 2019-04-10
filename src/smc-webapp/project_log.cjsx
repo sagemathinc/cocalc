@@ -71,6 +71,7 @@ LogSearch = rclass
         e = @props.selected?.event
         if not e?
             return
+        e.stopPropagation()
         switch e.event
             when 'open'
                 target = e.filename

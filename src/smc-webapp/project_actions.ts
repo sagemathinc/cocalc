@@ -863,6 +863,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
+    let store = this.get_store();
+    if (store == undefined) {
+      // e.g., the project got closed along the way...
+      return;
+    }
+
+    let open_files = store.get("open_files");
+    if (!open_files.has(opts.path)) {
+      // Make the tab appear ASAP
+      open_files = open_files.setIn([opts.path, "component"], {});
+      this.setState({ open_files });
+    }
+
+    // Wait for the project to start opening
     try {
       await callback(this._ensure_project_is_open);
     } catch (err) {
@@ -887,8 +901,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const is_public = group === "public";
     const ext = misc.filename_extension_notilde(opts.path).toLowerCase();
+    const is_public = group === "public";
 
     if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
       await this.open_sagenb_worksheet(opts);
@@ -905,7 +919,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.get_side_chat_state(opts);
     }
 
-    let store = this.get_store();
+    store = this.get_store(); // because async stuff happened above.
     if (store == undefined) {
       // e.g., the project got closed along the way...
       return;
@@ -913,7 +927,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes
-    let open_files = store.get("open_files");
     const file_info = open_files.getIn([opts.path, "component"], {
       is_public: false
     });
@@ -1375,12 +1388,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     opts = defaults(opts, {
       path: store.get("current_path"),
-      finish_cb: undefined
+      cb: undefined
     }); // WARNING: THINK VERY HARD BEFORE YOU USE THIS
     // In the vast majority of cases, you just want to look at the data.
     // Very rarely should you need something to execute exactly after this
     let { path } = opts;
-    //if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.finish_cb)
+    //if DEBUG then console.log('ProjectStore::fetch_directory_listing, opts:', opts, opts.cb)
     if (path == null) {
       // nothing to do if path isn't defined -- there is no current path -- see https://github.com/sagemathinc/cocalc/issues/818
       return;
@@ -1390,11 +1403,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this._set_directory_files_lock = {};
     }
     const _key = `${path}`;
-    // this makes sure finish_cb is being called, even when there are concurrent requests
+    // this makes sure cb is being called, even when there are concurrent requests
     if (this._set_directory_files_lock[_key] != null) {
       // currently doing it already
-      if (opts.finish_cb != null) {
-        this._set_directory_files_lock[_key].push(opts.finish_cb);
+      if (opts.cb != null) {
+        this._set_directory_files_lock[_key].push(opts.cb);
       }
       //if DEBUG then console.log('ProjectStore::fetch_directory_listing aborting:', _key, opts)
       return;
@@ -1487,9 +1500,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             cb();
           }
         }
-        //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.finish_cb)
-        if (opts.finish_cb !== undefined) {
-          opts.finish_cb();
+        //if DEBUG then console.log('ProjectStore::fetch_directory_listing cb', opts, opts.cb)
+        if (opts.cb !== undefined) {
+          opts.cb();
         }
       }
     );
@@ -2771,107 +2784,80 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //  log
   //  settings
   //  search
-  load_target(
+  async load_target(
     target,
     foreground = true,
     ignore_kiosk = false,
     change_history = true
-  ) {
+  ): Promise<void> {
     const segments = target.split("/");
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    //if DEBUG then console.log("ProjectStore::load_target args:", segments, full_path, parent_path, last, foreground, ignore_kiosk)
     switch (segments[0]) {
       case "files":
         if (target[target.length - 1] === "/" || full_path === "") {
           //if DEBUG then console.log("ProjectStore::load_target → open_directory", parent_path)
-          return this.open_directory(parent_path, change_history);
-        } else {
-          // TODOJ: Change when directory listing is synchronized. Just have to query client state then.
-          // Assume that if it's loaded, it's good enough.
-          return async.waterfall(
-            [
-              cb => {
-                let store = this.get_store();
-                if (store == undefined) {
-                  return cb("no store");
-                } else {
-                  const { item, err } = store.get_item_in_path(
-                    last,
-                    parent_path
-                  );
-                  //if DEBUG then console.log("ProjectStore::load_target → waterfall1", item, err)
-                  return cb(err, item);
-                }
-              },
-              (item, cb) => {
-                // Fetch if error or nothing found
-                if (item == null) {
-                  //if DEBUG then console.log("ProjectStore::load_target → fetch_directory_listing", parent_path)
-                  return this.fetch_directory_listing({
-                    path: parent_path,
-                    finish_cb: () => {
-                      let store = this.get_store();
-                      if (store == undefined) {
-                        return cb("no store");
-                      } else {
-                        let err;
-                        ({ item, err } = store.get_item_in_path(
-                          last,
-                          parent_path
-                        ));
-                        //if DEBUG then console.log("ProjectStore::load_target → waterfall2/1", item, err)
-                        return cb(err, item);
-                      }
-                    }
-                  });
-                } else {
-                  //if DEBUG then console.log("ProjectStore::load_target → waterfall2/2", item)
-                  return cb(undefined, item);
-                }
-              }
-            ],
-            (err, item) => {
-              if (err != null) {
-                if (err === "timeout") {
-                  alert_message({
-                    type: "error",
-                    message: `Timeout opening '${target}' -- try later`
-                  });
-                } else {
-                  alert_message({
-                    type: "error",
-                    message: `Error opening '${target}': ${err}`
-                  });
-                }
-              }
-              if (item != null ? item.get("isdir") : undefined) {
-                this.open_directory(full_path, change_history);
-              } else {
-                //if DEBUG then console.log("ProjectStore::load_target → open_file", full_path, foreground, ignore_kiosk)
-                this.open_file({
-                  path: full_path,
-                  foreground,
-                  foreground_project: foreground,
-                  ignore_kiosk,
-                  change_history
-                });
-              }
-            }
-          );
+          this.open_directory(parent_path, change_history);
+          return;
         }
+        let store = this.get_store();
+        if (store == undefined) {
+          return; // project closed already
+        }
+        let { item, err } = store.get_item_in_path(last, parent_path);
+        if (item == null || err) {
+          // Fetch again if error or nothing found
+          try {
+            await callback2(this.fetch_directory_listing, {
+              path: parent_path
+            });
+            let store = this.get_store();
+            if (store == undefined) {
+              // project closed
+              return;
+            }
+            const x = store.get_item_in_path(last, parent_path);
+            if (x.err) throw Error(x.err);
+            if (x.item == null) {
+              item = immutable.Map(); // creating file
+            } else {
+              item = x.item;
+            }
+          } catch (err) {
+            alert_message({
+              type: "error",
+              message: `Error opening '${target}': ${err}`
+            });
+            return;
+          }
+        }
+        if (item.get("isdir")) {
+          this.open_directory(full_path, change_history);
+        } else {
+          this.open_file({
+            path: full_path,
+            foreground,
+            foreground_project: foreground,
+            ignore_kiosk,
+            change_history
+          });
+        }
+        break;
 
       case "new": // ignore foreground for these and below, since would be nonsense
         this.set_current_path(full_path);
         this.set_active_tab("new", { change_history: change_history });
         break;
+
       case "log":
         this.set_active_tab("log", { change_history: change_history });
         break;
+
       case "settings":
         this.set_active_tab("settings", { change_history: change_history });
         break;
+
       case "search":
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });

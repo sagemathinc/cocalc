@@ -29,6 +29,7 @@ feature = require('./feature')
 # 3rd party Libraries
 {Button, Nav, NavItem, NavDropdown, MenuItem, Alert, Col, Row} = require('react-bootstrap')
 {SortableContainer, SortableElement} = require('react-sortable-hoc')
+{delay} = require('awaiting')
 
 Draggable = require('react-draggable')
 
@@ -234,10 +235,15 @@ ProjectContentViewer = rclass
         group           : rtypes.string
         save_scroll     : rtypes.func
 
+    getInitialState: -> # just for forcing updates sometimes
+        counter : 0
+
     componentDidMount: ->
+        @mounted = true
         @restore_scroll_position()
 
     componentWillUnmount: ->
+        @mounted = false
         @save_scroll_position()
 
     componentDidUpdate: ->
@@ -256,11 +262,26 @@ ProjectContentViewer = rclass
             val = $(@refs.editor_inner_container).children()[0].scrollTop
             @props.save_scroll(val)
 
+    # TRULY HORRIBLE: force an update soon
+    update_soon: ->
+        await delay(500)
+        if @mounted
+            # -- sometimes the Editor getting
+            # defined doesn't result in this component updating,
+            # which is HORRIBLE for users, since they don't know
+            # what is going on and stare at the Loading spinner
+            # for a long time... For now, let's force that update to
+            # happen.   Revisit this when rewriting this file
+            # in typescript.
+            @setState(counter : @state.counter+1)
+
     render_editor: (path) ->
         {Editor, redux_name} = @props.opened_file.get('component') ? {}
         if redux_name?
             editor_actions = redux.getActions(redux_name)
         if not Editor?
+            if @props.is_visible
+                @update_soon()
             <Loading theme={"medium"} />
         else
             <div
