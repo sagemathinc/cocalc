@@ -16,16 +16,21 @@ interface Register {
     | string[] /* the filename extension or extentions that this editor should handle. */;
   component: any /* the renderable react component used for this editor */;
   Actions: any /* the class that defines the actions. */;
+  no_unmount?:boolean;
 }
 
 export function register_file_editor(opts: Register) {
+  if (opts.no_unmount == null) {
+    opts.no_unmount = true; // default is true now -- it mostly works.
+  }
   for (let is_public of [true, false]) {
-    register(opts.icon, opts.ext, opts.component, opts.Actions, is_public);
+    register(opts.icon, opts.ext, opts.component, opts.Actions, is_public, opts.no_unmount);
   }
 }
 
-function register(icon, ext, component, Actions, is_public) {
+function register(icon, ext, component, Actions, is_public, no_unmount) {
   general_register_file_editor({
+    no_unmount,
     icon,
     ext,
     is_public,

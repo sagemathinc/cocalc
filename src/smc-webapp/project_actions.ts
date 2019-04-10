@@ -1,4 +1,4 @@
-// TODO: we should refactor our code to now have these window/document/$ references here.
+// TODO: we should refactor our code to not have these window/document/$ references here.
 declare var window, document, $;
 
 import * as async from "async";
@@ -372,7 +372,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Closes a file tab
   // Also closes file references.
   // path not always defined, see #3440
-  close_tab(path: string | undefined): void {
+  public close_tab(path: string | undefined): void {
     if (path == null) return;
     let store = this.get_store();
     if (store == undefined) {
@@ -413,7 +413,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   //            or a file_redux_name
   // Pushes to browser history
   // Updates the URL
-  set_active_tab(
+  public set_active_tab(
     key: string,
     opts: { update_file_listing?: boolean; change_history?: boolean } = {
       update_file_listing: true,
@@ -421,14 +421,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   ): void {
     let store = this.get_store();
-    if (
-      store == undefined ||
-      (!opts.change_history && store.get("active_project_tab") === key)
-    ) {
-      // nothing to do
+    if (store == undefined) return; // project closed
+    const prev_active_project_tab = store.get("active_project_tab");
+    if (!opts.change_history && prev_active_project_tab === key) {
+      // already active -- nothing further to do
       return;
     }
-    this.setState({ active_project_tab: key });
+    if (
+      prev_active_project_tab !== key &&
+      prev_active_project_tab.slice(0, "editor-".length) === "editor-"
+    ) {
+      this.hide_file(misc.tab_to_path(prev_active_project_tab));
+    }
+
+    const change: any = { active_project_tab: key };
     switch (key) {
       case "files":
         if (opts.change_history) {
@@ -441,7 +447,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         break;
       case "new":
-        this.setState({ file_creation_error: undefined });
+        change.file_creation_error = undefined;
         if (opts.change_history) {
           this.push_state(`new/${store.get("current_path")}`);
         }
@@ -464,7 +470,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         break;
       default:
         // editor...
-        var path = misc.tab_to_path(key);
+        const path = misc.tab_to_path(key);
         if (this.redux.hasActions("file_use")) {
           (this.redux.getActions("file_use") as any).mark_file(
             this.project_id,
@@ -478,15 +484,35 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_current_path(misc.path_split(path).head);
 
         // Reopen the file if relationship has changed
-        var is_public =
+        const is_public =
           (redux.getStore("projects") as any).get_my_group(this.project_id) ===
           "public";
-        var was_public = store.get("open_files").getIn([path, "component"])
-          .is_public;
+
+        const info = store.get("open_files").getIn([path, "component"]);
+        if (info == null) {
+          // shouldn't happen...
+          return;
+        }
+        const was_public = info.is_public;
         if (is_public !== was_public) {
+          // re-open the file, which will "fix" the public state to be right.
           this.open_file({ path });
         }
+
+        // Finally, ensure that the react/redux stuff is initialized, so
+        // the component will be rendered.
+        if (info.redux_name == null || info.Editor == null) {
+          const { name, Editor } = this.init_file_react_redux(path, is_public);
+          info.redux_name = name;
+          info.Editor = Editor;
+          let open_files = store.get("open_files");
+          open_files = open_files.setIn([path, "component"], info);
+          change.open_files = open_files;
+        }
+
+        this.show_file(path);
     }
+    this.setState(change);
   }
 
   add_a_ghost_file_tab(): void {
@@ -676,7 +702,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (!projects_store) {
           throw Error("projects store not defined");
         }
-        const group : string | undefined = projects_store.get_my_group(this.project_id);
+        const group: string | undefined = projects_store.get_my_group(
+          this.project_id
+        );
         if (group) {
           return group;
         } else {
@@ -901,35 +929,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       const open_files_order = store.get("open_files_order");
 
-      // Initialize the file's store and actions
-      const name = project_file.initialize(
-        opts.path,
-        this.redux,
-        this.project_id,
-        is_public
-      );
-
-      // Make the Editor react component
-      const Editor = project_file.generate(
-        opts.path,
-        this.redux,
-        this.project_id,
-        is_public
-      );
-
       // Add it to open files
-      // IMPORTANT: info can't be a full immutable.js object, since Editor can't
-      // be converted to immutable,
-      // so don't try to do that.  Of course info could be an immutable map.
-      const info = {
-        redux_name: name,
-        is_public,
-        Editor
-      };
+      // IMPORTANT: info can't be a full immutable.js object, since Editor will
+      // get stored in it later, and Editor can't be converted to immutable,
+      // so don't try to do that!
+      const info = { is_public };
       open_files = open_files.setIn([opts.path, "component"], info);
       open_files = open_files.setIn([opts.path, "is_chat_open"], opts.chat);
       open_files = open_files.setIn([opts.path, "chat_width"], opts.chat_width);
-      let index : number = open_files_order.indexOf(opts.path);
+      let index: number = open_files_order.indexOf(opts.path);
       if (opts.chat) {
         require("./chat/register").init(
           misc.meta_file(opts.path, "chat"),
@@ -957,6 +965,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  /* Initialize the redux store and react component for editing
+     a particular file.
+  */
+  private init_file_react_redux(
+    path: string,
+    is_public: boolean
+  ): { name: string; Editor: any } {
+    // Initialize the file's store and actions
+    const name = project_file.initialize(
+      path,
+      this.redux,
+      this.project_id,
+      is_public
+    );
+
+    // Make the Editor react component
+    const Editor = project_file.generate(
+      path,
+      this.redux,
+      this.project_id,
+      is_public
+    );
+
+    return { name, Editor };
+  }
+
   get_scroll_saver_for(path: string) {
     if (path != null) {
       return scroll_position => {
@@ -977,18 +1011,49 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  // If the given path is open, and editor supports going to line, moves to the given line.
+  // If the given path is open, and editor supports going to line,
+  // moves to the given line.
   // Otherwise, does nothing.
-  goto_line(path, line): void {
+  public goto_line(path, line): void {
     const a: any = redux.getEditorActions(this.project_id, path);
     if (a == null) {
       // try non-react editor
-      let editor = wrapped_editors.get_editor(this.project_id, path);
-      return editor ? editor.programmatical_goto_line(line) : undefined;
+      const editor = wrapped_editors.get_editor(this.project_id, path);
+      if (
+        editor != null &&
+        typeof editor.programmatical_goto_line === "function"
+      ) {
+        editor.programmatical_goto_line(line);
+      }
     } else {
-      return typeof a.programmatical_goto_line === "function"
-        ? a.programmatical_goto_line(line)
-        : undefined;
+      if (typeof a.programmatical_goto_line === "function") {
+        a.programmatical_goto_line(line);
+      }
+    }
+  }
+
+  // Called when a file tab is shown.
+  private show_file(path): void {
+    const a: any = redux.getEditorActions(this.project_id, path);
+    if (a == null) {
+      // try non-react editor
+      const editor = wrapped_editors.get_editor(this.project_id, path);
+      if (editor != null) editor.show();
+    } else {
+      if (typeof a.show === "function") a.show();
+    }
+  }
+
+  // Called when a file tab is put in the background due to
+  // another tab being made active.
+  private hide_file(path): void {
+    const a: any = redux.getEditorActions(this.project_id, path);
+    if (a == null) {
+      // try non-react editor
+      const editor = wrapped_editors.get_editor(this.project_id, path);
+      if (editor != null) editor.hide();
+    } else {
+      if (typeof a.hide === "function") a.hide();
     }
   }
 
@@ -1638,7 +1703,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     switch (action) {
       case "move":
-        var checked_files = store.get("checked_files").toArray();
+        const checked_files = store.get("checked_files").toArray();
         (this.redux.getActions("projects") as any).fetch_directory_tree(
           this.project_id,
           { exclusions: checked_files }

@@ -105,7 +105,6 @@ FreeProjectWarning = rclass ({name}) ->
             @props.project_map?.get(@props.project_id)    != next.project_map?.get(@props.project_id) or \
             @props.other_settings?.get('no_free_warnings') != next.other_settings?.get('no_free_warnings')
 
-
     extra: (host, internet) ->
         {PolicyPricingPageUrl} = require('./customize')
         if not @props.free_warning_extra_shown
@@ -262,7 +261,7 @@ ProjectContentViewer = rclass
         if redux_name?
             editor_actions = redux.getActions(redux_name)
         if not Editor?
-            <Loading />
+            <Loading theme={"medium"} />
         else
             <div
                 ref       = {'editor_inner_container'}
@@ -528,7 +527,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                     project_id      = {@props.project_id}
                     project_name    = {@props.name}
                     active_tab_name = {tab_name}
-                    opened_file     = {@props.open_files.getIn([path])}
+                    opened_file     = {@props.open_files.get(path)}
                     file_path       = {path}
                     group           = {group}
                     save_scroll     = {@actions(name).get_scroll_saver_for(tab_name)}
@@ -545,7 +544,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
                 project_id      = {@props.project_id}
                 project_name    = {@props.name}
                 active_tab_name = {@props.active_project_tab}
-                opened_file     = {@props.open_files.getIn([active_path])}
+                opened_file     = {@props.open_files.get(active_path)}
                 file_path       = {active_path}
                 group           = {group}
                 save_scroll     = {@actions(name).get_scroll_saver_for(active_path)}

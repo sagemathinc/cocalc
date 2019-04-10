@@ -3391,6 +3391,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       editor_settings: { ask_jupyter_kernel: !dont_ask }
     });
   };
+
+  async show() : Promise<void> {
+    // called when tab is shown -- we refresh all
+    // input codemirrors
+    if (this._input_editors == null) return;
+
+    await awaiting.delay(0); // wait until next render loop
+    for (let id in this._input_editors) {
+      const editor = this._input_editors[id];
+      if (editor != null) {
+        editor.refresh();
+      }
+    }
+  }
 }
 
 function __guard__(value: any, transform: any) {

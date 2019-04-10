@@ -38,7 +38,7 @@ exports.register_file_editor = (opts) ->
         remove    : undefined
         icon      : 'file-o'
         save      : undefined # optional; If given, doing opts.save(path, redux, project_id) should save the document.
-        no_unmount: false     # optional: if True, editor might not be unmounted from DOM when tab not shown (hence faster!)
+        no_unmount: true      # optional: if True, editor might *not* be unmounted from DOM when tab not shown
 
     if typeof(opts.ext) == 'string'
         opts.ext = [opts.ext]

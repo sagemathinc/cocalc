@@ -19,6 +19,8 @@ import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 
 export function register() {
   return register_file_editor({
+    no_unmount: true,
+
     ext: ["ipynb"],
 
     is_public: false,
