@@ -46,7 +46,7 @@ export function NotificationList({ style }) {
 
   mentions.map(notification => {
     const { path, project_id, source, target, time } = notification.toJS();
-    if (true || target == account_id) {
+    if (target == account_id) {
       list.push(
         <MentionRow
           key={path + time.getTime()}
