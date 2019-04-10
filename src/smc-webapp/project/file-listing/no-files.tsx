@@ -1,5 +1,5 @@
 import * as React from "react";
-
+import { Rendered } from "../../app-framework";
 import { analytics_event } from "../../tracker";
 import { Icon } from "../../r_misc/icon";
 import { ProjectActions } from "../../project_actions";
@@ -59,7 +59,7 @@ export class NoFiles extends React.PureComponent<Props> {
     }
   };
 
-  render_create_button(actual_new_filename: string) {
+  render_create_button(actual_new_filename: string): Rendered {
     let button_text: string;
 
     if (this.props.file_search.length === 0) {
@@ -90,11 +90,14 @@ export class NoFiles extends React.PureComponent<Props> {
   }
 
   render() {
-    if (this.props.configuration_main == null) return;
+    if (this.props.configuration_main == null) return null;
     const actual_new_filename =
       this.props.file_search.length === 0
         ? ""
-        : full_path_text(this.props.file_search, this.props.configuration_main.disabled_ext);
+        : full_path_text(
+            this.props.file_search,
+            this.props.configuration_main.disabled_ext
+          );
     return (
       <Row style={row_style}>
         <Col md={12} mdOffset={0} lg={8} lgOffset={2}>

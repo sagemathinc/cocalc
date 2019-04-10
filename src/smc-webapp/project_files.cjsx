@@ -35,9 +35,6 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
 {compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./custom-software/util')
-{ ButtonRetryUntilSuccess } = require("./widgets-misc/link-retry")
-{jupyterlab_server_url} = require('./project/jupyterlab-server')
-{ jupyter_server_url } = require("./editor_jupyter")
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -51,6 +48,7 @@ underscore            = require('underscore')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
+{CustomSoftwareInfo}  = require('./custom-software/ui')
 
 # treat this as const/readonly.
 # the order of these buttons also determines the precedence of suggested file extensions
@@ -76,94 +74,6 @@ Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the co
 pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
-
-ProjectInfo = rclass
-    displayName  : 'ProjectFiles-ProjectInfo'
-
-    propTypes :
-        project_id            : rtypes.string
-        images                : rtypes.immutable.Map
-        project_map           : rtypes.immutable.Map
-        actions               : rtypes.object.isRequired
-        available_features    : rtypes.object
-
-    render_path: (path) ->
-        return null if path.length is 0
-        if path.endsWith('/')
-            onClick = =>@props.actions.open_directory(path)
-        else
-            onClick = =>@props.actions.open_file(path:path)
-        display_path = misc2.path_split(path).tail
-        <Button
-             onClick={onClick}
-        >
-            <Tip title={"Opens '#{display_path}'"} placement={"bottom"}>
-                <Icon name={'rocket'} /> {misc.trunc_middle(display_path, 40)}
-            </Tip>
-        </Button>
-
-    render_notebooks: ->
-        return null if not @props.available_features?
-
-        href_jl = => await jupyterlab_server_url(@props.project_id)
-        href_jc = => await jupyter_server_url(@props.project_id)
-
-        have_jl = @props.available_features.jupyter_lab ? false
-        have_jc = @props.available_features.jupyter_notebook ? false
-
-        <Fragment>
-            {<ButtonRetryUntilSuccess get_href={href_jc}>
-                <Tip title={"Start the classical Jupyter server"} placement={"bottom"}>
-                    <Icon name={"cc-icon-ipynb"} /> Jupyter
-                </Tip>
-            </ButtonRetryUntilSuccess> if have_jc}
-            {<ButtonRetryUntilSuccess get_href={href_jl}>
-                <Tip title={"Start Jupyter Lab server"} placement={"bottom"}>
-                    <Icon name={"cc-icon-ipynb"} /> JupyterLab
-                </Tip>
-            </ButtonRetryUntilSuccess> if have_jl}
-        </Fragment>
-
-    img_info: (img) ->
-        disp = img.get("display", "")
-        id = img.get("id", "")
-        return "#{disp} (#{id})"
-
-    render: ->
-        ci = @props.project_map?.getIn([@props.project_id, 'compute_image'])
-        return null if not ci?
-        return null if not ci.startsWith(CUSTOM_IMG_PREFIX)
-        img = @props.images?.get(compute_image2basename(ci))
-        return null if not img?
-        path = img.get("path", "")
-
-        style = Object.assign({}, ROW_INFO_STYLE,
-            paddingLeft: '10px'
-            display: 'inline-flex'
-            color: COLORS.GRAY_D
-        )
-
-        title_style =
-            textOverflow: "ellipsis"
-            whiteSpace: "nowrap"
-            overflow: "hidden"
-            paddingLeft: '10px'
-            margin: '5px 10px'
-            color: COLORS.GRAY
-
-        ci_name = compute_image2name(ci)
-
-        <Fragment>
-            <ButtonGroup bsSize={'small'} style={whiteSpace:'nowrap'}>
-                {@render_path(path)}
-                {@render_notebooks()}
-            </ButtonGroup>
-            <div style={title_style}>
-                <Tip title={@img_info(img)} placement={'bottom'}>
-                    {misc2.trunc(img.get("display", ""), 100)}
-                </Tip>
-            </div>
-        </Fragment>
 
 
 # One segment of the directory links at the top of the files listing.
@@ -505,7 +415,7 @@ ProjectFilesActions = rclass
 
     render_button_area: ->
         if @props.checked_files.size is 0
-            return <ProjectInfo
+            return <CustomSoftwareInfo
                         project_id = {@props.project_id}
                         images = {@props.images}
                         project_map = {@props.project_map}
