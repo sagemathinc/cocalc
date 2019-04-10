@@ -378,9 +378,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   enable_key_handler = () => {
-    if (this._state === "closed") {
-      return;
-    }
+    if (this._state === "closed") return;
     if (this._key_handler == null) {
       this._key_handler = keyboard.create_key_handler(this);
     }
@@ -3393,17 +3391,22 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   async show() : Promise<void> {
-    // called when tab is shown -- we refresh all
-    // input codemirrors
-    if (this._input_editors == null) return;
-
+    // called when tab is shown
+    // refresh all input codemirrors (after they appear)
     await awaiting.delay(0); // wait until next render loop
+    this.focus();
+    if (this._state === "closed") return;
+    if (this._input_editors == null) return;
     for (let id in this._input_editors) {
       const editor = this._input_editors[id];
       if (editor != null) {
         editor.refresh();
       }
     }
+  }
+
+  hide() : void {
+    this.blur();
   }
 }
 
