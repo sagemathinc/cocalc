@@ -54,7 +54,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   if (connections[project_id] !== undefined) {
     return connections[project_id];
   }
-  console.log(`project websocket: connecting to ${project_id}...`);
+  //console.log(`project websocket: connecting to ${project_id}...`);
   const window0: any = (global as any).window as any; // global part is so this also compiles on node.js.
   const url: string = `${
     window0.app_base_url
@@ -147,9 +147,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
     if (conn.state == state) {
       return; // nothing changed, so no need to set or emit.
     }
-    console.log(
-      `project websocket: state='${state}', project_id='${project_id}'`
-    );
+    //console.log(
+    //  `project websocket: state='${state}', project_id='${project_id}'`
+    //);
     conn.state = state;
     conn.emit("state", state);
     set_project_websocket_state(project_id, state);
@@ -176,7 +176,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
   });
 
   conn.on("reconnect", async function() {
-    console.log(`project websocket: reconnecting to '${project_id}'...`);
+    //console.log(`project websocket: reconnecting to '${project_id}'...`);
     update_state("offline");
   });
 
@@ -186,7 +186,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
 export const connection_to_project = reuseInFlight(connection_to_project0);
 
 export function disconnect_from_project(project_id: string): void {
-  console.log(`conn ${project_id} -- disconnect`);
+  //console.log(`conn ${project_id} -- disconnect`);
   const conn = connections[project_id];
   if (conn === undefined) {
     return;

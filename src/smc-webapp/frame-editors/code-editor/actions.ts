@@ -1899,4 +1899,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   get_term_env(): any {
     return undefined;
   }
+
+  public async show(): Promise<void> {
+    if (this._cm == null) return;
+
+    await delay(0); // wait until next render loop
+    for (let id in this._cm) {
+      const cm: CodeMirror.Editor | undefined = this._cm[id];
+      if (cm != null) {
+        cm.refresh();
+      }
+    }
+    this.focus();
+  }
+
+  public hide(): void {
+  }
 }

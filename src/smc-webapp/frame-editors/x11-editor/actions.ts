@@ -18,7 +18,7 @@ import { project_api } from "../generic/client";
 const copypaste = require("smc-webapp/copy-paste-buffer");
 
 import { reuseInFlight } from "async-await-utils/hof";
-import { callback } from "awaiting";
+import { callback, delay } from "awaiting";
 
 import {
   X11Configuration,
@@ -645,5 +645,18 @@ export class Actions extends BaseActions<X11EditorState> {
 
   help(): void {
     open_new_tab(HELP_URL);
+  }
+
+  public hide() : void {
+    // This is called when the X11 editor tab is hidden.
+    // In this case, we disable the keyboard handler.
+    this.blur();
+  }
+
+  public async show(): Promise<void> {
+    // Called when x11 editor tab is made active.
+    await delay(0);
+    this.focus();
+    super.show();
   }
 }
