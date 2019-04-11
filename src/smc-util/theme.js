@@ -59,6 +59,7 @@ const COLORS = {
     BLUE     : '#6690D2',
     BLUE_L   : '#80afff',
     BLUE_LL  : '#94B3E5',
+    BLUE_DOC : '#4375c1',  // the blue used in the documentation
     BRWN     : '#593E05',
     YELL_D   : '#bf7b00',
     YELL_L   : '#fbb635',

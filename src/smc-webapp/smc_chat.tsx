@@ -21,7 +21,7 @@
 
 // standard non-CoCalc libraries
 import * as immutable from "immutable";
-const { IS_MOBILE, IS_TOUCH, isMobile } = require("./feature");
+const { IS_MOBILE, IS_TOUCH } = require("./feature");
 import { debounce } from "underscore";
 
 // CoCalc libraries
@@ -30,6 +30,12 @@ const misc = require("smc-util/misc");
 const misc_page = require("./misc_page");
 
 import { SaveButton } from "./frame-editors/frame-tree/save-button";
+
+import { ChatInput } from "./chat/input";
+
+import { compute_cursor_offset_position } from "./chat/utils";
+
+import { MentionList } from "./chat/store";
 
 // React libraries
 import { React, ReactDOM, Component, rclass, rtypes } from "./app-framework";
@@ -58,7 +64,6 @@ const {
   render_history_title,
   render_history_footer,
   render_history,
-  send_chat,
   is_at_bottom,
   scroll_to_bottom,
   scroll_to_position
@@ -416,6 +421,11 @@ export class Message extends Component<MessageProps, MessageState> {
     let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(this.props.message);
 
+    const is_viewers_message = sender_is_viewer(
+      this.props.account_id,
+      this.props.message
+    );
+
     const {
       background,
       color,
@@ -437,10 +447,7 @@ export class Message extends Component<MessageProps, MessageState> {
       marginBottom = "3px";
     }
 
-    if (
-      !this.props.is_prev_sender &&
-      sender_is_viewer(this.props.account_id, this.props.message)
-    ) {
+    if (!this.props.is_prev_sender && is_viewers_message) {
       marginTop = "17px";
     }
 
@@ -468,8 +475,7 @@ export class Message extends Component<MessageProps, MessageState> {
 
     return (
       <Col key={1} xs={10} sm={9}>
-        {!this.props.is_prev_sender &&
-        !sender_is_viewer(this.props.account_id, this.props.message)
+        {!this.props.is_prev_sender && !is_viewers_message
           ? show_user_name(this.props.sender_name)
           : undefined}
         <Well
@@ -753,12 +759,14 @@ interface ChatRoomReduxProps {
   use_saved_position: boolean;
   search: string;
   user_map?: any;
+  project_map: any;
   account_id: string;
-  font_size?: number;
+  font_size: number;
   file_use?: any;
   is_saving: boolean;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
+  unsent_user_mentions: MentionList;
 }
 
 type ChatRoomProps = ChatRoomOwnProps & ChatRoomReduxProps;
@@ -768,6 +776,10 @@ interface ChatRoomState {
 }
 
 class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
+  public static defaultProps = {
+    font_size: 14
+  };
+
   public static reduxProps({ name }) {
     return {
       [name]: {
@@ -782,11 +794,16 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         search: rtypes.string,
         is_saving: rtypes.bool,
         has_unsaved_changes: rtypes.bool,
-        has_uncommitted_changes: rtypes.bool
+        has_uncommitted_changes: rtypes.bool,
+        unsent_user_mentions: rtypes.immutable.List
       },
 
       users: {
         user_map: rtypes.immutable
+      },
+
+      projects: {
+        project_map: rtypes.immutable
       },
 
       account: {
@@ -808,9 +825,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     path: rtypes.string
   };
 
+  private input_ref: any;
+
   constructor(props: ChatRoomProps, context: any) {
     super(props, context);
     this.state = { preview: "" };
+    this.input_ref = React.createRef<HTMLTextAreaElement>();
   }
 
   private static preview_style: React.CSSProperties = {
@@ -901,25 +921,6 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   }, 300);
 
-  keydown = (e: any) => {
-    // TODO: Add timeout component to is_typing
-    if (e.keyCode === 13 && e.shiftKey) {
-      // 13: enter key
-      return send_chat(
-        e,
-        this.refs.log_container,
-        ReactDOM.findDOMNode(this.refs.input).value,
-        this.props.actions
-      );
-    } else if (
-      e.keyCode === 38 &&
-      ReactDOM.findDOMNode(this.refs.input).value === ""
-    ) {
-      // Up arrow on an empty input
-      this.props.actions.set_to_last_input();
-    }
-  };
-
   componentWillUnmount() {
     this._is_mounted = false;
     this.save_scroll_position();
@@ -937,14 +938,9 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  button_send_chat = e => {
-    send_chat(
-      e,
-      this.refs.log_container,
-      ReactDOM.findDOMNode(this.refs.input).value,
-      this.props.actions
-    );
-    ReactDOM.findDOMNode(this.refs.input).focus();
+  on_send_button_click = e => {
+    e.preventDefault();
+    this.on_send(this.props.input);
   };
 
   button_scroll_to_bottom = () => {
@@ -953,12 +949,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
   button_off_click = () => {
     this.props.actions.set_is_preview(false);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
   };
 
-  button_on_click = () => {
+  on_preview_button_click = () => {
     this.props.actions.set_is_preview(true);
-    ReactDOM.findDOMNode(this.refs.input).focus();
+    this.input_ref.current.focus();
     if (
       is_at_bottom(
         this.props.saved_position,
@@ -1035,8 +1031,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         <div
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
-          Shift+Enter to send your message. Double click chat bubbles to edit
-          them. Format using{" "}
+          Shift+Enter to send your message. Use @name to mention a collaborator
+          on this project. Double click chat bubbles to edit them. Format using{" "}
           <a
             href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
             target="_blank"
@@ -1191,13 +1187,23 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
   };
 
   start_upload = file => {
-    const text_area = ReactDOM.findDOMNode(this.refs.input);
+    const text_area = this.input_ref.current;
     const temporary_insertion_text = this.generate_temp_upload_text(file);
+    const start_pos = compute_cursor_offset_position(
+      text_area.selectionStart,
+      this.props.unsent_user_mentions
+    );
+    const end_pos = compute_cursor_offset_position(
+      text_area.selectionEnd,
+      this.props.unsent_user_mentions
+    );
     const temp_new_text =
-      this.props.input.slice(0, text_area.selectionStart) +
+      this.props.input.slice(0, start_pos) +
       temporary_insertion_text +
-      this.props.input.slice(text_area.selectionEnd);
-    return this.props.actions.set_input(temp_new_text);
+      this.props.input.slice(end_pos);
+    text_area.selectionStart = end_pos;
+    text_area.selectionEnd = end_pos;
+    this.props.actions.set_input(temp_new_text);
   };
 
   append_file = file => {
@@ -1222,12 +1228,12 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.input.slice(0, start_index) +
       final_insertion_text +
       this.props.input.slice(end_index);
-    return this.props.actions.set_input(new_text);
+    this.props.actions.set_input(new_text);
   };
 
   private dropzoneWrapperRef: any;
 
-  handle_paste_event = (e: React.ClipboardEvent<FormControl>) => {
+  handle_paste_event = (e: React.ClipboardEvent<any>) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -1248,7 +1254,34 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
+  on_input_change = (value, mentions) => {
+    this.props.actions.set_unsent_user_mentions(mentions);
+    this.props.actions.set_input(value);
+    this.mark_as_read();
+  };
+
+  on_send = input => {
+    scroll_to_bottom(this.refs.log_container, this.props.actions);
+    this.props.actions.submit_user_mentions(
+      this.props.project_id,
+      this.props.path
+    );
+    this.props.actions.send_chat(input);
+    this.input_ref.current.focus();
+  };
+
+  on_clear = () => {
+    this.props.actions.set_input("");
+  };
+
   render_body() {
+    const grid_style: React.CSSProperties = {
+      maxWidth: "1200px",
+      display: "flex",
+      flexDirection: "column",
+      width: "100%"
+    };
+
     const chat_log_style: React.CSSProperties = {
       overflowY: "auto",
       overflowX: "hidden",
@@ -1259,18 +1292,16 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       flex: 1
     };
 
-    const chat_input_style: React.CSSProperties = {
-      margin: "0",
-      height: "90px",
-      fontSize: this.props.font_size
-    };
+    // the immutable.Map() default is because of admins:
+    // https://github.com/sagemathinc/cocalc/issues/3669
+    const project_users = this.props.project_map.getIn(
+      [this.props.project_id, "users"],
+      immutable.Map()
+    );
+    const has_collaborators = project_users.size > 1;
 
     return (
-      <Grid
-        fluid={true}
-        className="smc-vfill"
-        style={{ maxWidth: "1200px", display: "flex", flexDirection: "column" }}
-      >
+      <Grid fluid={true} className="smc-vfill" style={grid_style}>
         {!IS_MOBILE ? this.render_button_row() : undefined}
         <Row className="smc-vfill">
           <Col
@@ -1306,8 +1337,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
             </Well>
           </Col>
         </Row>
-        <Row style={{ display: "flex" }}>
-          <Col style={{ flex: "1", padding: "0px 2px 0px 2px" }}>
+        <Row style={{ display: "flex", maxWidth: "100vw" }}>
+          <Col
+            style={{ flex: "1", padding: "0px 2px 0px 2px", width: "250px" }}
+          >
             <SMC_Dropwrapper
               ref={node => (this.dropzoneWrapperRef = node)}
               project_id={this.props.project_id}
@@ -1321,24 +1354,24 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 complete: this.append_file,
                 sending: this.start_upload
               }}
+              style={{ height: "100%" }}
             >
-              <FormGroup>
-                <FormControl
-                  autoFocus={!IS_MOBILE || isMobile.Android()}
-                  rows={4}
-                  componentClass="textarea"
-                  ref="input"
-                  onKeyDown={this.keydown}
-                  value={this.props.input}
-                  onPaste={this.handle_paste_event}
-                  placeholder={"Type a message..."}
-                  onChange={(e: any) => {
-                    this.props.actions.set_input(e.target.value);
-                    this.mark_as_read();
-                  }}
-                  style={chat_input_style}
-                />
-              </FormGroup>
+              <ChatInput
+                name={this.props.name}
+                input={this.props.input}
+                input_ref={this.input_ref}
+                enable_mentions={has_collaborators}
+                project_users={project_users}
+                user_store={this.props.redux.getStore("users")}
+                font_size={this.props.font_size}
+                height={"100px"}
+                on_paste={this.handle_paste_event}
+                on_change={this.on_input_change}
+                on_clear={this.on_clear}
+                on_send={this.on_send}
+                on_set_to_last_input={this.props.actions.set_to_last_input}
+                account_id={this.props.account_id}
+              />
             </SMC_Dropwrapper>
           </Col>
           <Col
@@ -1352,7 +1385,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           >
             {!IS_MOBILE ? (
               <Button
-                onClick={this.button_on_click}
+                onClick={this.on_preview_button_click}
                 disabled={this.props.input === ""}
                 bsStyle="info"
                 style={{ height: "50%", width: "100%" }}
@@ -1363,7 +1396,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               undefined
             )}
             <Button
-              onClick={this.button_send_chat}
+              onClick={this.on_send_button_click}
               disabled={this.props.input === ""}
               bsStyle="success"
               style={{ flex: 1, width: "100%" }}
@@ -1383,7 +1416,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.redux == null ||
       (this.props.input != null ? this.props.input.length : undefined) == null
     ) {
-      return <Loading />;
+      return <Loading theme={"medium"} />;
     }
     return (
       <div

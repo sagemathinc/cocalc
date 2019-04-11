@@ -87,6 +87,7 @@ class SyncTableChannel extends EventEmitter {
   private async connect(): Promise<void> {
     if (this.synctable == null) return;
     this.set_connected(false);
+    this.clean_up_sockets();
 
     const time_since_last_connect = new Date().valueOf() - this.last_connect;
     if (time_since_last_connect < MIN_CONNECT_WAIT_MS) {
@@ -137,23 +138,21 @@ class SyncTableChannel extends EventEmitter {
       // Already offline... let's try again from the top.
       throw Error("websocket went offline already");
     }
+
     // Get a channel.
     this.channel = await this.websocket.api.synctable_channel(
       this.query,
       this.options
     );
+
     if (this.websocket.state != "online") {
       // Already offline... let's try again from the top.
       throw Error("websocket went offline already");
     }
 
     this.channel.on("data", this.handle_mesg_from_project.bind(this));
-
-    // The moment the websocket goes offline, connect again.
-    this.websocket.once("offline", this.connect);
-
+    this.websocket.on("offline", this.connect);
     this.channel.on("close", this.connect);
-    this.channel.on("open", this.connect);
   }
 
   private init_synctable_handlers(): void {
@@ -165,20 +164,23 @@ class SyncTableChannel extends EventEmitter {
 
   private clean_up_sockets(): void {
     if (this.channel != null) {
-      this.channel.removeAllListeners();
-      if (this.channel.conn.writable) {
-        /* The multiplex plugin should probably check that
-           conn is writable before trying to write, but it
-           doesn't.  So we only call end here if the conn
-           hasn't already closed itself.  Not doing this, causes a
-           stacktrace randomly, which isn't good.  (To reproduce,
-           open a file in a project, then close the project tab,
-           then re-open the project tab, and repeat a few times
-           until getting a stacktrace.) */
+      this.channel.removeListener("close", this.connect);
+
+      // Explicitly emit end -- this is a hack,
+      // since this is the only way to force the
+      // channel clean-up code to run in primus-multiplex,
+      // and it gets run async later if we don't do this.
+      // TODO: rewrite primus-multiplex from scratch.
+      this.channel.emit('end');
+
+      try {
         this.channel.end();
+      } catch (err) {
+        // no op -- this does happen if channel.conn is destroyed
       }
       delete this.channel;
     }
+
     if (this.websocket != null) {
       this.websocket.removeListener("offline", this.connect);
       delete this.websocket;

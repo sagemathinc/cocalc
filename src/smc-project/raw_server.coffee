@@ -37,7 +37,7 @@ exports.start_raw_server = (opts) ->
 
     raw_port_file  = misc_node.abspath("#{data_path}/raw.port")
     raw_server     = express()
-    http_server   = require('http').createServer(raw_server);
+    http_server    = require('http').createServer(raw_server);
 
     # suggested by http://expressjs.com/en/advanced/best-practice-performance.html#use-gzip-compression
     compression = require('compression')

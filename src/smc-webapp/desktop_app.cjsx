@@ -342,7 +342,7 @@ Page = rclass
             {### Note that the parent is a flex container ###}
             {<HelpOverlay />}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
             </ErrorBoundary>
         </div>
 

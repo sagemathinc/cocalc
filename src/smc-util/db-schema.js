@@ -318,13 +318,14 @@ schema.accounts = {
           jupyter_classic: false,
           show_exec_warning: true,
           physical_keyboard: "default",
-          keyboard_variant: ""
+          keyboard_variant: "",
+          ask_jupyter_kernel: true
         },
         other_settings: {
           katex: true,
           confirm_close: false,
           mask_files: true,
-          page_size: 50,
+          page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
           show_global_info2: null,
@@ -1747,6 +1748,66 @@ schema.system_notifications = {
         text: true,
         priority: true,
         done: true
+      }
+    }
+  }
+};
+
+schema.mentions = {
+  primary_key: ["time", "project_id", "path", "target"],
+  db_standby: "unsafe",
+  anonymous: true, // allow user *read* access, even if not signed in
+  fields: {
+    time: {
+      type: "timestamp",
+      desc: "when this mention happened."
+    },
+    project_id: {
+      type: "uuid"
+    },
+    path: {
+      type: "string"
+    },
+    source: {
+      type: "uuid",
+      desc: "User who did the mentioning."
+    },
+    target: {
+      type: "string",
+      desc:
+        "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc."
+    },
+    priority: {
+      type: "number",
+      desc:
+        "optional integer priority.  0 = default, but could be 1 = higher priority, etc."
+    },
+    error: {
+      type: "string",
+      desc: "some sort of error occured handling this mention"
+    },
+    action: {
+      type: "string",
+      desc: "what action was attempted by the backend - 'email', 'ignore'"
+    }
+  },
+
+  pg_indexes: ["action"],
+
+  user_query: {
+    set: {
+      fields: {
+        time: () => new Date(),
+        project_id: "project_write",
+        path: true,
+        source: "account_id",
+        target: true,
+        priority: true
+      },
+      required_fields: {
+        project_id: true,
+        path: true,
+        target: true
       }
     }
   }

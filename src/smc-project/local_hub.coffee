@@ -67,6 +67,8 @@ print_to_pdf = require('./print_to_pdf')
 # Generation of the secret token used to auth tcp connections
 secret_token = require('./secret_token')
 
+start_api_server = require('./http-api/server').start_server
+
 # Console sessions
 console_session_manager = require('./console_session_manager')
 console_sessions = new console_session_manager.ConsoleSessions()
@@ -335,7 +337,15 @@ start_server = (tcp_port, raw_port, cb) ->
                 else
                     the_secret_token = token
                     console_sessions.set_secret_token(token)
+                    exports.client.secret_token = token
                     cb()
+        (cb) ->
+            winston.debug("start API server...")
+            try
+                await start_api_server({port_path:misc_node.abspath("#{DATA}/api_server.port"), client:exports.client})
+                cb()
+            catch err
+                cb(err)
         (cb) ->
             winston.debug("starting tcp server...")
             start_tcp_server(the_secret_token, tcp_port, cb)
@@ -359,6 +369,11 @@ program.usage('[?] [options]')
 if program.kucalc
     winston.debug("running in kucalc")
     kucalc.IN_KUCALC = true
+    # clean environment to get rid of nvm and other variables
+    process.env.PATH = process.env.PATH.split(':').filter(((x) -> not x.startsWith('/cocalc/nvm'))).join(':')
+    for name in ['NODE_PATH', 'NODE_ENV', 'NODE_VERSION', 'NVM_CD_FLAGS', 'NVM_DIR', 'NVM_BIN']
+        delete process.env[name]
+
     if program.test_firewall
         kucalc.init_gce_firewall_test(winston)
 else
@@ -369,3 +384,4 @@ else
 start_server program.tcp_port, program.raw_port, (err) ->
     if err
         process.exit(1)
+

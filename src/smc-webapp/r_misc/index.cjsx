@@ -36,17 +36,28 @@ exports.Tip = Tip
 exports.Loading = Loading
 {Space} = require('./space')
 exports.Space = Space
-
 {CloseX} = require('./close-x')
 exports.CloseX = CloseX
-
 {CloseX2} = require('./close-x2')
 exports.CloseX2 = CloseX2
-
+{SimpleX} = require('./simple-x')
+exports.SimpleX = SimpleX
 {Saving} = require('./saving')
 exports.Saving = Saving
+{Spinner} = require('./spinner')
+exports.Spinner = Spinner
+{ErrorDisplay} = require('./error-display')
+exports.ErrorDisplay = ErrorDisplay
+{SkinnyError} = require('./skinny-error')
+exports.SkinnyError = SkinnyError
 {SelectorInput} = require('./selector-input')
 exports.SelectorInput = SelectorInput
+{TextInput} = require("./text-input")
+exports.TextInput = TextInput
+{NumberInput} = require("./number-input")
+exports.NumberInput = NumberInput
+{LabeledRow} = require('./labeled-row')
+exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
 exports.TimeElapsed = TimeElapsed
 
@@ -160,62 +171,6 @@ exports.Octicon = rclass
             classNames.push('mega-octicon')
         return <span className={classNames.join(' ')} />
 
-exports.SimpleX = SimpleX = ({onClick}) ->
-    <a href='' onClick={(e)=>e.preventDefault(); onClick()}>
-        <Icon name='times' />
-    </a>
-
-exports.SkinnyError = ({error_text, on_close}) ->
-    <div style={color:'red'}>
-         <SimpleX onClick={on_close} /> {error_text}
-    </div>
-
-error_text_style =
-    marginRight : '1ex'
-    whiteSpace  : 'pre-line'
-    maxWidth    : '80ex'
-
-exports.ErrorDisplay = ErrorDisplay = rclass
-    displayName : 'Misc-ErrorDisplay'
-
-    propTypes :
-        error           : rtypes.oneOfType([rtypes.string,rtypes.object])
-        error_component : rtypes.any
-        title           : rtypes.string
-        style           : rtypes.object
-        bsStyle         : rtypes.string
-        onClose         : rtypes.func       # TODO: change to on_close everywhere...?
-
-    render_close_button: ->
-        <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
-
-    render_title: ->
-        <h4>{@props.title}</h4>
-
-    render: ->
-        if @props.style?
-            style = misc.copy(error_text_style)
-            misc.merge(style, @props.style)
-        else
-            style = error_text_style
-        if @props.error?
-            if typeof(@props.error) == 'string'
-                error = @props.error
-            else
-                error = misc.to_json(@props.error)
-        else
-            error = @props.error_component
-        bsStyle = @props.bsStyle ? 'danger'
-        <Alert bsStyle={bsStyle} style={style}>
-            {@render_close_button() if @props.onClose?}
-            {@render_title() if @props.title}
-            {error}
-        </Alert>
-
-exports.Spinner = rclass
-    render : ->
-        <Icon name='spinner' spin={true} />
-
 exports.Footer = rclass
     displayName : "Footer"
 
@@ -259,125 +214,6 @@ exports.MessageDisplay = MessageDisplay = rclass
             </Col>
         </Row>
 
-exports.TextInput = rclass
-    displayName : 'Misc-TextInput'
-
-    propTypes :
-        text : rtypes.string.isRequired
-        on_change : rtypes.func.isRequired
-        type : rtypes.string
-        rows : rtypes.number
-
-    componentWillReceiveProps: (next_props) ->
-        if @props.text != next_props.text
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(text : next_props.text)
-
-    getInitialState: ->
-        text : @props.text
-
-    saveChange: (event) ->
-        event.preventDefault()
-        @props.on_change(@state.text)
-
-    render_save_button: ->
-        if @state.text? and @state.text != @props.text
-            <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
-
-    render_input: ->
-        <FormGroup>
-            <FormControl type={@props.type ? 'text'} ref='input' rows={@props.rows}
-                       componentClass={if @props.type == 'textarea' then 'textarea' else 'input'}
-                       value={if @state.text? then @state.text else @props.text}
-                       onChange={=>@setState(text:ReactDOM.findDOMNode(@refs.input).value)}
-            />
-        </FormGroup>
-
-    render: ->
-        <form onSubmit={@saveChange}>
-            {@render_input()}
-            {@render_save_button()}
-        </form>
-
-exports.NumberInput = NumberInput = rclass
-    displayName : 'Misc-NumberInput'
-
-    propTypes :
-        number      : rtypes.number.isRequired
-        min         : rtypes.number.isRequired
-        max         : rtypes.number.isRequired
-        on_change   : rtypes.func.isRequired
-        unit        : rtypes.string
-        disabled    : rtypes.bool
-
-    componentWillReceiveProps: (next_props) ->
-        if @props.number != next_props.number
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(number : next_props.number)
-
-    getInitialState: ->
-        number : @props.number
-
-    saveChange: (e) ->
-        e?.preventDefault()
-        n = parseInt(@state.number)
-        if "#{n}" == "NaN"
-            n = @props.number
-        if n < @props.min
-            n = @props.min
-        else if n > @props.max
-            n = @props.max
-        @setState(number:n)
-        @props.on_change(n)
-
-    render_save_button: ->
-        if @state.number? and @state.number != @props.number
-            <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
-
-    render: ->
-        unit = if @props.unit? then "#{@props.unit}" else ''
-        <Row>
-            <Col xs={6}>
-                <form onSubmit={@saveChange}>
-                    <FormGroup>
-                        <FormControl
-                            type     = 'text'
-                            ref      = 'input'
-                            value    = {if @state.number? then @state.number else @props.number}
-                            onChange = {=>@setState(number:ReactDOM.findDOMNode(@refs.input).value)}
-                            onBlur   = {@saveChange}
-                            onKeyDown= {(e)=>if e.keyCode == 27 then @setState(number:@props.number)}
-                            disabled = {@props.disabled}
-                        />
-                    </FormGroup>
-                </form>
-            </Col>
-            <Col xs={6} className="lighten">
-                {unit}
-            </Col>
-        </Row>
-
-exports.LabeledRow = LabeledRow = rclass
-    displayName : 'Misc-LabeledRow'
-
-    propTypes :
-        label      : rtypes.any.isRequired
-        style      : rtypes.object            # NOTE: for perf reasons, we do not update if only the style changes!
-        label_cols : rtypes.number    # number between 1 and 11 (default: 4)
-        className  : rtypes.string
-
-    getDefaultProps: ->
-        label_cols : 4
-
-    render: ->
-        <Row style={@props.style} className={@props.className} >
-            <Col xs={@props.label_cols} style={marginTop:'8px'}>
-                {@props.label}
-            </Col>
-            <Col xs={12-@props.label_cols}  style={marginTop:'8px'}>
-                {@props.children}
-            </Col>
-        </Row>
 
 help_text =
   backgroundColor: 'white'
@@ -584,6 +420,7 @@ exports.SearchInput = rclass
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
         on_clear        : rtypes.func    # invoked without arguments when input box is cleared (eg. via esc or clicking the clear button)
+
         clear_on_submit : rtypes.bool    # if true, will clear search box on every submit (default: false)
         buttonAfter     : rtypes.element
         input_class     : rtypes.string  # className for the InputGroup element
@@ -935,7 +772,7 @@ exports.SaveButton = rclass
             <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
 
-# Component to attempt opening an smc path in a project
+# Component to attempt opening a cocalc path in a project
 exports.PathLink = rclass
     displayName : 'Misc-PathLink'
 
@@ -955,11 +792,11 @@ exports.PathLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        path_head = 'files/'
-        @actions('projects').open_project
-            project_id : @props.project_id
-            target     : path_head + @props.path
-            switch_to  : misc.should_open_in_foreground(e)
+        switch_to = misc.should_open_in_foreground(e)
+        redux.getProjectActions(@props.project_id).open_file
+            path               : @props.path
+            foreground         : switch_to
+            foreground_project : switch_to
 
     render_link: (text) ->
         if @props.link
@@ -1665,7 +1502,7 @@ exports.UpgradeAdjustor = rclass
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<div>
-                    <h3><Icon name='arrow-circle-up' /> Adjust you quota contributions to this project</h3>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your quota contributions to this project</h3>
 
                     <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
                     </div>

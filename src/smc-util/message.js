@@ -29,16 +29,14 @@
  */
 
 const doc_intro = `\
-## About the API
-
-### Purpose
+## Purpose
 
 The purpose of the CoCalc API (application programming interface) is to make
 essential operations within the CoCalc platform available to automated
 clients. This allows embedding of CoCalc services within other products
 and customizing the external look and feel of the application.
 
-### Protocol and Data Format
+## Protocol and Data Format
 
 Each API command is invoked using an HTTPS PUT request.
 All commands support request parameters in JSON format, with request header
@@ -56,7 +54,7 @@ be completed, a response code other than 200 may be
 returned, and the response body may be a
 generic HTML message rather than a JSON string.
 
-### Authentication
+## Authentication
 
 A valid API key is required on all API requests.
 To obtain a key, log into
@@ -66,26 +64,18 @@ With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
 
-Your API key carries access privileges, just like your
-login and password.
+Your API key carries access privileges, just like your login and password.
 __Keep it secret.__
-Do not share your API key with others or post it in publicly accessible
-forums.
+Do not share your API key with others or post it in publicly accessible forums.
 
-### Additional References
+## Additional References
 
 - The [CoCalc API tutorial](https://cocalc.com/share/65f06a34-6690-407d-b95c-f51bbd5ee810/Public/README.md?viewer=share) illustrates API calls in Python.
-- The CoCalc PostgreSQL schema definition
-[src/smc-util/db-schema.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js)
-has information on tables and fields used with the API \`query\` request.
-- The API test suite
-[src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api)
-contains mocha unit tests for the API messages.
-- The CoCalc message definition file
-[src/smc-util/message.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.js)
-contains the source for this guide.
+- The CoCalc PostgreSQL schema definition [src/smc-util/db-schema.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/db-schema.js) has information on tables and fields used with the API \`query\` request.
+- The API test suite [src/smc-hub/test/api/](https://github.com/sagemathinc/cocalc/tree/master/src/smc-hub/test/api) contains mocha unit tests for the API messages.
+- The CoCalc message definition file [src/smc-util/message.js](https://github.com/sagemathinc/cocalc/blob/master/src/smc-util/message.js) contains the source for this guide.
 
-### API Message Reference
+## API Message Reference
 
 The remainder of this guide explains the individual API endpoints.
 Each API request definition begins with the path of the
@@ -131,7 +121,7 @@ function message(obj) {
     return defaults(opts, obj, false, strict);
   };
   return obj;
-};
+}
 
 // message2 for "version 2" of the message definitions
 // TODO document it, for now just search for "message2" to see examples
@@ -144,7 +134,7 @@ function message2(obj) {
       desc += ` (default: ${misc.to_json(val.init)})`;
     }
     return desc;
-  };
+  }
 
   // reassembling a version 1 message from a version 2 message
   const mesg_v1 = _.mapObject(obj.fields, val => val.init);
@@ -160,7 +150,7 @@ function message2(obj) {
   // wrapped version 1 message
   message(mesg_v1);
   return obj;
-};
+}
 
 // messages that can be used by the HTTP api.   {'event':true, ...}
 exports.api_messages = {};
@@ -1117,11 +1107,11 @@ API(
       },
       project_id: {
         init: required,
-        desc: "id of project containing file to be read"
+        desc: "id of project containing file to be read (or array of project_id's)"
       },
       path: {
         init: required,
-        desc: "path to file to be read in target project"
+        desc: "path to file to be read in target project (or array of paths)"
       }
     },
     desc: `\
@@ -1130,6 +1120,13 @@ User must be owner or collaborator in the target project.
 Argument 'path' is relative to home directory in target project.
 Unix user in the target project must have permissions to read file
 and containing directories if they do not already exist.
+
+You can also read multiple project_id/path's at once by
+making project_id and path arrays (of the same length).
+In that case, the resulting content will be an array
+of the resulting content strings, in the same order
+in which they were requested.
+
 
 Example:
 
@@ -1153,6 +1150,7 @@ message({
   id: required,
   content: required
 });
+
 
 // The write_file_to_project message is sent from the hub to the
 // project_server to tell the project_server to write a file to a
@@ -1426,13 +1424,14 @@ API(
       },
       subject: {
         init: undefined,
-        desc: "Subject line of invitiation email"
+        desc: "Subject line of invitation email"
       }
     },
     desc: `\
 Invite a user who already has a CoCalc account to
 become a collaborator on a project. You must be owner
-or collaborator on the target project.
+or collaborator on the target project.  The user
+will receive an email notification.
 
 Example:
 \`\`\`
@@ -1440,6 +1439,49 @@ Example:
     -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
     -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
     https://cocalc.com/api/v1/invite_collaborator
+  ==> {"event":"success",
+       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
+\`\`\`\
+`
+  })
+);
+
+API(
+  message2({
+    event: "add_collaborator",
+    fields: {
+      id: {
+        init: undefined,
+        desc: "A unique UUID for the query"
+      },
+      project_id: {
+        init: required,
+        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
+      },
+      account_id: {
+        init: required,
+        desc: "account_id of user (can be an array to add multiple users to multiple projects)"
+      }
+    },
+    desc: `\
+Directly add a user to a CoCalc project.
+You must be owner or collaborator on the target project.
+You cannot remove the project owner.
+The user is NOT notified via email that they were added, and there
+is no confirmation process.  (Eventually, there will be
+an accept process, or this endpoint will only work
+with a notion of "managed accounts".)
+
+You can optionally add multiple user to multiple projects by padding
+an array of strings for project_id and account_id.  The arrays
+must have the same length.
+
+Example:
+\`\`\`
+  curl -u sk_abcdefQWERTY090900000000: \\
+    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
+    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
+    https://cocalc.com/api/v1/add_collaborator
   ==> {"event":"success",
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
@@ -1468,6 +1510,7 @@ API(
 Remove a user from a CoCalc project.
 You must be owner or collaborator on the target project.
 You cannot remove the project owner.
+The user is NOT notified via email that they were removed.
 
 Example:
 \`\`\`
@@ -1693,7 +1736,7 @@ API(
       },
       exclude_history: {
         init: false,
-        desc: "if true, exclude all files of the form *.sage-history"
+        desc: "if true, exclude all files of the form `*.sage-history`"
       }
     },
     desc: `\
@@ -1735,6 +1778,7 @@ message({
   id: undefined,
   project_id: required, // the id of the project's id to set.
   memory: undefined, // RAM in megabytes
+  memory_request: undefined, // RAM in megabytes
   cpu_shares: undefined, // fair sharing with everybody is 256, not 1 !!!
   cores: undefined, // integer max number of cores user can use (>=1)
   disk_quota: undefined, // disk quota in megabytes
@@ -1999,7 +2043,7 @@ API(
       },
       exclude_history: {
         init: false,
-        desc: "if true, exclude all files of the form *.sage-history"
+        desc: "if true, exclude all files of the form `*.sage-history`"
       }
     },
     desc: `\
@@ -2307,7 +2351,7 @@ API(
       },
       tags: {
         init: undefined,
-        desc: "a list of tags, like ['member']"
+        desc: "a list of tags, like `['member']`"
       },
       account_id: {
         init: undefined,
@@ -2332,27 +2376,26 @@ info will not be returned by \`get_support_tickets\`.
 
 - If \`username\` is not provided, \`email_address\` is used for the name on the ticket.
 
-- \`location\` is used to provide a path to a specific project or file,
-for example
-\`\`\`
-/project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb\`
-\`\`\`
+- \`location\` is used to provide a path to a specific project or file, for example
+  \`\`\`
+  /project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb\`
+  \`\`\`
 
 If present, the \`location\` string will be expanded to a complete URL and
 appended to the body of the ticket.
 
 - The \`info\` dict can be used to provide additional metadata, for example
-\`\`\`
-{"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
-\`\`\`
-- If the ticket concerns a CoCalc course, the project id of the course can
-be included in the \`info\` dict, for example,
-\`\`\`
-{"course":"0c7ae00c-ea43-4981-b454-90d4a8b1ac47"}
-\`\`\`
-In that case, the course
-project_id will be expanded to a URL and appended to the body of the
-ticket.
+  \`\`\`
+  {"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
+  \`\`\`
+
+- If the ticket concerns a CoCalc course, the project id of the course can be included in the \`info\` dict, for example,
+  \`\`\`
+  {"course":"0c7ae00c-ea43-4981-b454-90d4a8b1ac47"}
+  \`\`\`
+
+  In that case, the course project_id will be expanded to a URL and appended to the body of the ticket.
+
 - If \`tags\` or \`info\` are provided, options must be sent as a JSON object.
 
 Example:
@@ -2917,10 +2960,12 @@ message({
   available: required
 }); // how much of each purchased upgrade is available
 
-// Remove *all* upgrades applied by the signed in user to any projects.
+// Remove *all* upgrades applied by the signed in user to any projects,
+// or just from a specific list.
 // client --> hub
 message({
   event: "remove_all_upgrades",
+  projects: undefined, // optional array of project_id's.
   id: undefined
 });
 
@@ -2971,4 +3016,21 @@ message({
   event: "sagews_start",
   id: undefined,
   path: required
+});
+
+// client --> hub
+API(
+  message({
+    event: "get_syncdoc_history",
+    id: undefined,
+    string_id: required,
+    patches: undefined
+  })
+);
+
+// hub --> client
+message({
+  event: "syncdoc_history",
+  id: undefined,
+  history: required
 });

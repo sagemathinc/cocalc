@@ -35,17 +35,20 @@ misc_page = require('./misc_page')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./app-framework')
-{Icon, Loading, Markdown, TimeAgo, Tip} = require('./r_misc')
+{Icon, Loading, Markdown, Space, TimeAgo, Tip} = require('./r_misc')
 {Button, Col, Grid, FormGroup, FormControl, ListGroup, ListGroupItem, Panel, Row, ButtonGroup, Well} = require('react-bootstrap')
 
 {User} = require('./users')
 
 editor_chat = require('./editor_chat')
 
-{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, send_chat, clear_input, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
+{redux_name, init_redux, newest_content, sender_is_viewer, show_user_name, is_editing, blank_column, render_markdown, render_history_title, render_history_footer, render_history, get_user_name, is_at_bottom, scroll_to_bottom, scroll_to_position} = require('./editor_chat')
 
 {ProjectUsers} = require('./projects/project-users')
 {AddCollaborators} = require('./collaborators/add-to-project')
+
+{ ChatInput } = require('./chat/input')
+{ Avatar } = require("./other-users");
 
 Message = rclass
     displayName: "Message"
@@ -226,7 +229,7 @@ Message = rclass
 
         <Col key={1} xs={11} style={width: "100%"}>
             {show_user_name(@props.sender_name) if not @props.is_prev_sender and not sender_is_viewer(@props.account_id, @props.message)}
-            <Well style={message_style} bsSize="small" className="smc-chat-message"  onDoubleClick = {@edit_message}>
+            <Well style={message_style} bsSize="small" className="smc-chat-message" onDoubleClick = {@edit_message}>
                 <span style={lighten}>
                     {editor_chat.render_timeago(@props.message, @edit_message)}
                 </span>
@@ -392,6 +395,10 @@ ChatRoom = rclass ({name}) ->
         file_use_id : rtypes.string.isRequired
         path        : rtypes.string
 
+    getInitialState: ->
+        @input_ref = React.createRef();
+        return {}
+
     mark_as_read: ->
         info = @props.redux.getStore('file_use').get_file_info(@props.project_id, misc.original_path(@props.path))
         if not info? or info.is_unseenchat  # only mark chat as read if it is unseen
@@ -399,21 +406,30 @@ ChatRoom = rclass ({name}) ->
             f(@props.project_id, @props.path, 'read')
             f(@props.project_id, @props.path, 'chatseen')
 
-    on_keydown: (e) ->
-        if e.keyCode == 27  # ESC
-            @props.actions.set_input('')
-        else if e.keyCode == 13 and e.shiftKey # shift + enter
-            @button_send_chat(e)
-            analytics_event('side_chat', 'send_chat', 'keyboard')
-        else if e.keyCode == 38 and @props.input == ''  # up arrow and empty
-            @props.actions.set_to_last_input()
+    on_input_send: (value) ->
+        @send_chat(value)
+        analytics_event('side_chat', 'send_chat', 'keyboard')
 
     on_send_click: (e) ->
-        @button_send_chat(e)
+        e.preventDefault();
+        @send_chat(@props.input)
         analytics_event('side_chat', 'send_chat', 'click')
 
-    button_send_chat: (e) ->
-        send_chat(e, @refs.log_container, @props.input, @props.actions)
+    send_chat: (value) ->
+        scroll_to_bottom(@refs.log_container, @props.actions)
+        @props.actions.submit_user_mentions(
+            @props.project_id,
+            @props.path
+        )
+        @props.actions.send_chat(value)
+        @input_ref.current.focus();
+
+    on_input_change: (value, mentions) ->
+        @props.actions.set_unsent_user_mentions(mentions)
+        @props.actions.set_input(value)
+
+    on_clear: () ->
+        @props.actions.set_input('')
 
     on_scroll: (e) ->
         @props.actions.set_use_saved_position(true)
@@ -490,6 +506,14 @@ ChatRoom = rclass ({name}) ->
             {@render_add_collab()}
         </div>
 
+    render_user_suggestion: (entry) ->
+        <span>
+            <Avatar size={this.props.font_size + 12} account_id={entry.id} />
+            <Space />
+            <Space />
+            {entry.display}
+        </span>
+
     on_focus: ->
         # Remove any active key handler that is next to this side chat.
         # E.g, this is critical for taks lists...
@@ -498,6 +522,12 @@ ChatRoom = rclass ({name}) ->
     render: ->
         if not @props.messages? or not @props.redux?
             return <Loading/>
+
+        # the immutable.Map() default is because of admins:
+        # https://github.com/sagemathinc/cocalc/issues/3669
+        project_users = @props.project_map
+            .getIn([@props.project_id, "users"], immutable.Map())
+        has_collaborators = project_users.size > 1
 
         mark_as_read = underscore.throttle(@mark_as_read, 3000)
 
@@ -523,16 +553,21 @@ ChatRoom = rclass ({name}) ->
             </div>
             <div style={marginTop:'auto', padding:'5px', paddingLeft:'15px', paddingRight:'15px'}>
                 <div style={display:'flex', height:'6em'}>
-                    <FormControl
-                        style          = {width:'85%', height:'100%'}
-                        autoFocus      = {false}
-                        componentClass = 'textarea'
-                        ref            = 'input'
-                        onKeyDown      = {(e) => mark_as_read(); @on_keydown(e)}
-                        value          = {@props.input}
-                        placeholder    = {'Type a message...'}
-                        onChange       = {(e) => @props.actions.set_input(e.target.value);}
-                    />
+                    <div style={width:'85%', height:'100%'}>
+                        <ChatInput
+                            input                = {@props.input}
+                            input_ref            = {@input_ref}
+                            enable_mentions      = {has_collaborators}
+                            project_users        = {project_users}
+                            user_store           = {@props.redux.getStore("users")}
+                            font_size            = {@props.font_size}
+                            on_change            = {@on_input_change}
+                            on_clear             = {@on_clear}
+                            on_send              = {@on_input_send}
+                            on_set_to_last_input = {@props.actions.set_to_last_input}
+                            account_id           = {@props.account_id}
+                        />
+                    </div>
                     <Button
                         style    = {width:'15%', height:'100%'}
                         onClick  = {@on_send_click}

@@ -41,7 +41,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
+ DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./app-framework')
 {User} = require('./users')
 
@@ -181,6 +181,7 @@ QuotaConsole = rclass
             cpu_shares  : Math.round(@state.cpu_shares * 256)
             disk_quota  : @state.disk_quota
             memory      : @state.memory
+            memory_request : @state.memory_request
             mintime     : Math.floor(@state.mintime * 3600)
             network     : @state.network
             member_host : @state.member_host

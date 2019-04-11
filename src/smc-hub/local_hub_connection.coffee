@@ -341,6 +341,31 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     cb()
         async.map(misc.keys(v), f, (err) => cb?(err))
 
+    # async -- throws error if project doesn't have access to string with this id.
+    check_syncdoc_access: (string_id) =>
+        if not typeof string_id == 'string' and string_id.length == 40
+            throw Error('string_id must be specified and valid')
+            return
+        opts =
+            query : "SELECT project_id FROM syncstrings"
+            where : {"string_id = $::CHAR(40)" : string_id}
+        results = await callback2(@database._query, opts)
+        if results.rows.length != 1
+            throw Error("no such syncdoc")
+        if results.rows[0].project_id != @project_id
+            throw Error("project does NOT have access to this syncdoc")
+        return  # everything is fine.
+
+    mesg_get_syncdoc_history: (mesg, write_mesg) =>
+        try
+            # this raises an error if user does not have access
+            await @check_syncdoc_access(mesg.string_id)
+            # get the history
+            history = await @database.syncdoc_history_async(mesg.string_id, mesg.patches)
+            write_mesg(message.syncdoc_history(id:mesg.id, history:history))
+        catch err
+            write_mesg(message.error(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}"))
+
     #
     # end project query support code
     #
@@ -421,6 +446,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @mesg_query(mesg, write_mesg)
                     when 'query_cancel'
                         @mesg_query_cancel(mesg, write_mesg)
+                    when 'get_syncdoc_history'
+                        @mesg_get_syncdoc_history(mesg, write_mesg)
                     when 'file_written_to_project'
                         # ignore -- don't care; this is going away
                         return

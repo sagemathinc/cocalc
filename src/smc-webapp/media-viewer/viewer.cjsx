@@ -9,7 +9,7 @@ Image viewer component -- for viewing standard image types.
 
 {ButtonBar}                       = require('./button-bar')
 
-{VIDEO_EXTS, IMAGE_EXTS}          = require('../file-associations')
+{VIDEO_EXTS, IMAGE_EXTS, AUDIO_EXTS} = require('../file-associations')
 
 exports.MediaViewer = rclass
     displayName : "MediaViewer"
@@ -22,11 +22,15 @@ exports.MediaViewer = rclass
         param : 0   # used to force reload when button explicitly clicked
 
     get_mode: ->
-        ext = filename_extension(@props.path)
+        ext = filename_extension(@props.path).toLowerCase()
         if ext in VIDEO_EXTS
             return 'video'
-        else
+        if ext in IMAGE_EXTS
             return 'image'
+        if ext in AUDIO_EXTS
+            return 'audio'
+        console.warn("Unknown media extension #{ext}")
+        return ''
 
     render_media: (url) ->
         switch @get_mode()
@@ -39,9 +43,17 @@ exports.MediaViewer = rclass
                     controls = {true}
                     autoPlay = {true}
                     loop     = {true}
-                    />
+                />
+            when 'audio'
+                <audio
+                    src      = {url}
+                    autoPlay = {true}
+                    controls = {true}
+                    loop     = {false}
+                    volume   = {0.5}
+                />
             else # should never happen
-                <div>Unknown type</div>
+                <div style={color:'white', fontSize:'200%'}>Unknown type</div>
 
     render_content: ->
         # the URL to the file:
