@@ -27,6 +27,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
 {syncdoc_history} = require('./postgres/syncdoc-history')
+collab = require('./postgres/collab')
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -1737,6 +1738,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             jsonb_set : {users : {"#{opts.account_id}": null}}
             where     : {'project_id :: UUID = $' : opts.project_id}
             cb        : opts.cb
+
+    # async
+    add_collaborators_to_projects: (account_id, accounts, projects) =>
+        await collab.add_collaborators_to_projects(@, account_id, accounts, projects)
 
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
