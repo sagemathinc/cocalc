@@ -33,7 +33,7 @@ export function MentionRow({
         <strong>
           <User account_id={account_id} user_map={user_map} />
         </strong>{" "}
-        mentioned you in a comment.{" "}
+        mentioned you in a comment.
         {description && (
           <div style={{ color: "rgb(100, 100, 100)", margin: "4px 10px" }}>
             "{description}"
@@ -42,22 +42,11 @@ export function MentionRow({
         {!description && <br />}
         <Icon name={"comment"} /> <TimeAgo date={timestamp} />
       </div>
-      <div style={options_style}>
-        <Icon name={"ellipsis-h"} />
-        <Icon name={"dot-circle"} />
-      </div>
     </li>
   );
 }
 
+const description_style: React.CSSProperties = { flex: "1" };
 const avatar_wrapping_style: React.CSSProperties = {
   margin: ".9em"
-};
-
-const description_style: React.CSSProperties = { flex: "1" };
-
-const options_style: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  color: "#ccc"
 };

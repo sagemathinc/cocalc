@@ -14,7 +14,6 @@ export class MentionsTable extends Table {
     if (actions == null) throw Error("actions must be defined");
 
     const mentions = table.get();
-    console.log("Received update:", mentions.toJS())
     actions.update_state(mentions);
   };
 }

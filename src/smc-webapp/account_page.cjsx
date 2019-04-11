@@ -33,7 +33,7 @@ require('./redux_account')
 {UpgradesPage}                           = require('./r_upgrades')
 {SupportPage}                            = require('./support')
 {SSHKeysPage}                            = require('./account_ssh_keys')
-{Icon, Loading}                                   = require('./r_misc')
+{Icon, Loading}                          = require('./r_misc')
 {set_url}                                = require('./history')
 
 {NotificationPage}                       = require('./notifications')
