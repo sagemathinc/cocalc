@@ -487,7 +487,7 @@ ProjectFilesActionBox = rclass
                             ref          = 'result_archive'
                             key          = 'result_archive'
                             type         = 'text'
-                            defaultValue = {account.default_filename('zip')}
+                            defaultValue = {account.default_filename('zip', @props.project_id)}
                             placeholder  = 'Result archive...'
                             onKeyDown    = {@action_key}
                         />
@@ -1160,7 +1160,7 @@ ProjectFilesActionBox = rclass
                     ref          = 'download_archive'
                     key          = 'download_archive'
                     type         = 'text'
-                    defaultValue = {account.default_filename('zip')}
+                    defaultValue = {account.default_filename('zip', @props.project_id)}
                     placeholder  = 'Result archive...'
                     onKeyDown    = {@action_key}
                 />

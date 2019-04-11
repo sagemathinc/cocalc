@@ -332,7 +332,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   ask_filename(ext?: string): void {
     if (ext != null) {
       // this is either cached or undefined; that's good enough
-      const filenames = this._get_filenames_in_dir();
+      const filenames = this.get_filenames_in_current_dir();
       // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
       const dflt = RandomFilenames.default_family;
@@ -486,7 +486,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (opts.change_history) {
           this.push_state(`new/${store.get("current_path")}`);
         }
-        this.set_next_default_filename(require("./account").default_filename());
+        const new_fn = require("./account").default_filename(
+          undefined,
+          this.project_id
+        );
+        this.set_next_default_filename(new_fn);
         break;
       case "log":
         if (opts.change_history) {
@@ -1708,7 +1712,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  private _get_filenames_in_dir(): { [name: string]: boolean } | undefined {
+  // this isn't really an action, but very helpful!
+  public get_filenames_in_current_dir():
+    | { [name: string]: boolean }
+    | undefined {
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -1743,7 +1750,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     // fallback to name, simple fallback
-    const files_in_dir = this._get_filenames_in_dir() || name;
+    const files_in_dir = this.get_filenames_in_current_dir() || name;
     // This loop will keep trying new names until one isn't in the directory
     while (true) {
       name = misc.suggest_duplicate_filename(name);

@@ -1,5 +1,10 @@
 const { to_iso_path } = require("smc-util/misc");
-import { unreachable, capitalize, uuid } from "smc-util/misc2";
+import {
+  unreachable,
+  capitalize,
+  uuid,
+  separate_file_extension
+} from "smc-util/misc2";
 import { generate as heroku } from "project-name-generator";
 const superb = require("superb");
 const catNames = require("cat-names");
@@ -33,7 +38,7 @@ export class RandomFilenames {
   static default_family = DEFAULT_RANDOM_FILENAMES as RandomFilenameTypes;
 
   private ext?: string;
-  private effective_ext: string;
+  private effective_ext?: string;
   private fullname: boolean;
   private type: RandomFilenameTypes;
   private start: number = 0;
@@ -44,11 +49,11 @@ export class RandomFilenames {
   }
 
   public set_ext(ext: string): void {
-    if (this.ext != ext) {
+    if (this.ext != ext || ext == null) {
       this.start = 0;
     }
     this.ext = ext;
-    this.effective_ext = ext != null ? ext.toLowerCase() : "";
+    this.effective_ext = ext != null ? ext.toLowerCase() : undefined;
   }
 
   // generate a new filename, by optionally avoiding the keys in the dictionary
@@ -63,6 +68,14 @@ export class RandomFilenames {
     if (avoid == null) {
       return this.random_filename(this.fullname);
     } else {
+      // ignore all extensions in avoid "set", if we do not know the file extension
+      if (this.effective_ext == null) {
+        const noexts = Object.keys(avoid).map(
+          x => separate_file_extension(x).name
+        );
+        avoid = Object.assign({}, ...noexts.map(x => ({ [x]: true })));
+      }
+      avoid = avoid || {}; // satisfy TS
       // incremental numbering starts at 1, natural for humans
       this.start += 1;
       // this is a sanitized while(true)
@@ -122,9 +135,6 @@ export class RandomFilenames {
 
   private semantic(): string[] {
     switch (this.effective_ext) {
-      case "":
-        // fallback when we do not know the extension
-        return ["file"];
       case "ipynb":
         return ["notebook"];
       case "sagews":
@@ -141,9 +151,11 @@ export class RandomFilenames {
       case "py":
         return ["python", "code"];
       default:
-        const info: any = file_options(`foo.${this.effective_ext}`);
+        const info = file_options(`foo.${this.effective_ext}`);
         // the "Spec" for file associations makes sure that "name" != null
-        return info.name.toLowerCase().split(" ");
+        // but for unkown files "name" == "" → fallback "file"
+        const name = info.name;
+        return name === "" ? ["file"] : name.toLowerCase().split(" ");
     }
   }
 

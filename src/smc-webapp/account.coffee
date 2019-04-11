@@ -111,8 +111,12 @@ redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_UR
 # this is just a wrapper for backwards compatibility
 {RandomFilenames} = require('project/utils')
 random_filenames_generator = new RandomFilenames(undefined, true)
-exports.default_filename = (ext) ->
+exports.default_filename = (ext, project_id) ->
     type = redux.getStore("account")?.getIn(["other_settings", "random_filenames"]) ? RandomFilenames.default_family
     random_filenames_generator.set_ext(ext)
-    return random_filenames_generator.gen(type)
+    if project_id?
+        avoid = redux.getProjectActions(project_id).get_filenames_in_current_dir()
+        return random_filenames_generator.gen(type, avoid)
+    else
+        return random_filenames_generator.gen(type)
 
