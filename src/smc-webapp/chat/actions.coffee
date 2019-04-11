@@ -1,11 +1,14 @@
 # 3rd Party Libraries
 immutable = require('immutable')
+sha1 = require("sha1");
 
 # Internal Libraries
 {Actions} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
 {delay} = require('awaiting')
+
+{ IS_MOBILE, isMobile } = require("../feature")
 
 class ChatActions extends Actions
     _process_syncdb_obj: (x) =>
@@ -177,5 +180,13 @@ class ChatActions extends Actions
         # height == 0 means chat room is not rendered
         if height != 0
             @setState(saved_position:position, height:height, offset:offset)
+
+    show: =>
+        if (not IS_MOBILE or isMobile.Android()) and @name
+            # TODO: The chat is shown, but it might already have been mounted,
+            # so we must manually autofocus the input box.
+            # We use sha1 for uniqueness of id and it being a simple string.
+            await delay(0)
+            $("#" + sha1(@name)).focus()
 
 exports.ChatActions = ChatActions

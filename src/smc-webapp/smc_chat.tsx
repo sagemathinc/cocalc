@@ -1031,8 +1031,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
         <div
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
-          Shift+Enter to send your message. Use @name to mention a collaborator on this project. Double click chat bubbles to edit
-          them. Format using{" "}
+          Shift+Enter to send your message. Use @name to mention a collaborator
+          on this project. Double click chat bubbles to edit them. Format using{" "}
           <a
             href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
             target="_blank"
@@ -1357,6 +1357,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
               style={{ height: "100%" }}
             >
               <ChatInput
+                name={this.props.name}
                 input={this.props.input}
                 input_ref={this.input_ref}
                 enable_mentions={has_collaborators}
@@ -1415,7 +1416,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       this.props.redux == null ||
       (this.props.input != null ? this.props.input.length : undefined) == null
     ) {
-      return <Loading />;
+      return <Loading theme={"medium"} />;
     }
     return (
       <div
