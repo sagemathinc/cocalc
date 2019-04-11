@@ -73,12 +73,12 @@ BASH_PROFILE_TEMPLATE = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
 SSH_ACCESS_PUBLIC_KEY = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
-import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
+import argparse, hashlib, math, os, shutil, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 
 
 def print_json(s):
-    print json.dumps(s, separators=(',', ':'))
+    print(json.dumps(s, separators=(',', ':')))
 
 
 def uid(project_id):
@@ -227,8 +227,11 @@ class Stream(object):
         return "Stream(%s): %s to %s stored in %s" % (
             self.project.project_id, self.start, self.end, self.path)
 
-    def __cmp__(self, other):
-        return cmp((self.end, self.start), (other.end, other.start))
+    def __eq__(self, other):
+        return (self.end, self.start) == (other.end, other.start)
+    
+    def __ne__(self, other):
+        return not(self  == other)
 
     def size_mb(self):
         return int(os.path.getsize(self.path) / 1e6)
@@ -343,7 +346,6 @@ class Project(object):
             ignore_errors=True)
 
     def delete_user(self):
-        u = self.uid
         cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s' %
             (self.username, self.username),
             ignore_errors=True)

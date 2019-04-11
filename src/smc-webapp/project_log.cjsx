@@ -34,7 +34,6 @@ lodash = require('lodash')
 
 {file_associations} = require('./file-associations')
 
-
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
 
@@ -72,6 +71,10 @@ LogSearch = rclass
         e = @props.selected?.event
         if not e?
             return
+        if typeof e.stopPropagation  == 'function'
+            e.stopPropagation()
+        if typeof e.preventDefault  == 'function'
+            e.preventDefault()
         switch e.event
             when 'open'
                 target = e.filename

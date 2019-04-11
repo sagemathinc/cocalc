@@ -11,7 +11,7 @@ import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 
 const { CodeMirrorEditor } = require("./codemirror-editor");
-//const { CodeMirrorStatic } = require("./codemirror-static");
+const { CodeMirrorStatic } = require("./codemirror-static");
 //const { IS_TOUCH } = require("../feature");
 
 interface CodeMirrorProps {
@@ -74,39 +74,15 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
   }
 
   render() {
-    // For some reason the static renderer has some REALLY bad performance, especially for
-    // larger documents.  This may be an issue with using react at all (i.e., we should just
-    // directly generate html).  For now, probably the best fix is not to use the static
-    // renderer, since it causes so much trouble...
-    // See https://github.com/sagemathinc/cocalc/issues/3652
-    // Instead, we should optimize how the normal render works, e.g., by caching it.
-    return <CodeMirrorEditor
-      actions={this.props.actions}
-      id={this.props.id}
-      options={this.props.options}
-      value={this.props.value}
-      font_size={this.props.font_size}
-      cursors={this.props.cursors}
-      click_coords={this.state.click_coords}
-      set_click_coords={this.set_click_coords}
-      set_last_cursor={this.set_last_cursor}
-      last_cursor={this.state.last_cursor}
-      is_focused={this.props.is_focused}
-      complete={this.props.complete}
-    />;
-  }
-
-  /*
-  render() {
     // Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
     // we can remove this use of the slower non-static fallback...
-    if (
-      this.props.actions != null &&
-      (IS_TOUCH ||
-        this.props.is_focused ||
-        this.props.options.get("lineNumbers") ||
-        (this.props.cursors != null ? this.props.cursors.size > 0 : false))
-    ) {
+    if (this.props.actions != null) {
+      // For some reason the static renderer has some REALLY bad performance, especially for
+      // larger documents.  This may be an issue with using react at all (i.e., we should just
+      // directly generate html).  For now, probably the best fix is not to use the static
+      // renderer, since it causes so much trouble...
+      // See https://github.com/sagemathinc/cocalc/issues/3652
+      // Instead, we should optimize how the normal render works, e.g., by caching it.
       return (
         <CodeMirrorEditor
           actions={this.props.actions}
@@ -137,5 +113,4 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
       );
     }
   }
-  */
 }

@@ -130,7 +130,16 @@ class PageActions extends Actions
         require('./project/websocket/connect').disconnect_from_project(project_id)
 
     set_active_tab: (key, change_history=true) =>
+        prev_key = @redux.getStore('page').get('active_top_tab')
         @setState(active_top_tab : key)
+
+        if prev_key?.length == 36 and prev_key != key
+            # fire hide actions on project we are switching from.
+            redux.getProjectActions(prev_key)?.hide()
+        if key?.length == 36
+            # fire show action on project we are switching to
+            redux.getProjectActions(key)?.show()
+
         switch key
             when 'projects'
                 if change_history
