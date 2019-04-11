@@ -419,7 +419,7 @@ ChatRoom = rclass ({name}) ->
         scroll_to_bottom(@refs.log_container, @props.actions)
         @props.actions.submit_user_mentions(
             @props.project_id,
-            if @props.path? then misc.path_split(@props.path).head
+            misc.original_path(@props.path)
         )
         @props.actions.send_chat(value)
         @input_ref.current.focus();

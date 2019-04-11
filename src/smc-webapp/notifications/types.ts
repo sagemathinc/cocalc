@@ -7,4 +7,5 @@ export type MentionInfo = TypedMap<{
   source: string;
   target: string;
   time: Date;
+  description?: string;
 }>;
