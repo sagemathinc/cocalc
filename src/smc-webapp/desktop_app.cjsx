@@ -296,7 +296,7 @@ Page = rclass
             {### Children must define their own padding from navbar and screen borders ###}
             {### Note that the parent is a flex container ###}
             <ErrorBoundary>
-                <ActiveAppContent active_top_tab={@props.active_top_tab}/>
+                <ActiveAppContent active_top_tab={@props.active_top_tab} open_projects={@props.open_projects} />
             </ErrorBoundary>
         </div>
 
