@@ -154,12 +154,20 @@ class ChatActions extends Actions
         @store.get('unsent_user_mentions').map((mention) =>
             end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
             end_of_context_index = end_of_mention_index + CONTEXT_SIZE
+
+            # Add relevant ellpises depending on size of full message
+            if mention.get('plainTextIndex') != 0
+                description = "... "
+            description += @store.get('message_plain_text').slice(end_of_mention_index, end_of_context_index).trim()
+            if end_of_context_index < @store.get('message_plain_text').length
+                description += " ..."
+
             webapp_client.mention({
                 project_id: project_id
                 path: path
                 target: mention.get('id')
                 priority: 2
-                description: @store.get('message_plain_text').slice(end_of_mention_index, end_of_context_index).trim()
+                description: description
             })
         )
         @setState(unsent_user_mentions: immutable.List())

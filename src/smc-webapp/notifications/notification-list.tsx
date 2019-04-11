@@ -42,7 +42,7 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
   let project_id_order: string[] = [];
 
   mentions.map(notification => {
-    const { path, project_id, source, target, time } = notification.toJS();
+    const { path, project_id, source, target, time, description } = notification.toJS();
     if (target == account_id) {
       if (mentions_per_project[project_id] == undefined) {
         mentions_per_project[project_id] = [];
@@ -55,6 +55,7 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
           timestamp={time.getTime()}
           project_id={project_id}
           path={path}
+          description={description}
           user_map={user_map}
         />
       );

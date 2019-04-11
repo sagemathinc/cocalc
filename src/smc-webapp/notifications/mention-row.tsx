@@ -11,12 +11,14 @@ export function MentionRow({
   timestamp,
   path,
   project_id,
+  description,
   user_map
 }: {
   account_id: string;
   timestamp: number;
   path: string;
   project_id: string;
+  description?: string;
   user_map: any;
 }) {
   const click = () => {
@@ -31,8 +33,13 @@ export function MentionRow({
         <strong>
           <User account_id={account_id} user_map={user_map} />
         </strong>{" "}
-        mentioned you in a comment.
-        <br />
+        mentioned you in a comment.{" "}
+        {description && (
+          <div style={{ color: "rgb(100, 100, 100)", margin: "4px 10px" }}>
+            "{description}"
+          </div>
+        )}
+        {!description && <br />}
         <Icon name={"comment"} /> <TimeAgo date={timestamp} />
       </div>
       <div style={options_style}>
@@ -44,8 +51,7 @@ export function MentionRow({
 }
 
 const avatar_wrapping_style: React.CSSProperties = {
-  marginTop: "4px",
-  marginRight: "5px"
+  margin: ".9em"
 };
 
 const description_style: React.CSSProperties = { flex: "1" };
