@@ -71,7 +71,7 @@ export class FileListing extends React.Component<Props> {
 
   // Restore scroll position if one was set.
   componentDidMount() {
-    if (this.props.last_scroll_top != undefined) {
+    if (this.props.last_scroll_top != undefined && this.list_ref.current != null) {
       this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
       this.current_scroll_top = this.props.last_scroll_top;
     }
