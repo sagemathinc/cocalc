@@ -156,6 +156,7 @@ class ChatActions extends Actions
             end_of_context_index = end_of_mention_index + CONTEXT_SIZE
 
             # Add relevant ellpises depending on size of full message
+            description = ""
             if mention.get('plainTextIndex') != 0
                 description = "... "
             description += @store.get('message_plain_text').slice(end_of_mention_index, end_of_context_index).trim()
