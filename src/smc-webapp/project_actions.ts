@@ -159,7 +159,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   constructor(a, b) {
     super(a, b);
-    this.random_filenames =  new RandomFilenames('', false);
+    this.random_filenames = new RandomFilenames("", false);
     this.destroy = this.destroy.bind(this);
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
@@ -335,11 +335,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const filenames = this._get_filenames_in_dir();
       // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
+      const dflt = RandomFilenames.default_family;
       const type = (function() {
         if (acc_store != null) {
           return acc_store.getIn(["other_settings", "random_filenames"]);
         } else {
-          return RandomFilenames.default_family;
+          return dflt;
         }
       })();
       this.random_filenames.set_ext(ext);

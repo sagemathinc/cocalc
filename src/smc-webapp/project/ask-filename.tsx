@@ -10,7 +10,10 @@ const {
 } = require("react-bootstrap");
 const { SearchInput, SelectorInput, Icon } = require("../r_misc");
 const { IS_TOUCH } = require("../feature");
-import { RandomFilenameFamilies } from "smc-webapp/project/utils";
+import {
+  RandomFilenameFamilies,
+  RandomFilenames
+} from "smc-webapp/project/utils";
 
 interface Props {
   actions: any;
@@ -76,6 +79,8 @@ export class AskNewFilename extends Component<Props, State> {
 
   render(): Rendered {
     if (this.props.new_filename == null) return <div>Loading …</div>;
+    const rfn = this.props.other_settings.get("random_filenames");
+    const selected = rfn != null ? rfn : RandomFilenames.default_family;
     return (
       <Row style={{ marginBottom: "10px" }}>
         <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
@@ -97,7 +102,7 @@ export class AskNewFilename extends Component<Props, State> {
             <Row>
               <Col md={5}>
                 <SelectorInput
-                  selected={this.props.other_settings.get("random_filenames")}
+                  selected={selected}
                   options={RandomFilenameFamilies}
                   on_change={this.change_random}
                 />

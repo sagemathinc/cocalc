@@ -94,6 +94,8 @@ schema.stats =
 
 const DEFAULT_FONT_SIZE = (exports.DEFAULT_FONT_SIZE = 14);
 
+const DEFAULT_RANDOM_FILENAMES = (exports.DEFAULT_RANDOM_FILENAMES = 'iso');
+
 const misc = require("./misc");
 
 const { DEFAULT_QUOTAS } = require("./upgrade-spec");
@@ -328,13 +330,14 @@ schema.accounts = {
           page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
-          random_filenames: null,
+          random_filenames: DEFAULT_RANDOM_FILENAMES,
           show_global_info2: null,
           first_steps: true,
           newsletter: false,
           time_ago_absolute: false,
+          // if true, do not show warning when using non-member projects
           no_free_warnings: false
-        }, // if true, do not show warning when using non-member projects
+        },
         first_name: "",
         last_name: "",
         terminal: {

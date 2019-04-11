@@ -1,10 +1,11 @@
 const { to_iso_path } = require("smc-util/misc");
-import { unreachable, capitalize } from "smc-util/misc2";
+import { unreachable, capitalize, uuid } from "smc-util/misc2";
 import { generate as heroku } from "project-name-generator";
 const superb = require("superb");
 const catNames = require("cat-names");
 const dogNames = require("dog-names");
 const { file_options } = require("../editor");
+const { DEFAULT_RANDOM_FILENAMES } = require("smc-util/db-schema");
 
 export type RandomFilenameTypes =
   | "iso"
@@ -28,7 +29,8 @@ export const RandomFilenameFamilies = Object.freeze<
 });
 
 export class RandomFilenames {
-  static default_family = "ymd_semantic" as RandomFilenameTypes;
+  // TODO iso is the "old way". Change it to "semantic" after a week or two…
+  static default_family = DEFAULT_RANDOM_FILENAMES as RandomFilenameTypes;
 
   private ext?: string;
   private effective_ext: string;
@@ -41,7 +43,7 @@ export class RandomFilenames {
     this.fullname = fullname;
   }
 
-  public set_ext(ext: string) {
+  public set_ext(ext: string): void {
     if (this.ext != ext) {
       this.start = 0;
     }
@@ -51,16 +53,17 @@ export class RandomFilenames {
 
   // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(
-    type = RandomFilenames.default_family,
+    type?: RandomFilenameTypes,
     avoid?: { [name: string]: boolean }
-  ) {
-    // reset the enumeration
+  ): string {
+    type = type != null ? type : RandomFilenames.default_family;
+    // reset the enumeration if type changes
     if (this.type != type) this.start = 0;
     this.type = type;
     if (avoid == null) {
       return this.random_filename(this.fullname);
     } else {
-      // incremental numbering starting at 1, natural for humans
+      // incremental numbering starts at 1, natural for humans
       this.start += 1;
       // this is a sanitized while(true)
       for (let i = this.start; i < this.start + 1000; i++) {
@@ -76,6 +79,11 @@ export class RandomFilenames {
           }
         }
       }
+      // theoretically we could end here. ugly UUID for the rescue.
+      const new_name = this.random_filename(false);
+      const rnd = uuid().split("-");
+      const name = [new_name, ...rnd].join(this.filler());
+      return `${name}.${this.ext}`;
     }
   }
 
@@ -114,6 +122,9 @@ export class RandomFilenames {
 
   private semantic(): string[] {
     switch (this.effective_ext) {
+      case "":
+        // fallback when we do not know the extension
+        return ["file"];
       case "ipynb":
         return ["notebook"];
       case "sagews":
