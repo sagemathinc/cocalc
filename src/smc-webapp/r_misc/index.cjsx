@@ -772,7 +772,7 @@ exports.SaveButton = rclass
             <Icon name='save' /> <VisibleMDLG>Sav{if @props.saving then <span>ing... <Icon name='cc-icon-cocalc-ring' spin /></span> else <span>e</span>}</VisibleMDLG>
         </Button>
 
-# Component to attempt opening an smc path in a project
+# Component to attempt opening a cocalc path in a project
 exports.PathLink = rclass
     displayName : 'Misc-PathLink'
 
@@ -792,11 +792,11 @@ exports.PathLink = rclass
 
     handle_click: (e) ->
         e.preventDefault()
-        path_head = 'files/'
-        @actions('projects').open_project
-            project_id : @props.project_id
-            target     : path_head + @props.path
-            switch_to  : misc.should_open_in_foreground(e)
+        switch_to = misc.should_open_in_foreground(e)
+        redux.getProjectActions(@props.project_id).open_file
+            path               : @props.path
+            foreground         : switch_to
+            foreground_project : switch_to
 
     render_link: (text) ->
         if @props.link
