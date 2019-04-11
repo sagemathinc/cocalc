@@ -2,20 +2,17 @@ import * as React from "react";
 
 import { MentionRow } from "./mention-row";
 
+import { NoNewNotifications } from "./no-new-notifications";
+
 const { ProjectTitleAuto } = require("../projects");
 
 const { Panel } = require("react-bootstrap");
 
-const notification_list_style: React.CSSProperties = {
-  height: "100%",
-  width: "100%",
-  padding: "0px"
-};
-
 export function NotificationList({ account_id, mentions, style, user_map }) {
-  if (mentions == undefined) {
-    return null;
+  if (mentions == undefined || mentions.size == 0) {
+    return <NoNewNotifications name="mentions" style={style} />;
   }
+  console.log("Making notifics from", mentions.toJS())
   let mentions_per_project: any = {};
   let project_panels: any = [];
   let project_id_order: string[] = [];
@@ -48,6 +45,11 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
     }
   });
 
+  // Check if this user has only made mentions and no one has mentioned them
+  if (project_id_order.length == 0) {
+    return <NoNewNotifications name="mentions" style={style} />;
+  }
+
   for (const project_id of project_id_order) {
     project_panels.push(
       <Panel
@@ -68,3 +70,9 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
     </div>
   );
 }
+
+const notification_list_style: React.CSSProperties = {
+  height: "100%",
+  width: "100%",
+  padding: "0px"
+};
