@@ -9,6 +9,7 @@ branches:
 
 # there is no single language, but python is ok
 language: "python"
+python: 3.6
 
 # travis supports 8 and 11 (as of winter 2018)
 node_js:
