@@ -7,8 +7,6 @@ immutable = require('immutable')
 
 {delay} = require('awaiting')
 
-# Sibling Libraries
-
 class ChatActions extends Actions
     _process_syncdb_obj: (x) =>
         if x.event != 'chat'
@@ -148,16 +146,20 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
-    set_unsent_user_mentions: (user_mentions) =>
-        @setState(unsent_user_mentions: user_mentions)
+    set_unsent_user_mentions: (user_mentions, message_plain_text) =>
+        @setState(unsent_user_mentions: user_mentions, message_plain_text: message_plain_text)
 
     submit_user_mentions: (project_id, path) =>
+        CONTEXT_SIZE = 80
         @store.get('unsent_user_mentions').map((mention) =>
+            end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
+            end_of_context_index = end_of_mention_index + CONTEXT_SIZE
             webapp_client.mention({
                 project_id: project_id
                 path: path
                 target: mention.get('id')
                 priority: 2
+                description: @store.get('message_plain_text').slice(end_of_mention_index, end_of_context_index).trim()
             })
         )
         @setState(unsent_user_mentions: immutable.List())

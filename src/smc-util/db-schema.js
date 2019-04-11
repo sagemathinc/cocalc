@@ -1777,6 +1777,11 @@ schema.mentions = {
       desc:
         "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc."
     },
+    description: {
+      type: "string",
+      desc:
+        "Extra text to describe the mention. eg. could be the containing message"
+    },
     priority: {
       type: "number",
       desc:
@@ -1806,7 +1811,8 @@ schema.mentions = {
         path: null,
         source: null,
         target: null,
-        priority: null
+        priority: null,
+        description: null
       }
     },
     set: {
@@ -1816,7 +1822,8 @@ schema.mentions = {
         path: true,
         source: "account_id",
         target: true,
-        priority: true
+        priority: true,
+        description: true
       },
       required_fields: {
         project_id: true,

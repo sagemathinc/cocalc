@@ -1254,8 +1254,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     }
   };
 
-  on_input_change = (value, mentions) => {
-    this.props.actions.set_unsent_user_mentions(mentions);
+  on_input_change = (value, mentions, plain_text) => {
+    this.props.actions.set_unsent_user_mentions(mentions, plain_text);
     this.props.actions.set_input(value);
     this.mark_as_read();
   };
