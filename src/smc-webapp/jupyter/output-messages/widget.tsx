@@ -2,6 +2,8 @@
 Widget rendering.
 */
 
+import { Map, Set, fromJS } from "immutable";
+
 import {
   React,
   ReactDOM,
@@ -10,15 +12,16 @@ import {
   rclass,
   rtypes
 } from "smc-webapp/app-framework";
-import { Map, Set, fromJS } from "immutable";
 import { JupyterActions } from "../browser-actions";
 
 import * as pWidget from "@phosphor/widgets";
 
 require("@jupyter-widgets/controls/css/widgets.css");
 
-import { Stdout } from "./stdout";
-import { Stderr } from "./stderr";
+import { CellOutputMessages } from "./message";
+
+//import { Stdout } from "./stdout";
+//import { Stderr } from "./stderr";
 
 interface WidgetProps {
   value: Map<string, any>;
@@ -31,6 +34,7 @@ interface WidgetProps {
 
 interface WidgetState {
   output?: Map<string, any>;
+  style?: any;
 }
 
 export class Widget0 extends Component<WidgetProps, WidgetState> {
@@ -98,20 +102,29 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   }
 
   update_output(): void {
-    console.log("update_output -- called");
     if (!this.mounted) return;
     const state = this.model.get_state(true);
-    if (state == null) {
-      this.setState({ output: undefined });
+    if (state == null || state.value == null) {
+      this.setState({ output: undefined, style: undefined });
       return;
     }
-    const value = state.value;
-    console.log("update_output -- got value=", value);
-    this.setState({ output: fromJS(value) });
+    const output = {};
+    for (let i in state.value) {
+      output[i] = state.value[i];
+    }
+    this.setState({ output: fromJS(output) });
+    if (
+      this.state.style == null &&
+      state.layout != null &&
+      state.layout.changed != null
+    ) {
+      // TODO: we only set style once, this first time it is known.
+      // If the layout were to dynamically change, this won't update.
+      this.setState({ style: state.layout.changed });
+    }
   }
 
   async init_view(model_id: string | undefined): Promise<void> {
-    console.log("init_view", model_id);
     if (this.init_view_is_running) {
       // it's already running right now.
       return;
@@ -120,13 +133,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       this.init_view_is_running = true;
       if (model_id == null) return; // probably never happens ?
       if (this.props.actions == null) {
-        //console.log("no actions");
         return; // no way to do anything right now(?)
         // TODO: maybe can still render widget based on some stored state somewhere?
       }
       const widget_manager = this.props.actions.widget_manager;
       if (widget_manager == null) {
-        //console.log("no widget_manager");
         return;
       }
       this.model = await widget_manager.get_model(model_id);
@@ -171,7 +182,6 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     }
     if (this.model != null) {
       if (this.model.module == "@jupyter-widgets/output") {
-        console.log("removing listener");
         this.model.off("change", this.update_output);
       }
       delete this.model;
@@ -180,29 +190,16 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
   render_phosphor(): Rendered {
     // This div is managed by phosphor, so don't put any react in it!
-    return <div ref="phosphor" />;
+    return <div key="phosphor" ref="phosphor" />;
   }
 
-  render_output(): Rendered[] | undefined {
-    console.log("render_output", this.state.output);
+  render_output(): Rendered {
     if (this.state.output == null) return;
-    const v: Rendered[] = [];
-    this.state.output.forEach(message => {
-      const output_type: string = message.get("output_type");
-      const name: string = message.get("name");
-      if (output_type === "stream") {
-        if (name === "stdout") {
-          v.push(<Stdout message={message} />);
-          return;
-        } else if (name === "stderr") {
-          v.push(<Stderr message={message} />);
-          return;
-        }
-      }
-      v.push(<pre>NOT IMPLEMENTED: {JSON.stringify(message)}</pre>);
-    });
-
-    return v;
+    return (
+      <div key="output" style={this.state.style}>
+        <CellOutputMessages output={this.state.output} />
+      </div>
+    );
   }
 
   render(): Rendered {
