@@ -147,6 +147,13 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.setCursor({ line: y, ch: x });
   };
 
+  _cm_refresh = (): string | undefined => {
+    if (this.cm == null || this.props.actions == null) {
+      return;
+    }
+    this.cm.refresh();
+  }
+
   _cm_save = (): string | undefined => {
     if (this.cm == null || this.props.actions == null) {
       return;
@@ -425,7 +432,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         save: this._cm_save,
         set_cursor: this._cm_set_cursor,
         tab_key: this.tab_key,
-        shift_tab_key : this.shift_tab_key
+        shift_tab_key : this.shift_tab_key,
+        refresh: this._cm_refresh
       };
       this.props.actions.register_input_editor(this.props.id, editor);
     }
