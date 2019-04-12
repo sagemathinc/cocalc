@@ -22,7 +22,7 @@
 //##############################################################################
 
 // Important: code below now assumes that a global variable called "DEBUG" is **defined**!
-declare var DEBUG: boolean, smc;
+declare var DEBUG: boolean, smc: any;
 if (DEBUG == null) {
   var DEBUG = false;
 }
@@ -47,7 +47,7 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminStore, AdminActions } from "./admin"
+import { AdminStore, AdminActions } from "./admin";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
@@ -59,7 +59,7 @@ export let COLOR = {
   FG_BLUE: "#428bca" // blue used for text
 };
 
-const action_set_state = function(change) {
+const action_set_state = function(change: any) {
   return {
     type: "SET_STATE",
     change: immutable.fromJS(change) // guaranteed immutable.js all the way down
@@ -67,7 +67,9 @@ const action_set_state = function(change) {
 };
 // Deeply nested objects need to be converted with fromJS before being put in the store
 
-const action_remove_store = function(name) {
+const action_remove_store = function(
+  name: string
+): { type: string; name: string } {
   return {
     type: "REMOVE_STORE",
     name
@@ -76,7 +78,13 @@ const action_remove_store = function(name) {
 
 type redux_state = immutable.Map<string, immutable.Map<string, any>>;
 
-const redux_app = function(state: redux_state, action): redux_state {
+interface Action {
+  type: string;
+  name: string;
+  change: any;
+}
+
+const redux_app = function(state: redux_state, action: Action): redux_state {
   if (state == null) {
     return immutable.Map();
   }
@@ -84,7 +92,7 @@ const redux_app = function(state: redux_state, action): redux_state {
     case "SET_STATE":
       // Typically action.change has exactly one key, the name of a Store.
       // We merge in what is in action.change[name] to state[name] below.
-      action.change.map(function(val, store) {
+      action.change.map(function(val: any, store: string) {
         let new_val;
         let old_val = state.get(store);
         if (old_val !== undefined) {
@@ -170,13 +178,13 @@ export class AppRedux {
     return this._redux_store.subscribe(this.show_state);
   }
 
-  _set_state(change): void {
+  _set_state(change: any): void {
     this._redux_store.dispatch(action_set_state(change));
   }
 
   createActions<T, C extends Actions<T>>(
     name: string,
-    actions_class?: new (a, b) => C
+    actions_class?: new (a: any, b: any) => C
   ): C {
     if (name == null) {
       throw Error("name must be a string");
@@ -391,7 +399,7 @@ export class AppRedux {
   }
 }
 
-const computed = rtype => {
+const computed = (rtype: Function) => {
   const clone = rtype.bind({});
   clone.is_computed = true;
   return clone;
@@ -412,14 +420,16 @@ WARNING: If store not yet defined, then props will all be undefined for that sto
 is no warning/error in this case.
 
 */
-const connect_component = spec => {
-  const map_state_to_props = function(state) {
-    const props = {};
+const connect_component = (spec: {
+  [store_name: string]: { [prop: string]: any };
+}) => {
+  const map_state_to_props = function(state?: object) {
+    const props: { [prop: string]: any } = {};
     if (state == null) {
       return props;
     }
     for (let store_name in spec) {
-      const info = spec[store_name];
+      const info: { [prop: string]: any } = spec[store_name];
       if (store_name === "undefined") {
         // gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
@@ -427,7 +437,7 @@ const connect_component = spec => {
       }
       const store: Store<any> | undefined = redux.getStore(store_name);
       for (let prop in info) {
-        var val;
+        let val: any;
         const type = info[prop];
 
         if (store == undefined) {
@@ -437,10 +447,11 @@ const connect_component = spec => {
         }
 
         if (type.category === "IMMUTABLE") {
-          props[prop] = val;
+          props[prop] = val as any;
         } else {
-          props[prop] =
-            (val != null ? val.toJS : undefined) != null ? val.toJS() : val;
+          props[prop] = ((val != null ? val.toJS : undefined) != null
+            ? val.toJS()
+            : val) as any;
         }
       }
     }
@@ -467,19 +478,22 @@ function compute_cache_key(data: { [key: string]: any }): string {
   return json_stable(keys(data).sort());
 }
 
-rclass = function(x: any) {
+rclass = function<P extends object>(
+  x: React.ComponentType<P>
+): React.ComponentType<P> {
   let C;
-  if (typeof x === "function" && typeof x.reduxProps === "function") {
+  const y = x as any;
+  if (typeof y === "function" && typeof y.reduxProps === "function") {
     // using an ES6 class *and* reduxProps...
     C = createReactClass({
       render() {
         if (this.cache0 == null) {
           this.cache0 = {};
         }
-        const reduxProps = x.reduxProps(this.props);
+        const reduxProps = y.reduxProps(this.props);
         const key = compute_cache_key(reduxProps);
         if (this.cache0[key] == null) {
-          this.cache0[key] = connect_component(reduxProps)(x);
+          this.cache0[key] = connect_component(reduxProps)(y);
         }
         return React.createElement(
           this.cache0[key],
@@ -488,8 +502,8 @@ rclass = function(x: any) {
         );
       }
     });
-    return C;
-  } else if (typeof x === "function") {
+    return (C as unknown) as React.ComponentType<P>;
+  } else if (typeof y === "function") {
     // Creates a react class that wraps the eventual component.
     // It calls the generator function with props as a parameter
     // and caches the result based on reduxProps
@@ -501,7 +515,7 @@ rclass = function(x: any) {
         }
         // OPTIMIZATION: Cache props before generating a new key.
         // currently assumes making a new object is fast enough
-        const definition = x(this.props);
+        const definition = y(this.props);
         const key = compute_cache_key(definition.reduxProps);
 
         if (definition.actions != null) {
@@ -524,13 +538,13 @@ rclass = function(x: any) {
       }
     });
 
-    return cached;
+    return (cached as unknown) as React.ComponentType<P>;
   } else {
-    if (x.reduxProps != null) {
+    if (y.reduxProps != null) {
       // Inject the propTypes based on the ones injected by reduxProps.
-      const propTypes = x.propTypes != null ? x.propTypes : {};
-      for (let store_name in x.reduxProps) {
-        const info = x.reduxProps[store_name];
+      const propTypes = y.propTypes != null ? y.propTypes : {};
+      for (let store_name in y.reduxProps) {
+        const info = y.reduxProps[store_name];
         for (let prop in info) {
           const type = info[prop];
           if (type !== rtypes.immutable) {
@@ -540,34 +554,34 @@ rclass = function(x: any) {
           }
         }
       }
-      x.propTypes = propTypes;
+      y.propTypes = propTypes;
     }
 
-    if (x.actions != null && x.actions !== redux.getActions) {
+    if (y.actions != null && y.actions !== redux.getActions) {
       throw Error(
         "You may not define a method named actions in an rclass. This is used to expose redux actions"
       );
     }
 
-    x.actions = redux.getActions;
+    y.actions = redux.getActions;
 
-    C = createReactClass(x);
-    if (x.reduxProps != null) {
+    C = createReactClass(y);
+    if (y.reduxProps != null) {
       // Make the ones comming from redux get automatically injected, as long
       // as this component is in a heierarchy wrapped by <Redux>...</Redux>
-      C = connect_component(x.reduxProps)(C);
+      C = connect_component(y.reduxProps)(C);
     }
   }
-  return C;
+  return (C as unknown) as React.ComponentType<P>;
 };
 
 let redux = new AppRedux();
 
 // Public interface
-export function is_redux(obj) {
+export function is_redux(obj: any): boolean {
   return obj instanceof AppRedux;
 }
-export function is_redux_actions(obj) {
+export function is_redux_actions(obj: any): boolean {
   return obj instanceof Actions;
 }
 
@@ -644,7 +658,9 @@ spec =
 
 the redux_fields function returns ['bar', 'stuff', 'other'].
 */
-export function redux_fields(spec) {
+export function redux_fields(spec: {
+  [store: string]: { [key: string]: any };
+}) {
   const v: any[] = [];
   for (let _ in spec) {
     const val = spec[_];
