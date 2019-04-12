@@ -54,14 +54,15 @@ async function sage(): Promise<boolean> {
 }
 
 async function jupyter(): Promise<Capabilities | boolean> {
-  const jupyter = (await have("jupyter"))
-    ? {
-        lab: await have("jupyter-lab"),
-        notebook: await have("jupyter-notebook"),
-        kernelspec: await have("jupyter-kernelspec")
-      }
-    : false;
-  return jupyter;
+  if (await have("jupyter")) {
+    return {
+      lab: await have("jupyter-lab"),
+      notebook: await have("jupyter-notebook"),
+      kernelspec: await have("jupyter-kernelspec")
+    };
+  } else {
+    return false;
+  }
 }
 
 async function latex(hashsums: Capabilities): Promise<boolean> {

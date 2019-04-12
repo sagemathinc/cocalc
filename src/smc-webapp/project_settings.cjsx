@@ -621,27 +621,66 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
     shouldComponentUpdate: (props) ->
         return misc.is_different(@props, props, ['project', 'configuration', 'available_features'])
 
+
+    render_features: (avail) ->
+        {sortBy} = require('lodash')
+        feature_map = [['spellcheck', 'Spellchecking'],
+               ['rmd', 'RMarkdown'],
+               ['sage', 'SageMath Worksheets'],
+               ['jupyter_notebook', 'Classical Jupyter Notebook'],
+               ['jupyter_lab', 'Jupyter Lab'],
+               ['library', 'Library of documents'],
+               ['x11', 'Graphical applications'],
+               ['latex', 'LaTeX editor']]
+        features = []
+        show_info = false
+        for [key, display] in sortBy(feature_map, ((f) -> f[1]))
+            available = avail[key]
+            show_info |= not available
+            color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
+            icon  = if available then "check-square"    else 'minus-square'
+            features.push(
+                <Fragment key={key}>
+                    <dt><Icon name={icon} style={color: color} /></dt>
+                    <dd>{display}</dd>
+                </Fragment>
+            )
+
+        <Fragment>
+            <dl className={"dl-horizontal cc-project-settings-features"}>
+                {features}
+            </dl>
+            {<div style={color:COLORS.GRAY}>
+                Some features are not available,{' '}
+                because this project runs a specific stack of software.
+                To enable all features,{' '}
+                please create a new project using the default software environemnt.
+            </div> if show_info}
+        </Fragment>
+
+    render_formatters: (formatter) ->
+        if formatter == false
+            return <div>No code formatters are available</div>
+        if formatter == true
+            return <div>All code formatters are available</div>
+
+        formatters = JSON.stringify(formatter, null, 2)
+        <dl className={"dl-horizontal cc-project-settings-features"}>
+            {formatters}
+        </dl>
+
     render_available: ->
         avail = @props.available_features
         return null if not avail?
-        feature_map = [['spellcheck', 'Spellchecking'],
-                       ['rmd', 'RMarkdown'],
-                       ['sage', 'SageMath Worksheets'],
-                       ['jupyter_notebook', 'Classical Jupyter Notebook'],
-                       ['jupyter_lab', 'Jupyter Lab'],
-                       ['library', 'Library of documents'],
-                       ['x11', 'Graphical applications'],
-                       ['latex', 'LaTeX editor']]
-        features = []
-        for [key, display] in feature_map
-            if avail[key] then features.push(display)
-        features.sort()
 
         <React.Fragment>
             <h3>Available features</h3>
-            <div>
-                {misc.to_human_list(features)}
-            </div>
+            {@render_features(avail)}
+
+            <hr />
+            <h3>Available formatters</h3>
+            {@render_formatters(avail.formatting)}
+
         </React.Fragment>
 
     render : ->

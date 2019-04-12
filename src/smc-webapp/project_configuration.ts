@@ -46,6 +46,7 @@ export interface Available {
   rmd: boolean; // TODO besides R, what's necessary?
   spellcheck: boolean;
   library: boolean;
+  formatting: Capabilities | boolean;
 }
 
 const NO_AVAIL: Readonly<Available> = Object.freeze({
@@ -57,7 +58,8 @@ const NO_AVAIL: Readonly<Available> = Object.freeze({
   rmd: false,
   x11: false,
   spellcheck: false,
-  library: false
+  library: false,
+  formatting: false
 });
 
 export const ALL_AVAIL: Readonly<Available> = Object.freeze({
@@ -69,7 +71,8 @@ export const ALL_AVAIL: Readonly<Available> = Object.freeze({
   rmd: true,
   x11: true,
   spellcheck: true,
-  library: true
+  library: true,
+  formatting: true
 });
 
 function isMainCapabilities(
@@ -118,7 +121,8 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       rmd: !!capabilities.rmd,
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
-      library: !!capabilities.library
+      library: !!capabilities.library,
+      formatting: capabilities.formatting
     };
   } else {
     return NO_AVAIL;

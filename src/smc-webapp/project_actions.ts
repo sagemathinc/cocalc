@@ -1911,6 +1911,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private init_runstate_watcher(): void {
     const store = this.get_store();
     if (store == null) return;
+
     store.on("started", () => {
       this.clear_configuration();
       this.init_configuration("main");
