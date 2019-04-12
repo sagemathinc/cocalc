@@ -658,16 +658,39 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             </div> if show_info}
         </Fragment>
 
-    render_formatters: (formatter) ->
+    render_formatter: (formatter) ->
+        {sortBy, keys} = require('lodash')
         if formatter == false
             return <div>No code formatters are available</div>
         if formatter == true
             return <div>All code formatters are available</div>
 
-        formatters = JSON.stringify(formatter, null, 2)
-        <dl className={"dl-horizontal cc-project-settings-features"}>
-            {formatters}
-        </dl>
+        tool4langs = require("smc-util/code-formatter").tool4langs
+
+        r_formatters = []
+        for tool in sortBy(keys(formatter), ((x) -> x))
+            available = formatter[tool]
+            color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
+            icon  = if available then "check-square"    else 'minus-square'
+            langs = tool4langs[tool]
+            # only tell users about tools where we know what for they're used
+            continue if (not langs?) or langs.length == 0
+
+            r_formatters.push(
+                <Fragment key={tool}>
+                    <dt><Icon name={icon} style={color: color} />{' '}</dt>
+                    <dd><b>{tool}</b> for {misc.to_human_list(langs)}</dd>
+                </Fragment>
+            )
+
+        <Fragment>
+            {<pre>
+                {JSON.stringify(formatter, null, 2)}
+            </pre>  if DEBUG}
+            <dl className={"dl-horizontal cc-project-settings-features"}>
+                {r_formatters}
+            </dl>
+        </Fragment>
 
     render_available: ->
         avail = @props.available_features
@@ -678,8 +701,8 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             {@render_features(avail)}
 
             <hr />
-            <h3>Available formatters</h3>
-            {@render_formatters(avail.formatting)}
+            <h3>Available formatter</h3>
+            {@render_formatter(avail.formatting)}
 
         </React.Fragment>
 

@@ -118,6 +118,8 @@ async function formatting(): Promise<Capabilities> {
   tools.map((tool, idx) => (ret[tool] = results[idx]));
   // just for testing
   // ret['yapf'] = false;
+  // prettier always available, because it is a js library dependency
+  ret["prettier"] = true;
   return ret;
 }
 
