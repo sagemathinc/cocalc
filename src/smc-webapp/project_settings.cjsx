@@ -706,7 +706,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
     render_available: ->
         avail = @props.available_features
         if not avail?
-            return <div>After the project is running,{' '}
+            return <div>When the project is running,{' '}
                 information about available features will show up here.
             </div>
 
