@@ -633,10 +633,10 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
                ['x11', 'Graphical applications'],
                ['latex', 'LaTeX editor']]
         features = []
-        show_info = false
+        any_nonavail = false
         for [key, display] in sortBy(feature_map, ((f) -> f[1]))
             available = avail[key]
-            show_info |= not available
+            any_nonavail |= not available
             color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
             icon  = if available then "check-square"    else 'minus-square'
             features.push(
@@ -646,17 +646,12 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
                 </Fragment>
             )
 
-        <Fragment>
+        component = <Fragment>
             <dl className={"dl-horizontal cc-project-settings-features"}>
                 {features}
             </dl>
-            {<div style={color:COLORS.GRAY}>
-                Some features are not available,{' '}
-                because this project runs a specific stack of software.
-                To enable all features,{' '}
-                please create a new project using the default software environemnt.
-            </div> if show_info}
         </Fragment>
+        return [component, any_nonavail]
 
     render_formatter: (formatter) ->
         {sortBy, keys} = require('lodash')
@@ -668,6 +663,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
         tool4langs = require("smc-util/code-formatter").tool4langs
 
         r_formatters = []
+        any_nonavail = false
         for tool in sortBy(keys(formatter), ((x) -> x))
             available = formatter[tool]
             color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
@@ -675,6 +671,9 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             langs = tool4langs[tool]
             # only tell users about tools where we know what for they're used
             continue if (not langs?) or langs.length == 0
+            # only consider availiability after eventually ignoring a specific tool,
+            # because it will not show up in the UI
+            any_nonavail |= not available
 
             r_formatters.push(
                 <Fragment key={tool}>
@@ -683,7 +682,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
                 </Fragment>
             )
 
-        <Fragment>
+        component = <Fragment>
             {<pre>
                 {JSON.stringify(formatter, null, 2)}
             </pre>  if DEBUG}
@@ -691,19 +690,35 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
                 {r_formatters}
             </dl>
         </Fragment>
+        return [component, any_nonavail]
+
+    render_noavail_info: ->
+        <Fragment>
+            <hr/>
+            <div style={color:COLORS.GRAY}>
+                Some aspects are not available,{' '}
+                because this project runs a specific stack of software.
+                To enable all features,{' '}
+                please create a new project using the default software environemnt.
+            </div>
+        </Fragment>
 
     render_available: ->
         avail = @props.available_features
-        return null if not avail?
+        if not avail?
+            return <div>After the project is running,{' '}
+                information about available features will show up here.
+            </div>
+
+        [features, non_avail_1] = @render_features(avail)
+        [formatter, non_avail_2] = @render_formatter(avail.formatting)
 
         <React.Fragment>
             <h3>Available features</h3>
-            {@render_features(avail)}
-
-            <hr />
+            {features}
             <h3>Available formatter</h3>
-            {@render_formatter(avail.formatting)}
-
+            {formatter}
+            {@render_noavail_info() if non_avail_1 or non_avail_2}
         </React.Fragment>
 
     render : ->

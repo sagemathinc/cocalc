@@ -110,6 +110,11 @@ export function is_available(configuration?: ProjectConfiguration): Available {
   if (capabilities == null) return NO_AVAIL;
   const jupyter: Capabilities | boolean = capabilities.jupyter;
 
+  const formatting = capabilities.formatting;
+
+  // uncomment for testing
+  // formatting["yapf"] = formatting["tidy"] = false;
+
   if (typeof jupyter !== "boolean") {
     const kernelspec: boolean = !!jupyter.kernelspec;
     return {
@@ -122,7 +127,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
       library: !!capabilities.library,
-      formatting: capabilities.formatting
+      formatting
     };
   } else {
     return NO_AVAIL;
