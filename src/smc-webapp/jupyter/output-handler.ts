@@ -37,6 +37,11 @@ export class OutputHandler extends EventEmitter {
   private _in_more_output_mode: any;
   private _state: any;
   private _stdin_cb: any;
+
+  private ipywidgets_state: any;   // actually, IpywidgetsState, but I
+  // don't want to fight with typescript import paths right now...
+  // import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
+
   constructor(opts: any) {
     super();
     this._opts = defaults(opts, {
@@ -45,7 +50,8 @@ export class OutputHandler extends EventEmitter {
       // messages are saved and made available.
       report_started_ms: undefined, // If no messages for this many ms, then we update via set to indicate
       // that cell is being run.
-      dbg: undefined
+      dbg: undefined,
+      ipywidgets_state: required
     });
     const { cell } = this._opts;
     cell.output = null;
@@ -59,6 +65,7 @@ export class OutputHandler extends EventEmitter {
     this._output_length = 0;
     this._in_more_output_mode = false;
     this._state = "ready";
+    this.ipywidgets_state = this._opts.ipywidgets_state;
     // Report that computation started if there is no output soon.
     if (this._opts.report_started_ms != null) {
       setTimeout(this._report_started, this._opts.report_started_ms);
@@ -169,8 +176,11 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  _push_mesg = (mesg: any, save = true): void => {
+  private _push_mesg = (mesg: any, save = true): void => {
     if (this._state === "closed") {
+      return;
+    }
+    if (this.handle_output_widget_capture(mesg)) {
       return;
     }
     if (this._opts.cell.output === null) {
@@ -308,23 +318,36 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  payload = (payload: any) => {
+  payload = (payload: any): void => {
     if (this._state === "closed") {
       return;
     }
     if (payload.source === "set_next_input") {
-      return this.set_input(payload.text);
+      this.set_input(payload.text);
     } else if (payload.source === "page") {
       // Just handle as a normal message; and we don't show in the pager,
       // which doesn't make sense for multiple users.
       // This happens when requesting help for r:
       // https://github.com/sagemathinc/cocalc/issues/1933
-      return this.message(payload);
+      this.message(payload);
     } else {
       // No idea what to do with this...
-      return typeof this._opts.dbg === "function"
-        ? this._opts.dbg(`Unknown PAYLOAD: ${misc.to_json(payload)}`)
-        : undefined;
+      if (typeof this._opts.dbg === "function") {
+        this._opts.dbg(`Unknown PAYLOAD: ${misc.to_json(payload)}`);
+      }
     }
   };
+
+  private handle_output_widget_capture(mesg: any): boolean {
+    // Returns true if there is an output widget
+    // capturing output messages.  In that case, it
+    // also saves the output message to that widget's state.
+    if (!this.ipywidgets_state.is_capturing_output()) {
+      // not capturing output -- mesg will be handled as usual.
+      return false;
+    }
+    // capture this output
+    this.ipywidgets_state.capture_output_message(mesg);
+    return true;
+  }
 }

@@ -1,11 +1,13 @@
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
 
-import { delete_null_fields } from "../../../misc2";
+import { delete_null_fields, len, startswith } from "../../../misc2";
 
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { Client } from "./types";
+
+const CAPTURE_OUTPUT_PREFIX = "execute_";
 
 type State = "init" | "ready" | "closed";
 
@@ -27,6 +29,11 @@ export class IpywidgetsState extends EventEmitter {
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
+
+  // if capture_output is set to a model_id, then that
+  // model is capturing output.  This is ONLY used
+  // in the project, and is not synced between frontends and project.
+  private capture_output?: { msg_id: string; model_id: string };
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
     super();
@@ -195,7 +202,7 @@ export class IpywidgetsState extends EventEmitter {
     msg: CommMessage
   ): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(msg);
+    dbg(JSON.stringify(msg));
     this.assert_state("ready");
 
     const { content } = msg;
@@ -232,24 +239,48 @@ export class IpywidgetsState extends EventEmitter {
     }
 
     delete_null_fields(state);
-    let { value } = state;
-    if (value == null && state.outputs != null) {
-      // the output widget stores its "value" in "outputs",
-      // rather than in value, but we just simplify things.
-      value = state.outputs;
-    }
 
     switch (content.data.method) {
       case "update":
-        this.set(model_id, "value", value);
-        break;
-
-      default:
-        this.set(model_id, "state", state);
+        dbg("method -- update");
+        let { value } = state;
+        if (value == null && state.outputs != null) {
+          // the output widget stores its "value" in "outputs",
+          // rather than in value, but we just simplify things.
+          value = state.outputs;
+          delete state.outputs;
+        }
+        delete state.value;
         if (value != null) {
           this.set(model_id, "value", value);
         }
+
+        if (state.msg_id != null) {
+          const { msg_id } = state;
+          if (startswith(msg_id, CAPTURE_OUTPUT_PREFIX)) {
+            dbg("enabling capture output", msg_id, model_id);
+            this.capture_output = { msg_id, model_id };
+          } else {
+            dbg("disabling capture output");
+            delete this.capture_output;
+          }
+          delete state.msg_id;
+        }
+
+        if (len(state) > 0) {
+          this.set(model_id, "state", state);
+        }
+        break;
+      case undefined:
+        dbg("method -- undefined (=initial set?)");
+        this.set(model_id, "state", state);
+        break;
+      default:
+        // TODO: Implement other methods, e.g., 'display' -- see
+        // https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
+        dbg(`not implemented method '${content.data.method}' -- ignoring`);
     }
+
     await this.save();
   }
 
@@ -265,5 +296,24 @@ export class IpywidgetsState extends EventEmitter {
     const dbg = this.dbg("process_comm_message_from_browser");
     dbg(msg);
     this.assert_state("ready");
+    // TODO: not implemented!
+  }
+
+  public is_capturing_output(): boolean {
+    return this.capture_output != null;
+  }
+
+  public capture_output_message(mesg): void {
+    if (this.capture_output == null) return;
+    const dbg = this.dbg("capture_output_message");
+    dbg(JSON.stringify(mesg));
+    const { msg_id, model_id } = this.capture_output;
+    dbg(msg_id, model_id);
+    let value = this.get_model_value(model_id);
+    if (value == null) {
+      value = [];
+    }
+    value.push(mesg);
+    this.set(model_id, "value", value);
   }
 }

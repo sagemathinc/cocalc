@@ -172,6 +172,7 @@ export class CodeExecutionEmitter extends EventEmitter
       // level in jupyter.ts.  Also, this case should never happen, since
       // we do not emit an event from jupyter.ts in this case anyways.
     } else {
+      // A normal output message.
       this._push_mesg(mesg);
     }
 

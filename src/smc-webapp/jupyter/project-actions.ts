@@ -471,7 +471,8 @@ export class JupyterActions extends JupyterActions0 {
       cell,
       max_output_length: this.store.get("max_output_length"),
       report_started_ms: 250,
-      dbg
+      dbg,
+      ipywidgets_state: this.syncdb.ipywidgets_state
     });
 
     this._jupyter_kernel.once("closed", () => {
@@ -623,23 +624,22 @@ export class JupyterActions extends JupyterActions0 {
         handler.start();
       }
       if (mesg.content.payload != null) {
-        if (
-          (mesg.content.payload != null
-            ? mesg.content.payload.length
-            : undefined) > 0
-        ) {
+        if (mesg.content.payload.length > 0) {
           // payload shell message:
           // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
           // ""Payloads are considered deprecated, though their replacement is not yet implemented."
           // we fully have to implement them, since they are used to implement (crazy, IMHO)
           // things like %load in the python2 kernel!
-          return mesg.content.payload.map(p => handler.payload(p));
+          mesg.content.payload.map(p => handler.payload(p));
+          return;
         }
       } else {
         // Normal iopub output message
-        return handler.message(mesg.content);
+        handler.message(mesg.content);
+        return;
       }
     });
+
     exec.on("error", err => {
       dbg(`got error='${err}'`);
       handler.error(err);

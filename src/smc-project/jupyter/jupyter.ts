@@ -20,6 +20,9 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
+//  const DEBUG = true; // only for extreme deebugging.
+const DEBUG = false; // normal mode
+
 export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
@@ -277,7 +280,9 @@ export class JupyterKernel extends EventEmitter
     this._channels.stdin.subscribe(mesg => this.emit("stdin", mesg));
 
     this._channels.iopub.subscribe(mesg => {
-      this.dbg("IOPUB")(JSON.stringify(mesg));
+      if (DEBUG) {
+        this.dbg("IOPUB", 100000)(JSON.stringify(mesg));
+      }
 
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
@@ -463,12 +468,14 @@ export class JupyterKernel extends EventEmitter
     }
   }
 
-  dbg(f: any): Function {
+  // public, since we do use it from some other places...
+  public dbg(f: string, trunc: number = 1000): Function {
     if (!this._dbg) {
       return function() {};
     } else {
       return this._dbg(
-        `jupyter.Kernel('${this.name}',path='${this._path}').${f}`
+        `jupyter.Kernel('${this.name}',path='${this._path}').${f}`,
+        trunc
       );
     }
   }
