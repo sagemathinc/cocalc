@@ -1620,7 +1620,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     cm.focus();
     let parser: FormatterParser;
-    switch (filename_extension(this.path)) {
+    switch (filename_extension(this.path).toLowerCase()) {
       case "js":
       case "jsx":
         parser = "babylon";
@@ -1913,6 +1913,5 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.focus();
   }
 
-  public hide(): void {
-  }
+  public hide(): void {}
 }

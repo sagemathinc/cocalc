@@ -1,28 +1,40 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the projectc
 
-// ideally, this is the language, but for historic reasons it's what is being "parsed"
+// ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
   | "r"
   | "c"
   | "c++"
+  | "clang"
   | "clang-format"
   | "latex"
   | "go"
   | "gofmt"
   | "tidy"
+  | "CSS"
   | "html"
+  | "babylon"
   | "html-tidy"
+  | "xml"
   | "xml-tidy"
   | "bib-biber"
+  | "bibtex"
   | "markdown"
-  | "babylon"
+  | "Markdown"
   | "json"
+  | "JSON"
   | "yaml"
-  | "typescript"
   | "postcss"
   | "python"
-  | "py";
+  | "py"
+  | "R"
+  | "RMarkdown"
+  | "TypeScript"
+  | "typescript"
+  | "JavaScript"
+  | "tsx"
+  | "jsx";
 
 export type Tool =
   | "prettier" // always available
@@ -33,36 +45,113 @@ export type Tool =
   | "latexindent"
   | "gofmt"
   | "biber"
-  | "tidy";
+  | "tidy"
+  | "DOES_NOT_EXIST"; // use this for testing;
 
-type Config = { [s in Parser]?: Tool };
+// the list of file extensions where we want to have formatting support
+export type Exts =
+  | "js"
+  | "jsx"
+  | "md"
+  | "rmd"
+  | "css"
+  | "ts"
+  | "tsx"
+  | "json"
+  | "yaml"
+  | "yml"
+  | "py"
+  | "tex"
+  | "html"
+  | "r"
+  | "go"
+  | "c"
+  | "cc"
+  | "c++"
+  | "cpp"
+  | "h"
+  | "xml"
+  | "cml"
+  | "kml"
+  | "bib";
 
-// those languages (parser) which aren't handled by "prettier", have these special tools (command-line interface)
+// associating filename extensions with a specific type of syntax for a parser
+type Ext2Parser = { [s in Exts]: Parser };
+export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
+  js: "JavaScript",
+  jsx: "jsx",
+  md: "Markdown",
+  rmd: "RMarkdown",
+  css: "CSS",
+  ts: "TypeScript",
+  tsx: "tsx",
+  json: "JSON",
+  yaml: "yaml",
+  yml: "yaml",
+  py: "python",
+  tex: "latex",
+  html: "html",
+  r: "R",
+  go: "go",
+  c: "clang",
+  cc: "clang",
+  "c++": "clang",
+  cpp: "clang",
+  h: "clang",
+  xml: "xml",
+  cml: "xml",
+  kml: "xml",
+  bib: "bibtex" // via biber --tool
+} as Ext2Parser);
+
+// those languages (parser) which aren't handled by "prettier" (the default),
+// have these special tools (command-line interface)
+// (several ones are added for backwards compatibility)
+type Config = { [s in Parser]: Tool };
 export const config: Readonly<Config> = Object.freeze({
   py: "yapf",
   python: "yapf",
   python3: "yapf3",
+  R: "formatR",
   r: "formatR",
+  JavaScript: "prettier",
+  jsx: "prettier",
+  tsx: "prettier",
+  TypeScript: "prettier",
+  typescript: "prettier",
+  CSS: "prettier",
+  postcss: "prettier",
+  json: "prettier",
+  JSON: "prettier",
+  yaml: "prettier",
+  markdown: "prettier",
+  Markdown: "prettier",
+  RMarkdown: "prettier", // same as markdown!
   c: "clang-format",
+  clang: "clang-format",
   "clang-format": "clang-format",
   "c++": "clang-format",
+  babylon: "prettier",
   latex: "latexindent",
   go: "gofmt",
   gofmt: "gofmt",
+  bibtex: "biber",
   "bib-biber": "biber",
   tidy: "tidy",
   xml: "tidy",
-  html: "tidy",
-  markdown: "prettier",
-  typescript: "prettier",
-  postcss: "prettier",
-  json: "prettier"
+  "xml-tidy": "tidy",
+  "html-tidy": "tidy",
+  html: "tidy"
+  // html: "DOES_NOT_EXIST"
 } as Config);
 
-// Map parsers (a subset) to a human-readable language
+export const parser2tool = config;
+
+// Map (a subset of) syntax (aka "parser") to a human-readable language
+// in order to communicate what syntaxes can be formatted.
 type Langs = { [s in Parser]?: string };
 
-export const parser2language: Readonly<Langs> = Object.freeze({
+export const parser2display: Readonly<Langs> = Object.freeze({
   r: "R Language",
   c: "C",
   "c++": "C++",
@@ -70,24 +159,29 @@ export const parser2language: Readonly<Langs> = Object.freeze({
   "bib-biber": "Bibtex",
   json: "JSON",
   yaml: "YAML",
-  postcss: "CSS",
   py: "Python",
   gofmt: "Go",
   markdown: "Markdown",
   typescript: "TypeScript",
   html: "HTML",
-  xml: "XML"
+  xml: "XML",
+  postcss: "CSS",
+  javascript: "JavaScript"
 } as Langs);
 
 // pre-process mapping of each tool to human-readable language or text type
-type Tool4Langs = { [s in Tool]?: string[] };
+type Tool2Display = { [s in Tool]?: string[] };
 
-const t4l: Tool4Langs = {};
+const t2d: Tool2Display = {};
 for (const parser of Object.keys(config)) {
   const tool = config[parser];
-  if (t4l[tool] == null) t4l[tool] = [];
-  const lang = parser2language[parser];
-  if (lang != null) t4l[tool].push(lang);
+  if (t2d[tool] == null) t2d[tool] = [];
+  const lang = parser2display[parser];
+  if (lang != null) t2d[tool].push(lang);
 }
 
-export const tool4langs: Readonly<Tool4Langs> = Object.freeze(t4l);
+for (const tool of Object.keys(t2d)) {
+  t2d[tool] = t2d[tool].sort();
+}
+
+export const tool4langs: Readonly<Tool2Display> = Object.freeze(t2d);

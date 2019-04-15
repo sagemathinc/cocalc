@@ -3,7 +3,8 @@ import {
   rclass,
   rtypes,
   Component,
-  Rendered
+  Rendered,
+  project_redux_name
 } from "../../app-framework";
 
 const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
@@ -76,7 +77,8 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
     }
   }
 
-  static reduxProps({ name }) {
+  static reduxProps({ name, project_id }) {
+    const project_store_name = project_redux_name(project_id);
     return {
       account: {
         editor_settings: rtypes.immutable.Map,
@@ -108,8 +110,9 @@ const FrameTreeEditor0 = class extends Component<FrameTreeEditorProps, {}> {
 
         complete: rtypes.immutable.Map.isRequired,
 
-        derived_file_types: rtypes.immutable.Set,
-
+        derived_file_types: rtypes.immutable.Set
+      },
+      [project_store_name]: {
         available_features: rtypes.object
       }
     };

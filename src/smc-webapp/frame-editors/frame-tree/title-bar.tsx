@@ -29,12 +29,15 @@ const {
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
 
-const util = require("../frame-tree/util");
 const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 import { trunc_middle } from "smc-util/misc2";
 
 import { ConnectionStatus } from "./types";
+
+import { Available as AvailableFeatures } from "../../project_configuration";
+
+import { ext2parser, parser2tool } from "smc-util/code-formatter";
 
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
@@ -113,6 +116,7 @@ interface Props {
   title?: string;
   connection_status?: ConnectionStatus;
   font_size?: number;
+  available_features?: AvailableFeatures;
 }
 
 interface State {
@@ -142,7 +146,8 @@ export class FrameTitleBar extends Component<Props, State> {
         "status",
         "title",
         "connection_status",
-        "font_size"
+        "font_size",
+        "available_features"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -817,10 +822,23 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_format(): Rendered {
+    if (!this.is_visible("format")) return;
+    if (this.props.available_features == null) return;
+    const formatting = this.props.available_features.formatting;
+    // there is no formatting available at all
+    if (formatting == null || formatting === false) return;
     const ext = misc.filename_extension(this.props.path).toLowerCase();
-    if (!this.is_visible("format") || !util.PRETTIER_SUPPORT[ext]) {
-      return;
-    }
+    const parser = ext2parser[ext];
+    if (parser == null) return;
+    const tool = parser2tool[parser];
+    console.log(
+      `FrameTitleBar::render_format ext: ${ext}, parser: ${parser}, formatting[tool]= ${
+        formatting[tool]
+      }`
+    );
+    if (tool == null) return;
+    if (!formatting[tool]) return;
+
     return (
       <Button
         key={"format"}
@@ -1113,7 +1131,7 @@ export class FrameTitleBar extends Component<Props, State> {
     ) {
       return;
     }
-    if (this.props.connection_status == 'connected') {
+    if (this.props.connection_status == "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
       // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx
