@@ -87,16 +87,17 @@ const redux_name = (project_id, course_filename) =>
   `editor-${project_id}-${course_filename}`;
 
 const syncdbs = {};
-const init_redux = function(
+
+function init_redux(
   course_filename,
   redux: AppRedux,
   course_project_id
-) {
+): string {
   const the_redux_name = redux_name(course_project_id, course_filename);
   const get_actions = () => redux.getActions(the_redux_name);
   if (get_actions() != null) {
     // already initalized
-    return;
+    return the_redux_name;
   }
 
   // DO NOT initialize settings here. They are initialized in sync.ts to prevent a
@@ -139,7 +140,7 @@ const init_redux = function(
   );
 
   return the_redux_name;
-};
+}
 
 const remove_redux = function(course_filename, redux, course_project_id) {
   const the_redux_name = redux_name(course_project_id, course_filename);
