@@ -14,7 +14,11 @@ import { FileUseActions } from "./actions";
 
 import { open_file_use_entry } from "./util";
 
-const { filename_extension, search_match, search_split } = require("smc-util/misc");
+const {
+  filename_extension,
+  search_match,
+  search_split
+} = require("smc-util/misc");
 
 // Number of notifications to show if "Show All" isn't clicked
 const SHORTLIST_LENGTH = 40;
@@ -203,7 +207,19 @@ export class FileUseViewer extends Component<Props, State> {
       <div className={"smc-file-use-viewer"}>
         <Row key="top">
           <Col sm={7}>{this.render_search_box()}</Col>
-          <Col sm={5}>
+          <Col sm={2}>
+            <Link
+              on_click={() => {
+                this.props.redux
+                  .getActions("page")
+                  .set_active_tab("notifications");
+                this.props.redux.getActions("page").toggle_show_file_use();
+              }}
+            >
+              See all
+            </Link>
+          </Col>
+          <Col sm={3}>
             <div style={{ float: "right" }}>
               {this.render_mark_all_read_button()}
             </div>
@@ -214,4 +230,17 @@ export class FileUseViewer extends Component<Props, State> {
       </div>
     );
   }
+}
+
+function Link({ on_click, children }) {
+  const _on_click = e => {
+    e.preventDefault();
+    on_click(e);
+  };
+
+  return (
+    <a role="button" href="" onClick={_on_click}>
+      {children}{" "}
+    </a>
+  );
 }
