@@ -1208,12 +1208,8 @@ OtherSettings = rclass
     on_change: (name, value) ->
         set_account_table(other_settings:{"#{name}":value})
 
-    toggle_global_banner: (val) ->
-        if val
-            # this must be "null", not "undefined" – otherwise the data isn't stored in the DB.
-            @on_change('show_global_info2', null)
-        else
-            @on_change('show_global_info2', webapp_client.server_time())
+    show_announcement: (priority) ->
+        @on_change("announcement_#{priority}", null)
 
     render_first_steps: ->
         <Checkbox
@@ -1224,14 +1220,19 @@ OtherSettings = rclass
             Offer to setup the "First Steps" guide (if available).
         </Checkbox>
 
-    render_global_banner: ->
-        <Checkbox
-            checked  = {!@props.other_settings.get('show_global_info2')}
-            ref      = 'global_banner'
-            onChange = {(e)=>@toggle_global_banner(e.target.checked)}
+    render_announcement_info: ->
+        <Button
+            onClick = {=>@show_announcement('info')}
         >
-            Show announcement banner (only shows up if there is a message)
-        </Checkbox>
+            Show recent announcements
+        </Button>
+
+    render_announcement_high: ->
+        <Button
+            onClick = {=>@show_announcement('high')}
+        >
+            Show recent system notifications
+        </Button>
 
     render_time_ago_absolute: ->
         <Checkbox
@@ -1327,7 +1328,8 @@ OtherSettings = rclass
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             {@render_first_steps()}
-            {@render_global_banner()}
+            {@render_announcement_high()}
+            {@render_announcement_info()}
             {@render_time_ago_absolute()}
             {### @render_katex() ###}
             {@render_mask_files()}

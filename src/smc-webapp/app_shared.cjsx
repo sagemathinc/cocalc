@@ -576,22 +576,29 @@ exports.LocalStorageWarning = rclass
         </div>
 
 # This is used in the "desktop_app" to show a global announcement on top of CoCalc.
-# It was first used for a general CoCalc announcement, but it's general enough to be used later on
-# for other global announcements.
-# For now, it just has a simple dismiss button backed by the account → other_settings, though.
-# 20171013: disabled, see https://github.com/sagemathinc/cocalc/issues/1982
-# 20180713: enabled again, we need it to announce the K2 switch
-# 20180819: Ubuntu 18.04 project image upgrade
+# 2019: upgraded to display system messages and information announcements, driven by to "system_announcements" table
 exports.GlobalInformationMessage = rclass
     displayName: 'GlobalInformationMessage'
 
+    propTypes :
+        announcement : rtypes.immutable.Map
+
+    shouldComponentUpdate: (props) ->
+        return @props.announcement != props.announcement
+
     dismiss: ->
-        redux.getTable('account').set(other_settings:{show_global_info2:webapp_client.server_time()})
+        priority = @props.announcement.get('priority')
+        time     = @props.announcement.get('time')
+        redux.getTable('account').set(other_settings:{"announcement_#{priority}": time})
 
     render: ->
-        more_url = 'https://github.com/sagemathinc/cocalc/wiki/Ubuntu-18.04-project-image-upgrade'
-        local_time = show_announce_end.toLocaleString()
-        bgcol = COLORS.YELL_L
+        priority = @props.announcement.get('priority')
+        bgcol = switch priority
+            when 'high'
+                COLORS.YELL_L
+            when 'info'
+                COLORS.BLUE_LL
+
         style =
             padding         : '5px 0 5px 5px'
             backgroundColor : bgcol
@@ -602,10 +609,12 @@ exports.GlobalInformationMessage = rclass
             left            : 0
             height          : '36px'
 
+        text = @props.announcement.get('text')
+
         <Row style={style}>
             <Col sm={9} style={paddingTop: 3}>
                 <p>
-                    <b>Global announcement: <a target='_blank' href={more_url}>A major software upgrade for all projects</a> is live.</b>
+                    <b>Global announcement: {text}</b>
                 </p>
             </Col>
             <Col sm={3}>

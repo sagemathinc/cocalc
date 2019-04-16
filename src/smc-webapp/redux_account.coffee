@@ -299,8 +299,8 @@ class AccountStore extends Store
 # Register account store
 # Use the database defaults for all account info until this gets set after they login
 init = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
-# ... except for show_global_info2 (null or a timestamp)
-init.other_settings.show_global_info2 = 'loading' # indicates there is no data yet
+# ... except for information announcement banner timestamps, which are null or a timestamp
+init.other_settings.announcement_info = init.other_settings.announcement_high  = 'loading' # indicates there is no data yet
 init.editor_settings.physical_keyboard = 'NO_DATA' # indicator that there is no data
 init.user_type = if misc.get_local_storage(remember_me) then 'signing_in' else 'public'  # default
 store = redux.createStore('account', AccountStore, init)
