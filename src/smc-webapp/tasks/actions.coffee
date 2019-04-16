@@ -8,6 +8,7 @@ WIKI_HELP_URL = "https://doc.cocalc.com/tasks.html"
 
 immutable  = require('immutable')
 underscore = require('underscore')
+{delay} = require('awaiting')
 
 {Actions}  = require('../app-framework')
 
@@ -530,3 +531,10 @@ class exports.TaskActions extends Actions
             return
         desc = toggle_checkbox(desc, index, checked)
         @set_desc(task_id, desc)
+
+    hide: =>
+        @disable_key_handler()
+
+    show: =>
+        await delay(1)
+        @enable_key_handler()
