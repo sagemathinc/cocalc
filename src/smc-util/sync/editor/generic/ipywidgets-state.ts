@@ -316,4 +316,9 @@ export class IpywidgetsState extends EventEmitter {
     value.push(mesg);
     this.set(model_id, "value", value);
   }
+
+  public capture_output_clear(): void {
+    const dbg = this.dbg("capture_output_clear");
+    dbg('TODO');
+  }
 }

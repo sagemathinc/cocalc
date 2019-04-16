@@ -1150,16 +1150,30 @@ export class JupyterActions extends JupyterActions0 {
     for (let key of keys) {
       dbg("key = ", key);
       const [, model_id, type] = JSON.parse(key);
+      let data: any;
       if (type === "value") {
         const value = this.syncdb.ipywidgets_state.get_model_value(model_id);
-        const data = { method: "update", state: { value } };
+        data = { method: "update", state: { value } };
         this._jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),
           model_id,
           data
         );
+      } else if (type === "state") {
+        // TODO: currently ignoring this, since it seems chatty and pointless,
+        // and could lead to race conditions probably with multiple users, etc.
+        // It happens right when the widget is created.
+        /*
+        const state = this.syncdb.ipywidgets_state.get_model_state(model_id);
+        data = { method: "update", state };
+        this._jupyter_kernel.send_comm_message_to_kernel(
+          misc.uuid(),
+          model_id,
+          data
+        );
+        */
       } else {
-        dbg("type isn't 'value', so ignorning");
+        throw Error(`invalid synctable state -- unknown type '${type}'`);
       }
     }
   }

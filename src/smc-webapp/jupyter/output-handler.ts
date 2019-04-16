@@ -89,6 +89,12 @@ export class OutputHandler extends EventEmitter {
     if (this._state === "closed") {
       return;
     }
+    if (this.ipywidgets_state.is_capturing_output()) {
+      // capturing output -- clear in capture
+      this.ipywidgets_state.capture_output_clear();
+      return;
+    }
+
     this._clear_before_next_output = false;
     // clear output message -- we delete all the outputs
     // reset the counter n, save, and are done.

@@ -49,10 +49,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_state_change(keys): Promise<void> {
-    console.log("handle_table_state_change", keys);
+    // console.log("handle_table_state_change", keys);
     for (let key of keys) {
       const [, model_id, type] = JSON.parse(key);
-      console.log("handle_table_state_change - one key", key, model_id, type);
+      // console.log("handle_table_state_change - one key", key, model_id, type);
       switch (type) {
         case "state":
           await this.handle_model_state_change(model_id);
@@ -96,7 +96,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async handle_model_value_change(model_id: string): Promise<void> {
     const value = this.ipywidgets_state.get_model_value(model_id);
-    console.log("handle_model_value_change", model_id, value);
+    // console.log("handle_model_value_change", model_id, value);
     await this.update_model(model_id, { value });
   }
 
@@ -109,9 +109,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     );
     if (model != null) {
       //console.log(`setting state of model "${model_id}" to `, state);
+      const success = await this.dereference_model_links(state);
+      if (!success) {
+        console.warn("update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.")
+        return;
+      }
       model.set_state(state);
-    } else {
-      console.log(`WARNING: update_model -- unknown model ${model_id}`);
+    // } else {
+      // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
     }
   }
 
@@ -152,10 +157,14 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     const success = await this.dereference_model_links(state);
+    //console.log(model_id, view_module, view_name, view_module_version);
+
     if (!success) {
+      //console.log(model_id, "failed to dereference fully");
       this.incomplete_model_ids.add(model_id);
       return;
     } else {
+      //console.log(model_id, "successful full dereference");
       this.incomplete_model_ids.delete(model_id);
     }
 
@@ -165,8 +174,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       model_id,
       model_module_version
     });
-
-    console.log(view_module, view_name, view_module_version);
 
     // Initialize the model
     model.set(state);
@@ -249,7 +256,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    console.log("loadClass", className, moduleName, moduleVersion);
+    // console.log("loadClass", className, moduleName, moduleVersion);
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
