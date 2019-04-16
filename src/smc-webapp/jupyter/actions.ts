@@ -3205,6 +3205,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             case "r": // in the wild, the language is "R"
               options = { parser: "r" };
               break;
+            case "c++":
+            case "C++":
+            case "C++17":
+              options = { parser: "clang-format" };
+              break;
             default:
               throw new Error(
                 `Formatting "${language}" cells is not supported yet.`
@@ -3219,25 +3224,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         throw new Error(`Unknown cell_type: '${cell_type}'`);
     }
     // console.log("FMT", cell_type, options, code);
-    let resp;
+    let resp: string | undefined;
     try {
       resp = await this._api_call_prettier(code, options);
     } catch (err) {
       this.set_error(err);
+      // do not process response (probably empty anyways) if there is a problem
+      return;
     }
-    // console.log("FMT resp", resp);
-
+    if (resp == null) return; // make everyone happy …
     // we additionally trim the output, because prettier introduces a trailing newline
-    const trim = function(str: string): string {
-      str = str.trim();
-      if (str.length > 0 && str.slice(-1) == "\n") {
-        return str.slice(0, -2);
-      }
-      return str;
-    };
-
-    this.set_cell_input(id, trim(resp), false);
+    this.set_cell_input(id, JupyterActions.trim_code(resp), false);
   };
+
+  public static trim_code(str: string): string {
+    str = str.trim();
+    if (str.length > 0 && str.slice(-1) == "\n") {
+      return str.slice(0, -2);
+    }
+    return str;
+  }
 
   format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
     this.set_error(null);
@@ -3394,7 +3400,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  async show() : Promise<void> {
+  async show(): Promise<void> {
     // called when tab is shown
     // refresh all input codemirrors (after they appear)
     await awaiting.delay(0); // wait until next render loop
@@ -3409,7 +3415,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  hide() : void {
+  hide(): void {
     this.blur();
   }
 }
