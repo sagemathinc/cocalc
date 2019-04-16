@@ -660,7 +660,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
         if formatter == true
             return <div>All code formatters are available</div>
 
-        tool4langs = require("smc-util/code-formatter").tool4langs
+        tool2display = require("smc-util/code-formatter").tool2display
 
         r_formatters = []
         any_nonavail = false
@@ -668,7 +668,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             available = formatter[tool]
             color = if available then COLORS.BS_GREEN_D else COLORS.BS_RED
             icon  = if available then "check-square"    else 'minus-square'
-            langs = tool4langs[tool]
+            langs = tool2display[tool]
             # only tell users about tools where we know what for they're used
             continue if (not langs?) or langs.length == 0
             # only consider availiability after eventually ignoring a specific tool,

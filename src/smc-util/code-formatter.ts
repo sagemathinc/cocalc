@@ -182,4 +182,4 @@ for (const tool of Object.keys(t2d)) {
   t2d[tool] = t2d[tool].sort();
 }
 
-export const tool4langs: Readonly<Tool2Display> = Object.freeze(t2d);
+export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);

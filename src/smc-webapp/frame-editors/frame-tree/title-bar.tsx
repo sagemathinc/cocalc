@@ -831,11 +831,6 @@ export class FrameTitleBar extends Component<Props, State> {
     const parser = ext2parser[ext];
     if (parser == null) return;
     const tool = parser2tool[parser];
-    console.log(
-      `FrameTitleBar::render_format ext: ${ext}, parser: ${parser}, formatting[tool]= ${
-        formatting[tool]
-      }`
-    );
     if (tool == null) return;
     if (!formatting[tool]) return;
 
@@ -844,9 +839,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"format"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.format(this.props.id)}
-        title={
-          "Run Prettier (or some other AST-based service) to canonically format this entire document"
-        }
+        title={`Canonically format the entire document using '${tool}'.`}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>

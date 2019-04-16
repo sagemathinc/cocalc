@@ -13,10 +13,7 @@ import {
   MainCapabilities,
   LIBRARY_INDEX_FILE
 } from "../smc-webapp/project_configuration";
-import {
-  config as formatter_config,
-  Tool as FormatTool
-} from "../smc-util/code-formatter";
+import { parser2tool, Tool as FormatTool } from "../smc-util/code-formatter";
 
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>(resolve => {
@@ -102,7 +99,7 @@ async function library(): Promise<boolean> {
 async function formatting(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
   const tools = new Array(
-    ...new Set(Object.keys(formatter_config).map(k => formatter_config[k]))
+    ...new Set(Object.keys(parser2tool).map(k => parser2tool[k]))
   );
   tools.push("yapf3", "black", "autopep8");
   for (let tool of tools) {
