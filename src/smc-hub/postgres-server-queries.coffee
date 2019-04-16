@@ -2617,6 +2617,76 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(undefined, w)
 
     ###
+    DEV ONLY: Random announcement messages
+    ###
+
+    # this inserts weekly random announcement messages for development
+    insert_random_announcements: (opts) =>
+        opts = defaults opts,
+            cb         : required
+
+        text = (ts) ->
+            rtb = require('random-textblock')
+            options =
+                minWords: 4
+                maxWords: 10
+                minSentences: 1
+                maxSentences: 2
+            # embed timestamp into text for debugging purposes
+            return "`#{ts.toISOString().slice(0, 16)}`: #{rtb.getTextBlock(options)}"
+
+        insert = (ts, cb) =>
+            values =
+                "id       :: UUID"      : misc.uuid()
+                "time     :: TIMESTAMP" : ts
+                "text     :: TEXT     " : text(ts)
+                "priority :: CHAR(6)  " : "info"
+                "done     :: BOOLEAN  " : false
+
+            @_query
+                query  : "INSERT INTO system_notifications"
+                values : values
+                cb     : cb
+
+        most_recent = null
+
+        async.series([
+            (cb) =>
+                @_query
+                    query    : "SELECT time FROM system_notifications"
+                    where    : "priority = 'info'"
+                    order_by : 'time DESC'
+                    limit    : 1
+                    cb       : one_result 'time', (err, time) =>
+                        if err
+                            cb(err)
+                            return
+                        if time?
+                            most_recent = time
+                        else
+                            most_recent = misc.days_ago(100)
+                        cb()
+
+            (cb) =>
+                ts = most_recent
+                now = new Date()
+                last = misc.days_ago(7)
+                if ts > last
+                    cb()
+                    return
+                dt_day = 24 * 60 * 60 * 1000
+                times = []
+                while ts < now
+                    # every ~7 days
+                    ts = new Date((ts - 0) + (4 + 6 * Math.random()) * dt_day)
+                    times.push(ts)
+
+                async.mapSeries(times, insert, cb)
+
+        ], opts.cb)
+
+
+    ###
     Compute servers
     ###
     save_compute_server: (opts) =>
