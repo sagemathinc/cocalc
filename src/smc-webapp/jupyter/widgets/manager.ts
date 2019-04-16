@@ -1,5 +1,10 @@
+/*
+
+
+*/
+
 import * as base from "@jupyter-widgets/base";
-import * as controls from "@jupyter-widgets/controls";
+import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
   IpywidgetsState,
   ModelState
@@ -8,7 +13,8 @@ import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
 import { is_array, uuid } from "smc-util/misc2";
 
-import * as output from "./output";
+import * as react_output from "./output";
+import * as react_controls from "./controls";
 
 export type SendCommFunction = (string, data) => string;
 
@@ -256,14 +262,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    // console.log("loadClass", className, moduleName, moduleVersion);
+    console.log("loadClass", className, moduleName, moduleVersion);
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
     } else if (moduleName === "@jupyter-widgets/controls") {
-      module = controls;
+      if(react_controls[className] != null) {
+        module = react_controls;
+      } else {
+        module = phosphor_controls;
+      }
     } else if (moduleName === "@jupyter-widgets/output") {
-      module = output;
+      module = react_output;
     } else if (this.loader !== undefined) {
       throw Error("TODO -- no clue -- maybe can't support?");
     } else {

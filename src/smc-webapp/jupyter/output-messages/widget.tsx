@@ -35,6 +35,7 @@ interface WidgetProps {
 interface WidgetState {
   output?: Map<string, any>;
   style?: any;
+  react_view?: any;
 }
 
 export class Widget0 extends Component<WidgetProps, WidgetState> {
@@ -55,11 +56,13 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     super(props, context);
 
     this.update_output = this.update_output.bind(this);
+    this.update_react_view = this.update_react_view.bind(this);
 
     // state is used to store output state, for output widgets, which we render.
     this.state = {};
   }
 
+  /*
   shouldComponentUpdate(
     nextProps: WidgetProps,
     nextState: WidgetState
@@ -80,8 +83,12 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       this.init_view(next_model_id);
     }
     if (nextState.output == null) return false;
-    return !nextState.output.equals(this.state);
+    if (nextState.output.equals(this.state)) return false;
+
+    // TODO: check react view here.
+    return true;
   }
+  */
 
   componentDidMount(): void {
     this.mounted = true;
@@ -124,6 +131,22 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     }
   }
 
+  update_react_view(): void {
+    console.log("update_react_view");
+    if (!this.mounted) return;
+    const state = this.model.get_state(true);
+    console.log("update_react_view", state);
+    if (state == null) {
+      this.setState({ react_view: undefined });
+      return;
+    }
+    const react_view: string[] = [];
+    for (let child of state.children) {
+      react_view.push(child.model_id);
+    }
+    this.setState({ react_view: fromJS(react_view) });
+  }
+
   async init_view(model_id: string | undefined): Promise<void> {
     if (this.init_view_is_running) {
       // it's already running right now.
@@ -146,10 +169,17 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
         return;
       }
 
+      console.log("this.model", this.model);
+      if (this.model.is_react) {
+        this.update_react_view();
+        this.model.on("change", this.update_react_view);
+        return;
+      }
+
       switch (this.model.module) {
         case "@jupyter-widgets/controls":
         case "@jupyter-widgets/base":
-          // Right now we use phosphor views for all base and controls.
+          // Right now we use phosphor views for many base and controls.
           // TODO: we can iteratively rewrite some of these using react for a more
           // consistent look and feel...
           const view = await widget_manager.create_view(this.model);
@@ -202,11 +232,31 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     );
   }
 
+  render_react_view(): undefined | Rendered[] {
+    if (this.state.react_view == null) return;
+    const v: Rendered[] = [];
+    let i = 0;
+    for (let model_id of this.state.react_view.toJS()) {
+      v.push(
+        <Widget
+          key={i}
+          value={fromJS({ model_id })}
+          actions={this.props.actions}
+          name={this.props.name}
+        />
+      );
+      i += 1;
+    }
+    return v;
+  }
+
   render(): Rendered {
+    console.log("view = ", this.state.react_view);
     return (
       <div>
         {this.render_phosphor()}
         {this.render_output()}
+        {this.render_react_view()}
       </div>
     );
   }
