@@ -11,7 +11,7 @@ import {
   isMainConfiguration
 } from "../../project_configuration";
 import { redux } from "../../app-framework";
-import { config as formatter_config } from "../../../smc-util/code-formatter";
+import { parser2tool } from "../../../smc-util/code-formatter";
 import { Options as FormatterOptions } from "../../../smc-project/formatters/prettier";
 
 export class API {
@@ -65,7 +65,7 @@ export class API {
   async prettier_string(str: string, options: FormatterOptions): Promise<any> {
     const formatting: Capabilities = this.get_formatting();
     // TODO refactor the assocated formatter and smc-project into a common configuration object
-    const tool = formatter_config[options.parser];
+    const tool = parser2tool[options.parser];
     if (tool == null) {
       throw new Error(`No known tool for '${options.parser}' available`);
     }

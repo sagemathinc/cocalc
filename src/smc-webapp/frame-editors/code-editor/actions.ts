@@ -30,7 +30,8 @@ import {
   filename_extension,
   history_path,
   len,
-  uuid
+  uuid,
+  unreachable
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -59,7 +60,10 @@ const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
 import { Options as FormatterOptions } from "smc-project/formatters/prettier";
-import { Parser as FormatterParser } from "smc-util/code-formatter";
+import {
+  Parser as FormatterParser,
+  Exts as FormatterExts
+} from "smc-util/code-formatter";
 
 interface gutterMarkerParams {
   line: number;
@@ -1620,7 +1624,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     cm.focus();
     let parser: FormatterParser;
-    switch (filename_extension(this.path).toLowerCase()) {
+    const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
+    switch (ext) {
       case "js":
       case "jsx":
         parser = "babylon";
@@ -1674,6 +1679,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         parser = "clang-format";
         break;
       default:
+        // make sure all extensions are dealth with
+        unreachable(ext);
         return;
     }
     const options: FormatterOptions = {

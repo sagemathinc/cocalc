@@ -104,11 +104,11 @@ export const ext2parser: Readonly<Ext2Parser> = Object.freeze({
   bib: "bibtex" // via biber --tool
 } as Ext2Parser);
 
-// those languages (parser) which aren't handled by "prettier" (the default),
+// those syntaxes (parser) which aren't handled by "prettier" (the default),
 // have these special tools (command-line interface)
 // (several ones are added for backwards compatibility)
 type Config = { [s in Parser]: Tool };
-export const config: Readonly<Config> = Object.freeze({
+export const parser2tool: Readonly<Config> = Object.freeze({
   py: "yapf",
   python: "yapf",
   python3: "yapf3",
@@ -145,8 +145,6 @@ export const config: Readonly<Config> = Object.freeze({
   // html: "DOES_NOT_EXIST"
 } as Config);
 
-export const parser2tool = config;
-
 // Map (a subset of) syntax (aka "parser") to a human-readable language
 // in order to communicate what syntaxes can be formatted.
 type Langs = { [s in Parser]?: string };
@@ -173,8 +171,8 @@ export const parser2display: Readonly<Langs> = Object.freeze({
 type Tool2Display = { [s in Tool]?: string[] };
 
 const t2d: Tool2Display = {};
-for (const parser of Object.keys(config)) {
-  const tool = config[parser];
+for (const parser of Object.keys(parser2tool)) {
+  const tool = parser2tool[parser];
   if (t2d[tool] == null) t2d[tool] = [];
   const lang = parser2display[parser];
   if (lang != null) t2d[tool].push(lang);
