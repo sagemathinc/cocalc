@@ -29,7 +29,7 @@ export const NotificationPage = rclass<ReduxProps>(
     render() {
       const { account_id, mentions, user_map } = this.props;
       return (
-        <div style={container_style}>
+        <div className={'container'} style={container_style}>
           <NotificationNav style={nav_style} />
           <NotificationList
             account_id={account_id}

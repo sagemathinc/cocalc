@@ -12,7 +12,6 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
   if (mentions == undefined || mentions.size == 0) {
     return <NoNewNotifications name="mentions" style={style} />;
   }
-  console.log("Making notifics from", mentions.toJS())
   let mentions_per_project: any = {};
   let project_panels: any = [];
   let project_id_order: string[] = [];

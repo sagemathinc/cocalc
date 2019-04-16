@@ -354,7 +354,7 @@ exports.init_express_http_server = (opts) ->
             res.json(server_settings.pub)
 
     # Save other paths in # part of URL then redirect to the single page app.
-    router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*'], (req, res) ->
+    router.get ['/projects*', '/help*', '/settings*', '/admin*', '/dashboard*', '/notifications*'], (req, res) ->
         url = require('url')
         q = url.parse(req.url, true).search # gives exactly "?key=value,key=..."
         res.redirect(opts.base_url + "/app#" + req.path.slice(1) + q)

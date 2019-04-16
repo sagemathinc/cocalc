@@ -147,8 +147,13 @@ exports.load_target = load_target = (target, ignore_kiosk=false, change_history=
             if segments[1] == 'ssh-keys'
                 redux.getActions('account').set_active_tab('ssh-keys')
 
-            if segments[1] == 'notifications'
-                redux.getActions('account').set_active_tab('notifications')
+        when 'notifications'
+            if not logged_in
+                return
+            redux.getActions('page').set_active_tab('notifications', change_history)
+
+            if segments[1] == 'mentions'
+                redux.getActions('mentions').set_active_tab('mentions')
 
         when 'file-use', 'admin'
             if not logged_in
