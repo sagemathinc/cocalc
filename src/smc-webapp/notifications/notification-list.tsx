@@ -10,6 +10,12 @@ const { Panel } = require("react-bootstrap");
 
 export function NotificationList({ account_id, mentions, style, user_map }) {
   if (mentions == undefined || mentions.size == 0) {
+    console.log("No mentions found");
+    if (mentions != undefined) {
+      console.log(mentions.toJS());
+    } else {
+      console.log("mentions is undefined");
+    }
     return <NoNewNotifications name="mentions" style={style} />;
   }
   let mentions_per_project: any = {};
@@ -17,14 +23,11 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
   let project_id_order: string[] = [];
 
   mentions.map(notification => {
-    const {
-      path,
-      project_id,
-      source,
-      target,
-      time,
-      description
-    } = notification.toJS();
+    const path = notification.get("path");
+    const time = notification.get("time");
+    const project_id = notification.get("project_id");
+    const target = notification.get("target");
+
     if (target == account_id) {
       if (mentions_per_project[project_id] == undefined) {
         mentions_per_project[project_id] = [];
@@ -33,11 +36,7 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
       mentions_per_project[project_id].push(
         <MentionRow
           key={path + time.getTime()}
-          account_id={source}
-          timestamp={time.getTime()}
-          project_id={project_id}
-          path={path}
-          description={description}
+          mention={notification}
           user_map={user_map}
         />
       );
