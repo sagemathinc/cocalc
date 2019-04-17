@@ -44,7 +44,8 @@ export const NotificationPage = rclass<ReduxProps>(
 );
 
 const container_style: React.CSSProperties = {
-  display: "flex"
+  display: "flex",
+  overflow: "scroll"
 };
 
 const nav_style: React.CSSProperties = {
