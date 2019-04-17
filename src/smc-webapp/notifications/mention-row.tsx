@@ -54,6 +54,7 @@ export function MentionRow({
 
   const on_save_unsave_click = e => {
     e.preventDefault();
+    e.stopPropagation();
     const actions = redux.getActions("mentions");
 
     if (is_saved) {
@@ -82,8 +83,8 @@ export function MentionRow({
         <Icon name={"comment"} /> <TimeAgo date={time.getTime()} />
       </div>
       <div>
-        <Icon name={save_icon} onClick={on_save_unsave_click} />{" "}
-        <Icon name={read_icon} onClick={on_read_unread_click} />
+        <Icon name={save_icon} size={"2x"} onClick={on_save_unsave_click} />{" "}
+        <Icon name={read_icon} size={"2x"} onClick={on_read_unread_click} />
       </div>
     </li>
   );

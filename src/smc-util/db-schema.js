@@ -1824,14 +1824,16 @@ schema.mentions = {
     },
     set: {
       fields: {
-        time: () => new Date(),
+        time({ time }) {
+          return time || new Date();
+        },
         project_id: "project_write",
         path: true,
         source: "account_id",
         target: true,
         priority: true,
         description: true,
-        users: true,
+        users: true
       },
       required_fields: {
         project_id: true,
