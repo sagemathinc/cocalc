@@ -66,6 +66,11 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     );
   };
 
+  reset = () =>
+    this.props.actions.toggle_custom_software_reset(
+      !this.props.show_custom_software_reset
+    );
+
   render_jupyter = () => {
     if (this.props.available_features == null) return null;
 
@@ -102,10 +107,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
           undefined
         )}
 
-        <Button
-          disabled={this.props.show_custom_software_reset}
-          onClick={() => this.props.actions.toggle_custom_software_reset(true)}
-        >
+        <Button onClick={this.reset}>
           <Icon name={RESET_ICON} /> <VisibleMDLG>Reset...</VisibleMDLG>
         </Button>
 

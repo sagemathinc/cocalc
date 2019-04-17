@@ -59,13 +59,9 @@ export class CustomSoftwareReset extends Component<Props, {}> {
     this.props2img = props2img.bind(this);
   }
 
-  reset = () => {
-    window.alert("reset");
-  };
+  reset = () => this.props.actions.custom_software_reset();
 
-  cancel = () => {
-    this.props.actions.toggle_custom_software_reset(false);
-  };
+  cancel = () => this.props.actions.toggle_custom_software_reset(false);
 
   render = () => {
     const img = this.props2img();
@@ -79,18 +75,26 @@ export class CustomSoftwareReset extends Component<Props, {}> {
             <Icon name={RESET_ICON} /> Reset {img.get("display", "")}
           </Col>
           <Col sm={12} style={info_style}>
-            This operations copies all accompanying files of this custom
-            software environment into your home directory. If the version hosted
-            on {NAME} did update in the meantime, you'll recieve those updates.
-            Note, that this will overwrite any changes you did to your files in
-            your project. However, nothing is lost: you can still access the
-            previous version via {A(doc_snap, "Snapshot Backups")} or{" "}
-            {A(doc_tt, "TimeTravel")}.
+            <p>
+              Clicking on "Reset" copies all accompanying files of this custom
+              software environment into your home directory. This was done once
+              when this project was created and you can repeat this action right
+              now. If these accompanying files hosted on {NAME} did update in
+              the meantime, you'll recieve the newer versions.
+            </p>
+            <p>
+              Note, that this will overwrite any changes you did to these
+              accompanying files, but does not modify or delete any other files.
+              However, nothing is lost: you can still access the previous
+              version via {A(doc_snap, "Snapshot Backups")} or{" "}
+              {A(doc_tt, "TimeTravel")}.
+            </p>
+            <p>This action will also restart your project!</p>
           </Col>
           <Col sm={12} style={button_bar_style}>
             <ButtonToolbar>
               <Button onClick={this.reset} bsStyle={"primary"}>
-                <Icon name={RESET_ICON} /> Reset
+                <Icon name={RESET_ICON} /> Reset and Restart
               </Button>
               <Button onClick={this.cancel}>
                 <Icon name={"times-circle"} /> Cancel

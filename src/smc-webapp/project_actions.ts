@@ -21,6 +21,7 @@ import { startswith, to_user_string } from "smc-util/misc2";
 import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
+import { exec } from "./frame-editors/generic/client";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -322,6 +323,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   clear_all_activity(): void {
     this.setState({ activity: undefined });
+  }
+
+  async custom_software_reset(): Promise<void> {
+    // 1. delete the sentinel file that marks copying over the accompanying files
+    // 2. restart project. This isn't strictly necessary and a TODO for later, because
+    // this would have to do preciesly what kucalc's project init does.
+    const sentinel = ".cocalc-project-init-done";
+    await exec({
+      allow_post: true,
+      timeout: 10,
+      project_id: this.project_id,
+      command: "rm",
+      args: ["-f", sentinel],
+      err_on_exit: false,
+      bash: false
+    });
+    this.toggle_custom_software_reset(false);
+    const projects_actions = this.redux.getActions("projects") as any;
+    projects_actions.restart_project(this.project_id);
   }
 
   toggle_custom_software_reset(show: boolean): void {
