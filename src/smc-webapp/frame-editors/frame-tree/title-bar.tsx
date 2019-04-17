@@ -8,7 +8,6 @@ import * as CSS from "csstype";
 
 import { SaveButton } from "./save-button";
 
-let close_style;
 const { debounce } = require("underscore");
 const {
   ButtonGroup,
@@ -86,14 +85,16 @@ const ICON_STYLE: CSS.Properties = {
   display: "inline-block"
 };
 
-if (IS_TOUCH) {
-  close_style = undefined;
-} else {
-  close_style = {
-    background: "transparent",
-    borderColor: "transparent"
-  };
-}
+const close_style: CSS.Properties | undefined = (function() {
+  if (IS_TOUCH) {
+    return undefined;
+  } else {
+    return {
+      background: "transparent",
+      borderColor: "transparent"
+    };
+  }
+})();
 
 interface Props {
   actions: any;

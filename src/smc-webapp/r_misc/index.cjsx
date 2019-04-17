@@ -28,6 +28,8 @@ copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+{A} = require('./A')
+exports.A = A
 {Icon} = require('./icon')
 exports.Icon = Icon
 {Tip} = require('./tip')

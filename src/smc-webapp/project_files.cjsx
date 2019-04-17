@@ -49,6 +49,7 @@ underscore            = require('underscore')
 {UsersViewing}        = require('./other-users')
 {project_tasks}       = require('./project_tasks')
 {CustomSoftwareInfo}  = require('./custom-software/info-bar')
+{CustomSoftwareReset} = require('./custom-software/reset-bar')
 
 # treat this as const/readonly.
 # the order of these buttons also determines the precedence of suggested file extensions
@@ -266,6 +267,7 @@ ProjectFilesActions = rclass
         actions       : rtypes.object.isRequired
         available_features  : rtypes.object
         show_custom_software_reset : rtypes.bool
+        project_is_running : rtypes.bool
 
     getInitialState: ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
@@ -422,15 +424,10 @@ ProjectFilesActions = rclass
                         project_map = {@props.project_map}
                         actions = {@props.actions}
                         available_features = {@props.available_features}
+                        show_custom_software_reset = {@props.show_custom_software_reset}
                     />
         else
             return @render_action_buttons()
-
-    render_custom_software_reset: ->
-        return null if not @props.show_custom_software_reset
-        <div style={flex: '1 0 auto'}>
-            Reset!
-        </div>
 
     render: ->
         <div style={flex: '1 0 auto'}>
@@ -442,7 +439,6 @@ ProjectFilesActions = rclass
                     {@render_button_area()}
                 </ButtonToolbar>
             </div>
-            {@render_custom_software_reset()}
             <div style={flex: '1 0 auto'}>
                 {@render_currently_selected()}
             </div>
@@ -1544,6 +1540,7 @@ exports.ProjectFiles = rclass ({name}) ->
             customer       : rtypes.object
         customize :
             kucalc : rtypes.string
+            site_name : rtypes.string
         compute_images :
             images        : rtypes.immutable.Map
         "#{name}" :
@@ -1699,7 +1696,7 @@ exports.ProjectFiles = rclass ({name}) ->
             </Col>
         </Row>
 
-    render_files_actions: (listing, public_view) ->
+    render_files_actions: (listing, public_view, project_is_running) ->
         <ProjectFilesActions
             project_id    = {@props.project_id}
             checked_files = {@props.checked_files}
@@ -1714,6 +1711,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions       = {@props.actions}
             available_features = {@props.available_features}
             show_custom_software_reset = {@props.show_custom_software_reset}
+            project_is_running = {project_is_running}
         />
 
     render_miniterm: ->
@@ -1892,7 +1890,7 @@ exports.ProjectFiles = rclass ({name}) ->
         return @props.other_settings?.get('page_size') ? 50
 
     render_control_row: (public_view, visible_listing) ->
-        <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+        <div style={display:'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
             <div style={flex: '1 0 20%', marginRight: '10px', minWidth: '20em'}>
                 <ProjectFilesSearch
                     project_id          = {@props.project_id}
@@ -1950,6 +1948,17 @@ exports.ProjectFiles = rclass ({name}) ->
             }
         </div>
 
+    render_custom_software_reset: () ->
+        return null if not @props.show_custom_software_reset
+        <CustomSoftwareReset
+            project_id = {@props.project_id}
+            images = {@props.images}
+            project_map = {@props.project_map}
+            actions = {@props.actions}
+            available_features = {@props.available_features}
+            site_name = {@props.site_name}
+        />
+
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -1962,6 +1971,9 @@ exports.ProjectFiles = rclass ({name}) ->
 
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state'])
+            project_is_running = project_state?.get('state') and project_state.get('state') == 'running'
+        else
+            project_is_running = false
 
         {listing, error, file_map} = @props.displayed_listing
 
@@ -1990,10 +2002,11 @@ exports.ProjectFiles = rclass ({name}) ->
 
             <div style={flex_row_style}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
-                    {@render_files_actions(listing, public_view) if listing?}
+                    {@render_files_actions(listing, public_view, project_is_running) if listing?}
                 </div>
                 {@render_project_files_buttons(public_view)}
             </div>
+            {@render_custom_software_reset() if project_is_running}
 
             {@render_library() if @props.show_library}
 

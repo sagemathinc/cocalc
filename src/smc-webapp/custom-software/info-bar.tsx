@@ -1,9 +1,10 @@
 import { Component, React } from "../app-framework";
 import { Map as iMap } from "immutable";
 import {
-  compute_image2basename,
-  CUSTOM_IMG_PREFIX,
-  CUSTOM_SOFTWARE_HELP_URL as help_url
+  CUSTOM_SOFTWARE_HELP_URL as help_url,
+  title_style,
+  props2img,
+  RESET_ICON
 } from "./util";
 import { ComputeImages } from "./init";
 const misc = require("smc-util/misc");
@@ -11,7 +12,6 @@ import * as misc2 from "smc-util/misc2";
 const { open_new_tab } = require("smc-webapp/misc_page");
 const {
   Icon,
-  COLORS,
   Tip,
   HiddenXSSM,
   VisibleMDLG,
@@ -24,24 +24,23 @@ const { jupyterlab_server_url } = require("../project/jupyterlab-server");
 const { jupyter_server_url } = require("../editor_jupyter");
 const { ButtonRetryUntilSuccess } = require("../widgets-misc/link-retry");
 
-const title_style: React.CSSProperties = Object.freeze({
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap" as "nowrap",
-  overflow: "hidden",
-  paddingLeft: "10px",
-  margin: "5px 10px",
-  color: COLORS.GRAY
-});
-
 interface Props {
   project_id: string;
   images: ComputeImages;
   project_map: iMap<string, any>;
   actions: any;
   available_features: AvailableFeatures;
+  show_custom_software_reset: boolean;
 }
 
 export class CustomSoftwareInfo extends Component<Props, {}> {
+  private props2img;
+
+  constructor(props) {
+    super(props);
+    this.props2img = props2img.bind(this);
+  }
+
   render_path = path => {
     if (path.length === 0) return null;
     const onClick = (() => {
@@ -67,7 +66,7 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
     );
   };
 
-  render_notebooks = () => {
+  render_jupyter = () => {
     if (this.props.available_features == null) return null;
 
     const href_jl = async () =>
@@ -104,9 +103,10 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
         )}
 
         <Button
+          disabled={this.props.show_custom_software_reset}
           onClick={() => this.props.actions.toggle_custom_software_reset(true)}
         >
-          <Icon name={"broom"} /> <VisibleMDLG>Reset...</VisibleMDLG>
+          <Icon name={RESET_ICON} /> <VisibleMDLG>Reset...</VisibleMDLG>
         </Button>
 
         <Button onClick={() => open_new_tab(help_url)}>
@@ -123,29 +123,15 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
   };
 
   render = () => {
-    if (this.props.project_map == null) return null;
-    const ci = this.props.project_map.getIn([
-      this.props.project_id,
-      "compute_image"
-    ]);
-    if (ci == null) return null;
-    if (!ci.startsWith(CUSTOM_IMG_PREFIX)) return null;
-    if (this.props.images == null) return null;
-    const img = this.props.images.get(compute_image2basename(ci));
+    const img = this.props2img();
     if (img == null) return null;
     const path = img.get("path", "");
-
-    //const style: React.CSSProperties = Object.assign({}, ROW_INFO_STYLE, {
-    //  paddingLeft: "10px",
-    //  display: "inline-flex",
-    //  color: COLORS.GRAY_D
-    //});
 
     return (
       <>
         <ButtonGroup bsSize={"small"} style={{ whiteSpace: "nowrap" }}>
           {this.render_path(path)}
-          {this.render_notebooks()}
+          {this.render_jupyter()}
         </ButtonGroup>
         <div style={title_style}>
           <Tip title={this.img_info(img)} placement={"bottom"}>
