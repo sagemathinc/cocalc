@@ -17,49 +17,57 @@ export class MentionsActions extends Actions<MentionsState> {
   }
 
   mark_read(mention: MentionInfo): void {
-    const account_store = this.redux.getStore('account');
+    const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
     }
-    const account_id = account_store.get('account_id')
-    const adjusted_mention = mention.setIn(['users', account_id, 'read'], true);
+    const account_id = account_store.get("account_id");
+    const adjusted_mention = mention.setIn(["users", account_id, "read"], true);
 
-    this.set(adjusted_mention.toJS())
+    this.set(adjusted_mention.toJS());
   }
 
   mark_unread(mention: MentionInfo): void {
-    const account_store = this.redux.getStore('account');
+    const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
     }
-    const account_id = account_store.get('account_id')
-    const adjusted_mention = mention.setIn(['users', account_id, 'read'], false);
+    const account_id = account_store.get("account_id");
+    const adjusted_mention = mention.setIn(
+      ["users", account_id, "read"],
+      false
+    );
 
-    this.set(adjusted_mention.toJS())
+    this.set(adjusted_mention.toJS());
   }
 
   mark_saved(mention: MentionInfo): void {
-    const account_store = this.redux.getStore('account');
+    const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
     }
-    const account_id = account_store.get('account_id')
-    const adjusted_mention = mention.setIn(['users', account_id, 'saved'], true);
+    const account_id = account_store.get("account_id");
+    const adjusted_mention = mention.setIn(
+      ["users", account_id, "saved"],
+      true
+    );
 
-    this.set(adjusted_mention.toJS())
+    this.set(adjusted_mention.toJS());
   }
 
   mark_unsaved(mention: MentionInfo): void {
-    const account_store = this.redux.getStore('account');
+    const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
     }
-    const account_id = account_store.get('account_id')
-    const adjusted_mention = mention.setIn(['users', account_id, 'saved'], false);
+    const account_id = account_store.get("account_id");
+    const adjusted_mention = mention.setIn(
+      ["users", account_id, "saved"],
+      false
+    );
 
-    this.set(adjusted_mention.toJS())
+    this.set(adjusted_mention.toJS());
   }
-
 
   private async set(obj) {
     try {

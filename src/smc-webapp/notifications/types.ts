@@ -11,5 +11,11 @@ export type MentionInfo = TypedMap<{
   action?: "email" | "ignore";
   error?: string;
   description?: string;
-  users?: Map<string, TypedMap<{ read?: boolean, saved?: boolean }>>;
+  users?: Map<
+    string, // UUIDs
+    TypedMap<{
+      read?: boolean;
+      saved?: boolean;
+    }>
+  >;
 }>;
