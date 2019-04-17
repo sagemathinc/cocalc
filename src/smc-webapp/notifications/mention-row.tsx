@@ -31,9 +31,14 @@ export function MentionRow({
   const is_saved: boolean = mention.getIn(["users", target, "saved"]);
   let read_icon = "circle-thin";
   let save_icon = "bookmark-o";
+  let row_style: React.CSSProperties = {};
 
   if (is_read) {
     read_icon = "check-circle";
+    row_style = {
+      backgroundColor: "rgb(246, 248, 250)",
+      color: "rgb(88, 96, 105)"
+    };
   }
 
   if (is_saved) {
@@ -65,7 +70,7 @@ export function MentionRow({
   };
 
   return (
-    <li onClick={on_row_click}>
+    <li onClick={on_row_click} style={row_style}>
       <div style={avatar_wrapping_style}>
         <Avatar account_id={source} />
       </div>
@@ -83,8 +88,24 @@ export function MentionRow({
         <Icon name={"comment"} /> <TimeAgo date={time.getTime()} />
       </div>
       <div>
-        <Icon name={save_icon} size={"2x"} onClick={on_save_unsave_click} />{" "}
-        <Icon name={read_icon} size={"2x"} onClick={on_read_unread_click} />
+        <ul>
+          <li>
+            <Icon
+              name={save_icon}
+              size={"lg"}
+              onClick={on_save_unsave_click}
+              style={{ color: "rgb(100, 100, 100)" }}
+            />
+          </li>
+          <li>
+            <Icon
+              name={read_icon}
+              size={"lg"}
+              onClick={on_read_unread_click}
+              style={{ color: "rgb(100, 100, 100)" }}
+            />
+          </li>
+        </ul>
       </div>
     </li>
   );
