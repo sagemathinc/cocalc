@@ -1794,6 +1794,12 @@ schema.mentions = {
     action: {
       type: "string",
       desc: "what action was attempted by the backend - 'email', 'ignore'"
+    },
+    users: {
+      type: "map",
+      desc:
+        "{account_id1: {read: boolean, action2:timestamp2}, account_id2: {...}}",
+      date: "all"
     }
   },
 
@@ -1812,7 +1818,8 @@ schema.mentions = {
         source: null,
         target: null,
         priority: null,
-        description: null
+        description: null,
+        users: null
       }
     },
     set: {
@@ -1823,7 +1830,8 @@ schema.mentions = {
         source: "account_id",
         target: true,
         priority: true,
-        description: true
+        description: true,
+        users: true,
       },
       required_fields: {
         project_id: true,
