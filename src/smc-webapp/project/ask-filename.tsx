@@ -34,6 +34,14 @@ export class AskNewFilename extends Component<Props, State> {
     this.searchRef = React.createRef();
   }
 
+  componentWillReceiveProps(next): void {
+    const curr_rfn = this.props.other_settings.get("random_filenames");
+    const next_rfn = next.other_settings.get("random_filenames");
+    if (curr_rfn != next_rfn) {
+      this.shuffle();
+    }
+  }
+
   cancel = (): void => {
     this.props.actions.ask_filename(undefined);
   };
@@ -76,7 +84,6 @@ export class AskNewFilename extends Component<Props, State> {
 
   change_random = (family: string): void => {
     this.props.actions.set_random_filename_family(family);
-    this.shuffle();
   };
 
   render(): Rendered {
