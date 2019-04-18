@@ -29,6 +29,8 @@ addons:
     update: true
     packages:
       - "python-pip"
+      - "python-yaml"
+      - "python-pytest"
       - "python3-pip"
       - "python3-pytest"
       - "python3-yaml"
