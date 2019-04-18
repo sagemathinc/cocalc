@@ -14,6 +14,7 @@ import {
   RandomFilenameFamilies,
   RandomFilenames
 } from "smc-webapp/project/utils";
+import { FileSpec } from "../file-associations";
 
 interface Props {
   actions: any;
@@ -27,6 +28,7 @@ interface State {}
 
 export class AskNewFilename extends Component<Props, State> {
   private searchRef: React.RefObject<HTMLInputElement>;
+
   constructor(props) {
     super(props);
     this.searchRef = React.createRef();
@@ -67,12 +69,12 @@ export class AskNewFilename extends Component<Props, State> {
     this.props.actions.setState({ new_filename: val });
   };
 
-  render_filename() {
-    const data: any = file_options(`foo.${this.props.ext_selection}`);
+  filename(): string {
+    const data: FileSpec = file_options(`foo.${this.props.ext_selection}`);
     return data.name;
   }
 
-  change_random = (family: string) => {
+  change_random = (family: string): void => {
     this.props.actions.set_random_filename_family(family);
     this.shuffle();
   };
@@ -85,7 +87,7 @@ export class AskNewFilename extends Component<Props, State> {
       <Row style={{ marginBottom: "10px" }}>
         <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
           <ControlLabel>
-            Enter name for new {this.render_filename()} file:
+            Enter name for new {this.filename()} file:
           </ControlLabel>
           <Form>
             <SearchInput
