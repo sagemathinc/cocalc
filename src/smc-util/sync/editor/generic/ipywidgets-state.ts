@@ -11,6 +11,7 @@ type State = "init" | "ready" | "closed";
 
 interface CommMessage {
   header: { msg_id: string };
+  parent_header: { msg_id: string };
   content: any;
 }
 
@@ -28,10 +29,12 @@ export class IpywidgetsState extends EventEmitter {
   private table_options: any[] = [];
   private create_synctable: Function;
 
-  // if capture_output is set to a model_id, then that
-  // model is capturing output.  This is ONLY used
-  // in the project, and is not synced between frontends and project.
-  private capture_output?: { msg_id: string; model_id: string };
+  // If capture_output[msg_id] is defined, then
+  // all output with that msg_id is captured by the
+  // widget with given model_id.   This data structure
+  // is ONLY used in the project, and is not synced
+  // between frontends and project.
+  private capture_output: { [msg_id: string]: string[] } = {};
 
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
     super();
@@ -257,10 +260,29 @@ export class IpywidgetsState extends EventEmitter {
           const { msg_id } = state;
           if (typeof msg_id === "string" && msg_id.length > 0) {
             dbg("enabling capture output", msg_id, model_id);
-            this.capture_output = { msg_id, model_id };
+            if (this.capture_output[msg_id] == null) {
+              this.capture_output[msg_id] = [model_id];
+            } else {
+              // pushing onto stack
+              this.capture_output[msg_id].push(model_id);
+            }
           } else {
-            dbg("disabling capture output");
-            delete this.capture_output;
+            const parent_msg_id = msg.parent_header.msg_id;
+            dbg("disabling capture output", parent_msg_id, model_id);
+            if (this.capture_output[parent_msg_id] != null) {
+              const v: string[] = [];
+              const w: string[] = this.capture_output[parent_msg_id];
+              for (let m of w) {
+                if (m != model_id) {
+                  v.push(m);
+                }
+              }
+              if (v.length == 0) {
+                delete this.capture_output[parent_msg_id];
+              } else {
+                this.capture_output[parent_msg_id] = v;
+              }
+            }
           }
           delete state.msg_id;
         }
@@ -297,32 +319,28 @@ export class IpywidgetsState extends EventEmitter {
     // TODO: not implemented!
   }
 
-  public is_capturing_output(): boolean {
-    return this.capture_output != null;
-  }
-
   // The mesg here is exactly what came over the IOPUB channel
   // from the kernel.
 
   // TODO: deal with buffers
-  public capture_output_message(mesg: any): void {
-    if (this.capture_output == null) return;
+  public capture_output_message(mesg: any): boolean {
+    const msg_id = mesg.parent_header.msg_id;
+    if (this.capture_output[msg_id] == null) return false;
     const dbg = this.dbg("capture_output_message");
     dbg(JSON.stringify(mesg));
-    const { msg_id, model_id } = this.capture_output;
-    dbg(msg_id, model_id, mesg.parent_header.msg_id);
-    if (msg_id != mesg.parent_header.msg_id)
-      // not relevant.
-      return;
+    const model_id = this.capture_output[msg_id][
+      this.capture_output[msg_id].length - 1
+    ];
     if (mesg.content == null || len(mesg.content) == 0)
       // no actual content.
-      return;
+      return false;
     let value = this.get_model_value(model_id);
     if (value == null) {
       value = [];
     }
     value.push(mesg.content);
     this.set(model_id, "value", value);
+    return true;
   }
 
   public capture_output_clear(): void {

@@ -284,13 +284,6 @@ export class JupyterActions extends JupyterActions0 {
       // again just to get this info.
       this.set_backend_kernel_info();
     }
-
-    this._jupyter_kernel.on("iopub", mesg => {
-      if (this.syncdb.ipywidgets_state.is_capturing_output()) {
-        // capture this output
-        this.syncdb.ipywidgets_state.capture_output_message(mesg);
-      }
-    });
   };
 
   init_kernel_info = async () => {
@@ -478,8 +471,7 @@ export class JupyterActions extends JupyterActions0 {
       cell,
       max_output_length: this.store.get("max_output_length"),
       report_started_ms: 250,
-      dbg,
-      ipywidgets_state: this.syncdb.ipywidgets_state
+      dbg
     });
 
     this._jupyter_kernel.once("closed", () => {
@@ -607,6 +599,7 @@ export class JupyterActions extends JupyterActions0 {
 
     exec.on("output", mesg => {
       dbg(`got mesg='${JSON.stringify(mesg)}'`);
+
       if (mesg == null) {
         // can't possibly happen, of course.
         let err = "empty mesg";
@@ -623,6 +616,12 @@ export class JupyterActions extends JupyterActions0 {
         handler.clear(mesg.content.wait);
         return;
       }
+
+      if (mesg.content.comm_id != null) {
+        // ignore any comm/widget related messages
+        return;
+      }
+
       if (mesg.content.execution_state === "idle") {
         this.store.removeListener("cell_change", cell_change);
         return;
@@ -1189,5 +1188,9 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("process_comm_message_from_kernel");
     dbg(mesg);
     await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
+  }
+
+  public capture_output_message(mesg: any): boolean {
+    return this.syncdb.ipywidgets_state.capture_output_message(mesg);
   }
 }

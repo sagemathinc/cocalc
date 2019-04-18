@@ -287,11 +287,17 @@ export class JupyterKernel extends EventEmitter
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
       }
+
       if (
         (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
       ) {
         // A comm message, which gets handled directly.
         this.process_comm_message_from_kernel(mesg);
+        return;
+      }
+
+      if (this._actions != null && this._actions.capture_output_message(mesg)) {
+        // captured an output message -- do not process further
         return;
       }
 

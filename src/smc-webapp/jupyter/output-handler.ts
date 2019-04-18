@@ -38,10 +38,6 @@ export class OutputHandler extends EventEmitter {
   private _state: any;
   private _stdin_cb: any;
 
-  private ipywidgets_state: any; // actually, IpywidgetsState, but I
-  // don't want to fight with typescript import paths right now...
-  // import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
-
   constructor(opts: any) {
     super();
     this._opts = defaults(opts, {
@@ -50,8 +46,7 @@ export class OutputHandler extends EventEmitter {
       // messages are saved and made available.
       report_started_ms: undefined, // If no messages for this many ms, then we update via set to indicate
       // that cell is being run.
-      dbg: undefined,
-      ipywidgets_state: required
+      dbg: undefined
     });
     const { cell } = this._opts;
     cell.output = null;
@@ -65,7 +60,6 @@ export class OutputHandler extends EventEmitter {
     this._output_length = 0;
     this._in_more_output_mode = false;
     this._state = "ready";
-    this.ipywidgets_state = this._opts.ipywidgets_state;
     // Report that computation started if there is no output soon.
     if (this._opts.report_started_ms != null) {
       setTimeout(this._report_started, this._opts.report_started_ms);
@@ -89,12 +83,6 @@ export class OutputHandler extends EventEmitter {
     if (this._state === "closed") {
       return;
     }
-    if (this.ipywidgets_state.is_capturing_output()) {
-      // capturing output -- clear in capture
-      this.ipywidgets_state.capture_output_clear();
-      return;
-    }
-
     this._clear_before_next_output = false;
     // clear output message -- we delete all the outputs
     // reset the counter n, save, and are done.
@@ -186,9 +174,6 @@ export class OutputHandler extends EventEmitter {
     if (this._state === "closed") {
       return;
     }
-    if (this.handle_output_widget_capture()) {
-      return;
-    }
     if (this._opts.cell.output === null) {
       this._opts.cell.output = {};
     }
@@ -214,11 +199,6 @@ export class OutputHandler extends EventEmitter {
 
     if (this._opts.cell.end) {
       // ignore any messages once we're done.
-      return;
-    }
-
-    if (mesg.comm_id) {
-      // ignore any comm/widget related messages
       return;
     }
 
@@ -343,17 +323,4 @@ export class OutputHandler extends EventEmitter {
       }
     }
   };
-
-  private handle_output_widget_capture(): boolean {
-    // Returns true if there is an output widget
-    // capturing output messages.  In that case, it
-    // also saves the output message to that widget's state.
-    if (this.ipywidgets_state.is_capturing_output()) {
-      // output is captured elsewhere, so do not put in
-      // output stream for this cell.
-      return true;
-    }
-    // ouptut not being captured, so we put it in this cell.
-    return false;
-  }
 }
