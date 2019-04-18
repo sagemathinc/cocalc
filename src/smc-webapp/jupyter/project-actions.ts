@@ -284,6 +284,13 @@ export class JupyterActions extends JupyterActions0 {
       // again just to get this info.
       this.set_backend_kernel_info();
     }
+
+    this._jupyter_kernel.on("iopub", mesg => {
+      if (this.syncdb.ipywidgets_state.is_capturing_output()) {
+        // capture this output
+        this.syncdb.ipywidgets_state.capture_output_message(mesg);
+      }
+    });
   };
 
   init_kernel_info = async () => {

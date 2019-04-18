@@ -1,13 +1,11 @@
 import { EventEmitter } from "events";
 import { Map as iMap } from "immutable";
 
-import { delete_null_fields, len, startswith } from "../../../misc2";
+import { delete_null_fields, len } from "../../../misc2";
 
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "../../table/synctable";
 import { Client } from "./types";
-
-const CAPTURE_OUTPUT_PREFIX = "execute_";
 
 type State = "init" | "ready" | "closed";
 
@@ -257,7 +255,7 @@ export class IpywidgetsState extends EventEmitter {
 
         if (state.msg_id != null) {
           const { msg_id } = state;
-          if (startswith(msg_id, CAPTURE_OUTPUT_PREFIX)) {
+          if (typeof msg_id === "string" && msg_id.length > 0) {
             dbg("enabling capture output", msg_id, model_id);
             this.capture_output = { msg_id, model_id };
           } else {
@@ -303,22 +301,32 @@ export class IpywidgetsState extends EventEmitter {
     return this.capture_output != null;
   }
 
-  public capture_output_message(mesg): void {
+  // The mesg here is exactly what came over the IOPUB channel
+  // from the kernel.
+
+  // TODO: deal with buffers
+  public capture_output_message(mesg: any): void {
     if (this.capture_output == null) return;
     const dbg = this.dbg("capture_output_message");
     dbg(JSON.stringify(mesg));
     const { msg_id, model_id } = this.capture_output;
-    dbg(msg_id, model_id);
+    dbg(msg_id, model_id, mesg.parent_header.msg_id);
+    if (msg_id != mesg.parent_header.msg_id)
+      // not relevant.
+      return;
+    if (mesg.content == null || len(mesg.content) == 0)
+      // no actual content.
+      return;
     let value = this.get_model_value(model_id);
     if (value == null) {
       value = [];
     }
-    value.push(mesg);
+    value.push(mesg.content);
     this.set(model_id, "value", value);
   }
 
   public capture_output_clear(): void {
     const dbg = this.dbg("capture_output_clear");
-    dbg('TODO');
+    dbg("TODO");
   }
 }

@@ -38,7 +38,7 @@ export class OutputHandler extends EventEmitter {
   private _state: any;
   private _stdin_cb: any;
 
-  private ipywidgets_state: any;   // actually, IpywidgetsState, but I
+  private ipywidgets_state: any; // actually, IpywidgetsState, but I
   // don't want to fight with typescript import paths right now...
   // import { IpywidgetsState } from "smc-util/sync/editor/generic/ipywidgets-state";
 
@@ -186,7 +186,7 @@ export class OutputHandler extends EventEmitter {
     if (this._state === "closed") {
       return;
     }
-    if (this.handle_output_widget_capture(mesg)) {
+    if (this.handle_output_widget_capture()) {
       return;
     }
     if (this._opts.cell.output === null) {
@@ -344,16 +344,16 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  private handle_output_widget_capture(mesg: any): boolean {
+  private handle_output_widget_capture(): boolean {
     // Returns true if there is an output widget
     // capturing output messages.  In that case, it
     // also saves the output message to that widget's state.
-    if (!this.ipywidgets_state.is_capturing_output()) {
-      // not capturing output -- mesg will be handled as usual.
-      return false;
+    if (this.ipywidgets_state.is_capturing_output()) {
+      // output is captured elsewhere, so do not put in
+      // output stream for this cell.
+      return true;
     }
-    // capture this output
-    this.ipywidgets_state.capture_output_message(mesg);
-    return true;
+    // ouptut not being captured, so we put it in this cell.
+    return false;
   }
 }
