@@ -1,5 +1,6 @@
 import * as React from "react";
-
+import { Map } from "immutable";
+import { MentionsMap, MentionFilter } from "./types";
 import { MentionRow } from "./mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
@@ -8,27 +9,54 @@ const { ProjectTitleAuto } = require("../projects");
 
 const { Panel } = require("react-bootstrap");
 
-export function NotificationList({ account_id, mentions, style, user_map }) {
+function assertNever(x: never): never {
+  throw new Error("Unexpected filter: " + x);
+}
+
+export function NotificationList({
+  account_id,
+  mentions,
+  filter,
+  style,
+  user_map
+}: {
+  account_id: string;
+  mentions: MentionsMap;
+  filter: MentionFilter;
+  style: React.CSSProperties;
+  user_map: any;
+}) {
   if (mentions == undefined || mentions.size == 0) {
-    console.log("No mentions found");
-    if (mentions != undefined) {
-      console.log(mentions.toJS());
-    } else {
-      console.log("mentions is undefined");
-    }
     return <NoNewNotifications name="mentions" style={style} />;
   }
   let mentions_per_project: any = {};
   let project_panels: any = [];
   let project_id_order: string[] = [];
 
-  mentions.map(notification => {
-    const path = notification.get("path");
-    const time = notification.get("time");
-    const project_id = notification.get("project_id");
-    const target = notification.get("target");
+  mentions
+    .filter(notification => notification.get("target") === account_id)
+    .filter(notification => {
+      const status =
+        notification.getIn(["users", account_id]) ||
+        Map({ read: false, saved: false });
 
-    if (target == account_id) {
+      switch (filter) {
+        case "unread":
+          return status.get("read") === false;
+        case "read":
+          return status.get("read") === true;
+        case "saved":
+          return status.get("saved") === true;
+        case "all":
+          return true;
+        default:
+          assertNever(filter);
+      }
+    })
+    .map(notification => {
+      const path = notification.get("path");
+      const time = notification.get("time");
+      const project_id = notification.get("project_id");
       if (mentions_per_project[project_id] == undefined) {
         mentions_per_project[project_id] = [];
         project_id_order.push(project_id);
@@ -40,8 +68,7 @@ export function NotificationList({ account_id, mentions, style, user_map }) {
           user_map={user_map}
         />
       );
-    }
-  });
+    });
 
   // Check if this user has only made mentions and no one has mentioned them
   if (project_id_order.length == 0) {

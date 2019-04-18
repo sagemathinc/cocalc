@@ -1,9 +1,9 @@
-import { Map } from "immutable";
 import { Store } from "../app-framework";
-import { MentionInfo } from "./types";
+import { MentionsMap, MentionFilter } from "./types";
 
 export interface MentionsState {
-  mentions: Map<string, MentionInfo>;
+  mentions: MentionsMap;
+  filter: MentionFilter;
 }
 
 export class MentionsStore extends Store<MentionsState> {

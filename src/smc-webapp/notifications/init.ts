@@ -8,7 +8,7 @@ export function init(redux: AppRedux) {
   if (redux.getStore(redux_name) != undefined) {
     return;
   }
-  redux.createStore(redux_name, MentionsStore, {});
+  redux.createStore(redux_name, MentionsStore, { filter: "unread" });
   redux.createActions(redux_name, MentionsActions);
   redux.createTable(redux_name, MentionsTable);
 }

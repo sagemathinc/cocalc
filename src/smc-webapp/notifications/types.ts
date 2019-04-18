@@ -1,6 +1,8 @@
 import { TypedMap } from "../app-framework/TypedMap";
 import { Map } from "immutable";
 
+export type MentionsMap = Map<string, MentionInfo>;
+
 export type MentionInfo = TypedMap<{
   path: string;
   priority: number;
@@ -19,3 +21,5 @@ export type MentionInfo = TypedMap<{
     }>
   >;
 }>;
+
+export type MentionFilter = "read" | "unread" | "saved" | "all";

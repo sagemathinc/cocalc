@@ -1,12 +1,28 @@
 import * as React from "react";
+import { MentionFilter } from "./types";
 const { Nav, NavItem } = require("react-bootstrap");
 
-export function NotificationNav({ style }) {
+export function NotificationNav({
+  filter,
+  on_click,
+  style
+}: {
+  filter: MentionFilter;
+  on_click: (label: MentionFilter) => void;
+  style: React.CSSProperties;
+}) {
   return (
-    <Nav bsStyle="pills" activeKey={1} stacked style={style}>
-      <NavItem eventKey={1}>Unread</NavItem>
-      <NavItem eventKey={2}>Read</NavItem>
-      <NavItem eventKey={3}>Saved for Later</NavItem>
+    <Nav
+      bsStyle="pills"
+      activeKey={filter}
+      onSelect={on_click}
+      stacked={true}
+      style={style}
+    >
+      <NavItem eventKey={"unread"}>Unread</NavItem>
+      <NavItem eventKey={"read"}>Read</NavItem>
+      <NavItem eventKey={"saved"}>Saved for later</NavItem>
+      <NavItem eventKey={"all"}>All mentions</NavItem>
     </Nav>
   );
 }

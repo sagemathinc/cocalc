@@ -1,13 +1,13 @@
 import { Actions } from "../app-framework";
 import { MentionsState } from "./store";
-import { MentionInfo } from "./types";
+import { MentionInfo, MentionFilter } from "./types";
 
 import { callback2, once } from "smc-util/async-utils";
 
 const { webapp_client } = require("../webapp_client");
 
 export class MentionsActions extends Actions<MentionsState> {
-  update_state(mentions): void {
+  update_state = (mentions): void => {
     // Sort by most recent
     const sorted_mentions = mentions.sort((a, b) => {
       return b.get("time").getTime() - a.get("time").getTime();
@@ -16,7 +16,11 @@ export class MentionsActions extends Actions<MentionsState> {
     this.setState({ mentions: sorted_mentions });
   }
 
-  mark_read(mention: MentionInfo): void {
+  set_filter = (filter: MentionFilter) => {
+    this.setState({ filter });
+  }
+
+  mark_read = (mention: MentionInfo): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -27,7 +31,7 @@ export class MentionsActions extends Actions<MentionsState> {
     this.set(adjusted_mention.toJS());
   }
 
-  mark_unread(mention: MentionInfo): void {
+  mark_unread = (mention: MentionInfo): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -41,7 +45,7 @@ export class MentionsActions extends Actions<MentionsState> {
     this.set(adjusted_mention.toJS());
   }
 
-  mark_saved(mention: MentionInfo): void {
+  mark_saved = (mention: MentionInfo): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -55,7 +59,7 @@ export class MentionsActions extends Actions<MentionsState> {
     this.set(adjusted_mention.toJS());
   }
 
-  mark_unsaved(mention: MentionInfo): void {
+  mark_unsaved = (mention: MentionInfo): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
