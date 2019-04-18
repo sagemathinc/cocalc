@@ -36,7 +36,7 @@ def site(request):
     """
     fname = request.config.getoption("--site")
     with open(fname,"r") as infile:
-        sdict = yaml.load(infile)
+        sdict = yaml.load(infile, Loader=yaml.BaseLoader)
     print(f"site name: {sdict['name']}")
     return sdict
 
