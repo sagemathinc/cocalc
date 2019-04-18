@@ -10,10 +10,7 @@ const {
 } = require("react-bootstrap");
 const { SearchInput, SelectorInput, Icon } = require("../r_misc");
 const { IS_TOUCH } = require("../feature");
-import {
-  NewFilenameFamilies,
-  NewFilenames
-} from "smc-webapp/project/utils";
+import { NewFilenameFamilies, NewFilenames } from "smc-webapp/project/utils";
 import { FileSpec } from "../file-associations";
 import { NEW_FILENAMES } from "smc-util/db-schema";
 
@@ -121,7 +118,7 @@ export class AskNewFilename extends Component<Props, State> {
               <Col md={7}>
                 <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
                   <Button onClick={this.shuffle}>
-                    <Icon name={"dice"} />
+                    <Icon name={"sync-alt"} />
                   </Button>
                   <Button
                     className={"pull-right"}
