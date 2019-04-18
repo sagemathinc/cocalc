@@ -13,7 +13,8 @@ import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 
-import { RandomFilenames } from "smc-webapp/project/utils";
+import { NewFilenames } from "smc-webapp/project/utils";
+import { NEW_FILENAMES } from "smc-util/db-schema";
 
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
@@ -155,11 +156,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _log_open_time: { [key: string]: { id: string; start: number } };
   private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
-  private random_filenames;
+  private new_filename_generator;
 
   constructor(a, b) {
     super(a, b);
-    this.random_filenames = new RandomFilenames("", false);
+    this.new_filename_generator = new NewFilenames("", false);
     this.destroy = this.destroy.bind(this);
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
@@ -335,26 +336,26 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const filenames = this.get_filenames_in_current_dir();
       // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
-      const dflt = RandomFilenames.default_family;
+      const dflt = NewFilenames.default_family;
       const type = (function() {
         if (acc_store != null) {
-          return acc_store.getIn(["other_settings", "random_filenames"]);
+          return acc_store.getIn(["other_settings", NEW_FILENAMES]);
         } else {
           return dflt;
         }
       })();
-      this.random_filenames.set_ext(ext);
+      this.new_filename_generator.set_ext(ext);
       this.setState({
-        new_filename: this.random_filenames.gen(type, filenames)
+        new_filename: this.new_filename_generator.gen(type, filenames)
       });
     }
     this.setState({ ext_selection: ext });
   }
 
-  set_random_filename_family(family: string): void {
+  set_new_filename_family(family: string): void {
     const acc_table = redux.getTable("account");
     if (acc_table != null) {
-      acc_table.set({ other_settings: { random_filenames: family } });
+      acc_table.set({ other_settings: { [NEW_FILENAMES]: family } });
     }
   }
 

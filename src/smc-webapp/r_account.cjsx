@@ -32,7 +32,8 @@
 {ProfileImageSelector} = require('./r_profile_image')
 {PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
 {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
-{RandomFilenameFamilies, RandomFilenames} = require('smc-webapp/project/utils')
+{NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
+{NEW_FILENAMES} = require('smc-util/db-schema')
 
 md5 = require('md5')
 
@@ -1300,13 +1301,13 @@ OtherSettings = rclass
         </LabeledRow>
 
 
-    render_random_filenames: ->
-        selected = @props.other_settings.get('random_filenames') ? RandomFilenames.default_family
+    render_new_filenames: ->
+        selected = @props.other_settings.get(NEW_FILENAMES) ? NewFilenames.default_family
         <LabeledRow label='Random filenames'>
             <SelectorInput
                 selected  = {selected}
-                options   = {RandomFilenameFamilies}
-                on_change = {(value)=>@on_change('random_filenames', value)}
+                options   = {NewFilenameFamilies}
+                on_change = {(value)=>@on_change(NEW_FILENAMES, value)}
             />
         </LabeledRow>
 
@@ -1345,7 +1346,7 @@ OtherSettings = rclass
             {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}
-            {@render_random_filenames()}
+            {@render_new_filenames()}
             {@render_default_file_sort()}
             {@render_page_size()}
             {@render_standby_timeout()}

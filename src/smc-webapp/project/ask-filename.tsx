@@ -11,10 +11,11 @@ const {
 const { SearchInput, SelectorInput, Icon } = require("../r_misc");
 const { IS_TOUCH } = require("../feature");
 import {
-  RandomFilenameFamilies,
-  RandomFilenames
+  NewFilenameFamilies,
+  NewFilenames
 } from "smc-webapp/project/utils";
 import { FileSpec } from "../file-associations";
+import { NEW_FILENAMES } from "smc-util/db-schema";
 
 interface Props {
   actions: any;
@@ -35,8 +36,8 @@ export class AskNewFilename extends Component<Props, State> {
   }
 
   componentWillReceiveProps(next): void {
-    const curr_rfn = this.props.other_settings.get("random_filenames");
-    const next_rfn = next.other_settings.get("random_filenames");
+    const curr_rfn = this.props.other_settings.get(NEW_FILENAMES);
+    const next_rfn = next.other_settings.get(NEW_FILENAMES);
     if (curr_rfn != next_rfn) {
       this.shuffle();
     }
@@ -48,7 +49,7 @@ export class AskNewFilename extends Component<Props, State> {
 
   shuffle = (): void => {
     this.props.actions.ask_filename(this.props.ext_selection);
-    // TODO somehow focus & select the new random text
+    // TODO somehow focus & select the new text in the box
     //const el = this.searchRef.current;
     //if (el != null) {
     //  ReactDOM.findDOMNode(el.refs.input).select();
@@ -82,14 +83,14 @@ export class AskNewFilename extends Component<Props, State> {
     return data.name;
   }
 
-  change_random = (family: string): void => {
-    this.props.actions.set_random_filename_family(family);
+  change_family = (family: string): void => {
+    this.props.actions.set_new_filename_family(family);
   };
 
   render(): Rendered {
     if (this.props.new_filename == null) return <div>Loading …</div>;
-    const rfn = this.props.other_settings.get("random_filenames");
-    const selected = rfn != null ? rfn : RandomFilenames.default_family;
+    const rfn = this.props.other_settings.get(NEW_FILENAMES);
+    const selected = rfn != null ? rfn : NewFilenames.default_family;
     return (
       <Row style={{ marginBottom: "10px" }}>
         <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
@@ -112,8 +113,8 @@ export class AskNewFilename extends Component<Props, State> {
               <Col md={5}>
                 <SelectorInput
                   selected={selected}
-                  options={RandomFilenameFamilies}
-                  on_change={this.change_random}
+                  options={NewFilenameFamilies}
+                  on_change={this.change_family}
                 />
               </Col>
 

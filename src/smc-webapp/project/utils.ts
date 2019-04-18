@@ -10,9 +10,9 @@ const superb = require("superb");
 const catNames = require("cat-names");
 const dogNames = require("dog-names");
 const { file_options } = require("../editor");
-const { DEFAULT_RANDOM_FILENAMES } = require("smc-util/db-schema");
+import { DEFAULT_NEW_FILENAMES } from "smc-util/db-schema";
 
-export type RandomFilenameTypes =
+export type NewFilenameTypes =
   | "iso"
   | "heroku"
   | "pet"
@@ -21,8 +21,8 @@ export type RandomFilenameTypes =
   | "semantic"
   | "ymd_semantic";
 
-export const RandomFilenameFamilies = Object.freeze<
-  Readonly<{ [name in RandomFilenameTypes]: string }>
+export const NewFilenameFamilies = Object.freeze<
+  Readonly<{ [name in NewFilenameTypes]: string }>
 >({
   iso: "Current time",
   heroku: "Heroku-like",
@@ -33,14 +33,14 @@ export const RandomFilenameFamilies = Object.freeze<
   ymd_semantic: "Sematic (prefix today) "
 });
 
-export class RandomFilenames {
+export class NewFilenames {
   // TODO iso is the "old way". Change it to "semantic" after a week or two…
-  static default_family = DEFAULT_RANDOM_FILENAMES as RandomFilenameTypes;
+  static default_family = DEFAULT_NEW_FILENAMES as NewFilenameTypes;
 
   private ext?: string;
   private effective_ext?: string;
   private fullname: boolean;
-  private type: RandomFilenameTypes;
+  private type: NewFilenameTypes;
   private start: number = 0;
 
   constructor(ext?, fullname = false) {
@@ -58,15 +58,15 @@ export class RandomFilenames {
 
   // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(
-    type?: RandomFilenameTypes,
+    type?: NewFilenameTypes,
     avoid?: { [name: string]: boolean }
   ): string {
-    type = type != null ? type : RandomFilenames.default_family;
+    type = type != null ? type : NewFilenames.default_family;
     // reset the enumeration if type changes
     if (this.type != type) this.start = 0;
     this.type = type;
     if (avoid == null) {
-      return this.random_filename(this.fullname);
+      return this.new_filename(this.fullname);
     } else {
       // ignore all extensions in avoid "set", if we do not know the file extension
       if (this.effective_ext == null) {
@@ -81,7 +81,7 @@ export class RandomFilenames {
       // this is a sanitized while(true)
       for (let i = this.start; i < this.start + 1000; i++) {
         // to check if file already exists, we need the fullname!
-        const new_name = this.random_filename(true, i);
+        const new_name = this.new_filename(true, i);
         if (!avoid[new_name]) {
           this.start = i;
           // but if we do not need the fullname, cut it off
@@ -93,18 +93,18 @@ export class RandomFilenames {
         }
       }
       // theoretically we could end here. ugly UUID for the rescue.
-      const new_name = this.random_filename(false);
+      const new_name = this.new_filename(false);
       const rnd = uuid().split("-");
       const name = [new_name, ...rnd].join(this.filler());
       return `${name}.${this.ext}`;
     }
   }
 
-  private random_filename(fullname: boolean, cnt?: number): string {
+  private new_filename(fullname: boolean, cnt?: number): string {
     const tokens = this.tokens();
     if (tokens == null) {
       // it's actually impossible that we reach that
-      return ["error", "generating", "random", "filename"].join(this.filler());
+      return ["error", "generating", "new", "filename"].join(this.filler());
     }
     // if we have a counter, append the number
     if (cnt != null && this.type.endsWith("semantic")) {

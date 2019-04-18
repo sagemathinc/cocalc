@@ -94,7 +94,9 @@ schema.stats =
 
 const DEFAULT_FONT_SIZE = (exports.DEFAULT_FONT_SIZE = 14);
 
-const DEFAULT_RANDOM_FILENAMES = (exports.DEFAULT_RANDOM_FILENAMES = 'iso');
+// key for new filenames algorithm in account/other_settings and associated default value
+const NEW_FILENAMES = (exports.NEW_FILENAMES = "new_filenames");
+const DEFAULT_NEW_FILENAMES = (exports.DEFAULT_NEW_FILENAMES = "iso");
 
 const misc = require("./misc");
 
@@ -330,7 +332,7 @@ schema.accounts = {
           page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
-          random_filenames: DEFAULT_RANDOM_FILENAMES,
+          [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
           show_global_info2: null,
           first_steps: true,
           newsletter: false,

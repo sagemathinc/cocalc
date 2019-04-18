@@ -109,14 +109,15 @@ redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_UR
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # this is just a wrapper for backwards compatibility
-{RandomFilenames} = require('project/utils')
-random_filenames_generator = new RandomFilenames(undefined, true)
+{NewFilenames} = require('project/utils')
+{NEW_FILENAMES} = require('smc-util/db-schema')
+new_filenames_generator = new NewFilenames(undefined, true)
 exports.default_filename = (ext, project_id) ->
-    type = redux.getStore("account")?.getIn(["other_settings", "random_filenames"]) ? RandomFilenames.default_family
-    random_filenames_generator.set_ext(ext)
+    type = redux.getStore("account")?.getIn(["other_settings", NEW_FILENAMES]) ? NewFilenames.default_family
+    new_filenames_generator.set_ext(ext)
     if project_id?
         avoid = redux.getProjectActions(project_id).get_filenames_in_current_dir()
-        return random_filenames_generator.gen(type, avoid)
+        return new_filenames_generator.gen(type, avoid)
     else
-        return random_filenames_generator.gen(type)
+        return new_filenames_generator.gen(type)
 
