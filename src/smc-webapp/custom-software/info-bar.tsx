@@ -31,6 +31,7 @@ interface Props {
   actions: any;
   available_features: AvailableFeatures;
   show_custom_software_reset: boolean;
+  project_is_running: boolean;
 }
 
 export class CustomSoftwareInfo extends Component<Props, {}> {
@@ -42,7 +43,9 @@ export class CustomSoftwareInfo extends Component<Props, {}> {
   }
 
   render_path = path => {
+    if (!this.props.project_is_running) return null;
     if (path.length === 0) return null;
+
     const onClick = (() => {
       if (path.endsWith("/")) {
         return () => this.props.actions.open_directory(path);

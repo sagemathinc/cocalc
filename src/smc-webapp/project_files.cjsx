@@ -366,6 +366,8 @@ ProjectFilesActions = rclass
         </Button>
 
     render_action_buttons: ->
+        if not @props.project_is_running
+            return
         if @props.checked_files.size is 0
             return
 
@@ -425,6 +427,7 @@ ProjectFilesActions = rclass
                         actions = {@props.actions}
                         available_features = {@props.available_features}
                         show_custom_software_reset = {@props.show_custom_software_reset}
+                        project_is_running = {@props.project_is_running}
                     />
         else
             return @render_action_buttons()
@@ -434,13 +437,13 @@ ProjectFilesActions = rclass
             <div style={flex: '1 0 auto'}>
                 <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'}>
                     <ButtonGroup>
-                        {@render_check_all_button()}
+                        {@render_check_all_button() if @props.project_is_running}
                     </ButtonGroup>
                     {@render_button_area()}
                 </ButtonToolbar>
             </div>
             <div style={flex: '1 0 auto'}>
-                {@render_currently_selected()}
+                {@render_currently_selected() if @props.project_is_running}
             </div>
         </div>
 
@@ -1971,7 +1974,7 @@ exports.ProjectFiles = rclass ({name}) ->
 
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state'])
-            project_is_running = project_state?.get('state') and project_state.get('state') == 'running'
+            project_is_running = project_state?.get('state') and project_state.get('state') in ['running', 'saving']
         else
             project_is_running = false
 
