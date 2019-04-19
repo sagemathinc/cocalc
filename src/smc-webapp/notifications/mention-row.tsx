@@ -88,24 +88,18 @@ export function MentionRow({
         <Icon name={"comment"} /> <TimeAgo date={time.getTime()} />
       </div>
       <div>
-        <ul>
-          <li>
-            <Icon
-              name={save_icon}
-              size={"lg"}
-              onClick={on_save_unsave_click}
-              style={{ color: "rgb(100, 100, 100)" }}
-            />
-          </li>
-          <li>
-            <Icon
-              name={read_icon}
-              size={"lg"}
-              onClick={on_read_unread_click}
-              style={{ color: "rgb(100, 100, 100)" }}
-            />
-          </li>
-        </ul>
+        <Icon
+          name={save_icon}
+          size={"lg"}
+          onClick={on_save_unsave_click}
+          style={{ color: "rgb(100, 100, 100)", marginRight: "10px" }}
+        />
+        <Icon
+          name={read_icon}
+          size={"lg"}
+          onClick={on_read_unread_click}
+          style={{ color: "rgb(100, 100, 100)" }}
+        />
       </div>
     </li>
   );
