@@ -228,6 +228,11 @@ const APPS: IAPPS = {
     icon: "square-root-alt",
     label: "Cadabra 2",
     desc: "A field-theory motivated approach to computer algebra"
+  },
+  "vqe-playground": {
+    icon: "atom",
+    label: "VQE Playground",
+    desc: "Gaining intuition about Variational Quantum Eigensolver"
   }
 };
 
