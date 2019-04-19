@@ -135,10 +135,8 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   }
 
   update_react_view(): void {
-    console.log("update_react_view");
     if (!this.mounted) return;
     const state = this.model.get_state(true);
-    console.log("update_react_view", state);
     if (state == null) {
       this.setState({ react_view: undefined });
       return;
@@ -172,7 +170,6 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
         return;
       }
 
-      console.log("this.model", this.model);
       if (this.model.is_react) {
         this.update_react_view();
         this.model.on("change", this.update_react_view);
@@ -261,7 +258,6 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   }
 
   render(): Rendered {
-    console.log("view = ", this.state.react_view);
     return (
       <div>
         {this.render_phosphor()}

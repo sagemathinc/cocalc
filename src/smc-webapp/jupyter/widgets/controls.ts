@@ -1,8 +1,8 @@
-import {WidgetModel, WidgetView} from "@jupyter-widgets/base";
+import { WidgetModel, WidgetView } from "@jupyter-widgets/base";
 
-export class BoxModel extends WidgetModel {
+export class ReactModel extends WidgetModel {
   public widget_manager: any;
-  public is_react : boolean = true;
+  public is_react: boolean = true;
 
   defaults() {
     return {
@@ -15,37 +15,26 @@ export class BoxModel extends WidgetModel {
   }
 }
 
-export class BoxView extends WidgetView {
+export class ReactView extends WidgetView {
   public model: BoxModel;
-  public is_react : boolean = true;
+  public is_react: boolean = true;
 
   render() {
     console.log("render box view");
   }
 }
 
+export class BoxModel extends ReactModel {}
+export class BoxView extends ReactView {}
 
+export class VBoxModel extends ReactModel {}
+export class VBoxView extends ReactView {}
 
-export class VBoxModel extends WidgetModel {
-  public widget_manager: any;
-  public is_react : boolean = true;
+export class HBoxModel extends ReactModel {}
+export class HBoxView extends ReactView {}
 
-  defaults() {
-    return {
-      ...super.defaults()
-    };
-  }
+export class AccordianModel extends ReactModel {}
+export class AccordianView extends ReactView {}
 
-  initialize(attributes: any, options: any) {
-    super.initialize(attributes, options);
-  }
-}
-
-export class VBoxView extends WidgetView {
-  public model: BoxModel;
-  public is_react : boolean = true;
-
-  render() {
-    console.log("render box view");
-  }
-}
+export class TabModel extends ReactModel {}
+export class TabView extends ReactView {}
