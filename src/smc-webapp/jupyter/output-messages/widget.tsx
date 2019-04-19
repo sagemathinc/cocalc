@@ -27,6 +27,9 @@ interface WidgetProps {
   value: Map<string, any>;
   actions?: JupyterActions;
   name?: string;
+  project_id?: string;
+  directory?: string;
+  trust?: boolean;
 
   //redux
   widget_model_ids?: Set<string>;
@@ -227,7 +230,14 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     if (this.state.output == null) return;
     return (
       <div key="output" style={this.state.style}>
-        <CellOutputMessages output={this.state.output} />
+        <CellOutputMessages
+          output={this.state.output}
+          actions={this.props.actions}
+          name={this.props.name}
+          project_id={this.props.project_id}
+          directory={this.props.directory}
+          trust={this.props.trust}
+        />
       </div>
     );
   }

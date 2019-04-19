@@ -69,9 +69,9 @@ export class CellOutputMessage extends Component<CellOutputMessageProps> {
 }
 
 interface CellOutputMessagesProps {
+  output: Map<string, any>; // the actual messages
   actions?: any; // optional actions
   name?:string;
-  output: Map<string, any>; // the actual messages
   project_id?: string;
   directory?: string;
   scrolled?: boolean;
