@@ -1,4 +1,4 @@
-import { Table } from "../app-framework";
+import { Table } from "../../app-framework";
 
 export class MentionsTable extends Table {
   query() {

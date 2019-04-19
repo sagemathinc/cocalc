@@ -1,7 +1,7 @@
 import * as React from "react";
 import { NotificationNav } from "./notification-nav";
 import { NotificationList } from "./notification-list";
-import { MentionFilter } from "./types";
+import { MentionFilter } from "./mentions/types";
 
 import { redux, rclass, rtypes } from "../app-framework";
 

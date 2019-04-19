@@ -1,4 +1,4 @@
-import { Store } from "../app-framework";
+import { Store } from "../../app-framework";
 import { MentionsMap, MentionFilter } from "./types";
 
 export interface MentionsState {

@@ -1,11 +1,11 @@
 import * as React from "react";
 
-import { redux } from "../app-framework";
+import { redux } from "../../app-framework";
 import { MentionInfo } from "./types";
 
-const { Avatar } = require("../other-users");
-const { Icon, TimeAgo } = require("../r_misc");
-const { User } = require("../users");
+const { Avatar } = require("../../other-users");
+const { Icon, TimeAgo } = require("../../r_misc");
+const { User } = require("../../users");
 
 export function MentionRow({
   mention,

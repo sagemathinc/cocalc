@@ -1,10 +1,10 @@
-import { Actions } from "../app-framework";
+import { Actions } from "../../app-framework";
 import { MentionsState } from "./store";
 import { MentionInfo, MentionFilter } from "./types";
 
 import { callback2, once } from "smc-util/async-utils";
 
-const { webapp_client } = require("../webapp_client");
+const { webapp_client } = require("../../webapp_client");
 
 export class MentionsActions extends Actions<MentionsState> {
   update_state = (mentions): void => {

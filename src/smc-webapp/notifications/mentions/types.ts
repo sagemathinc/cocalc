@@ -1,4 +1,4 @@
-import { TypedMap } from "../app-framework/TypedMap";
+import { TypedMap } from "../../app-framework/TypedMap";
 import { Map } from "immutable";
 
 export type MentionsMap = Map<string, MentionInfo>;

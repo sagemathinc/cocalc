@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Map } from "immutable";
-import { MentionsMap, MentionFilter } from "./types";
-import { MentionRow } from "./mention-row";
+
+import { MentionsMap, MentionFilter } from "./mentions/types";
+import { MentionRow } from "./mentions/mention-row";
 
 import { NoNewNotifications } from "./no-new-notifications";
 
