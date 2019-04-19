@@ -28,7 +28,7 @@ export function NotificationList({
   user_map: any;
 }) {
   if (mentions == undefined || mentions.size == 0) {
-    return <NoNewNotifications name="mentions" style={style} />;
+    return <NoMentions filter={filter} style={style} />;
   }
   let mentions_per_project: any = {};
   let project_panels: any = [];
@@ -74,7 +74,7 @@ export function NotificationList({
 
   // Check if this user has only made mentions and no one has mentioned them
   if (project_id_order.length == 0) {
-    return <NoNewNotifications name="mentions" style={style} />;
+    return <NoMentions filter={filter} style={style} />;
   }
 
   for (const project_id of project_id_order) {
@@ -96,6 +96,33 @@ export function NotificationList({
       {project_panels}
     </div>
   );
+}
+
+function NoMentions({
+  filter,
+  style
+}: {
+  filter: MentionFilter;
+  style: React.CSSProperties;
+}) {
+  let text = "No new mentions";
+  switch (filter) {
+    case "unread":
+      text = "No unread mentions";
+      break;
+    case "read":
+      text = "No read mentions";
+      break;
+    case "saved":
+      text = "No saved Mentions";
+      break;
+    case "all":
+      text = "No mentions";
+      break;
+    default:
+      assertNever(filter);
+  }
+  return <NoNewNotifications text={text} style={style} />;
 }
 
 const notification_list_style: React.CSSProperties = {
