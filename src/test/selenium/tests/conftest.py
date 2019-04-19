@@ -18,6 +18,31 @@ def show_attrs(el, d):
     """
     attrs = d.execute_script("var items = {}; for (index=0; index<arguments[0].attributes.length;++index) {items[arguments[0].attributes[index].name] = arguments[0].attributes[index].value }; return items;", el)
     print(attrs)
+
+# allow converting from beautiful soup nodes back to selenium DOM elements
+# https://stackoverflow.com/questions/37979644/parse-beautifulsoup-element-into-selenium
+import itertools
+
+def xpath_soup(element):
+    """
+    Generate xpath of soup element
+    :param element: bs4 text or node
+    :return: xpath as string
+    """
+    components = []
+    child = element if element.name else element.parent
+    for parent in child.parents:
+        """
+        @type parent: bs4.element.Tag
+        """
+        previous = itertools.islice(parent.children, 0, parent.contents.index(child))
+        xpath_tag = child.name
+        xpath_index = sum(1 for i in previous if i.name == xpath_tag) + 1
+        components.append(xpath_tag if xpath_index == 1 else '%s[%d]' % (xpath_tag, xpath_index))
+        child = parent
+    components.reverse()
+    return '/%s' % '/'.join(components)
+
 ###
 # pass site file in on command line
 ###
