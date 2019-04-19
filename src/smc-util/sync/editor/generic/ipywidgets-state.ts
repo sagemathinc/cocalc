@@ -36,6 +36,10 @@ export class IpywidgetsState extends EventEmitter {
   // between frontends and project.
   private capture_output: { [msg_id: string]: string[] } = {};
 
+  // If the next output should be cleared.  Use for
+  // clear_output with wait=true.
+  private clear_output: { [model_id: string]: boolean } = {};
+
   constructor(syncdoc: SyncDoc, client: Client, create_synctable: Function) {
     super();
     this.syncdoc = syncdoc;
@@ -331,20 +335,34 @@ export class IpywidgetsState extends EventEmitter {
     const model_id = this.capture_output[msg_id][
       this.capture_output[msg_id].length - 1
     ];
+    if (model_id == null) return false; // should not happen.
+
+    if (mesg.header.msg_type == "clear_output") {
+      if (mesg.content != null && mesg.content.wait) {
+        this.clear_output[model_id] = true;
+      } else {
+        delete this.clear_output[model_id];
+        this.set_model_value(model_id, undefined);
+      }
+      return true;
+    }
+
     if (mesg.content == null || len(mesg.content) == 0)
       // no actual content.
       return false;
-    let value = this.get_model_value(model_id);
-    if (value == null) {
+
+    let value: any[];
+    if (this.clear_output[model_id]) {
+      delete this.clear_output[model_id];
       value = [];
+    } else {
+      value = this.get_model_value(model_id);
+      if (value == null) {
+        value = [];
+      }
     }
     value.push(mesg.content);
     this.set(model_id, "value", value);
     return true;
-  }
-
-  public capture_output_clear(): void {
-    const dbg = this.dbg("capture_output_clear");
-    dbg("TODO");
   }
 }
