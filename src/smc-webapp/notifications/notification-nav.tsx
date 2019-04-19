@@ -1,5 +1,5 @@
 import * as React from "react";
-import { MentionFilter } from "./types";
+import { MentionFilter } from "./mentions/types";
 const { Nav, NavItem } = require("react-bootstrap");
 
 export function NotificationNav({

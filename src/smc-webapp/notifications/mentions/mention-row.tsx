@@ -8,9 +8,11 @@ const { Icon, TimeAgo } = require("../../r_misc");
 const { User } = require("../../users");
 
 export function MentionRow({
+  id,
   mention,
   user_map
 }: {
+  id: string;
   mention: MentionInfo;
   user_map: any;
 }) {
@@ -51,9 +53,9 @@ export function MentionRow({
     const actions = redux.getActions("mentions");
 
     if (is_read) {
-      actions.mark_unread(mention);
+      actions.mark_unread(mention, id);
     } else {
-      actions.mark_read(mention);
+      actions.mark_read(mention, id);
     }
   };
 
@@ -63,9 +65,9 @@ export function MentionRow({
     const actions = redux.getActions("mentions");
 
     if (is_saved) {
-      actions.mark_unsaved(mention);
+      actions.mark_unsaved(mention, id);
     } else {
-      actions.mark_saved(mention);
+      actions.mark_saved(mention, id);
     }
   };
 

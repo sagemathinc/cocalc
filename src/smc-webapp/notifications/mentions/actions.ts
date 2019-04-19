@@ -14,13 +14,22 @@ export class MentionsActions extends Actions<MentionsState> {
     });
 
     this.setState({ mentions: sorted_mentions });
-  }
+  };
 
   set_filter = (filter: MentionFilter) => {
     this.setState({ filter });
-  }
+  };
 
-  mark_read = (mention: MentionInfo): void => {
+  private update_mention = (new_mention: MentionInfo, id: string) => {
+    const store = this.redux.getStore("mentions");
+    if (store == undefined) {
+      return;
+    }
+    const current_mentions = store.get("mentions").set(id, new_mention);
+    this.setState({ mentions: current_mentions });
+  };
+
+  mark_read = (mention: MentionInfo, id: string): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -28,10 +37,11 @@ export class MentionsActions extends Actions<MentionsState> {
     const account_id = account_store.get("account_id");
     const adjusted_mention = mention.setIn(["users", account_id, "read"], true);
 
+    this.update_mention(adjusted_mention, id);
     this.set(adjusted_mention.toJS());
-  }
+  };
 
-  mark_unread = (mention: MentionInfo): void => {
+  mark_unread = (mention: MentionInfo, id: string): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -42,10 +52,11 @@ export class MentionsActions extends Actions<MentionsState> {
       false
     );
 
+    this.update_mention(adjusted_mention, id);
     this.set(adjusted_mention.toJS());
-  }
+  };
 
-  mark_saved = (mention: MentionInfo): void => {
+  mark_saved = (mention: MentionInfo, id: string): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -56,10 +67,11 @@ export class MentionsActions extends Actions<MentionsState> {
       true
     );
 
+    this.update_mention(adjusted_mention, id);
     this.set(adjusted_mention.toJS());
-  }
+  };
 
-  mark_unsaved = (mention: MentionInfo): void => {
+  mark_unsaved = (mention: MentionInfo, id: string): void => {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
       return;
@@ -70,8 +82,9 @@ export class MentionsActions extends Actions<MentionsState> {
       false
     );
 
+    this.update_mention(adjusted_mention, id);
     this.set(adjusted_mention.toJS());
-  }
+  };
 
   private async set(obj) {
     try {

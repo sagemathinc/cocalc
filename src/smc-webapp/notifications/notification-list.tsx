@@ -54,7 +54,7 @@ export function NotificationList({
           assertNever(filter);
       }
     })
-    .map(notification => {
+    .map((notification, id) => {
       const path = notification.get("path");
       const time = notification.get("time");
       const project_id = notification.get("project_id");
@@ -65,6 +65,7 @@ export function NotificationList({
       mentions_per_project[project_id].push(
         <MentionRow
           key={path + time.getTime()}
+          id={id}
           mention={notification}
           user_map={user_map}
         />

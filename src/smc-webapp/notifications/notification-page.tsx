@@ -5,6 +5,9 @@ import { MentionFilter } from "./mentions/types";
 
 import { redux, rclass, rtypes } from "../app-framework";
 
+const { Tab, Tabs } = require("react-bootstrap");
+const { Icon } = require("../r_misc");
+
 interface ReduxProps {
   account_id: string;
   mentions: any;
@@ -32,28 +35,50 @@ export const NotificationPage = rclass<ReduxProps>(
     render() {
       const { account_id, mentions, user_map, filter } = this.props;
       return (
-        <div className={"container"} style={container_style}>
-          <NotificationNav
-            filter={filter}
-            on_click={redux.getActions("mentions").set_filter}
-            style={nav_style}
-          />
-          <NotificationList
-            account_id={account_id}
-            mentions={mentions}
-            style={list_style}
-            user_map={user_map}
-            filter={filter}
-          />
+        <div style={outer_container_style}>
+          <div className={"constrained container"}>
+            <Tabs
+              animation={false}
+              style={{ paddingTop: "1em" }}
+              id="notification-page-tabs"
+            >
+              <Tab
+                eventKey="mentions"
+                title={
+                  <span>
+                    <Icon name="at" /> Mentions
+                  </span>
+                }
+              >
+                <div style={inner_container_style}>
+                  <NotificationNav
+                    filter={filter}
+                    on_click={redux.getActions("mentions").set_filter}
+                    style={nav_style}
+                  />
+                  <NotificationList
+                    account_id={account_id}
+                    mentions={mentions}
+                    style={list_style}
+                    user_map={user_map}
+                    filter={filter}
+                  />
+                </div>
+              </Tab>
+            </Tabs>
+          </div>
         </div>
       );
     }
   }
 );
 
-const container_style: React.CSSProperties = {
-  display: "flex",
+const outer_container_style: React.CSSProperties = {
   overflow: "scroll"
+};
+
+const inner_container_style: React.CSSProperties = {
+  display: "flex"
 };
 
 const nav_style: React.CSSProperties = {

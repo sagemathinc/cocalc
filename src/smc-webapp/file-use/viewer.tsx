@@ -216,7 +216,7 @@ export class FileUseViewer extends Component<Props, State> {
                 this.props.redux.getActions("page").toggle_show_file_use();
               }}
             >
-              See all
+              See mentions
             </Link>
           </Col>
           <Col sm={3}>
