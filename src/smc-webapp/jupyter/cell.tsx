@@ -29,7 +29,7 @@ interface CellProps {
   cell_toolbar?: string;
   trust?: boolean;
   editable?: boolean;
-  deleteable?: boolean;
+  deletable?: boolean;
 }
 
 export class Cell extends Component<CellProps> {
@@ -49,7 +49,7 @@ export class Cell extends Component<CellProps> {
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       nextProps.trust !== this.props.trust ||
       nextProps.editable !== this.props.editable ||
-      nextProps.deleteable !== this.props.deleteable ||
+      nextProps.deletable !== this.props.deletable ||
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
@@ -145,8 +145,7 @@ export class Cell extends Component<CellProps> {
 
     return (
       <div style={style}>
-        {// TODO: WARNING: IMPORTANT: what is this? (I disabled it for now - Travis)
-        false && !this.props.deleteable ? (
+        {!this.props.deletable ? (
           <Tip
             title={"Protected from deletion"}
             placement={"right"}

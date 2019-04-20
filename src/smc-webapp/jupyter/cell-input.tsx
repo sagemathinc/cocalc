@@ -98,6 +98,7 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.is_current !== this.props.is_current ||
       nextProps.font_size !== this.props.font_size ||
       nextProps.complete !== this.props.complete ||
+      nextProps.is_readonly !== this.props.is_readonly ||
       nextProps.cell_toolbar !== this.props.cell_toolbar ||
       (nextProps.cell_toolbar === "slideshow" &&
         nextProps.cell.get("slide") !== this.props.cell.get("slide"))
