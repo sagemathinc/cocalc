@@ -101,9 +101,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_model_value_change(model_id: string): Promise<void> {
-    const value = this.ipywidgets_state.get_model_value(model_id);
-    // console.log("handle_model_value_change", model_id, value);
-    await this.update_model(model_id, { value });
+    const changed = this.ipywidgets_state.get_model_value(model_id);
+    console.log("handle_model_value_change", model_id, changed);
+    await this.update_model(model_id, changed);
   }
 
   private async update_model(
@@ -117,11 +117,13 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       //console.log(`setting state of model "${model_id}" to `, state);
       const success = await this.dereference_model_links(state);
       if (!success) {
-        console.warn("update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.")
+        console.warn(
+          "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update."
+        );
         return;
       }
       model.set_state(state);
-    // } else {
+      // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
     }
   }
@@ -237,11 +239,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     return uuid();
   }
 
-  private handle_model_change(model: base.DOMWidgetModel): void {
-    this.ipywidgets_state.set_model_value(
-      model.model_id,
-      model.attributes.value
-    );
+  private async handle_model_change(model: base.DOMWidgetModel): Promise<void> {
+    await model.state_change;
+    console.log("handle_model_change (frontend)", model.changed);
+    this.ipywidgets_state.set_model_value(model.model_id, model.changed);
     this.ipywidgets_state.save();
   }
 
@@ -267,7 +268,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
     } else if (moduleName === "@jupyter-widgets/controls") {
-      if(react_controls[className] != null) {
+      if (react_controls[className] != null) {
         module = react_controls;
       } else {
         module = phosphor_controls;

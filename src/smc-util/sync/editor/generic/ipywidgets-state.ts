@@ -9,6 +9,8 @@ import { Client } from "./types";
 
 type State = "init" | "ready" | "closed";
 
+type Value = { [key: string]: any };
+
 interface CommMessage {
   header: { msg_id: string };
   parent_header: { msg_id: string };
@@ -114,27 +116,27 @@ export class IpywidgetsState extends EventEmitter {
       if (value == null) {
         throw Error("value must be a map");
       }
-      if (value["value"] != null) {
-        state_js["value"] = value["value"];
+      for (let key in value) {
+        state_js[key] = value[key];
       }
     }
     return state_js;
   }
 
-  public get_model_value(model_id: string): any {
+  public get_model_value(model_id: string): Value {
     this.assert_state("ready");
     let value = this.get(model_id, "value");
     if (value == null) {
-      return undefined;
+      return {};
     }
     value = value.toJS();
     if (value == null) {
-      return undefined;
+      return {};
     }
-    return value["value"];
+    return value;
   }
 
-  public set_model_value(model_id: string, value: any): void {
+  public set_model_value(model_id: string, value: Value): void {
     this.set(model_id, "value", value);
   }
 
@@ -144,10 +146,6 @@ export class IpywidgetsState extends EventEmitter {
 
   // Do any setting of the underlying table through this function.
   public set(model_id: string, type: "value" | "state", data: any): void {
-    if (type === "value") {
-      // wrap as a map
-      data = { value: data };
-    }
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
@@ -248,16 +246,8 @@ export class IpywidgetsState extends EventEmitter {
     switch (content.data.method) {
       case "update":
         dbg("method -- update");
-        let { value } = state;
-        if (value == null && state.outputs != null) {
-          // the output widget stores its "value" in "outputs",
-          // rather than in value, but we just simplify things.
-          value = state.outputs;
-          delete state.outputs;
-        }
-        delete state.value;
-        if (value != null) {
-          this.set(model_id, "value", value);
+        if (state != null) {
+          this.set_model_value(model_id, state);
         }
 
         if (state.msg_id != null) {
@@ -292,12 +282,12 @@ export class IpywidgetsState extends EventEmitter {
         }
 
         if (len(state) > 0) {
-          this.set(model_id, "state", state);
+          this.set_model_state(model_id, state);
         }
         break;
       case undefined:
         dbg("method -- undefined (=initial set?)");
-        this.set(model_id, "state", state);
+        this.set_model_state(model_id, state);
         break;
       default:
         // TODO: Implement other methods, e.g., 'display' -- see
@@ -342,7 +332,7 @@ export class IpywidgetsState extends EventEmitter {
         this.clear_output[model_id] = true;
       } else {
         delete this.clear_output[model_id];
-        this.set_model_value(model_id, undefined);
+        this.set_model_value(model_id, {});
       }
       return true;
     }
@@ -351,18 +341,18 @@ export class IpywidgetsState extends EventEmitter {
       // no actual content.
       return false;
 
-    let value: any[];
+    let outputs: any[];
     if (this.clear_output[model_id]) {
       delete this.clear_output[model_id];
-      value = [];
+      outputs = [];
     } else {
-      value = this.get_model_value(model_id);
-      if (value == null) {
-        value = [];
+      outputs = this.get_model_value(model_id).outputs;
+      if (outputs == null) {
+        outputs = [];
       }
     }
-    value.push(mesg.content);
-    this.set(model_id, "value", value);
+    outputs.push(mesg.content);
+    this.set_model_value(model_id, { outputs });
     return true;
   }
 }

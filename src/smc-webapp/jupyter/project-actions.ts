@@ -1158,8 +1158,8 @@ export class JupyterActions extends JupyterActions0 {
       const [, model_id, type] = JSON.parse(key);
       let data: any;
       if (type === "value") {
-        const value = this.syncdb.ipywidgets_state.get_model_value(model_id);
-        data = { method: "update", state: { value } };
+        const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
+        data = { method: "update", state };
         this._jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),
           model_id,

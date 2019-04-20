@@ -36,7 +36,7 @@ interface WidgetProps {
 }
 
 interface WidgetState {
-  output?: Map<string, any>;
+  outputs?: Map<string, any>;
   style?: any;
   react_view?: any;
 }
@@ -85,8 +85,8 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       // view not yet initialized and model is now known, so initialize it.
       this.init_view(next_model_id);
     }
-    if (nextState.output == null) return false;
-    if (nextState.output.equals(this.state)) return false;
+    if (nextState.outputs == null) return false;
+    if (nextState.outputs.equals(this.state)) return false;
 
     // TODO: check react view here.
     return true;
@@ -114,15 +114,15 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   update_output(): void {
     if (!this.mounted) return;
     const state = this.model.get_state(true);
-    if (state == null || state.value == null) {
-      this.setState({ output: undefined, style: undefined });
+    if (state == null || state.outputs == null) {
+      this.setState({ outputs: undefined, style: undefined });
       return;
     }
-    const output = {};
-    for (let i in state.value) {
-      output[i] = state.value[i];
+    const outputs = {};
+    for (let i in state.outputs) {
+      outputs[i] = state.outputs[i];
     }
-    this.setState({ output: fromJS(output) });
+    this.setState({ outputs: fromJS(outputs) });
     if (
       this.state.style == null &&
       state.layout != null &&
@@ -224,11 +224,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   }
 
   render_output(): Rendered {
-    if (this.state.output == null) return;
+    if (this.state.outputs == null) return;
     return (
       <div key="output" style={this.state.style}>
         <CellOutputMessages
-          output={this.state.output}
+          output={this.state.outputs}
           actions={this.props.actions}
           name={this.props.name}
           project_id={this.props.project_id}
