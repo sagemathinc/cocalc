@@ -45,7 +45,7 @@ scripts/skel to massively speed up new project creation.  You might make a symli
 BASE_DIR = '/mnt/home'
 
 from subprocess import Popen, PIPE
-import os, random, string, sys, uuid
+import os, random, string, sys
 
 if len(sys.argv) > 2:
     sys.stderr.write("Usage: sudo %s [optional username]\n" % sys.argv[0])
@@ -109,7 +109,7 @@ cmd([
     str(inode_hard), '-a'
 ])
 
-print username
+print(username)
 
 # Save account info so it persists through reboots/upgrades/etc.
 if os.path.exists("/mnt/home/etc/"):

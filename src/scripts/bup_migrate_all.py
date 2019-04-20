@@ -20,7 +20,7 @@
 #
 ###############################################################################
 
-import os, sys
+import os
 
 for x in open('/tmp/projects_on_host').readlines():
     project_id = x.strip()
