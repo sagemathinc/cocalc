@@ -321,7 +321,7 @@ export function get_some_leaf_id(tree: ImmutableFrameTree): string {
   let done: boolean = false;
   let id: string | undefined = undefined;
   function process(node: ImmutableFrameTree): void {
-    if (done) {
+    if (done || node == null) {
       return;
     }
     if (is_leaf(node)) {
