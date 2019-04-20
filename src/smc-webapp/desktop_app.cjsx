@@ -306,6 +306,7 @@ Page = rclass
             height        : '100vh'
             width         : '100vw'
             overflow      : 'hidden'
+            background    : 'white'
 
         top = if @props.show_global_info then "#{announce_bar_offset}px" else 0
 

@@ -168,6 +168,7 @@ Page = rclass
             overflow      : 'auto'
             display       : 'flex'
             flexDirection : 'column'
+            background    : 'white'
 
         <div ref="page" style={style}>
             <style>{page_style}</style>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-print "NOT DONE -- just for testing"
+print("NOT DONE -- just for testing")
 sys.exit(1)
 
 ##################################################################
@@ -22,12 +22,12 @@ sys.exit(1)
 import json, os, subprocess, sys, uuid
 
 if len(sys.argv) < 2:
-    print "Usage: %s <path> [branch]"%(sys.argv[0])
+    print("Usage: %s <path> [branch]" % (sys.argv[0]))
     sys.exit(1)
 
 path = sys.argv[1]
 if not os.path.exists(path):
-    print "path %s does not exist"%path
+    print("path %s does not exist" % path)
     sys.exit(1)
 
 if len(sys.argv) >= 3:
@@ -68,7 +68,7 @@ def go():
     commit_sep = str(uuid.uuid4())
     format = format.replace('|',field_sep).replace("!",commit_sep)
 
-    file_list = [os.path.listdir(path)
+    file_list = os.path.listdir(path)
 
     log = subprocess.Popen(['git', 'log', '--name-status', format, branch, "--"] + file_list,
                      stdin=subprocess.PIPE, stdout = subprocess.PIPE,
@@ -93,5 +93,5 @@ def go():
     logs[branch] = {'commit_list':commit_list, 'commits':v, 'dir_exists':dir_exists(v, d)}
 
 
-print json.dumps(logs,  separators=(',',':'))
-print json.dumps(files,  separators=(',',':'))
+print(json.dumps(logs,  separators=(',',':')))
+print(json.dumps(files,  separators=(',',':')))
