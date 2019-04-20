@@ -50,3 +50,9 @@ $(window).on('beforeunload', redux.getActions('page').check_unload)
 
 # Should be loaded last -- this checks the url and opens up the relevant page, etc.
 require('./last')
+
+# adding a banner in case react crashes (it will be revealed)
+crash = require('./crash.html')
+{ HELP_EMAIL } = require('smc-util/theme')
+$('body').append(crash.replace(/HELP_EMAIL/g, HELP_EMAIL))
+
