@@ -587,7 +587,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // Gets active_id.  the active_id **should** always
   // be defined, but if for some reason it is not, then
-  // this function all sets it and returns that.
+  // this function sets it and returns that.
   _get_active_id(): string {
     let id: string | undefined = this.store.getIn([
       "local_view_state",
@@ -601,7 +601,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   _get_tree(): ImmutableFrameTree {
-    return this.store.getIn(["local_view_state", "frame_tree"]);
+    let tree = this.store.getIn(["local_view_state", "frame_tree"]);
+    if (tree == null) {
+      // Worrisome rare race condition when frame_tree not yet initialized.
+      // See https://github.com/sagemathinc/cocalc/issues/3756
+      const local_view_state = this._load_local_view_state();
+      this.setState({local_view_state});
+      tree = local_view_state.get('frame_tree');
+    }
+    return tree;
   }
 
   _get_leaf_ids(): SetMap {
