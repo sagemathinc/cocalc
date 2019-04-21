@@ -188,11 +188,22 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
           const elt = ReactDOM.findDOMNode(this.refs.phosphor);
           if (elt == null) return;
           pWidget.Widget.attach(this.view.pWidget, elt);
+
+          // Configure handler for custom messages, e.g., {event:"click"} when button is clicked.
+          this.view.send = content => {
+            if (!this.mounted || this.props.actions == null) return;
+            this.props.actions.send_comm_message_to_kernel(model_id, {
+              method: "custom",
+              content
+            });
+          };
           break;
+
         case "@jupyter-widgets/output":
           this.model.on("change", this.update_output);
           this.update_output();
           break;
+
         default:
           throw Error(`Not implemented widget module ${this.model.module}`);
       }
@@ -208,6 +219,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   remove_view(): void {
     if (this.view != null) {
       this.view.remove(); // no clue what this does...
+      delete this.view.send;
       delete this.view;
     }
     if (this.model != null) {

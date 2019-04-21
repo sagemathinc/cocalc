@@ -4,7 +4,7 @@ web browser frontend.
 */
 import { Set } from "immutable";
 import { debounce, isEqual } from "underscore";
-import { merge_copy } from "smc-util/misc";
+import { merge_copy, uuid } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
@@ -268,11 +268,9 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  /*
   public send_comm_message_to_kernel(comm_id: string, data: any): string {
     const msg_id = uuid();
     this._api_call("comm", [msg_id, comm_id, data]);
     return msg_id;
   }
-  */
 }
