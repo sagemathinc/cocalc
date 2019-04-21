@@ -92,6 +92,7 @@ export class SyncTable extends EventEmitter {
   public client: Client;
   private throttle_changes?: number;
   private throttled_emit_changes?: Function;
+  private last_server_time: number = 0;
 
   // Immutable map -- the value of this synctable.
   private value?: Map<string, Map<string, any>>;
@@ -271,6 +272,7 @@ export class SyncTable extends EventEmitter {
   locally.
   */
   public async save(): Promise<void> {
+    //console.log("synctable SAVE");
     this.assert_not_closed("save");
     if (this.value == null) {
       // nothing to save yet
@@ -278,6 +280,7 @@ export class SyncTable extends EventEmitter {
     }
 
     while (this.has_uncommitted_changes()) {
+      //console.log("SAVE -- has uncommitted changes, so trying again.");
       if (this.state !== "connected") {
         // wait for state change
         await once(this, "state");
@@ -334,7 +337,7 @@ export class SyncTable extends EventEmitter {
       }
     }
     if (DEBUG) {
-      console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
+      //console.log(`set('${this.table}'): ${misc.to_json(changes.toJS())}`);
     }
 
     // For sanity!
@@ -433,7 +436,7 @@ export class SyncTable extends EventEmitter {
 
     // Something changed:
     this.value = this.value.set(key, new_val);
-    this.changes[key] = this.client.server_time().valueOf();
+    this.changes[key] = this.unique_server_time();
     this.update_has_uncommitted_changes();
     if (this.client.is_project()) {
       // project assigns versions
@@ -874,6 +877,7 @@ export class SyncTable extends EventEmitter {
         true -- new changes appeared during the _save that need to be saved.
   */
   private async _save(): Promise<boolean> {
+    //console.log("_save");
     const dbg = this.dbg("_save");
     dbg();
     if (this.get_state() == "closed") return false;
@@ -901,6 +905,7 @@ export class SyncTable extends EventEmitter {
     const timed_changes: TimedChange[] = [];
     const proposed_keys: { [key: string]: boolean } = {};
     const changes = copy(this.changes);
+    //console.log("_save: send ", changes);
     for (let key in this.changes) {
       if (this.versions[key] === 0) {
         proposed_keys[key] = true;
@@ -1284,7 +1289,7 @@ export class SyncTable extends EventEmitter {
         dbg(`found lost: key=${key}`);
         // So we will try to send out it again.
         if (!this.changes[key]) {
-          this.changes[key] = this.client.server_time().valueOf();
+          this.changes[key] = this.unique_server_time();
           this.update_has_uncommitted_changes();
         }
         // So we don't view it as having any known version
@@ -1466,6 +1471,19 @@ export class SyncTable extends EventEmitter {
       //console.log("_update_change: change")
       this.emit_change(changed_keys);
     }
+  }
+
+  // Returns current time (in ms since epoch) on server,
+  // but if there are multiple requests at the same time,
+  // the clock is artificially incremented to ensure uniqueness.
+  // Also, this time is thus always strictly increasing.
+  private unique_server_time(): number {
+    let tm = this.client.server_time().valueOf();
+    if (tm <= this.last_server_time) {
+      tm = this.last_server_time + 1;
+    }
+    this.last_server_time = tm;
+    return tm;
   }
 
   // - returns key only if obj actually changed things.

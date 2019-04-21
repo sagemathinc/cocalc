@@ -263,7 +263,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     moduleName: string,
     moduleVersion: string
   ): Promise<any> {
-    console.log("loadClass", className, moduleName, moduleVersion);
+    // console.log("loadClass", className, moduleName, moduleVersion);
     let module: any;
     if (moduleName === "@jupyter-widgets/base") {
       module = base;
