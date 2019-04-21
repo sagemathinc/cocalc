@@ -241,6 +241,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
 
   private async handle_model_change(model: base.DOMWidgetModel): Promise<void> {
     await model.state_change;
+    delete (model.changed as any).children;  // sometimes they are in there, but shouldn't be sync'ed.
     console.log("handle_model_change (frontend)", model.changed);
     this.ipywidgets_state.set_model_value(model.model_id, model.changed);
     this.ipywidgets_state.save();
