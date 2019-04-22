@@ -94,6 +94,10 @@ schema.stats =
 
 const DEFAULT_FONT_SIZE = (exports.DEFAULT_FONT_SIZE = 14);
 
+// key for new filenames algorithm in account/other_settings and associated default value
+const NEW_FILENAMES = (exports.NEW_FILENAMES = "new_filenames");
+const DEFAULT_NEW_FILENAMES = (exports.DEFAULT_NEW_FILENAMES = "iso");
+
 const misc = require("./misc");
 
 const { DEFAULT_QUOTAS } = require("./upgrade-spec");
@@ -328,12 +332,14 @@ schema.accounts = {
           page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
+          [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
           show_global_info2: null,
           first_steps: true,
           newsletter: false,
           time_ago_absolute: false,
+          // if true, do not show warning when using non-member projects
           no_free_warnings: false
-        }, // if true, do not show warning when using non-member projects
+        },
         first_name: "",
         last_name: "",
         terminal: {
