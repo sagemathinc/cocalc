@@ -29,6 +29,7 @@ interface Props {
   user_map: iMap<string, any>;
   project_map: iMap<string, any>;
   account_id: string;
+  unseen_mentions_size: number;
 }
 
 interface State {
@@ -203,11 +204,14 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   render(): Rendered {
+    let notifications_page_text = `See mentions (${
+      this.props.unseen_mentions_size
+    })`;
     return (
       <div className={"smc-file-use-viewer"}>
         <Row key="top">
           <Col sm={7}>{this.render_search_box()}</Col>
-          <Col sm={2}>
+          <Col sm={2} style={{ padding: "8px 0px 0px 5px" }}>
             <Link
               on_click={() => {
                 this.props.redux
@@ -216,7 +220,7 @@ export class FileUseViewer extends Component<Props, State> {
                 this.props.redux.getActions("page").toggle_show_file_use();
               }}
             >
-              See mentions
+              {notifications_page_text}
             </Link>
           </Col>
           <Col sm={3}>

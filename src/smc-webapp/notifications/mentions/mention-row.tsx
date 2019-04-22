@@ -31,12 +31,12 @@ export function MentionRow({
 
   const is_read: boolean = mention.getIn(["users", target, "read"]);
   const is_saved: boolean = mention.getIn(["users", target, "saved"]);
-  let read_icon = "circle-thin";
+  let read_icon = "square-o";
   let save_icon = "bookmark-o";
   let row_style: React.CSSProperties = {};
 
   if (is_read) {
-    read_icon = "check-circle";
+    read_icon = "check-square-o";
     row_style = {
       backgroundColor: "rgb(246, 248, 250)",
       color: "rgb(88, 96, 105)"
