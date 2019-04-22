@@ -1303,7 +1303,7 @@ OtherSettings = rclass
 
     render_new_filenames: ->
         selected = @props.other_settings.get(NEW_FILENAMES) ? NewFilenames.default_family
-        <LabeledRow label='Random filenames'>
+        <LabeledRow label='Generated filenames'>
             <SelectorInput
                 selected  = {selected}
                 options   = {NewFilenameFamilies}
