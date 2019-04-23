@@ -59,6 +59,13 @@ class AccountActions extends Actions
             is_logged_in : user_type == 'signed_in'
 
     sign_in: (email, password) =>
+        doc_conn = '[connectivity issues](https://doc.cocalc.com/howto/connectivity-issues.html)'
+        err_help = """
+                   Please reload this browser tab and try again.
+
+                   If that doesn't work after a few minutes, consult #{doc_conn} or email #{help()}.
+                   """
+
         @setState(signing_in: true)
         webapp_client.sign_in
             email_address : email
@@ -71,7 +78,7 @@ class AccountActions extends Actions
             cb            : (error, mesg) =>
                 @setState(signing_in: false)
                 if error
-                    @setState(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email #{help()}.")
+                    @setState(sign_in_error : "There was an error signing you in (#{error}). #{err_help}")
                     return
                 switch mesg.event
                     when 'sign_in_failed'

@@ -24,7 +24,7 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 {Passports} = require('./passports')
 {SignUp} = require('./sign-up')
@@ -72,8 +72,8 @@ SignIn = rclass
     display_error: ->
         if @props.sign_in_error?
             <ErrorDisplay
-                style   = {margin:'15px'}
-                error   = {@props.sign_in_error}
+                style   = {marginRight: 0}
+                error_component = {<Markdown value={@props.sign_in_error} />}
                 onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
 
@@ -167,7 +167,7 @@ SignIn = rclass
                         {@render_passports()}
                     </Col>
                 </Row>
-                <Row className='form-inline pull-right' style={clear : "right"}>
+                <Row className={'form-inline pull-right'} style={clear : "right", width: '100%'}>
                     <Col xs={12}>
                         {@display_error()}
                     </Col>
