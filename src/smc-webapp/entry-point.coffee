@@ -30,6 +30,8 @@ require('./init_app')
 # Initialize the account store.
 require('./account')
 
+require('./notifications').init(redux)
+
 require('./widget-markdown-input/main').init(redux)
 
 mobile = require('./mobile_app')

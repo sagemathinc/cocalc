@@ -533,7 +533,7 @@ ProjectFilesActionBox = rclass
                             ref          = 'result_archive'
                             key          = 'result_archive'
                             type         = 'text'
-                            defaultValue = {account.default_filename('zip')}
+                            defaultValue = {account.default_filename('zip', @props.project_id)}
                             placeholder  = 'Result archive...'
                             onKeyDown    = {@action_key}
                         />
@@ -1206,7 +1206,7 @@ ProjectFilesActionBox = rclass
                     ref          = 'download_archive'
                     key          = 'download_archive'
                     type         = 'text'
-                    defaultValue = {account.default_filename('zip')}
+                    defaultValue = {account.default_filename('zip', @props.project_id)}
                     placeholder  = 'Result archive...'
                     onKeyDown    = {@action_key}
                 />
@@ -1486,7 +1486,7 @@ ProjectFilesNew = rclass
     on_menu_item_clicked: (ext) ->
         if @props.file_search.length == 0
             # Tell state to render an error in file search
-            @props.actions.setState(ext_selection : ext)
+            @props.actions.ask_filename(ext)
         else
             @props.create_file(ext)
 
@@ -1536,16 +1536,21 @@ exports.ProjectFiles = rclass ({name}) ->
             date_when_course_payment_required : rtypes.func
             get_my_group                      : rtypes.func
             get_total_project_quotas          : rtypes.func
+
         account :
             other_settings : rtypes.immutable.Map
             is_logged_in   : rtypes.bool
+
         billing :
             customer       : rtypes.object
+
         customize :
             kucalc : rtypes.string
             site_name : rtypes.string
+
         compute_images :
             images        : rtypes.immutable.Map
+
         "#{name}" :
             active_file_sort      : rtypes.object
             current_path          : rtypes.string
@@ -1561,6 +1566,7 @@ exports.ProjectFiles = rclass ({name}) ->
             selected_file_index   : rtypes.number
             file_creation_error   : rtypes.string
             ext_selection         : rtypes.string
+            new_filename          : rtypes.string
             displayed_listing     : rtypes.object
             new_name              : rtypes.string
             library               : rtypes.object
@@ -2000,6 +2006,8 @@ exports.ProjectFiles = rclass ({name}) ->
                 actions            = {@props.actions}
                 current_path       = {@props.current_path}
                 ext_selection      = {@props.ext_selection}
+                new_filename       = {@props.new_filename}
+                other_settings     = {@props.other_settings}
             /> if @props.ext_selection}
             {@render_new()}
 
