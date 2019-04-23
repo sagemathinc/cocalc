@@ -1835,7 +1835,7 @@ schema.mentions = {
         },
         project_id: "project_write",
         path: true,
-        source: "account_id",
+        source: true,
         target: true,
         priority: true,
         description: true,
@@ -1844,7 +1844,8 @@ schema.mentions = {
       required_fields: {
         project_id: true,
         path: true,
-        target: true
+        target: true,
+        source: true
       }
     }
   }
