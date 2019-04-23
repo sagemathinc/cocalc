@@ -161,6 +161,10 @@ class PageActions extends Actions
                 if change_history
                     history.set_url('/admin')
                 set_window_title('Admin')
+            when 'notifications'
+                if change_history
+                    history.set_url('/notifications')
+                set_window_title('Notifications')
             when undefined
                 return
             else

@@ -31,6 +31,7 @@ misc = require('smc-util/misc')
 {ProjectPage, MobileProjectPage} = require('./project_page')
 {AccountPage} = require('./account_page')
 {FileUsePage} = require('./file-use/page')
+{NotificationPage} = require('./notifications')
 {AdminPage} = require('./admin')
 {show_announce_end} = require('./redux_account')
 {analytics_event} = require('./tracker')
@@ -75,6 +76,8 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
             v.push <div key={'help'}>To be implemented</div>
         when 'file-use'
             v.push <FileUsePage redux={redux} key={'file-use'}/>
+        when 'notifications'
+            v.push <NotificationPage key={'notifications'} />
         when 'admin'
             v.push <AdminPage redux={redux} key={'admin'}/>
         when undefined

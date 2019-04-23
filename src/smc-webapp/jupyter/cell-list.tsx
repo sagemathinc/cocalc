@@ -253,17 +253,10 @@ export class CellList extends Component<CellListProps> {
 
     const v: any[] = [];
     this.props.cell_list.forEach((id: string) => {
-      let left, left1;
       const cell_data = this.props.cells.get(id);
       // is it possible/better idea to use the @actions.store here?
-      const editable =
-        (left = cell_data.getIn(["metadata", "editable"])) != null
-          ? left
-          : true;
-      const deletable =
-        (left1 = cell_data.getIn(["metadata", "deletable"])) != null
-          ? left1
-          : true;
+      const editable = cell_data.getIn(["metadata", "editable"], true);
+      const deletable = cell_data.getIn(["metadata", "deletable"], true);
       const cell = (
         <Cell
           key={id}
