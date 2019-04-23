@@ -1762,7 +1762,7 @@ schema.system_notifications = {
 schema.mentions = {
   primary_key: ["time", "project_id", "path", "target"],
   db_standby: "unsafe",
-  anonymous: true, // allow user *read* access, even if not signed in
+  anonymous: false,
   fields: {
     time: {
       type: "timestamp",
