@@ -7,7 +7,7 @@ import {
   CellMeasurerCache
 } from "react-virtualized";
 
-import { debounce } from "lodash";
+import { debounce, isEqual } from "lodash";
 
 const misc = require("smc-util/misc");
 const { Col, Row } = require("react-bootstrap");
@@ -69,9 +69,32 @@ export class FileListing extends React.Component<Props> {
     this.list_ref = React.createRef();
   }
 
+  shouldComponentUpdate(next) {
+    return (
+      !isEqual(this.props.listing, next.listing) ||
+      !isEqual(this.props.active_file_sort, next.active_file_sort) ||
+      misc.is_different(this.props, next, [
+        "file_search",
+        "checked_files",
+        "current_path",
+        "page_number",
+        "page_size",
+        "public_view",
+        "selected_file_index",
+        "project_id",
+        "other_settings",
+        "show_new",
+        "last_scroll_top"
+      ])
+    );
+  }
+
   // Restore scroll position if one was set.
   componentDidMount() {
-    if (this.props.last_scroll_top != undefined && this.list_ref.current != null) {
+    if (
+      this.props.last_scroll_top != undefined &&
+      this.list_ref.current != null
+    ) {
       this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
       this.current_scroll_top = this.props.last_scroll_top;
     }
