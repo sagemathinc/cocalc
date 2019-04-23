@@ -382,11 +382,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           {this.render_keyboard()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_save_timetravel()}
-<<<<<<< HEAD
           {this.render_group_nbgrader()}
           {this.render_assistant()}
-=======
->>>>>>> origin/master
         </Form>
       </div>
     );

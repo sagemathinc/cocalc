@@ -256,6 +256,7 @@ export class CellList extends Component<CellListProps> {
       const cell_data = this.props.cells.get(id);
       const editable = this.props.actions.store.is_cell_editable(id);
       const deleteable = this.props.actions.store.is_cell_deleteable(id);
+
       const cell = (
         <Cell
           key={id}

@@ -6,7 +6,6 @@ declare const localStorage: any;
 
 const misc = require("smc-util/misc");
 import { Store, AppRedux } from "../app-framework";
-import { Set } from "immutable";
 import {
   Set,
   Map as ImmutableMap,

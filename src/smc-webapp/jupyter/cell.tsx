@@ -29,7 +29,7 @@ interface CellProps {
   cell_toolbar?: string;
   trust?: boolean;
   editable?: boolean;
-  deleteable?: boolean;
+  deletable?: boolean;
   student_mode?: boolean;
 }
 
@@ -37,28 +37,25 @@ export class Cell extends Component<CellProps> {
   shouldComponentUpdate(nextProps) {
     return (
       // note: we assume project_id and directory don't change
-      misc.is_different(
-        this.props,
-        nextProps,
-        [
-          "id",
-          "cm_options",
-          "cell",
-          "is_current",
-          "is_selected",
-          "is_markdown_edit",
-          "mode",
-          "font_size",
-          "is_focused",
-          "more_output",
-          "cell_toolbar",
-          "student_mode",
-          "trust",
-          "editable",
-          "deleteable"
-        ]
-      ) ||
+      misc.is_different(this.props, nextProps, [
+        "id",
+        "cm_options",
+        "cell",
+        "is_current",
+        "is_selected",
+        "is_markdown_edit",
+        "mode",
+        "font_size",
+        "is_focused",
+        "more_output",
+        "cell_toolbar",
+        "student_mode",
+        "trust",
+        "editable",
+        "deletable"
+      ]) ||
       // only worry about complete when editing this cell
+
       (nextProps.complete !== this.props.complete &&
         (nextProps.is_current || this.props.is_current))
     );
@@ -139,7 +136,7 @@ export class Cell extends Component<CellProps> {
   };
 
   render_metadata_state_delete_protected() {
-    if (this.props.deleteable) {
+    if (this.props.deletable) {
       return;
     }
     const lock_style = { marginRight: "5px" };

@@ -136,7 +136,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         raw_ipynb: rtypes.immutable.Map,
         metadata: rtypes.immutable.Map,
         trust: rtypes.bool,
-        student_mode: rtypes.bool
+        student_mode: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
         check_select_kernel_init: rtypes.bool,
         show_kernel_selector: rtypes.bool,
@@ -386,7 +386,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         default_kernel={this.props.default_kernel}
         closestKernel={this.props.closestKernel}
         site_name={this.props.site_name}
-        ask_jupyter_kernel={ask_jupyter_kernel == null ? true : ask_jupyter_kernel}
+        ask_jupyter_kernel={
+          ask_jupyter_kernel == null ? true : ask_jupyter_kernel
+        }
       />
     );
   }

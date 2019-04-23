@@ -8,8 +8,6 @@ import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
 
-// TODO: import jquery
-declare const $: any;
 
 // TODO: use imports
 const misc = require("smc-util/misc");
@@ -95,6 +93,12 @@ export class CellInput extends Component<CellInputProps> {
       nextProps.cm_options !== this.props.cm_options ||
       (nextProps.is_markdown_edit !== this.props.is_markdown_edit &&
         nextProps.cell.get("cell_type") === "markdown") ||
+      nextProps.is_focused !== this.props.is_focused ||
+      nextProps.is_current !== this.props.is_current ||
+      nextProps.font_size !== this.props.font_size ||
+      nextProps.complete !== this.props.complete ||
+      nextProps.is_readonly !== this.props.is_readonly ||
+      nextProps.cell_toolbar !== this.props.cell_toolbar ||
       (nextProps.cell_toolbar === "slideshow" &&
         nextProps.cell.get("slide") !== this.props.cell.get("slide")) ||
       misc.is_different(this.props, nextProps, [
