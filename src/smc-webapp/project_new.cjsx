@@ -293,7 +293,7 @@ exports.ProjectNewForm = ProjectNewForm = rclass ({name}) ->
             @setState(filename: newProps.default_filename)
 
     default_filename: ->
-        return require('./account').default_filename()
+        return require('./account').default_filename(undefined, @props.project_id)
 
     focus_input: ->
         ReactDOM.findDOMNode(@refs.project_new_filename).focus()
