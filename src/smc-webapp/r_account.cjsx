@@ -32,6 +32,8 @@
 {ProfileImageSelector} = require('./r_profile_image')
 {PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
 {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+{NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
+{NEW_FILENAMES} = require('smc-util/db-schema')
 
 md5 = require('md5')
 
@@ -1299,6 +1301,18 @@ OtherSettings = rclass
             />
         </LabeledRow>
 
+
+    render_new_filenames: ->
+        selected = @props.other_settings.get(NEW_FILENAMES) ? NewFilenames.default_family
+        <LabeledRow label='Generated filenames'>
+            <SelectorInput
+                selected  = {selected}
+                options   = {NewFilenameFamilies}
+                on_change = {(value)=>@on_change(NEW_FILENAMES, value)}
+            />
+        </LabeledRow>
+
+
     render_page_size: ->
         <LabeledRow label='Number of files per page'>
             <NumberInput
@@ -1334,6 +1348,7 @@ OtherSettings = rclass
             {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}
+            {@render_new_filenames()}
             {@render_default_file_sort()}
             {@render_page_size()}
             {@render_standby_timeout()}
