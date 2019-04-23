@@ -203,25 +203,31 @@ export class FileUseViewer extends Component<Props, State> {
     );
   }
 
-  render(): Rendered {
+  render_see_mentions_link(): Rendered {
     let notifications_page_text = `See mentions (${
       this.props.unseen_mentions_size
     })`;
+    return (
+      <Link
+        on_click={() => {
+          this.props.redux.getActions("page").set_active_tab("notifications");
+          this.props.redux.getActions("page").toggle_show_file_use();
+        }}
+      >
+        {notifications_page_text}
+      </Link>
+    );
+  }
+
+  render(): Rendered {
+    // const link = this.render_see_mentions_link()
+    const link = undefined;  // mentions are currently badly broken.
     return (
       <div className={"smc-file-use-viewer"}>
         <Row key="top">
           <Col sm={7}>{this.render_search_box()}</Col>
           <Col sm={2} style={{ padding: "8px 0px 0px 5px" }}>
-            <Link
-              on_click={() => {
-                this.props.redux
-                  .getActions("page")
-                  .set_active_tab("notifications");
-                this.props.redux.getActions("page").toggle_show_file_use();
-              }}
-            >
-              {notifications_page_text}
-            </Link>
+            {link}
           </Col>
           <Col sm={3}>
             <div style={{ float: "right" }}>
