@@ -95,7 +95,7 @@ export class MentionsActions extends Actions<MentionsState> {
       if (table == undefined) {
         return;
       }
-      await table.set({ mentions: obj });
+      await table.set(obj);
     } catch (error) {
       const err = error;
       console.warn("WARNING: mentions error -- ", err);
