@@ -59,11 +59,11 @@ class AccountActions extends Actions
             is_logged_in : user_type == 'signed_in'
 
     sign_in: (email, password) =>
-        doc_conn = '[connectivity issues](https://doc.cocalc.com/howto/connectivity-issues.html)'
+        doc_conn = '[connectivity debugging tips](https://doc.cocalc.com/howto/connectivity-issues.html)'
         err_help = """
                    Please reload this browser tab and try again.
 
-                   If that doesn't work after a few minutes, consult #{doc_conn} or email #{help()}.
+                   If that doesn't work after a few minutes, try these #{doc_conn} or email #{help()}.
                    """
 
         @setState(signing_in: true)
