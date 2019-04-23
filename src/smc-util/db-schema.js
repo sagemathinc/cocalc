@@ -781,6 +781,14 @@ schema.file_use = {
         const recent = misc.minutes_ago(3);
         if (x != null && (x.edit >= recent || x.chat >= recent)) {
           db.touch({ project_id: obj.project_id, account_id });
+          // Also log that this particular file is being used/accessed; this
+          // is used only for longterm analytics.  Note that log_file_access
+          // is throttled.
+          db.log_file_access({
+            project_id: obj.project_id,
+            account_id,
+            filename: obj.path
+          });
         }
         typeof cb === "function" ? cb() : undefined;
       }
