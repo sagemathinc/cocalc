@@ -1525,17 +1525,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("awakening project #{project_id}")
             awaken_project(@, project_id)
 
-        # 2. Log that this particular file is being used/accessed; this is used only
-        # longterm for analytics.  Note that log_file_access is throttled.
-        # Also, record in a local cache that the user has permission to write
-        # to this syncstring.
-        if project_id? and new_val?.last_active?
-            filename = old_val?.path
-            if filename? and account_id?
-                @log_file_access
-                    project_id : project_id
-                    account_id : account_id
-                    filename   : filename
 
     # Verify that writing a patch is allowed.
     _user_set_query_patches_check: (obj, account_id, project_id, cb) =>

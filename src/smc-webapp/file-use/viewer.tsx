@@ -220,8 +220,7 @@ export class FileUseViewer extends Component<Props, State> {
   }
 
   render(): Rendered {
-    // const link = this.render_see_mentions_link()
-    const link = undefined;  // mentions are currently badly broken.
+    const link = this.render_see_mentions_link()
     return (
       <div className={"smc-file-use-viewer"}>
         <Row key="top">

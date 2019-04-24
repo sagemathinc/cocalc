@@ -2109,6 +2109,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             target     : required # account_id (for now)
+            source     : required # account_id
             priority   : undefined # optional integer; larger number is higher; 0 is default.
             description: undefined # optional string context eg. part of the message
             cb         : undefined
