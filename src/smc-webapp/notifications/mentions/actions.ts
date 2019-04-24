@@ -2,7 +2,7 @@ import { Actions } from "../../app-framework";
 import { MentionsState } from "./store";
 import { MentionInfo, MentionFilter } from "./types";
 
-import { callback2, once } from "smc-util/async-utils";
+import { once } from "smc-util/async-utils";
 
 const { webapp_client } = require("../../webapp_client");
 
@@ -38,7 +38,7 @@ export class MentionsActions extends Actions<MentionsState> {
     const adjusted_mention = mention.setIn(["users", account_id, "read"], true);
 
     this.update_mention(adjusted_mention, id);
-    this.set(adjusted_mention.toJS());
+    this.set(adjusted_mention);
   };
 
   mark_unread = (mention: MentionInfo, id: string): void => {
@@ -53,7 +53,7 @@ export class MentionsActions extends Actions<MentionsState> {
     );
 
     this.update_mention(adjusted_mention, id);
-    this.set(adjusted_mention.toJS());
+    this.set(adjusted_mention);
   };
 
   mark_saved = (mention: MentionInfo, id: string): void => {
@@ -68,7 +68,7 @@ export class MentionsActions extends Actions<MentionsState> {
     );
 
     this.update_mention(adjusted_mention, id);
-    this.set(adjusted_mention.toJS());
+    this.set(adjusted_mention);
   };
 
   mark_unsaved = (mention: MentionInfo, id: string): void => {
@@ -83,7 +83,7 @@ export class MentionsActions extends Actions<MentionsState> {
     );
 
     this.update_mention(adjusted_mention, id);
-    this.set(adjusted_mention.toJS());
+    this.set(adjusted_mention);
   };
 
   private async set(obj) {
@@ -91,7 +91,11 @@ export class MentionsActions extends Actions<MentionsState> {
       if (!webapp_client.is_signed_in()) {
         await once(webapp_client, "signed_in");
       }
-      await callback2(webapp_client.query, { query: { mentions: obj } });
+      const table = this.redux.getTable("mentions");
+      if (table == undefined) {
+        return;
+      }
+      await table.set(obj);
     } catch (error) {
       const err = error;
       console.warn("WARNING: mentions error -- ", err);

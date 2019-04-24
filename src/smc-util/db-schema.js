@@ -1770,7 +1770,6 @@ schema.system_notifications = {
 schema.mentions = {
   primary_key: ["time", "project_id", "path", "target"],
   db_standby: "unsafe",
-  anonymous: true, // allow user *read* access, even if not signed in
   fields: {
     time: {
       type: "timestamp",
@@ -1811,9 +1810,7 @@ schema.mentions = {
     },
     users: {
       type: "map",
-      desc:
-        "{account_id1: {read: boolean, action2:timestamp2}, account_id2: {...}}",
-      date: "all"
+      desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}"
     }
   },
 
@@ -1843,7 +1840,7 @@ schema.mentions = {
         },
         project_id: "project_write",
         path: true,
-        source: "account_id",
+        source: true,
         target: true,
         priority: true,
         description: true,
@@ -1851,6 +1848,7 @@ schema.mentions = {
       },
       required_fields: {
         project_id: true,
+        source: true,
         path: true,
         target: true
       }
