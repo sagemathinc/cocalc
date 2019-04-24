@@ -2,7 +2,7 @@
 #
 #    CoCalc: Collaborative Calculation in the Cloud
 #
-#    Copyright (C) 2016 -- 2017, Sagemath Inc.
+#    Copyright (C) 2016 -- 2019, Sagemath Inc.
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -161,6 +161,10 @@ class PageActions extends Actions
                 if change_history
                     history.set_url('/admin')
                 set_window_title('Admin')
+            when 'notifications'
+                if change_history
+                    history.set_url('/notifications')
+                set_window_title('Notifications')
             when undefined
                 return
             else

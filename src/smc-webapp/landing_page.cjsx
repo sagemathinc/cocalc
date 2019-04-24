@@ -24,7 +24,7 @@ The Landing Page
 ###
 {rclass, React, ReactDOM, redux, rtypes} = require('./app-framework')
 {Alert, Button, ButtonToolbar, Col, Modal, Grid, Row, FormControl, FormGroup, Well, ClearFix, Checkbox} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 {Passports} = require('./passports')
 {SignUp} = require('./sign-up')
@@ -72,8 +72,8 @@ SignIn = rclass
     display_error: ->
         if @props.sign_in_error?
             <ErrorDisplay
-                style   = {margin:'15px'}
-                error   = {@props.sign_in_error}
+                style   = {marginRight: 0}
+                error_component = {<Markdown value={@props.sign_in_error} />}
                 onClose = {=>@actions('account').setState(sign_in_error: undefined)}
             />
 
@@ -167,7 +167,7 @@ SignIn = rclass
                         {@render_passports()}
                     </Col>
                 </Row>
-                <Row className='form-inline pull-right' style={clear : "right"}>
+                <Row className={'form-inline pull-right'} style={clear : "right", width: '100%'}>
                     <Col xs={12}>
                         {@display_error()}
                     </Col>
@@ -482,6 +482,7 @@ exports.LandingPage = rclass
 
     # this is an info blob on the landing page, clarifying to the user that "free" is a perpetual trial
     render_trial_info: ->
+        return # try disabling this -- it's clutter.
         if not @props.is_commercial
             return
         <React.Fragment>
@@ -500,10 +501,12 @@ exports.LandingPage = rclass
                     for special options.
                 </div>
             </Alert>
-            <div>
-                If you have any questions or comments, create a <ShowSupportLink />.
-            </div>
         </React.Fragment>
+
+    render_support: ->
+        <div>
+            Questions? Create a <ShowSupportLink />.
+        </div>
 
     render_main_page: ->
         if @props.remember_me and not @props.get_api_key
@@ -573,7 +576,7 @@ exports.LandingPage = rclass
                   <div style={ display          : 'inline-block', \
                                backgroundImage  : "url('#{topbar.img_icon}')", \
                                backgroundSize   : 'contain', \
-                               height           : 55, width: 55, \
+                               height           : 75, width: 75, \
                                margin           : 5,\
                                verticalAlign    : 'center',\
                                backgroundRepeat : 'no-repeat'}>
@@ -584,8 +587,8 @@ exports.LandingPage = rclass
                               fontSize         : "28px",\
                               top              : UNIT,\
                               left             : UNIT * 7,\
-                              width            : 250,\
-                              height           : 55,\
+                              width            : 300,\
+                              height           : 75,\
                               position         : 'absolute',\
                               color            : topbar.color,\
                               opacity          : topbar.img_opacity,\
@@ -618,10 +621,12 @@ exports.LandingPage = rclass
                         />
                 </Col>
                 <Col sm={6}>
-                    <div style={color:"#333", fontSize:'12pt', marginTop:'5px'}>
+                    <div style={color:"#666", fontSize:'16pt', marginTop:'5px'}>
                         Create a new account to the left or sign in with an existing account above.
                         <br/>
                         {@render_trial_info()}
+                        <br/>
+                        {@render_support()}
                         <br/>
                         {
                             if not @props.get_api_key
