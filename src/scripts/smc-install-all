@@ -6,11 +6,13 @@ set -v
 cd `dirname $0`/..
 . smc-env
 
+# npm audit fix is disabled, because sometimes it errors saying that
+# the "endpoint is not available"
 run_install() {
     cd "$1"
     npm install
     npm install --only=dev
-    npm audit fix
+    #npm audit fix
 }
 
 run_install $SMC_ROOT
