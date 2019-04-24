@@ -339,7 +339,6 @@ export class SyncTable extends EventEmitter {
 
     // For sanity!
     changes = this.do_coerce_types(changes);
-
     // Ensure that each key is allowed to be set.
     if (this.client_query.set == null) {
       throw Error(`users may not set ${this.table}`);
@@ -351,7 +350,6 @@ export class SyncTable extends EventEmitter {
         throw Error(`users may not set ${this.table}.${k}`);
       }
     });
-
     // Determine the primary key's value
     let key: string | undefined = this.obj_to_key(changes);
     if (key == null) {
@@ -418,6 +416,7 @@ export class SyncTable extends EventEmitter {
           throw Error("merge must be one of 'deep', 'shallow', 'none'");
       }
     }
+
     if (new_val.equals(cur)) {
       // nothing actually changed, so nothing further to do.
       return new_val;
@@ -1085,7 +1084,6 @@ export class SyncTable extends EventEmitter {
         }
       }
     }
-
     return Map(
       changes.map((value, field) => {
         if (typeof field !== "string") {

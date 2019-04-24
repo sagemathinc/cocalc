@@ -154,6 +154,9 @@ class ChatActions extends Actions
 
     submit_user_mentions: (project_id, path) =>
         CONTEXT_SIZE = 80
+        account_store = @redux.getStore('account')
+        if account_store == undefined
+            return
         @store.get('unsent_user_mentions').map((mention) =>
             end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
             end_of_context_index = end_of_mention_index + CONTEXT_SIZE
@@ -172,6 +175,7 @@ class ChatActions extends Actions
                 target: mention.get('id')
                 priority: 2
                 description: description
+                source: account_store.get_account_id()
             })
         )
         @setState(unsent_user_mentions: immutable.List())
