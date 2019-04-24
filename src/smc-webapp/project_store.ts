@@ -101,6 +101,8 @@ export interface ProjectStoreState {
   show_library: boolean;
   show_new: boolean;
   file_listing_scroll_top?: number;
+  new_filename?: string;
+  ext_selection?: string;
 
   // Project Log
   project_log?: any; // immutable,

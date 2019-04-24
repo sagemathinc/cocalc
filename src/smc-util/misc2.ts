@@ -458,3 +458,8 @@ export function is_object(obj: any): boolean {
 export function is_date(obj: any): boolean {
   return obj instanceof Date;
 }
+
+// for switch/case -- https://www.typescriptlang.org/docs/handbook/advanced-types.html
+export function unreachable(x: never) {
+  throw new Error(`All types should be exhausted, but I got ${x}`);
+}

@@ -10,8 +10,6 @@ sha1 = require("sha1");
 
 { IS_MOBILE, isMobile } = require("../feature")
 
-# Sibling Libraries
-
 class ChatActions extends Actions
     _process_syncdb_obj: (x) =>
         if x.event != 'chat'
@@ -151,16 +149,33 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
-    set_unsent_user_mentions: (user_mentions) =>
-        @setState(unsent_user_mentions: user_mentions)
+    set_unsent_user_mentions: (user_mentions, message_plain_text) =>
+        @setState(unsent_user_mentions: user_mentions, message_plain_text: message_plain_text)
 
     submit_user_mentions: (project_id, path) =>
+        CONTEXT_SIZE = 80
+        account_store = @redux.getStore('account')
+        if account_store == undefined
+            return
         @store.get('unsent_user_mentions').map((mention) =>
+            end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
+            end_of_context_index = end_of_mention_index + CONTEXT_SIZE
+
+            # Add relevant ellpises depending on size of full message
+            description = ""
+            if mention.get('plainTextIndex') != 0
+                description = "... "
+            description += @store.get('message_plain_text').slice(end_of_mention_index, end_of_context_index).trim()
+            if end_of_context_index < @store.get('message_plain_text').length
+                description += " ..."
+
             webapp_client.mention({
                 project_id: project_id
                 path: path
                 target: mention.get('id')
                 priority: 2
+                description: description
+                source: account_store.get_account_id()
             })
         )
         @setState(unsent_user_mentions: immutable.List())

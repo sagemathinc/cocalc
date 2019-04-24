@@ -89,7 +89,7 @@ const codemirror_associations: { [ext: string]: string } = {
   "": "text"
 };
 
-interface Spec {
+export interface FileSpec {
   editor?: string;
   binary?: boolean;
   icon: string;
@@ -103,7 +103,7 @@ interface Spec {
   exclude_from_menu?: boolean;
 }
 
-const file_associations: { [ext: string]: Spec } = {};
+const file_associations: { [ext: string]: FileSpec } = {};
 exports.file_associations = file_associations;
 
 const MODE_TO_ICON: { [mode: string]: string } = {

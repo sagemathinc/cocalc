@@ -94,6 +94,10 @@ schema.stats =
 
 const DEFAULT_FONT_SIZE = (exports.DEFAULT_FONT_SIZE = 14);
 
+// key for new filenames algorithm in account/other_settings and associated default value
+const NEW_FILENAMES = (exports.NEW_FILENAMES = "new_filenames");
+const DEFAULT_NEW_FILENAMES = (exports.DEFAULT_NEW_FILENAMES = "iso");
+
 const misc = require("./misc");
 
 const { DEFAULT_QUOTAS } = require("./upgrade-spec");
@@ -328,12 +332,14 @@ schema.accounts = {
           page_size: 500,
           standby_timeout_m: 10,
           default_file_sort: "time",
+          [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
           show_global_info2: null,
           first_steps: true,
           newsletter: false,
           time_ago_absolute: false,
+          // if true, do not show warning when using non-member projects
           no_free_warnings: false
-        }, // if true, do not show warning when using non-member projects
+        },
         first_name: "",
         last_name: "",
         terminal: {
@@ -775,6 +781,14 @@ schema.file_use = {
         const recent = misc.minutes_ago(3);
         if (x != null && (x.edit >= recent || x.chat >= recent)) {
           db.touch({ project_id: obj.project_id, account_id });
+          // Also log that this particular file is being used/accessed; this
+          // is used only for longterm analytics.  Note that log_file_access
+          // is throttled.
+          db.log_file_access({
+            project_id: obj.project_id,
+            account_id,
+            filename: obj.path
+          });
         }
         typeof cb === "function" ? cb() : undefined;
       }
@@ -1756,7 +1770,6 @@ schema.system_notifications = {
 schema.mentions = {
   primary_key: ["time", "project_id", "path", "target"],
   db_standby: "unsafe",
-  anonymous: true, // allow user *read* access, even if not signed in
   fields: {
     time: {
       type: "timestamp",
@@ -1777,6 +1790,11 @@ schema.mentions = {
       desc:
         "uuid of user who was mentioned; later will have other possibilities including group names, 'all', etc."
     },
+    description: {
+      type: "string",
+      desc:
+        "Extra text to describe the mention. eg. could be the containing message"
+    },
     priority: {
       type: "number",
       desc:
@@ -1789,23 +1807,48 @@ schema.mentions = {
     action: {
       type: "string",
       desc: "what action was attempted by the backend - 'email', 'ignore'"
+    },
+    users: {
+      type: "map",
+      desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}"
     }
   },
 
   pg_indexes: ["action"],
 
   user_query: {
+    get: {
+      pg_where: ["time >= NOW() - interval '14 days'", "projects"],
+      pg_changefeed: "projects",
+      options: [{ order_by: "-time" }, { limit: 100 }], // limit is arbitrary
+      throttle_changes: 3000,
+      fields: {
+        time: null,
+        project_id: null,
+        path: null,
+        source: null,
+        target: null,
+        priority: null,
+        description: null,
+        users: null
+      }
+    },
     set: {
       fields: {
-        time: () => new Date(),
+        time({ time }) {
+          return time || new Date();
+        },
         project_id: "project_write",
         path: true,
-        source: "account_id",
+        source: true,
         target: true,
-        priority: true
+        priority: true,
+        description: true,
+        users: true
       },
       required_fields: {
         project_id: true,
+        source: true,
         path: true,
         target: true
       }

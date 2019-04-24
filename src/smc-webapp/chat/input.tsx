@@ -23,7 +23,7 @@ interface Props {
   font_size: number;
   height: string;
   on_paste?: (e) => void;
-  on_change: (value, mentions) => void;
+  on_change: (value, mentions, plain_text) => void;
   on_send: (value) => void;
   on_clear: () => void;
   on_set_to_last_input: () => void;
@@ -148,8 +148,8 @@ export class ChatInput extends React.PureComponent<Props> {
     return user_array;
   });
 
-  on_change = (e, _, __, mentions) => {
-    this.props.on_change(e.target.value, mentions);
+  on_change = (e, _, plain_text, mentions) => {
+    this.props.on_change(e.target.value, mentions, plain_text);
   };
 
   on_keydown = (e: any) => {
