@@ -2,7 +2,7 @@
 Widget rendering.
 */
 
-import { Map, Set, fromJS } from "immutable";
+import { Map, Set, List, fromJS } from "immutable";
 
 import {
   React,
@@ -38,7 +38,7 @@ interface WidgetProps {
 interface WidgetState {
   outputs?: Map<string, any>;
   style?: any;
-  react_view?: any;
+  react_view?: List<string>;
 }
 
 export class Widget0 extends Component<WidgetProps, WidgetState> {
@@ -65,7 +65,6 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     this.state = {};
   }
 
-  /*
   shouldComponentUpdate(
     nextProps: WidgetProps,
     nextState: WidgetState
@@ -85,13 +84,19 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       // view not yet initialized and model is now known, so initialize it.
       this.init_view(next_model_id);
     }
-    if (nextState.outputs == null) return false;
-    if (nextState.outputs.equals(this.state)) return false;
 
-    // TODO: check react view here.
+    // Only do not update, if neither state that is used for rendering the
+    // react part of the widget might have got updated.  We use ===
+    // for speed.
+    if (
+      nextState.outputs === this.state.outputs &&
+      nextState.react_view === this.state.react_view
+    ) {
+      return false;
+    }
+
     return true;
   }
-  */
 
   componentDidMount(): void {
     this.mounted = true;
