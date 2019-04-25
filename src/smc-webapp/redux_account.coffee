@@ -9,6 +9,9 @@ immutable = require('immutable')
 
 {alert_message} = require('./alerts')
 
+{GlobalInformationMessage} = require('./global_info_message')
+exports.GlobalInformationMessage = GlobalInformationMessage
+
 misc = require('smc-util/misc')
 {defaults, required} = misc
 

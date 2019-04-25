@@ -6,10 +6,17 @@ const { alert_message } = require("./alerts");
 
 export const NAME = "system_notifications";
 
+export type Notification = iMap<any, any>; // ???
+export type Notifications = iMap<string, Notification>;
+
 interface NotificationsState {
   loading: boolean;
-  notifications: iMap<string, iMap<string, any>>; // ???
+  notifications?: Notifications; // ???
 }
+
+const init_state: NotificationsState = {
+  loading: true
+};
 
 class NotificationsStore extends Store<NotificationsState> {}
 
@@ -36,7 +43,7 @@ class NotificationsActions extends Actions<NotificationsState> {
   };
 }
 
-const store = redux.createStore(NAME, NotificationsStore, { loading: true });
+const store = redux.createStore(NAME, NotificationsStore, init_state);
 const actions = redux.createActions(NAME, NotificationsActions);
 
 class NotificationsTable extends Table {
