@@ -20,9 +20,6 @@ require("@jupyter-widgets/controls/css/widgets.css");
 
 import { CellOutputMessages } from "./message";
 
-//import { Stdout } from "./stdout";
-//import { Stderr } from "./stderr";
-
 interface WidgetProps {
   value: Map<string, any>;
   actions?: JupyterActions;

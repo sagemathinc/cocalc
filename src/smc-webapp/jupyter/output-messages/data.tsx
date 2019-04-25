@@ -8,12 +8,12 @@ import { IFrame } from "./iframe";
 import { Javascript } from "./javascript";
 import { UntrustedJavascript } from "./untrusted-javascript";
 import { PDF } from "./pdf";
-import { STDOUT_STYLE } from "./style";
+import { STDERR_STYLE, STDOUT_STYLE } from "./style";
 import { TextPlain } from "./text-plain";
 
 // share server can't handle this, so we have to use require.
 // import { Widget } from "./widget";
-let Widget : any = undefined;
+let Widget: any = undefined;
 try {
   Widget = require("./widget").Widget;
 } catch (err) {
@@ -158,7 +158,11 @@ export class Data extends Component<DataProps> {
               return <PDF value={value} project_id={this.props.project_id} />;
 
             case "vnd.jupyter.widget-view+json":
-              if (Widget == null || this.props.name == null || this.props.actions == null) {
+              if (
+                Widget == null ||
+                this.props.name == null ||
+                this.props.actions == null
+              ) {
                 // TODO...
                 return;
               }
@@ -174,23 +178,43 @@ export class Data extends Component<DataProps> {
       }
     }
 
-    return (
-      <pre>
-        Unsupported message: {type}, {JSON.stringify(value.toJS())}
-      </pre>
-    );
+    throw Error(`Unsupported message type: ${type}`);
   }
 
-  render(): Rendered | Rendered[] {
+  render(): Rendered {
     const data = this.props.message.get("data");
     if (data == null || typeof data.forEach != "function") return;
 
-    const v: Rendered[] = [];
-    let n: number = 0;
+    const v: any[] = [];
+    let error: any = undefined;
     data.forEach((value, type) => {
-      v.push(<div key={n}>{this.render_data(type, value, data)}</div>);
-      n += 1;
+      try {
+        v.push([type, <div>{this.render_data(type, value, data)}</div>]);
+      } catch (err) {
+        // will only use this if nothing else works.
+        error = err;
+      }
     });
-    return v;
+    if (v.length > 1) {
+      // Note about multiple representations; we should only render the best one.
+      // For us the algorithm should be: if the options are (a) anything
+      // we know how to render, and (b) text/plain, then render the first
+      // thing we know how to render that is not text/plain.
+      // This is inefficient, since we rendered more than one, and then just
+      // throw away all but one.
+      for (let x of v) {
+        if (x[0] != "text/plain") {
+          return x[1];
+        }
+      }
+    }
+    if (v.length == 0) {
+      if (error != null) {
+        return <div style={STDERR_STYLE}>{`${error}`}</div>;
+      } else {
+        return <div />;
+      }
+    }
+    return v[0][1];
   }
 }
