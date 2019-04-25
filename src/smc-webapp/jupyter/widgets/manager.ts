@@ -11,7 +11,7 @@ import {
 } from "smc-util/sync/editor/generic/ipywidgets-state";
 import { once } from "smc-util/async-utils";
 import { Comm } from "./comm";
-import { is_array, uuid } from "smc-util/misc2";
+import { copy, is_array, len, uuid } from "smc-util/misc2";
 
 import * as react_output from "./output";
 import * as react_controls from "./controls";
@@ -22,6 +22,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private ipywidgets_state: IpywidgetsState;
   private widget_model_ids_add: Function;
   private incomplete_model_ids: Set<string> = new Set();
+  private last_changed: { [model_id: string]: { [key: string]: any } } = {};
+  private state_lock: Set<string> = new Set();
 
   // widget_model_ids_add gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
@@ -61,10 +63,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       // console.log("handle_table_state_change - one key", key, model_id, type);
       switch (type) {
         case "state":
-          await this.handle_model_state_change(model_id);
+          await this.handle_table_model_state_change(model_id);
           break;
         case "value":
-          await this.handle_model_value_change(model_id);
+          await this.handle_table_model_value_change(model_id);
           break;
         default:
           throw Error(`unknown state type '${type}'`);
@@ -73,7 +75,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     while (this.incomplete_model_ids.size > 0) {
       const size_before = this.incomplete_model_ids.size;
       for (let model_id of this.incomplete_model_ids) {
-        await this.handle_model_state_change(model_id);
+        await this.handle_table_model_state_change(model_id);
       }
       if (this.incomplete_model_ids.size >= size_before) {
         // no shrink -- avoid infinite loop; will try after next change.
@@ -82,7 +84,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
-  private async handle_model_state_change(model_id: string): Promise<void> {
+  private async handle_table_model_state_change(
+    model_id: string
+  ): Promise<void> {
     const state: ModelState | undefined = this.ipywidgets_state.get_model_state(
       model_id
     );
@@ -100,29 +104,69 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
-  private async handle_model_value_change(model_id: string): Promise<void> {
+  private async handle_table_model_value_change(
+    model_id: string
+  ): Promise<void> {
     const changed = this.ipywidgets_state.get_model_value(model_id);
-    console.log("handle_model_value_change", model_id, changed);
+    // console.log("handle_table_model_value_change", model_id, changed);
+    if (
+      this.last_changed[model_id] != null &&
+      changed.last_changed != null &&
+      changed.last_changed <= this.last_changed[model_id].last_changed
+    ) {
+      /* console.log(
+        "skipping due to last change time",
+        this.last_changed[model_id],
+        changed.last_changed
+      ); */
+      if (changed.last_changed < this.last_changed[model_id].last_changed) {
+        // console.log("strict inequality, so saving again");
+        // This is necessary since SyncTable has fairly week guarantees
+        // when you try to write tons of changing rapidly to the *same*
+        // key (in this case the value). SyncTable was mainly designed
+        // for lots of different keys (without changes), as comes up
+        // with file editing where you're storing a log.  It's also fine
+        // for changing a single key NOT rapidly.
+        this.ipywidgets_state.set_model_value(
+          model_id,
+          this.last_changed[model_id]
+        );
+        this.ipywidgets_state.save();
+      }
+      return;
+    }
+    if (changed.last_changed != null) {
+      this.last_changed[model_id] = changed;
+    }
+    this.state_lock.add(model_id);
     await this.update_model(model_id, changed);
+    const model = await this.get_model(model_id);
+    if (model != null) {
+      await model.state_change;
+    }
+    this.state_lock.delete(model_id);
   }
 
   private async update_model(
     model_id: string,
-    state: ModelState
+    change: ModelState
   ): Promise<void> {
     const model: base.DOMWidgetModel | undefined = await this.get_model(
       model_id
     );
     if (model != null) {
-      //console.log(`setting state of model "${model_id}" to `, state);
-      const success = await this.dereference_model_links(state);
+      //console.log(`setting state of model "${model_id}" to `, change);
+      if (change.last_changed != null) {
+        this.last_changed[model_id] = change;
+      }
+      const success = await this.dereference_model_links(change);
       if (!success) {
         console.warn(
           "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update."
         );
         return;
       }
-      model.set_state(state);
+      model.set_state(change);
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
     }
@@ -240,10 +284,35 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_model_change(model: base.DOMWidgetModel): Promise<void> {
+    const model_id = model.model_id;
     await model.state_change;
-    delete (model.changed as any).children;  // sometimes they are in there, but shouldn't be sync'ed.
-    console.log("handle_model_change (frontend)", model.changed);
-    this.ipywidgets_state.set_model_value(model.model_id, model.changed);
+    if (this.state_lock.has(model_id)) {
+      /* console.log(
+        "handle_model_change (frontend) -- skipping due to state lock",
+        model_id
+      );*/
+      return;
+    }
+    const changed: any = copy(model.changed);
+    delete changed.children; // sometimes they are in there, but shouldn't be sync'ed.
+    // console.log("handle_model_change (frontend)", changed);
+    let last_changed = changed.last_changed;
+    delete changed.last_changed;
+    if (len(changed) == 0) {
+      // console.log("handle_model_change (frontend) -- NOTHING changed");
+      return; // nothing
+    }
+    // increment sequence number.
+    changed.last_changed =
+      Math.max(
+        last_changed ? last_changed : 0,
+        this.last_changed[model_id].last_changed
+          ? this.last_changed[model_id].last_changed
+          : 0
+      ) + 1;
+    this.last_changed[model_id] = changed;
+    // console.log("handle_model_change (frontend) -- actually saving", changed);
+    this.ipywidgets_state.set_model_value(model_id, changed);
     this.ipywidgets_state.save();
   }
 
