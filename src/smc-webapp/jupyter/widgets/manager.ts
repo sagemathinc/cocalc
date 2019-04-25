@@ -306,7 +306,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     changed.last_changed =
       Math.max(
         last_changed ? last_changed : 0,
-        this.last_changed[model_id].last_changed
+        this.last_changed[model_id] != null
           ? this.last_changed[model_id].last_changed
           : 0
       ) + 1;

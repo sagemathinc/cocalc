@@ -150,7 +150,21 @@ export class IpywidgetsState extends EventEmitter {
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
     }
-    this.table.set({ string_id, type, data, model_id });
+    let merge: "none" | "deep";
+    if (type == "value") {
+      // we manually do the shallow merge only on the data field.
+      const data0 = this.get_model_value(model_id);
+      if (data0 != null) {
+        for (let k in data) {
+          data0[k] = data[k];
+        }
+        data = data0;
+      }
+      merge = "none";
+    } else {
+      merge = "deep";
+    }
+    this.table.set({ string_id, type, model_id, data }, merge);
   }
 
   public async save(): Promise<void> {
@@ -197,9 +211,11 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   /*
-  process_comm_message_from_kernel gets called whenever the kernel emits a comm
-  message related to widgets.  This updates the state of the table, which
-  results in frontends creating or updating widgets.
+  process_comm_message_from_kernel gets called whenever the
+  kernel emits a comm
+  message related to widgets.  This updates the state of the
+  table, which results in frontends creating or updating
+  widgets.
   */
   public async process_comm_message_from_kernel(
     msg: CommMessage
@@ -226,6 +242,7 @@ export class IpywidgetsState extends EventEmitter {
       }
     }
     const model_id: string = comm_id;
+    dbg(`model_id=${model_id}`);
 
     const { data } = content;
     if (data == null) {
@@ -247,6 +264,18 @@ export class IpywidgetsState extends EventEmitter {
       case "update":
         dbg("method -- update");
         if (state != null) {
+          if (this.clear_output[model_id] && state.outputs != null) {
+            // we are supposed to clear the output before inserting
+            // the next output.
+            dbg("clearing outputs");
+            if (state.outputs.length > 0) {
+              state.outputs = [state.outputs[state.outputs.length - 1]];
+            } else {
+              state.outputs = [];
+            }
+            delete this.clear_output[model_id];
+          }
+
           this.set_model_value(model_id, state);
         }
 
@@ -299,10 +328,12 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   /*
-  process_comm_message_from_widget gets called whenever a browser client emits a comm
-  message related to widgets.  This updates the state of the table, which
-  results in other frontends updating their widget state, *AND* the backend
-  kernel changing the value of variables (and possibly updating other widgets).
+  process_comm_message_from_widget gets called whenever a
+  browser client emits a comm message related to widgets.
+  This updates the state of the table, which results in
+  other frontends updating their widget state, *AND* the backend
+  kernel changing the value of variables (and possibly
+  updating other widgets).
   */
   public async process_comm_message_from_browser(
     msg: CommMessage
@@ -319,7 +350,9 @@ export class IpywidgetsState extends EventEmitter {
   // TODO: deal with buffers
   public capture_output_message(mesg: any): boolean {
     const msg_id = mesg.parent_header.msg_id;
-    if (this.capture_output[msg_id] == null) return false;
+    if (this.capture_output[msg_id] == null) {
+      return false;
+    }
     const dbg = this.dbg("capture_output_message");
     dbg(JSON.stringify(mesg));
     const model_id = this.capture_output[msg_id][
@@ -332,14 +365,15 @@ export class IpywidgetsState extends EventEmitter {
         this.clear_output[model_id] = true;
       } else {
         delete this.clear_output[model_id];
-        this.set_model_value(model_id, {});
+        this.set_model_value(model_id, { outputs: [] });
       }
       return true;
     }
 
-    if (mesg.content == null || len(mesg.content) == 0)
+    if (mesg.content == null || len(mesg.content) == 0) {
       // no actual content.
       return false;
+    }
 
     let outputs: any[];
     if (this.clear_output[model_id]) {
