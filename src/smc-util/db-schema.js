@@ -782,6 +782,14 @@ schema.file_use = {
         const recent = misc.minutes_ago(3);
         if (x != null && (x.edit >= recent || x.chat >= recent)) {
           db.touch({ project_id: obj.project_id, account_id });
+          // Also log that this particular file is being used/accessed; this
+          // is used only for longterm analytics.  Note that log_file_access
+          // is throttled.
+          db.log_file_access({
+            project_id: obj.project_id,
+            account_id,
+            filename: obj.path
+          });
         }
         typeof cb === "function" ? cb() : undefined;
       }
@@ -1763,7 +1771,6 @@ schema.system_notifications = {
 schema.mentions = {
   primary_key: ["time", "project_id", "path", "target"],
   db_standby: "unsafe",
-  anonymous: true, // allow user *read* access, even if not signed in
   fields: {
     time: {
       type: "timestamp",
@@ -1804,9 +1811,7 @@ schema.mentions = {
     },
     users: {
       type: "map",
-      desc:
-        "{account_id1: {read: boolean, action2:timestamp2}, account_id2: {...}}",
-      date: "all"
+      desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}"
     }
   },
 
@@ -1836,7 +1841,7 @@ schema.mentions = {
         },
         project_id: "project_write",
         path: true,
-        source: "account_id",
+        source: true,
         target: true,
         priority: true,
         description: true,
@@ -1844,6 +1849,7 @@ schema.mentions = {
       },
       required_fields: {
         project_id: true,
+        source: true,
         path: true,
         target: true
       }
