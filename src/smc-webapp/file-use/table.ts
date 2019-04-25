@@ -24,6 +24,7 @@ export class FileUseTable extends Table {
     const actions = this.redux.getActions("file_use");
     if (actions == null) throw Error("actions must be defined");
     const file_use = table.get();
+    console.log("file use table got:", file_use.toJS())
     actions.setState({ file_use });
   }
 }

@@ -1,12 +1,13 @@
-import { fromJS, List as iList, Map as iMap } from "immutable";
+import { fromJS, List, Map } from "immutable";
 import { Store } from "../app-framework";
+import { FileActivityMap, UsersActivity } from "./types"
 const { webapp_client } = require("../webapp_client");
 const misc = require("smc-util/misc");
 const { sha1 } = require("smc-util/schema").client_db;
 
 export interface FileUseState {
-  errors?: iList<string>;
-  file_use?: iMap<string, any>;
+  errors?: List<string>;
+  file_use?: FileActivityMap;
   notify_count?: number;
 }
 
@@ -38,8 +39,8 @@ export class FileUseStore extends Store<FileUseState> {
     this.get_video_chat_users = this.get_video_chat_users.bind(this);
   }
 
-  get_errors(): iList<string> {
-    return this.get("errors", iList()) as iList<string>;
+  get_errors(): List<string> {
+    return this.get("errors", List()) as List<string>;
   }
 
   _initialize_cache() {
@@ -184,7 +185,7 @@ export class FileUseStore extends Store<FileUseState> {
       : [];
   }
 
-  get_sorted_file_use_list2(): iList<any> {
+  get_sorted_file_use_list2(): List<any> {
     if (this._cache == null) {
       this._update_cache();
     }
@@ -194,7 +195,7 @@ export class FileUseStore extends Store<FileUseState> {
       ? this._cache != null
         ? this._cache.sorted_file_use_immutable_list
         : undefined
-      : iList();
+      : List();
   }
 
   // Get latest processed info about a specific file as an object.
@@ -253,7 +254,7 @@ export class FileUseStore extends Store<FileUseState> {
     let v: any[] = [];
     const file_use_map = {};
     file_use.map((x, id: string) => {
-      const y = x.toJS();
+      const y: any = x.toJS();
       if (y == null) {
         return;
       }
@@ -384,18 +385,18 @@ export class FileUseStore extends Store<FileUseState> {
     }
     const users: { [account_id: string]: Date } = {};
     const cutoff: number = webapp_client.server_time().valueOf() - opts.ttl;
-    const file_use: iMap<string, any> | undefined = this.get("file_use");
+    const file_use = this.get("file_use");
     if (file_use == null) {
       return users;
     }
-    const users_map: iMap<string, any> = file_use.getIn([
+    const users_map: Map<string, UsersActivity> = file_use.getIn([
       sha1(opts.project_id, opts.path),
       "users"
     ]);
     if (users_map == null) {
       return users;
     }
-    users_map.forEach(function(info: iMap<string, any>, account_id: string) {
+    users_map.forEach(function(info, account_id: string) {
       const timestamp = info.get("video");
       if (timestamp != null && timestamp.valueOf() >= cutoff) {
         users[account_id] = timestamp;

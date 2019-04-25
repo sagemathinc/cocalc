@@ -32,6 +32,90 @@ export const NotificationPage = rclass<ReduxProps>(
       };
     }
 
+    render_file_activity_tab(account_id, mentions, user_map, filter) {
+      return (
+        <Tab
+          eventKey="file-activity"
+          title={
+            <span>
+              <Icon name="pencil-square-o" /> File Activity
+            </span>
+          }
+        >
+          <div style={inner_container_style}>
+            <NotificationNav
+              filter={filter}
+              on_click={redux.getActions("mentions").set_filter}
+              style={nav_style}
+            />
+            <NotificationList
+              account_id={account_id}
+              mentions={mentions}
+              style={list_style}
+              user_map={user_map}
+              filter={filter}
+            />
+          </div>
+        </Tab>
+      );
+    }
+
+    render_mentions_tab(account_id, mentions, user_map, filter) {
+      return (
+        <Tab
+          eventKey="mentions"
+          title={
+            <span>
+              <Icon name="at" /> Mentions
+            </span>
+          }
+        >
+          <div style={inner_container_style}>
+            <NotificationNav
+              filter={filter}
+              on_click={redux.getActions("mentions").set_filter}
+              style={nav_style}
+            />
+            <NotificationList
+              account_id={account_id}
+              mentions={mentions}
+              style={list_style}
+              user_map={user_map}
+              filter={filter}
+            />
+          </div>
+        </Tab>
+      );
+    }
+
+    render_chats_tab(account_id, mentions, user_map, filter) {
+      return (
+        <Tab
+          eventKey="chats"
+          title={
+            <span>
+              <Icon name="message" /> Chats
+            </span>
+          }
+        >
+          <div style={inner_container_style}>
+            <NotificationNav
+              filter={filter}
+              on_click={redux.getActions("mentions").set_filter}
+              style={nav_style}
+            />
+            <NotificationList
+              account_id={account_id}
+              mentions={mentions}
+              style={list_style}
+              user_map={user_map}
+              filter={filter}
+            />
+          </div>
+        </Tab>
+      );
+    }
+
     render() {
       const { account_id, mentions, user_map, filter } = this.props;
       return (
@@ -42,29 +126,13 @@ export const NotificationPage = rclass<ReduxProps>(
               style={{ paddingTop: "1em" }}
               id="notification-page-tabs"
             >
-              <Tab
-                eventKey="mentions"
-                title={
-                  <span>
-                    <Icon name="at" /> Mentions
-                  </span>
-                }
-              >
-                <div style={inner_container_style}>
-                  <NotificationNav
-                    filter={filter}
-                    on_click={redux.getActions("mentions").set_filter}
-                    style={nav_style}
-                  />
-                  <NotificationList
-                    account_id={account_id}
-                    mentions={mentions}
-                    style={list_style}
-                    user_map={user_map}
-                    filter={filter}
-                  />
-                </div>
-              </Tab>
+              {this.render_mentions_tab(account_id, mentions, user_map, filter)}
+              {this.render_file_activity_tab(
+                account_id,
+                mentions,
+                user_map,
+                filter
+              )}
             </Tabs>
           </div>
         </div>
