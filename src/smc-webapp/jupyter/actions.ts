@@ -1959,6 +1959,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (offset != null) {
       complete.offset = offset;
     }
+    // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
+    // and breaks an assumption in our react code too.
+    complete.matches = Array.from(new Set(complete.matches)).sort()
     this.setState({ complete: immutable.fromJS(complete) });
     if (complete.matches && complete.matches.length === 1 && id != null) {
       // special case -- a unique completion and we know id of cell in which completing is given
