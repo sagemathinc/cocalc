@@ -68,6 +68,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         case "value":
           await this.handle_table_model_value_change(model_id);
           break;
+        case "buffers":
+          await this.handle_table_model_buffers_change(model_id);
+          break;
         default:
           throw Error(`unknown state type '${type}'`);
       }
@@ -99,6 +102,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     if (model == null) {
       // create model
       await this.create_new_model(model_id, state);
+      // possibly deal with buffers...
+      await this.handle_table_model_buffers_change(model_id);
     } else {
       await this.update_model(model_id, state);
     }
@@ -145,6 +150,28 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       await model.state_change;
     }
     this.state_lock.delete(model_id);
+  }
+
+  private async handle_table_model_buffers_change(
+    model_id: string
+  ): Promise<void> {
+    // console.log(`handle_table_model_buffers_change -- ${model_id}`);
+    const { buffer_paths, buffers } = this.ipywidgets_state.get_model_buffers(
+      model_id
+    );
+    if (buffer_paths.length == 0) return; // nothing to do
+    // convert each buffer in buffers to a DataView.
+    let i: number = 0;
+    for (let buffer of buffers) {
+      buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
+      i += 1;
+    }
+    const model: base.DOMWidgetModel = await this.get_model(model_id);
+    if (model != null) {
+      const state = model.get_state(true);
+      base.put_buffers(state, buffer_paths, buffers);
+      model.set_state(state);
+    }
   }
 
   private async update_model(

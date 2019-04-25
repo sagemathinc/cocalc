@@ -15,6 +15,7 @@ interface CommMessage {
   header: { msg_id: string };
   parent_header: { msg_id: string };
   content: any;
+  buffers: any[];
 }
 
 export interface Message {
@@ -136,8 +137,42 @@ export class IpywidgetsState extends EventEmitter {
     return value;
   }
 
+  public get_model_buffers(
+    model_id: string
+  ): { buffer_paths: any[]; buffers: any[] } {
+    let value: any = this.get(model_id, "buffers");
+    if (value == null) {
+      return { buffer_paths: [], buffers: [] };
+    }
+    value = value.toJS();
+    if (value == null) {
+      return { buffer_paths: [], buffers: [] };
+    }
+    if (value.buffer_paths == null) {
+      value.buffer_paths = [];
+    }
+    if (value.buffers == null) {
+      value.buffers = [];
+    }
+    return value;
+  }
+
   public set_model_value(model_id: string, value: Value): void {
     this.set(model_id, "value", value);
+  }
+
+  public set_model_buffers(
+    model_id: string,
+    buffer_paths: string[],
+    buffers: any[]
+  ): void {
+    // const dbg = this.dbg("set_model_buffers");
+    // dbg("buffer_paths = ", buffer_paths);
+    // dbg("buffers=", buffers);
+    // TODO: this is very inefficient for now since it just sends
+    // the binary data via JSON + websocket.  Instead, I guess we
+    // could use HTTP?
+    this.set(model_id, "buffers", { buffer_paths, buffers });
   }
 
   public set_model_state(model_id: string, state: any): void {
@@ -145,7 +180,11 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   // Do any setting of the underlying table through this function.
-  public set(model_id: string, type: "value" | "state", data: any): void {
+  public set(
+    model_id: string,
+    type: "value" | "state" | "buffers",
+    data: any
+  ): void {
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
@@ -322,6 +361,14 @@ export class IpywidgetsState extends EventEmitter {
         // TODO: Implement other methods, e.g., 'display' -- see
         // https://github.com/jupyter-widgets/ipywidgets/blob/master/packages/schema/messages.md
         dbg(`not implemented method '${content.data.method}' -- ignoring`);
+    }
+
+    if (
+      content.data.buffer_paths != null &&
+      content.data.buffer_paths.length > 0
+    ) {
+      // We have to deal with binary buffers...
+      this.set_model_buffers(model_id, content.data.buffer_paths, msg.buffers);
     }
 
     await this.save();
