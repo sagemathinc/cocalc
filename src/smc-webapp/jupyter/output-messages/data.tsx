@@ -20,6 +20,11 @@ try {
   console.log("Widget rendering not available");
 }
 
+const SHA1_REGEXP = /^[a-f0-9]{40}$/;
+function is_sha1(s: string): boolean {
+  return s.length === 40 && !!s.match(SHA1_REGEXP);
+}
+
 interface DataProps {
   message: Map<string, any>;
   project_id?: string;
@@ -124,12 +129,26 @@ export class Data extends Component<DataProps> {
                 }
               }
             });
+
+          let sha1: string | undefined = undefined;
+          let val: string | undefined = undefined;
+
+          if (typeof value === "string") {
+            if (is_sha1(value)) {
+              // use a heuristic to see if it sha1.  TODO: maybe we shouldn't.
+              sha1 = value;
+            } else {
+              val = value;
+            }
+          } else if (typeof value === "object") {
+            val = value.get("value");
+          }
           return (
             <Image
               project_id={this.props.project_id}
               type={type}
-              sha1={typeof value === "string" ? value : undefined}
-              value={typeof value === "object" ? value.get("value") : undefined}
+              sha1={sha1}
+              value={val}
               width={width}
               height={height}
             />
