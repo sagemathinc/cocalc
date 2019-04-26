@@ -2,6 +2,8 @@
 Widget rendering.
 */
 
+const $ = require("jquery");
+
 import { Map, Set, List, fromJS } from "immutable";
 
 import { Tabs, Tab } from "react-bootstrap";
@@ -184,23 +186,9 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
         case "@jupyter-widgets/controls":
         case "@jupyter-widgets/base":
           // Right now we use phosphor views for many base and controls.
-          // TODO: we can iteratively rewrite some of these using react for a more
-          // consistent look and feel...
-          const view = await widget_manager.create_view(this.model);
-          if (!this.mounted) return;
-          this.view = view as any;
-          const elt = ReactDOM.findDOMNode(this.refs.phosphor);
-          if (elt == null) return;
-          pWidget.Widget.attach(this.view.pWidget, elt);
-
-          // Configure handler for custom messages, e.g., {event:"click"} when button is clicked.
-          this.view.send = content => {
-            if (!this.mounted || this.props.actions == null) return;
-            this.props.actions.send_comm_message_to_kernel(model_id, {
-              method: "custom",
-              content
-            });
-          };
+          // TODO: we can iteratively rewrite some of these using react
+          // for a more consistent look and feel (with bootstrap).
+          await this.init_phosphor_view(model_id);
           break;
 
         case "@jupyter-widgets/output":
@@ -237,6 +225,55 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
   render_phosphor(): Rendered {
     // This div is managed by phosphor, so don't put any react in it!
     return <div key="phosphor" ref="phosphor" />;
+  }
+
+  handle_phosphor_focus(): void {
+    if (this.props.actions == null) return;
+    const elt = ReactDOM.findDOMNode(this.refs.phosphor);
+    if (elt == null) return;
+    // See https://stackoverflow.com/questions/7668525/is-there-a-jquery-selector-to-get-all-elements-that-can-get-focus
+    const focuseable = $(elt).find(
+      "a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex], *[contenteditable]"
+    );
+    if (focuseable.length > 0) {
+      focuseable.on("focus", () => {
+        if (this.props.actions != null) {
+          this.props.actions.disable_key_handler();
+        }
+      });
+      focuseable.on("blur", () => {
+        if (this.props.actions != null) {
+          this.props.actions.enable_key_handler();
+        }
+      });
+    }
+  }
+
+  // Configure handler for custom messages, e.g.,
+  // {event:"click"} when button is clicked.
+  handle_phosphor_custom_events(model_id: string): void {
+    if (this.view == null) return;
+    this.view.send = content => {
+      if (!this.mounted || this.props.actions == null) return;
+      const data = { method: "custom", content };
+      this.props.actions.send_comm_message_to_kernel(model_id, data);
+    };
+  }
+
+  async init_phosphor_view(model_id: string): Promise<void> {
+    if (this.props.actions == null) return;
+    const widget_manager = this.props.actions.widget_manager;
+    if (widget_manager == null) {
+      return;
+    }
+    const view = await widget_manager.create_view(this.model);
+    if (!this.mounted) return;
+    this.view = view as any;
+    const elt = ReactDOM.findDOMNode(this.refs.phosphor);
+    if (elt == null) return;
+    pWidget.Widget.attach(this.view.pWidget, elt);
+    this.handle_phosphor_focus();
+    this.handle_phosphor_custom_events(model_id);
   }
 
   render_output(): Rendered {
