@@ -326,7 +326,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       ) + 1;
     this.last_changed[model_id] = changed;
     // console.log("handle_model_change (frontend) -- actually saving", changed);
-    this.ipywidgets_state.set_model_value(model_id, changed);
+    this.ipywidgets_state.set_model_value(model_id, changed, true);
     this.ipywidgets_state.save();
   }
 
