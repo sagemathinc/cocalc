@@ -4,6 +4,8 @@ Widget rendering.
 
 import { Map, Set, List, fromJS } from "immutable";
 
+import { Tabs, Tab } from "react-bootstrap";
+
 import {
   React,
   ReactDOM,
@@ -253,7 +255,64 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     );
   }
 
-  render_react_view(): undefined | Rendered {
+  render_react_view(): Rendered {
+    if (this.state.react_view == null) return;
+    if (this.model == null) return;
+    switch (this.model.name) {
+      case "TabModel":
+        return this.render_react_tab_view();
+      case "AccordionModel":
+        return this.render_react_accordion_view();
+      case "HBoxModel":
+      case "VBoxModel":
+      case "GridBoxView":
+        return this.render_react_box_view();
+      default:
+        // better than nothing.
+        return this.render_react_box_view();
+    }
+  }
+
+  render_react_tab_view(): Rendered {
+    if (this.state.react_view == null) return;
+    if (this.model == null) return;
+
+    const v: Rendered[] = [];
+    let i = 0;
+    for (let model_id of this.state.react_view.toJS()) {
+      v.push(
+        <Tab eventKey={i} key={i} title={this.model.attributes._titles[i]}>
+          <Widget
+            value={fromJS({ model_id })}
+            actions={this.props.actions}
+            name={this.props.name}
+          />
+        </Tab>
+      );
+      i += 1;
+    }
+
+    return (
+      <Tabs
+        activeKey={this.model.attributes.selected_index}
+        onSelect={selected_index => {
+          if (this.model) {
+            this.model.set_state({ selected_index });
+          }
+        }}
+        id={"tabs" + this.model.model_id}
+      >
+        {v}
+      </Tabs>
+    );
+  }
+
+  render_react_accordion_view(): undefined | Rendered {
+    if (this.state.react_view == null) return;
+    return <div>Accordion view</div>;
+  }
+
+  render_react_box_view(): undefined | Rendered {
     if (this.state.react_view == null) return;
     const v: Rendered[] = [];
     let i = 0;
@@ -268,7 +327,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       );
       i += 1;
     }
-    // TODO -- this is hackish; fix later.
+    // todo -- this is hackish; fix later.
     let cls = "jupyter-widgets widget-container";
     switch (this.model.name) {
       case "HBoxModel":

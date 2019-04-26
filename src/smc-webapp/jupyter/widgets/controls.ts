@@ -33,8 +33,8 @@ export class VBoxView extends ReactView {}
 export class HBoxModel extends ReactModel {}
 export class HBoxView extends ReactView {}
 
-export class AccordianModel extends ReactModel {}
-export class AccordianView extends ReactView {}
+export class AccordionModel extends ReactModel {}
+export class AccordionView extends ReactView {}
 
 export class TabModel extends ReactModel {}
 export class TabView extends ReactView {}
