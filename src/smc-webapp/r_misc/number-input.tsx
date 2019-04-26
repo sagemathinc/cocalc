@@ -1,14 +1,15 @@
 import * as React from "react";
+import { Rendered } from "../app-framework";
 const {
   Col,
   FormControl,
   FormGroup,
   Row,
   Button,
-  Icon,
-  Tip,
   Form
 } = require("react-bootstrap");
+import { Icon } from "./icon";
+import { Tip } from "./tip";
 const { is_different, roundN, merge } = require("smc-util/misc");
 const { debounce } = require("underscore");
 const { COLORS } = require("smc-util/theme");
@@ -129,7 +130,7 @@ export class NumberInput extends React.Component<Props, State> {
     return this.sanitize_nan(n);
   }
 
-  plusminus_click(e, delta: number) {
+  plusminus_click = (e, delta: number): void => {
     if (e.shiftKey && this.props.speedup != null) {
       delta *= this.props.speedup;
     }
@@ -147,34 +148,33 @@ export class NumberInput extends React.Component<Props, State> {
       this.on_change_debounce(n);
       return { number: n };
     });
-  }
+  };
 
-  plusminus(delta: number) {
+  render_adjuster(delta: number): Rendered | null {
+    if (!this.props.plusminus) return null;
     let disabled, name;
-    if (!this.props.plusminus) {
-      return null;
-    }
     let title = `Hold down your shift key while clicking to accellerate changes by ${
       this.props.speedup
     }x.`;
 
     if (delta > 0) {
       name = "plus";
-      return (disabled = this.props.number === this.props.max);
+      disabled = this.props.number === this.props.max;
     } else {
       if (this.props.allow_empty && this.props.number === this.props.min) {
         disabled = false;
         name = "trash";
-        return (title = "Remove the value.");
+        title = "Remove the value.";
       } else if (this.props.allow_empty && this.props.number == null) {
         disabled = true;
         name = "ban";
-        return (title = "No value set.");
+        title = "No value set.";
       } else {
         disabled = this.props.number === this.props.min;
-        return (name = "minus");
+        name = "minus";
       }
     }
+
     return (
       <Tip title={title} placement={"bottom"}>
         <Button
@@ -188,11 +188,11 @@ export class NumberInput extends React.Component<Props, State> {
     );
   }
 
-  onClickHandler(e) {
+  onClickHandler = (e): void => {
     if (this.props.select_on_click) e.target.select();
-  }
+  };
 
-  render_unit(xs) {
+  render_unit(xs): Rendered | null {
     if (this.props.unit == null) return null;
     const unit = this.props.unit != undefined ? `${this.props.unit}` : "";
     return (
@@ -220,7 +220,7 @@ export class NumberInput extends React.Component<Props, State> {
         <Col xs={6}>
           <Form onSubmit={this.saveChange} inline={this.props.plusminus}>
             <FormGroup style={fgstyle}>
-              {this.plusminus(-1)}
+              {this.render_adjuster(-1)}
               <FormControl
                 type="text"
                 ref="input"
@@ -248,6 +248,7 @@ export class NumberInput extends React.Component<Props, State> {
                 disabled={this.props.disabled}
                 style={form_style}
               />
+              {this.render_adjuster(+1)}
             </FormGroup>
           </Form>
         </Col>

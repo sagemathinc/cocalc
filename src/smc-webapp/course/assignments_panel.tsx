@@ -1631,10 +1631,10 @@ class Assignment extends Component<AssignmentProps, AssignmentState> {
     );
   }
 
-  toggle_configure_grading() {
+  toggle_configure_grading = (): void => {
     const aid = this.props.assignment.get("assignment_id");
     this.get_actions().toggle_item_expansion("grading_config", aid);
-  }
+  };
 
   render_grading_config_button() {
     return (
