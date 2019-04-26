@@ -209,18 +209,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       throw Error("state must be set");
     }
 
-    const view_name: string | undefined = state._view_name;
-    if (view_name == null) {
-      throw Error("_view_name must be defined");
-    }
-    const view_module: string | undefined = state._view_module;
-    if (view_module == null) {
-      throw Error("_view_module must be defined");
-    }
-    const view_module_version: string | undefined = state._view_module_version;
-    if (view_module_version == null) {
-      throw Error("_view_module_version must be defined");
-    }
     const model_name: string | undefined = state._model_name;
     if (model_name == null) {
       throw Error("_model_name must be defined");
@@ -236,7 +224,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     const success = await this.dereference_model_links(state);
-    //console.log(model_id, view_module, view_name, view_module_version);
 
     if (!success) {
       //console.log(model_id, "failed to dereference fully");
