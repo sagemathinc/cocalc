@@ -48,7 +48,7 @@ chat_redux_name      = editor_chat.redux_name
 
 listing_colstyle  = {margin: '10px 0'}
 listing_colstyle2 = misc.merge({overflow: 'hidden', textOverflow: 'ellipsis'}, listing_colstyle)
-
+open_student_project_button_name = "Student files"
 
 exports.Listing = rclass
     displayName : 'CourseEditor-GradingStudentAssignment-Listing'
@@ -453,7 +453,7 @@ exports.Listing = rclass
 
         <div style={outer_style}>
             <div style={inner_style}>
-                (This is a confidential discussion! Click the "Files" button to see the collected assignment.)
+                This discussion is confidential! The "{open_student_project_button_name}" button opens the collected assignment.
             </div>
         </div>
 
@@ -466,7 +466,7 @@ exports.Listing = rclass
                 title     = {"Open this directory of files in the student's project."}
                 placement = {'bottom'}
             >
-                Student <Icon name='external-link' />
+                {open_student_project_button_name} <Icon name='external-link' />
             </Tip>
         </Button>
 

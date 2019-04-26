@@ -2,6 +2,7 @@ import * as React from "react";
 import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
 const sha1 = require("sha1");
+import * as CSS from "csstype";
 
 import { MentionsInput, Mention } from "react-mentions";
 import { USER_MENTION_MARKUP } from "./utils";
@@ -69,14 +70,44 @@ export class ChatInput extends React.PureComponent<Props> {
   input_style = memoizeOne(
     (font_size: number, height: string, input_height: InputHeight) => {
       // TODO not sure what's going on with all these heights
+
+      const height_inner = input_height == "default" ? "100%" : "100%";
+      const padding = input_height == "small" ? "5px" : "5px 10px";
+
+      const input = {
+        height: height_inner,
+        fontSize: font_size,
+        border: "1px solid #ccc",
+        borderRadius: "4px",
+        boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
+        overflow: "auto",
+        padding: padding,
+        backgroundColor: "white"
+      } as CSS.Properties;
+
       if (input_height == "small") {
         height = "80%";
       }
-      const height_inner = input_height == "default" ? "100%" : "80%";
-      const padding = input_height == "small" ? "10px" : "5px 10px";
 
       return {
         height: height,
+
+        "&singleLine": {
+          control: {
+            display: "inline-block",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "white",
+            leftMargin: "2px"
+          },
+
+          highlighter: {
+            padding: 1,
+            border: "2px inset transparent"
+          },
+
+          input: input
+        },
 
         "&multiLine": {
           highlighter: {
@@ -89,15 +120,7 @@ export class ChatInput extends React.PureComponent<Props> {
             leftMargin: "2px"
           },
 
-          input: {
-            height: height_inner,
-            fontSize: font_size,
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            boxShadow: "inset 0 1px 1px rgba(0,0,0,.075)",
-            overflow: "auto",
-            padding: padding
-          }
+          input: input
         },
 
         suggestions: {
@@ -187,7 +210,11 @@ export class ChatInput extends React.PureComponent<Props> {
 
     const style =
       this.props.input_style ||
-      this.input_style(this.props.font_size, this.props.height);
+      this.input_style(
+        this.props.font_size,
+        this.props.height,
+        this.props.input_height
+      );
 
     let id: string | undefined = undefined;
     if (this.props.name) {
