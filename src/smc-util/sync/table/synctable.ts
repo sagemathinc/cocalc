@@ -323,7 +323,11 @@ export class SyncTable extends EventEmitter {
   converting if necessary.   This has a performance impact,
   but is worth it for sanity's sake!!!
   */
-  public set(changes: any, merge: "deep" | "shallow" | "none" = "deep"): any {
+  public set(
+    changes: any,
+    merge: "deep" | "shallow" | "none" = "deep",
+    fire_change_event: boolean = true
+  ): any {
     if (this.value == null) {
       throw Error("can't set until table is initialized");
     }
@@ -449,7 +453,9 @@ export class SyncTable extends EventEmitter {
       // in some cases.
       this.touch_project();
     }
-    this.emit_change([key]);
+    if (fire_change_event) {
+      this.emit_change([key]);
+    }
 
     return new_val;
   }

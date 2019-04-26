@@ -157,14 +157,19 @@ export class IpywidgetsState extends EventEmitter {
     return value;
   }
 
-  public set_model_value(model_id: string, value: Value): void {
-    this.set(model_id, "value", value);
+  public set_model_value(
+    model_id: string,
+    value: Value,
+    fire_change_event: boolean = true
+  ): void {
+    this.set(model_id, "value", value, fire_change_event);
   }
 
   public set_model_buffers(
     model_id: string,
     buffer_paths: string[],
-    buffers: any[]
+    buffers: any[],
+    fire_change_event: boolean = true
   ): void {
     // const dbg = this.dbg("set_model_buffers");
     // dbg("buffer_paths = ", buffer_paths);
@@ -172,18 +177,23 @@ export class IpywidgetsState extends EventEmitter {
     // TODO: this is very inefficient for now since it just sends
     // the binary data via JSON + websocket.  Instead, I guess we
     // could use HTTP?
-    this.set(model_id, "buffers", { buffer_paths, buffers });
+    this.set(model_id, "buffers", { buffer_paths, buffers }, fire_change_event);
   }
 
-  public set_model_state(model_id: string, state: any): void {
-    this.set(model_id, "state", state);
+  public set_model_state(
+    model_id: string,
+    state: any,
+    fire_change_event: boolean = true
+  ): void {
+    this.set(model_id, "state", state, fire_change_event);
   }
 
   // Do any setting of the underlying table through this function.
   public set(
     model_id: string,
     type: "value" | "state" | "buffers",
-    data: any
+    data: any,
+    fire_change_event: boolean = true
   ): void {
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
@@ -203,7 +213,11 @@ export class IpywidgetsState extends EventEmitter {
     } else {
       merge = "deep";
     }
-    this.table.set({ string_id, type, model_id, data }, merge);
+    this.table.set(
+      { string_id, type, model_id, data },
+      merge,
+      fire_change_event
+    );
   }
 
   public async save(): Promise<void> {
@@ -315,7 +329,7 @@ export class IpywidgetsState extends EventEmitter {
             delete this.clear_output[model_id];
           }
 
-          this.set_model_value(model_id, state);
+          this.set_model_value(model_id, state, false);
         }
 
         if (state.msg_id != null) {
@@ -350,12 +364,12 @@ export class IpywidgetsState extends EventEmitter {
         }
 
         if (len(state) > 0) {
-          this.set_model_state(model_id, state);
+          this.set_model_state(model_id, state, false);
         }
         break;
       case undefined:
         dbg("method -- undefined (=initial set?)");
-        this.set_model_state(model_id, state);
+        this.set_model_state(model_id, state, false);
         break;
       default:
         // TODO: Implement other methods, e.g., 'display' -- see
@@ -368,7 +382,12 @@ export class IpywidgetsState extends EventEmitter {
       content.data.buffer_paths.length > 0
     ) {
       // We have to deal with binary buffers...
-      this.set_model_buffers(model_id, content.data.buffer_paths, msg.buffers);
+      this.set_model_buffers(
+        model_id,
+        content.data.buffer_paths,
+        msg.buffers,
+        false
+      );
     }
 
     await this.save();
