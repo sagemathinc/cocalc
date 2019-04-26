@@ -3,15 +3,19 @@ const { defaults, required } = misc;
 import { Map as iMap } from "immutable";
 import { Actions, Table, Store, redux } from "./app-framework";
 const { alert_message } = require("./alerts");
+import * as LS from "misc/local-storage";
 
 export const NAME = "system_notifications";
 
-export type Notification = iMap<any, any>; // ???
-export type Notifications = iMap<string, Notification>;
+export type Notification = iMap<string, any>;
+export type Notifications = iMap<string, any>; // iMap<string, any>>;
 
 interface NotificationsState {
   loading: boolean;
-  notifications?: Notifications; // ???
+  show?: Notification;
+  notifications?: Notifications;
+  dismissed_info?: any; // string or timestamp
+  dismissed_high?: any; // string or timestamp
 }
 
 const init_state: NotificationsState = {
@@ -20,8 +24,31 @@ const init_state: NotificationsState = {
 
 class NotificationsStore extends Store<NotificationsState> {}
 
-class NotificationsActions extends Actions<NotificationsState> {
-  send_message = opts => {
+export class NotificationsActions extends Actions<NotificationsState> {
+  show_banner = (show = true): void => {
+    // this controls if the global banner is shown
+    const page_actions = redux.getActions("page");
+    if (page_actions == null) return;
+    page_actions.setState({ show_global_info: show });
+  };
+
+  update = (dismissed_high, dismissed_info): void => {
+    this.setState({
+      dismissed_info,
+      dismissed_high
+    });
+    this.show_banner(true);
+  };
+
+  dismiss = (show: Notification): void => {
+    const priority = show.get("priority");
+    const time = show.get("time");
+    redux
+      .getTable("account")
+      .set({ other_settings: { [`notification_${priority}`]: time } });
+  };
+
+  send_message = (opts): void => {
     opts = defaults(opts, {
       id: misc.uuid(),
       time: new Date(),
@@ -48,18 +75,16 @@ const actions = redux.createActions(NAME, NotificationsActions);
 
 class NotificationsTable extends Table {
   private recent: any; // a date ?
-  private s: object; // cache of local storage object
 
   query() {
     return NAME;
   }
 
-  private process_mesg(id, mesg): void {
+  private process_mesg(_id, mesg): void {
     if (mesg.time < this.recent && mesg.done) return;
 
     switch (mesg.priority) {
       case "high":
-        this.s[id] = mesg.time;
         const lt = mesg.time.toLocaleString();
         const message = `SYSTEM MESSAGE (${lt}): ${mesg.text}`;
         alert_message({
@@ -81,23 +106,14 @@ class NotificationsTable extends Table {
 
   _change = (table, _keys) => {
     actions.setState({ loading: false, notifications: table.get() });
-    const t = misc.get_local_storage(NAME);
-    const s = (this.s = t != null ? misc.from_json(t) : {});
+
     // show any message from the last hour that we have not seen already
     this.recent = misc.minutes_ago(60);
     table.get().map((m, id) => {
-      if (s[id] == null) {
-        this.process_mesg(id, m.toJS());
-      }
+      this.process_mesg(id, m.toJS());
     });
-    // also delete older stuff from localStorage.system_notifications
-    for (let id in s) {
-      const x = s[id];
-      if (x.time < this.recent) {
-        delete s[id];
-      }
-    }
-    misc.set_local_storage(NAME, misc.to_json(s));
+    // delete old entries from localStorage.system_notifications
+    LS.del(NAME);
   };
 }
 

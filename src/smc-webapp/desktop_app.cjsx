@@ -42,7 +42,9 @@
 misc = require('smc-util/misc')
 
 {ProjectsNav} = require('./projects_nav')
-{ActiveAppContent, CookieWarning, GlobalInformationMessage, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
+{ActiveAppContent, CookieWarning, LocalStorageWarning, ConnectionIndicator, ConnectionInfo, FullscreenButton, NavTab, NotificationBell, AppLogo, VersionWarning, announce_bar_offset} = require('./app_shared')
+{GlobalInformationMessage} = require('./global_info_message')
+system_notifications = require('./system_notifications')
 
 nav_class = 'hidden-xs'
 
@@ -89,12 +91,12 @@ PAGE_REDUX_PROPS =
         cookie_warning         : rtypes.bool
         local_storage_warning  : rtypes.bool
         show_file_use          : rtypes.bool
+        show_global_info       : rtypes.bool  # also used for layout calculations
     file_use :
         notify_count           : rtypes.number
     account :
         account_id             : rtypes.string
         is_logged_in           : rtypes.bool
-        show_global_info       : rtypes.bool
         groups                 : rtypes.immutable.List
     support :
         show                   : rtypes.bool
@@ -286,7 +288,7 @@ Page = rclass
             {<VersionWarning new_version={@props.new_version} /> if @props.new_version?}
             {<CookieWarning /> if @props.cookie_warning}
             {<LocalStorageWarning /> if @props.local_storage_warning}
-            {<GlobalInformationMessage /> if @props.show_global_info}
+            {<GlobalInformationMessage actions = {@actions(system_notifications.NAME)} /> if @props.show_global_info}
             {<Navbar className="smc-top-bar" style={style_top_bar}>
                 {@render_project_nav_button() if @props.is_logged_in}
                 <ProjectsNav dropdown={false} />

@@ -11,6 +11,7 @@ immutable = require('immutable')
 
 {GlobalInformationMessage} = require('./global_info_message')
 exports.GlobalInformationMessage = GlobalInformationMessage
+system_notifications = require('./system_notifications')
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -23,38 +24,16 @@ help = ->
 {webapp_client} = require('./webapp_client')
 remember_me = webapp_client.remember_me_key()
 
-exports.show_announce_start = new Date('2018-08-19T00:00:00.000Z')
-exports.show_announce_end = new Date('2018-08-28T00:00:00.000Z')
-
 # Define account actions
 class AccountActions extends Actions
     _init: (store) =>
-        store.on("change", @derive_show_global_info)
+        store.on("change", @derive_system_notification_state)
 
-    derive_show_global_info: (store) =>
-        # TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
-        # for now, we use the existence of a timestamp value to indicate that the banner is not shown
-        sgi2 = store.getIn(['other_settings', 'show_global_info2'])
-        # unknown state, right after opening the application
-        if sgi2 == 'loading'
-            show = false
-        # value not set means there is no timestamp → show banner
-        else
-            # ... if it is inside the scheduling window
-            start = exports.show_announce_start
-            end = exports.show_announce_end
-            in_window = start < webapp_client.server_time() < end
-
-            if not sgi2?
-                show = in_window
-            # 3rd case: a timestamp is set
-            # show the banner only if its start_dt timetstamp is earlier than now
-            # *and* when the last "dismiss time" by the user is prior to it.
-            else
-                sgi2_dt = new Date(sgi2)
-                dismissed_before_start = sgi2_dt < start
-                show = in_window and dismissed_before_start
-        @setState(show_global_info: show)
+    derive_system_notification_state: (store) =>
+        ni = store.getIn(['other_settings', 'notification_info'])
+        nh = store.getIn(['other_settings', 'notification_high'])
+        system_notifications_actions = redux.getActions(system_notifications.NAME)
+        system_notifications_actions.update(nh, ni)
 
     set_user_type: (user_type) =>
         @setState

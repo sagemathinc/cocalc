@@ -424,7 +424,6 @@ exports.FullscreenButton = rclass
     reduxProps :
         page :
             fullscreen : rtypes.oneOf(['default', 'kiosk'])
-        account :
             show_global_info       : rtypes.bool
 
     shouldComponentUpdate: (next) ->
@@ -438,13 +437,15 @@ exports.FullscreenButton = rclass
 
     render: ->
         icon = if @props.fullscreen then 'compress' else 'expand'
-        top_px = '-1px'
+        top_px = -1
+        if @props.show_global_info
+            top_px += announce_bar_offset
 
         tip_style =
             position     : 'fixed'
             zIndex       : 10000
             right        : 0
-            top          : top_px
+            top          : "#{top_px}px"
             borderRadius : '3px'
 
         icon_style =

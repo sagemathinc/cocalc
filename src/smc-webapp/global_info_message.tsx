@@ -1,17 +1,25 @@
-import { React, redux, Rendered } from "./app-framework";
+import { React, /*redux,*/ rtypes, Rendered, rclass } from "./app-framework";
 import { Button, Col, Row } from "react-bootstrap";
 import { COLORS } from "smc-util/theme";
-import { Map as iMap } from "immutable";
+//import { Map as iMap } from "immutable";
+import {
+  Notifications,
+  Notification,
+  NotificationsActions
+} from "./system_notifications";
 
 interface GlobalInformationMessageProps {
-  announcement: iMap;
+  actions: NotificationsActions;
+  loading: boolean;
+  show?: Notification;
+  notifications: Notifications;
 }
 
 interface GlobalInformationMessageState {}
 
 // This is used in the "desktop_app" to show a global announcement on top of CoCalc.
 // 2019: upgraded to display system messages and information announcements, driven by to "system_announcements" table
-export class GlobalInformationMessage extends React.Component<
+class GlobalInformationMessageComponent extends React.Component<
   GlobalInformationMessageProps,
   GlobalInformationMessageState
 > {
@@ -22,20 +30,33 @@ export class GlobalInformationMessage extends React.Component<
 
   static defaultProps = {};
 
+  public static reduxProps() {
+    return {
+      system_notifications: {
+        loading: rtypes.bool,
+        show: rtypes.immutable.Map,
+        notifications: rtypes.immutable.Map
+      }
+    };
+  }
+
   shouldComponentUpdate(next) {
-    return this.props.announcement != next.announcement;
+    return (
+      this.props.notifications != next.notifications ||
+      this.props.show != next.show ||
+      this.props.loading != next.loading
+    );
   }
 
   dismiss = (): void => {
-    const priority = this.props.announcement.get("priority");
-    const time = this.props.announcement.get("time");
-    redux
-      .getTable("account")
-      .set({ other_settings: { [`announcement_${priority}`]: time } });
+    if (this.props.show == null) return;
+    this.props.actions.dismiss(this.props.show);
   };
 
-  render(): Rendered {
-    const priority = this.props.announcement.get("priority");
+  render(): Rendered | null {
+    if (this.props.show == null) return null;
+
+    const priority = this.props.show.get("priority");
     const bgcol = (function() {
       switch (priority) {
         case "high":
@@ -56,13 +77,13 @@ export class GlobalInformationMessage extends React.Component<
       height: "36px"
     };
 
-    const text = this.props.announcement.get("text");
+    const text = this.props.show.get("text");
 
     return (
       <Row style={style}>
         <Col sm={9} style={{ paddingTop: 3 }}>
           <p>
-            <b>Global announcement: {text}</b>
+            <b>Global notification: {text}</b>
           </p>
         </Col>
         <Col sm={3}>
@@ -80,3 +101,7 @@ export class GlobalInformationMessage extends React.Component<
     );
   }
 }
+
+export const GlobalInformationMessage = rclass(
+  GlobalInformationMessageComponent
+);
