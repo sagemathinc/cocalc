@@ -98,7 +98,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       return;
     }
 
-    const model: base.DOMWidgetModel = await this.get_model(model_id);
+    const model = await this.get_model(model_id);
     if (model == null) {
       // create model
       await this.create_new_model(model_id, state);
@@ -166,7 +166,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       buffers[i] = new DataView(new Uint8Array(buffer.data).buffer);
       i += 1;
     }
-    const model: base.DOMWidgetModel = await this.get_model(model_id);
+    const model = await this.get_model(model_id);
     if (model != null) {
       const state = model.get_state(true);
       base.put_buffers(state, buffer_paths, buffers);
