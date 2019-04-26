@@ -309,7 +309,22 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
   render_react_accordion_view(): undefined | Rendered {
     if (this.state.react_view == null) return;
-    return <div>Accordion view</div>;
+    if (this.model == null) return;
+    return (
+      <div>
+        <div style={{ color: "#888" }}>
+          Accordion not implemented, so falling back to tabs
+        </div>
+        {this.render_react_tab_view()}
+      </div>
+    );
+    // TODO: we have to upgrade to modern react-bootstrap
+    // (see https://github.com/sagemathinc/cocalc/issues/3782)
+    // or implement this from scratch since our react-bootstrap,
+    // which is doc'd at
+    // https://5c507d49471426000887a6a7--react-bootstrap.netlify.com/components/navs/
+    // doesn't have Accordion.  (There's code
+    // but it isn't documented...).
   }
 
   render_react_box_view(): undefined | Rendered {
