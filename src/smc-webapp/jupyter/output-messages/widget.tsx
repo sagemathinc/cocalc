@@ -253,7 +253,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     );
   }
 
-  render_react_view(): undefined | Rendered[] {
+  render_react_view(): undefined | Rendered {
     if (this.state.react_view == null) return;
     const v: Rendered[] = [];
     let i = 0;
@@ -268,7 +268,20 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       );
       i += 1;
     }
-    return v;
+    // TODO -- this is hackish; fix later.
+    let cls = "jupyter-widgets widget-container";
+    switch (this.model.name) {
+      case "HBoxModel":
+        cls += " widget-box widget-hbox";
+        break;
+      case "VBoxModel":
+        cls += " widget-box widget-vbox";
+        break;
+      case "GridBoxView":
+        cls += " widget-gridbox";
+        break;
+    }
+    return <div className={cls}>{v}</div>;
   }
 
   render(): Rendered {
