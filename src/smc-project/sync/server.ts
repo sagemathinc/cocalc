@@ -281,13 +281,13 @@ class SyncTableChannel {
       spark.end();
       return;
     }
-    if (this.synctable.get_state() == "closed") {
+    if (this.synctable != null && this.synctable.get_state() == "closed") {
       this.log(`table state closed: killing new connection from ${spark.id}`);
       this.decrement_connection_count(spark);
       spark.end();
       return;
     }
-    if (this.synctable.get_state() == "disconnected") {
+    if (this.synctable != null && this.synctable.get_state() == "disconnected") {
       // Because synctable is being initialized for the first time,
       // or it temporarily disconnected (e.g., lost hub), and is
       // trying to reconnect.  So just wait for it to connect.
