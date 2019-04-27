@@ -47,7 +47,6 @@ import {
 const util = require("./util");
 const parsing = require("./parsing");
 const keyboard = require("./keyboard");
-const commands = require("./commands");
 import * as nbgrader from "./nbgrader";
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
@@ -63,13 +62,9 @@ const { IPynbImporter } = require("./import-from-ipynb");
 // import { three_way_merge } from "smc-util/sync/editor/generic/util";
 const { three_way_merge } = require("smc-util/sync/editor/generic/util");
 
-const { instantiate_assistant } = require("../assistant/main");
-
 import { JupyterKernelInterface } from "./project-interface";
 
 import { connection_to_project } from "../project/websocket/connect";
-
-import { CursorManager } from "./cursor-manager";
 
 import { codemirror_to_jupyter_pos } from "./util";
 
@@ -84,9 +79,7 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export class JupyterActions extends Actions<JupyterStoreState> {
   // TODO: type these
-  private _account_change_editor_settings: any;
   private _blur_lock: any;
-  private _commands: any;
   private _cursor_locs?: any;
   private _hook_after_change: any;
   private _hook_before_change: any;
@@ -95,13 +88,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private _is_project: any;
   private _key_handler: any;
   private _last_start?: number;
-  private assistant_actions: any;
-  private path: string;
-  private project_id: string;
-  private set_save_status: any;
-  private update_keyboard_shortcuts: any;
+  protected path: string;
+  protected project_id: string;
+  protected set_save_status: any;
   private project_conn: any;
-  private cursor_manager?: CursorManager;
   private last_cursor_move_time: Date = new Date(0);
 
   protected _client: any;
@@ -205,77 +195,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // Only run this code on the browser frontend (not in project).
-  private init_client_only(): void {
-    const do_set = () => {
-      return this.setState({
-        has_unsaved_changes:
-          this.syncdb != null ? this.syncdb.has_unsaved_changes() : undefined,
-        has_uncommitted_changes:
-          this.syncdb != null
-            ? this.syncdb.has_uncommitted_changes()
-            : undefined
-      });
-    };
-    const f = () => {
-      do_set();
-      return setTimeout(do_set, 3000);
-    };
-    this.set_save_status = underscore.debounce(f, 1500);
-    this.syncdb.on("metadata-change", this.set_save_status);
-    this.syncdb.on("connected", this.set_save_status);
-
-    // Also maintain read_only state.
-    this.syncdb.on("metadata-change", this.sync_read_only);
-    this.syncdb.on("connected", this.sync_read_only);
-
-    // Load kernel (once ipynb file loads).
-    this.set_kernel_after_load();
-
-    // Setup dedicated websocket to project
-    // TODO: might be replaced by an ephemeral table which broadcasts cpu
-    // state, all user tab completions, widget state, etc.
-    this.init_project_conn();
-
-    this.syncdb.once("ready", () => {
-      // Stupid hack for now -- this just causes some activity so
-      // that the syncdb syncs.
-      // This should not be necessary, and may indicate a bug in the sync layer?
-      this.syncdb.set({ type: "user", id: 0, time: new Date().valueOf() });
-      this.syncdb.commit();
-    });
-
-    // Put an entry in the project log once the jupyter notebook gets opened.
-    // NOTE: Obviously, the project does NOT need to put entries in the log.
-    this.syncdb.once("change", () =>
-      this.redux.getProjectActions(this.project_id).log_opened_time(this.path)
-    );
-
-    // project doesn't care about cursors, but browser clients do:
-    this.syncdb.on("cursor_activity", this._syncdb_cursor_activity);
-    this.cursor_manager = new CursorManager();
-
-    // this initializes actions+store for the assistant
-    // this is also only a UI specific action
-    this.assistant_actions = instantiate_assistant(this.project_id, this.path);
-
-    if (window != null && (window as any).$ != null) {
-      // frontend browser client with jQuery
-      this.set_jupyter_kernels(); // must be after setting project_id above.
-
-      // set codemirror editor options whenever account editor_settings change.
-      const account_store = this.redux.getStore("account") as any; // TODO: check if ever is undefined
-      account_store.on("change", this._account_change);
-      this._account_change_editor_settings = account_store.get(
-        "editor_settings"
-      );
-      this._commands = commands.commands(this);
-
-      this.init_scroll_pos_hook();
-    }
+  protected init_client_only(): void {
+    throw Error("must define in a derived class");
   }
 
-  private async set_kernel_after_load(): Promise<void> {
+  protected async set_kernel_after_load(): Promise<void> {
     // Browser Client: Wait until the .ipynb file has actually been parsed into
     // the (hidden, e.g. .a.ipynb.sage-jupyter2) syncdb file,
     // then set the kernel, if necessary.
@@ -301,7 +225,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   );
 
   // private api call function
-  _api_call = async (
+  protected _api_call = async (
     endpoint: string,
     query?: any,
     timeout_ms?: number
@@ -335,28 +259,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  _account_change = (state: any): void => {
-    // TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
-    if (
-      !state.get("editor_settings").equals(this._account_change_editor_settings)
-    ) {
-      const new_settings = state.get("editor_settings");
-      if (
-        this._account_change_editor_settings.get(
-          "jupyter_keyboard_shortcuts"
-        ) !== new_settings.get("jupyter_keyboard_shortcuts")
-      ) {
-        this.update_keyboard_shortcuts();
-      }
-
-      this._account_change_editor_settings = new_settings;
-      this.set_cm_options();
-    }
-  };
-
   dbg = (f: any) => {
     return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
   };
+
+  protected close_client_only(): void {
+    throw Error("must define in derived client class");
+  }
 
   close = async (): Promise<void> => {
     if (this._state === "closed") {
@@ -372,7 +281,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._state = "closed";
     this.syncdb.close();
     delete this.syncdb;
-    delete this._commands;
     if (this._key_handler != null) {
       (this.redux.getActions("page") as any).erase_active_key_handler(
         this._key_handler
@@ -384,10 +292,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       delete this._file_watcher;
     }
     if (!this._is_project) {
-      const account = this.redux.getStore("account");
-      if (account != null) {
-        account.removeListener("change", this._account_change);
-      }
+      this.close_client_only();
     }
   };
 
@@ -1020,22 +925,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         // opened, which is very sensible in courses.
         this.set_default_kernel(this.store.get("kernel"));
       }
-    }
-  };
-
-  private _syncdb_cursor_activity = (): void => {
-    if (
-      this.store == null ||
-      this.syncdb == null ||
-      this.cursor_manager == null
-    )
-      return;
-    const cells = this.cursor_manager.process(
-      this.store.get("cells"),
-      this.syncdb.get_cursors()
-    );
-    if (cells != null) {
-      this.setState({ cells });
     }
   };
 
@@ -2087,6 +1976,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (offset != null) {
       complete.offset = offset;
     }
+    // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
+    // and breaks an assumption in our react code too.
+    complete.matches = Array.from(new Set(complete.matches)).sort();
     this.setState({ complete: immutable.fromJS(complete) });
     if (complete.matches && complete.matches.length === 1 && id != null) {
       // special case -- a unique completion and we know id of cell in which completing is given
@@ -2491,122 +2383,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  show_find_and_replace = (): void => {
-    this.blur_lock();
-    this.setState({ find_and_replace: true });
-  };
-
-  close_find_and_replace = () => {
-    this.setState({ find_and_replace: false });
-    return this.focus_unlock();
-  };
-
-  show_keyboard_shortcuts = (): void => {
-    this.blur_lock();
-    this.setState({ keyboard_shortcuts: { show: true } });
-  };
-
-  close_keyboard_shortcuts = () => {
-    this.setState({ keyboard_shortcuts: undefined });
-    return this.focus_unlock();
-  };
-
-  show_code_assistant = () => {
-    if (this.assistant_actions == null) {
-      return;
-    }
-    this.blur_lock();
-
-    const lang = this.store.get_kernel_language();
-
-    this.assistant_actions.init(lang);
-    return this.assistant_actions.set({
-      show: true,
-      lang,
-      lang_select: false,
-      handler: this.code_assistant_handler
-    });
-  };
-
-  code_assistant_handler = (data: { code: string[]; descr?: string }): void => {
-    this.focus_unlock();
-    const { code, descr } = data;
-    //if DEBUG then console.log("assistant data:", data, code, descr)
-
-    if (descr != null) {
-      const descr_cell = this.insert_cell(1);
-      this.set_cell_input(descr_cell, descr);
-      this.set_cell_type(descr_cell, "markdown");
-    }
-
-    for (let c of code) {
-      const code_cell = this.insert_cell(1);
-      this.set_cell_input(code_cell, c);
-      this.run_code_cell(code_cell);
-    }
-    this.scroll("cell visible");
-  };
-
-  _keyboard_settings = () => {
-    if (this._account_change_editor_settings == null) {
-      console.warn("account settings not loaded"); // should not happen
-      return;
-    }
-    const k = this._account_change_editor_settings.get(
-      "jupyter_keyboard_shortcuts"
-    );
-    if (k != null) {
-      return JSON.parse(k);
-    } else {
-      return {};
-    }
-  };
-
-  add_keyboard_shortcut = (name: any, shortcut: any) => {
-    const k = this._keyboard_settings();
-    if (k == null) {
-      return;
-    }
-    const v = k[name] != null ? k[name] : [];
-    for (let x of v) {
-      if (underscore.isEqual(x, shortcut)) {
-        return;
-      }
-    }
-    v.push(shortcut);
-    k[name] = v;
-    return this._set_keyboard_settings(k);
-  };
-
-  _set_keyboard_settings = (k: any) => {
-    return (this.redux.getTable("account") as any).set({
-      editor_settings: { jupyter_keyboard_shortcuts: JSON.stringify(k) }
-    });
-  };
-
-  delete_keyboard_shortcut = (name: any, shortcut: any) => {
-    const k = this._keyboard_settings();
-    if (k == null) {
-      return;
-    }
-    const v = k[name] != null ? k[name] : [];
-    const w = (() => {
-      const result: any = [];
-      for (let x of v) {
-        if (!underscore.isEqual(x, shortcut)) {
-          result.push(x);
-        }
-      }
-      return result;
-    })();
-    if (w.length === v.length) {
-      // must be removing a default shortcut
-      v.push(misc.merge_copy(shortcut, { remove: true }));
-    }
-    k[name] = v;
-    return this._set_keyboard_settings(k);
-  };
-
   // Display a confirmation dialog, then call opts.cb with the choice.
   // See confirm-dialog.cjsx for options.
   confirm_dialog = async (opts: any) => {
@@ -2677,18 +2453,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   insert_image = (): void => {
     this.setState({ insert_image: true });
-  };
-
-  command = (name: any): void => {
-    const f = __guard__(
-      this._commands != null ? this._commands[name] : undefined,
-      x => x.f
-    );
-    if (f != null) {
-      f();
-    } else {
-      this.set_error(`Command '${name}' is not implemented`);
-    }
   };
 
   // if cell is being edited, use this to move the cursor *in that cell*
@@ -3407,7 +3171,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  async show() : Promise<void> {
+  async show(): Promise<void> {
     // called when tab is shown
     // refresh all input codemirrors (after they appear)
     await awaiting.delay(0); // wait until next render loop
@@ -3422,7 +3186,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  hide() : void {
+  hide(): void {
     this.blur();
   }
 }

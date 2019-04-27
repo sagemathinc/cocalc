@@ -78,13 +78,15 @@ export interface JupyterStoreState {
   kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
   default_kernel?: string;
   closestKernel?: Kernel;
+  widget_model_ids: Set<string>;
 }
 
 export const initial_jupyter_store_state: {
   [K in keyof JupyterStoreState]?: JupyterStoreState[K]
 } = {
   check_select_kernel_init: false,
-  show_kernel_selector: false
+  show_kernel_selector: false,
+  widget_model_ids: Set()
 };
 
 export class JupyterStore extends Store<JupyterStoreState> {

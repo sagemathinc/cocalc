@@ -14,6 +14,7 @@ const PADDING = 100;
 
 interface CellListProps {
   actions?: any; // if not defined, then everything read only
+  name?:string;
   cell_list: immutable.List<any>; // list of ids of cells in order
   cells: immutable.Map<any, any>;
   font_size: number;
@@ -261,6 +262,7 @@ export class CellList extends Component<CellListProps> {
         <Cell
           key={id}
           actions={this.props.actions}
+          name={this.props.name}
           id={id}
           cm_options={this.props.cm_options}
           cell={cell_data}

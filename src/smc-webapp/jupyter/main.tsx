@@ -41,8 +41,8 @@ interface JupyterEditorProps {
   // OWN PROPS
   error?: string;
   actions: any;
+  name: string; // name of the redux store
   // REDUX PROPS
-  name: string; // TODO: is this correct?
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
   kernels?: KernelsType;
@@ -241,6 +241,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     return (
       <CellList
         actions={this.props.actions}
+        name={this.props.name}
         cell_list={this.props.cell_list}
         cells={this.props.cells}
         font_size={this.props.font_size}

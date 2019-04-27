@@ -13,6 +13,7 @@ const { CellOutput } = require("./cell-output"); // TODO: import type
 
 interface CellProps {
   actions?: any;
+  name?: string;
   id: string;
   cm_options: any;
   cell: ImmutableMap<any, any>; // TODO: types
@@ -90,6 +91,7 @@ export class Cell extends Component<CellProps> {
         key="out"
         cell={cell}
         actions={this.props.actions}
+        name={this.props.name}
         id={this.props.id}
         project_id={this.props.project_id}
         directory={this.props.directory}
