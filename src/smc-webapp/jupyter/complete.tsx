@@ -6,7 +6,7 @@ import { Map as ImmutableMap } from "immutable";
 interface CompleteProps {
   actions: any;
   id: string;
-  complete: ImmutableMap<any, any>; // TODO: types
+  complete: ImmutableMap<string, any>; // TODO: types
 }
 
 // WARNING: Complete closing when clicking outside the complete box

@@ -59,6 +59,7 @@ import {
 } from "../../../misc2";
 
 import { Evaluator } from "./evaluator";
+import { IpywidgetsState } from "./ipywidgets-state";
 
 const {
   hash_string,
@@ -170,7 +171,9 @@ export class SyncDoc extends EventEmitter {
   private patches_table: SyncTable;
   private cursors_table: SyncTable;
 
-  public evaluator: any;
+  public evaluator?: Evaluator;
+
+  public ipywidgets_state?: IpywidgetsState;
 
   private patch_list: SortedPatchList;
 
@@ -838,6 +841,11 @@ export class SyncDoc extends EventEmitter {
       delete this.evaluator;
     }
 
+    if (this.ipywidgets_state != null) {
+      await this.ipywidgets_state.close();
+      delete this.ipywidgets_state;
+    }
+
     delete this.settings;
   }
 
@@ -1004,14 +1012,15 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed("init_all -- before init_syncstring_table");
     await this.init_syncstring_table();
 
-    log("patch_list, cursors, evaluator");
+    log("patch_list, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
-      "init_all -- before init patch_list, cursors, evaluator"
+      "init_all -- before init patch_list, cursors, evaluator, ipywidgets"
     );
     await Promise.all([
       this.init_patch_list(),
       this.init_cursors(),
-      this.init_evaluator()
+      this.init_evaluator(),
+      this.init_ipywidgets(),
     ]);
     this.assert_not_closed("init_all -- after init patch_list");
 
@@ -1376,7 +1385,8 @@ export class SyncDoc extends EventEmitter {
 
   private async init_evaluator(): Promise<void> {
     const dbg = this.dbg("init_evaluator");
-    if (filename_extension(this.path) !== "sagews") {
+    const ext = filename_extension(this.path)
+    if (ext !== "sagews") {
       dbg("done -- only use init_evaluator for sagews");
       return;
     }
@@ -1388,6 +1398,24 @@ export class SyncDoc extends EventEmitter {
     );
     await this.evaluator.init();
     dbg("done");
+  }
+
+  private async init_ipywidgets(): Promise<void> {
+    const dbg = this.dbg("init_evaluator");
+    const ext = filename_extension(this.path)
+    if (ext != 'sage-jupyter2') {
+      dbg("done -- only use ipywidgets for jupyter");
+      return;
+    }
+    dbg("creating the ipywidgets state table, and waiting for init");
+    this.ipywidgets_state = new IpywidgetsState(
+      this,
+      this.client,
+      this.synctable.bind(this)
+    );
+    await this.ipywidgets_state.init();
+    dbg("done");
+
   }
 
   private async init_cursors(): Promise<void> {
