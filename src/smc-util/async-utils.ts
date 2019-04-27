@@ -117,7 +117,8 @@ export async function once(
   event: string,
   timeout_ms: number = 0
 ): Promise<any> {
-  if (timeout_ms > 0) { // just to keep both versions more readable...
+  if (timeout_ms > 0) {
+    // just to keep both versions more readable...
     return once_with_timeout(obj, event, timeout_ms);
   }
   let val: any[] = [];
@@ -138,7 +139,7 @@ async function once_with_timeout(
 ): Promise<any> {
   let val: any[] = [];
   function wait(cb: Function): void {
-    function fail() : void {
+    function fail(): void {
       obj.removeListener(event, handler);
       cb("timeout");
     }
@@ -185,5 +186,20 @@ export function bind_methods(obj: any, method_names: string[]): void {
 export function cancel_scheduled(f: any): void {
   if (f != null && f.cancel != null) {
     f.cancel();
+  }
+}
+
+
+// WARNING -- not tested
+export async function async_as_callback(
+  f: Function,
+  cb: Function,
+  ...args
+): Promise<void> {
+  try {
+    await f(...args);
+    cb();
+  } catch (err) {
+    cb(err);
   }
 }
