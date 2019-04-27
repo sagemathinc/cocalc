@@ -13,7 +13,10 @@ export class Stderr extends Component<StderrProps> {
   }
 
   render(): Rendered {
-    const value = this.props.message.get("text");
+    let value = this.props.message.get("text");
+    if (typeof value != 'string') {
+      value = `${value}`;
+    }
     if (is_ansi(value)) {
       return (
         <div style={STDERR_STYLE}>

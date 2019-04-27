@@ -37,6 +37,7 @@ export class OutputHandler extends EventEmitter {
   private _in_more_output_mode: any;
   private _state: any;
   private _stdin_cb: any;
+
   constructor(opts: any) {
     super();
     this._opts = defaults(opts, {
@@ -95,7 +96,7 @@ export class OutputHandler extends EventEmitter {
   };
 
   _report_started = (): void => {
-    if (this._state == 'closed' || this._n > 0) {
+    if (this._state == "closed" || this._n > 0) {
       // do nothing -- already getting output or done.
       return;
     }
@@ -169,7 +170,7 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  _push_mesg = (mesg: any, save = true): void => {
+  private _push_mesg = (mesg: any, save = true): void => {
     if (this._state === "closed") {
       return;
     }
@@ -201,11 +202,6 @@ export class OutputHandler extends EventEmitter {
       return;
     }
 
-    if (mesg.comm_id) {
-      // ignore any comm/widget related messages
-      return;
-    }
-
     // record execution_count, if there.
     if (mesg.execution_count != null) {
       has_exec_count = true;
@@ -219,7 +215,7 @@ export class OutputHandler extends EventEmitter {
     this._clean_mesg(mesg);
 
     if (misc.len(mesg) === 0) {
-      // don't even both saving this message; nothing useful here.
+      // don't even bother saving this message; nothing useful here.
       return;
     }
 
@@ -228,7 +224,8 @@ export class OutputHandler extends EventEmitter {
       mesg.exec_count = this._opts.cell.exec_count;
     }
 
-    // hook to process message (e.g., this may mutate mesg, e.g., to remove big images)
+    // hook to process message (e.g., this may mutate mesg,
+    // e.g., to remove big images)
     this.emit("process", mesg);
 
     if (this._clear_before_next_output) {
@@ -307,23 +304,23 @@ export class OutputHandler extends EventEmitter {
     }
   };
 
-  payload = (payload: any) => {
+  payload = (payload: any): void => {
     if (this._state === "closed") {
       return;
     }
     if (payload.source === "set_next_input") {
-      return this.set_input(payload.text);
+      this.set_input(payload.text);
     } else if (payload.source === "page") {
       // Just handle as a normal message; and we don't show in the pager,
       // which doesn't make sense for multiple users.
       // This happens when requesting help for r:
       // https://github.com/sagemathinc/cocalc/issues/1933
-      return this.message(payload);
+      this.message(payload);
     } else {
       // No idea what to do with this...
-      return typeof this._opts.dbg === "function"
-        ? this._opts.dbg(`Unknown PAYLOAD: ${misc.to_json(payload)}`)
-        : undefined;
+      if (typeof this._opts.dbg === "function") {
+        this._opts.dbg(`Unknown PAYLOAD: ${misc.to_json(payload)}`);
+      }
     }
   };
 }
