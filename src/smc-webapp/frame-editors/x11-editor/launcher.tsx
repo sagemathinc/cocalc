@@ -223,6 +223,11 @@ const APPS: IAPPS = {
     label: "Gedit",
     desc: "The GNOME text editor"
   },
+  scilab: {
+    desc: "A free and open source software for engineers & scientists",
+    label: "Scilab",
+    icon: "calculator"
+  },
   cadabra2: {
     command: "cadabra2-gtk",
     icon: "square-root-alt",
