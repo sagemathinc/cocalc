@@ -112,6 +112,12 @@ export class JupyterActions extends JupyterActions0 {
 
     // Listen for changes...
     this.syncdb.on("change", this._backend_syncdb_change);
+
+    // Listen for model state changes...
+    this.syncdb.ipywidgets_state.on(
+      "change",
+      this.handle_ipywidgets_state_change.bind(this)
+    );
   };
 
   _first_load = async () => {
@@ -230,6 +236,8 @@ export class JupyterActions extends JupyterActions0 {
       path: this.store.get("path"),
       actions: this
     });
+
+    this.syncdb.ipywidgets_state.clear();
 
     if (this._jupyter_kernel == null) {
       // to satisfy compiler.
@@ -591,6 +599,7 @@ export class JupyterActions extends JupyterActions0 {
 
     exec.on("output", mesg => {
       dbg(`got mesg='${JSON.stringify(mesg)}'`);
+
       if (mesg == null) {
         // can't possibly happen, of course.
         let err = "empty mesg";
@@ -607,6 +616,12 @@ export class JupyterActions extends JupyterActions0 {
         handler.clear(mesg.content.wait);
         return;
       }
+
+      if (mesg.content.comm_id != null) {
+        // ignore any comm/widget related messages
+        return;
+      }
+
       if (mesg.content.execution_state === "idle") {
         this.store.removeListener("cell_change", cell_change);
         return;
@@ -615,23 +630,22 @@ export class JupyterActions extends JupyterActions0 {
         handler.start();
       }
       if (mesg.content.payload != null) {
-        if (
-          (mesg.content.payload != null
-            ? mesg.content.payload.length
-            : undefined) > 0
-        ) {
+        if (mesg.content.payload.length > 0) {
           // payload shell message:
           // Despite https://ipython.org/ipython-doc/3/development/messaging.html#payloads saying
           // ""Payloads are considered deprecated, though their replacement is not yet implemented."
           // we fully have to implement them, since they are used to implement (crazy, IMHO)
           // things like %load in the python2 kernel!
-          return mesg.content.payload.map(p => handler.payload(p));
+          mesg.content.payload.map(p => handler.payload(p));
+          return;
         }
       } else {
         // Normal iopub output message
-        return handler.message(mesg.content);
+        handler.message(mesg.content);
+        return;
       }
     });
+
     exec.on("error", err => {
       dbg(`got error='${err}'`);
       handler.error(err);
@@ -1131,4 +1145,52 @@ export class JupyterActions extends JupyterActions0 {
       });
     }
   };
+
+  private handle_ipywidgets_state_change(keys): void {
+    const dbg = this.dbg("handle_ipywidgets_state_change");
+    dbg(keys);
+    if (this._jupyter_kernel == null) {
+      dbg("no kernel, so ignoring changes to ipywidgets");
+      return;
+    }
+    for (let key of keys) {
+      dbg("key = ", key);
+      const [, model_id, type] = JSON.parse(key);
+      let data: any;
+      if (type === "value") {
+        const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
+        data = { method: "update", state };
+        this._jupyter_kernel.send_comm_message_to_kernel(
+          misc.uuid(),
+          model_id,
+          data
+        );
+      } else if (type === "state") {
+        // TODO: currently ignoring this, since it seems chatty and pointless,
+        // and could lead to race conditions probably with multiple users, etc.
+        // It happens right when the widget is created.
+        /*
+        const state = this.syncdb.ipywidgets_state.get_model_state(model_id);
+        data = { method: "update", state };
+        this._jupyter_kernel.send_comm_message_to_kernel(
+          misc.uuid(),
+          model_id,
+          data
+        );
+        */
+      } else {
+        throw Error(`invalid synctable state -- unknown type '${type}'`);
+      }
+    }
+  }
+
+  public async process_comm_message_from_kernel(mesg: any): Promise<void> {
+    const dbg = this.dbg("process_comm_message_from_kernel");
+    dbg(mesg);
+    await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
+  }
+
+  public capture_output_message(mesg: any): boolean {
+    return this.syncdb.ipywidgets_state.capture_output_message(mesg);
+  }
 }

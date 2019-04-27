@@ -20,6 +20,9 @@ echo=(content, cb) -> setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
 
 */
 
+//const DEBUG = true; // only for extreme deebugging.
+const DEBUG = false; // normal mode
+
 export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
@@ -154,8 +157,7 @@ Jupyter Kernel interface.
 
 The kernel does *NOT* start up until either spawn is explicitly called, or
 code execution is explicitly requested.  This makes it possible to
-call process_output without spawning an actual kernel.  This is needed,
-e.g., when importing an ipynb file.
+call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels = {};
 
@@ -278,9 +280,27 @@ export class JupyterKernel extends EventEmitter
     this._channels.stdin.subscribe(mesg => this.emit("stdin", mesg));
 
     this._channels.iopub.subscribe(mesg => {
+      if (DEBUG) {
+        this.dbg("IOPUB", 100000)(JSON.stringify(mesg));
+      }
+
       if (mesg.content != null && mesg.content.execution_state != null) {
         this.emit("execution_state", mesg.content.execution_state);
       }
+
+      if (
+        (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
+      ) {
+        // A comm message, which gets handled directly.
+        this.process_comm_message_from_kernel(mesg);
+        return;
+      }
+
+      if (this._actions != null && this._actions.capture_output_message(mesg)) {
+        // captured an output message -- do not process further
+        return;
+      }
+
       return this.emit("iopub", mesg);
     });
 
@@ -454,12 +474,14 @@ export class JupyterKernel extends EventEmitter
     }
   }
 
-  dbg(f: any): Function {
+  // public, since we do use it from some other places...
+  public dbg(f: string, trunc: number = 1000): Function {
     if (!this._dbg) {
       return function() {};
     } else {
       return this._dbg(
-        `jupyter.Kernel('${this.name}',path='${this._path}').${f}`
+        `jupyter.Kernel('${this.name}',path='${this._path}').${f}`,
+        trunc
       );
     }
   }
@@ -774,6 +796,36 @@ export class JupyterKernel extends EventEmitter
 
   process_attachment(base64, mime): string {
     return blob_store.save(base64, mime);
+  }
+
+  process_comm_message_from_kernel(mesg): void {
+    const dbg = this.dbg("process_comm_message_from_kernel");
+    dbg(mesg);
+    this._actions.process_comm_message_from_kernel(mesg);
+  }
+
+  public send_comm_message_to_kernel(
+    msg_id: string,
+    comm_id: string,
+    data: any
+  ): void {
+    const dbg = this.dbg("send_comm_message_to_kernel");
+
+    const message = {
+      content: { comm_id, data },
+      header: {
+        msg_id,
+        username: "user",
+        session: "",
+        msg_type: "comm_msg",
+        version: VERSION
+      }
+    };
+
+    dbg("sending ", JSON.stringify(message));
+    // "The Kernel listens for these messages on the Shell channel,
+    // and the Frontend listens for them on the IOPub channel." -- docs
+    this._channels.shell.next(message);
   }
 }
 
