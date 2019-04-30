@@ -29,6 +29,7 @@ The Landing Page
 {Passports} = require('./passports')
 {SignUp} = require('./landing-page/sign-up')
 {SignIn} = require('./landing-page/sign-in')
+{ForgotPassword} = require('./landing-page/forgot-password')
 
 
 DESC_FONT = 'sans-serif'
@@ -43,82 +44,6 @@ misc = require('smc-util/misc')
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
-
-ForgotPassword = rclass
-    displayName : "ForgotPassword"
-
-    propTypes:
-        forgot_password_error   : rtypes.string
-        forgot_password_success : rtypes.string
-
-    getInitialState: ->
-        email_address  : ''
-        is_email_valid : false
-
-    forgot_password: (e) ->
-        e.preventDefault()
-        value = @state.email_address
-        if misc.is_valid_email_address(value)
-            @actions('account').forgot_password(value)
-
-    set_email: (evt) ->
-        email = evt.target.value
-        @setState
-            email_address  : email
-            is_email_valid : misc.is_valid_email_address(email)
-
-    display_error: ->
-        if @props.forgot_password_error?
-            <span style={color: "red"}>{@props.forgot_password_error}</span>
-
-    display_success: ->
-        if @props.forgot_password_success?
-            s = @props.forgot_password_success.split("check your spam folder")
-            <span>
-                {s[0]}
-                <span style={color: "red", fontWeight: "bold"}>
-                    check your spam folder
-                </span>
-                {s[1]}
-            </span>
-
-    hide_forgot_password: ->
-        @actions('account').setState(show_forgot_password    : false)
-        @actions('account').setState(forgot_password_error   : undefined)
-        @actions('account').setState(forgot_password_success : undefined)
-
-    render: ->
-        <Modal show={true} onHide={@hide_forgot_password}>
-            <Modal.Body>
-                <div>
-                    <h4>Forgot Password?</h4>
-                    Enter your email address to reset your password
-                </div>
-                <form onSubmit={@forgot_password} style={marginTop:'1em'}>
-                    <FormGroup>
-                        <FormControl ref='email' type='email' placeholder='Email address' name='email' autoFocus={true} onChange={@set_email} />
-                    </FormGroup>
-                    {if @props.forgot_password_error then @display_error() else @display_success()}
-                    <hr />
-                    Not working? Email us at <HelpEmailLink />
-                    <Row>
-                        <div style={textAlign: "right", paddingRight : 15}>
-                            <Button
-                                disabled = {not @state.is_email_valid}
-                                type     = "submit"
-                                bsStyle  = "primary"
-                                style    = {marginRight : 10}
-                            >
-                                Reset Password
-                            </Button>
-                            <Button onClick={@hide_forgot_password}>
-                                Close
-                            </Button>
-                        </div>
-                    </Row>
-                </form>
-            </Modal.Body>
-        </Modal>
 
 ResetPassword = rclass
     propTypes: ->
@@ -331,6 +256,8 @@ exports.LandingPage = rclass
             get_api_key   : rtypes.string
         customize:
             is_commercial : rtypes.bool
+        account:
+            sign_in_email_address : rtypes.string
 
     render_password_reset: ->
         reset_key = reset_password_key()
@@ -345,6 +272,7 @@ exports.LandingPage = rclass
         if not @props.show_forgot_password
             return
         <ForgotPassword
+            initial_email_address = {@props.sign_in_email_address ? ""}
             forgot_password_error   = {@props.forgot_password_error}
             forgot_password_success = {@props.forgot_password_success}
         />

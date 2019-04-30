@@ -1,7 +1,7 @@
 /* The sign-in banner at the top of the landing page. */
 
 import * as React from "react";
-import { ReactDOM, Rendered, redux } from "../app-framework";
+import { ReactDOM, Rendered } from "../app-framework";
 import { List } from "immutable";
 import { ErrorDisplay } from "../r_misc/error-display";
 const { Markdown } = require("../r_misc");
@@ -16,13 +16,7 @@ import {
 } from "react-bootstrap";
 import { bind_methods } from "smc-util/misc2";
 
-function actions(name: string): any {
-  const a = redux.getActions(name);
-  if (a == null) {
-    throw Error(`actions "${name}" not available`);
-  }
-  return a;
-}
+import { actions } from "./util";
 
 interface Props {
   sign_in_error?: string;
@@ -42,7 +36,12 @@ export class SignIn extends React.Component<Props, State> {
   constructor(props) {
     super(props);
     this.state = { show_forgot_password: false };
-    bind_methods(this, ["remove_error", "sign_in", "display_forgot_password"]);
+    bind_methods(this, [
+      "remove_error",
+      "sign_in",
+      "display_forgot_password",
+      "change_email"
+    ]);
   }
   componentDidMount(): void {
     actions("page").set_sign_in_func(this.sign_in);
@@ -99,6 +98,13 @@ export class SignIn extends React.Component<Props, State> {
     }
   }
 
+  change_email(): void {
+    actions("account").setState({
+      sign_in_error: undefined,
+      sign_in_email_address: ReactDOM.findDOMNode(this.refs.email).value
+    });
+  }
+
   forgot_font_size(): string {
     if (this.props.sign_in_error != null) {
       return "16pt";
@@ -119,7 +125,7 @@ export class SignIn extends React.Component<Props, State> {
                 placeholder="Email address"
                 name="email"
                 autoFocus={this.props.has_account}
-                onChange={this.remove_error}
+                onChange={this.change_email}
               />
             </FormGroup>
           </Row>
@@ -183,7 +189,7 @@ export class SignIn extends React.Component<Props, State> {
                   name="email"
                   placeholder="Email address"
                   autoFocus={true}
-                  onChange={this.remove_error}
+                  onChange={this.change_email}
                 />
               </FormGroup>
             </Col>
