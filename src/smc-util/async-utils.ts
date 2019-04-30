@@ -174,12 +174,6 @@ export function reuse_in_flight_methods(
   }
 }
 
-export function bind_methods(obj: any, method_names: string[]): void {
-  for (let method_name of method_names) {
-    obj[method_name] = obj[method_name].bind(obj);
-  }
-}
-
 // Cancel pending throttle or debounce, where f is the
 // output of underscore.throttle (or debounce).  Safe to call
 // with f null or a normal function.

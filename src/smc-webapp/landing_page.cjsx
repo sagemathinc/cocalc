@@ -27,7 +27,8 @@ The Landing Page
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, Footer, UNIT, Markdown, COLORS, ExampleBox, Space, Tip} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 {Passports} = require('./passports')
-{SignUp} = require('./sign-up')
+{SignUp} = require('./landing-page/sign-up')
+{SignIn} = require('./landing-page/sign-in')
 
 
 DESC_FONT = 'sans-serif'
@@ -42,138 +43,6 @@ misc = require('smc-util/misc')
 $.get window.app_base_url + "/registration", (obj, status) ->
     if status == 'success'
         redux.getActions('account').setState(token : obj.token)
-
-SignIn = rclass
-    displayName : "SignIn"
-
-    propTypes :
-        sign_in_error : rtypes.string
-        signing_in    : rtypes.bool
-        has_account   : rtypes.bool
-        xs            : rtypes.bool
-        color         : rtypes.string
-        strategies    : rtypes.immutable.List
-        get_api_key   : rtypes.string
-
-    componentDidMount: ->
-        @actions('page').set_sign_in_func(@sign_in)
-
-    componentWillUnmount: ->
-        @actions('page').remove_sign_in_func()
-
-    sign_in: (e) ->
-        if e?
-            e.preventDefault()
-        @actions('account').sign_in(ReactDOM.findDOMNode(@refs.email).value, ReactDOM.findDOMNode(@refs.password).value)
-
-    display_forgot_password: ->
-        @actions('account').setState(show_forgot_password : true)
-
-    display_error: ->
-        if @props.sign_in_error?
-            <ErrorDisplay
-                style   = {marginRight: 0}
-                error_component = {<Markdown value={@props.sign_in_error} />}
-                onClose = {=>@actions('account').setState(sign_in_error: undefined)}
-            />
-
-    render_passports: ->
-        <div>
-            <Passports
-                strategies  = {@props.strategies}
-                get_api_key = {@props.get_api_key}
-                no_heading  = {true}
-            />
-        </div>
-
-    remove_error: ->
-        if @props.sign_in_error
-            @actions('account').setState(sign_in_error : undefined)
-
-    forgot_font_size: ->
-        if @props.sign_in_error?
-            return '16pt'
-        else
-            return '12pt'
-
-    render: ->
-        if @props.xs
-            <Col xs={12}>
-                <form onSubmit={@sign_in} className='form-inline'>
-                    <Row>
-                        <FormGroup>
-                            <FormControl ref='email' type='email' placeholder='Email address' name='email' autoFocus={@props.has_account} onChange={@remove_error} />
-                        </FormGroup>
-                    </Row>
-                    <Row>
-                        <FormGroup>
-                            <FormControl style={width:'100%'} ref='password' type='password' name='password' placeholder='Password' onChange={@remove_error} />
-                        </FormGroup>
-                    </Row>
-                    <Row>
-                        <div style={marginTop: '1ex'}>
-                            <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
-                        </div>
-                    </Row>
-                    <Row>
-                        <Button
-                            type      = "submit"
-                            disabled  = {@props.signing_in}
-                            bsStyle   = "default" style={height:34}
-                            className = 'pull-right'>Sign&nbsp;In
-                        </Button>
-                    </Row>
-                    <Row>
-                        {@render_passports()}
-                    </Row>
-                    <Row className='form-inline pull-right' style={clear : "right"}>
-                        {@display_error()}
-                    </Row>
-                </form>
-            </Col>
-        else
-            <form onSubmit={@sign_in} className='form-inline'>
-                <Grid fluid={true} style={padding:0}>
-                <Row>
-                    <Col xs={5}>
-                        <FormGroup>
-                            <FormControl style={width:'100%'} ref='email' type='email' name='email' placeholder='Email address' autoFocus={true} onChange={@remove_error} />
-                        </FormGroup>
-                    </Col>
-                    <Col xs={4}>
-                        <FormGroup>
-                            <FormControl style={width:'100%'} ref='password' type='password' name='password' placeholder='Password' onChange={@remove_error} />
-                        </FormGroup>
-                    </Col>
-                    <Col xs={3}>
-                        <Button
-                            type      = "submit"
-                            disabled  = {@props.signing_in}
-                            bsStyle   = "default"
-                            style     = {height:34}
-                            className = 'pull-right'>Sign&nbsp;in
-                        </Button>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col xs={7} xsOffset={5} style={paddingLeft:15}>
-                        <div style={marginTop: '1ex'}>
-                            <a onClick={@display_forgot_password} style={color:@props.color, cursor: "pointer", fontSize:@forgot_font_size()} >Forgot Password?</a>
-                        </div>
-                    </Col>
-                </Row>
-                <Row>
-                    <Col xs={12}>
-                        {@render_passports()}
-                    </Col>
-                </Row>
-                <Row className={'form-inline pull-right'} style={clear : "right", width: '100%'}>
-                    <Col xs={12}>
-                        {@display_error()}
-                    </Col>
-                </Row>
-                </Grid>
-            </form>
 
 ForgotPassword = rclass
     displayName : "ForgotPassword"
