@@ -1,14 +1,16 @@
 import * as React from "react";
-import { ReactDOM, Rendered, redux } from "./app-framework";
-import { Passports } from "./passports";
+import { ReactDOM, Rendered, redux } from "../app-framework";
+import { Passports } from "../passports";
 import { List } from "immutable";
 
-const { COLORS, UNIT, Icon, Loading } = require("./r_misc");
+const { COLORS, UNIT, Icon, Loading } = require("../r_misc");
+
 const {
   HelpEmailLink,
   TermsOfService,
   AccountCreationEmailInstructions
-} = require("./customize");
+} = require("../customize");
+
 const {
   Button,
   Checkbox,
