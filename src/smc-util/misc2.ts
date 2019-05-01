@@ -459,7 +459,24 @@ export function is_date(obj: any): boolean {
   return obj instanceof Date;
 }
 
+// delete any null fields, to avoid wasting space.
+export function delete_null_fields(obj: object): void {
+  for (let k in obj) {
+    if (obj[k] == null) {
+      delete obj[k];
+    }
+  }
+}
+
 // for switch/case -- https://www.typescriptlang.org/docs/handbook/advanced-types.html
 export function unreachable(x: never) {
   throw new Error(`All types should be exhausted, but I got ${x}`);
 }
+
+export function bind_methods(obj: any, method_names: string[]): void {
+  for (let method_name of method_names) {
+    obj[method_name] = obj[method_name].bind(obj);
+  }
+}
+
+
