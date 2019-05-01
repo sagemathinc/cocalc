@@ -472,3 +472,11 @@ export function delete_null_fields(obj: object): void {
 export function unreachable(x: never) {
   throw new Error(`All types should be exhausted, but I got ${x}`);
 }
+
+export function bind_methods(obj: any, method_names: string[]): void {
+  for (let method_name of method_names) {
+    obj[method_name] = obj[method_name].bind(obj);
+  }
+}
+
+

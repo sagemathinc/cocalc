@@ -1292,7 +1292,7 @@ API(
           "if true and user is an admin, includes email addresses in result, and does more permissive search"
       },
       active: {
-        init: "6 months",
+        init: "",
         desc: "only include users active for this interval of time"
       },
       limit: {
