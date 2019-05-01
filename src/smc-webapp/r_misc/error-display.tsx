@@ -11,7 +11,7 @@ const error_text_style = {
 
 interface Props {
   error?: string | object;
-  error_component?: React.ComponentType;
+  error_component?: JSX.Element | JSX.Element[];
   title?: string;
   style?: React.CSSProperties;
   bsStyle?: string;
@@ -52,7 +52,8 @@ export class ErrorDisplay extends React.Component<Props> {
       error = this.props.error_component;
     }
 
-    const bsStyle = this.props.bsStyle != undefined ? this.props.bsStyle : "danger";
+    const bsStyle =
+      this.props.bsStyle != undefined ? this.props.bsStyle : "danger";
 
     return (
       <Alert bsStyle={bsStyle} style={style}>
