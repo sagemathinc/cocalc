@@ -186,11 +186,14 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // constructor binds this callback, such that "this.project_id" works!
   private _projects_store_change(state): void {
     const change = state.getIn(["project_map", this.project_id]);
+    //const log = (...args) =>
+    //  console.log("project_store/_projects_store_change", ...args);
     if (change == null) {
       // User has been removed from the project!
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
     } else {
       const new_state = change.getIn(["state", "state"]);
+      //log(this.previous_runstate, "=>", new_state);
       // fire started or stopped when certain state transitions happen
       if (this.previous_runstate != null) {
         if (this.previous_runstate != "running" && new_state == "running") {

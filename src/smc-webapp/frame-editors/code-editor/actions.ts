@@ -612,8 +612,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // Worrisome rare race condition when frame_tree not yet initialized.
       // See https://github.com/sagemathinc/cocalc/issues/3756
       const local_view_state = this._load_local_view_state();
-      this.setState({local_view_state});
-      tree = local_view_state.get('frame_tree');
+      this.setState({ local_view_state });
+      tree = local_view_state.get("frame_tree");
     }
     return tree;
   }
@@ -1483,7 +1483,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._state == "closed") return;
     const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
-      // TODO why is this immutable map?
+      // TODO why is this an immutable map? it's project_configuration/Available
       const available = proj_store.get("available_features") as Map<
         string,
         boolean
