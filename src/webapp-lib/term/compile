@@ -22,8 +22,8 @@ for X in open('Xresources').readlines():
         data[theme][n] = val.lower()
         data[theme]['comment'] = comment
 
-for theme, colors in data.iteritems():
+for (theme, colors) in data.items():
     data[theme] = {'comment':colors['comment'], 'colors':[colors[i] for i in range(18)]}
 
 import json
-open("color_themes.js",'w').write("Terminal.color_schemes="+json.dumps(data,separators=(',',':')))
+open("color_themes.js",'w').write("Terminal.color_schemes="+json.dumps(data,separators=(',',':'), indent = 2))
