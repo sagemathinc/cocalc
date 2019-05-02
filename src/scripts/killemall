@@ -6,8 +6,8 @@
 
 import os, sys
 if len(sys.argv) == 1:
-    print "Usage: %s [options to kill] word "%sys.argv[0]
-    print "Kills every process whose ps line contains word."
+    print("Usage: %s [options to kill] word " % sys.argv[0])
+    print("Kills every process whose ps line contains word.")
     sys.exit(0)
 
 n = len(sys.argv)
@@ -24,6 +24,6 @@ for y in x.split("\n"):
     if y.find(cmd) == -1:
         continue
     s = "kill %s %s"%(options,y.split()[0])
-    print s
+    print(s)
     os.system(s)
 
