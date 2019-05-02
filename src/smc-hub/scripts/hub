@@ -16,7 +16,7 @@ if id != '':
     cmd="cp run/hub.js run/hub%s.js && node run/hub%s.js %s"%(id, id, args)
 else:
     cmd = "node --max-old-space-size=8000 run/hub.js " + args
-print cmd
+print(cmd)
 
 if os.WEXITSTATUS(os.system(cmd)):
     raise RuntimeError
