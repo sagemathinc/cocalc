@@ -1,6 +1,7 @@
 /*
- * derive configuratino and capabilities of the given project.
- * this is used in the UI to only show those elements, which should work.
+ * This derives the configuration and capabilities of the current project.
+ * It is used in the UI to only show/run those elements, which should work.
+ * The corresponding file in the webapp is smc-webapp/project_configuration.ts
  */
 
 import * as which from "which";

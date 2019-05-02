@@ -1,4 +1,10 @@
-// manages project configuration aspects
+/*
+ * this manages project configuration specific aspects.
+ * It is the corresponding counterpart of smc-project/configuration.ts
+ * The various "capabilities" datastructures are used to show/hide UI elements or suppress
+ * calling certain operations which are not possible (e.g. spellcheck requires aspell)
+ */
+
 import { Map as iMap } from "immutable";
 import { KNITR_EXTS } from "./frame-editors/latex-editor/constants";
 
@@ -75,6 +81,7 @@ export const ALL_AVAIL: Readonly<Available> = Object.freeze({
   formatting: true
 });
 
+// detecting certain datastructures, only used for TS typing
 function isMainCapabilities(
   caps: MainCapabilities | Capabilities
 ): caps is MainCapabilities {
@@ -134,6 +141,8 @@ export function is_available(configuration?: ProjectConfiguration): Available {
   }
 }
 
+// main function, this calls the project "configuration" endpoint.
+// it also manages updating the configuration datastructure, which is used in the project actions
 export async function get_configuration(
   webapp_client: any,
   project_id: string,
@@ -168,7 +177,7 @@ export async function get_configuration(
     }
 
     // disable/hide certain file extensions if certain capabilities are missing
-    // (the associated editors shouldn't initialize at all!)
+    // (ideally, the ssociated editors shouldn't initialize at all)
     const disabled_ext = (config.disabled_ext = [] as string[]);
     if (!caps.jupyter) disabled_ext.push("ipynb");
     if (!caps.rmd) disabled_ext.push("rmd");
@@ -179,10 +188,8 @@ export async function get_configuration(
 
   if (prev != null) {
     const next = prev.set(aspect, config);
-    // console.log("project_actions::configuration/next", next);
     return next;
   } else {
-    // console.log("project_actions::configuration/upd", config);
     return iMap<ConfigurationAspect, Configuration>([[aspect, config]]);
   }
 }
