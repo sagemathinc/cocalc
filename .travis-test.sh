@@ -35,8 +35,6 @@ npx -q jest
 # smc-util tests
 cd $TRAVIS_BUILD_DIR/src/smc-util/
 export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee
-cd $TRAVIS_BUILD_DIR/src/smc-util/test/
-npx -q jest
 
 # reset node env
 export NODE_ENV="$COPY_NODE_ENV"
