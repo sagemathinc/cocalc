@@ -67,6 +67,7 @@ before_script:
 # the setup & compilation of CoCalc
 # if broken, this will also trigger a test failure, i.e. that's also a test
 install:
+  - "pip3 install --upgrade pytest PyYAML"
   - "cd src"
   - "source smc-env"
   - 'if [[ $KUCALC_MODE != "services" ]]; then npm run make; fi'

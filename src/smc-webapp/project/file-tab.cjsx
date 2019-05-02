@@ -31,7 +31,7 @@ exports.FileTab = rclass
         project_id   : rtypes.string
         tooltip      : rtypes.string
         is_active    : rtypes.bool
-        file_tab     : rtypes.bool      # Whether or not this tab holds a file
+        file_tab     : rtypes.bool      # Whether or not this tab holds a file *editor*
         shrink       : rtypes.bool      # Whether or not to shrink to just the icon
         has_activity : rtypes.bool      # Whether or not some activity is happening with the file
 

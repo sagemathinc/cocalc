@@ -33,7 +33,7 @@ for hostname in hosts.persistent_hosts + hosts.unsafe_hosts:
     if ip.startswith('127'): continue
     cmd = 'ssh -t salvus@%s "cd salvus; git pull %s@%s:salvus/"' % (hostname,
                                                                     user, ip)
-    print cmd
+    print(cmd)
     os.system(cmd)
 
-#print "Deal with these manually: ", hosts.unsafe_hosts
+#print("Deal with these manually: ", hosts.unsafe_hosts)

@@ -26,7 +26,7 @@ $.fn.katex = function() {
   return this;
 };
 
-const math_cache = LRU({ max: CACHE_SIZE });
+const math_cache = new LRU({ max: CACHE_SIZE });
 
 function katex_plugin(): void {
   const elt = $(this);

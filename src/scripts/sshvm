@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import os, sys, time
 
@@ -13,7 +14,7 @@ else:
 def dot():
     sys.stdout.write('.'); sys.stdout.flush()
 
-print "waiting for ip address",
+print("waiting for ip address", end=" ")
 sys.stdout.flush()
 
 while True:
@@ -23,15 +24,14 @@ while True:
     dot()
     time.sleep(2)
 
-print "\ntrying to ssh in:"
+print("\ntrying to ssh in:")
 
 while True:
     t = time.time()
     s = "ssh -o StrictHostKeyChecking=no %s%s"%(user, addr)
-    print s
+    print(s)
     os.system(s)
     if time.time()-t > 3:
         break
     else:
         time.sleep(2)
-
