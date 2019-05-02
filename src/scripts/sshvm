@@ -10,7 +10,7 @@ if '@' in n:
 else:
     user = ''
     host = n
-_
+
 def dot():
     sys.stdout.write('.'); sys.stdout.flush()
 
