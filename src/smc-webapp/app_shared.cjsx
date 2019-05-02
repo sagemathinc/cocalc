@@ -46,11 +46,12 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
     v = []
     if open_projects?
         open_projects.forEach (project_id) ->
+            is_active = project_id == active_top_tab
             project_name = redux.getProjectStore(project_id).name
             if render_small
-                x = <MobileProjectPage name={project_name} project_id={project_id}/>
+                x = <MobileProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
             else
-                x = <ProjectPage name={project_name} project_id={project_id}/>
+                x = <ProjectPage name={project_name} project_id={project_id} is_active={is_active}/>
             cls = 'smc-vfill'
             if project_id != active_top_tab
                 cls += ' hide'
@@ -60,9 +61,9 @@ exports.ActiveAppContent = ({active_top_tab, render_small, open_projects}) ->
             project_id = active_top_tab
             project_name = redux.getProjectStore(project_id).name
             if render_small
-                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id}/>
+                x = <MobileProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
             else
-                x = <ProjectPage key={project_id} name={project_name} project_id={project_id}/>
+                x = <ProjectPage key={project_id} name={project_name} project_id={project_id} is_active={true}/>
             v.push(x)
 
     switch active_top_tab
