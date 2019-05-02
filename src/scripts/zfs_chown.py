@@ -26,14 +26,14 @@ from subprocess import Popen, PIPE
 
 
 def cmd(s, ignore_errors=False):
-    print s
+    print(s)
     t = time.time()
     out = Popen(
         s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
     x = out.stdout.read() + out.stderr.read()
     e = out.wait(
     )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
-    print "(%s seconds): %s" % (time.time() - t, x)
+    print("(%s seconds): %s" % (time.time() - t, x))
     if e and not ignore_errors:
         raise RuntimeError(x)
     return x
@@ -82,8 +82,8 @@ def chown(username, filesystem):
     cmd("zfs set mountpoint=%s %s" % (mp, filesystem))
     cmd("zfs mount %s" % filesystem, ignore_errors=True)
 
-    print "Done.  You can delete the original filesystem by typing"
-    print "zfs destroy -r %s-chown-TRASH" % filesystem
+    print("Done.  You can delete the original filesystem by typing")
+    print("zfs destroy -r %s-chown-TRASH" % filesystem)
 
 
 if __name__ == "__main__":

@@ -27,12 +27,12 @@ for i in range(k):
     #gps = 3e11
     crack = len(alpha)**n / gps / 3600. / 24.
     if not quiet:
-        print "crack time: %.5f days"%crack
+        print("crack time: %.5f days" % crack)
 
     passwd = ''.join([random.choice(alpha) for _ in range(n)])
 
     date = time.strftime("%Y-%m-%d")
     if not quiet:
-        print "password-%s: %s"%(date, passwd)
+        print("password-%s: %s" % (date, passwd))
     else:
         sys.stdout.write(passwd)

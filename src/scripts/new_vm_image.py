@@ -25,7 +25,7 @@ VM_PATH = os.path.join(os.environ['HOME'], 'vm/images/base3/')
 
 
 def cmd(s):
-    print s
+    print(s)
     if os.system(s):
         raise RuntimeError("error executing '%s'" % s)
 
@@ -55,7 +55,7 @@ defined_machines = os.popen("virsh_list").read()
 
 for machine in [prev, next]:
     if machine in defined_machines:
-        print "%s is currently defined.  Please undefine it before proceeding further, in order to avoid any possible corruption." % machine
+        print("%s is currently defined.  Please undefine it before proceeding further, in order to avoid any possible corruption." % machine)
         sys.exit(1)
 
 prev_path = os.path.join(VM_PATH, prev + '.img')
@@ -73,18 +73,18 @@ cmd("chgrp kvm %s; chmod g+rw %s" % (next_path, next_path))
 cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 4000 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"
     % (next, next_path))
 
-print "Booting..."
+print("Booting...")
 
 while True:
     ip = os.popen("kvm_addresses.py %s" % next).read().strip()
     if not ip:
-        print "waiting for ip address..."
+        print("waiting for ip address...")
         time.sleep(2)
     else:
-        print "The ip address is: '%s'" % ip
+        print("The ip address is: '%s'" % ip)
         break
 
-print """
+print("""
 You probably want to do something like this:
 
     sshvm %s
@@ -102,4 +102,4 @@ You probably want to do something like this:
     cd vm/images/base/
     ./push
 
-""" % (next, next, next)
+""" % (next, next, next))
