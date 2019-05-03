@@ -303,6 +303,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       case "HBoxModel":
       case "VBoxModel":
       case "GridBoxView":
+      case "BoxModel":
         return this.render_react_box_view();
       default:
         // better than nothing.
@@ -382,6 +383,9 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     // todo -- this is hackish; fix later.
     let cls = "jupyter-widgets widget-container";
     switch (this.model.name) {
+      case "BoxModel":
+        cls += " widget-box";
+        break;
       case "HBoxModel":
         cls += " widget-box widget-hbox";
         break;
