@@ -18,6 +18,10 @@ const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
 import { id2name, ComputeImages } from "../custom-software/init";
+import {
+  CUSTOM_IMG_PREFIX,
+  compute_image2basename
+} from "custom-software/util";
 const COLORS = require("smc-util/theme").COLORS;
 
 const image_name_style: React.CSSProperties = {
@@ -161,13 +165,12 @@ export const ProjectRow = rclass<ReactProps>(
       );
     }
 
+    // transforms the compute image ID to a human readable string
     render_image_name(): Rendered {
       const ci = this.props.project.compute_image;
-
       if (ci == null || this.props.images == null) return;
-      // TODO refactor this together with a similar procedure in project_settings
-      if (ci.startsWith("custom/")) {
-        const id = ci.slice("custom/".length).split("/")[0];
+      if (ci.startsWith(CUSTOM_IMG_PREFIX)) {
+        const id = compute_image2basename(ci);
         const img = this.props.images.get(id);
         if (img == null) return;
         const name = img.get("display");

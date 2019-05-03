@@ -3,14 +3,16 @@
 
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
-
+import { CUSTOM_IMG_PREFIX } from "./util";
+import { join as path_join } from "path";
 const { capitalize } = require("smc-util/misc");
 
 export const NAME = "compute_images";
 
 // this must match db-schema.compute_images → field type → allowed values
-// legacy images are "default", "exp", or a timestamp
+// legacy image names are "default", "exp", or a timestamp-string
 // custom iamges are "custom/<image-id>/<tag, usually latest>"
+// the "custom/" string is supposed to be CUSTOM_IMG_PREFIX!
 export type ComputeImageTypes = "legacy" | "custom";
 
 // this must be compatible with db-schema.compute_images → field keys
@@ -41,7 +43,7 @@ export function custom_image_name(id: string): string {
   } else {
     tag = "latest";
   }
-  return `custom/${id}/${tag}`;
+  return path_join(CUSTOM_IMG_PREFIX, id, tag);
 }
 
 class ComputeImagesStore extends Store<ComputeImagesState> {}
@@ -60,11 +62,11 @@ export function id2name(id: string): string {
 function fallback(
   img: ComputeImage,
   key: ComputeImageKeys,
-  replace: (img: ComputeImage) => string
+  replace: (img: ComputeImage) => string | undefined
 ): string {
   const ret = img.get(key);
   if (ret == null || ret.length == 0) {
-    return replace(img);
+    return replace(img) || "";
   }
   return ret;
 }
@@ -77,21 +79,28 @@ function desc_fallback(img: ComputeImage) {
   return fallback(img, "desc", _ => "*No description available.*");
 }
 
+/* if there is no URL set, derive it from the git source URL
+ * this supports github, gitlab and bitbucket. https URLs look like this:
+ * https://github.com/sagemathinc/cocalc.git
+ * https://gitlab.com/orgname/projectname.git
+ * https://username@bitbucket.org/orgname/projectname.git
+ */
 function url_fallback(img: ComputeImage) {
-  const planB = (img: ComputeImage) => {
+  const cloudgit = ["github.com", "gitlab.com", "bitbucket.org"];
+  const derive_url = (img: ComputeImage) => {
     const src = img.get("src", undefined);
-    if (src != null && src.length > 0) {
-      if (src.indexOf("://github.com") > 0) {
-        if (src.endsWith(".git")) {
-          return src.slice(0, -".git".length);
-        } else {
-          return src;
-        }
+    if (src == null || src.length == 0) return;
+    if (!src.startsWith("http")) return;
+    for (const srv of cloudgit) {
+      if (src.indexOf(srv) < 0) continue;
+      if (src.endsWith(".git")) {
+        return src.slice(0, -".git".length);
+      } else {
+        return src;
       }
     }
-    return "";
   };
-  return fallback(img, "url", planB);
+  return fallback(img, "url", derive_url);
 }
 
 class ComputeImagesTable extends Table {
