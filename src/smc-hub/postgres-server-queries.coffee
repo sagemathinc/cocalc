@@ -2662,7 +2662,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         create = (idx, cb) =>
             rnd  = sample(idx, 3)
             id   = rnd[...2].join('-') + "-#{idx}"
-            src = "https://github.com/#{rnd[2]}/#{id}.git"
+            provider = ['github.com', 'gitlab.com', 'bitbucket.org'][idx % 3]
+            src = "https://#{provider}/#{rnd[2]}/#{id}.git"
 
             # not all of them have a display-title, url, desc, ...
             if random() > .25
@@ -2685,11 +2686,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if random() > .5
                 if random() > .5
                     verylong = Array(100).fill('very long *text* for **testing**, ').join(" ")
+                if url?
+                    other_page = ", or point to [yet another page](#{url})"
+                else
+                    other_page = ""
                 desc = """
                        This is some text describing what **#{disp or id}** is.
                        Here could also be an [external link](https://doc.cocalc.com).
-                       It might also mention `#{id}`, or point to
-                       [yet another page](#{url}).
+                       It might also mention `#{id}`#{other_page}.
 
                        #{verylong ? ''}
                        """
@@ -2709,6 +2713,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     "desc    :: TEXT     " : desc
                     "display :: TEXT     " : disp
                     "path    :: TEXT     " : path
+                    "url     :: TEXT     " : url
                     "disabled:: BOOLEAN  " : idx == 1
                 cb     : cb
 
