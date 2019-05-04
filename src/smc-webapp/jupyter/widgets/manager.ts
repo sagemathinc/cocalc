@@ -183,7 +183,18 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     //     ipywidgets/packages/controls/src/widget_date.ts
     // in particular for when a date is set in the kernel.
     const serializers = (model.constructor as any).serializers;
+
     if (serializers == null) return state;
+
+    // These two have unpack_model in them, which we already do
+    // differently, and we have to fight against that.  Instead,
+    // we just delete them entirely.  This delete really happens
+    // only once, since serialize is a static class member.
+    // Triggered by things like setting value in kernel of DatePicker,
+    // or using ipyvolume.
+    delete serializers.source;
+    delete serializers.target;
+
     const deserialized: ModelState = {};
     for (let k in state) {
       // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
@@ -195,9 +206,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       if (
         k !== "layout" &&
         k !== "style" &&
-        serializers[k] &&
-        serializers[k].deserialize
-      ) {
+        serializers[k] && serializers[k].deserialize) {
         deserialized[k] = serializers[k].deserialize(state[k]);
       } else {
         deserialized[k] = state[k];
@@ -393,9 +402,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     } else if (moduleName === "@jupyter-widgets/output") {
       module = react_output;
     } else if (this.loader !== undefined) {
-      throw Error("TODO -- no clue -- maybe can't support?");
+      console.warn(
+        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
+      );
+      module = { [className]: react_controls.UnsupportedModel };
     } else {
-      throw Error(`Could not load module ${moduleName}@${moduleVersion}`);
+      console.warn(
+        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
+      );
+      module = { [className]: react_controls.UnsupportedModel };
     }
     if (module[className]) {
       return module[className];
