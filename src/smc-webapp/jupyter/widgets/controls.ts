@@ -4,6 +4,8 @@ export class ReactModel extends WidgetModel {
   public widget_manager: any;
   public is_react: boolean = true;
 
+  serializers = {}; // just use JSON.
+
   defaults() {
     return {
       ...super.defaults()
@@ -38,3 +40,6 @@ export class AccordionView extends ReactView {}
 
 export class TabModel extends ReactModel {}
 export class TabView extends ReactView {}
+
+export class UnsupportedModel extends ReactModel {}
+export class UnsupportedView extends ReactView {}

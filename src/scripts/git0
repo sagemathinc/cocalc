@@ -9,7 +9,7 @@ for i in range(50):  # 50 chances (about 5 seconds)
     had_to_wait = False
     for file in lock_files:
         if os.path.exists(file):
-            print "Waiting for lock file to vanish..."
+            print("Waiting for lock file to vanish...")
             time.sleep(.05 + random.random()*.1)
             had_to_wait = True
             break

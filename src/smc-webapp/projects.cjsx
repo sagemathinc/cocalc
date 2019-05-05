@@ -874,10 +874,11 @@ all_projects_have_been_loaded = false
 load_all_projects = reuseInFlight =>
     if all_projects_have_been_loaded
         return
-    all_projects_have_been_loaded = true
+    all_projects_have_been_loaded = true  # used internally in this file only
     redux.removeTable('projects')
     redux.createTable('projects', ProjectsAllTable)
     await once(redux.getTable('projects')._table, 'connected')
+    redux.getActions('projects')?.setState({all_projects_have_been_loaded:true}) # used by client code
 
 load_recent_projects = =>
     redux.createTable('projects', ProjectsTable)
