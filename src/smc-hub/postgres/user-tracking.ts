@@ -10,7 +10,7 @@ export async function record_user_tracking(
   db: PostgreSQL,
   account_id: string,
   event: string,
-  value: string
+  value: { [key: string]: any }
 ): Promise<void> {
   /* Right now this function is called from outside typescript
     (e.g., api from user), so we have to do extra type checking.
@@ -27,9 +27,6 @@ export async function record_user_tracking(
   if (value == null) {
     throw Error("value must be specified");
   }
-  if (value.length > 1024) {
-    throw Error("value must have length at most 1024");
-  }
 
   await callback2(db._query, {
     query: "INSERT INTO user_tracking",
@@ -37,7 +34,7 @@ export async function record_user_tracking(
       "account_id :: UUID": account_id,
       "time       :: TIMESTAMP": "NOW()",
       "event      :: TEXT": event,
-      "value      :: TEXT": value
+      "value      :: JSONB": value
     }
   });
 }

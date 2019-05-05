@@ -1883,6 +1883,7 @@ schema.mentions = {
 schema.user_tracking = {
   primary_key: ["account_id", "time"],
   pg_indexes: ["event", "time"],
+  durability: "soft",
   fields: {
     account_id: {
       type: "uuid",
@@ -1894,11 +1895,12 @@ schema.user_tracking = {
     },
     event: {
       type: "string",
-      desc: "event we are tracking"
+      desc: "event we are tracking",
+      pg_check: "NOT NULL"
     },
     value: {
-      type: "string",
-      desc: "further info about the event (as a string)"
+      type: "map",
+      desc: "optional further info about the event (as a map)"
     }
   }
 };

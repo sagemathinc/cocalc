@@ -209,7 +209,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <>
         <div style={{ marginBottom: "5px" }}>
-          How did you find out about CoCalc? (optional)
+          Where did you find out about CoCalc? (optional)
         </div>
         <FormGroup>
           <FormControl

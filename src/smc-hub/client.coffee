@@ -954,7 +954,6 @@ class exports.Client extends EventEmitter
 
         project_id = undefined
         project    = undefined
-        location   = undefined
 
         async.series([
             (cb) =>

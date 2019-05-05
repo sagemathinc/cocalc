@@ -3045,6 +3045,6 @@ API(
     event: "user_tracking",
     id: undefined,
     evt: required, // string -- the event being tracked (max length 80 characters)
-    value: undefined // string -- additional info about that event (max length 1024 characters)
+    value: required // map -- additional info about that event
   })
 );

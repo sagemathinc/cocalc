@@ -1059,6 +1059,7 @@ class exports.Connection extends EventEmitter
                     opts.cb?(resp.error)
                 else
                     opts.cb?(undefined, resp.project_id)
+                    @user_tracking({event:'create_project', value:{project_id:resp.project_id, title:opts.title}})
 
     #################################################
     # Individual Projects
@@ -2145,7 +2146,7 @@ class exports.Connection extends EventEmitter
     user_tracking: (opts) =>
         opts = defaults opts,
             event : required
-            value : ''
+            value : {}
             cb    : undefined
         @call
             message    : message.user_tracking(evt:opts.event, value:opts.value)
