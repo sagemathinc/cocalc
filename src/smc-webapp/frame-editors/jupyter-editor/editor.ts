@@ -19,6 +19,7 @@ import { PlainTerminal } from "./plain-terminal";
 import { IPythonTerminal } from "./ipython-terminal";
 import { Export } from "./export";
 import { Slideshow } from "./slideshow";
+import { ClassicalNotebook } from "./classical-notebook";
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -117,6 +118,13 @@ export const EDITOR_SPEC = {
     name: "Slideshow View",
     icon: "file-pdf-o",
     component: Slideshow,
+    buttons: set([])
+  },
+  jupyter_classical: {
+    short: "Classical",
+    name: "Classical Notebook",
+    icon: "file-pdf-o",
+    component: ClassicalNotebook,
     buttons: set([])
   }
 };
