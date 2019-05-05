@@ -367,6 +367,7 @@ UsagePanel = rclass
         upgrades_you_applied_to_this_project : rtypes.object
         total_project_quotas                 : rtypes.object
         all_upgrades_to_this_project         : rtypes.object
+        all_projects_have_been_loaded        : rtypes.bool
         actions                              : rtypes.object.isRequired # projects actions
 
     getInitialState: ->
@@ -385,12 +386,12 @@ UsagePanel = rclass
             </Col>
         </Row>
 
-    render: ->
-        if not require('./customize').commercial
-            return null
-        <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
-            {@render_upgrades_button()}
-            {<UpgradeAdjustor
+    render_upgrade_adjustor: ->
+        if not @props.all_projects_have_been_loaded
+            # See https://github.com/sagemathinc/cocalc/issues/3802
+            redux.getActions('projects').load_all_projects()
+            return <Loading theme={"medium"}  />
+        <UpgradeAdjustor
                 project_id                           = {@props.project_id}
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
                 upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
@@ -399,7 +400,14 @@ UsagePanel = rclass
                 submit_upgrade_quotas                = {@submit_upgrade_quotas}
                 cancel_upgrading                     = {=>@setState(show_adjustor : false)}
                 total_project_quotas                 = {@props.total_project_quotas}
-            /> if @state.show_adjustor}
+        />
+
+    render: ->
+        if not require('./customize').commercial
+            return null
+        <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
+            {@render_upgrades_button()}
+            {@render_upgrade_adjustor() if @state.show_adjustor}
             <QuotaConsole
                 project_id                   = {@props.project_id}
                 project_settings             = {@props.project.get('settings')}
@@ -1133,13 +1141,22 @@ ProjectSettingsBody = rclass ({name}) ->
             get_total_project_quotas : rtypes.func
             get_upgrades_to_project : rtypes.func
             compute_images : rtypes.immutable.Map
+            all_projects_have_been_loaded : rtypes.bool
         "#{name}" :
             configuration         : rtypes.immutable
             available_features    : rtypes.object
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project', 'user_map', 'project_map', 'compute_images', 'configuration', 'available_features']) or \
-                (props.customer? and not props.customer.equals(@props.customer))
+        return misc.is_different(@props, props, [
+            'project',
+            'user_map',
+            'project_map',
+            'compute_images',
+            'configuration',
+            'available_features',
+            'all_projects_have_been_loaded'
+        ]) or \
+        (props.customer? and not props.customer.equals(@props.customer))
 
     render: ->
         # get the description of the share, in case the project is being shared
@@ -1181,7 +1198,9 @@ ProjectSettingsBody = rclass ({name}) ->
                         upgrades_you_applied_to_all_projects = {upgrades_you_applied_to_all_projects}
                         upgrades_you_applied_to_this_project = {upgrades_you_applied_to_this_project}
                         total_project_quotas                 = {total_project_quotas}
-                        all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
+                        all_upgrades_to_this_project         = {all_upgrades_to_this_project}
+                        all_projects_have_been_loaded        = {@props.all_projects_have_been_loaded}
+                    />
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}

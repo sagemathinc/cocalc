@@ -1033,9 +1033,11 @@ class exports.Client extends EventEmitter
                 project.read_file
                     path : mesg.path
                     cb   : (err, content) =>
-                        if not err
-                            v.push(content.blob.toString())
-                        cb(err)
+                        if err
+                            v.push({path:mesg.path, project_id:mesg.project_id, error:err})
+                        else
+                            v.push({path:mesg.path, project_id:mesg.project_id, content:content.blob.toString()})
+                        cb()
         paths = []
         for i in [0...mesg.project_id.length]
             paths.push({id:mesg.id, path:mesg.path[i], project_id:mesg.project_id[i]})

@@ -1093,8 +1093,8 @@ message({
   url: required
 });
 
-// The client sends this message to the hub in order to write (or
-// create) a plain text file (binary files not allowed, since sending
+// The client sends this message to the hub in order to read
+// a plain text file (binary files not allowed, since sending
 // them via JSON makes no sense).
 // client --> hub
 API(
@@ -1123,10 +1123,10 @@ and containing directories if they do not already exist.
 
 You can also read multiple project_id/path's at once by
 making project_id and path arrays (of the same length).
-In that case, the resulting content will be an array
-of the resulting content strings, in the same order
-in which they were requested.
-
+In that case, the result will be an array
+of {project_id, path, content} objects, in some
+random order.  If there is an error reading a particular
+file, instead {project_id, path, error} is included.
 
 Example:
 

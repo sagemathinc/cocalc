@@ -174,6 +174,47 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
   }
 
+  deserialize_state(model: base.DOMWidgetModel, state: ModelState): ModelState {
+    // NOTE: this is a reimplementation of soemthing in
+    //     ipywidgets/packages/base/src/widget.ts
+    // but we untagle unpacking and deserializing, which is
+    // mixed up there.
+    // This is used in an interesting way for the date picker, see:
+    //     ipywidgets/packages/controls/src/widget_date.ts
+    // in particular for when a date is set in the kernel.
+    const serializers = (model.constructor as any).serializers;
+
+    if (serializers == null) return state;
+
+    // These two have unpack_model in them, which we already do
+    // differently, and we have to fight against that.  Instead,
+    // we just delete them entirely.  This delete really happens
+    // only once, since serialize is a static class member.
+    // Triggered by things like setting value in kernel of DatePicker,
+    // or using ipyvolume.
+    delete serializers.source;
+    delete serializers.target;
+
+    const deserialized: ModelState = {};
+    for (let k in state) {
+      // HACK/warning - in ipywidgets/packages/base/src/widget.ts,
+      // the layout and style deserializers are unpack_model, which
+      // blows up everything and leads to an infinite loop, since
+      // we use a completely different unpack approach.  So we have
+      // to cross our fingers that nothing those keys can be ignored,
+      // and also that they are the only ones that use unpack_model.
+      if (
+        k !== "layout" &&
+        k !== "style" &&
+        serializers[k] && serializers[k].deserialize) {
+        deserialized[k] = serializers[k].deserialize(state[k]);
+      } else {
+        deserialized[k] = state[k];
+      }
+    }
+    return deserialized;
+  }
+
   private async update_model(
     model_id: string,
     change: ModelState
@@ -193,7 +234,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         );
         return;
       }
-      model.set_state(change);
+      model.set_state(this.deserialize_state(model, change));
       // } else {
       // console.warn(`WARNING: update_model -- unknown model ${model_id}`);
     }
@@ -242,6 +283,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     });
 
     // Initialize the model
+    state = this.deserialize_state(model, state);
     model.set(state);
 
     // Start listing to model changes.
@@ -307,7 +349,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       );*/
       return;
     }
-    const changed: any = copy(model.changed);
+    let changed: any = copy(model.serialize(model.changed));
     delete changed.children; // sometimes they are in there, but shouldn't be sync'ed.
     // console.log("handle_model_change (frontend)", changed);
     let last_changed = changed.last_changed;
@@ -360,9 +402,15 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     } else if (moduleName === "@jupyter-widgets/output") {
       module = react_output;
     } else if (this.loader !== undefined) {
-      throw Error("TODO -- no clue -- maybe can't support?");
+      console.warn(
+        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
+      );
+      module = { [className]: react_controls.UnsupportedModel };
     } else {
-      throw Error(`Could not load module ${moduleName}@${moduleVersion}`);
+      console.warn(
+        `TODO -- unsupported ${className}, ${moduleName}, ${moduleVersion}`
+      );
+      module = { [className]: react_controls.UnsupportedModel };
     }
     if (module[className]) {
       return module[className];
