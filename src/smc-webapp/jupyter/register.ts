@@ -17,8 +17,8 @@ const { JupyterStore, initial_jupyter_store_state } = require("./store");
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 
-export function register() {
-  return register_file_editor({
+export function register(): void {
+  register_file_editor({
     ext: ["ipynb"],
 
     is_public: false,
@@ -107,9 +107,5 @@ export function register() {
 
 register();
 
-// separated out so can be used on backend
-require("./register-nbviewer").register(webapp_client);
-
 // Temporary so long as we support jupyter classic
 require("./jupyter-classic-support");
-
