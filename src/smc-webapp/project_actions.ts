@@ -2009,9 +2009,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   async init_configuration(
     aspect: ConfigurationAspect = "main"
   ): Promise<Configuration | void> {
+    this.setState({ configuration_loading: true });
+
     const store = this.get_store();
     if (store == null) {
       console.warn("project_actions::init_configuration: no store");
+      this.setState({ configuration_loading: false });
       return;
     }
 
@@ -2019,20 +2022,37 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const prev = store.get("configuration") as ProjectConfiguration;
     if (prev != null) {
       const conf = prev.get(aspect) as Configuration;
-      if (conf != null) return conf;
+      if (conf != null) {
+        this.setState({ configuration_loading: false });
+        return conf;
+      }
     }
 
-    const next = await get_configuration(
-      webapp_client,
-      this.project_id,
-      aspect,
-      prev
-    );
-    if (next == null) return;
+    let next;
+
+    await retry_until_success({
+      f: async () => {
+        next = await get_configuration(
+          webapp_client,
+          this.project_id,
+          aspect,
+          prev
+        );
+      },
+      start_delay: 1000,
+      max_delay: 5000,
+      desc: "project_actions::init_configuration"
+    });
+
+    if (next == null) {
+      this.setState({ configuration_loading: false });
+      return;
+    }
     this.setState({
       configuration: next,
       available_features: feature_is_available(next)
     });
+    this.setState({ configuration_loading: false });
     return next.get(aspect) as Configuration;
   }
 

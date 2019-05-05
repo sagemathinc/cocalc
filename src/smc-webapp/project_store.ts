@@ -78,6 +78,7 @@ export interface ProjectStoreState {
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
   configuration?: ProjectConfiguration;
+  configuration_loading: boolean; // for UI feedback
   available_features?: AvailableFeatures;
   show_custom_software_reset: boolean;
 
@@ -225,6 +226,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       displayed_listing: undefined, // computed(object),
       show_masked: true,
       configuration: undefined,
+      configuration_loading: false, // for UI feedback
       show_custom_software_reset: false,
 
       // Project Page

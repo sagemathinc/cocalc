@@ -41,7 +41,7 @@ COMPUTE_IMAGES = immutable.fromJS(COMPUTE_IMAGES)  # only because that's how all
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, FormControl, FormGroup, Well, Checkbox, DropdownButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
- DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed} = require('./r_misc')
+ DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, TimeAgo, Tip, UPGRADE_ERROR_STYLE, UpgradeAdjustor, TimeElapsed, A} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux, Fragment}  = require('./app-framework')
 {User} = require('./users')
 
@@ -624,10 +624,16 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
     reduxProps :
         "#{name}" :
             configuration         : rtypes.immutable
+            configuration_loading : rtypes.bool
             available_features    : rtypes.object
 
     shouldComponentUpdate: (props) ->
-        return misc.is_different(@props, props, ['project', 'configuration', 'available_features'])
+        return misc.is_different(@props, props, [
+            'project',
+            'configuration',
+            'configuration_loading',
+            'available_features'
+        ])
 
 
     render_features: (avail) ->
@@ -691,9 +697,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             )
 
         component = <Fragment>
-            {<pre>
-                {JSON.stringify(formatter, null, 2)}
-            </pre>  if DEBUG}
+            {@render_debug_info(formatter)}
             <dl className={"dl-horizontal cc-project-settings-features"}>
                 {r_formatters}
             </dl>
@@ -704,18 +708,21 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
         <Fragment>
             <hr/>
             <div style={color:COLORS.GRAY}>
-                Some aspects are not available,{' '}
-                because this project runs a specific stack of software.
+                Some features are not available,{' '}
+                because this project runs a small{' '}
+                {A(CUSTOM_SOFTWARE_HELP_URL, 'customized stack of software')}.
                 To enable all features,{' '}
-                please create a new project using the default software environemnt.
+                please create a new project using the default software environment.
             </div>
         </Fragment>
 
     render_available: ->
         avail = @props.available_features
         if not avail?
-            return <div>When the project is running,{' '}
-                information about available features will show up here.
+            return <div>
+                Information about available features will show up here.
+                <br/>
+                {<Loading /> if @props.configuration_loading}
             </div>
 
         [features, non_avail_1] = @render_features(avail)
@@ -729,6 +736,12 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             {@render_noavail_info() if non_avail_1 or non_avail_2}
         </React.Fragment>
 
+    render_debug_info: (conf) ->
+        if conf? and DEBUG
+            <pre style={fontSize:'9px', color:'black'}>
+                {JSON.stringify(conf, '', 2)}
+            </pre>
+
     render : ->
         conf = @props.configuration
 
@@ -736,7 +749,7 @@ ProjectCapabilitiesPanel = rclass ({name}) ->
             title={'Features and configuration'}
             icon={'clipboard-check'}
         >
-            {<pre>{JSON.stringify(conf, '', 2)}</pre> if conf? and DEBUG}
+            {@render_debug_info(conf)}
             {@render_available()}
         </ProjectSettingsPanel>
 
