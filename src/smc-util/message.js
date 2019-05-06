@@ -1107,7 +1107,8 @@ API(
       },
       project_id: {
         init: required,
-        desc: "id of project containing file to be read (or array of project_id's)"
+        desc:
+          "id of project containing file to be read (or array of project_id's)"
       },
       path: {
         init: required,
@@ -1150,7 +1151,6 @@ message({
   id: required,
   content: required
 });
-
 
 // The write_file_to_project message is sent from the hub to the
 // project_server to tell the project_server to write a file to a
@@ -1456,11 +1456,13 @@ API(
       },
       project_id: {
         init: required,
-        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
+        desc:
+          "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
       },
       account_id: {
         init: required,
-        desc: "account_id of user (can be an array to add multiple users to multiple projects)"
+        desc:
+          "account_id of user (can be an array to add multiple users to multiple projects)"
       }
     },
     desc: `\
@@ -3034,3 +3036,15 @@ message({
   id: undefined,
   history: required
 });
+
+// client --> hub
+// It's an error if user is not signed in, since
+// then we don't know who to track.
+API(
+  message({
+    event: "user_tracking",
+    id: undefined,
+    evt: required, // string -- the event being tracked (max length 80 characters)
+    value: required // map -- additional info about that event
+  })
+);

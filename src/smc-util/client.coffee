@@ -1059,6 +1059,7 @@ class exports.Connection extends EventEmitter
                     opts.cb?(resp.error)
                 else
                     opts.cb?(undefined, resp.project_id)
+                    @user_tracking({event:'create_project', value:{project_id:resp.project_id, title:opts.title}})
 
     #################################################
     # Individual Projects
@@ -2141,6 +2142,17 @@ class exports.Connection extends EventEmitter
                     opts.cb(err)
                 else
                     opts.cb(undefined, resp.history)
+
+    user_tracking: (opts) =>
+        opts = defaults opts,
+            event : required
+            value : {}
+            cb    : undefined
+        @call
+            message    : message.user_tracking(evt:opts.event, value:opts.value)
+            allow_post : true
+            cb         : opts.cb
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

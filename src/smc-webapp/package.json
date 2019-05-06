@@ -88,6 +88,7 @@
     "project-name-generator": "^2.1.6",
     "prom-client": "^11.1.3",
     "prop-types": "^15.7.2",
+    "query-string": "^6.5.0",
     "react": "^16.6.0",
     "react-bootstrap": "^0.31.5",
     "react-chosen": "^0.3.8",
