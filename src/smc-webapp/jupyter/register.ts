@@ -64,7 +64,7 @@ export function register(): void {
           return;
         }
         if (syncdb.count() === 0) {
-          return actions._syncdb_change();
+          return actions._syncdb_change([]);
         }
       }); // cause initialization -- TODO: will get moved to backend/project.
 

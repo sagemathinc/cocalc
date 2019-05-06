@@ -6,6 +6,8 @@ import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 
 import { CellNotebook } from "./cell-notebook";
+
+/*
 import { Log } from "./log";
 import { RawIPynb } from "./raw-ipynb";
 import { ObjectBrowser } from "./object-browser";
@@ -20,6 +22,7 @@ import { IPythonTerminal } from "./ipython-terminal";
 import { Export } from "./export";
 import { Slideshow } from "./slideshow";
 import { ClassicalNotebook } from "./classical-notebook";
+*/
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook: {
@@ -28,7 +31,7 @@ export const EDITOR_SPEC = {
     icon: "cc-icon-ipynb",
     component: CellNotebook,
     buttons: set([])
-  },
+  }/*,
   jupyter_singledoc_notebook: {
     short: "SingleDoc",
     name: "Single Doc",
@@ -126,7 +129,7 @@ export const EDITOR_SPEC = {
     icon: "cc-icon-ipynb",
     component: ClassicalNotebook,
     buttons: set([])
-  }
+  }*/
 };
 
 export const Editor = createEditor({

@@ -46,7 +46,7 @@ interface JupyterEditorProps {
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
   kernels?: KernelsType;
-  site_name: string;
+  site_name?: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
   toolbar?: boolean;
@@ -54,10 +54,10 @@ interface JupyterEditorProps {
   cell_list?: immutable.List<any>; // list of ids of cells in order
   cells?: immutable.Map<any, any>; // map from ids to cells
   cur_id?: string;
-  sel_ids: immutable.Set<any>; // set of selected cells
-  mode: any; // oneOf(['edit', 'escape']).isRequired;
+  sel_ids?: immutable.Set<any>; // set of selected cells
+  mode?: any; // oneOf(['edit', 'escape']).isRequired;
   font_size?: number;
-  md_edit_ids: immutable.Set<any>; // ids of markdown cells in edit mode
+  md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
   cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
   project_id?: string;
   directory?: string;
@@ -79,12 +79,12 @@ interface JupyterEditorProps {
   insert_image?: boolean; // show insert image dialog
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
-  editor_settings: immutable.Map<any, any>;
+  editor_settings?: immutable.Map<any, any>;
   raw_ipynb?: immutable.Map<any, any>;
   metadata?: immutable.Map<any, any>;
   trust?: boolean;
-  kernel_info: immutable.Map<any, any>;
-  check_select_kernel_init: boolean;
+  kernel_info?: immutable.Map<any, any>;
+  check_select_kernel_init?: boolean;
   show_kernel_selector?: boolean;
   kernel_selection?: immutable.Map<string, any>;
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
@@ -370,6 +370,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_select_kernel() {
+    if (this.props.editor_settings == null) return;
     const ask_jupyter_kernel = this.props.editor_settings.get(
       "ask_jupyter_kernel"
     );
@@ -384,7 +385,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         default_kernel={this.props.default_kernel}
         closestKernel={this.props.closestKernel}
         site_name={this.props.site_name}
-        ask_jupyter_kernel={ask_jupyter_kernel == null ? true : ask_jupyter_kernel}
+        ask_jupyter_kernel={
+          ask_jupyter_kernel == null ? true : ask_jupyter_kernel
+        }
       />
     );
   }

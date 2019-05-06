@@ -4,6 +4,8 @@ Frame that display a Jupyter notebook in the traditional way with input and outp
 
 import { React, Rendered, Component } from "../../app-framework";
 
+import { JupyterEditor } from "../../jupyter/main";
+
 interface Props {
   id: string;
   actions: any;
@@ -16,6 +18,11 @@ interface Props {
 
 export class CellNotebook extends Component<Props, {}> {
   render(): Rendered {
-    return <div>A Jupyter Notebook {this.props.path}</div>;
+    return (
+      <JupyterEditor
+        actions={this.props.actions.jupyter_actions}
+        name={this.props.actions.jupyter_actions.name}
+      />
+    );
   }
 }
