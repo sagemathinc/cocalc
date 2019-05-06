@@ -35,6 +35,8 @@ underscore = require('underscore')
 
 {callback} = require('awaiting')
 
+{record_user_tracking} = require('./postgres/user-tracking')
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -952,7 +954,6 @@ class exports.Client extends EventEmitter
 
         project_id = undefined
         project    = undefined
-        location   = undefined
 
         async.series([
             (cb) =>
@@ -2724,4 +2725,15 @@ class exports.Client extends EventEmitter
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}")
+
+    mesg_user_tracking: (mesg) =>
+        dbg = @dbg("mesg_user_tracking")
+        try
+            if not @account_id
+                throw Error("you must be signed in to record a tracking event")
+            await record_user_tracking(@database, @account_id, mesg.evt, mesg.value)
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"unable to record user_tracking event #{mesg.evt} -- #{err}")
 

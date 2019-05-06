@@ -1920,6 +1920,55 @@ schema.compute_images = {
   }
 };
 
+// Table for tracking events related to a particular
+// account which help us optimize for growth.
+// Example entry;
+//  account_id: 'some uuid'
+//  time: a timestamp
+//  key: 'sign_up_how_find_cocalc'
+//  value: 'via a google search'
+//
+// We could also have:
+//  account_id: 'some uuid'
+//  time: a timestamp
+//  key: 'utm'
+//  value: 'a utm referrer code'
+//
+// Or if user got to cocalc via a chat mention link:
+//
+//  account_id: 'some uuid'
+//  time: a timestamp
+//  key: 'mention'
+//  value: 'url of a chat file'
+//
+// The user cannot read or write directly to this table.
+// Writes are done via an API call, which (in theory can)
+// enforces some limit (to avoid abuse) at some point...
+schema.user_tracking = {
+  primary_key: ["account_id", "time"],
+  pg_indexes: ["event", "time"],
+  durability: "soft",
+  fields: {
+    account_id: {
+      type: "uuid",
+      desc: "id of the user's account"
+    },
+    time: {
+      type: "timestamp",
+      desc: "time of this message"
+    },
+    event: {
+      type: "string",
+      desc: "event we are tracking",
+      pg_check: "NOT NULL"
+    },
+    value: {
+      type: "map",
+      desc: "optional further info about the event (as a map)"
+    }
+  }
+};
+
 // Client side versions of some db functions, which are used, e.g., when setting fields.
 const sha1 = require("sha1");
 class ClientDB {

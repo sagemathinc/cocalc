@@ -5,7 +5,7 @@ export const RESET_ICON = "redo-alt";
 export const CUSTOM_IMG_PREFIX = "custom/";
 
 export const CUSTOM_SOFTWARE_HELP_URL =
-  "https://doc.cocalc.com/software/custom.html";
+  "https://doc.cocalc.com/software.html#custom-environments";
 
 export function compute_image2name(compute_image: string): string {
   const name = compute_image.slice(CUSTOM_IMG_PREFIX.length);
