@@ -374,6 +374,7 @@ class exports.Client extends EventEmitter
             account_id    : signed_in_mesg.account_id
             utm           : signed_in_mesg.utm
             referrer      : signed_in_mesg.referrer
+            landing_page  : signed_in_mesg.landing_page
             database      : @database
 
         # Get user's group from database.

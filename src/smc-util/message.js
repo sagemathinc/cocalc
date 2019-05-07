@@ -403,6 +403,10 @@ API(
         init: undefined,
         desc: "Referrer URL"
       },
+      landing_page: {
+        init: undefined,
+        desc: "Landing page"
+      },
       token: {
         init: undefined, // only required when token is set.
         desc: "account creation token - see src/dev/docker/README.md"
@@ -516,6 +520,7 @@ message({
   remember_me: false,
   utm: undefined,
   referrer: undefined,
+  landing_page: undefined,
   get_api_key: undefined
 }); // same as for create_account
 
@@ -552,6 +557,7 @@ message({
   last_name: undefined,
   utm: undefined,
   referrer: undefined,
+  landing_page: undefined,
   api_key: undefined
 }); // user's api key, if requested in sign_in or create_account messages.
 

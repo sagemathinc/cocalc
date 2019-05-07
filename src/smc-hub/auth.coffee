@@ -279,8 +279,9 @@ passport_login = (opts) ->
                         last_name     : opts.last_name
                         email_address : locals.email_address ? null
                         created_by    : opts.req.ip
-                    data.utm      = opts.res.locals.utm      if opts.res.locals.utm
-                    data.referrer = opts.res.locals.referrer if opts.res.locals.referrer
+                    data.utm          = opts.res.locals.utm          if opts.res.locals.utm
+                    data.referrer     = opts.res.locals.referrer     if opts.res.locals.referrer
+                    data.landing_page = opts.res.locals.landing_page if opts.res.locals.landing_page
                     opts.database.log
                         event : 'create_account'
                         value : data
@@ -299,6 +300,7 @@ passport_login = (opts) ->
                 account_id    : locals.account_id
                 utm           : opts.res.locals.utm
                 referrer      : opts.res.locals.referrer
+                landing_page  : opts.res.locals.landing_page
                 database      : opts.database
             cb() # don't make client wait for this -- it's just a log message for us.
 

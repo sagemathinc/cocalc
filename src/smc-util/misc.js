@@ -3131,10 +3131,11 @@ exports.sanitize_html_attributes = ($, node) =>
 // common UTM parameters
 // changes must also be done in webapp-lib/_inc_analytics.pug
 exports.utm_keys = ["source", "medium", "campaign", "term", "content"];
-exports.utm_cookie_name = "CC_UTM";
 
-// referrer
+// ATTN: if you change any of the cookie names, also change webapp-lib/cocalc-analytics.ts
+exports.utm_cookie_name = "CC_UTM";
 exports.referrer_cookie_name = "CC_REF";
+exports.landing_cookie_name = "CC_LAND";
 
 exports.human_readable_size = function(bytes) {
   let b;

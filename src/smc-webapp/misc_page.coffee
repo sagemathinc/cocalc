@@ -1985,7 +1985,7 @@ exports.get_utm = ->
     c = exports.get_cookie(misc.utm_cookie_name)
     return if not c
     try
-        data = misc.from_json(window.decodeURIComponent(c))
+        data = misc.from_json(c)
         if DEBUG then console.log("get_utm cookie data", data)
         exports.delete_cookie(misc.utm_cookie_name)
         return data
@@ -1995,4 +1995,10 @@ exports.get_referrer = ->
     c = exports.get_cookie(misc.referrer_cookie_name)
     return if not c
     exports.delete_cookie(misc.referrer_cookie_name)
+    return c
+
+exports.get_landing_page = ->
+    c = exports.get_cookie(misc.landing_cookie_name)
+    return if not c
+    exports.delete_cookie(misc.landing_cookie_name)
     return c

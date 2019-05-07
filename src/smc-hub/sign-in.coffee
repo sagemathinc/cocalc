@@ -173,6 +173,7 @@ exports.sign_in = (opts) ->
                 hub           : opts.host + ':' + opts.port
                 utm           : mesg.utm
                 referrer      : mesg.referrer
+                landing_page  : mesg.landing_page
             client.remember_me
                 account_id    : signed_in_mesg.account_id
                 email_address : signed_in_mesg.email_address
@@ -312,6 +313,7 @@ exports.record_sign_in = (opts) ->
         account_id    : undefined
         utm           : undefined
         referrer      : undefined
+        landing_page  : undefined
         remember_me   : false
     if not opts.successful
         record_sign_in_fail
@@ -323,8 +325,9 @@ exports.record_sign_in = (opts) ->
             email_address : opts.email_address ? null
             remember_me   : opts.remember_me
             account_id    : opts.account_id
-        data.utm      = opts.utm      if opts.utm
-        data.referrer = opts.referrer if opts.referrer
+        data.utm          = opts.utm          if opts.utm
+        data.referrer     = opts.referrer     if opts.referrer
+        data.landing_page = opts.landing_page if opts.landing_page
         opts.database.log
             event : 'successful_sign_in'
             value : data

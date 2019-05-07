@@ -836,6 +836,7 @@ class exports.Connection extends EventEmitter
             token          : undefined       # only required if an admin set the account creation token.
             utm            : undefined
             referrer       : undefined
+            landing_page   : undefined
             timeout        : 40
             cb             : required
 
@@ -861,6 +862,7 @@ class exports.Connection extends EventEmitter
                 token           : opts.token
                 utm             : opts.utm
                 referrer        : opts.referrer
+                landing_page    : opts.landing_page
                 get_api_key     : opts.get_api_key
             timeout : opts.timeout
             cb      : (err, resp) =>
@@ -900,6 +902,7 @@ class exports.Connection extends EventEmitter
             timeout       : 40
             utm           : undefined
             referrer      : undefined
+            landing_page  : undefined
             get_api_key   : undefined       # if given, will create/get api token in response message
 
         @call
@@ -910,6 +913,7 @@ class exports.Connection extends EventEmitter
                 remember_me   : opts.remember_me
                 utm           : opts.utm
                 referrer      : opts.referrer
+                landing_page  : opts.landing_page
                 get_api_key   : opts.get_api_key
             timeout : opts.timeout
             cb      : opts.cb

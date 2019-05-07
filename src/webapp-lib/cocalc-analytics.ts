@@ -13,15 +13,16 @@
  */
 
 interface Window {
-  decodeURIComponent?: (str: string) => string;
-  encodeURIComponent?: (str: string) => string;
+  decodeURIComponent: (str: string) => string;
+  encodeURIComponent: (str: string) => string;
   location: Location;
 }
 
 declare var window: Window;
 
-const utm = {};
 const { href } = window.location;
+
+// TODO: use the array defined in smc-util/misc.js
 const UTM_KEYS = Object.freeze([
   "source",
   "medium",
@@ -29,6 +30,8 @@ const UTM_KEYS = Object.freeze([
   "term",
   "content"
 ]);
+
+// TODO: use the values which are defined in smc-util/misc.js
 const UTM_COOKIE = "CC_UTM";
 const REF_COOKIE = "CC_REF";
 const REF_LANDING = "CC_LAND";
@@ -40,20 +43,21 @@ date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
 const expires = `expires=${date.toUTCString()}`;
 
 if (document.cookie.indexOf(`; ${UTM_COOKIE}=`) === -1) {
-  const write_cookie = (function(): boolean {
-    for (const part of href.slice(href.indexOf("?") + 1).split("&")) {
-      let [k, v] = part.split("=");
-      if (k.slice(0, 4) !== "utm_") continue;
-      k = k.slice(4);
-      if (!UTM_KEYS.includes(k)) continue;
-      utm[k] = window.decodeURIComponent(v);
-      return true;
-    }
-    return false;
-  })();
+  const utm: any = {};
+  let write_cookie = false;
+
+  for (const part of href.slice(href.indexOf("?") + 1).split("&")) {
+    let [k, v] = part.split("=");
+    if (k == null || v == null) continue;
+    if (k.slice(0, 4) !== "utm_") continue;
+    k = k.slice(4);
+    if (!UTM_KEYS.includes(k)) continue;
+    utm[k] = window.decodeURIComponent(v.slice(0, 100));
+    write_cookie = true;
+  }
 
   if (write_cookie) {
-    const data = window.encodeURIComponent(JSON.stringify(utm));
+    const data = JSON.stringify(utm);
     document.cookie = `${UTM_COOKIE}=${data}; ${expires}; path=/`;
   }
 }

@@ -146,6 +146,10 @@ exports.init_express_http_server = (opts) ->
         if referrer_cookie
             res.locals.referrer = referrer_cookie
 
+        landing_cookie = req.cookies[misc.landing_cookie_name]
+        if landing_cookie
+            res.locals.landing = landing_cookie
+
         winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
         next()
 

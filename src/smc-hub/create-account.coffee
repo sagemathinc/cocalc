@@ -127,8 +127,9 @@ exports.create_account = (opts) ->
                             last_name     : opts.mesg.last_name
                             email_address : opts.mesg.email_address
                             created_by    : opts.client.ip_address
-                        data.utm      = opts.mesg.utm      if opts.mesg.utm
-                        data.referrer = opts.mesg.referrer if opts.mesg.referrer
+                        data.utm          = opts.mesg.utm          if opts.mesg.utm
+                        data.referrer     = opts.mesg.referrer     if opts.mesg.referrer
+                        data.landing_page = opts.mesg.landing_page if opts.mesg.landing_page
                         opts.database.log
                             event : 'create_account'
                             value : data
