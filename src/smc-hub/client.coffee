@@ -34,6 +34,7 @@ db_schema            = require('smc-util/db-schema')
 underscore = require('underscore')
 
 {callback} = require('awaiting')
+{callback2} = require('smc-util/async-utils')
 
 {record_user_tracking} = require('./postgres/user-tracking')
 
@@ -2735,4 +2736,23 @@ class exports.Client extends EventEmitter
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"unable to record user_tracking event #{mesg.evt} -- #{err}")
+
+    mesg_admin_reset_password: (mesg) =>
+        dbg = @dbg("mesg_reset_password")
+        dbg(mesg.email_address)
+        try
+            if not misc.is_valid_email_address(mesg.email_address)
+                throw Error("invalid email address")
+            await callback(@assert_user_is_in_group, 'admin')
+            if not await callback2(@database.account_exists, {email_address : mesg.email_address})
+                throw Error("no such account with email #{mesg.email_address}")
+            # We now know that there is an account with this email address.
+            # put entry in the password_reset uuid:value table with ttl of 8 hours.
+            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:8*60*60});
+            mesg.link = "/app#forgot-#{id}"
+            @push_to_client(mesg)
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
 
