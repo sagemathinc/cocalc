@@ -605,8 +605,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // Worrisome rare race condition when frame_tree not yet initialized.
       // See https://github.com/sagemathinc/cocalc/issues/3756
       const local_view_state = this._load_local_view_state();
-      this.setState({local_view_state});
-      tree = local_view_state.get('frame_tree');
+      this.setState({ local_view_state });
+      tree = local_view_state.get("frame_tree");
     }
     return tree;
   }
@@ -753,6 +753,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.reset_local_view_state();
       return;
     }
+    const node = this._get_frame_node(id);
+    if (node == null) return; // does not exist.
+    const type = node.get("type");
     this._tree_op("delete_node", id);
     this.save_editor_state(id);
     if (this._cm_selections != null) {
@@ -763,7 +766,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm[id];
     }
     this.terminals.close_terminal(id);
-    this.close_frame_hook(id);
+    this.close_frame_hook(id, type);
 
     // if id is the current active_id, change to most recent one.
     if (id === this.store.getIn(["local_view_state", "active_id"])) {
@@ -771,8 +774,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  close_frame_hook(_: string): void {
+  close_frame_hook(id: string, type: string): void {
     // overload in derived class...
+    id = id;
+    type = type;
   }
 
   split_frame(direction: FrameDirection, id?: string, type?: string): void {
@@ -1905,6 +1910,5 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.focus();
   }
 
-  public hide(): void {
-  }
+  public hide(): void {}
 }

@@ -8,13 +8,18 @@ const { webapp_client } = require("../../../webapp_client");
 import { meta_file } from "smc-util/misc";
 const { alert_message } = require("../../../alerts");
 
+export function redux_name(name: string, id: string): string {
+  return `jupyter-${id}-${name}`;
+}
+
 export function create_jupyter_actions(
-  name: string,
   redux,
+  name: string,
   path: string,
-  project_id: string
+  project_id: string,
+  id: string
 ): JupyterActions {
-  name = "jupyter-" + name;
+  name = redux_name(name, id);
   const actions = redux.createActions(name, JupyterActions);
   const store = redux.createStore(
     name,
@@ -51,11 +56,10 @@ export function create_jupyter_actions(
   return actions;
 }
 
-export function close_jupyter_actions(
-  redux,
-  jupyter_actions: JupyterActions
-): void {
-  const name = jupyter_actions.name;
+export function close_jupyter_actions(redux, name: string, id: string): void {
+  name = redux_name(name, id);
+  const jupyter_actions = redux.getActions(name);
+  if (jupyter_actions == null) return;
   const store = jupyter_actions.store;
   jupyter_actions.close();
 
