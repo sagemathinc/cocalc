@@ -5,7 +5,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
 
-import { CellNotebook } from "./cell-notebook";
+import { CellNotebook } from "./cell-notebook/cell-notebook";
 
 /*
 import { Log } from "./log";

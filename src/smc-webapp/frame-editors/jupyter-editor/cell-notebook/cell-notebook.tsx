@@ -2,9 +2,9 @@
 Frame that display a Jupyter notebook in the traditional way with input and output cells.
 */
 
-import { React, Rendered, Component } from "../../app-framework";
+import { React, Rendered, Component } from "../../../app-framework";
 
-import { JupyterEditor } from "../../jupyter/main";
+import { JupyterEditor } from "../../../jupyter/main";
 
 interface Props {
   id: string;
