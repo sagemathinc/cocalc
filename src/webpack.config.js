@@ -252,6 +252,7 @@ const assetsPlugin = new AssetsPlugin({
 
 // https://www.npmjs.com/package/html-webpack-plugin
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
@@ -425,6 +426,18 @@ if (COMP_ENV) {
       BASE_URL: base_url_html,
       PREFIX: "../"
     })
+  );
+
+  // analytics.js
+
+  staticPages.push(
+    new CopyWebpackPlugin([
+      {
+        from: "webapp-lib/cocalc-analytics.ts",
+        to: "cocalc-analytics.js",
+        force: true
+      }
+    ])
   );
 
   for (let infn of glob.sync("webapp-lib/doc/software-*.pug")) {
