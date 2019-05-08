@@ -255,7 +255,7 @@ class DiffBundler(object):
                 refs = True
 
             if not (bundle or refs):
-                print 'WARNING: there were no changes in the repository'
+                print('WARNING: there were no changes in the repository')
                 return
 
             if bundle:

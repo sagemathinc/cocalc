@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import os, sys
+import os
+import sys
 
 os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/..')
 
@@ -13,10 +14,10 @@ for i in range(1, len(sys.argv)):
 
 args = ' '.join(sys.argv[1:])
 if id != '':
-    cmd="cp run/hub.js run/hub%s.js && node run/hub%s.js %s"%(id, id, args)
+    cmd = "cp run/hub.js run/hub%s.js && node run/hub%s.js %s" % (id, id, args)
 else:
     cmd = "node --max-old-space-size=8000 run/hub.js " + args
-print cmd
+print(cmd)
 
 if os.WEXITSTATUS(os.system(cmd)):
     raise RuntimeError
