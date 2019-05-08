@@ -116,8 +116,8 @@ exports.init_express_http_server = (opts) ->
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
-    # save utm parameters and referrer in a (short lived) cookie or read it to fill in locals.utm
-    # webapp takes care of consuming it (see misc_page.get_utm)
+    # save utm parameters, referrer and landing page in a (short lived) cookie or read it to fill in locals.utm
+    # webapp takes care of consuming it (see misc_page.get_utm, etc.)
     router.use (req, res, next) ->
         # quickly return in the usual case
         if Object.keys(req.query).length == 0
@@ -128,7 +128,7 @@ exports.init_express_http_server = (opts) ->
         utm_cookie = req.cookies[misc.utm_cookie_name]
         if utm_cookie
             try
-                data = misc.from_json(window.decodeURIComponent(utm_cookie))
+                data = misc.from_json(utm_cookie)
                 utm = misc.merge(utm, data)
 
         for k, v of req.query
@@ -138,7 +138,7 @@ exports.init_express_http_server = (opts) ->
             utm[k] = v[...50] if k in misc.utm_keys
 
         if Object.keys(utm).length
-            utm_data = encodeURIComponent(JSON.stringify(utm))
+            utm_data = JSON.stringify(utm)
             res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
             res.locals.utm = utm
 
