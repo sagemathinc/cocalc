@@ -223,11 +223,21 @@ const APPS: IAPPS = {
     label: "Gedit",
     desc: "The GNOME text editor"
   },
+  scilab: {
+    desc: "A free and open source software for engineers & scientists",
+    label: "Scilab",
+    icon: "calculator"
+  },
   cadabra2: {
     command: "cadabra2-gtk",
     icon: "square-root-alt",
     label: "Cadabra 2",
     desc: "A field-theory motivated approach to computer algebra"
+  },
+  "vqe-playground": {
+    icon: "atom",
+    label: "VQE Playground",
+    desc: "Gaining intuition about Variational Quantum Eigensolver"
   }
 };
 

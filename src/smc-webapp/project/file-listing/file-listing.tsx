@@ -70,12 +70,17 @@ export class FileListing extends React.Component<Props> {
   }
 
   // Restore scroll position if one was set.
+  /*
+  Completely DISABLED since it horribly breaks things; Please
+      see https://github.com/sagemathinc/cocalc/issues/3804
+  for steps to reproduce.
   componentDidMount() {
     if (this.props.last_scroll_top != undefined && this.list_ref.current != null) {
       this.list_ref.current.scrollToPosition(this.props.last_scroll_top);
       this.current_scroll_top = this.props.last_scroll_top;
     }
   }
+  */
 
   // Updates usually mean someone changed so we update (not rerender) everything.
   // This avoids doing a bunch of diffs since things probably changed.

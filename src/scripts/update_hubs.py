@@ -11,4 +11,4 @@ import admin
 a = admin.Services('%s/conf/deploy_smc/' % SALVUS_ROOT, password='')
 
 for x in a._hosts('hub', 'cd salvus/salvus; . smc-env; ./update', timeout=60):
-    print x
+    print(x)

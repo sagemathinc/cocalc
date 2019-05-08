@@ -3,8 +3,8 @@ Minimal client class that we use for testing.
 */
 
 import { EventEmitter } from "events";
-import { keys } from "../../../../misc2";
-import { bind_methods, once } from "../../../../async-utils";
+import { bind_methods, keys } from "../../../../misc2";
+import { once } from "../../../../async-utils";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0

@@ -15,4 +15,4 @@ for x in os.listdir(logs):
         cmd = "tail -n %s %s/%s  | grep -a BLOCKED | sort -k 6 -n |tail -1"%(n, logs,x)
         r = os.popen(cmd).read().strip()
         if r:
-            print "%s: %s"%(x, r)
+            print("%s: %s" % (x, r))

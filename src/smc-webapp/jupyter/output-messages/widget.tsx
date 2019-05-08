@@ -39,7 +39,7 @@ interface WidgetProps {
 interface WidgetState {
   outputs?: Map<string, any>;
   style?: any;
-  react_view?: List<string>;
+  react_view?: List<string> | string;
 }
 
 export class Widget0 extends Component<WidgetProps, WidgetState> {
@@ -145,6 +145,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     const state = this.model.get_state(true);
     if (state == null) {
       this.setState({ react_view: undefined });
+      return;
+    }
+    if (state.children == null) {
+      // special case for now when not a container but implemented in react.s
+      this.setState({ react_view: "unknown" });
       return;
     }
     const react_view: string[] = [];
@@ -294,6 +299,20 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
   render_react_view(): Rendered {
     if (this.state.react_view == null) return;
+    if (typeof this.state.react_view == "string") {
+      return (
+        <div style={{ margin: "5px" }}>
+          <a
+            style={{ color: "white", background: "red", padding: "5px" }}
+            href={"https://github.com/sagemathinc/cocalc/issues/3806"}
+            target={"_blank"}
+            rel={"noopener noreferrer"}
+          >
+            Unsupported Third Party Widget <code>{this.model.module}.{this.model.name}</code>...
+          </a>
+        </div>
+      );
+    }
     if (this.model == null) return;
     switch (this.model.name) {
       case "TabModel":
@@ -303,6 +322,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
       case "HBoxModel":
       case "VBoxModel":
       case "GridBoxView":
+      case "BoxModel":
         return this.render_react_box_view();
       default:
         // better than nothing.
@@ -312,6 +332,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
   render_react_tab_view(): Rendered {
     if (this.state.react_view == null) return;
+    if (typeof this.state.react_view == "string") return;
     if (this.model == null) return;
 
     const v: Rendered[] = [];
@@ -346,6 +367,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
   render_react_accordion_view(): undefined | Rendered {
     if (this.state.react_view == null) return;
+    if (typeof this.state.react_view == "string") return;
     if (this.model == null) return;
     return (
       <div>
@@ -366,6 +388,7 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
 
   render_react_box_view(): undefined | Rendered {
     if (this.state.react_view == null) return;
+    if (typeof this.state.react_view == "string") return;
     const v: Rendered[] = [];
     let i = 0;
     for (let model_id of this.state.react_view.toJS()) {
@@ -382,6 +405,9 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     // todo -- this is hackish; fix later.
     let cls = "jupyter-widgets widget-container";
     switch (this.model.name) {
+      case "BoxModel":
+        cls += " widget-box";
+        break;
       case "HBoxModel":
         cls += " widget-box widget-hbox";
         break;

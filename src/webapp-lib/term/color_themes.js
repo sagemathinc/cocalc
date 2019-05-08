@@ -1,7 +1,7 @@
-Terminal.color_schemes = {
-  "solarized-dark": {
-    comment: "Solarized dark",
-    colors: [
+Terminal.color_schemes={
+  "solarized-dark":{
+    "comment":"Solarized dark",
+    "colors":[
       "#eee8d5",
       "#dc322f",
       "#859900",
@@ -22,9 +22,9 @@ Terminal.color_schemes = {
       "#002b36"
     ]
   },
-  "solarized-light": {
-    comment: "Solarized light",
-    colors: [
+  "solarized-light":{
+    "comment":"Solarized light",
+    "colors":[
       "#073642",
       "#dc322f",
       "#859900",
@@ -45,9 +45,9 @@ Terminal.color_schemes = {
       "#fdf6e3"
     ]
   },
-  "low-contrast": {
-    comment: "Low contrast dark",
-    colors: [
+  "low-contrast":{
+    "comment":"Low contrast dark",
+    "colors":[
       "#222222",
       "#9e5641",
       "#6c7e55",
@@ -68,9 +68,9 @@ Terminal.color_schemes = {
       "#343434"
     ]
   },
-  "raven-dark": {
-    comment: "Raven dark",
-    colors: [
+  "raven-dark":{
+    "comment":"Raven dark",
+    "colors":[
       "#3f3e3b",
       "#b36b65",
       "#4f8c61",
@@ -91,9 +91,9 @@ Terminal.color_schemes = {
       "#32312e"
     ]
   },
-  default: {
-    comment: "Default black on white",
-    colors: [
+  "default":{
+    "comment":"Default black on white",
+    "colors":[
       "#2e3436",
       "#cc0000",
       "#4e9a06",
@@ -114,9 +114,9 @@ Terminal.color_schemes = {
       "#ffffff"
     ]
   },
-  mono: {
-    comment: "Monochrome dark",
-    colors: [
+  "mono":{
+    "comment":"Monochrome dark",
+    "colors":[
       "#000000",
       "#434343",
       "#6b6b6b",
@@ -137,9 +137,9 @@ Terminal.color_schemes = {
       "#282828"
     ]
   },
-  tango: {
-    comment: "Tango light",
-    colors: [
+  "tango":{
+    "comment":"Tango light",
+    "colors":[
       "#2e3436",
       "#cc0000",
       "#4e9a06",
@@ -160,9 +160,9 @@ Terminal.color_schemes = {
       "#ffffff"
     ]
   },
-  infred: {
-    comment: "Infinite red dark",
-    colors: [
+  "infred":{
+    "comment":"Infinite red dark",
+    "colors":[
       "#6c6c6c",
       "#e9897c",
       "#b6e77d",
@@ -183,9 +183,9 @@ Terminal.color_schemes = {
       "#101010"
     ]
   },
-  "raven-light": {
-    comment: "Raven light",
-    colors: [
+  "raven-light":{
+    "comment":"Raven light",
+    "colors":[
       "#e7dfd5",
       "#f46864",
       "#00ae58",
@@ -206,4 +206,4 @@ Terminal.color_schemes = {
       "#faf0e6"
     ]
   }
-};
+}

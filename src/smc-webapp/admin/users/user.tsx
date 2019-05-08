@@ -20,20 +20,34 @@ import { Activity } from "./activity";
 
 import { Impersonate } from "./impersonate";
 
+import { PasswordReset } from "./password-reset";
+
 interface State {
   projects: boolean;
   subscriptions: boolean;
   activity: boolean;
   impersonate: boolean;
+  password: boolean;
 }
 
 interface Props extends User {
   header?: boolean;
 }
 
-type More = "projects" | "subscriptions" | "activity" | "impersonate";
+type More =
+  | "projects"
+  | "subscriptions"
+  | "activity"
+  | "impersonate"
+  | "password";
 
-const MORE: More[] = ["projects", "subscriptions", "activity", "impersonate"];
+const MORE: More[] = [
+  "projects",
+  "subscriptions",
+  "activity",
+  "impersonate",
+  "password"
+];
 
 export class UserResult extends Component<Props, State> {
   constructor(props, state) {
@@ -84,7 +98,20 @@ export class UserResult extends Component<Props, State> {
     if (!this.state.impersonate) {
       return;
     }
-    return <Impersonate account_id={this.props.account_id} first_name={this.props.first_name} last_name={this.props.last_name}/>;
+    return (
+      <Impersonate
+        account_id={this.props.account_id}
+        first_name={this.props.first_name}
+        last_name={this.props.last_name}
+      />
+    );
+  }
+
+  render_password(): Rendered {
+    if (!this.state.password) {
+      return;
+    }
+    return <PasswordReset email_address={this.props.email_address} />;
   }
 
   render_caret(show: boolean): Rendered {
@@ -120,6 +147,9 @@ export class UserResult extends Component<Props, State> {
         <Space />
         <Space />
         {this.render_more_link("impersonate")}
+        <Space />
+        <Space />
+        {this.render_more_link("password")}
       </div>
     );
   }
@@ -151,6 +181,7 @@ export class UserResult extends Component<Props, State> {
         {this.render_projects()}
         {this.render_activity()}
         {this.render_impersonate()}
+        {this.render_password()}
       </div>
     );
   }

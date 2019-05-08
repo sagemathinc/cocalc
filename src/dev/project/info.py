@@ -8,9 +8,8 @@ import util
 
 while True:
     try:
-        print "Visit       https://cocalc.com" + util.base_url() + '/app/\n'
-    except Exception, mesg:
-        print mesg
-        print "waiting..."
+        print("Visit       https://cocalc.com" + util.base_url() + '/app/\n')
+    except Exception as mesg:
+        print(mesg)
+        print("waiting...")
     time.sleep(15)
-

@@ -3,6 +3,7 @@ immutable = require('immutable')
 sha1 = require("sha1");
 
 # Internal Libraries
+{user_tracking} = require('../user-tracking')
 {Actions} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
@@ -88,6 +89,7 @@ class ChatActions extends Actions
         @setState(last_sent: mesg)
         @save()
         @set_input('')
+        user_tracking("send_chat", {project_id:@syncdb.project_id, path:@syncdb.path})
 
     set_editing: (message, is_editing) =>
         if not @syncdb?

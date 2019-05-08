@@ -24,6 +24,10 @@ exports.UpgradesPage = rclass
         project_map     : rtypes.object
         stripe_customer : rtypes.immutable.Map
 
+    reduxProps:
+        projects:
+            all_projects_have_been_loaded : rtypes.bool
+
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
@@ -108,7 +112,7 @@ exports.UpgradesPage = rclass
         # a project nobody has touched for a month, which has upgrades applied to it.
         @props.redux.getActions('projects').load_all_projects()
 
-        <Panel header={<h2>Upgrades from your subscriptions and course packages.</h2>}>
+        <Panel header={<h2>Upgrades from your subscriptions and course packages</h2>}>
             <Row key='header'>
                 <Col sm={2}>
                     <strong>Quota</strong>
@@ -128,7 +132,11 @@ exports.UpgradesPage = rclass
 
     render: ->
         if not @props.redux? or not @props.project_map?
-            return <Loading />
+            return <Loading theme={"medium"}  />
+        if not @props.all_projects_have_been_loaded
+            # See https://github.com/sagemathinc/cocalc/issues/3802
+            @props.redux.getActions('projects').load_all_projects()
+            return <Loading theme={"medium"} />
         if not @props.stripe_customer?.getIn(['subscriptions', 'total_count'])
             @render_no_upgrades()
         else
