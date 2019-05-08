@@ -3046,11 +3046,25 @@ message({
 // client --> hub
 // It's an error if user is not signed in, since
 // then we don't know who to track.
-API(
-  message({
-    event: "user_tracking",
-    id: undefined,
-    evt: required, // string -- the event being tracked (max length 80 characters)
-    value: required // map -- additional info about that event
-  })
-);
+message({
+  event: "user_tracking",
+  id: undefined,
+  evt: required, // string -- the event being tracked (max length 80 characters)
+  value: required // map -- additional info about that event
+});
+
+// Client <--> hub.
+// Enables admins (and only admins!) to generate and get a password reset
+// for another user.  The response message contains a password reset link,
+// though without the site part of the url (the client should fill that in).
+// This makes it possible for admins to reset passwords of users, even if
+// email is not setup, e.g., for cocalc-docker, and also deals with the
+// possibility that users have no email address, or broken email, or they
+// can't receive email due to crazy spam filtering.
+// Non-admins always get back an error.  The reset expires after **8 hours**.
+message({
+  event: "admin_reset_password",
+  id: undefined,
+  email_address: required,
+  link: undefined
+});
