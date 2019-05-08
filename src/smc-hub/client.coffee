@@ -34,6 +34,9 @@ db_schema            = require('smc-util/db-schema')
 underscore = require('underscore')
 
 {callback} = require('awaiting')
+{callback2} = require('smc-util/async-utils')
+
+{record_user_tracking} = require('./postgres/user-tracking')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -952,7 +955,6 @@ class exports.Client extends EventEmitter
 
         project_id = undefined
         project    = undefined
-        location   = undefined
 
         async.series([
             (cb) =>
@@ -1032,9 +1034,11 @@ class exports.Client extends EventEmitter
                 project.read_file
                     path : mesg.path
                     cb   : (err, content) =>
-                        if not err
-                            v.push(content.blob.toString())
-                        cb(err)
+                        if err
+                            v.push({path:mesg.path, project_id:mesg.project_id, error:err})
+                        else
+                            v.push({path:mesg.path, project_id:mesg.project_id, content:content.blob.toString()})
+                        cb()
         paths = []
         for i in [0...mesg.project_id.length]
             paths.push({id:mesg.id, path:mesg.path[i], project_id:mesg.project_id[i]})
@@ -2721,4 +2725,34 @@ class exports.Client extends EventEmitter
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"unable to get syncdoc history for string_id #{mesg.string_id} -- #{err}")
+
+    mesg_user_tracking: (mesg) =>
+        dbg = @dbg("mesg_user_tracking")
+        try
+            if not @account_id
+                throw Error("you must be signed in to record a tracking event")
+            await record_user_tracking(@database, @account_id, mesg.evt, mesg.value)
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"unable to record user_tracking event #{mesg.evt} -- #{err}")
+
+    mesg_admin_reset_password: (mesg) =>
+        dbg = @dbg("mesg_reset_password")
+        dbg(mesg.email_address)
+        try
+            if not misc.is_valid_email_address(mesg.email_address)
+                throw Error("invalid email address")
+            await callback(@assert_user_is_in_group, 'admin')
+            if not await callback2(@database.account_exists, {email_address : mesg.email_address})
+                throw Error("no such account with email #{mesg.email_address}")
+            # We now know that there is an account with this email address.
+            # put entry in the password_reset uuid:value table with ttl of 8 hours.
+            id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:8*60*60});
+            mesg.link = "/app#forgot-#{id}"
+            @push_to_client(mesg)
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
 

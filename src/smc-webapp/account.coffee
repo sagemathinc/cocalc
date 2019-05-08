@@ -121,3 +121,8 @@ exports.default_filename = (ext, project_id) ->
     else
         return new_filenames_generator.gen(type)
 
+
+# Ensure the hooks to process various things after user signs in
+# are enabled.
+require('./landing-page/sign-in-hooks')
+

@@ -29,7 +29,7 @@ def log(s, *args):
     if args:
         try:
             s = str(s % args)
-        except Exception, mesg:
+        except Exception as mesg:
             s = str(mesg) + str(s)
     sys.stderr.write(s + '\n')
     sys.stderr.flush()
@@ -130,7 +130,7 @@ class Firewall(object):
             log("delete_rule: %s", rule)
             try:
                 self.iptables(['-D'] + rule)
-            except Exception, mesg:
+            except Exception as mesg:
                 log("delete_rule error -- %s", mesg)
                 # checking for exists is not 100% for uid rules module
                 pass
@@ -287,7 +287,7 @@ class Firewall(object):
                 try:
                     for x in rules(user):
                         self.insert_rule(x, force=True)
-                except Exception, mesg:
+                except Exception as mesg:
                     log("\nWARNING whitelisting user: %s\n",
                         str(mesg).splitlines()[:-1])
 
@@ -350,11 +350,11 @@ if __name__ == "__main__":
             kwds = dict([(k, getattr(args, k)) for k in special])
             try:
                 result = getattr(Firewall(), function)(**kwds)
-            except Exception, mesg:
+            except Exception as mesg:
                 raise  #-- for debugging
                 errors = True
                 result = {'error': str(mesg)}
-            print json.dumps(result)
+            print(json.dumps(result))
             if errors:
                 sys.exit(1)
 

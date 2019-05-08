@@ -10,7 +10,7 @@ for x in os.listdir(logs):
             n = int(s.split('=')[1].split()[0])
         except:
             n = 0
-        print "%-10s"%x, n
+        print("%-10s" % x, n)
         m += n
 
-print "%-10s"%"total", m
+print("%-10s" % "total", m)
