@@ -191,18 +191,33 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
+  question_blur() {
+    const question: string = ReactDOM.findDOMNode(this.refs.question).value;
+    if (!question) return;
+    try {
+      // We store the question in localStorage.
+      // It can get saved to the backend (associated
+      // with their account) once they have signed in
+      // or created an account in some way.
+      localStorage.sign_up_how_find_cocalc = question;
+    } catch (err) {
+      // silently fail -- only for analytics.
+    }
+  }
+
   render_question() {
     return (
       <>
-        <span>What would you like to do with CoCalc? (optional)</span>
+        <div style={{ marginBottom: "5px" }}>
+          Where did you find out about CoCalc? (optional)
+        </div>
         <FormGroup>
           <FormControl
-            disabled={!this.state.terms_checkbox}
             name="question"
             ref="question"
             type="text"
             autoFocus={false}
-            placeholder="Enter some keywords"
+            onBlur={this.question_blur.bind(this)}
           />
         </FormGroup>
       </>
@@ -255,6 +270,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <Well style={well_style}>
         <AccountCreationEmailInstructions />
+        {this.render_question()}
         {this.render_terms()}
         {this.render_creation_form()}
         <div style={{ textAlign: "center" }}>

@@ -3,7 +3,7 @@ import os, json
 join = os.path.join
 
 def cmd(s):
-    print s
+    print(s)
     if os.system(s):
         raise RuntimeError
 

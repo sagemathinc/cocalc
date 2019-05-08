@@ -43,21 +43,21 @@ def update_hosts(args):
     try:
         import boto
     except ImportError:
-        print "Error: Could not import boto module. Try \'sudo apt-get install python-boto\'."
+        print("Error: Could not import boto module. Try \'sudo apt-get install python-boto\'.")
         exit()
 
     try:
         conn = boto.connect_route53()
     except boto.exception.NoAuthHandlerFound:
-        print "\n\nNo AWS authentication credientials found."
-        print "Credentials shoud be stored in the file ~/.boto"
+        print("\n\nNo AWS authentication credientials found.")
+        print("Credentials shoud be stored in the file ~/.boto")
         exit()
 
     zone = conn.get_zone(args.domain)
 
     if zone is None:
-        print "Error: Could not execute the Route53 action get_zone for zone %s." % (
-            domain)
+        print("Error: Could not execute the Route53 action get_zone for zone %s." % (
+            domain))
         exit()
 
     hosts = load_hosts(args.hosts_file)
@@ -70,11 +70,11 @@ def update_hosts(args):
         fqdn = hostname + '.' + args.domain
 
         if zone.find_records(fqdn, 'A'):
-            print "%s exists, updating address to %s" % (fqdn, address)
+            print("%s exists, updating address to %s" % (fqdn, address))
             zone.update_a(fqdn, address, args.ttl)
         else:
-            print "%s not found, creating new record with address %s" % (
-                fqdn, address)
+            print("%s not found, creating new record with address %s" % (
+                fqdn, address))
             zone.add_a(fqdn, address, args.ttl)
 
 

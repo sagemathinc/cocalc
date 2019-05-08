@@ -418,6 +418,7 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
 
     propTypes :
         project_id : rtypes.string
+        is_active : rtypes.bool
 
     on_sort_end : ({oldIndex, newIndex}) ->
         @actions(name).move_file_tab({old_index:oldIndex, new_index:newIndex, open_files_order:@props.open_files_order})
@@ -559,6 +560,14 @@ exports.ProjectPage = ProjectPage = rclass ({name}) ->
     render_project_content: (active_path, group) ->
         v = []
         if @props.active_project_tab.slice(0, 7) != 'editor-'  # fixed tab
+            if !@props.is_active
+                # see https://github.com/sagemathinc/cocalc/issues/3799
+                # Some of the fixed project tabs (none editors) are hooked
+                # into redux and moronic about rendering everything on every
+                # tiny change... Until that is fixed, it is critical to NOT
+                # render these pages at all, unless the tab is active
+                # and they are visible.
+                return
             v.push <ProjectContentViewer
                 key             = {@props.active_project_tab}
                 is_visible      = {true}

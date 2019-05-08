@@ -32,7 +32,7 @@ cd $TRAVIS_BUILD_DIR/src/smc-webapp/; npm test -- --ci
 cd $TRAVIS_BUILD_DIR/src/smc-util/sync/
 npx -q jest
 
-# synctable
+# smc-util tests
 cd $TRAVIS_BUILD_DIR/src/smc-util/
 export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee
 

@@ -1093,8 +1093,8 @@ message({
   url: required
 });
 
-// The client sends this message to the hub in order to write (or
-// create) a plain text file (binary files not allowed, since sending
+// The client sends this message to the hub in order to read
+// a plain text file (binary files not allowed, since sending
 // them via JSON makes no sense).
 // client --> hub
 API(
@@ -1107,7 +1107,8 @@ API(
       },
       project_id: {
         init: required,
-        desc: "id of project containing file to be read (or array of project_id's)"
+        desc:
+          "id of project containing file to be read (or array of project_id's)"
       },
       path: {
         init: required,
@@ -1123,10 +1124,10 @@ and containing directories if they do not already exist.
 
 You can also read multiple project_id/path's at once by
 making project_id and path arrays (of the same length).
-In that case, the resulting content will be an array
-of the resulting content strings, in the same order
-in which they were requested.
-
+In that case, the result will be an array
+of {project_id, path, content} objects, in some
+random order.  If there is an error reading a particular
+file, instead {project_id, path, error} is included.
 
 Example:
 
@@ -1150,7 +1151,6 @@ message({
   id: required,
   content: required
 });
-
 
 // The write_file_to_project message is sent from the hub to the
 // project_server to tell the project_server to write a file to a
@@ -1456,11 +1456,13 @@ API(
       },
       project_id: {
         init: required,
-        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
+        desc:
+          "project_id of project to add user to (can be an array to add multiple users to multiple projects)"
       },
       account_id: {
         init: required,
-        desc: "account_id of user (can be an array to add multiple users to multiple projects)"
+        desc:
+          "account_id of user (can be an array to add multiple users to multiple projects)"
       }
     },
     desc: `\
@@ -3033,4 +3035,30 @@ message({
   event: "syncdoc_history",
   id: undefined,
   history: required
+});
+
+// client --> hub
+// It's an error if user is not signed in, since
+// then we don't know who to track.
+message({
+  event: "user_tracking",
+  id: undefined,
+  evt: required, // string -- the event being tracked (max length 80 characters)
+  value: required // map -- additional info about that event
+});
+
+// Client <--> hub.
+// Enables admins (and only admins!) to generate and get a password reset
+// for another user.  The response message contains a password reset link,
+// though without the site part of the url (the client should fill that in).
+// This makes it possible for admins to reset passwords of users, even if
+// email is not setup, e.g., for cocalc-docker, and also deals with the
+// possibility that users have no email address, or broken email, or they
+// can't receive email due to crazy spam filtering.
+// Non-admins always get back an error.  The reset expires after **8 hours**.
+message({
+  event: "admin_reset_password",
+  id: undefined,
+  email_address: required,
+  link: undefined
 });
