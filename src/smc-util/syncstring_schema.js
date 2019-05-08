@@ -519,7 +519,7 @@ schema.eval_inputs = {
   fields: {
     string_id: {
       pg_type: "CHAR(40)",
-      desc: "id of the syncdoc that this eval_inputs table."
+      desc: "id of the syncdoc that this eval_inputs table is attached to"
     },
     time: {
       type: "timestamp",
@@ -645,3 +645,71 @@ schema.eval_outputs = {
 };
 
 schema.eval_outputs.project_query = schema.eval_outputs.user_query;
+
+schema.ipywidgets = {
+  primary_key: ["string_id", "model_id", "type"],
+  durability: "soft", // actually only used as ephemeral table in project right now...
+  // but persisting to the database could be interesting (e.g.,
+  // so last state of widgets appears properly on share server?)
+  fields: {
+    string_id: {
+      pg_type: "CHAR(40)",
+      desc:
+        "id of the syncdoc that this widget is associated to (the Jupyter notebook)."
+    },
+    model_id: {
+      pg_type: "CHAR(32)",
+      desc: "the id of the comm that this is data about"
+    },
+    type: {
+      pg_type: "CHAR(5)",
+      desc: "type of info associated to this comm: 'state' or 'value' or 'outpu'"
+    },
+    data: {
+      type: "map",
+      desc: "actual info of the given type about the widget"
+    }
+  },
+  user_query: {
+    get: {
+      fields: {
+        string_id: null,
+        model_id: null,
+        type: null,
+        data: null
+      },
+      check_hook(db, obj, account_id, project_id, cb) {
+        return db._syncstring_access_check(
+          obj.string_id,
+          account_id,
+          project_id,
+          cb
+        );
+      }
+    },
+    set: {
+      fields: {
+        string_id: true,
+        model_id: true,
+        type: true,
+        data: true
+      },
+      required_fields: {
+        string_id: true,
+        model_id: true,
+        type: true,
+        data: true
+      },
+      check_hook(db, obj, account_id, project_id, cb) {
+        return db._syncstring_access_check(
+          obj.string_id,
+          account_id,
+          project_id,
+          cb
+        );
+      }
+    }
+  }
+};
+
+schema.ipywidgets.project_query = schema.ipywidgets.user_query;

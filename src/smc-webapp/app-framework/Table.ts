@@ -37,7 +37,7 @@ export abstract class Table {
 
   async set(
     changes: object,
-    merge?: any,
+    merge?: "deep" | "shallow" | "none",
     cb?: (error?: string) => void
   ): Promise<void> {
     let e: undefined | string = undefined;

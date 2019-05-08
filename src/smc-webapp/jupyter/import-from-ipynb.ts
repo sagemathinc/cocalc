@@ -412,7 +412,11 @@ export function remove_redundant_reps(data?: any) {
   }
   if (keep != null) {
     for (let type in data) {
-      if (type !== keep) {
+      // NOTE: we only remove multiple reps that are both in JUPYTER_MIMETYPES;
+      // if there is another rep that is NOT in JUPYTER_MIMETYPES, then it is
+      // not removed, e.g., application/vnd.jupyter.widget-view+json and
+      // text/plain both are types of representation of a widget.
+      if (util.JUPYTER_MIMETYPES[type] !== undefined && type !== keep) {
         delete data[type];
       }
     }

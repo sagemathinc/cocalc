@@ -1,5 +1,7 @@
 /*
-Channels used for optimizing realtime sync.
+Channels used for maybe nothing right now.
+
+I thought this would be useful, but it hasn't yet turned out to be.
 */
 
 import { EventEmitter } from "events";

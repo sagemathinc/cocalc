@@ -33,13 +33,13 @@ import os, sys
 
 
 def cmd(args, exit_on_error=True):
-    print ' '.join(args)
+    print(' '.join(args))
     out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
     e = out.wait()
     stdout = out.stdout.read()
     stderr = out.stderr.read()
     if e:
-        print "ERROR --", e
+        print("ERROR --", e)
         sys.stdout.write(stdout)
         sys.stderr.write(stderr)
         sys.stdout.flush()

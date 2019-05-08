@@ -46,6 +46,7 @@ interface CellOutputMessageProps {
   project_id?: string;
   directory?: string;
   actions?: JupyterActions; // optional  - not needed by most messages
+  name?: string;
   id?: string; // optional, and not usually needed either
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
 }
@@ -59,6 +60,7 @@ export class CellOutputMessage extends Component<CellOutputMessageProps> {
         project_id={this.props.project_id}
         directory={this.props.directory}
         actions={this.props.actions}
+        name={this.props.name}
         trust={this.props.trust}
         id={this.props.id}
       />
@@ -67,8 +69,9 @@ export class CellOutputMessage extends Component<CellOutputMessageProps> {
 }
 
 interface CellOutputMessagesProps {
-  actions?: any; // optional actions
   output: Map<string, any>; // the actual messages
+  actions?: any; // optional actions
+  name?: string;
   project_id?: string;
   directory?: string;
   scrolled?: boolean;
@@ -93,6 +96,7 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
         project_id={this.props.project_id}
         directory={this.props.directory}
         actions={this.props.actions}
+        name={this.props.name}
         trust={this.props.trust}
         id={this.props.id}
       />
@@ -124,6 +128,10 @@ export class CellOutputMessages extends Component<CellOutputMessagesProps> {
         v[k - 1].get("name") === name
       ) {
         // combine adjacent stdout / stderr messages...
+        let text = mesg.get("text");
+        if (typeof text != "string") {
+          text = `${text}`;
+        }
         v[k - 1] = v[k - 1].set(
           "text",
           v[k - 1].get("text") + mesg.get("text")

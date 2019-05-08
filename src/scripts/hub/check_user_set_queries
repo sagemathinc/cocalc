@@ -18,4 +18,4 @@ for x in os.listdir(logs):
             cmd = "grep -a user_set_query %s/%s |wc -l"%(logs,x)
         r = os.popen(cmd).read().strip()
         if r:
-            print "%s: %s"%(x, r)
+            print("%s: %s" % (x, r))
