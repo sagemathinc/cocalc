@@ -3,6 +3,7 @@ immutable = require('immutable')
 sha1 = require("sha1");
 
 # Internal Libraries
+{user_tracking} = require('../user-tracking')
 {Actions} = require('../app-framework')
 {webapp_client} = require('../webapp_client')
 
@@ -88,6 +89,7 @@ class ChatActions extends Actions
         @setState(last_sent: mesg)
         @save()
         @set_input('')
+        user_tracking("send_chat", {project_id:@syncdb.project_id, path:@syncdb.path})
 
     set_editing: (message, is_editing) =>
         if not @syncdb?
@@ -154,6 +156,9 @@ class ChatActions extends Actions
 
     submit_user_mentions: (project_id, path) =>
         CONTEXT_SIZE = 80
+        account_store = @redux.getStore('account')
+        if account_store == undefined
+            return
         @store.get('unsent_user_mentions').map((mention) =>
             end_of_mention_index = mention.get('plainTextIndex') + mention.get('display').length
             end_of_context_index = end_of_mention_index + CONTEXT_SIZE
@@ -172,6 +177,7 @@ class ChatActions extends Actions
                 target: mention.get('id')
                 priority: 2
                 description: description
+                source: account_store.get_account_id()
             })
         )
         @setState(unsent_user_mentions: immutable.List())

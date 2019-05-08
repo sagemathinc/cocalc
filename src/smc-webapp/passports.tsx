@@ -72,7 +72,7 @@ export class Passports extends React.Component<Props> {
     }
     if (this.props.disabled) {
       return (
-        <span style={style}>
+        <span key={name} style={style}>
           <Tip
             placement="bottom"
             title={title}

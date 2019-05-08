@@ -20,8 +20,8 @@ def stop_server():
     try:
         cmd("kill %s"%(open(os.path.join(PG_DATA, 'postmaster.pid')).read().split()[0]))
         time.sleep(3)
-    except Exception, err:
-        print "WARNING", err
+    except Exception as err:
+        print("WARNING ", err)
 
 
 if __name__ == '__main__':
@@ -50,4 +50,3 @@ if __name__ == '__main__':
 
     # Start database daemon listening on all network interfaces.
     cmd("postgres -h 0.0.0.0 -D '%s' >%s/postgres.log 2>&1 &"%(PG_DATA, PG_DATA))
-

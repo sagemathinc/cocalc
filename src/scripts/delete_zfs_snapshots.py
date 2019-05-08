@@ -19,6 +19,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
+from __future__ import print_function
 
 # Delete all snapshots of a given ZFS filesystem but **NOT** of descendant filesystems
 # Or -- if filesystem='90d', delete all snapshots of all filesystems whose name ends in "--90d".
@@ -29,7 +30,7 @@ from subprocess import Popen, PIPE
 
 def cmd(v):
     t = time.time()
-    print ' '.join(v),
+    print(' '.join(v), end=" ")
     sys.stdout.flush()
     out = Popen(v, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
     x = out.stdout.read()
@@ -37,37 +38,37 @@ def cmd(v):
     e = out.wait()
     if e:
         raise RuntimeError(y)
-    print "    (%.2f seconds)" % (time.time() - t)
+    print("    (%.2f seconds)" % (time.time() - t))
     return x
 
 
 def delete_snapshots(filesystem):
 
     if filesystem == '90d':
-        print "deleting all snapshots of any filesystem in any pool that contain '--90d\\t'"
+        print("deleting all snapshots of any filesystem in any pool that contain '--90d\\t'")
         x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot'])
 
         # take only those ending in --90d
         lines = [t for t in x.splitlines() if '--90d\t' in t]
 
     else:
-        print "deleting snapshots of filesystem %s" % filesystem
+        print("deleting snapshots of filesystem %s" % filesystem)
         x = cmd(['zfs', 'list', '-H', '-r', '-t', 'snapshot', filesystem])
 
         # get rid of descendant filesystems in list.
         lines = [t for t in x.splitlines() if filesystem + "@" in t]
 
     total = len(lines)
-    print "%s snapshots to delete" % total
+    print("%s snapshots to delete" % total)
 
     i = 0
     for a in lines:
         if a:
             snapshot = a.split()[0]
-            print snapshot
+            print(snapshot)
             cmd(['zfs', 'destroy', snapshot])
             i += 1
-            print "%s/%s" % (i, total)
+            print("%s/%s" % (i, total))
 
 
 for filesystem in sys.argv[1:]:

@@ -27,7 +27,7 @@ def check(num):
             for s,lines,exclude in strings:
                 i = count(f, s, lines, exclude)
                 if i > 0:
-                    print 'last %s:'%lines, f, i, "'%s'"%s
+                    print('last %s:' % lines, f, i, "'%s'" % s)
 
 if len(sys.argv) == 1:
     sys.argv.append('50000')

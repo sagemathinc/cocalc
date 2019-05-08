@@ -96,7 +96,7 @@ class exports.Client extends EventEmitter
             DEBUG = true
 
     # use to define a logging function that is cleanly used internally
-    dbg: (f) =>
+    dbg: (f, trunc=1000) =>
         if DEBUG
             return (m...) ->
                 switch m.length
@@ -106,7 +106,7 @@ class exports.Client extends EventEmitter
                         s = m[0]
                     else
                         s = JSON.stringify(m)
-                winston.debug("Client.#{f}: #{misc.trunc_middle(s,1000)}")
+                winston.debug("Client.#{f}: #{misc.trunc_middle(s,trunc)}")
         else
             return (m) ->
 

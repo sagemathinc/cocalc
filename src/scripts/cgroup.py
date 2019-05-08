@@ -30,7 +30,7 @@ if not os.path.exists('/sys/fs/cgroup/memory'):
 
 
 def cmd(s, ignore_errors=False):
-    print s
+    print(s)
     out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
     x = out.stdout.read() + out.stderr.read()
     e = out.wait(

@@ -164,7 +164,17 @@ export class CodeExecutionEmitter extends EventEmitter
       (mesg.content != null ? mesg.content.execution_state : undefined) ===
       "idle";
 
-    this._push_mesg(mesg);
+    if (
+      (mesg.content != null ? mesg.content.comm_id : undefined) !== undefined
+    ) {
+      // A comm message that is a result of execution of this code.
+      // IGNORE here -- all comm messages are handles at a higher
+      // level in jupyter.ts.  Also, this case should never happen, since
+      // we do not emit an event from jupyter.ts in this case anyways.
+    } else {
+      // A normal output message.
+      this._push_mesg(mesg);
+    }
 
     if (this.iopub_done && this.shell_done) {
       this._finish();
@@ -198,7 +208,6 @@ export class CodeExecutionEmitter extends EventEmitter
     // dbg("push_mesg", mesg);
     const header = mesg.header;
     mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
-    // dbg("push_mesg after copy_with", mesg);
     mesg = deep_copy(mesg);
     if (header !== undefined) {
       mesg.msg_type = header.msg_type;
