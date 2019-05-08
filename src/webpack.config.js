@@ -433,8 +433,8 @@ if (COMP_ENV) {
   staticPages.push(
     new CopyWebpackPlugin([
       {
-        from: "webapp-lib/cocalc-analytics.ts",
-        to: "cocalc-analytics.js",
+        from: "webapp-lib/cocalc-analytics.js",
+        to: "analytics.js",
         force: true
       }
     ])
