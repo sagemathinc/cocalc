@@ -265,8 +265,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.set_local_storage("cur_id", this.store.get("cur_id"));
     this._state = "closed";
-    this.syncdb.close();
-    delete this.syncdb;
+    if (this.syncdb != null) {
+      this.syncdb.close();
+      delete this.syncdb;
+  }
     if (this._key_handler != null) {
       (this.redux.getActions("page") as any).erase_active_key_handler(
         this._key_handler

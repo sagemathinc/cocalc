@@ -23,7 +23,7 @@ interface Props {
 
 export class CellNotebook extends Component<Props, {}> {
   render(): Rendered {
-    const name = redux_name(this.props.name, this.props.id);
+    const name = redux_name(this.props.name);
     const actions = this.props.actions.redux.getActions(name);
     if (actions == null) {
       return <Loading />;

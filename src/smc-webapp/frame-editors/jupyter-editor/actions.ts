@@ -23,24 +23,23 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   _init2(): void {
-    this.init_new_frame();
+    this.create_jupyter_actions();
   }
 
   public close(): void {
+    this.close_jupyter_actions();
     super.close();
   }
 
+  /*
   init_new_frame(): void {
-    console.log("init_new_frame");
     this.store.on("new-frame", ({ id, type }) => {
-      console.log("new-frame", id, type);
       if (type !== "jupyter_cell_notebook") {
         return;
       }
       this.create_jupyter_actions(id);
     });
 
-    console.log(" this._get_leaf_ids() = ", this._get_leaf_ids());
     for (let id in this._get_leaf_ids()) {
       const node = this._get_frame_node(id);
       if (node == null) return;
@@ -52,24 +51,21 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   close_frame_hook(id: string, type: string): void {
-    console.log("close hook", id, type);
     if (type != "jupyter_cell_notebook") return;
-    this.close_jupyter_actions(id);
+    this.close_jupyter_actions();
   }
+  */
 
-  private create_jupyter_actions(id: string): void {
-    console.log("create actions", id);
-    create_jupyter_actions(
+  private create_jupyter_actions(): void {
+    this.jupyter_actions = create_jupyter_actions(
       this.redux,
       this.name,
       this.path,
-      this.project_id,
-      id
+      this.project_id
     );
   }
 
-  private close_jupyter_actions(id: string): void {
-    console.log("close actions", id);
-    close_jupyter_actions(this.redux, this.name, id);
+  private close_jupyter_actions(): void {
+    close_jupyter_actions(this.redux, this.name);
   }
 }

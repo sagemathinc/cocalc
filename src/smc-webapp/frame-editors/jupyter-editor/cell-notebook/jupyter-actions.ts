@@ -3,23 +3,24 @@ import {
   JupyterStore,
   initial_jupyter_store_state
 } from "../../../jupyter/store";
+
 import { syncdb2 as new_syncdb } from "../../generic/client";
+
 const { webapp_client } = require("../../../webapp_client");
 import { meta_file } from "smc-util/misc";
 const { alert_message } = require("../../../alerts");
 
-export function redux_name(name: string, id: string): string {
-  return `jupyter-${id}-${name}`;
+export function redux_name(name: string): string {
+  return `jupyter-${name}`;
 }
 
 export function create_jupyter_actions(
   redux,
   name: string,
   path: string,
-  project_id: string,
-  id: string
+  project_id: string
 ): JupyterActions {
-  name = redux_name(name, id);
+  name = redux_name(name);
   const actions = redux.createActions(name, JupyterActions);
   const store = redux.createStore(
     name,
@@ -56,8 +57,8 @@ export function create_jupyter_actions(
   return actions;
 }
 
-export function close_jupyter_actions(redux, name: string, id: string): void {
-  name = redux_name(name, id);
+export function close_jupyter_actions(redux, name: string): void {
+  name = redux_name(name);
   const jupyter_actions = redux.getActions(name);
   if (jupyter_actions == null) return;
   const store = jupyter_actions.store;
