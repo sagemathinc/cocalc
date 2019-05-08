@@ -61,5 +61,5 @@ for branch in branches:
 
 #open('logs.pickle','w').write(cPickle.dumps(logs))
 #open('files.pickle','w').write(cPickle.dumps(files))
-print json.dumps(logs,  separators=(',',':'))
-print json.dumps(files,  separators=(',',':'))
+print(json.dumps(logs,  separators=(',',':')))
+print(json.dumps(files,  separators=(',',':')))

@@ -13,6 +13,9 @@ import { query as client_query } from "./frame-editors/generic/client";
 import { callback, delay } from "awaiting";
 import { callback2, retry_until_success } from "smc-util/async-utils";
 
+import { NewFilenames } from "smc-webapp/project/utils";
+import { NEW_FILENAMES } from "smc-util/db-schema";
+
 let project_file, prom_get_dir_listing_h, wrapped_editors;
 if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
@@ -153,9 +156,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private _log_open_time: { [key: string]: { id: string; start: number } };
   private _activity_indicator_timers: { [key: string]: number };
   private _set_directory_files_lock: { [key: string]: Function[] };
+  private new_filename_generator;
 
   constructor(a, b) {
     super(a, b);
+    this.new_filename_generator = new NewFilenames("", false);
     this.destroy = this.destroy.bind(this);
     this._ensure_project_is_open = this._ensure_project_is_open.bind(this);
     this.get_store = this.get_store.bind(this);
@@ -256,6 +261,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.load_target = this.load_target.bind(this);
     this.show_extra_free_warning = this.show_extra_free_warning.bind(this);
     this.close_free_warning = this.close_free_warning.bind(this);
+    this.ask_filename = this.ask_filename.bind(this);
 
     this._log_open_time = {};
     this._activity_indicator_timers = {};
@@ -320,6 +326,36 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const store = this.get_store();
       if (store == undefined) return;
       this.setState({ [name]: !store.get(name) });
+    }
+  }
+
+  // if ext == null → hide dialog; otherwise ask for name with given extension
+  ask_filename(ext?: string): void {
+    if (ext != null) {
+      // this is either cached or undefined; that's good enough
+      const filenames = this.get_filenames_in_current_dir();
+      // this is the type of random name generator
+      const acc_store = this.redux.getStore("account") as any;
+      const dflt = NewFilenames.default_family;
+      const type = (function() {
+        if (acc_store != null) {
+          return acc_store.getIn(["other_settings", NEW_FILENAMES]);
+        } else {
+          return dflt;
+        }
+      })();
+      this.new_filename_generator.set_ext(ext);
+      this.setState({
+        new_filename: this.new_filename_generator.gen(type, filenames)
+      });
+    }
+    this.setState({ ext_selection: ext });
+  }
+
+  set_new_filename_family(family: string): void {
+    const acc_table = redux.getTable("account");
+    if (acc_table != null) {
+      acc_table.set({ other_settings: { [NEW_FILENAMES]: family } });
     }
   }
 
@@ -451,7 +487,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (opts.change_history) {
           this.push_state(`new/${store.get("current_path")}`);
         }
-        this.set_next_default_filename(require("./account").default_filename());
+        const new_fn = require("./account").default_filename(
+          undefined,
+          this.project_id
+        );
+        this.set_next_default_filename(new_fn);
         break;
       case "log":
         if (opts.change_history) {
@@ -1673,7 +1713,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  private _suggest_duplicate_filename(name: string): string | undefined {
+  // this isn't really an action, but very helpful!
+  public get_filenames_in_current_dir():
+    | { [name: string]: boolean }
+    | undefined {
     let store = this.get_store();
     if (store == undefined) {
       return;
@@ -1691,13 +1734,24 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         : undefined;
     if (typeof listing === "string") {
       // must be an error
-      return name; // simple fallback
+      return undefined; // simple fallback
     }
     if (listing != null) {
       listing.map(function(x) {
         files_in_dir[x.get("name")] = true;
       });
     }
+    return files_in_dir;
+  }
+
+  private _suggest_duplicate_filename(name: string): string | undefined {
+    let store = this.get_store();
+    if (store == undefined) {
+      return;
+    }
+
+    // fallback to name, simple fallback
+    const files_in_dir = this.get_filenames_in_current_dir() || name;
     // This loop will keep trying new names until one isn't in the directory
     while (true) {
       name = misc.suggest_duplicate_filename(name);

@@ -11,6 +11,8 @@ const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
 
+import { user_tracking } from "../user-tracking";
+
 interface ReactProps {
   project: {
     project_id: string;
@@ -169,12 +171,14 @@ export const ProjectRow = rclass<ReactProps>(
     };
 
     open_project_from_list = e => {
+      const project_id = this.props.project.project_id;
       this.props.redux.getActions("projects").open_project({
-        project_id: this.props.project.project_id,
+        project_id,
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
       analytics_event("projects_page", "opened_a_project");
+      user_tracking("open_project", { how: "projects_page", project_id });
     };
 
     open_project_settings = e => {

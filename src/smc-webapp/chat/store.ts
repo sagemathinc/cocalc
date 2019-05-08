@@ -15,6 +15,7 @@ export type MentionList = immutable.List<{
 interface ChatState {
   height: number; // 0 means not rendered; otherwise is the height of the chat editor
   input: string; // content of the input box
+  message_plain_text: string; // What the user sees in the chat box eg. stripped of internal mention markup
   is_preview?: boolean; // currently displaying preview of the main input chat
   last_sent?: string; // last sent message
   messages?: immutable.Map<any, any>;
@@ -36,6 +37,7 @@ export class ChatStore extends Store<ChatState> {
     return {
       height: 0,
       input: "",
+      message_plain_text: "",
       is_preview: undefined,
       last_sent: undefined,
       messages: undefined,

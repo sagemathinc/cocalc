@@ -14,6 +14,7 @@ const PADDING = 100;
 
 interface CellListProps {
   actions?: any; // if not defined, then everything read only
+  name?:string;
   cell_list: immutable.List<any>; // list of ids of cells in order
   cells: immutable.Map<any, any>;
   font_size: number;
@@ -252,21 +253,15 @@ export class CellList extends Component<CellListProps> {
 
     const v: any[] = [];
     this.props.cell_list.forEach((id: string) => {
-      let left, left1;
       const cell_data = this.props.cells.get(id);
       // is it possible/better idea to use the @actions.store here?
-      const editable =
-        (left = cell_data.getIn(["metadata", "editable"])) != null
-          ? left
-          : true;
-      const deletable =
-        (left1 = cell_data.getIn(["metadata", "deletable"])) != null
-          ? left1
-          : true;
+      const editable = cell_data.getIn(["metadata", "editable"], true);
+      const deletable = cell_data.getIn(["metadata", "deletable"], true);
       const cell = (
         <Cell
           key={id}
           actions={this.props.actions}
+          name={this.props.name}
           id={id}
           cm_options={this.props.cm_options}
           cell={cell_data}

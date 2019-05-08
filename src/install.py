@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import argparse, os, sys, time, urllib
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
@@ -18,17 +18,17 @@ def nice():
         os.nice(10)
         psutil.Process(os.getpid()).ionice(ioclass=psutil.IOPRIO_CLASS_IDLE)
     except:
-        print "WARNING: psutil not available so not re-nicing build of webapp"
+        print("WARNING: psutil not available so not re-nicing build of webapp")
 
 
 def cmd(s, error=True):
     t0 = time.time()
     os.chdir(SRC)
     s = "umask 022; " + s
-    print s
+    print(s)
     if os.system(s) and error:
         sys.exit(1)
-    print "TOTAL TIME: %.1f seconds" % (time.time() - t0)
+    print("TOTAL TIME: %.1f seconds" % (time.time() - t0))
 
 
 def thread_map(callable, inputs, nb_threads=None):
@@ -65,8 +65,8 @@ def install_project():
 
     thread_map(
         f,
-        './smc-util ./smc-util-node ./smc-project ./smc-webapp coffeescript forever'.
-        split())
+        './smc-util ./smc-util-node ./smc-project ./smc-webapp coffeescript forever'
+        .split())
 
     # UGLY; hard codes the path -- TODO: fix at some point.
     cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"
@@ -80,7 +80,9 @@ def install_project():
 
     # Pre-compile everything to Javascript, so that loading is much faster and more efficient.
     # This can easily save more than 2 seconds, given how big things have got.
-    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter")
+    cmd("cd /usr/lib/node_modules && coffee -c smc-util smc-util-node smc-webapp smc-project smc-project/jupyter smc-webapp/jupyter"
+        )
+
 
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:

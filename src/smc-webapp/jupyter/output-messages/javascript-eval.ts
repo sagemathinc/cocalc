@@ -4,7 +4,7 @@ element and whatever is available on window.  Obviously not "safe", but
 maybe safer/cleaner than nothing.
 */
 // element type = jquery wrapped element
-export function javascript_eval(line: string, element: any) : void {
+export function javascript_eval(line: string, element: any): string {
   let requirejs: any;
   let require: any;
   require = requirejs = () =>
@@ -19,9 +19,16 @@ export function javascript_eval(line: string, element: any) : void {
   // that "element" is being used so this will compile.
   element = element;
 
+  let define = (..._) => {
+    throw Error("Custom ipywidgets are not yet supported in CoCalc.");
+  };
+  define = define;
+
   try {
     eval(line);
   } catch (err) {
     console.warn(`Jupyter Eval Error: ${err} -- evaluating "${line}"`);
+    return `${err}`;
   }
+  return "";
 }
