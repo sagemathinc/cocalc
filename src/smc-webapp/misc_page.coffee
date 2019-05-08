@@ -1980,12 +1980,13 @@ exports.should_load_target_url = ->
 
 
 # get eventually available information form the utm cookie
+# cookies are always encodeURIComponent encoded
 # delete it afterwards
 exports.get_utm = ->
     c = exports.get_cookie(misc.utm_cookie_name)
     return if not c
     try
-        data = misc.from_json(c)
+        data = misc.from_json(decodeURIComponent(c))
         if DEBUG then console.log("get_utm cookie data", data)
         exports.delete_cookie(misc.utm_cookie_name)
         return data
@@ -1995,10 +1996,12 @@ exports.get_referrer = ->
     c = exports.get_cookie(misc.referrer_cookie_name)
     return if not c
     exports.delete_cookie(misc.referrer_cookie_name)
-    return c
+    try
+        return decodeURIComponent(c)
 
 exports.get_landing_page = ->
     c = exports.get_cookie(misc.landing_cookie_name)
     return if not c
     exports.delete_cookie(misc.landing_cookie_name)
-    return c
+    try
+        return decodeURIComponent(c)

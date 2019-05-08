@@ -139,6 +139,7 @@ exports.init_express_http_server = (opts) ->
 
         if Object.keys(utm).length
             utm_data = JSON.stringify(utm)
+            # attn: cookies are encodeURIComponent encoded
             res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
             res.locals.utm = utm
 

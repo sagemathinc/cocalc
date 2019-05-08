@@ -55,7 +55,7 @@ if (document.cookie.indexOf("; " + UTM_COOKIE + "=") === -1) {
   }
   if (write_cookie) {
     var data = JSON.stringify(utm);
-    document.cookie = UTM_COOKIE + "=" + data + cookie_tail;
+    document.cookie = UTM_COOKIE + "=" + encodeURIComponent(data) + cookie_tail;
   }
 }
 
@@ -67,12 +67,12 @@ if (
   var url = location.hostname.replace(".", "\\.");
   var re = new RegExp("://(.*.|)" + url + "/");
   if (!document.referrer.match(re)) {
-    document.cookie = REF_COOKIE + "=" + document.referrer + cookie_tail;
-  }
+    document.cookie = REF_COOKIE + "=" + encodeURIComponent(document.referrer) + cookie_tail;
+  }encodeURIComponent
 }
 
 // also keep a note about the very first landing page
 if (document.cookie.indexOf("; " + REF_LANDING + "=") === -1) {
   var landing = location.protocol + "//" + location.host + location.pathname;
-  document.cookie = REF_LANDING + "=" + landing + cookie_tail;
+  document.cookie = REF_LANDING + "=" + encodeURIComponent(landing) + cookie_tail;
 }
