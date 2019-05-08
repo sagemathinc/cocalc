@@ -2154,6 +2154,20 @@ class exports.Connection extends EventEmitter
             allow_post : true
             cb         : opts.cb
 
+    admin_reset_password: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb         : required
+        @call
+            message    : message.admin_reset_password(email_address:opts.email_address)
+            allow_post : true
+            error_event : true
+            cb         : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.link)
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

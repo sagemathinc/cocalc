@@ -7,7 +7,7 @@ import { callback2 } from "smc-util/async-utils";
 // This function should never raise an exception -- instead it
 // shows a warning in the console.
 export async function user_tracking(event: string, value: any): Promise<void> {
-  console.log("user_tracking", event, value);
+  // console.log("user_tracking", event, value);
   const { webapp_client } = require("./webapp_client");
   if (webapp_client == null) {
     console.warn("webapp_client not available");
