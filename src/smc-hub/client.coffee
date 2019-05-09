@@ -1354,6 +1354,9 @@ class exports.Client extends EventEmitter
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         dbg = @dbg('mesg_invite_noncloud_collaborators')
+        @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
+        return
+
         @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
