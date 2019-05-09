@@ -42,6 +42,7 @@ winston      = require('./winston-metrics').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc
+{DNS}        = require('smc-util/theme')
 
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
@@ -58,6 +59,8 @@ MetricsRecorder  = require('./metrics-recorder')
 
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
+
+analytics_js = fs.readFileSync("../webapp-lib/cocalc-analytics.js").toString().trim()
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
@@ -116,44 +119,6 @@ exports.init_express_http_server = (opts) ->
             res_finished_h({path:dir_path, method:req.method, code:res.statusCode})
         next()
 
-    # save utm parameters, referrer and landing page in a (short lived) cookie or read it to fill in locals.utm
-    # webapp takes care of consuming it (see misc_page.get_utm, etc.)
-    router.use (req, res, next) ->
-        # quickly return in the usual case
-        if Object.keys(req.query).length == 0
-            next()
-            return
-        utm = {}
-
-        utm_cookie = req.cookies[misc.utm_cookie_name]
-        if utm_cookie
-            try
-                data = misc.from_json(utm_cookie)
-                utm = misc.merge(utm, data)
-
-        for k, v of req.query
-            continue if not misc.startswith(k, 'utm_')
-            # untrusted input, limit the length of key and value
-            k = k[4...50]
-            utm[k] = v[...50] if k in misc.utm_keys
-
-        if Object.keys(utm).length
-            utm_data = JSON.stringify(utm)
-            # attn: cookies are encodeURIComponent encoded
-            res.cookie(misc.utm_cookie_name, utm_data, {path: '/', maxAge: ms('1 day'), httpOnly: false})
-            res.locals.utm = utm
-
-        referrer_cookie = req.cookies[misc.referrer_cookie_name]
-        if referrer_cookie
-            res.locals.referrer = referrer_cookie
-
-        landing_cookie = req.cookies[misc.landing_cookie_name]
-        if landing_cookie
-            res.locals.landing = landing_cookie
-
-        winston.debug("HTTP server: #{req.url} -- UTM: #{misc.to_json(res.locals.utm)}")
-        next()
-
     app.enable('trust proxy') # see http://stackoverflow.com/questions/10849687/express-js-how-to-get-remote-client-address
 
     # The webpack content. all files except for unhashed .html should be cached long-term ...
@@ -175,6 +140,37 @@ exports.init_express_http_server = (opts) ->
                   Disallow: /*/port/
                   Disallow: /haproxy
                   ''')
+        res.end()
+
+    # cocalc analytics: this extracts tracking information about lading pages, measure campaign performance, etc.
+    # 1. it sends a static js file (which is included in a script tag) to a page
+    # 2. a unique ID is generated and stored in a cookie
+    # 3. the script (should) send back a POST request, telling us about the UTM params, referral, and landing page
+    # 4. later, upon creating an account, we store that ID of the cookie and cross reference it
+    router.get '/analytics.js', (req, res) ->
+        # in case user was already here, do not send it again.
+        # only the first hit is interesting.
+        if req.cookies[misc.analytics_cookie_name]
+            res.write("")
+            res.end()
+
+        # set the cookie
+        analytics_token = misc.uuid()
+        res.cookie(misc.analytics_cookie_name, analytics_token, {path: '/', maxAge: ms('1 day'), httpOnly: true, domain: DNS})
+
+        # write response script
+        res.header("Content-Type", "text/javascript")
+        timeout = ms('1 day')
+        res.header('Cache-Control', "public, max-age='#{timeout}'")
+        res.write("var TOKEN = '#{analytics_token}';\n")
+        res.write("var DNS = '#{DNS}';\n")
+        res.write("var BASE_URL = '#{opts.base_url}';\n\n")
+        res.write(analytics_js)
+        res.end()
+
+    router.post '/analytics.js', (req, res) ->
+        winston.debug("/analytics.js POST: #{JSON.stringify(req.query)}")
+        res.send('OK')
         res.end()
 
     # The /static content

@@ -1,6 +1,8 @@
 //- if we have a GA token, insert the google analytics async script
 - var GOOGLE_ANALYTICS = htmlWebpackPlugin.options.GOOGLE_ANALYTICS
 - var DNS = htmlWebpackPlugin.options.theme.DNS
+- var BASE_URL = htmlWebpackPlugin.options.BASE_URL
+
 if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
     //--- Google Analytics ---
     script.
@@ -23,6 +25,5 @@ if typeof GOOGLE_ANALYTICS !== "undefined" && GOOGLE_ANALYTICS !== null
     script(async src='//www.google-analytics.com/analytics.js')
     //--- End Google Analytics ---
 
-//- cocalc native analytics
-script(type="text/javascript")
-    include cocalc-analytics.js
+//- cocalc analytics
+script(async type="text/javascript" src=BASE_URL + "/analytics.js")

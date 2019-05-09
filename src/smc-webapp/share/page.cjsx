@@ -4,7 +4,7 @@ Share server top-level landing page.
 
 {rclass, React, ReactDOM, rtypes} = require('../app-framework')
 
-{SITE_NAME, BASE_URL} = require('smc-util/theme')
+{SITE_NAME, BASE_URL, DNS} = require('smc-util/theme')
 
 {r_join, Space} = require('../r_misc')
 
@@ -65,7 +65,7 @@ exports.Page = rclass
         ]
 
     render_cocalc_analytics: ->
-        <script async={true} src={"https://dev.cocalc.com/static/analytics.js"}></script>
+        <script async={true} src={"https://#{DNS}/analytics.js" }></script>
 
     render: ->
         <html lang="en">
