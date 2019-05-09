@@ -17,6 +17,8 @@ import { callback2 } from "smc-util/async-utils";
 import { trunc } from "smc-util/misc2";
 import { callback, delay } from "awaiting";
 
+import { project_has_network_access } from "../postgres/project-queries";
+
 const { send_email } = require("../email");
 
 const { HELP_EMAIL } = require("smc-util/theme");
@@ -81,6 +83,12 @@ export async function handle_all_mentions(db: any): Promise<void> {
 
 async function determine_action(db: Database, key: Key): Promise<Action> {
   const { project_id, path, target } = key;
+  if (!(await project_has_network_access(db, project_id))) {
+    // Mentions are ignored when the project does not have network access.
+    // Otherwise, spammers could use @mentions to send emails.
+    // Users will still see mentions inside cocalc itself.
+    return "ignore";
+  }
   const result = await callback2(db._query, {
     query: `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${MIN_EMAIL_INTERVAL}'`,
     params: [project_id, path, target]

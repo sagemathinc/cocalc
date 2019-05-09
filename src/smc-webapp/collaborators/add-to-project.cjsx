@@ -148,6 +148,7 @@ exports.AddCollaborators = rclass
     render_send_email: ->
         if not @state.email_to
             return
+            
         <div>
             <hr />
             <Well>

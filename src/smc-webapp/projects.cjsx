@@ -449,7 +449,7 @@ class ProjectsActions extends Actions
             cb           : (err, resp) =>
                 if not silent
                     if err
-                        alert_message(type:'error', message:err)
+                        alert_message(type:'error', message:err, timeout:60)
                     else
                         alert_message(message:resp.mesg)
 

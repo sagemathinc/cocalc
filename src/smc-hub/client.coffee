@@ -37,6 +37,7 @@ underscore = require('underscore')
 {callback2} = require('smc-util/async-utils')
 
 {record_user_tracking} = require('./postgres/user-tracking')
+{project_has_network_access} = require('./postgres/project-queries')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -1280,10 +1281,17 @@ class exports.Client extends EventEmitter
 
                 (cb) =>
                     if locals.done or (not locals.email_address)
+                        dbg("NOT send_email invite to #{locals.email_address}")
                         cb(); return
 
                     cb()  # we return early, because there is no need to let someone wait for sending the email
 
+                    # do not send email if project doesn't have network access:
+                    if (not await project_has_network_access(@database, mesg.project_id))
+                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access")
+                        return
+
+                    dbg("send_email invite to #{locals.email_address}")
                     # available message fields
                     # mesg.title            - title of project
                     # mesg.link2proj
@@ -1354,8 +1362,20 @@ class exports.Client extends EventEmitter
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         dbg = @dbg('mesg_invite_noncloud_collaborators')
-        @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
-        return
+
+        #
+        # Uncomment this in case of attack by evil forces:
+        #
+        ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
+        ## return
+
+        if (not await project_has_network_access(@database, mesg.project_id))
+            # In practice, the frontend client should always prevent ever having to do this
+            # check.  However, a malicious user controls the frontend, so we must still make
+            # this check anyways.
+            dbg("NOT send_email invites due to no network access; in fact don't even make the invite!")
+            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. You must first upgrade this project to have the 'Internet Access' quota.");
+            return
 
         @touch()
         @get_project mesg, 'write', (err, project) =>
@@ -1430,6 +1450,7 @@ class exports.Client extends EventEmitter
                                         cb()
                     (cb) =>
                         if done
+                            dbg("NOT send_email invite to #{email_address}")
                             cb()
                         else
                             cb()
@@ -1472,6 +1493,7 @@ class exports.Client extends EventEmitter
                                         project_id : mesg.project_id
                                         to         : email_address
                                         error      : err
+                            dbg("send_email invite to #{email_address}")
                             send_email(opts)
 
                 ], cb)
