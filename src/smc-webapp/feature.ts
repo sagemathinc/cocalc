@@ -25,7 +25,13 @@
 //
 //###################################################
 
-declare const DEBUG: boolean;
+export const { DEBUG } = require("./debug");
+
+export function debug(...args): void {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
 
 let IS_MOBILE,
   IS_TOUCH,
@@ -37,7 +43,7 @@ let IS_MOBILE,
 
 if ((global as any).window != undefined) {
   // In a web browser.
-  const window : any = (global as any).window;
+  const window: any = (global as any).window;
   const navigator = window.navigator;
 
   let { $ } = window;

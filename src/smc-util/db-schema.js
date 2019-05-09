@@ -1735,23 +1735,31 @@ schema.system_notifications = {
     priority: {
       type: "string",
       pg_type: "VARCHAR(6)",
-      desc: 'one of "low", "medium", or "high"'
+      desc: 'one of "info" or "high"'
     },
     done: {
       type: "boolean",
       desc: "if true, then this notification is no longer relevant"
     }
   },
+  pg_indexes: ["time"],
   user_query: {
     get: {
-      pg_where: ["time >= NOW() - INTERVAL '1 hour'"],
-      pg_changefeed: "one-hour",
+      // pg_where: ["time >= NOW() - INTERVAL '1 hour'"],
+      // pg_changefeed: "one-hour",
+      pg_where: [],
+      // pg_where: ["time >= NOW() - interval '100 days'"],
+      //pg_changefeed: "quarter",
+      options: [{ order_by: "-time" }, { limit: 100 }],
+      //pg_where: ["time >= NOW() - interval '14 days'"],
+      // pg_changefeed: "quarter",
+
       throttle_changes: 3000,
       fields: {
         id: null,
         time: null,
         text: "",
-        priority: "low",
+        priority: "info",
         done: false
       }
     },

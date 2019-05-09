@@ -3,6 +3,7 @@ const { defaults, required } = misc;
 import { Map as iMap } from "immutable";
 import { Actions, Table, Store, redux } from "./app-framework";
 const { alert_message } = require("./alerts");
+import { debug } from "./feature";
 import * as LS from "misc/local-storage";
 
 export const NAME = "system_notifications";
@@ -22,7 +23,7 @@ const init_state: NotificationsState = {
   loading: true
 };
 
-class NotificationsStore extends Store<NotificationsState> {}
+export class NotificationsStore extends Store<NotificationsState> {}
 
 export class NotificationsActions extends Actions<NotificationsState> {
   show_banner = (show = true): void => {
@@ -70,9 +71,6 @@ export class NotificationsActions extends Actions<NotificationsState> {
   };
 }
 
-const store = redux.createStore(NAME, NotificationsStore, init_state);
-const actions = redux.createActions(NAME, NotificationsActions);
-
 class NotificationsTable extends Table {
   private recent: any; // a date ?
 
@@ -81,10 +79,12 @@ class NotificationsTable extends Table {
   }
 
   private process_mesg(_id, mesg): void {
-    if (mesg.time < this.recent && mesg.done) return;
-
+    debug("system_notifications::process_mesg", mesg);
     switch (mesg.priority) {
       case "high":
+        // filter old messages or those which are marked "done"
+        if (mesg.time < this.recent || mesg.done) return;
+
         const lt = mesg.time.toLocaleString();
         const message = `SYSTEM MESSAGE (${lt}): ${mesg.text}`;
         alert_message({
@@ -95,7 +95,7 @@ class NotificationsTable extends Table {
         break;
 
       case "info":
-        console.log("show info message", mesg);
+        debug("show info message", mesg);
         break;
     }
   }
@@ -105,6 +105,7 @@ class NotificationsTable extends Table {
   }
 
   _change = (table, _keys) => {
+    console.log("_change", table.get());
     actions.setState({ loading: false, notifications: table.get() });
 
     // show any message from the last hour that we have not seen already
@@ -112,9 +113,12 @@ class NotificationsTable extends Table {
     table.get().map((m, id) => {
       this.process_mesg(id, m.toJS());
     });
+
     // delete old entries from localStorage.system_notifications
     LS.del(NAME);
   };
 }
 
 const table = redux.createTable(NAME, NotificationsTable);
+const store = redux.createStore(NAME, NotificationsStore, init_state);
+const actions = redux.createActions(NAME, NotificationsActions);
