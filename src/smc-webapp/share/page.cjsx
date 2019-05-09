@@ -64,6 +64,9 @@ exports.Page = rclass
             <script key={1} dangerouslySetInnerHTML={{__html:ga}} />
         ]
 
+    render_cocalc_analytics: ->
+        <script async={true} src={"https://www.cocalc.com/static/analytics.js"}></script>
+
     render: ->
         <html lang="en">
             <head>
@@ -92,6 +95,7 @@ exports.Page = rclass
                 {@render_css()}
                 {@render_noindex()}
                 {@render_google_analytics()}
+                {@render_cocalc_analytics()}
             </head>
             <body>
                 <TopBar
