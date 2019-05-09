@@ -65,6 +65,9 @@ exports.send_email = (opts={}) ->
         cb           : undefined
         category     : undefined
         asm_group    : undefined
+    # hard disabled for everything due to abuse
+    opts.cb?()
+    return
 
     if opts.verbose
         dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
