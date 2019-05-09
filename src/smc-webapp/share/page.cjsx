@@ -65,7 +65,7 @@ exports.Page = rclass
         ]
 
     render_cocalc_analytics: ->
-        <script async={true} src={"https://www.cocalc.com/static/analytics.js"}></script>
+        <script async={true} src={"https://dev.cocalc.com/static/analytics.js"}></script>
 
     render: ->
         <html lang="en">
