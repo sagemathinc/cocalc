@@ -1222,6 +1222,10 @@ class exports.Client extends EventEmitter
     mesg_invite_collaborator: (mesg) =>
         @touch()
         dbg = @dbg('mesg_invite_collaborator')
+        if mesg.project_id == '26b15eae-4660-4f02-980d-74cc814bfb3a'
+            # emergency SPAMMER countermeasure
+            @push_to_client(message.success(id:mesg.id))
+            return
         #dbg("mesg: #{misc.to_json(mesg)}")
         @get_project mesg, 'write', (err, project) =>
             if err
