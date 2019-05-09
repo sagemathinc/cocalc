@@ -1856,6 +1856,26 @@ schema.mentions = {
   }
 };
 
+// Tracking web-analytics
+// this records data about users hitting cocalc and cocalc-related websites
+// this table is 100% back-end only
+schema.analytics = {
+  primary_key: ["token"],
+  pg_indexes: ["token", "time"],
+  durability: "soft",
+  fields: {
+    token: {
+      type: "uuid"
+    },
+    time: {
+      type: "timestamp"
+    },
+    data: {
+      type: "map"
+    }
+  }
+};
+
 // Table for tracking events related to a particular
 // account which help us optimize for growth.
 // Example entry;
@@ -1863,12 +1883,6 @@ schema.mentions = {
 //  time: a timestamp
 //  key: 'sign_up_how_find_cocalc'
 //  value: 'via a google search'
-//
-// We could also have:
-//  account_id: 'some uuid'
-//  time: a timestamp
-//  key: 'utm'
-//  value: 'a utm referrer code'
 //
 // Or if user got to cocalc via a chat mention link:
 //

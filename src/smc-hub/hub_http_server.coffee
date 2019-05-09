@@ -51,8 +51,8 @@ access       = require('./access')
 hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
-
 {http_message_api_v1} = require('./api/handler')
+{analytics_rec}  = require('./analytics')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
@@ -151,27 +151,39 @@ exports.init_express_http_server = (opts) ->
         # in case user was already here, do not send it again.
         # only the first hit is interesting.
         if req.cookies[misc.analytics_cookie_name]
-            res.write("")
             res.end()
+            return
 
-        # set the cookie
+        # set the cookie (sign it?)
         analytics_token = misc.uuid()
-        res.cookie(misc.analytics_cookie_name, analytics_token, {path: '/', maxAge: ms('1 day'), httpOnly: true, domain: DNS})
+        res.cookie(misc.analytics_cookie_name, analytics_token,
+            {path: '/', maxAge: ms('1 day'), httpOnly: true, domain: DNS}
+        )
 
         # write response script
         res.header("Content-Type", "text/javascript")
         timeout = ms('1 day')
         res.header('Cache-Control', "public, max-age='#{timeout}'")
-        res.write("var TOKEN = '#{analytics_token}';\n")
         res.write("var DNS = '#{DNS}';\n")
         res.write("var BASE_URL = '#{opts.base_url}';\n\n")
         res.write(analytics_js)
         res.end()
 
     router.post '/analytics.js', (req, res) ->
-        winston.debug("/analytics.js POST: #{JSON.stringify(req.query)}")
-        res.send('OK')
+        # check if token is in the cookie (see above)
+        # if not, ignore it
+        token = req.cookies[misc.analytics_cookie_name]
+        if token
+            winston.debug("/analytics.js TOKEN: #{token}")
+            # req.body is an object (json middlewhere somewhere?)
+            # e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
+            # ATTN key/values could be malicious
+            winston.debug("/analytics.js POST: #{JSON.stringify(req.body)}")
+            # record it, there is no need for a callback
+            analytics_rec(opts.database, winston, token, req.body)
+
         res.end()
+        return
 
     # The /static content
     router.use '/static',
