@@ -343,6 +343,18 @@ passport_login = (opts) ->
             )
 
         (cb) ->
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : locals.account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User is BANNED.  If this is a mistake, please content help@cocalc.com")
+                        return
+                    cb()
+        (cb) ->
             if locals.has_valid_remember_me
                 cb()
                 return
