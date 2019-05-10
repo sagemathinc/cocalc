@@ -11,6 +11,8 @@ misc = require('smc-util/misc')
 
 messages = require('smc-util/message')
 
+{ HELP_EMAIL } = require("smc-util/theme")
+
 {Client} = require('../client')
 
 log = (name, logger) ->
@@ -104,6 +106,20 @@ get_client = (opts) ->
                             auth_cache[opts.api_key] = account_id
                             setTimeout((->delete auth_cache[opts.api_key]), 60000)
                             cb()
+
+        (cb) ->
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}")
+                        return
+                    cb()
+
     ], (err) ->
         if err
             opts.cb(err)

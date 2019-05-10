@@ -67,6 +67,8 @@ Cookies = require('cookies')
 
 express_session = require('express-session')
 
+{ HELP_EMAIL } = require("smc-util/theme")
+
 {defaults, required} = misc
 
 api_key_cookie_name = (base_url) ->
@@ -351,7 +353,7 @@ passport_login = (opts) ->
                         cb(err)
                         return
                     if is_banned
-                        cb("User is BANNED.  If this is a mistake, please content help@cocalc.com")
+                        cb("User is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}")
                         return
                     cb()
         (cb) ->
