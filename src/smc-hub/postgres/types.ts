@@ -47,6 +47,7 @@ export interface PostgreSQL extends EventEmitter {
   account_ids_to_usernames(opts: { account_ids: string[]; cb: Function });
 
   get_project(opts: { project_id: string; columns?: string[]; cb: Function });
+  get_account(opts: { account_id: string; columns?: string[]; cb: Function });
 
   add_user_to_project(opts: {
     account_id: string;

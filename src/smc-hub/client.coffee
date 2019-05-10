@@ -38,6 +38,7 @@ underscore = require('underscore')
 
 {record_user_tracking} = require('./postgres/user-tracking')
 {project_has_network_access} = require('./postgres/project-queries')
+{is_paying_customer} = require('./postgres/account-queries')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -1286,9 +1287,9 @@ class exports.Client extends EventEmitter
 
                     cb()  # we return early, because there is no need to let someone wait for sending the email
 
-                    # do not send email if project doesn't have network access:
-                    if (not await project_has_network_access(@database, mesg.project_id))
-                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access")
+                    # do not send email if project doesn't have network access (and user is not a paying customer)
+                    if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
                         return
 
                     dbg("send_email invite to #{locals.email_address}")
@@ -1345,7 +1346,7 @@ class exports.Client extends EventEmitter
                         body         : email_body
                         cb           : (err) =>
                             if err
-                                dbg("FAILED to send email to #{locals.email_address}  -- err={misc.to_json(err)}")
+                                dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
                             @database.sent_project_invite
                                 project_id : mesg.project_id
                                 to         : locals.email_address
@@ -1369,12 +1370,15 @@ class exports.Client extends EventEmitter
         ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
         ## return
 
-        if (not await project_has_network_access(@database, mesg.project_id))
+
+        # We only allow sending email invites if: (a) the sender is a
+        # paying customer, or (b) the project has network access.
+        if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
             # In practice, the frontend client should always prevent ever having to do this
             # check.  However, a malicious user controls the frontend, so we must still make
             # this check anyways.
-            dbg("NOT send_email invites due to no network access; in fact don't even make the invite!")
-            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. You must first upgrade this project to have the 'Internet Access' quota.");
+            dbg("NOT send_email invites due to no network access (and user not a customer); in fact don't even make the invite!")
+            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. First upgrade this project to have the 'Internet Access' quota.");
             return
 
         @touch()
