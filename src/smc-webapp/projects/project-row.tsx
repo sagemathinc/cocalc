@@ -189,7 +189,7 @@ export const ProjectRow = rclass<ReactProps>(
         // don't bother showing that default; it's clutter
         return (
           <Markdown
-            style={{ color: "#666" }}
+            style={{ color: COLORS.GRAY }}
             value={this.props.project.description}
           />
         );
@@ -255,22 +255,26 @@ export const ProjectRow = rclass<ReactProps>(
               onClick={this.handle_click}
               sm={3}
               style={{
-                maxHeight: "7em",
+                maxHeight: "10em",
                 overflowY: "auto"
               }}
             >
               <div style={{ fontWeight: "bold" }}>
                 {this.render_project_title()}
               </div>
-              {this.render_project_description()}
+              {this.render_last_edited()}
+              {this.render_image_name()}
             </Col>
             <Col
               onClick={this.handle_click}
               sm={3}
-              style={{ color: "#666", maxHeight: "7em", overflowY: "auto" }}
+              style={{
+                color: COLORS.GRAY,
+                maxHeight: "10em",
+                overflowY: "auto"
+              }}
             >
-              {this.render_last_edited()}
-              {this.render_image_name()}
+              {this.render_project_description()}
             </Col>
             <Col sm={4}>{this.render_collab()}</Col>
             <Col sm={2} onClick={this.open_project_settings}>
