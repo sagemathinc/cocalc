@@ -100,6 +100,9 @@ get_client = (opts) ->
                     cb      : (err, a) ->
                         if err
                             cb(err)
+                            return
+                        if not a?
+                            cb("No account found. Is your API key wrong?")
                         else
                             account_id = a
                             # cache api key being valid for a minute
