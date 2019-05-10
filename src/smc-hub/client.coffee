@@ -2780,4 +2780,18 @@ class exports.Client extends EventEmitter
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
 
-
+    mesg_admin_ban_user: (mesg) =>
+        dbg = @dbg("mesg_admin_ban_user")
+        dbg(mesg.account_id)
+        try
+            if mesg.ban
+                dbg("banning the user")
+                await callback2(@database.ban_user, {account_id:mesg.account_id})
+                await callback2(@database.invalidate_all_remember_me, {account_id:mesg.account_id})
+            else
+                dbg("unbanning the user")
+                await callback2(@database.unban_user, {account_id:mesg.account_id})
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
