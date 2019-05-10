@@ -52,7 +52,7 @@ hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
 {http_message_api_v1} = require('./api/handler')
-{analytics_rec}  = require('./analytics')
+{analytics_rec, png_1x1, analytics_cookie}  = require('./analytics')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
@@ -154,11 +154,7 @@ exports.init_express_http_server = (opts) ->
             res.end()
             return
 
-        # set the cookie (sign it?)
-        analytics_token = misc.uuid()
-        res.cookie(misc.analytics_cookie_name, analytics_token,
-            {path: '/', maxAge: ms('1 day'), httpOnly: true, domain: DNS}
-        )
+        analytics_cookie(res)
 
         # write response script
         res.header("Content-Type", "text/javascript")
@@ -168,6 +164,14 @@ exports.init_express_http_server = (opts) ->
         res.write("var BASE_URL = '#{opts.base_url}';\n\n")
         res.write(analytics_js)
         res.end()
+
+    router.get '/analytics.js/track.png', (req, res) ->
+        # in case user was already here, do not set a cookie
+        if not req.cookies[misc.analytics_cookie_name]
+            analytics_cookie(res)
+        res.header('Content-Type', 'image/png')
+        res.header('Content-Length', png_1x1.length)
+        res.end(png_1x1)
 
     router.post '/analytics.js', (req, res) ->
         # check if token is in the cookie (see above)
