@@ -183,7 +183,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
         # why is available_features immutable?
         available = @props.available_features?.toJS?() ? {}
 
-        console.log("FileTypeSelector: available", available)
+        # console.log("FileTypeSelector: available", available)
 
         <Fragment>
             <Row style={row_style}>

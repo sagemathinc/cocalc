@@ -2705,10 +2705,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._is_project) return;
     const account_store = this.redux.getStore("account") as any;
     if (account_store == null) return;
+    const cur: any = {};
+    // if available, retain existing jupyter config
     const acc_jup = account_store.getIn(["editor_settings", "jupyter"]);
-    if (acc_jup == null) return;
-    let tmp: any;
-    const cur = (tmp = acc_jup.toJS()) != null ? tmp : {};
+    if (acc_jup != null) {
+      Object.assign(cur, acc_jup.toJS());
+    }
+    // set new kernel and save it
     cur.kernel = kernel;
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur }
