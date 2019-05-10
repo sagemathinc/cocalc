@@ -1007,7 +1007,7 @@ exports.NonMemberProjectWarning = (opts) ->
 
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your upgrade contributions...' below.</span>
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
@@ -1030,7 +1030,7 @@ exports.NoNetworkProjectWarning = (opts) ->
     {total, used, avail} = project_warning_opts(opts)
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your upgrade contributions...' below.</span>
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
@@ -1502,7 +1502,7 @@ exports.UpgradeAdjustor = rclass
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<div>
-                    <h3><Icon name='arrow-circle-up' /> Adjust your quota contributions to this project</h3>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your upgrade contributions to this project</h3>
 
                     <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
                     </div>

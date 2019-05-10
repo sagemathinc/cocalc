@@ -7,14 +7,14 @@ const { ErrorDisplay, Icon, MarkdownInput } = require("../r_misc");
 import { PickerList } from "./picker-list";
 const { webapp_client } = require("../webapp_client");
 const { ProjectSettingsPanel } = require("../project/project-settings-support");
-const {
-  callback_opts
-} = require("smc-util/async-utils");
+const { callback_opts } = require("smc-util/async-utils");
 import * as immutable from "immutable";
 import { User } from "../frame-editors/generic/client";
 import { FormGroup, FormControl, Button, ButtonToolbar } from "react-bootstrap";
 const { SITE_NAME } = require("smc-util/theme");
 const onecolor = require("onecolor");
+
+import { has_internet_access } from "../upgrades/upgrade-utils";
 
 type UserAndProfile = User & {
   profile: { color?: string; image?: string };
@@ -118,8 +118,22 @@ class AddCollaboratorsPanel0 extends Component<
       is_editing_email: false
     };
   };
+
   reset = () => this.setState(this.initialState());
+
   render_manual_email_entry() {
+    if (!this.props.project) return;
+    if (!has_internet_access(this.props.project)) {
+      return (
+        <>
+          If you enable the Internet Access upgrade for this project, then you
+          can also invite people to collaborate on this project who do not
+          currently have a CoCalc account. They will receive an email
+          invitation. Otherwise, you must ask them to create an account, and
+          then invite them using the box above.
+        </>
+      );
+    }
     return (
       <>
         Or, type a comma-separated list of email addresses:
@@ -134,6 +148,7 @@ class AddCollaboratorsPanel0 extends Component<
       </>
     );
   }
+
   render_avatar(u: UserAndProfile) {
     const size = 30;
     if (u.profile.image) {
@@ -172,6 +187,7 @@ class AddCollaboratorsPanel0 extends Component<
       </span>
     );
   }
+
   query_for_results = search => {
     this.setState({ search, loading: true });
     search_for_accounts(search)
@@ -236,6 +252,7 @@ class AddCollaboratorsPanel0 extends Component<
         });
       });
   };
+
   render_cocalc_user_search() {
     return (
       <>
@@ -344,6 +361,7 @@ class AddCollaboratorsPanel0 extends Component<
       </>
     );
   }
+
   default_email_body = () => {
     const name = this.props.get_fullname();
     const project_id = this.props.project.get("project_id");
@@ -363,6 +381,7 @@ ${name}
 `;
     return email_body.trim();
   };
+
   render_invitation_editor() {
     return (
       <>
@@ -375,7 +394,8 @@ ${name}
                 ? this.state.email_to.split(",").map(s => `"${s.trim()}"`)
                 : []
             )
-        )}.
+        )}
+        .
         <div
           style={{
             border: "1px solid lightgrey",
