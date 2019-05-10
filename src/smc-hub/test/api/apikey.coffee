@@ -52,3 +52,35 @@ describe 'api key tests -- ', ->
                     expect(err).toInclude('No account found.')
                     done()
 
+    it 'blocks banned users', (done) ->
+        async.series([
+            (cb) ->
+                api.db.ban_user
+                    account_id     : api.account_id
+                    cb             : (err) ->
+                        cb(err)
+
+            (cb) ->
+                http_message_api_v1
+                    event         : 'ping'
+                    database      : api.db
+                    compute_server: api.compute_server
+                    api_key       : api.api_key
+                    ip_address    : '2.3.4.5'
+                    logger        : api.logger
+                    body          : {}
+                    cb            : (err, resp) ->
+                        winston.info(err, resp)
+                        if err?
+                            expect(err).toInclude('BANNED')
+                            cb()
+                        else
+                            cb('no banning error')
+
+        ], (err, resp) ->
+            winston.info(err, resp)
+            done(err)
+        )
+
+
+
