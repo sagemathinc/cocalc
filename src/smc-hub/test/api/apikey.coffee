@@ -46,11 +46,14 @@ describe 'api key tests -- ', ->
             body          : {}
             cb            : (err, resp) ->
                 winston.info(err, resp)
-                if not err?
-                    done('there was no error')
-                else
-                    expect(err).toInclude('No account found.')
-                    done()
+                #if not err?
+                #    done('there was no error')
+                #else
+                #    expect(err).toInclude('No account found.')
+                #    done()
+                expect(err).toBe(undefined)
+                expect(resp).toBe({})
+                done(err)
 
     it 'blocks banned users', (done) ->
         async.series([
