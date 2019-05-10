@@ -1043,7 +1043,7 @@ exports.NoNetworkProjectWarning = (opts) ->
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
         <p>
-            Projects without internet access enabled, cannot connect to external websites or download software packages.
+            Projects without internet access enabled cannot connect to external websites, download software packages, or invite and notify collaborators via email.
             {suggestion}
         </p>
     </Alert>

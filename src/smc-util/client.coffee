@@ -2168,6 +2168,18 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.link)
 
+    admin_ban_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            ban        : true     # if true, ban user  -- if false, unban them.
+            cb         : required
+        @call
+            message    : message.admin_ban_user(account_id:opts.account_id, ban:opts.ban)
+            allow_post : true
+            error_event : true
+            cb         : (err, resp) =>
+                opts.cb(err)
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

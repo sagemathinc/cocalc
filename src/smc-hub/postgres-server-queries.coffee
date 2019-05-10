@@ -984,7 +984,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     where.push("(#{v.join(' AND ')})")
                 query = 'SELECT account_id, first_name, last_name, last_active, created'
                 if opts.admin
-                    query += ', email_address'
+                    query += ', email_address, banned'
                 query += ' FROM accounts'
                 query += " WHERE deleted IS NOT TRUE AND (#{where.join(' OR ')})"
                 if opts.active and not opts.admin
@@ -1218,13 +1218,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # deleting them from the remember_me key:value store.
     invalidate_all_remember_me: (opts) =>
         opts = defaults opts,
-            account_id : required
-            cb         : undefined
+            account_id    : undefined
+            email_address : undefined
+            cb            : undefined
+        if not @_validate_opts(opts) then return
         @_query
             query : 'DELETE FROM remember_me'
-            where :
-                'account_id = $::UUID' : opts.account_id
-            cb       : opts.cb
+            where : @_account_where(opts)
+            cb    : opts.cb
 
     # Get remember me cookie with given hash.  If it has expired,
     # get back undefined instead.  (Actually deleting expired).
