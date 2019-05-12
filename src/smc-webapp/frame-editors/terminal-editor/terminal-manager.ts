@@ -61,20 +61,29 @@ export class TerminalManager {
   }
 
   get_terminal(id: string, parent: HTMLElement): Terminal {
+    let node = this.actions._get_frame_node(id);
+
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
     } else {
+      let command : string | undefined = undefined;
+      let args: string[] | undefined = undefined;
+      if (node != null) {
+        command = node.get('command');
+        args = node.get('args');
+      }
       this.terminals[id] = new Terminal(
         this.actions,
         this._node_number(id),
         id,
-        parent
+        parent,
+        command,
+        args
       );
       this.terminals[id].connect();
     }
     const terminal = this.terminals[id];
     // pause: sync local view state with terminal state
-    let node = this.actions._get_frame_node(id);
     if (node != null) {
       if (node.get("is_paused")) {
         terminal.pause();
