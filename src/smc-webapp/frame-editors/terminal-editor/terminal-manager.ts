@@ -23,7 +23,7 @@ export class TerminalManager {
     delete this.terminals;
   }
 
-  _node_number(id: string): number {
+  _node_number(id: string, command: string | undefined): number {
     /* All this complicated code starting here is just to get
        a stable number for this frame. Sorry it is so complicated! */
     let node = this.actions._get_frame_node(id);
@@ -35,7 +35,11 @@ export class TerminalManager {
     const numbers = {};
     for (let id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
-      if (node0 == null || node0.get("type") != "terminal") {
+      if (
+        node0 == null ||
+        node0.get("type") != "terminal" ||
+        node0.get("command") != command
+      ) {
         continue;
       }
       let n = node0.get("number");
@@ -74,7 +78,7 @@ export class TerminalManager {
       }
       this.terminals[id] = new Terminal(
         this.actions,
-        this._node_number(id),
+        this._node_number(id, command),
         id,
         parent,
         command,

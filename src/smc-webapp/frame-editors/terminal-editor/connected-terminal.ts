@@ -22,7 +22,7 @@ import { setTheme } from "./themes";
 import { project_websocket, touch, touch_project } from "../generic/client";
 import { Actions } from "../code-editor/actions";
 
-import { endswith } from "smc-util/misc2";
+import { endswith, replace_all } from "smc-util/misc2";
 import { open_init_file } from "./init-file";
 
 import { ConnectionStatus } from "../frame-tree/types";
@@ -112,7 +112,8 @@ export class Terminal {
     this.command = command;
     this.args = args;
     this.rendererType = "dom";
-    this.term_path = aux_file(`${this.path}-${number}`, "term");
+    const cmd = command ? "-" + replace_all(command, "/", "-") : "";
+    this.term_path = aux_file(`${this.path}-${number}${cmd}`, "term");
     this.number = number;
     this.id = id;
     this.terminal = new XTerminal(this.get_xtermjs_options());
