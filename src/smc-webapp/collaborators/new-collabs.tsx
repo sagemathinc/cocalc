@@ -470,7 +470,7 @@ ${name}
     return (
       <ButtonToolbar>
         <Button onClick={this.send_invites} bsStyle="primary">
-          <Icon name="user-plus" /> Send Invitation
+          <Icon name="user-plus" /> Add Collaborator
         </Button>
         <Button onClick={this.reset}>Cancel</Button>
       </ButtonToolbar>
