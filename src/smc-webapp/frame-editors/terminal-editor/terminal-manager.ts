@@ -66,11 +66,11 @@ export class TerminalManager {
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
     } else {
-      let command : string | undefined = undefined;
+      let command: string | undefined = undefined;
       let args: string[] | undefined = undefined;
       if (node != null) {
-        command = node.get('command');
-        args = node.get('args');
+        command = node.get("command");
+        args = node.get("args");
       }
       this.terminals[id] = new Terminal(
         this.actions,
@@ -118,5 +118,25 @@ export class TerminalManager {
 
   get(id: string): Terminal | undefined {
     return this.terminals[id];
+  }
+
+  kill(id: string): void {
+    if (this.terminals[id] == null) {
+      // graceful no-op if no such terminal.
+      return;
+    }
+    this.terminals[id].kill();
+  }
+
+  set_command(
+    id: string,
+    command: string | undefined,
+    args: string[] | undefined
+  ): void {
+    if (this.terminals[id] == null) {
+      // graceful no-op if no such terminal.
+      return;
+    }
+    this.terminals[id].set_command(command, args);
   }
 }

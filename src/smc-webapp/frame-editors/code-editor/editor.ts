@@ -32,10 +32,13 @@ const FORMAT = set([
 ]);
 
 export const SHELLS = {
-  erl: "/usr/bin/erl",
-  hrl: "/usr/bin/erl",
-  py: "/usr/bin/python3",
-  sage: "/ext/bin/sage"
+  erl: "erl",
+  hrl: "erl",
+  py: "python3",
+  sage: "sage",
+  r: "R",
+  m: "octave",
+  jl: "julia"
 };
 
 export const cm = {
@@ -57,14 +60,12 @@ export const cm = {
       "paste",
       "copy",
       "undo",
-      "redo"
+      "redo",
+      "shell"
     ]);
     const ext = filename_extension(path);
     if (FORMAT[ext]) {
       buttons.format = true;
-    }
-    if (SHELLS[ext]) {
-      buttons.shell = true;
     }
     return buttons;
   }

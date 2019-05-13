@@ -9,11 +9,14 @@ import { Terminal } from "./connected-terminal";
 
 import { throttle } from "underscore";
 
+import { Button } from "react-bootstrap";
+
 import { background_color } from "./themes";
 
 import { is_different } from "smc-util/misc2";
 
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
+import { Icon } from "../../r_misc/icon";
 
 interface Props {
   actions: any;
@@ -24,6 +27,7 @@ interface Props {
   editor_state: any;
   is_current: boolean;
   terminal: Map<string, any>;
+  desc: Map<string, any>;
 }
 
 export class TerminalFrame extends Component<Props, {}> {
@@ -38,7 +42,8 @@ export class TerminalFrame extends Component<Props, {}> {
       "project_id",
       "path",
       "font_size",
-      "terminal"
+      "terminal",
+      "desc"
     ]);
   }
 
@@ -114,20 +119,52 @@ export class TerminalFrame extends Component<Props, {}> {
     this.terminal.measure_size();
   }
 
+  render_clear_command_button(): Rendered {
+    return (
+      <Button
+        onClick={() => this.props.actions.clear_terminal_command(this.props.id)}
+        bsSize="small"
+        title="Clear command, switching back to standard terminal"
+      >
+        <Icon name="times" />
+      </Button>
+    );
+  }
+
+  render_command(): Rendered {
+    const command = this.props.desc.get("command");
+    if (!command) return;
+    return (
+      <div
+        style={{
+          borderBottom: "1px solid grey",
+          paddingLeft: "5px",
+          background: "#eee",
+          height: "32px"
+        }}
+      >
+        {this.render_clear_command_button()} {command}
+      </div>
+    );
+  }
+
   render(): Rendered {
     const color = background_color(this.props.terminal.get("color_scheme"));
     /* 4px padding is consistent with CodeMirror */
     return (
-      <div
-        className={"smc-vfill"}
-        style={{ backgroundColor: color, padding: "0 0 0 4px" }}
-        onClick={() => {
-          /* otherwise, clicking right outside term defocuses,
+      <div className={"smc-vfill"}>
+        {this.render_command()}
+        <div
+          className={"smc-vfill"}
+          style={{ backgroundColor: color, padding: "0 0 0 4px" }}
+          onClick={() => {
+            /* otherwise, clicking right outside term defocuses,
              which is confusing */
-          this.terminal.focus();
-        }}
-      >
-        <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />
+            this.terminal.focus();
+          }}
+        >
+          <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />
+        </div>
       </div>
     );
   }

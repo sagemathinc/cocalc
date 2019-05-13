@@ -1122,7 +1122,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // TODO: might also specify args.
-  _get_most_recent_shell_id(command: string): string | undefined {
+  _get_most_recent_shell_id(command: string | undefined): string | undefined {
     return this._get_most_recent_active_frame_id(
       node =>
         node.get("type").slice(0, 8) == "terminal" &&
@@ -1931,13 +1931,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   public hide(): void {}
 
   public async shell(id: string): Promise<void> {
-    console.log(`open a shell for ${id}`);
     const x = SHELLS[filename_extension(this.path)];
-    if (x == null) return; // should not happen
-    console.log(`shell data for ${this.path} is `, x);
     let command: string | undefined = undefined;
     let args: string[] | undefined = undefined;
-    if (typeof x === "string") {
+    if (x == null) {
+      // generic case - uses bash (the default)
+    } else if (typeof x === "string") {
       command = x;
     } else {
       command = x.command;
@@ -1953,10 +1952,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal");
-      console.log("new frame id", shell_id, command, args);
       if (!shell_id) return;
       this.set_frame_tree({ id: shell_id, command, args });
     }
+    this.terminals.set_command(shell_id, command, args);
 
     // De-maximize if in full screen mode.
     this.unset_frame_full();
@@ -1966,5 +1965,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     await delay(1);
     if (this._state == "closed") return;
     this.set_active_id(shell_id);
+  }
+
+  public clear_terminal_command(id: string): void {
+    this.set_frame_tree({ id, command: undefined, args: undefined });
+    // also, restart that terminal...
+    this.terminals.set_command(id, undefined, undefined);
+    this.terminals.kill(id);
   }
 }

@@ -590,6 +590,14 @@ export class Terminal {
     this.conn_write({ cmd: "boot" });
   }
 
+  kill(): void {
+    this.conn_write({ cmd: "kill" });
+  }
+
+  set_command(command: string | undefined, args: string[] | undefined): void {
+    this.conn_write({ cmd: "set_command", command, args });
+  }
+
   init_terminal_data(): void {
     this.terminal.on("data", data => {
       if (this.ignore_terminal_data) {
