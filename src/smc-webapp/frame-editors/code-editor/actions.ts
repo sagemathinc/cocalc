@@ -64,6 +64,7 @@ import {
   Parser as FormatterParser,
   Exts as FormatterExts
 } from "smc-util/code-formatter";
+import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
   line: number;
@@ -782,7 +783,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // overload in derived class...
   }
 
-  split_frame(direction: FrameDirection, id?: string, type?: string): void {
+  // Returns id of new frame, if a frame is created.
+  split_frame(
+    direction: FrameDirection,
+    id?: string,
+    type?: string
+  ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
@@ -808,7 +814,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
           type
         });
 
-        return;
+        return new_id;
       }
     }
     throw Error("BUG -- no new frame created");
@@ -825,9 +831,10 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   unset_frame_full(): void {
-    let local = this.store.get("local_view_state");
-    local = local.delete("full_id");
-    this.setState({ local_view_state: local });
+    let local_view_state = this.store.get("local_view_state");
+    if (local_view_state == null || !local_view_state.get("full_id")) return;
+    local_view_state = local_view_state.delete("full_id");
+    this.setState({ local_view_state });
     this._save_local_view_state();
   }
 
@@ -1120,6 +1127,15 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
+  // TODO: might also specify args.
+  _get_most_recent_shell_id(command: string | undefined): string | undefined {
+    return this._get_most_recent_active_frame_id(
+      node =>
+        node.get("type").slice(0, 8) == "terminal" &&
+        node.get("command") == command
+    );
+  }
+
   _active_cm(): CodeMirror.Editor | undefined {
     return this._cm[this.store.getIn(["local_view_state", "active_id"])];
   }
@@ -1151,6 +1167,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       if (must_create) {
         // Have to wait until after editor gets created
         await delay(1);
+        if (this._state == "closed") return;
       }
       this.programmatical_goto_line(opts.line, opts.cursor);
     }
@@ -1159,6 +1176,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // Have to wait until after editor gets created, and
       // probably also event that caused this open.
       await delay(1);
+      if (this._state == "closed") return;
       const cm = this._recent_cm();
       if (cm) {
         cm.focus();
@@ -1336,6 +1354,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.unset_frame_full();
       // have to wait for cm to get created and registered.
       await delay(1);
+      if (this._state == "closed") return;
     }
 
     let cm = this._get_cm(cm_id);
@@ -1345,6 +1364,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       // Have to wait until the codemirror editor is created and registered, which
       // is caused by component mounting.
       await delay(1);
+      if (this._state == "closed") return;
       cm = this._recent_cm();
       if (cm == null) {
         // still failed -- give up.
@@ -1442,6 +1462,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.setState({ status });
     if (timeout) {
       await delay(timeout);
+      if (this._state == "closed") return;
       if (this.store.get("status") === status) {
         this.setState({ status: "" });
       }
@@ -1919,6 +1940,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     if (this._cm == null) return;
 
     await delay(0); // wait until next render loop
+    if (this._state == "closed") return;
     for (let id in this._cm) {
       const cm: CodeMirror.Editor | undefined = this._cm[id];
       if (cm != null) {
@@ -1929,4 +1951,48 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   public hide(): void {}
+
+  public async shell(id: string): Promise<void> {
+    const x = SHELLS[filename_extension(this.path)];
+    let command: string | undefined = undefined;
+    let args: string[] | undefined = undefined;
+    if (x == null) {
+      // generic case - uses bash (the default)
+    } else if (typeof x === "string") {
+      command = x;
+    } else {
+      command = x.command;
+      args = x.args;
+      if (typeof command != "string") {
+        throw Error("SHELLS data structure wrong.");
+      }
+    }
+    // Check if there is already a terminal with the given command,
+    // and if so, just focus it.
+    // (TODO: might also specify args.)
+    let shell_id: string | undefined = this._get_most_recent_shell_id(command);
+    if (shell_id == null) {
+      // No such terminal already, so we make one and focus it.
+      shell_id = this.split_frame("col", id, "terminal");
+      if (!shell_id) return;
+      this.set_frame_tree({ id: shell_id, command, args });
+    }
+    this.terminals.set_command(shell_id, command, args);
+
+    // De-maximize if in full screen mode.
+    this.unset_frame_full();
+
+    // Have to wait until after editor gets created, and
+    // probably also event that caused this open.
+    await delay(1);
+    if (this._state == "closed") return;
+    this.set_active_id(shell_id);
+  }
+
+  public clear_terminal_command(id: string): void {
+    this.set_frame_tree({ id, command: undefined, args: undefined });
+    // also, restart that terminal...
+    this.terminals.set_command(id, undefined, undefined);
+    this.terminals.kill(id);
+  }
 }

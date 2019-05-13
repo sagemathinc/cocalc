@@ -1,4 +1,4 @@
-/* Adding (and later removing) collaborators to/from projects. */
+/* Various functions involving the database and projects. */
 
 import { PostgreSQL } from "./types";
 

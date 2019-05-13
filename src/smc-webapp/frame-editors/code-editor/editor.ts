@@ -31,6 +31,16 @@ const FORMAT = set([
   "bib"
 ]);
 
+export const SHELLS = {
+  erl: "erl",
+  hrl: "erl",
+  py: "python3",
+  sage: "sage",
+  r: "R",
+  m: "octave",
+  jl: "julia"
+};
+
 export const cm = {
   short: "Code",
   name: "Source Code",
@@ -50,9 +60,11 @@ export const cm = {
       "paste",
       "copy",
       "undo",
-      "redo"
+      "redo",
+      "shell"
     ]);
-    if (FORMAT[filename_extension(path)]) {
+    const ext = filename_extension(path);
+    if (FORMAT[ext]) {
       buttons.format = true;
     }
     return buttons;

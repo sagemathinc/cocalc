@@ -206,7 +206,7 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
                         tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
                         <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
-                    <Tip title='Create a chatroom'  placement='left'  icon='comment'
+                    <Tip title='Create a chatroom'  placement='bottom'  icon='comment'
                         tip='Create a chatroom for chatting with other collaborators on this project.'>
                         <NewFileButton icon='comment' name='Create a chatroom' on_click={@props.create_file} ext='sage-chat' />
                     </Tip>

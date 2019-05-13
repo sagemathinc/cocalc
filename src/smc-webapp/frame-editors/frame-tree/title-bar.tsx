@@ -1015,6 +1015,23 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
+  render_shell(): Rendered {
+    if (!this.is_visible("shell")) {
+      return;
+    }
+    return (
+      <Button
+        key={"shell"}
+        bsSize={this.button_size()}
+        onClick={() => this.props.actions.shell(this.props.id)}
+        title={"Open a shell for running this code"}
+      >
+        <Icon name={"terminal"} />{" "}
+        <VisibleMDLG>{this.show_labels() ? "Shell" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   render_file_menu(): Rendered {
     if (!(this.props.is_only || this.props.is_full)) {
       return;
@@ -1076,6 +1093,7 @@ export class FrameTitleBar extends Component<Props, State> {
     v.push(this.render_edit_init_script());
     v.push(this.render_count_words());
     v.push(this.render_kick_other_users_out());
+    v.push(this.render_shell());
     v.push(this.render_print());
     v.push(this.render_help(labels));
 

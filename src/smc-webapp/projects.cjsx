@@ -50,6 +50,8 @@ COMPUPTE_IMAGES = require("./custom-software/init").NAME
 
 {ResetProjectsConfirmation} = require('./r_upgrades')
 
+{has_internet_access} = require('./upgrades/upgrade-utils')
+
 ###
 TODO:  This entire file should be broken into many small files/components,
 which are in the projects/ subdirectory.
@@ -834,6 +836,9 @@ class ProjectsStore extends Store
                     v[project_id] = upgrades
                     break
         return v
+
+    has_internet_access: (project_id) =>
+        return has_internet_access(@getIn(['project_map', project_id]))
 
 # WARNING: A lot of code relies on the assumption project_map is undefined until it is loaded from the server.
 init_store =
