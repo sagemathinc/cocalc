@@ -1194,6 +1194,10 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_user_search: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to search for users."))
+            return
+
         if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
             # hard cap at 50... (for non-admin)
             mesg.limit = 50
