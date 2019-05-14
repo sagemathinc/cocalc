@@ -113,4 +113,10 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   log(opts: { event: string; value: any; cb: Function }): void;
+
+  user_is_in_group(opts: {
+    account_id: string;
+    group: string;
+    cb: Function;
+  }): void;
 }

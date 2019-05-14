@@ -392,6 +392,18 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb    : one_result 'groups', (err, groups) =>
                 opts.cb(err, groups? and 'admin' in groups)
 
+    user_is_in_group: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            group      : required
+            cb         : required
+        @_query
+            query : "SELECT groups FROM accounts"
+            where : 'account_id = $::UUID':opts.account_id
+            cache : true
+            cb    : one_result 'groups', (err, groups) =>
+                opts.cb(err, groups? and opts.group in groups)
+
     make_user_admin: (opts) =>
         opts = defaults opts,
             account_id    : undefined

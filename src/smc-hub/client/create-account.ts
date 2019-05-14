@@ -2,6 +2,9 @@
 Client account creation and deletion
 */
 
+const MAX_ACCOUNTS_PER_30MIN = 150;
+const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
+
 const client_lib = require("smc-util/client");
 const auth = require("../auth");
 
@@ -95,12 +98,27 @@ export async function create_account(
       ip_address: opts.client.ip_address,
       age_s: 60 * 30
     });
-    if (n > 150) {
-      throw Error(
-        `Too many accounts are being created from the ip address ${
-          opts.client.ip_address
-        }; try again later.  By default at most 150 accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
-      );
+    if (n >= MAX_ACCOUNTS_PER_30MIN) {
+      let m = MAX_ACCOUNTS_PER_30MIN;
+
+      // Check if account is being created via API by a "gold" user.
+      if (
+        opts.client.account_id != null &&
+        (await callback2(opts.database.user_is_in_group, {
+          account_id: opts.client.account_id,
+          group: "gold"
+        }))
+      ) {
+        m = MAX_ACCOUNTS_PER_30MIN_GOLD;
+      }
+
+      if (n >= m) {
+        throw Error(
+          `Too many accounts are being created from the ip address ${
+            opts.client.ip_address
+          }; try again later.  By default at most ${m} accounts can be created every 30 minutes from one IP; if you're using the API and need a higher limit, contact us.`
+        );
+      }
     }
 
     dbg("query database to determine whether the email address is available");
