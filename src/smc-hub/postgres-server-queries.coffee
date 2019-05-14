@@ -286,7 +286,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     ###
     Account creation, deletion, existence
     ###
-    create_account: (opts={}) ->
+    create_account: (opts={}) =>
         opts = defaults opts,
             first_name        : required
             last_name         : required
