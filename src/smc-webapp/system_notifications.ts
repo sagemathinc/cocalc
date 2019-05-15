@@ -4,6 +4,7 @@ import { Map as iMap } from "immutable";
 import { Actions, Table, Store, redux } from "./app-framework";
 const { alert_message } = require("./alerts");
 import { debug } from "./feature";
+import { once } from "smc-util/async-utils";
 import * as LS from "misc/local-storage";
 
 export const NAME = "system_notifications";
@@ -138,13 +139,23 @@ class AnnouncementsTable extends Table {
     return [];
   }
 
-  _change = (table, _keys) => {
-    console.log("_change announcements:", table.get());
+  change = table => {
     table.get().map((m, id) => {
       this.process_mesg(id, m.toJS());
     });
   };
+
+  _change = (table, _keys) => {
+    console.log("_change announcements:", table.get());
+    this.change(table);
+  };
 }
 
-// const a_table =
-redux.createTable("announcements", AnnouncementsTable);
+const ann_table = redux.createTable("announcements", AnnouncementsTable);
+
+// TODO why is this necessary? what does it do?
+(async () => {
+  const table = redux.getTable("announcements")._table;
+  await once(table, "connected");
+  ann_table.change(table);
+})();
