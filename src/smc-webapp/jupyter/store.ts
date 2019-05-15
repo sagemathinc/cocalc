@@ -44,7 +44,6 @@ export interface JupyterStoreState {
   metadata: any;
   md_edit_ids: Set<string>;
   path: string;
-  is_focused: boolean;
   directory: string;
   more_output: any;
   read_only: boolean;

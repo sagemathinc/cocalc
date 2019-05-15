@@ -78,7 +78,6 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export class JupyterActions extends Actions<JupyterStoreState> {
   // TODO: type these
-  private _blur_lock: any;
   private _cursor_locs?: any;
   private _hook_after_change: any;
   private _hook_before_change: any;
@@ -170,7 +169,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       project_id,
       directory,
       path,
-      is_focused: false, // whether or not the editor is focused.
       max_output_length: 10000
     });
 
@@ -268,7 +266,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.syncdb != null) {
       this.syncdb.close();
       delete this.syncdb;
-  }
+    }
     if (this._key_handler != null) {
       (this.redux.getActions("page") as any).erase_active_key_handler(
         this._key_handler
@@ -2258,42 +2256,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   focus = (wait?: any) => {
-    //console.log 'focus', wait, (new Error()).stack
-    if (this._state === "closed") {
-      return;
-    }
-    if (this._blur_lock) {
-      return;
-    }
-    if (wait) {
-      return setTimeout(this.focus, 1);
-    } else {
-      return this.setState({ is_focused: true });
-    }
+    console.warn("TODO: jupyter actions.focus", wait);
   };
 
   blur = (wait?: any) => {
-    if (this._state === "closed") {
-      return;
-    }
-    if (wait) {
-      return setTimeout(this.blur, 1);
-    } else {
-      return this.setState({
-        is_focused: false,
-        mode: "escape"
-      });
-    }
+    console.warn("TODO: jupyter actions.blur", wait);
   };
 
   blur_lock = () => {
-    this.blur();
-    return (this._blur_lock = true);
+    console.warn("TODO: jupyter actions.blur_lock");
   };
 
   focus_unlock = () => {
-    this._blur_lock = false;
-    return this.focus();
+    console.warn("TODO: jupyter actions.focus_unlock");
   };
 
   set_max_output_length = n => {

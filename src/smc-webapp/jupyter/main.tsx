@@ -26,8 +26,7 @@ const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
-  position: "absolute",
-  right: 0,
+  float: "right",
   paddingLeft: "5px",
   backgroundColor: "#eee",
   height: "32px",
@@ -38,10 +37,15 @@ const KERNEL_STYLE: React.CSSProperties = {
 };
 
 interface JupyterEditorProps {
-  // OWN PROPS
+  // PROPS
   error?: string;
   actions: any;
   name: string; // name of the redux store
+
+  is_focused?: boolean;
+  mode: "edit" | "escape"; // oneOf(['edit', 'escape']).isRequired;
+  font_size?: number;
+
   // REDUX PROPS
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
@@ -55,8 +59,6 @@ interface JupyterEditorProps {
   cells?: immutable.Map<any, any>; // map from ids to cells
   cur_id?: string;
   sel_ids?: immutable.Set<any>; // set of selected cells
-  mode?: any; // oneOf(['edit', 'escape']).isRequired;
-  font_size?: number;
   md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
   cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
   project_id?: string;
@@ -64,7 +66,6 @@ interface JupyterEditorProps {
   version?: any;
   complete?: immutable.Map<any, any>; // status of tab completion
   introspect?: immutable.Map<any, any>; // status of introspection
-  is_focused?: boolean;
   more_output?: immutable.Map<any, any>;
   about?: boolean;
   backend_kernel_info?: immutable.Map<any, any>;
@@ -108,8 +109,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         cells: rtypes.immutable.Map, // map from ids to cells
         cur_id: rtypes.string,
         sel_ids: rtypes.immutable.Set.isRequired, // set of selected cells
-        mode: rtypes.oneOf(["edit", "escape"]).isRequired,
-        font_size: rtypes.number,
         md_edit_ids: rtypes.immutable.Set.isRequired, // ids of markdown cells in edit mode
         cm_options: rtypes.immutable.Map, // settings for all the codemirror editors
         project_id: rtypes.string,
@@ -117,7 +116,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         version: rtypes.object,
         complete: rtypes.immutable.Map, // status of tab completion
         introspect: rtypes.immutable.Map, // status of introspection
-        is_focused: rtypes.bool,
         more_output: rtypes.immutable.Map,
         about: rtypes.bool,
         backend_kernel_info: rtypes.immutable.Map,
@@ -174,6 +172,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_kernel() {
+    if (!this.props.is_focused) return;
     return (
       <span style={KERNEL_STYLE}>
         <Kernel name={this.props.name} actions={this.props.actions} />
@@ -183,10 +182,15 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_menubar() {
+    // TODO: may want to keep the vertical space and just
+    // render it blank, to avoid the "jump", but reduce clutter...
+    // Same for buttonbar.
+    if (!this.props.is_focused) return;
     return <TopMenubar actions={this.props.actions} name={this.props.name} />;
   }
 
   render_buttonbar() {
+    if (!this.props.is_focused) return;
     return <TopButtonbar actions={this.props.actions} name={this.props.name} />;
   }
 

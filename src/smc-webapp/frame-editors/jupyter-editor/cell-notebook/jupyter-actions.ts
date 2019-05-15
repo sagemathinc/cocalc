@@ -27,11 +27,11 @@ export function create_jupyter_actions(
     JupyterStore,
     initial_jupyter_store_state
   );
-  path = meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
+  const syncdb_path = meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
 
   const syncdb = new_syncdb({
     project_id,
-    path,
+    path : syncdb_path,
     change_throttle: 50, // our UI/React can handle more rapid updates; plus we want output FAST.
     patch_interval: 50,
     primary_keys: ["type", "id"],

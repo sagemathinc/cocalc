@@ -658,8 +658,21 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // to change a field in some node in the tree.  Typically
   // obj is of the form {id:'blah', foo:'bar'}, which sets
   // node.foo = 'bar' in the tree node with id 'blah'.
-  set_frame_tree(obj): void {
+  public set_frame_tree(obj: object): void {
     this._tree_op("set", obj);
+  }
+
+  // Same as set_frame_tree, but all fields except id
+  // have "data-" prepended to them.  Use this for custom
+  // data, so it doesn't interfere with generic data
+  // like 'type' or 'font_size'.
+  public set_frame_data(obj: object): void {
+    const x: any = obj["id"] != null ? { id: obj["id"] } : {};
+    for (let key in obj) {
+      if (key === "id") continue;
+      x["data-" + key] = obj[key];
+    }
+    this.set_frame_tree(x);
   }
 
   // Reset the frame tree layout to the default.

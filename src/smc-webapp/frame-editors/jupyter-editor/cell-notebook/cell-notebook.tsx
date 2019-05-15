@@ -10,6 +10,8 @@ import { JupyterEditor } from "../../../jupyter/main";
 
 import { redux_name } from "./jupyter-actions";
 
+import { Map } from "immutable";
+
 interface Props {
   id: string;
   name: string;
@@ -19,6 +21,8 @@ interface Props {
   project_id: string;
   path: string;
   font_size: number;
+  is_current: boolean;
+  desc: Map<string, any>;
 }
 
 export class CellNotebook extends Component<Props, {}> {
@@ -28,6 +32,15 @@ export class CellNotebook extends Component<Props, {}> {
     if (actions == null) {
       return <Loading />;
     }
-    return <JupyterEditor actions={actions} name={name} />;
+    console.log("CellNotebook", this.props.id, this.props.is_current);
+    return (
+      <JupyterEditor
+        actions={actions}
+        name={name}
+        is_focused={this.props.is_current}
+        mode={this.props.desc.get("data-mode", "escape")}
+        font_size={this.props.font_size}
+      />
+    );
   }
 }

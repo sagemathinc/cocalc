@@ -68,4 +68,37 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   private close_jupyter_actions(): void {
     close_jupyter_actions(this.redux, this.name);
   }
+
+  // per-session sync-aware undo
+  undo(id: string): void {
+    id = id; // not used yet, since only one thing that can be undone.
+    this.jupyter_actions.undo();
+  }
+
+  // per-session sync-aware redo
+  redo(id: string): void {
+    id = id; // not used yet
+    this.jupyter_actions.redo();
+  }
+
+  cut(id: string): void {
+    console.log("cut", id);
+  }
+
+  copy(id: string): void {
+    console.log("copy", id);
+  }
+
+  paste(id: string, value?: string | true): void {
+    console.log("paste", id, value);
+  }
+
+  print(id): void {
+    console.log("TODO: print", id);
+    this.jupyter_actions.show_nbconvert_dialog("html");
+  }
+
+  async format(id?: string): Promise<void> {
+    console.log("format", id);
+  }
 }

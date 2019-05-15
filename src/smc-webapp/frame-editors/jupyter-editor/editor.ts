@@ -30,8 +30,20 @@ export const EDITOR_SPEC = {
     name: "Notebook (default)",
     icon: "cc-icon-ipynb",
     component: CellNotebook,
-    buttons: set([])
-  }/*,
+    buttons: set([
+      "print",
+      "decrease_font_size",
+      "increase_font_size",
+      "save",
+      "time_travel",
+      "cut",
+      "paste",
+      "copy",
+      "undo",
+      "redo",
+      "format"
+    ])
+  } /*,
   jupyter_singledoc_notebook: {
     short: "SingleDoc",
     name: "Single Doc",

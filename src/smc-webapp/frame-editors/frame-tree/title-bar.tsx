@@ -818,7 +818,8 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     const ext = misc.filename_extension(this.props.path).toLowerCase();
-    if (!this.is_visible("format") || !util.PRETTIER_SUPPORT[ext]) {
+    console.log("render_format", ext, this.is_visible("format"));
+    if (!this.is_visible("format") && !util.PRETTIER_SUPPORT[ext]) {
       return;
     }
     return (
@@ -1131,7 +1132,7 @@ export class FrameTitleBar extends Component<Props, State> {
     ) {
       return;
     }
-    if (this.props.connection_status == 'connected') {
+    if (this.props.connection_status == "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
       // cocalc/src/smc-webapp/project/websocket/websocket-indicator.tsx

@@ -305,9 +305,7 @@ export class CellList extends Component<CellListProps> {
 
     const style: React.CSSProperties = {
       fontSize: `${this.props.font_size}px`,
-      paddingLeft: "20px",
-      padding: "20px",
-      backgroundColor: "#eee",
+      padding: "5px",
       height: "100%",
       overflowY: "auto",
       overflowX: "hidden"
