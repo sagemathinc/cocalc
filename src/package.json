@@ -41,7 +41,7 @@
     "jstransformer-markdown-it": "^2.0.0",
     "jstransformer-sass": "^1.0.0",
     "jstransformer-typescript": "^1.1.0",
-    "katex": "=0.10.1",
+    "katex": "=0.10.2",
     "less": "^3.9.0",
     "less-loader": "^4.1.0",
     "node-cjsx": "^1.0.0",
