@@ -84,8 +84,8 @@ exports.Page = rclass
                 {### Katex CDN ###}
                 <link
                     rel="stylesheet"
-                    href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.1/katex.min.css"
-                    integrity="sha256-9F0HwgWlvrVxc95krEjTN7gvwm1DLYuPhZA6piUYuNY="
+                    href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.2/katex.min.css"
+                    integrity="sha256-uT5rNa8r/qorzlARiO7fTBE7EWQiX/umLlXsq7zyQP8="
                     crossorigin="anonymous" />
 
                 {@render_favicon()}

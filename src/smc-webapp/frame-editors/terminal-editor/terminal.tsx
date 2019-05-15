@@ -9,14 +9,11 @@ import { Terminal } from "./connected-terminal";
 
 import { throttle } from "underscore";
 
-import { Button } from "react-bootstrap";
-
 import { background_color } from "./themes";
 
 import { is_different } from "smc-util/misc2";
 
 import { React, Component, Rendered, ReactDOM } from "../../app-framework";
-import { Icon } from "../../r_misc/icon";
 
 interface Props {
   actions: any;
@@ -119,18 +116,6 @@ export class TerminalFrame extends Component<Props, {}> {
     this.terminal.measure_size();
   }
 
-  render_clear_command_button(): Rendered {
-    return (
-      <Button
-        onClick={() => this.props.actions.clear_terminal_command(this.props.id)}
-        bsSize="small"
-        title="Clear command, switching back to standard terminal"
-      >
-        <Icon name="times" />
-      </Button>
-    );
-  }
-
   render_command(): Rendered {
     const command = this.props.desc.get("command");
     if (!command) return;
@@ -139,11 +124,11 @@ export class TerminalFrame extends Component<Props, {}> {
         style={{
           borderBottom: "1px solid grey",
           paddingLeft: "5px",
-          background: "#eee",
-          height: "32px"
+          background: "rgb(248, 248, 248)",
+          height: "20px"
         }}
       >
-        {this.render_clear_command_button()} {command}
+        {command}
       </div>
     );
   }

@@ -353,7 +353,7 @@ passport_login = (opts) ->
                         cb(err)
                         return
                     if is_banned
-                        cb("User is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}")
+                        cb("User (account_id=#{locals.account_id}, email_address=#{locals.email_address}) is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}.")
                         return
                     cb()
         (cb) ->

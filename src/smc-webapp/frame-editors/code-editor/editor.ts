@@ -38,7 +38,15 @@ export const SHELLS = {
   sage: "sage",
   r: "R",
   m: "octave",
-  jl: "julia"
+  jl: "julia",
+  js: "node",
+  ts: "ts-node",
+  coffee: "coffee",
+  gp: "gp",
+  lua:"lua",
+  ml:"ocaml",
+  pl:"perl",
+  rb:"ruby"
 };
 
 export const cm = {

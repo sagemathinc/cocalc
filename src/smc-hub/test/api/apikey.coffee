@@ -20,7 +20,7 @@ describe 'api key tests -- ', ->
     after(teardown)
     beforeEach(reset)
 
-    it 'correct api key', (done) ->
+    it 'ping endpoint is disabled', (done) ->
         http_message_api_v1
             event         : 'ping'
             database      : api.db
@@ -31,28 +31,25 @@ describe 'api key tests -- ', ->
             body          : {}
             cb            : (err, resp) ->
                 winston.info(err, resp)
-                done(err)
+                if not err?
+                    done('there was no error, but there should!')
+                else
+                    expect(err).toInclude("endpoint 'ping' is not part of the HTTP API")
+                    done()
 
-    it 'allows a wrong api key to ping', (done) ->
-        fake_key = 'sk_173r2rj32'
-
+    it 'normal access works', (done) ->
         http_message_api_v1
-            event         : 'ping'
+            event         : 'create_project'
             database      : api.db
             compute_server: api.compute_server
-            api_key       : fake_key
+            api_key       : api.api_key
             ip_address    : '2.3.4.5'
             logger        : api.logger
             body          : {}
             cb            : (err, resp) ->
                 winston.info(err, resp)
-                #if not err?
-                #    done('there was no error')
-                #else
-                #    expect(err).toInclude('No account found.')
-                #    done()
-                expect(resp.event).toBe('pong')
-                expect(resp.now).toExist()
+                expect(resp.event).toBe('project_created')
+                expect(Object.keys(resp)).toInclude('project_id')
                 done(err)
 
     it 'blocks a wrong api key from creating a project', (done) ->
@@ -65,14 +62,38 @@ describe 'api key tests -- ', ->
             api_key       : fake_key
             ip_address    : '3.4.5.6'
             logger        : api.logger
-            body          : {start: true}
+            body          : {start: false}
             cb            : (err, resp) ->
                 winston.info(err, resp)
-                expect(resp.event).toBe('error')
-                expect(resp.error).toInclude('You must be signed in')
-                done(err)
+                if not err?
+                    done('there was no error')
+                else
+                    expect(err).toInclude('No account found')
+                    expect(resp).toBe(undefined)
+                    done()
 
-    it 'blocks banned users, even for pings', (done) ->
+
+    it 'blocks missing api key from creating a project', (done) ->
+        fake_key = 'sk_173nsmeje32'
+
+        http_message_api_v1
+            event         : 'create_project'
+            database      : api.db
+            compute_server: api.compute_server
+            api_key       : ''
+            ip_address    : '3.4.5.6'
+            logger        : api.logger
+            body          : {start: false}
+            cb            : (err, resp) ->
+                winston.info(err, resp)
+                if not err?
+                    done('there was no error')
+                else
+                    expect(err).toInclude('No account found')
+                    expect(resp).toBe(undefined)
+                    done()
+
+    it 'blocks banned users', (done) ->
         async.series([
             (cb) ->
                 api.db.ban_user
@@ -82,7 +103,7 @@ describe 'api key tests -- ', ->
 
             (cb) ->
                 http_message_api_v1
-                    event         : 'ping'
+                    event         : 'create_project'
                     database      : api.db
                     compute_server: api.compute_server
                     api_key       : api.api_key

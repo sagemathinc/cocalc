@@ -7,7 +7,7 @@ AGPLv3, (c) 2017, SageMath, Inc.
 async = require('async')
 
 Cache = require('expiring-lru-cache')
-auth_cache = new Cache(size:5000, expiry:60000)
+auth_cache = new Cache(size:100, expiry:60000)
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -92,6 +92,7 @@ get_client = (opts) ->
     dbg = log('get_client', opts.logger)
 
     account_id = auth_cache.get(opts.api_key)
+
     async.series([
         (cb) ->
             if account_id?
@@ -103,32 +104,30 @@ get_client = (opts) ->
                         if err
                             cb(err)
                             return
-                        if not a?
-                            #cb("No account found. Is your API key wrong?"); return
-                            # continue without an account_id
-                            account_id = undefined
-                        else
-                            account_id = a
 
-                        # cache api key being valid for a minute
+                        if not a?
+                            cb("No account found. Is your API key wrong?")
+                            return
+
+                        # we got an account id associated with the given api key
+                        account_id = a
+
+                        # briefly cache api key. see "expire" time in ms above.
                         auth_cache.set(opts.api_key, account_id)
                         cb()
 
         (cb) ->
-            if not account_id?
-                cb()
-            else
-                # check if user is banned:
-                opts.database.is_banned_user
-                    account_id : account_id
-                    cb         : (err, is_banned) ->
-                        if err
-                            cb(err)
-                            return
-                        if is_banned
-                            cb("User is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}")
-                            return
-                        cb()
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}")
+                        return
+                    cb()
 
     ], (err) ->
         if err

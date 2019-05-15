@@ -465,20 +465,19 @@ message({
 });
 
 // client --> hub
-API(
-  message2({
-    event: "delete_account",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      },
-      account_id: {
-        init: required,
-        desc: "account_id for account to be deleted"
-      }
+message2({
+  event: "delete_account",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
     },
-    desc: `\
+    account_id: {
+      init: required,
+      desc: "account_id for account to be deleted"
+    }
+  },
+  desc: `\
 Example:
 
 Delete an existing account:
@@ -497,8 +496,7 @@ will not be able to login, but will still be listed as collaborator
 or owner on projects which the user collaborated on or owned
 respectively.\
 `
-  })
-);
+});
 
 // hub --> client
 message({
@@ -623,20 +621,19 @@ message({
 });
 
 // client --> hub: "please send a password reset email"
-API(
-  message2({
-    event: "forgot_password",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      },
-      email_address: {
-        init: required,
-        desc: "email address for account requesting password reset"
-      }
+message2({
+  event: "forgot_password",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
     },
-    desc: `\
+    email_address: {
+      init: required,
+      desc: "email address for account requesting password reset"
+    }
+  },
+  desc: `\
 Given the email address of an existing account, send password reset email.
 
 Example:
@@ -649,8 +646,7 @@ Example:
        "error":false}
 \`\`\`\
 `
-  })
-);
+});
 
 // hub --> client  "a password reset email was sent, or there was an error"
 message({
@@ -660,24 +656,23 @@ message({
 });
 
 // client --> hub: "reset a password using this id code that was sent in a password reset email"
-API(
-  message2({
-    event: "reset_forgot_password",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      },
-      reset_code: {
-        init: required,
-        desc: "id code that was sent in a password reset email"
-      },
-      new_password: {
-        init: required,
-        desc: "must be between 6 and 64 characters in length"
-      }
+message2({
+  event: "reset_forgot_password",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
     },
-    desc: `\
+    reset_code: {
+      init: required,
+      desc: "id code that was sent in a password reset email"
+    },
+    new_password: {
+      init: required,
+      desc: "must be between 6 and 64 characters in length"
+    }
+  },
+  desc: `\
 Reset password, given reset code.
 
 Example:
@@ -689,8 +684,7 @@ Example:
   ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
 \`\`\`\
 `
-  })
-);
+});
 
 message({
   event: "reset_forgot_password_response",
@@ -769,20 +763,19 @@ message({
 
 // Unlink a passport auth for this account.
 // client --> hub
-API(
-  message2({
-    event: "unlink_passport",
-    fields: {
-      strategy: {
-        init: required,
-        desc: "passport strategy"
-      },
-      id: {
-        init: required,
-        desc: "numeric id for user and passport strategy"
-      }
+message2({
+  event: "unlink_passport",
+  fields: {
+    strategy: {
+      init: required,
+      desc: "passport strategy"
     },
-    desc: `\
+    id: {
+      init: required,
+      desc: "numeric id for user and passport strategy"
+    }
+  },
+  desc: `\
 Unlink a passport auth for the account.
 
 Strategies are defined in the database and may be viewed at [/auth/strategies](https://cocalc.com/auth/strategies).
@@ -815,8 +808,8 @@ Unlink passport for that strategy and id.
 Note that success is returned regardless of whether or not passport was linked
 for the given strategy and id before issuing the API command.\
 `
-  })
-);
+});
+
 message({
   event: "error",
   id: undefined,
@@ -1312,7 +1305,7 @@ account with that email address, if there is one. A string query item
 will return account id, first name, and last name for all matching
 accounts.
 
-We do not reveal email addresses of users queried by name.
+We do not reveal email addresses of users queried by name to non admins.
 
 String query matches first and last names that start with the given string.
 If a string query item consists of two strings separated by space,
@@ -1320,8 +1313,6 @@ the search will return accounts in which the first name begins with one
 of the two strings and the last name begins with the other.
 String and email queries may be mixed in the list for a single
 user_search call. Searches are case-insensitive.
-
-Security key may be blank.
 
 Note: there is a hard limit of 50 returned items in the results.
 
@@ -1819,16 +1810,15 @@ message({
 /*
 Ping/pong -- used for clock sync, etc.
 */
-API(
-  message2({
-    event: "ping",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query"
-      }
-    },
-    desc: `\
+message2({
+  event: "ping",
+  fields: {
+    id: {
+      init: undefined,
+      desc: "A unique UUID for the query"
+    }
+  },
+  desc: `\
 Test API connection, return time as ISO string when server responds to ping.
 
 Security key may be blank.
@@ -1862,8 +1852,7 @@ Using JSON format to provide request id:
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
 `
-  })
-);
+});
 
 message({
   event: "pong",
@@ -2847,30 +2836,26 @@ Revoke a temporary authentication token for an account.
 */
 
 // client --> hub
-API(
-  message2({
-    event: "metrics",
-    fields: {
-      metrics: {
-        init: required,
-        desc: "object containing the metrics"
-      }
+message2({
+  event: "metrics",
+  fields: {
+    metrics: {
+      init: required,
+      desc: "object containing the metrics"
     }
-  })
-);
+  }
+});
 
-API(
-  message2({
-    event: "start_metrics",
-    fields: {
-      interval_s: {
-        init: required,
-        desc:
-          "tells client that it should submit metrics to the hub every interval_s seconds"
-      }
+message2({
+  event: "start_metrics",
+  fields: {
+    interval_s: {
+      init: required,
+      desc:
+        "tells client that it should submit metrics to the hub every interval_s seconds"
     }
-  })
-);
+  }
+});
 
 // Info about available upgrades for a given user
 API(
