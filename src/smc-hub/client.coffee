@@ -28,7 +28,7 @@ hub_projects         = require('./projects')
 {get_support}        = require('./support')
 {send_email}         = require('./email')
 {api_key_action}     = require('./api/manage')
-{create_account, delete_account} = require('./create-account')
+{create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
 
 underscore = require('underscore')
@@ -349,13 +349,13 @@ class exports.Client extends EventEmitter
             return
         @conn.write(channel + data)
 
-    error_to_client: (opts) ->
+    error_to_client: (opts) =>
         opts = defaults opts,
             id    : undefined
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
-    success_to_client: (opts) ->
+    success_to_client: (opts) =>
         opts = defaults opts,
             id    : required
         @push_to_client(message.success(id:opts.id))
@@ -387,7 +387,7 @@ class exports.Client extends EventEmitter
         @account_id = undefined
 
     # Setting and getting HTTP-only cookies via Primus + AJAX
-    get_cookie: (opts) ->
+    get_cookie: (opts) =>
         opts = defaults opts,
             name : required
             cb   : required   # cb(undefined, value)
@@ -397,7 +397,7 @@ class exports.Client extends EventEmitter
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url_lib.base_url()+"/cookies"))
 
-    set_cookie: (opts) ->
+    set_cookie: (opts) =>
         opts = defaults opts,
             name  : required
             value : required
@@ -412,7 +412,7 @@ class exports.Client extends EventEmitter
         @cookies[opts.name] = {value:opts.value, options:options}
         @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url_lib.base_url()+"/cookies", value:opts.value))
 
-    remember_me: (opts) ->
+    remember_me: (opts) =>
         return if not @conn?
         ###
         Remember me.  There are many ways to implement
@@ -475,7 +475,7 @@ class exports.Client extends EventEmitter
             ttl        : ttl
             cb         : opts.cb
 
-    invalidate_remember_me: (opts) ->
+    invalidate_remember_me: (opts) =>
         return if not @conn?
 
         opts = defaults opts,
@@ -707,7 +707,7 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger
+            logger   : @logger.debug
             host     : @_opts.host
             port     : @_opts.port
             sign_in  : @conn?  # browser clients have a websocket conn
@@ -717,7 +717,7 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger
+            logger   : @logger.debug
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
