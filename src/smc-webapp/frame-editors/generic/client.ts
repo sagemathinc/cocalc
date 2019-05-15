@@ -270,6 +270,7 @@ export interface User {
   first_name: string;
   last_active: string | null;
   last_name: string;
+  banned?: boolean;
 }
 
 export async function user_search(opts: {

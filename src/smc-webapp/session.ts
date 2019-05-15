@@ -8,6 +8,7 @@ const { throttle } = require("underscore");
 const { webapp_client } = require("./webapp_client");
 const misc_page = require("./misc_page");
 import { AppRedux } from "./app-framework";
+import * as LS from "misc/local-storage";
 
 const async = require("async");
 
@@ -21,8 +22,8 @@ interface State {
 class SessionManager {
   private name: string;
   private redux: AppRedux;
-  private _local_storage_name: string;
-  private _local_storage_name_closed: string;
+  private _local_storage_name: LS.CustomKey;
+  private _local_storage_name_closed: LS.CustomKey;
   private _state: State[];
   private _ignore: boolean;
   private _state_closed: State;
@@ -76,8 +77,12 @@ class SessionManager {
       const { APP_BASE_URL } = require("misc_page");
       const prefix = APP_BASE_URL ? `.${APP_BASE_URL}` : "";
       const postfix = `${webapp_client.account_id}.${this.name}`;
-      this._local_storage_name = `session${prefix}.${postfix}`;
-      this._local_storage_name_closed = `closed-session${prefix}.${postfix}`;
+      this._local_storage_name = new LS.CustomKey(
+        `session${prefix}.${postfix}`
+      );
+      this._local_storage_name_closed = new LS.CustomKey(
+        `closed-session${prefix}.${postfix}`
+      );
       this._load_from_local_storage();
     }
 
@@ -149,16 +154,14 @@ class SessionManager {
     if (this._state == null || this._local_storage_name == null) {
       return;
     }
-    localStorage[this._local_storage_name] = JSON.stringify(this._state);
+    LS.set(this._local_storage_name, this._state);
   }
 
   _save_to_local_storage_closed(): void {
     if (this._state_closed == null || this._local_storage_name == null) {
       return;
     }
-    localStorage[this._local_storage_name_closed] = JSON.stringify(
-      this._state_closed
-    );
+    LS.set(this._local_storage_name_closed, this._state_closed);
   }
 
   restore(project_id?: string): void {
@@ -211,24 +214,26 @@ class SessionManager {
 
     this._state = [];
     this._state_closed = {};
-
-    let s = localStorage[this._local_storage_name];
-    if (s) {
-      try {
-        this._state = JSON.parse(s);
-      } catch (err) {
-        delete localStorage[this._local_storage_name];
-        console.warn(err);
+    {
+      let ss: State[] | undefined = LS.get<State[]>(this._local_storage_name);
+      if (ss != null && ss) {
+        try {
+          this._state = ss;
+        } catch (err) {
+          LS.del(this._local_storage_name);
+          console.warn(err);
+        }
       }
     }
-
-    s = localStorage[this._local_storage_name_closed];
-    if (s) {
-      try {
-        this._state_closed = JSON.parse(s);
-      } catch (err) {
-        delete localStorage[this._local_storage_name_closed];
-        console.warn(err);
+    {
+      let sc = LS.get<State>(this._local_storage_name_closed);
+      if (sc != null && sc) {
+        try {
+          this._state_closed = sc;
+        } catch (err) {
+          LS.del(this._local_storage_name_closed);
+          console.warn(err);
+        }
       }
     }
   }

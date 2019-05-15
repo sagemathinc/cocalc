@@ -23,6 +23,8 @@ const codemirror_associations: { [ext: string]: string } = {
   cljc: "text/x-clojure",
   edn: "text/x-clojure",
   elm: "text/x-elm",
+  erl: "text/x-erlang",
+  hrl: "text/x-erlang", // according to https://en.wikipedia.org/wiki/Erlang_(programming_language)
   cjsx: "text/cjsx",
   coffee: "coffeescript",
   css: "css",

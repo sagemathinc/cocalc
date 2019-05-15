@@ -246,12 +246,14 @@ welcome_email_html = (token_url) -> """
 <h1>Welcome to #{SITE_NAME}</h1>
 
 <p style="margin-top:0;margin-bottom:10px;">
-<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> is a sophisticated web service for collaborative computation.
+<a href="#{DOMAIN_NAME}">#{SITE_NAME}</a> helps you do collaborative
+calculations in your web browser.
 </p>
 
 <p style="margin-top:0;margin-bottom:20px;">
 You received this email because an account with your email address was created.
-This was either initiated by you, a friend or colleague invited you, or you're a student as part of a course.
+This was either initiated by you, a friend or colleague invited you, or you're
+a student as part of a course.
 </p>
 
 #{verify_email_html(token_url)}
