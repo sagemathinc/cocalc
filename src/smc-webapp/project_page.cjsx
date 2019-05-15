@@ -178,11 +178,11 @@ FreeProjectWarning = rclass ({name}) ->
             styles.background = 'red'
 
         if host and internet
-            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b> and has no internet access.  Expect very bad performance.</span>
+            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b> and has no internet access.  Expect poor performance and no email notifications.</span>
         else if host
-            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b>. Expect very bad performance.</span>
+            mesg = <span>Upgrade this project. It is on an <b>unpaid trial server</b>.   Expect poor performance and no email notifications.</span>
         else if internet
-            mesg = <span>This project does not have access to the internet.</span>
+            mesg = <span>This project does not have access to the internet.  No installs, external resources or email notifications.</span>
 
         <Alert bsStyle='warning' style={styles}>
             <Icon name='exclamation-triangle' style={float:'right', marginTop: '3px'}/>

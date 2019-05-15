@@ -22,12 +22,15 @@ import { Impersonate } from "./impersonate";
 
 import { PasswordReset } from "./password-reset";
 
+import { Ban } from "./ban";
+
 interface State {
   projects: boolean;
   subscriptions: boolean;
   activity: boolean;
   impersonate: boolean;
   password: boolean;
+  ban: boolean;
 }
 
 interface Props extends User {
@@ -39,14 +42,16 @@ type More =
   | "subscriptions"
   | "activity"
   | "impersonate"
-  | "password";
+  | "password"
+  | "ban";
 
 const MORE: More[] = [
   "projects",
   "subscriptions",
   "activity",
   "impersonate",
-  "password"
+  "password",
+  "ban"
 ];
 
 export class UserResult extends Component<Props, State> {
@@ -114,6 +119,15 @@ export class UserResult extends Component<Props, State> {
     return <PasswordReset email_address={this.props.email_address} />;
   }
 
+  render_ban(): Rendered {
+    if (!this.state.ban) {
+      return;
+    }
+    return (
+      <Ban account_id={this.props.account_id} banned={this.props.banned} />
+    );
+  }
+
   render_caret(show: boolean): Rendered {
     if (show) {
       return <Icon name="caret-down" />;
@@ -149,7 +163,23 @@ export class UserResult extends Component<Props, State> {
         {this.render_more_link("impersonate")}
         <Space />
         <Space />
-        {this.render_more_link("password")}
+        {this.render_more_link("ban")}
+      </div>
+    );
+  }
+
+  render_banned(): Rendered {
+    if (!this.props.banned) return;
+    return (
+      <div
+        style={{
+          fontSize: "10pt",
+          color: "white",
+          paddingLeft: "5px",
+          background: "red"
+        }}
+      >
+        BANNED
       </div>
     );
   }
@@ -174,6 +204,7 @@ export class UserResult extends Component<Props, State> {
               }}
             >
               {this.props.account_id}
+              {this.render_banned()}
             </span>
           </Col>
         </Row>
@@ -182,6 +213,7 @@ export class UserResult extends Component<Props, State> {
         {this.render_activity()}
         {this.render_impersonate()}
         {this.render_password()}
+        {this.render_ban()}
       </div>
     );
   }

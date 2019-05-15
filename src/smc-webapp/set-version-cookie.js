@@ -11,6 +11,8 @@ way at all.
 
 const Cookies = require("js-cookie");
 const { version } = require("smc-util/smc-version");
-const { APP_BASE_URL } = require('./misc_page');
+const { APP_BASE_URL } = require("./misc_page");
 
-Cookies.set(`${APP_BASE_URL}cocalc_version`, version);
+// We don't want this cookie to expire.  All it does is record the version of
+// the code the client has loaded, and the version only goes up.
+Cookies.set(`${APP_BASE_URL}cocalc_version`, version, { expires: 10000 });
