@@ -64,7 +64,7 @@ export class PickerList extends React.Component<PickerListProps> {
     return (
       <>
         {results.length > 0
-          ? "Click users below then click the 'Send Invitation' button to invite people to this project."
+          ? "Click users below then click the 'Add Collaborator' button to add people to this project."
           : undefined}
         <ListGroup
           style={{ maxHeight: "250px", overflow: "auto", margin: "15px" }}

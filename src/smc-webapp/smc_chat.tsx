@@ -1013,6 +1013,20 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
       : undefined;
   };
 
+  render_mention_email() {
+    if (
+      this.props.redux
+        .getStore("projects")
+        .has_internet_access(this.props.project_id)
+    ) {
+      return <span>(they may receive an email)</span>;
+    } else {
+      return (
+        <span>(enable the Internet Access upgrade to send emails)</span>
+      );
+    }
+  }
+
   // All render methods
   render_bottom_tip() {
     const tip = (
@@ -1032,7 +1046,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
           style={{ color: "#767676", fontSize: "12.5px", marginBottom: "5px" }}
         >
           Shift+Enter to send your message. Use @name to mention a collaborator
-          on this project. Double click chat bubbles to edit them. Format using{" "}
+          on this project {this.render_mention_email()}. Double click chat
+          bubbles to edit them. Format using{" "}
           <a
             href="https://help.github.com/articles/getting-started-with-writing-and-formatting-on-github/"
             target="_blank"

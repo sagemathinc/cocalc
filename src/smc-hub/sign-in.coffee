@@ -138,9 +138,18 @@ exports.sign_in = (opts) ->
             # can be determined via the invite collaborators feature.
             opts.database.get_account
                 email_address : mesg.email_address
-                columns       : ['password_hash', 'account_id', 'passports']
+                columns       : ['password_hash', 'account_id', 'passports', 'banned']
                 cb            : (err, _account) ->
-                    account = _account; cb(err)
+                    if err
+                        cb(err)
+                        return
+                    account = _account
+                    dbg("account = #{JSON.stringify(account)}")
+                    if account.banned
+                        dbg("banned account!")
+                        cb("This account is BANNED.  Contact help@cocalc.com if you believe this is a mistake.")
+                        return
+                    cb()
         (cb) ->
             dbg("got account; now checking if password is correct...")
             auth.is_password_correct
