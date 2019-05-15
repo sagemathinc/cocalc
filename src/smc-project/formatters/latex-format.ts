@@ -1,4 +1,4 @@
-const { unlink, writeFile } = require("fs");
+const {  writeFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
@@ -58,6 +58,6 @@ export async function latex_format(
     }
     return output;
   } finally {
-    unlink(input_path);
+    unlink(input_path, () => {});
   }
 }
