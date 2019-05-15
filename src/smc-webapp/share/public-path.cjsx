@@ -60,6 +60,14 @@ exports.PublicPath = rclass
         else if extensions.video[ext]
             video_style = {maxWidth: '100%', height: 'auto'}
             return <video controls autoPlay loop style={video_style} src={src}/>
+        else if extensions.audio[ext]
+            return <audio
+                    src      = {src}
+                    autoPlay = {true}
+                    controls = {true}
+                    loop     = {false}
+                    volume   = {0.5}
+                   />
 
         if not @props.content?
             # This happens if the file is too big

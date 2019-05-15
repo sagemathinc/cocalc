@@ -343,18 +343,17 @@ exports.init_http_proxy_server = (opts) ->
                     t = {host:host, port:port}
                     _target_cache[key] = t
                     cb(false, t, internal_url)
-                    if type == 'raw'
-                        # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                        # but also if a new user is granted permission to the project they didn't have, or the project server
-                        # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
-                        # and any could cause a project restart at any time, we just timeout this.
-                        # This helps enormously when there is a burst of requests.
-                        # Also if project restarts the raw port will change and we don't want to have
-                        # fix this via getting an error.
+                    # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                    # but also if a new user is granted permission to the project they didn't have, or the project server
+                    # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
+                    # and any could cause a project restart at any time, we just timeout this.
+                    # This helps enormously when there is a burst of requests.
+                    # Also if project restarts the raw port will change and we don't want to have
+                    # fix this via getting an error.
 
-                        # Also, if the project stops and starts, the host=ip address could change, so
-                        # we need to timeout so we see that...
-                        setTimeout((->delete _target_cache[key]), 30*1000)
+                    # Also, if the project stops and starts, the host=ip address could change, so
+                    # we need to timeout so we see that...
+                    setTimeout((->delete _target_cache[key]), 30*1000)
             )
 
     #proxy = http_proxy.createProxyServer(ws:true)
