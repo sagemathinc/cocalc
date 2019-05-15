@@ -7,6 +7,7 @@
 ###############################################################################
 
 misc = require('../misc')
+misc2 = require('../misc2')
 underscore = require('underscore')
 immutable = require('immutable')
 
@@ -998,7 +999,7 @@ describe "timestamp_cmp", ->
         tcmp(a, b).should.eql 1
         tcmp(b, a).should.eql -1
         # sometimes, that's -0 instead of 0
-        assert.strictEqual(tcmp(a, a), 0)
+        assert.strictEqual(Math.abs(tcmp(a, a)), 0)
 
     it "handles missing timestamps gracefully", ->
         tcmp(a, {}).should.eql -1
@@ -1531,4 +1532,15 @@ describe 'test closest kernel matching method', ->
         expect(misc.closest_kernel_match("ir35",kernels)).toEqual(ir)
     it 'suggests R over ir-35', ->
         expect(misc.closest_kernel_match("ir-35",kernels)).toEqual(ir)
+
+
+describe 'do not allow URLs in names', ->
+    it 'works for usual names', ->
+        expect(misc2.is_valid_username("harald")).toBe(true)
+        expect(misc2.is_valid_username("ABC FOO-BAR")).toBe(true)
+        expect(misc2.is_valid_username("test.account.dot")).toBe(true)
+    it 'blocks suspicious names', ->
+        expect(misc2.is_valid_username("OPEN http://foo.com")).toBe(false)
+        #expect(misc2.is_valid_username("https://earn-money.cc is good" )).toBe(false)
+        #expect(misc2.is_valid_username("OPEN mailto:bla@bar.de")).toBe(false)
 
