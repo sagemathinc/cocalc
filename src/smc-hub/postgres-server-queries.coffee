@@ -17,6 +17,7 @@ random_key = require("random-key")
 
 misc_node = require('smc-util-node/misc_node')
 
+misc2 = require('smc-util/misc2')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
@@ -304,6 +305,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
         dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
+
+        if (not misc2.is_valid_username(opts.first_name)) or (not misc2.is_valid_username(opts.last_name))
+            opts.cb("username is not valid")
+            return
 
         if opts.email_address? # canonicalize the email address, if given
             opts.email_address = misc.lower_email_address(opts.email_address)
