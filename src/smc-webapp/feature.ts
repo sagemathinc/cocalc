@@ -25,7 +25,7 @@
 //
 //###################################################
 
-export const { DEBUG } = require("./debug");
+export const {DEBUG} = require("./debug");
 
 export function debug(...args): void {
   if (DEBUG) {

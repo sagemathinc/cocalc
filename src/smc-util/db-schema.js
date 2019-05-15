@@ -1745,14 +1745,8 @@ schema.system_notifications = {
   pg_indexes: ["time"],
   user_query: {
     get: {
-      // pg_where: ["time >= NOW() - INTERVAL '1 hour'"],
-      // pg_changefeed: "one-hour",
-      pg_where: [],
-      // pg_where: ["time >= NOW() - interval '100 days'"],
-      //pg_changefeed: "quarter",
-      options: [{ order_by: "-time" }, { limit: 100 }],
-      //pg_where: ["time >= NOW() - interval '14 days'"],
-      // pg_changefeed: "quarter",
+      pg_where: ["time >= NOW() - INTERVAL '1 hour'"],
+      pg_changefeed: "one-hour",
 
       throttle_changes: 3000,
       fields: {
@@ -1771,6 +1765,35 @@ schema.system_notifications = {
         text: true,
         priority: true,
         done: true
+      }
+    }
+  }
+};
+
+// derived from system_notifications, in particular going longer in time, etc.
+schema.announcements = {
+  primary_key: "id",
+  db_standby: "unsafe",
+  anonymous: false,
+  virtual: "system_notifications",
+  fields: {
+    id: true,
+    time: true,
+    text: true,
+    priority: true,
+    done: true
+  },
+  user_query: {
+    get: {
+      pg_where: ["time >= NOW() - INTERVAL '100 days'"],
+      pg_changefeed: "quarter",
+      throttle_changes: 3000,
+      fields: {
+        id: null,
+        time: null,
+        text: "",
+        priority: "info",
+        done: false
       }
     }
   }

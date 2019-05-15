@@ -122,3 +122,29 @@ class NotificationsTable extends Table {
 const table = redux.createTable(NAME, NotificationsTable);
 const store = redux.createStore(NAME, NotificationsStore, init_state);
 const actions = redux.createActions(NAME, NotificationsActions);
+
+/******************************************************************/
+
+class AnnouncementsTable extends Table {
+  query() {
+    return "announcements";
+  }
+
+  private process_mesg(_id, mesg): void {
+    debug("announcements::process_mesg", mesg);
+  }
+
+  options() {
+    return [];
+  }
+
+  _change = (table, _keys) => {
+    console.log("_change announcements:", table.get());
+    table.get().map((m, id) => {
+      this.process_mesg(id, m.toJS());
+    });
+  };
+}
+
+// const a_table =
+redux.createTable("announcements", AnnouncementsTable);

@@ -1,1 +1,5 @@
-exports.DEBUG = !!DEBUG
+
+if global.window?
+    exports.DEBUG = !!DEBUG
+else
+    exports.DEBUG = false
