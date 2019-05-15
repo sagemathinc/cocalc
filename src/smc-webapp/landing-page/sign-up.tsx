@@ -206,10 +206,11 @@ export class SignUp extends React.Component<Props, State> {
   }
 
   render_question() {
+    /*
     return (
       <>
         <div style={{ marginBottom: "5px" }}>
-          Where did you find out about CoCalc? (optional)
+          'Where did you find out about CoCalc? '(optional)
         </div>
         <FormGroup>
           <FormControl
@@ -222,6 +223,7 @@ export class SignUp extends React.Component<Props, State> {
         </FormGroup>
       </>
     );
+    */
   }
 
   render_button(): Rendered {

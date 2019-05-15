@@ -17,6 +17,9 @@ import { callback2 } from "smc-util/async-utils";
 import { trunc } from "smc-util/misc2";
 import { callback, delay } from "awaiting";
 
+import { project_has_network_access } from "../postgres/project-queries";
+import { is_paying_customer } from "../postgres/account-queries";
+
 const { send_email } = require("../email");
 
 const { HELP_EMAIL } = require("smc-util/theme");
@@ -32,7 +35,7 @@ interface Key {
   target: string;
 }
 
-type Action = "email" | "ignore";
+type Action = "email" | "ignore" | "no-network";
 
 type Database = any; // TODO
 
@@ -79,8 +82,22 @@ export async function handle_all_mentions(db: any): Promise<void> {
   }
 }
 
-async function determine_action(db: Database, key: Key): Promise<Action> {
+async function determine_action(
+  db: Database,
+  key: Key,
+  source: string
+): Promise<Action> {
   const { project_id, path, target } = key;
+  if (
+    !(await is_paying_customer(db, source)) &&
+    !(await project_has_network_access(db, project_id))
+  ) {
+    // Mentions are ignored when sending is NOT a paying customer *and*
+    // the project does not have network access.
+    // Otherwise, spammers could use @mentions to send emails.
+    // Users can still see mentions inside CoCalc itself...
+    return "no-network";
+  }
   const result = await callback2(db._query, {
     query: `SELECT COUNT(*) FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${MIN_EMAIL_INTERVAL}'`,
     params: [project_id, path, target]
@@ -100,12 +117,16 @@ export async function handle_mention(
 ): Promise<void> {
   // Check that source and target are both currently
   // collaborators on the project.
-  const action: string = await determine_action(db, key);
+  const action: string = await determine_action(db, key, source);
   try {
     switch (action) {
       case "ignore":
         // Mark that we ignore this.
         await set_action(db, key, "ignore");
+        return;
+      case "no-network":
+        // Mark that we ignore this because no network. (basically a trial user)
+        await set_action(db, key, "no-network");
         return;
       case "email":
         await send_email_notification(db, key, source);
