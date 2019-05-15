@@ -67,6 +67,8 @@ Cookies = require('cookies')
 
 express_session = require('express-session')
 
+{ HELP_EMAIL } = require("smc-util/theme")
+
 {defaults, required} = misc
 
 api_key_cookie_name = (base_url) ->
@@ -342,6 +344,18 @@ passport_login = (opts) ->
                     cb()
             )
 
+        (cb) ->
+            # check if user is banned:
+            opts.database.is_banned_user
+                account_id : locals.account_id
+                cb         : (err, is_banned) ->
+                    if err
+                        cb(err)
+                        return
+                    if is_banned
+                        cb("User (account_id=#{locals.account_id}, email_address=#{locals.email_address}) is BANNED.  If this is a mistake, please contact #{HELP_EMAIL}.")
+                        return
+                    cb()
         (cb) ->
             if locals.has_valid_remember_me
                 cb()

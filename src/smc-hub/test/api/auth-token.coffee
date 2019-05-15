@@ -10,6 +10,7 @@ describe 'tests creating an auth token via the api -- ', ->
     account_id2 = undefined
 
     it "uses api call to create a second account", (done) ->
+        @timeout(10000)
         api.call
             event : 'create_account'
             body  :
@@ -26,6 +27,7 @@ describe 'tests creating an auth token via the api -- ', ->
 
     auth_token = undefined
     it "obtains an auth token for the second account", (done) ->
+        @timeout(10000)
         api.call
             event : 'user_auth'
             body  :
@@ -40,6 +42,7 @@ describe 'tests creating an auth token via the api -- ', ->
                 done()
 
     it "check in the database that the token would work", (done) ->
+        @timeout(10000)
         api.db.get_auth_token_account_id
             auth_token : auth_token
             cb         : (err, account_id) ->
@@ -49,4 +52,15 @@ describe 'tests creating an auth token via the api -- ', ->
                     expect(account_id).toBe(account_id2)
                     done()
 
-                    
+    it "check that a wrong token does not work", (done) ->
+        fake_token = '12341234123'
+        @timeout(10000)
+        api.db.get_auth_token_account_id
+            auth_token : fake_token
+            cb         : (err, account_id) ->
+                if err
+                    done(err)
+                else
+                    expect(account_id).toBe(undefined)
+                    done()
+
