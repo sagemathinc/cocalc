@@ -28,7 +28,7 @@ hub_projects         = require('./projects')
 {get_support}        = require('./support')
 {send_email}         = require('./email')
 {api_key_action}     = require('./api/manage')
-{create_account, delete_account} = require('./create-account')
+{create_account, delete_account} = require('./client/create-account')
 db_schema            = require('smc-util/db-schema')
 
 underscore = require('underscore')
@@ -37,6 +37,8 @@ underscore = require('underscore')
 {callback2} = require('smc-util/async-utils')
 
 {record_user_tracking} = require('./postgres/user-tracking')
+{project_has_network_access} = require('./postgres/project-queries')
+{is_paying_customer} = require('./postgres/account-queries')
 
 DEBUG2 = !!process.env.SMC_DEBUG2
 
@@ -347,13 +349,13 @@ class exports.Client extends EventEmitter
             return
         @conn.write(channel + data)
 
-    error_to_client: (opts) ->
+    error_to_client: (opts) =>
         opts = defaults opts,
             id    : undefined
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
-    success_to_client: (opts) ->
+    success_to_client: (opts) =>
         opts = defaults opts,
             id    : required
         @push_to_client(message.success(id:opts.id))
@@ -384,7 +386,7 @@ class exports.Client extends EventEmitter
         @account_id = undefined
 
     # Setting and getting HTTP-only cookies via Primus + AJAX
-    get_cookie: (opts) ->
+    get_cookie: (opts) =>
         opts = defaults opts,
             name : required
             cb   : required   # cb(undefined, value)
@@ -394,7 +396,7 @@ class exports.Client extends EventEmitter
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:base_url_lib.base_url()+"/cookies"))
 
-    set_cookie: (opts) ->
+    set_cookie: (opts) =>
         opts = defaults opts,
             name  : required
             value : required
@@ -409,7 +411,7 @@ class exports.Client extends EventEmitter
         @cookies[opts.name] = {value:opts.value, options:options}
         @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:base_url_lib.base_url()+"/cookies", value:opts.value))
 
-    remember_me: (opts) ->
+    remember_me: (opts) =>
         return if not @conn?
         ###
         Remember me.  There are many ways to implement
@@ -472,7 +474,7 @@ class exports.Client extends EventEmitter
             ttl        : ttl
             cb         : opts.cb
 
-    invalidate_remember_me: (opts) ->
+    invalidate_remember_me: (opts) =>
         return if not @conn?
 
         opts = defaults opts,
@@ -704,7 +706,7 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger
+            logger   : @logger.debug
             host     : @_opts.host
             port     : @_opts.port
             sign_in  : @conn?  # browser clients have a websocket conn
@@ -714,7 +716,7 @@ class exports.Client extends EventEmitter
             client   : @
             mesg     : mesg
             database : @database
-            logger   : @logger
+            logger   : @logger.debug
 
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
@@ -1192,6 +1194,10 @@ class exports.Client extends EventEmitter
                         @push_to_client(resp)
 
     mesg_user_search: (mesg) =>
+        if not @account_id?
+            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to search for users."))
+            return
+
         if not mesg.admin and (not mesg.limit? or mesg.limit > 50)
             # hard cap at 50... (for non-admin)
             mesg.limit = 50
@@ -1280,10 +1286,17 @@ class exports.Client extends EventEmitter
 
                 (cb) =>
                     if locals.done or (not locals.email_address)
+                        dbg("NOT send_email invite to #{locals.email_address}")
                         cb(); return
 
                     cb()  # we return early, because there is no need to let someone wait for sending the email
 
+                    # do not send email if project doesn't have network access (and user is not a paying customer)
+                    if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+                        dbg("NOT send_email invite to #{locals.email_address} -- due to project lacking network access (and user not a customer)")
+                        return
+
+                    dbg("send_email invite to #{locals.email_address}")
                     # available message fields
                     # mesg.title            - title of project
                     # mesg.link2proj
@@ -1337,7 +1350,7 @@ class exports.Client extends EventEmitter
                         body         : email_body
                         cb           : (err) =>
                             if err
-                                dbg("FAILED to send email to #{locals.email_address}  -- err={misc.to_json(err)}")
+                                dbg("FAILED to send email to #{locals.email_address}  -- err=#{misc.to_json(err)}")
                             @database.sent_project_invite
                                 project_id : mesg.project_id
                                 to         : locals.email_address
@@ -1354,6 +1367,24 @@ class exports.Client extends EventEmitter
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         dbg = @dbg('mesg_invite_noncloud_collaborators')
+
+        #
+        # Uncomment this in case of attack by evil forces:
+        #
+        ## @error_to_client(id:mesg.id, error:"inviting collaborators who do not already have a cocalc account to projects is currently disabled due to abuse");
+        ## return
+
+
+        # We only allow sending email invites if: (a) the sender is a
+        # paying customer, or (b) the project has network access.
+        if (not await is_paying_customer(@database, @account_id) and not await project_has_network_access(@database, mesg.project_id))
+            # In practice, the frontend client should always prevent ever having to do this
+            # check.  However, a malicious user controls the frontend, so we must still make
+            # this check anyways.
+            dbg("NOT send_email invites due to no network access (and user not a customer); in fact don't even make the invite!")
+            @error_to_client(id:mesg.id, error:"You cannot invite people without CoCalc accounts to collaborate on this project. First upgrade this project to have the 'Internet Access' quota.");
+            return
+
         @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1427,6 +1458,7 @@ class exports.Client extends EventEmitter
                                         cb()
                     (cb) =>
                         if done
+                            dbg("NOT send_email invite to #{email_address}")
                             cb()
                         else
                             cb()
@@ -1469,6 +1501,7 @@ class exports.Client extends EventEmitter
                                         project_id : mesg.project_id
                                         to         : email_address
                                         error      : err
+                            dbg("send_email invite to #{email_address}")
                             send_email(opts)
 
                 ], cb)
@@ -2755,4 +2788,18 @@ class exports.Client extends EventEmitter
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
 
-
+    mesg_admin_ban_user: (mesg) =>
+        dbg = @dbg("mesg_admin_ban_user")
+        dbg(mesg.account_id)
+        try
+            if mesg.ban
+                dbg("banning the user")
+                await callback2(@database.ban_user, {account_id:mesg.account_id})
+                await callback2(@database.invalidate_all_remember_me, {account_id:mesg.account_id})
+            else
+                dbg("unbanning the user")
+                await callback2(@database.unban_user, {account_id:mesg.account_id})
+            @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")

@@ -23,13 +23,26 @@ const LS: { [k: string]: string | undefined } = (function() {
   }
 })();
 
-function make_key(keys: string[] | string): string {
-  const key = typeof keys == "string" ? keys : keys.join(".");
-  return [APP_BASE_URL, key].join("::");
+export class CustomKey {
+  constructor(private key: string) {}
+  getKey() {
+    return this.key;
+  }
+}
+
+type Keys = string[] | string | CustomKey;
+
+function make_key(keys: Keys): string {
+  if (keys instanceof CustomKey) {
+    return keys.getKey();
+  } else {
+    const key = typeof keys == "string" ? keys : keys.join(".");
+    return [APP_BASE_URL, key].join("::");
+  }
 }
 
 // returns the deleted value or undefined in case of a problem
-export function del<T>(keys: string[] | string): T | undefined {
+export function del<T>(keys: Keys): T | undefined {
   const key = make_key(keys);
   try {
     const val = get<T>(keys);
@@ -41,7 +54,7 @@ export function del<T>(keys: string[] | string): T | undefined {
 }
 
 // set an entry, and return true if it was successful
-export function set<T>(keys: string[] | string, value: T): boolean {
+export function set<T>(keys: Keys, value: T): boolean {
   const key = make_key(keys);
   try {
     LS[key] = JSON.stringify(value);
@@ -52,7 +65,7 @@ export function set<T>(keys: string[] | string, value: T): boolean {
   }
 }
 
-export function get<T>(keys: string[] | string): T | undefined {
+export function get<T>(keys: Keys): T | undefined {
   const key = make_key(keys);
   try {
     const val = LS[key];
@@ -67,7 +80,7 @@ export function get<T>(keys: string[] | string): T | undefined {
   }
 }
 
-export function exists(keys: string[] | string): boolean {
+export function exists(keys: Keys): boolean {
   const key = make_key(keys);
   // distinction between browser's localStorage and the fallback object
   if (LS === window.localStorage) {

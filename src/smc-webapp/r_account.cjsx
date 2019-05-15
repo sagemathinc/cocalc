@@ -1398,7 +1398,7 @@ exports.AccountSettingsTop = rclass
                         redux                  = {@props.redux} />
                     <OtherSettings
                         other_settings     = {@props.other_settings}
-                        is_stripe_customer = {@props.stripe_customer?}
+                        is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
                         redux              = {@props.redux} />
                     <ProfileSettings
                         email_address = {@props.email_address}

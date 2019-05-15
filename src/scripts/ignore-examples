@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ev
+export SRC="$( dirname "${BASH_SOURCE[0]}" )"/..
+
+# I do not think we should be using submodules, but anyways...
+
+git update-index --assume-unchanged $SRC/examples

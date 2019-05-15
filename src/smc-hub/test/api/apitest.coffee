@@ -96,7 +96,7 @@ exports.teardown = (cb) ->
             rimraf(process.env.COCALC_PROJECT_PATH, cb)
     ], cb)
 
-logger =
+exports.logger = logger =
     debug   : pgtest.log
     info    : pgtest.log
     warning : pgtest.log
