@@ -10,11 +10,14 @@ const { Loading } = require("../r_misc");
 const { Cell } = require("./cell");
 const { InsertCell } = require("./insert-cell");
 
+import { JupyterActions } from "./actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 const PADDING = 100;
 
 interface CellListProps {
-  actions?: any; // if not defined, then everything read only
-  frame_actions?: any;
+  actions?: JupyterActions; // if not defined, then everything read only
+  frame_actions?: NotebookFrameActions;
   name?: string;
   cell_list: immutable.List<any>; // list of ids of cells in order
   cells: immutable.Map<any, any>;
@@ -37,19 +40,20 @@ interface CellListProps {
 
 export class CellList extends Component<CellListProps> {
   private cell_list_ref: HTMLElement;
+
   componentWillUnmount() {
     // save scroll state
     const state = this.cell_list_ref ? this.cell_list_ref.scrollTop : undefined;
-    if (state != null && this.props.actions != null) {
-      this.props.actions.set_scroll_state(state);
+    if (state != null && this.props.frame_actions != null) {
+      this.props.frame_actions.set_scroll_state(state);
     }
 
-    if (this.props.actions != null) {
+    if (this.props.frame_actions != null) {
       // handle focus via an event handler on window.
       // We have to do this since, e.g., codemirror editors
       // involve spans that aren't even children, etc...
       $(window).unbind("click", this.window_click);
-      return this.props.frame_actions.disable_key_handler();
+      this.props.frame_actions.disable_key_handler();
     }
   }
 
@@ -75,7 +79,7 @@ export class CellList extends Component<CellListProps> {
       }
     }
 
-    if (this.props.actions != null) {
+    if (this.props.frame_actions != null) {
       // Enable keyboard handler if necessary
       if (this.props.is_focused) {
         this.props.frame_actions.enable_key_handler();
@@ -94,10 +98,11 @@ export class CellList extends Component<CellListProps> {
   }
 
   window_click = (event: any) => {
+    if (this.props.frame_actions == null) return;
     if ($(".in.modal").length) {
       // A bootstrap modal is currently opened, e.g., support page, etc.
       // so do not focus no matter what -- in fact, blur for sure.
-      this.props.actions.blur();
+      this.props.frame_actions.blur();
       return;
     }
     // if click in the cell list, focus the cell list; otherwise, blur it.
@@ -120,16 +125,14 @@ export class CellList extends Component<CellListProps> {
       if (x >= 0 && y >= 0 && x <= outerW && y <= outerH) {
         this.props.frame_actions.focus();
       } else {
-        this.props.actions.blur();
+        this.props.frame_actions.blur();
       }
     }
   };
 
   componentWillReceiveProps(nextProps) {
-    if (
-      this.props.actions != null &&
-      nextProps.is_focused !== this.props.is_focused
-    ) {
+    if (this.props.frame_actions == null) return;
+    if (nextProps.is_focused !== this.props.is_focused) {
       // the focus state changed.
       if (nextProps.is_focused) {
         this.props.frame_actions.enable_key_handler();
@@ -139,9 +142,9 @@ export class CellList extends Component<CellListProps> {
     }
     if (nextProps.scroll != null) {
       this.scroll_cell_list(nextProps.scroll);
-      return this.props.actions.scroll();
+      this.props.frame_actions.scroll(); // reset scroll request state
     }
-  } // reset scroll request state
+  }
 
   scroll_cell_list = (scroll: any) => {
     const elt = $(this.cell_list_ref);
@@ -228,11 +231,11 @@ export class CellList extends Component<CellListProps> {
   }
 
   on_click = e => {
-    this.props.actions.clear_complete();
+    if (this.props.actions) this.props.actions.clear_complete();
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
       // See the complete component in codemirror-static.
-      this.props.frame_actions.set_mode("edit");
+      if (this.props.frame_actions) this.props.frame_actions.set_mode("edit");
     }
   };
 
@@ -243,6 +246,7 @@ export class CellList extends Component<CellListProps> {
         key={id + "insert" + position}
         position={position}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
       />
     );
   }

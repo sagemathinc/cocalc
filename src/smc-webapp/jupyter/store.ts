@@ -97,6 +97,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   // Return map from selected cell ids to true, in no particular order
   get_selected_cell_ids = () => {
+    this.deprecated("get_selected_cell_ids");
+    return {};
+    
     const selected = {};
     const cur_id = this.get("cur_id");
     if (cur_id != null) {
@@ -112,23 +115,9 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return this.get("cell_list", ImmutableList([]));
   };
 
-  // Return sorted javascript array of the selected cell ids
   get_selected_cell_ids_list = () => {
-    // iterate over *ordered* list so we run the selected cells in order
-    // TODO: Could do in O(1) instead of O(n) by sorting only selected first by position...; maybe use algorithm based on size...
-    const selected = this.get_selected_cell_ids();
-    const v: any[] = [];
-    const cell_list = this.get("cell_list");
-    if (cell_list == null) {
-      // special case -- no cells
-      return v;
-    }
-    cell_list.forEach(id => {
-      if (selected[id]) {
-        v.push(id);
-      }
-    });
-    return v;
+    this.deprecated("get_selected_cell_ids_list");
+    return [];
   };
 
   get_cell_index(id: string): number {

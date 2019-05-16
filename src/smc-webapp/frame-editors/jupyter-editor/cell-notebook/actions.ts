@@ -1,11 +1,12 @@
 import { Set } from "immutable";
 
-import { is_whitespace, lstrip } from "smc-util/misc";
+import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
 
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";
 import { JupyterActions } from "../../../jupyter/actions";
+import { new_cell_pos } from "../../../jupyter/cell-utils";
 
 const DEBUG = true;
 
@@ -19,15 +20,15 @@ export class NotebookFrameActions {
   public store: NotebookFrameStore;
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
 
-  constructor(actions: JupyterEditorActions, frame_id: string) {
+  constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
     // General frame tree editor actions:
-    this.frame_tree_actions = actions;
+    this.frame_tree_actions = frame_tree_actions;
 
     // Actions for the Jupyter notebook:
-    this.jupyter_actions = actions.jupyter_actions;
+    this.jupyter_actions = frame_tree_actions.jupyter_actions;
 
     this.frame_id = frame_id;
-    this.store = new NotebookFrameStore(actions, frame_id);
+    this.store = new NotebookFrameStore(frame_tree_actions, frame_id);
   }
 
   /***
@@ -81,8 +82,50 @@ export class NotebookFrameActions {
     this.frame_tree_actions.erase_active_key_handler(this.key_handler);
   }
 
+  /* Run the selected cells; triggered by either clicking the play button or
+     press shift+enter.  Note that this has weird and inconsitent
+     behavior in official Jupyter for usability reasons and due to
+     their "modal" approach.
+     In particular, if the selections goes to the end of the document, we
+     create a new cell and set it the mode to edit; otherwise, we advance
+     the cursor and switch to escape mode. */
   public shift_enter_run_selected_cells(): void {
-    this.todo("shift_enter_run_selected_cells");
+    this.save_input_editor();
+
+    const v: string[] = this.store.get_selected_cell_ids_list();
+    if (v.length === 0) {
+      return;
+    }
+    const last_id: string = v[v.length - 1];
+
+    this.run_selected_cells(v);
+
+    const cell_list = this.jupyter_actions.store.get_cell_list();
+    if (cell_list.get(cell_list.size - 1) === last_id) {
+      const new_id = this.jupyter_actions.insert_cell(1);
+      this.set_cur_id(new_id);
+      this.set_mode("edit");
+    } else {
+      this.set_mode("escape");
+      this.move_cursor(1);
+    }
+  }
+
+  public run_selected_cells(v?: string[]): void {
+    this.save_input_editor();
+
+    if (v === undefined) {
+      v = this.store.get_selected_cell_ids_list();
+    }
+
+    // for whatever reason, any running of a cell deselects
+    // in official jupyter
+    this.unselect_all_cells();
+
+    for (let id of v) {
+      this.jupyter_actions.run_cell(id, false);
+    }
+    this.jupyter_actions.save_asap();
   }
 
   /***
@@ -94,8 +137,13 @@ export class NotebookFrameActions {
     this.setState({ mode });
   }
 
-  public focus(): void {
+  public focus(wait?: boolean): void {
+    if (wait) console.log("focus ignoring wait");
     this.enable_key_handler();
+  }
+
+  public blur(): void {
+    this.disable_key_handler();
   }
 
   public cut(): void {
@@ -110,8 +158,12 @@ export class NotebookFrameActions {
     this.todo("paste");
   }
 
-  public scroll(pos: string): void {
+  public scroll(pos?: string): void {
     this.todo("scroll", pos);
+  }
+
+  public set_scroll_state(state): void {
+    this.setState({ scroll: state });
   }
 
   public set_md_cell_editing(id: string): void {
@@ -143,15 +195,16 @@ export class NotebookFrameActions {
     this.set_cur_id(cell_list.get(i));
   }
 
+  /***
+   * Selection
+   ***/
+
   // Select all cells from the currently focused one (where the cursor
   // is -- cur_id) to the cell with the given id, then set the cursor
   // to be at id.
   select_cell_range(id: string): void {
-    this.todo("select_cell_range", id);
+    this.validate({ id });
 
-    /*
-    let endpoint0, endpoint1, x;
-    let i;
     const cur_id = this.store.get("cur_id");
     if (cur_id == null) {
       // no range -- just select the new id
@@ -162,12 +215,13 @@ export class NotebookFrameActions {
     if (cur_id === id) {
       // little to do...
       if (sel_ids.size > 0) {
-        this.setState({ sel_ids: immutable.Set() }); // empty (cur_id always included)
+        this.setState({ sel_ids: Set() }); // empty (cur_id always included)
       }
       return;
     }
     const v = this.jupyter_actions.store.get_cell_list().toJS();
-    for ([i, x] of misc.enumerate(v)) {
+    let endpoint0, endpoint1, i, x;
+    for ([i, x] of enumerate(v)) {
       if (x === id) {
         endpoint0 = i;
       }
@@ -175,25 +229,14 @@ export class NotebookFrameActions {
         endpoint1 = i;
       }
     }
-    sel_ids = immutable.Set(
-      (() => {
-        let asc, end;
-        const result: any[] = [];
-        for (
-          i = endpoint0, end = endpoint1, asc = endpoint0 <= end;
-          asc ? i <= end : i >= end;
-          asc ? i++ : i--
-        ) {
-          result.push(v[i]);
-        }
-        return result;
-      })()
-    );
-    return this.setState({
+    if (endpoint0 >= endpoint1) {
+      [endpoint0, endpoint1] = [endpoint1, endpoint0];
+    }
+    sel_ids = Set(v.slice(endpoint0, endpoint1 + 1));
+    this.setState({
       sel_ids,
       cur_id: id
     });
-    */
   }
 
   public unselect_all_cells(): void {
@@ -205,6 +248,11 @@ export class NotebookFrameActions {
       sel_ids: this.jupyter_actions.store.get_cell_list().toSet()
     });
   }
+
+  /***
+   * Cursor movement, which here means "the selected cell",
+   * not the cursor in an editor.
+   ***/
 
   move_cursor(delta: number): void {
     this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
@@ -267,6 +315,12 @@ export class NotebookFrameActions {
     this.call_input_editor_method(id, "set_cursor", pos);
   }
 
+  // Call this to save the state of the current Codemirror editor
+  // before it is used for evaluation or other purposes.
+  public save_input_editor(): void {
+    this.call_input_editor_method(this.store.get("cur_id"), "save");
+  }
+
   // Used for implementing actions -- keep private
   private get_cell_input(id: string): string {
     if (this.input_editors[id] != null) {
@@ -322,5 +376,18 @@ export class NotebookFrameActions {
     }
     input1 += input.slice(i);
     this.jupyter_actions.set_cell_input(id, input1);
+  }
+
+  // delta = -1 (above) or +1 (below)
+  public insert_cell(delta: 1 | -1): string {
+    const pos = new_cell_pos(
+      this.jupyter_actions.store.get("cells"),
+      this.jupyter_actions.store.get_cell_list(),
+      this.store.get("cur_id"),
+      delta
+    );
+    const new_id = this.jupyter_actions.insert_cell_at(pos);
+    this.set_cur_id(new_id);
+    return new_id;
   }
 }

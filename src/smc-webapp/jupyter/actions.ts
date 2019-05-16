@@ -959,15 +959,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  insert_cell = (delta: any) => {
-    if (this.store.get("read_only")) return;
-    // delta = -1 (above) or +1 (below)
-    const pos = cell_utils.new_cell_pos(
-      this.store.get("cells"),
-      this.store.get_cell_list(),
-      this.store.get("cur_id"),
-      delta
-    );
+  insert_cell(delta: any): string {
+    this.deprecated("insert-cell", delta);
+    return "";
+  }
+
+  insert_cell_at(pos: number): string {
+    if (this.store.get("read_only")) {
+      throw Error("document is read only");
+    }
     const new_id = this._new_id();
     this._set({
       type: "cell",
@@ -977,7 +977,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
     this.set_cur_id(new_id);
     return new_id; // violates CQRS... (this *is* used elsewhere)
-  };
+  }
 
   delete_selected_cells = (sync = true): void => {
     const selected = this.store.get_selected_cell_ids_list();
@@ -1067,22 +1067,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // for now, just running is ok.
   run_cell = (id: any, save: boolean = true): void => {
     if (this.store.get("read_only")) return;
-    let left: any;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       return;
     }
 
-    // for whatever reason, any running of a cell deselects
-    // in official jupyter
-    this.unselect_all_cells();
-
-    const cell_type = (left = cell.get("cell_type")) != null ? left : "code";
+    const cell_type = cell.get("cell_type", "code");
     switch (cell_type) {
       case "code":
-        var code = this._get_cell_input(id).trim();
-        var cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-        var language = this.store.get_kernel_language();
+        const code = this.get_cell_input(id).trim();
+        const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
+        const language = this.store.get_kernel_language();
         switch (parsing.run_mode(code, cm_mode, language)) {
           case "show_source":
             this.introspect(code.slice(0, code.length - 2), 1);
@@ -1176,11 +1171,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   run_selected_cells = (): void => {
-    const v = this.store.get_selected_cell_ids_list();
-    for (let id of v) {
-      this.run_cell(id, false);
-    }
-    this.save_asap();
+    this.deprecated("run_selected_cells");
   };
 
   // Run the selected cells, by either clicking the play button or
@@ -1191,23 +1182,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // create a new cell and set it the mode to edit; otherwise, we advance
   // the cursor and switch to escape mode.
   shift_enter_run_selected_cells = () => {
-    const v = this.store.get_selected_cell_ids_list();
-    if (v.length === 0) {
-      return;
-    }
-    const last_id = v[v.length - 1];
-
-    this.run_selected_cells();
-
-    const cell_list = this.store.get_cell_list();
-    if (cell_list.get(cell_list.size - 1) === last_id) {
-      const new_id = this.insert_cell(1);
-      this.set_cur_id(new_id);
-      this.set_mode("edit");
-    } else {
-      this.set_mode("escape");
-      this.move_cursor(1);
-    }
+    this.deprecated("shift_enter_run_selected_cells");
   };
 
   run_cell_and_insert_new_cell_below = () => {
@@ -1721,11 +1696,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     project_actions.toggle_new(true);
   };
 
-  // Meant to be used for implementing actions -- do not call externally
   private _get_cell_input = (id?: string | undefined): string => {
     this.deprecated("_get_cell_input", id);
-    return '';
+    return "";
   };
+
+  // Version of the cell's input stored in store.
+  // (A live codemirror editor could have a slightly
+  // newer version, so this is only a fallback).
+  private get_cell_input(id: string): string {
+    return this.store.getIn(["cells", id, "input"], "");
+  }
 
   tab_key = () => {
     this.deprecated("tab_key");

@@ -125,4 +125,8 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   async format(id?: string): Promise<void> {
     console.log("format", id);
   }
+
+  public hide(): void {}
+
+  
 }
