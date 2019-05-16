@@ -312,7 +312,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         onSelect={() => {
           this.props.actions.set_kernel(kernel.name);
           this.focus();
-          analytics_event('cocal_jupyter', 'change kernel', kernel.name);
+          analytics_event("cocal_jupyter", "change kernel", kernel.name);
           return this.props.actions.set_default_kernel(kernel.name);
         }}
       >
@@ -616,8 +616,7 @@ render_widgets: -> # TODO: not supported in v1
       <div
         style={{
           backgroundColor: "rgb(247,247,247)",
-          border: "1px solid #e7e7e7",
-          height: "34px"
+          border: "1px solid #e7e7e7"
         }}
       >
         <ButtonGroup>

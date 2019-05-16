@@ -29,10 +29,10 @@ const KERNEL_STYLE: React.CSSProperties = {
   float: "right",
   paddingLeft: "5px",
   backgroundColor: "#eee",
-  height: "32px",
   display: "block",
   overflow: "hidden",
-  borderLeft: "1px solid #aaa",
+  borderLeft: "1px solid rgb(231,231,231)",
+  borderBottom: "1px solid rgb(231,231,231)",
   whiteSpace: "nowrap"
 };
 

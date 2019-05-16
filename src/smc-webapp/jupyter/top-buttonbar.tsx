@@ -183,11 +183,11 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     }
 
     return this.render_button_group([
-      { name: "run cell and select next", label: <VisibleLG>Run</VisibleLG> },
+      { name: "run cell and select next" },
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
       "confirm restart kernel and run all cells",
-      { name: "tab key", label: "Tab" }
+      { name: "tab key", label: "tab" }
     ]);
   }
 

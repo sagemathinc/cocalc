@@ -7,6 +7,7 @@ import * as immutable from "immutable";
 const { Icon, Loading, Tip } = require("../r_misc");
 const { closest_kernel_match } = require("smc-util/misc");
 const { Logo } = require("./logo");
+import { trunc } from "smc-util/misc2";
 
 interface ModeProps {
   mode?: string;
@@ -162,7 +163,7 @@ class Kernel0 extends Component<KernelProps> {
           style={KERNEL_NAME_STYLE}
           onClick={() => this.props.actions.show_select_kernel("user request")}
         >
-          {display_name != null ? display_name : "No Kernel"}
+          {display_name != null ? trunc(display_name, 12) : "No Kernel"}
         </span>
       );
     }
@@ -246,6 +247,17 @@ class Kernel0 extends Component<KernelProps> {
   }
 
   render_tip(title: any, body: any) {
+    let kernel_name;
+    if (this.props.kernel_info != null) {
+      kernel_name = (
+        <div>
+          <b>Kernel: </b>
+          {this.props.kernel_info.get("display_name", "No Kernel")}
+        </div>
+      );
+    } else {
+      kernel_name = <span/>;
+    }
     let kernel_tip;
     const { backend_state } = this.props;
     const backend_tip = `Backend is ${backend_state}.`;
@@ -266,13 +278,14 @@ class Kernel0 extends Component<KernelProps> {
 
     const tip = (
       <span>
+        {kernel_name}
         {backend_tip}
         {kernel_tip ? <br /> : undefined}
         {kernel_tip}
       </span>
     );
     return (
-      <Tip title={title} tip={tip} placement="bottom">
+      <Tip title={title} tip={tip} placement="left">
         {body}
       </Tip>
     );
@@ -332,7 +345,7 @@ class Kernel0 extends Component<KernelProps> {
           CPU: <span style={cpu_style}>{cpu}%</span>
         </span>
         <span style={KERNEL_USAGE_STYLE}>
-          Memory:{" "}
+          RAM:{" "}
           <span style={memory_style}>
             {memory}
             MB
