@@ -89,6 +89,12 @@ export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
   private _more_output: any;
   private store: any;
+
+  private deprecated(f: string, ...args): void {
+    const s = "DEPRECATED JupyterStore." + f;
+    console.warn(s, ...args);
+  }
+
   // Return map from selected cell ids to true, in no particular order
   get_selected_cell_ids = () => {
     const selected = {};
@@ -100,6 +106,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
       selected[x] = true;
     });
     return selected;
+  };
+
+  public get_cell_list = (): ImmutableList<any> => {
+    return this.get("cell_list", ImmutableList([]));
   };
 
   // Return sorted javascript array of the selected cell ids
@@ -121,24 +131,21 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return v;
   };
 
-  get_cell_index = (id: any) => {
+  get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
     if (cell_list == null) {
-      // ordered list of cell id's not known
-      return;
-    }
-    if (id == null) {
-      return;
+      throw Error("ordered list of cell id's not known");
     }
     const i = cell_list.indexOf(id);
     if (i === -1) {
-      return;
+      throw Error("unknown cell id");
     }
     return i;
-  };
+  }
 
   get_cur_cell_index = () => {
-    return this.get_cell_index(this.get("cur_id"));
+    this.deprecated("get_cur_cell_index");
+    return 0;
   };
 
   // Get the id of the cell that is delta positions from the

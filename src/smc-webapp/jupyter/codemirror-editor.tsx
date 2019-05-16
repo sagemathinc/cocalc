@@ -57,8 +57,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
 
   _cm_destroy = (): void => {
     if (this.cm != null) {
-      if (this.props.actions != null) {
-        this.props.actions.unregister_input_editor(this.props.id);
+      if (this.props.frame_actions != null) {
+        this.props.frame_actions.unregister_input_editor(this.props.id);
       }
       delete this._cm_last_remote;
       delete this.cm.save;
@@ -81,8 +81,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
-    this.props.actions.unselect_all_cells();
-    this.props.actions.set_cur_id(this.props.id);
+    this.props.frame_actions.unselect_all_cells();
+    this.props.frame_actions.set_cur_id(this.props.id);
     this.props.frame_actions.set_mode("edit");
     if (this._vim_mode) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: "1.5em" });
@@ -116,18 +116,20 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.props.actions.set_cursor_locs(locs, this.cm._setValueNoJump);
 
     // See https://github.com/jupyter/notebook/issues/2464 for discussion of this cell_list_top business.
-    const cell_list_top =
-      this.props.actions._cell_list_div != null
-        ? this.props.actions._cell_list_div.offset().top
-        : undefined;
-    if (
-      cell_list_top != null &&
-      this.cm.cursorCoords(true, "window").top < cell_list_top
-    ) {
-      const scroll = this.props.actions._cell_list_div.scrollTop();
-      this.props.actions._cell_list_div.scrollTop(
-        scroll - (cell_list_top - this.cm.cursorCoords(true, "window").top) - 20
-      );
+    const cell_list_div = this.props.frame_actions.cell_list_div;
+    if (cell_list_div != null) {
+      const cell_list_top = cell_list_div.offset().top;
+      if (
+        cell_list_top != null &&
+        this.cm.cursorCoords(true, "window").top < cell_list_top
+      ) {
+        const scroll = cell_list_div.scrollTop();
+        cell_list_div.scrollTop(
+          scroll -
+            (cell_list_top - this.cm.cursorCoords(true, "window").top) -
+            20
+        );
+      }
     }
 
     this.set_hook_pos();
@@ -139,7 +141,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     // Used for maintaining vertical scroll position with multiple simultaneous editors.
     const offset = this.cm.cursorCoords(true, "local").top;
-    this.props.actions.setState({ hook_offset: offset });
+    this.props.frame_actions.setState({ hook_offset: offset });
   };
 
   _cm_set_cursor = (pos: { x?: number; y?: number }): void => {
@@ -152,11 +154,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   _cm_refresh = (): string | undefined => {
-    if (this.cm == null || this.props.actions == null) {
+    if (this.cm == null || this.props.frame_actions == null) {
       return;
     }
     this.cm.refresh();
-  }
+  };
 
   _cm_save = (): string | undefined => {
     if (this.cm == null || this.props.actions == null) {
@@ -220,7 +222,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   shift_tab_key = (): void => {
     if (this.cm == null) return;
     if (this.cm.somethingSelected() || this.whitespace_before_cursor()) {
-      this.props.actions.introspect_close();  // make sure introspect page closes
+      this.props.actions.introspect_close(); // make sure introspect page closes
       // Something is selected or there is whitespace before
       // the cursor: unindent.
       this.cm.unindent_selection();
@@ -310,12 +312,15 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
   };
 
   adjacent_cell = (y: number, delta: any): void => {
-    if (this.props.actions == null) return;
-    this.props.actions.move_cursor(delta);
-    this.props.actions.set_cursor(this.props.actions.store.get("cur_id"), {
-      x: 0,
-      y
-    });
+    if (this.props.frame_actions == null) return;
+    this.props.frame_actions.move_cursor(delta);
+    this.props.frame_actions.set_input_editor_cursor(
+      this.props.frame_actions.store.get("cur_id"),
+      {
+        x: 0,
+        y
+      }
+    );
   };
 
   whitespace_before_cursor = (): boolean => {
@@ -401,7 +406,10 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
           // This is ugly, but I'm not going to spend forever on this before
           // the #v1 release, as vim support is a bonus feature.
           setTimeout(
-            () => this.props.frame_actions.setState({ cur_cell_vim_mode: "escape" }),
+            () =>
+              this.props.frame_actions.setState({
+                cur_cell_vim_mode: "escape"
+              }),
             0
           );
         } else {
@@ -431,15 +439,15 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.undo = this._cm_undo;
     this.cm.redo = this._cm_redo;
 
-    if (this.props.actions != null) {
+    if (this.props.frame_actions != null) {
       const editor = {
         save: this._cm_save,
         set_cursor: this._cm_set_cursor,
         tab_key: this.tab_key,
-        shift_tab_key : this.shift_tab_key,
+        shift_tab_key: this.shift_tab_key,
         refresh: this._cm_refresh
       };
-      this.props.actions.register_input_editor(this.props.id, editor);
+      this.props.frame_actions.register_input_editor(this.props.id, editor);
     }
 
     if (this.props.click_coords != null) {

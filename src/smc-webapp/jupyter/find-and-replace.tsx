@@ -3,7 +3,13 @@ The find and replace modal dialog
 */
 
 import { React, Component } from "../app-framework"; // TODO: this will move
-import { Button, FormControl, FormGroup, InputGroup, Modal } from "react-bootstrap";
+import {
+  Button,
+  FormControl,
+  FormGroup,
+  InputGroup,
+  Modal
+} from "react-bootstrap";
 import * as immutable from "immutable";
 const { ErrorDisplay, Icon } = require("../r_misc");
 const { find_matches } = require("./find");
@@ -25,7 +31,10 @@ interface FindAndReplaceState {
   replace: string;
 }
 
-export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplaceState> {
+export class FindAndReplace extends Component<
+  FindAndReplaceProps,
+  FindAndReplaceState
+> {
   private findRef: HTMLInputElement;
   private replaceRef: HTMLInputElement;
   private _matches: any;
@@ -152,6 +161,7 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
   get_text() {
     const v: any = [];
     let sel: any = undefined;
+    (window as any).sel_ids = this.props.sel_ids;
     if (!this.state.all && this.props.sel_ids != null) {
       sel = this.props.sel_ids.add(this.props.cur_id);
     }
@@ -168,7 +178,12 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
 
   get_matches() {
     const text = this.get_text();
-    const x = find_matches(this.state.find, text, this.state.case, this.state.regexp);
+    const x = find_matches(
+      this.state.find,
+      text,
+      this.state.case,
+      this.state.regexp
+    );
     x.text = text;
     return x;
   }
@@ -193,7 +208,9 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
 
   render_matches(matches, text) {
     if (matches == null) {
-      return this.render_matches_title(matches != null ? matches.length : undefined);
+      return this.render_matches_title(
+        matches != null ? matches.length : undefined
+      );
     }
     const v: any[] = [];
     let i = 0;
@@ -239,7 +256,9 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
 
     return (
       <div>
-        {this.render_matches_title(matches != null ? matches.length : undefined)}
+        {this.render_matches_title(
+          matches != null ? matches.length : undefined
+        )}
         <pre style={{ color: "#666", maxHeight: "50vh" }}>{v}</pre>
       </div>
     );
@@ -252,7 +271,10 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
     }
     let sel: any = undefined;
     if (!this.state.all) {
-      sel = this.props.sel_ids != null ? this.props.sel_ids.add(this.props.cur_id) : undefined;
+      sel =
+        this.props.sel_ids != null
+          ? this.props.sel_ids.add(this.props.cur_id)
+          : undefined;
     }
     let i = 0;
     let cell_start = 0;
@@ -315,7 +337,9 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
     }
     return (
       <div>
-        {abort ? this.render_abort(matches != null ? matches.length : undefined) : undefined}
+        {abort
+          ? this.render_abort(matches != null ? matches.length : undefined)
+          : undefined}
         {this.render_matches(matches, text)}
       </div>
     );
@@ -329,10 +353,15 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
     if (this.state.all) {
       s += `All ${this.props.cells.size} Cells`;
     } else {
-      if ((this.props.sel_ids == null ? 0 : this.props.sel_ids.size || 0) === 0) {
+      if (
+        (this.props.sel_ids == null ? 0 : this.props.sel_ids.size || 0) === 0
+      ) {
         s += "the Current Cell";
       } else {
-        const num = (this.props.sel_ids && this.props.sel_ids.add(this.props.cur_id).size) || 1;
+        const num =
+          (this.props.sel_ids &&
+            this.props.sel_ids.add(this.props.cur_id).size) ||
+          1;
         s += `${num} Selected Cell${num > 1 ? "s" : ""}`;
       }
     }
@@ -342,14 +371,22 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
   render_replace_one_button() {
     const num = this.num_matches();
     return (
-      <Button onClick={() => this.replace(1)} bsStyle="primary" disabled={num === 0}>
+      <Button
+        onClick={() => this.replace(1)}
+        bsStyle="primary"
+        disabled={num === 0}
+      >
         {this.replace_action()} First Match
       </Button>
     );
   }
 
   num_matches() {
-    if (this._matches && this._matches.matches && this._matches.matches.length) {
+    if (
+      this._matches &&
+      this._matches.matches &&
+      this._matches.matches.length
+    ) {
       return this._matches.matches.length || 0;
     }
     return 0;
@@ -374,16 +411,25 @@ export class FindAndReplace extends Component<FindAndReplaceProps, FindAndReplac
       s = "All";
     }
     return (
-      <Button onClick={() => this.replace()} bsStyle="primary" disabled={num === 0}>
+      <Button
+        onClick={() => this.replace()}
+        bsStyle="primary"
+        disabled={num === 0}
+      >
         {this.replace_action()} {s}
       </Button>
     );
   }
 
   render() {
+    if (!this.props.find_and_replace) return <span/>;
     this._matches = this.get_matches();
     return (
-      <Modal show={this.props.find_and_replace} bsSize="large" onHide={this.close}>
+      <Modal
+        show={this.props.find_and_replace}
+        bsSize="large"
+        onHide={this.close}
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             <Icon name="search" /> {this.title()}{" "}

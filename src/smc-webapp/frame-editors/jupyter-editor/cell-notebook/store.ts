@@ -13,6 +13,10 @@ export class NotebookFrameStore {
     this.id = id;
   }
 
+  /***
+   * standard Store API
+   ***/
+
   get(key: string, def?: any): any {
     return this.actions._get_frame_data(this.id, key, def);
   }
@@ -31,5 +35,15 @@ export class NotebookFrameStore {
 
   setState(obj): void {
     this.actions.set_frame_data(merge({ id: this.id }, obj));
+  }
+
+  /***
+   * convenience functions
+   ***/
+
+  public get_cur_cell_index(): number {
+    return this.actions.jupyter_actions.store.get_cell_index(
+      this.get("cur_id")
+    );
   }
 }

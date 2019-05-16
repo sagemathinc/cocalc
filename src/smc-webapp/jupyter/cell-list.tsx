@@ -14,8 +14,8 @@ const PADDING = 100;
 
 interface CellListProps {
   actions?: any; // if not defined, then everything read only
-  frame_actions?:any;
-  name?:string;
+  frame_actions?: any;
+  name?: string;
   cell_list: immutable.List<any>; // list of ids of cells in order
   cells: immutable.Map<any, any>;
   font_size: number;
@@ -88,9 +88,9 @@ export class CellList extends Component<CellListProps> {
       $(window).on("click", this.window_click);
     }
 
-    return this.props.actions != null
-      ? (this.props.actions._cell_list_div = $(this.cell_list_ref))
-      : undefined;
+    if (this.props.frame_actions != null) {
+      this.props.frame_actions.cell_list_div = $(this.cell_list_ref);
+    }
   }
 
   window_click = (event: any) => {

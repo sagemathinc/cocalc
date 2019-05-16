@@ -98,15 +98,16 @@ export class Cell extends Component<CellProps> {
   }
 
   click_on_cell = (event: any) => {
-    if (this.props.actions == null) {
+    if (this.props.frame_actions == null) {
       return;
     }
     if (event.shiftKey && !this.props.is_current) {
       misc_page.clear_selection();
-      return this.props.actions.select_cell_range(this.props.id);
+      this.props.frame_actions.select_cell_range(this.props.id);
+      return
     }
-    this.props.actions.set_cur_id(this.props.id);
-    this.props.actions.unselect_all_cells();
+    this.props.frame_actions.set_cur_id(this.props.id);
+    this.props.frame_actions.unselect_all_cells();
   };
 
   render_hook() {

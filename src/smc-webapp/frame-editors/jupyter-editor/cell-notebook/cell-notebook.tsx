@@ -41,7 +41,7 @@ export class CellNotebook extends Component<Props, {}> {
       return <Loading />;
     }
     console.log("CellNotebook", this.props.id, this.props.is_current);
-    const desc = this.props.desc
+    const desc = this.props.desc;
     return (
       <JupyterEditor
         actions={jupyter_actions}
@@ -51,9 +51,9 @@ export class CellNotebook extends Component<Props, {}> {
         is_fullscreen={this.props.is_fullscreen}
         font_size={this.props.font_size}
         mode={desc.get("data-mode", "escape")}
-        cur_id={desc.get("cur_id")}
-        sel_ids={desc.get("sel_ids")}
-        md_edit_ids={desc.get("md_edit_ids")}
+        cur_id={desc.get("data-cur_id")}
+        sel_ids={desc.get("data-sel_ids")}
+        md_edit_ids={desc.get("data-md_edit_ids")}
       />
     );
   }
