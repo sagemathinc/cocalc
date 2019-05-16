@@ -52,20 +52,23 @@ interface JupyterEditorProps {
   mode: "edit" | "escape"; // oneOf(['edit', 'escape']).isRequired;
   font_size?: number;
 
-  // TODO
   cur_id?: string;
   sel_ids?: immutable.Set<any>; // set of selected cells
   md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
-  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
+
+  // TODO
   scroll?: number | string;
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw']) -- TODO: get rid of this entirely and use different frame types
   complete?: immutable.Map<any, any>; // status of tab completion
   introspect?: immutable.Map<any, any>; // status of introspection
   more_output?: immutable.Map<any, any>;
+  find_and_replace?: boolean;
+  show_kernel_selector?: boolean;
 
   // REDUX PROPS
   kernel?: string; // string name of the kernel
   kernels?: KernelsType;
+  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
   site_name?: string;
   // error?: string; // TODO: repeated?
   fatal?: string; // *FATAL* error; user must edit file to fix.
@@ -79,7 +82,6 @@ interface JupyterEditorProps {
   about?: boolean;
   backend_kernel_info?: immutable.Map<any, any>;
   confirm_dialog?: immutable.Map<any, any>;
-  find_and_replace?: boolean;
   keyboard_shortcuts?: immutable.Map<any, any>;
   nbconvert?: immutable.Map<any, any>; // backend convert state
   nbconvert_dialog?: immutable.Map<any, any>; // frontend modal dialog state
@@ -94,7 +96,6 @@ interface JupyterEditorProps {
   trust?: boolean;
   kernel_info?: immutable.Map<any, any>;
   check_select_kernel_init?: boolean;
-  show_kernel_selector?: boolean;
   kernel_selection?: immutable.Map<string, any>;
   kernels_by_name?: immutable.OrderedMap<string, immutable.Map<string, string>>;
   kernels_by_language?: immutable.OrderedMap<string, immutable.List<string>>;
@@ -115,9 +116,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         has_unsaved_changes: rtypes.bool,
         cell_list: rtypes.immutable.List, // list of ids of cells in order
         cells: rtypes.immutable.Map, // map from ids to cells
-        cur_id: rtypes.string,
-        sel_ids: rtypes.immutable.Set.isRequired, // set of selected cells
-        md_edit_ids: rtypes.immutable.Set.isRequired, // ids of markdown cells in edit mode
         cm_options: rtypes.immutable.Map, // settings for all the codemirror editors
         project_id: rtypes.string,
         directory: rtypes.string,

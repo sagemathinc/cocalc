@@ -41,6 +41,7 @@ export class CellNotebook extends Component<Props, {}> {
       return <Loading />;
     }
     console.log("CellNotebook", this.props.id, this.props.is_current);
+    const desc = this.props.desc
     return (
       <JupyterEditor
         actions={jupyter_actions}
@@ -48,8 +49,11 @@ export class CellNotebook extends Component<Props, {}> {
         name={name}
         is_focused={this.props.is_current}
         is_fullscreen={this.props.is_fullscreen}
-        mode={this.props.desc.get("data-mode", "escape")}
         font_size={this.props.font_size}
+        mode={desc.get("data-mode", "escape")}
+        cur_id={desc.get("cur_id")}
+        sel_ids={desc.get("sel_ids")}
+        md_edit_ids={desc.get("md_edit_ids")}
       />
     );
   }

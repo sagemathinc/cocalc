@@ -13,11 +13,11 @@ export class NotebookFrameStore {
     this.id = id;
   }
 
-  get(key: string, def: any): any {
+  get(key: string, def?: any): any {
     return this.actions._get_frame_data(this.id, key, def);
   }
 
-  getIn(key: string[], def: any): any {
+  getIn(key: string[], def?: any): any {
     if (key.length == 0) return;
     if (key.length == 1)
       return this.actions._get_frame_data(this.id, key[0], def);

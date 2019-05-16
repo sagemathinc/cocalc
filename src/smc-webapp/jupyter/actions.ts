@@ -524,15 +524,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Set which cell is currently the cursor.
   set_cur_id = (id: any): void => {
-    if (
-      this.store.getIn(["cells", id, "cell_type"]) === "markdown" &&
-      this.store.get("mode") === "edit"
-    ) {
-      if (this.store.is_cell_editable(id)) {
-        this.set_md_cell_editing(id);
-      }
-    }
-    this.setState({ cur_id: id });
+    console.warn("TODO: set_cur_id", id);
   };
 
   set_cur_id_from_index = (i?: any): void => {
