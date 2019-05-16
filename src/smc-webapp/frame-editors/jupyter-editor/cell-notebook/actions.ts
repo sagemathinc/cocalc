@@ -15,6 +15,19 @@ export class NotebookFrameActions {
     console.log(this.actions, this.id, this.store);
   }
 
+  setState(obj: object): void {
+    this.store.setState(obj);
+  }
+
+  set_mode(mode: "escape" | "edit"): void {
+    console.log(`NotebookFrameActions(id='${this.id}').set_mode`, mode);
+    this.setState({ mode });
+  }
+
+  public focus(): void {
+    this.enable_key_handler();
+  }
+
   public cut(): void {
     console.log("NotebookFrameActions.cut");
   }

@@ -46,7 +46,6 @@ import {
 } from "./store";
 const util = require("./util");
 const parsing = require("./parsing");
-const keyboard = require("./keyboard");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
@@ -108,6 +107,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public store: any;
   public syncdb: any;
   public util: any; // TODO: check if this is used publicly
+  public _cell_list_div: any;  // used internally for some ugly hack.
 
   _init = (
     project_id: string,
@@ -280,24 +280,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (!this._is_project) {
       this.close_client_only();
     }
-  };
-
-  enable_key_handler = () => {
-    if (this._state === "closed") return;
-    if (this._key_handler == null) {
-      this._key_handler = keyboard.create_key_handler(this);
-    }
-    (this.redux.getActions("page") as any).set_active_key_handler(
-      this._key_handler,
-      this.project_id,
-      this.path
-    );
-  };
-
-  disable_key_handler = () => {
-    (this.redux.getActions("page") as any).erase_active_key_handler(
-      this._key_handler
-    );
   };
 
   fetch_jupyter_kernels = async (): Promise<void> => {
@@ -665,7 +647,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_mode = (mode: "escape" | "edit"): void => {
-    if (mode === "escape") {  // aka "command" mode.
+    console.trace();
+    console.warn("TODO: Jupyter.actions set_mode", mode);
+    if (mode === "escape") {
+      // aka "command" mode.
       if (this.store.get("mode") === "escape") {
         return;
       }
@@ -2256,6 +2241,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   focus = (wait?: any) => {
+    console.log(console.trace());
     console.warn("TODO: jupyter actions.focus", wait);
   };
 

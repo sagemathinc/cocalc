@@ -1,3 +1,5 @@
+import { merge } from "smc-util/misc2";
+
 import { JupyterEditorActions } from "../actions";
 
 // The actual data is stored in the desc of the leaf node.
@@ -27,7 +29,7 @@ export class NotebookFrameStore {
     }
   }
 
-  set(key: string, value: any): void {
-    this.actions.set_frame_data({ id: this.id, [key]: value });
+  setState(obj): void {
+    this.actions.set_frame_data(merge({ id: this.id }, obj));
   }
 }

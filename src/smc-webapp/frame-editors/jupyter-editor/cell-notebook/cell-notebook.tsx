@@ -28,14 +28,23 @@ interface Props {
 export class CellNotebook extends Component<Props, {}> {
   render(): Rendered {
     const name = redux_name(this.props.name);
-    const actions = this.props.actions.redux.getActions(name);
-    if (actions == null) {
+
+    // Actions for the underlying Jupyter notebook state, kernel state, etc.
+    const jupyter_actions = this.props.actions.redux.getActions(name);
+    if (jupyter_actions == null) {
+      return <Loading />;
+    }
+    // Actions specific to a particular frame view of the notebook
+    // in the browser client.
+    const frame_actions = this.props.actions.get_frame_actions(this.props.id);
+    if (frame_actions == null) {
       return <Loading />;
     }
     console.log("CellNotebook", this.props.id, this.props.is_current);
     return (
       <JupyterEditor
-        actions={actions}
+        actions={jupyter_actions}
+        frame_actions={frame_actions}
         name={name}
         is_focused={this.props.is_current}
         mode={this.props.desc.get("data-mode", "escape")}

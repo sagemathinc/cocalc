@@ -13,6 +13,7 @@ const { CellOutput } = require("./cell-output"); // TODO: import type
 
 interface CellProps {
   actions?: any;
+  frame_actions?: any;
   name?: string;
   id: string;
   cm_options: any;
@@ -62,6 +63,7 @@ export class Cell extends Component<CellProps> {
         key="in"
         cell={cell}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         cm_options={this.props.cm_options}
         is_markdown_edit={this.props.is_markdown_edit}
         is_focused={this.props.is_current && this.props.mode === "edit"}
@@ -84,6 +86,7 @@ export class Cell extends Component<CellProps> {
         key="out"
         cell={cell}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         name={this.props.name}
         id={this.props.id}
         project_id={this.props.project_id}
@@ -112,7 +115,7 @@ export class Cell extends Component<CellProps> {
     }
   }
 
-  double_click = (event: any) => {
+  double_click = (event: any): void => {
     if (this.props.actions == null) {
       return;
     }
@@ -126,8 +129,8 @@ export class Cell extends Component<CellProps> {
     const id = this.props.cell.get("id");
     this.props.actions.set_md_cell_editing(id);
     this.props.actions.set_cur_id(id);
-    this.props.actions.set_mode("edit");
-    return event.stopPropagation();
+    this.props.frame_actions.set_mode("edit");
+    event.stopPropagation();
   };
 
   render_metadata_state() {

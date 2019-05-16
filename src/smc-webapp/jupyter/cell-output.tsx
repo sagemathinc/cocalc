@@ -11,6 +11,7 @@ const { OutputToggle, CollapsedOutput } = require("./cell-output-toggle");
 
 interface CellOutputProps {
   actions?: any;
+  frame_actions?: any;
   name?:string;
   id: string;
   cell: ImmutableMap<any, any>;
@@ -122,6 +123,7 @@ export class CellOutput extends Component<CellOutputProps> {
           project_id={this.props.project_id}
           directory={this.props.directory}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           name={this.props.name}
           trust={this.props.trust}
           id={this.props.id}

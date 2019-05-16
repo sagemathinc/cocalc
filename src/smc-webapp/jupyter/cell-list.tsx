@@ -14,6 +14,7 @@ const PADDING = 100;
 
 interface CellListProps {
   actions?: any; // if not defined, then everything read only
+  frame_actions?:any;
   name?:string;
   cell_list: immutable.List<any>; // list of ids of cells in order
   cells: immutable.Map<any, any>;
@@ -48,7 +49,7 @@ export class CellList extends Component<CellListProps> {
       // We have to do this since, e.g., codemirror editors
       // involve spans that aren't even children, etc...
       $(window).unbind("click", this.window_click);
-      return this.props.actions.disable_key_handler();
+      return this.props.frame_actions.disable_key_handler();
     }
   }
 
@@ -77,12 +78,12 @@ export class CellList extends Component<CellListProps> {
     if (this.props.actions != null) {
       // Enable keyboard handler if necessary
       if (this.props.is_focused) {
-        this.props.actions.enable_key_handler();
+        this.props.frame_actions.enable_key_handler();
       }
       // Also since just mounted, set this to be focused.
       // When we have multiple editors on the same page, we will
       // have to set the focus at a higher level (in the project store?).
-      this.props.actions.focus(true);
+      this.props.frame_actions.focus(true);
       // setup a click handler so we can manage focus
       $(window).on("click", this.window_click);
     }
@@ -117,7 +118,7 @@ export class CellList extends Component<CellListProps> {
     const outerW = elt.outerWidth();
     if (outerW != null && outerH != null) {
       if (x >= 0 && y >= 0 && x <= outerW && y <= outerH) {
-        this.props.actions.focus();
+        this.props.frame_actions.focus();
       } else {
         this.props.actions.blur();
       }
@@ -131,9 +132,9 @@ export class CellList extends Component<CellListProps> {
     ) {
       // the focus state changed.
       if (nextProps.is_focused) {
-        this.props.actions.enable_key_handler();
+        this.props.frame_actions.enable_key_handler();
       } else {
-        this.props.actions.disable_key_handler();
+        this.props.frame_actions.disable_key_handler();
       }
     }
     if (nextProps.scroll != null) {
@@ -231,7 +232,7 @@ export class CellList extends Component<CellListProps> {
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
       // See the complete component in codemirror-static.
-      return this.props.actions.set_mode("edit");
+      this.props.frame_actions.set_mode("edit");
     }
   };
 
@@ -261,6 +262,7 @@ export class CellList extends Component<CellListProps> {
         <Cell
           key={id}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           name={this.props.name}
           id={id}
           cm_options={this.props.cm_options}

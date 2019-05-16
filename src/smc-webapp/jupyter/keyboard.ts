@@ -80,7 +80,9 @@ export function create_key_handler(actions: any) : Function {
     if (actions.store.get("complete") != null) {
       return;
     }
-    const shortcut = evt_to_shortcut(evt, actions.store.get("mode"));
+    const mode = actions.store.get("mode");
+    console.log("mode = ", mode);
+    const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
     // console.log 'shortcut', shortcut, cmd
     if (cmd != null) {

@@ -14,6 +14,9 @@ const { Complete } = require("./complete");
 const { Cursors } = require("./cursors");
 declare const CodeMirror: any; // TODO: type
 
+import { JupyterActions } from "./actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 const FOCUSED_STYLE: React.CSSProperties = {
   width: "100%",
   overflowX: "hidden",
@@ -24,7 +27,8 @@ const FOCUSED_STYLE: React.CSSProperties = {
 };
 
 interface CodeMirrorEditorProps {
-  actions?: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   id: string;
   options: ImmutableMap<any, any>;
   value: string;
@@ -79,7 +83,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     }
     this.props.actions.unselect_all_cells();
     this.props.actions.set_cur_id(this.props.id);
-    this.props.actions.set_mode("edit");
+    this.props.frame_actions.set_mode("edit");
     if (this._vim_mode) {
       $(this.cm.getWrapperElement()).css({ paddingBottom: "1.5em" });
     }
@@ -99,7 +103,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
       delete this._cm_blur_skip;
       return;
     }
-    this.props.actions.set_mode("escape");
+    this.props.frame_actions.set_mode("escape");
   };
 
   _cm_cursor = (): void => {
@@ -397,11 +401,11 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
           // This is ugly, but I'm not going to spend forever on this before
           // the #v1 release, as vim support is a bonus feature.
           setTimeout(
-            () => this.props.actions.setState({ cur_cell_vim_mode: "escape" }),
+            () => this.props.frame_actions.setState({ cur_cell_vim_mode: "escape" }),
             0
           );
         } else {
-          this.props.actions.setState({ cur_cell_vim_mode: "edit" });
+          this.props.frame_actions.setState({ cur_cell_vim_mode: "edit" });
         }
       });
     } else {

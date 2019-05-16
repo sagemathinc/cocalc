@@ -16,6 +16,7 @@ const { CodeMirrorStatic } = require("./codemirror-static");
 
 interface CodeMirrorProps {
   actions?: any;
+  frame_actions?:any;
   id: string;
   options: ImmutableMap<any, any>;
   value: string;
@@ -86,6 +87,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
       return (
         <CodeMirrorEditor
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           id={this.props.id}
           options={this.props.options}
           value={this.props.value}

@@ -62,6 +62,7 @@ function markdown_post_hook(elt) {
 
 export interface CellInputProps {
   actions: any;
+  frame_actions: any;
   cm_options: ImmutableMap<string, any>; // TODO: what is this
   cell: ImmutableMap<string, any>; // TODO: what is this
   is_markdown_edit: boolean;
@@ -116,7 +117,7 @@ export class CellInput extends Component<CellInputProps> {
     />
   );
 
-  handle_md_double_click = () => {
+  handle_md_double_click = (): void => {
     if (this.props.actions == null) {
       return;
     }
@@ -126,7 +127,7 @@ export class CellInput extends Component<CellInputProps> {
     const id = this.props.cell.get("id");
     this.props.actions.set_md_cell_editing(id);
     this.props.actions.set_cur_id(id);
-    return this.props.actions.set_mode("edit");
+    this.props.frame_actions.set_mode("edit");
   };
 
   options = (type?: "code" | "markdown") => {
@@ -159,6 +160,7 @@ export class CellInput extends Component<CellInputProps> {
         value={this.props.cell.get("input", "")}
         options={this.options(type)}
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         id={this.props.cell.get("id")}
         is_focused={this.props.is_focused}
         font_size={this.props.font_size}

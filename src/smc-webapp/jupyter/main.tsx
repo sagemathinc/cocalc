@@ -40,6 +40,7 @@ interface JupyterEditorProps {
   // PROPS
   error?: string;
   actions: any;
+  frame_actions: any;
   name: string; // name of the redux store
 
   is_focused?: boolean;
@@ -243,6 +244,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     return (
       <CellList
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         name={this.props.name}
         cell_list={this.props.cell_list}
         cells={this.props.cells}

@@ -74,6 +74,7 @@ export interface JupyterStoreState {
   default_kernel?: string;
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
+  hook_offset?: number;
 }
 
 export const initial_jupyter_store_state: {

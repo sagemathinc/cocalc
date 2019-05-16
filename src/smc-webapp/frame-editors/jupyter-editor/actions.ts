@@ -72,14 +72,24 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     close_jupyter_actions(this.redux, this.name);
   }
 
+  focus(id?: string): void {
+    if (id === undefined) {
+      id = this._get_active_id();
+      if (id === undefined) return;
+    }
+    this.get_frame_actions(id).focus();
+  }
+
   private get_frame_actions(id: string) {
     if (this.frame_actions[id] != null) {
       return this.frame_actions[id];
     }
     return (this.frame_actions[id] = new NotebookFrameActions(this, id));
     // TODO: need to free up frame actions when frame is destroyed.
+
+    // TODO: throw error if id is not of a valid frame.
   }
-  
+
   // per-session sync-aware undo
   undo(id: string): void {
     id = id; // not used yet, since only one thing that can be undone.
