@@ -306,9 +306,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
-        if (not misc2.is_valid_username(opts.first_name)) or (not misc2.is_valid_username(opts.last_name))
-            opts.cb("username is not valid")
-            return
+        for name in ['first_name', 'last_name']
+            test = misc2.is_valid_username(opts[name])
+            if test?
+                opts.cb("#{name} not valid: #{test}")
+                return
 
         if opts.email_address? # canonicalize the email address, if given
             opts.email_address = misc.lower_email_address(opts.email_address)

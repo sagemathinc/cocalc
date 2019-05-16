@@ -6,6 +6,8 @@
 #
 ###############################################################################
 
+require('ts-node').register()
+
 misc = require('../misc')
 misc2 = require('../misc2')
 underscore = require('underscore')
@@ -1536,11 +1538,11 @@ describe 'test closest kernel matching method', ->
 
 describe 'do not allow URLs in names', ->
     it 'works for usual names', ->
-        expect(misc2.is_valid_username("harald")).toBe(true)
-        expect(misc2.is_valid_username("ABC FOO-BAR")).toBe(true)
-        expect(misc2.is_valid_username("test.account.dot")).toBe(true)
+        expect(misc2.is_valid_username("harald")).toBe(undefined)
+        expect(misc2.is_valid_username("ABC FOO-BAR")).toBe(undefined)
+        expect(misc2.is_valid_username("test.account.dot")).toBe(undefined)
     it 'blocks suspicious names', ->
-        expect(misc2.is_valid_username("OPEN http://foo.com")).toBe(false)
-        #expect(misc2.is_valid_username("https://earn-money.cc is good" )).toBe(false)
-        #expect(misc2.is_valid_username("OPEN mailto:bla@bar.de")).toBe(false)
+        expect(misc2.is_valid_username("OPEN http://foo.com")).toExist()
+        expect(misc2.is_valid_username("https://earn-money.cc is good" )).toExist()
+        expect(misc2.is_valid_username("OPEN mailto:bla@bar.de")).toExist()
 
