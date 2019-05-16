@@ -287,7 +287,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._key_handler == null) {
       this._key_handler = keyboard.create_key_handler(this);
     }
-    return (this.redux.getActions("page") as any).set_active_key_handler(
+    (this.redux.getActions("page") as any).set_active_key_handler(
       this._key_handler,
       this.project_id,
       this.path
@@ -295,7 +295,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   disable_key_handler = () => {
-    return (this.redux.getActions("page") as any).erase_active_key_handler(
+    (this.redux.getActions("page") as any).erase_active_key_handler(
       this._key_handler
     );
   };
@@ -664,8 +664,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_mode = (mode: any) => {
-    if (mode === "escape") {
+  set_mode = (mode: "escape" | "edit"): void => {
+    if (mode === "escape") {  // aka "command" mode.
       if (this.store.get("mode") === "escape") {
         return;
       }
@@ -674,7 +674,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this._get_cell_input();
       // Now switch.
       this.setState({ mode });
-      return this.set_cursor_locs([]); // none
+      this.set_cursor_locs([]); // none
     } else if (mode === "edit") {
       // switch to focused
       this.focus_unlock();
@@ -689,11 +689,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.setState({ mode });
         const type = this.store.getIn(["cells", id, "cell_type"]);
         if (type === "markdown") {
-          return this.set_md_cell_editing(id);
+          this.set_md_cell_editing(id);
         }
       }
     } else {
-      return this.set_error(`unknown mode '${mode}'`);
+      this.set_error(`unknown mode '${mode}'`);
     }
   };
 

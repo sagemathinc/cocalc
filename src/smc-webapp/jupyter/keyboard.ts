@@ -46,7 +46,7 @@ function evt_to_shortcut(evt: any, mode: any) {
   return json(evt_to_obj(evt, mode));
 }
 
-export function create_key_handler(actions: any) {
+export function create_key_handler(actions: any) : Function {
   let val: any;
   const shortcut_to_command: any = {};
 

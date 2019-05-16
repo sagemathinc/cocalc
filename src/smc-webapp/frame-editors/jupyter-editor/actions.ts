@@ -14,9 +14,12 @@ interface JupyterEditorState extends CodeEditorState {}
 
 import { JupyterActions } from "../../jupyter/browser-actions";
 
+import { NotebookFrameActions } from "./cell-notebook/actions";
+
 export class JupyterEditorActions extends Actions<JupyterEditorState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   public jupyter_actions: JupyterActions;
+  private frame_actions: { [id: string]: any } = {};
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "jupyter_cell_notebook" };
@@ -69,6 +72,14 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     close_jupyter_actions(this.redux, this.name);
   }
 
+  private get_frame_actions(id: string) {
+    if (this.frame_actions[id] != null) {
+      return this.frame_actions[id];
+    }
+    return (this.frame_actions[id] = new NotebookFrameActions(this, id));
+    // TODO: need to free up frame actions when frame is destroyed.
+  }
+  
   // per-session sync-aware undo
   undo(id: string): void {
     id = id; // not used yet, since only one thing that can be undone.
@@ -83,14 +94,17 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
 
   cut(id: string): void {
     console.log("cut", id);
+    this.get_frame_actions(id).cut();
   }
 
   copy(id: string): void {
     console.log("copy", id);
+    this.get_frame_actions(id).copy();
   }
 
   paste(id: string, value?: string | true): void {
     console.log("paste", id, value);
+    this.get_frame_actions(id).paste();
   }
 
   print(id): void {

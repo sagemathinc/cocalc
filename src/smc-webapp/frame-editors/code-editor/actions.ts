@@ -675,6 +675,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.set_frame_tree(x);
   }
 
+  public _get_frame_data(id: string, key: string, def?: any): any {
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      return;
+    }
+    return node.get("data-" + key, def);
+  }
+
   // Reset the frame tree layout to the default.
   reset_frame_tree(): void {
     let local = this.store.get("local_view_state");
@@ -740,7 +748,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // raises an exception if the node does not exist; always
   // call _has_frame_node first.
-  _get_frame_node(id: string): Map<string, any> | undefined {
+  public _get_frame_node(id: string): Map<string, any> | undefined {
     return tree_ops.get_node(this._get_tree(), id);
   }
 
@@ -1991,4 +1999,20 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.terminals.set_command(id, undefined, undefined);
     this.terminals.kill(id);
   }
+
+
+  public set_active_key_handler(key_handler: Function): void {
+    (this.redux.getActions("page") as any).set_active_key_handler(
+      key_handler,
+      this.project_id,
+      this.path
+    );
+  }
+
+  public erase_active_key_handler(key_handler: Function): void {
+    (this.redux.getActions("page") as any).erase_active_key_handler(
+      key_handler
+    );
+  }
+
 }
