@@ -43,12 +43,27 @@ interface JupyterEditorProps {
   frame_actions: any;
   name: string; // name of the redux store
 
+  // Comes explicitly from frontend Jupyter state stored in
+  // the frame tree, hence it can be different between
+  // each view of the notebook, and survives closing and
+  // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
+  is_fullscreen?: boolean;
   mode: "edit" | "escape"; // oneOf(['edit', 'escape']).isRequired;
   font_size?: number;
 
+  // TODO
+  cur_id?: string;
+  sel_ids?: immutable.Set<any>; // set of selected cells
+  md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
+  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
+  scroll?: number | string;
+  view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw']) -- TODO: get rid of this entirely and use different frame types
+  complete?: immutable.Map<any, any>; // status of tab completion
+  introspect?: immutable.Map<any, any>; // status of introspection
+  more_output?: immutable.Map<any, any>;
+
   // REDUX PROPS
-  view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw'])
   kernel?: string; // string name of the kernel
   kernels?: KernelsType;
   site_name?: string;
@@ -58,22 +73,14 @@ interface JupyterEditorProps {
   has_unsaved_changes?: boolean;
   cell_list?: immutable.List<any>; // list of ids of cells in order
   cells?: immutable.Map<any, any>; // map from ids to cells
-  cur_id?: string;
-  sel_ids?: immutable.Set<any>; // set of selected cells
-  md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
-  cm_options?: immutable.Map<any, any>; // settings for all the codemirror editors
   project_id?: string;
   directory?: string;
   version?: any;
-  complete?: immutable.Map<any, any>; // status of tab completion
-  introspect?: immutable.Map<any, any>; // status of introspection
-  more_output?: immutable.Map<any, any>;
   about?: boolean;
   backend_kernel_info?: immutable.Map<any, any>;
   confirm_dialog?: immutable.Map<any, any>;
   find_and_replace?: boolean;
   keyboard_shortcuts?: immutable.Map<any, any>;
-  scroll?: number | string;
   nbconvert?: immutable.Map<any, any>; // backend convert state
   nbconvert_dialog?: immutable.Map<any, any>; // frontend modal dialog state
   path?: string;
@@ -176,7 +183,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     if (!this.props.is_focused) return;
     return (
       <span style={KERNEL_STYLE}>
-        <Kernel name={this.props.name} actions={this.props.actions} />
+        <Kernel is_fullscreen={this.props.is_fullscreen} name={this.props.name} actions={this.props.actions} />
         <Mode name={this.props.name} />
       </span>
     );

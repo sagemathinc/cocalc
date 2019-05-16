@@ -72,6 +72,7 @@ const BACKEND_STATE_STYLE: React.CSSProperties = {
 interface KernelProps {
   // OWN PROPS
   actions: any;
+  is_fullscreen?: boolean;
   // REDUX PROPS
   kernel: string;
   kernels: immutable.List<any>;
@@ -163,7 +164,9 @@ class Kernel0 extends Component<KernelProps> {
           style={KERNEL_NAME_STYLE}
           onClick={() => this.props.actions.show_select_kernel("user request")}
         >
-          {display_name != null ? trunc(display_name, 12) : "No Kernel"}
+          {display_name != null
+            ? trunc(display_name, this.props.is_fullscreen ? 16 : 8)
+            : "No Kernel"}
         </span>
       );
     }
@@ -226,6 +229,7 @@ class Kernel0 extends Component<KernelProps> {
 
   render_trust() {
     if (this.props.trust) {
+      if (!this.props.is_fullscreen) return;
       return <span style={{ color: "#888" }}>Trusted</span>;
     } else {
       return (
@@ -256,7 +260,7 @@ class Kernel0 extends Component<KernelProps> {
         </div>
       );
     } else {
-      kernel_name = <span/>;
+      kernel_name = <span />;
     }
     let kernel_tip;
     const { backend_state } = this.props;
@@ -341,18 +345,38 @@ class Kernel0 extends Component<KernelProps> {
     );
     return (
       <Tip title="Kernel CPU and Memory Usage" tip={tip} placement="bottom">
-        <span style={KERNEL_USAGE_STYLE}>
-          CPU: <span style={cpu_style}>{cpu}%</span>
+        {this.render_usage_text(cpu, memory, cpu_style, memory_style)}
+      </Tip>
+    );
+  }
+
+  render_usage_text(cpu, memory, cpu_style, memory_style) {
+    if (this.props.is_fullscreen) {
+      return (
+        <span>
+          <span style={KERNEL_USAGE_STYLE}>
+            CPU: <span style={cpu_style}>{cpu}%</span>
+          </span>
+          <span style={KERNEL_USAGE_STYLE}>
+            Memory:{" "}
+            <span style={memory_style}>
+              {memory}
+              MB
+            </span>
+          </span>
         </span>
-        <span style={KERNEL_USAGE_STYLE}>
-          RAM:{" "}
+      );
+    } else {
+      return (
+        <span>
+          <span style={cpu_style}>{cpu}%</span>{" "}
           <span style={memory_style}>
             {memory}
             MB
           </span>
         </span>
-      </Tip>
-    );
+      );
+    }
   }
 
   render() {

@@ -47,6 +47,7 @@ export class CellNotebook extends Component<Props, {}> {
         frame_actions={frame_actions}
         name={name}
         is_focused={this.props.is_current}
+        is_fullscreen={this.props.is_fullscreen}
         mode={this.props.desc.get("data-mode", "escape")}
         font_size={this.props.font_size}
       />
