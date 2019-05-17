@@ -70,7 +70,7 @@ export class CustomSoftwareReset extends Component<Props, {}> {
 
     return (
       <Well>
-        <Row style={{ color: COLORS.GRAY }}>
+        <Row style={{ color: COLORS.GRAY_D }}>
           <Col sm={12} style={title_style}>
             <Icon name={RESET_ICON} /> Reset {img.get("display", "")}
           </Col>
@@ -93,7 +93,7 @@ export class CustomSoftwareReset extends Component<Props, {}> {
           </Col>
           <Col sm={12} style={button_bar_style}>
             <ButtonToolbar>
-              <Button onClick={this.reset} bsStyle={"primary"}>
+              <Button onClick={this.reset} bsStyle={"danger"}>
                 <Icon name={RESET_ICON} /> Reset and Restart
               </Button>
               <Button onClick={this.cancel}>

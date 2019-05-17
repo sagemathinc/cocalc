@@ -1959,6 +1959,8 @@ exports.ProjectFiles = rclass ({name}) ->
 
     render_custom_software_reset: () ->
         return null if not @props.show_custom_software_reset
+        # also don't show this box, if any files are selected
+        return null if @props.checked_files.size > 0
         <CustomSoftwareReset
             project_id = {@props.project_id}
             images = {@props.images}
@@ -2017,6 +2019,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 </div>
                 {@render_project_files_buttons(public_view)}
             </div>
+
             {@render_custom_software_reset() if project_is_running}
 
             {@render_library() if @props.show_library}
