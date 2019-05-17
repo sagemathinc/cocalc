@@ -1,7 +1,7 @@
 /*
  * this manages project configuration specific aspects.
  * It is the corresponding counterpart of smc-project/configuration.ts
- * The various "capabilities" datastructures are used to show/hide UI elements or suppress
+ * The various "capabilities" data-structures are used to show/hide UI elements or suppress
  * calling certain operations which are not possible (e.g. spellcheck requires aspell)
  */
 
@@ -15,6 +15,7 @@ export type ConfigurationAspect = "main" | "x11";
 export interface MainConfiguration {
   capabilities: MainCapabilities;
   timestamp: string;
+  // disabled extensions, for opening/creating files
   disabled_ext: string[];
 }
 

@@ -50,7 +50,6 @@ const keyboard = require("./keyboard");
 const cell_utils = require("./cell-utils");
 const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
-//import { ProjectConfiguration } from "../project_configuration";
 
 // map project_id (string) -> kernels (immutable)
 import { Kernels, Kernel } from "./util";

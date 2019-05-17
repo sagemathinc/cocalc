@@ -16,6 +16,7 @@ import {
 } from "../smc-webapp/project_configuration";
 import { parser2tool, Tool as FormatTool } from "../smc-util/code-formatter";
 
+// test if the given utiltiy "name" exists (executable in the PATH)
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>(resolve => {
     which(name, function(error, path) {
@@ -27,6 +28,8 @@ async function have(name: string): Promise<boolean> {
 // we cache this as long as the project runs
 const conf: { [key in ConfigurationAspect]?: Configuration } = {};
 
+// check for all X11 apps.
+// UI will only show buttons for existing executables.
 async function x11_apps(): Promise<Capabilities> {
   const status: Promise<boolean>[] = [];
   const KEYS = Object.keys(APPS);
@@ -40,17 +43,19 @@ async function x11_apps(): Promise<Capabilities> {
   return ret;
 }
 
-// return supported apps if X11 should work, or falsy.
+// determines if X11 support exists at all
 async function x11(): Promise<boolean> {
   return await have("xpra");
 }
 
+// do we have "sage"?
 async function sage(): Promise<boolean> {
-  // TODO probably also check if smc_sagews is working?
+  // TODO probably also check if smc_sagews is working? or the sage server?
   // without sage, sagews files are disabled
   return await have("sage");
 }
 
+// this checks the level of jupyter support. none (false), or classical, lab, ...
 async function jupyter(): Promise<Capabilities | boolean> {
   if (await have("jupyter")) {
     return {
@@ -63,9 +68,12 @@ async function jupyter(): Promise<Capabilities | boolean> {
   }
 }
 
+// to support latex, we need a couple of executables available
+// TODO dumb down the UI to also work with less tools (e.g. without synctex)
 async function latex(hashsums: Capabilities): Promise<boolean> {
   const prereq: string[] = ["pdflatex", "latexmk", "synctex"];
   const have_prereq = (await Promise.all(prereq.map(have))).every(p => p);
+  // TODO webapp only uses sha1sum. use a fallback if not available.
   return hashsums.sha1sum && have_prereq;
 }
 
@@ -80,12 +88,13 @@ async function sshd(): Promise<boolean> {
 }
 
 // this is for rnw RMarkdown files.
-// This just tests R, which as knitr by default?
+// This just tests R, which provides knitr out of the box?
 async function rmd(): Promise<boolean> {
   return await have("R");
 }
 
-// just check if we can read that json file
+// check if we can read that json file.
+// if it exists, show the corresponding button in "Files".
 async function library(): Promise<boolean> {
   return new Promise<boolean>(resolve => {
     fs_access(LIBRARY_INDEX_FILE, fs_constaints.R_OK, err => {
@@ -121,6 +130,7 @@ async function formatting(): Promise<Capabilities> {
   return ret;
 }
 
+// this could be used by the webapp to fall back to other hashsums
 async function get_hashsums(): Promise<Capabilities> {
   return {
     sha1sum: await have("sha1sum"),
@@ -129,6 +139,7 @@ async function get_hashsums(): Promise<Capabilities> {
   };
 }
 
+// assemble capabilities object
 async function capabilities(): Promise<MainCapabilities> {
   const hashsums = await get_hashsums();
   const caps: MainCapabilities = {
@@ -146,6 +157,10 @@ async function capabilities(): Promise<MainCapabilities> {
   return caps;
 }
 
+// this is the entry point for the API call
+// "main": everything that's needed throughout the project
+// "x11": additional checks which are queried when an X11 editor opens up
+// TODO similarly, query available "shells" to use for the corresponding code editor button
 export async function get_configuration(
   aspect: ConfigurationAspect
 ): Promise<Configuration> {
@@ -171,5 +186,5 @@ export async function get_configuration(
   return new_conf;
 }
 
-// run ts-node configuration.ts  for testing
+// testing: uncomment, and run $ ts-node configuration.ts
 // (async () => { console.log(await x11_apps()); })()

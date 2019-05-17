@@ -58,10 +58,6 @@ export class Actions extends BaseActions<X11EditorState> {
 
   async _init2(): Promise<void> {
     this.check_capabilities();
-    //if (abort) return;
-    // TODO this doesn't work, client isn't set, x11.tsx calls this keyboard action → bang
-    // console.log("X11 Actions → _init2 → abort:", abort);
-
     this.launch = reuseInFlight(this.launch);
     this.setState({ windows: Map() });
     this.init_client();
@@ -77,8 +73,8 @@ export class Actions extends BaseActions<X11EditorState> {
     }
   }
 
-  // returns false if there is a serious problem (no x11 available)
-  async check_capabilities(): Promise<boolean> {
+  // sets disabled to true or false, if x11 is available
+  async check_capabilities(): Promise<void> {
     const proj_actions = this.redux.getProjectActions(this.project_id);
 
     let x11_apps: Readonly<Capabilities> = {};
@@ -103,7 +99,6 @@ export class Actions extends BaseActions<X11EditorState> {
       return true;
     })();
     this.setState({ disabled: !ok, x11_apps });
-    return ok;
   }
 
   /*
@@ -647,7 +642,7 @@ export class Actions extends BaseActions<X11EditorState> {
     open_new_tab(HELP_URL);
   }
 
-  public hide() : void {
+  public hide(): void {
     // This is called when the X11 editor tab is hidden.
     // In this case, we disable the keyboard handler.
     this.blur();

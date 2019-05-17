@@ -1,3 +1,5 @@
+// in "Files", this shows some information and action buttons related to the custom software environment
+
 import { Component, React } from "../app-framework";
 import { Map as iMap } from "immutable";
 import {

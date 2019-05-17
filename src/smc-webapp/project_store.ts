@@ -38,7 +38,10 @@ import * as immutable from "immutable";
 
 const misc = require("smc-util/misc");
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
-import { Available as AvailableFeatures } from "./project_configuration";
+import {
+  Available as AvailableFeatures,
+  isMainConfiguration
+} from "./project_configuration";
 
 import {
   project_redux_name,
@@ -515,6 +518,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
   };
+
+  // returns false, if this project isn't capable of opening a file with the given extension
+  async can_open_file_ext(
+    ext: string,
+    actions: ProjectActions
+  ): Promise<boolean> {
+    // to make sure we know about disabled file types
+    const conf = await actions.init_configuration("main");
+    // if we don't know anything, we're optimistic and skip this check
+    if (conf == null) return true;
+    if (!isMainConfiguration(conf)) return true;
+    const disabled_ext = conf.disabled_ext;
+    return !disabled_ext.includes(ext);
+  }
 }
 
 function _match(words, s, is_dir) {

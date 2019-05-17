@@ -9,7 +9,6 @@ import * as os_path from "path";
 const { reuseInFlight } = require("async-await-utils/hof");
 import {
   ConfigurationAspect,
-  isMainConfiguration,
   Configuration,
   ProjectConfiguration,
   get_configuration,
@@ -933,7 +932,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const can_open_file = await this.can_open_file_ext(ext);
+    let store = this.get_store();
+    if (store == undefined) {
+      // e.g., the project got closed along the way...
+      return;
+    }
+
+    const can_open_file = await store.can_open_file_ext(ext, this);
     if (!can_open_file) {
       const SiteName =
         redux.getStore("customize").get("site_name") || SITE_NAME;
@@ -942,21 +947,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         message: `This ${SiteName} project cannot open ${ext} files!`,
         timeout: 20
       });
-      console.log(
-        `abort project_actions::open_file due to lack of support for "${ext}" files`
-      );
+      // console.log(
+      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
+      // );
       return;
     }
 
     if (opts.new_browser_window) {
       // options other than path are ignored in this case.
       this.open_in_new_browser_window(opts.path);
-      return;
-    }
-
-    let store = this.get_store();
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
       return;
     }
 
@@ -1964,11 +1963,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  // this is called in "projects.cjsx", but more then once
-  // this is calling init methods just once, though
+  // this is called in "projects.cjsx" (more then once)
+  // in turn, it is calling init methods just once, though
   init(): void {
     if (this._init_done) {
-      console.warn("ProjectActions::init called more than once");
+      // console.warn("ProjectActions::init called more than once");
       return;
     }
     this._init_done = true;
@@ -1996,7 +1995,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  // invalidates configuration cache and call it again
+  // invalidates configuration cache
   private clear_configuration(): void {
     this.setState({
       configuration: undefined,
@@ -2013,12 +2012,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     const store = this.get_store();
     if (store == null) {
-      console.warn("project_actions::init_configuration: no store");
+      // console.warn("project_actions::init_configuration: no store");
       this.setState({ configuration_loading: false });
       return;
     }
 
-    // already done?
+    // already done before?
     const prev = store.get("configuration") as ProjectConfiguration;
     if (prev != null) {
       const conf = prev.get(aspect) as Configuration;
@@ -2028,6 +2027,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
 
+    // we do not know the configuration aspect. "next" will be the updated datastructure.
     let next;
 
     await retry_until_success({
@@ -2044,27 +2044,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       desc: "project_actions::init_configuration"
     });
 
+    // there was a problem
     if (next == null) {
       this.setState({ configuration_loading: false });
       return;
     }
+
     this.setState({
       configuration: next,
-      available_features: feature_is_available(next)
+      available_features: feature_is_available(next),
+      configuration_loading: false
     });
-    this.setState({ configuration_loading: false });
-    return next.get(aspect) as Configuration;
-  }
 
-  // returns false, if this project isn't capable of opening a file with given extension
-  async can_open_file_ext(ext: string): Promise<boolean> {
-    // to make sure we know about disabled file types
-    const conf = await this.init_configuration("main");
-    // if we don't know anything, we're optimistic and skip this check
-    if (conf == null) return true;
-    if (!isMainConfiguration(conf)) return true;
-    const disabled_ext = conf.disabled_ext;
-    return !disabled_ext.includes(ext);
+    return next.get(aspect) as Configuration;
   }
 
   // this is called once by the project initialization

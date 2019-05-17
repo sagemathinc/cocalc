@@ -122,7 +122,7 @@ class ComputeImagesTable extends Table {
     // deriving disp, desc, etc. must be robust against null and empty strings
     return (
       data
-        // TODO this is stupid. pg_where in db-schema should filter these
+        // filter disabled ones. we still want to have the data available, though.
         .filter(img => !img.get("disabled", false))
         .map((img, id) => {
           const display = display_fallback(img, id);
