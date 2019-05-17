@@ -1156,8 +1156,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
+  public _active_id(): string {
+    return this.store.getIn(["local_view_state", "active_id"]);
+  }
+
   _active_cm(): CodeMirror.Editor | undefined {
-    return this._cm[this.store.getIn(["local_view_state", "active_id"])];
+    return this._cm[this._active_id()];
   }
 
   _get_terminal(id: string, parent: HTMLElement): Terminal {
@@ -2000,7 +2004,6 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.terminals.kill(id);
   }
 
-
   public set_active_key_handler(key_handler: Function): void {
     (this.redux.getActions("page") as any).set_active_key_handler(
       key_handler,
@@ -2014,5 +2017,4 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       key_handler
     );
   }
-
 }

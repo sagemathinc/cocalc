@@ -58,7 +58,7 @@ interface JupyterEditorProps {
   sel_ids?: immutable.Set<any>; // set of selected cells
   md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
 
-  scroll?: Scroll;  // Causes a scroll when it *changes*
+  scroll?: Scroll; // Causes a scroll when it *changes*
   scrollTop?: number;
   hook_offset?: number;
 
@@ -202,7 +202,24 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_buttonbar() {
-    return <TopButtonbar actions={this.props.actions} name={this.props.name} />;
+    if (
+      this.props.actions == null ||
+      this.props.frame_actions == null ||
+      this.props.cells == null ||
+      this.props.sel_ids == null
+    ) {
+      return;
+    } else {
+      return (
+        <TopButtonbar
+          actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
+          name={this.props.name}
+          cells={this.props.cells}
+          sel_ids={this.props.sel_ids}
+        />
+      );
+    }
   }
 
   render_heading() {
@@ -406,9 +423,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_keyboard_shortcuts() {
+    if (this.props.actions == null || this.props.frame_actions == null) return;
     return (
       <KeyboardShortcuts
         actions={this.props.actions}
+        frame_actions={this.props.frame_actions}
         keyboard_shortcuts={this.props.keyboard_shortcuts}
       />
     );

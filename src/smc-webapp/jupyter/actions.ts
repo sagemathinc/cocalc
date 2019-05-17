@@ -446,17 +446,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   set_selected_cell_type = (cell_type: any) => {
-    const sel_ids = this.store.get("sel_ids");
-    const cur_id = this.store.get("cur_id");
-    if (sel_ids.size === 0) {
-      if (cur_id != null) {
-        return this.set_cell_type(cur_id, cell_type);
-      }
-    } else {
-      return sel_ids.forEach(id => {
-        this.set_cell_type(id, cell_type);
-      });
-    }
+    this.deprecated("set_selected_cell_type", cell_type);
   };
 
   // Might throw a CellWriteProtectedException
@@ -493,7 +483,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("set_cur_id", id);
   };
 
-  private deprecated(f: string, ...args): void {
+  protected deprecated(f: string, ...args): void {
     const s = "DEPRECATED JupyterActions(" + this.path + ")." + f;
     console.warn(s, ...args);
   }
@@ -873,6 +863,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // Save the .ipynb file to disk.  Note that this
     // *changes* the syncdb by updating the last save time.
     try {
+      // Make sure syncdb content is all sent to the project.
+      await this.syncdb.save();
       // Export the ipynb file to disk.
       await this._api_call("save_ipynb_file", {});
       // Save our custom-format syncdb to disk.
@@ -936,7 +928,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       pos,
       input: ""
     });
-    this.set_cur_id(new_id);
     return new_id; // violates CQRS... (this *is* used elsewhere)
   }
 
@@ -2464,7 +2455,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  cell_toolbar = (name: string): void => {
+  cell_toolbar = (name?: string): void => {
     // Set which cell toolbar is visible.  At most one may be visible.
     // name=undefined to not show any.
     this.setState({ cell_toolbar: name });

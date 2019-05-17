@@ -1,14 +1,11 @@
-import { JupyterActions } from "../../../jupyter/browser-actions";
-import {
-  JupyterStore,
-  initial_jupyter_store_state
-} from "../../../jupyter/store";
+import { JupyterActions } from "../../jupyter/browser-actions";
+import { JupyterStore, initial_jupyter_store_state } from "../../jupyter/store";
 
-import { syncdb2 as new_syncdb } from "../../generic/client";
+import { syncdb2 as new_syncdb } from "../generic/client";
 
-const { webapp_client } = require("../../../webapp_client");
+const { webapp_client } = require("../../webapp_client");
 import { meta_file } from "smc-util/misc";
-const { alert_message } = require("../../../alerts");
+const { alert_message } = require("../../alerts");
 
 export function redux_name(name: string): string {
   return `jupyter-${name}`;
@@ -31,7 +28,7 @@ export function create_jupyter_actions(
 
   const syncdb = new_syncdb({
     project_id,
-    path : syncdb_path,
+    path: syncdb_path,
     change_throttle: 50, // our UI/React can handle more rapid updates; plus we want output FAST.
     patch_interval: 50,
     primary_keys: ["type", "id"],

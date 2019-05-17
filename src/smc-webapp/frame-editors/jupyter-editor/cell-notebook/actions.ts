@@ -7,9 +7,10 @@ import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";
-import { JupyterActions } from "../../../jupyter/actions";
+import { JupyterActions } from "../../../jupyter/browser-actions";
 import { new_cell_pos } from "../../../jupyter/cell-utils";
-import { Scroll } from "../../../jupyter/types";
+import { CellType, Scroll } from "../../../jupyter/types";
+import { commands, CommandDescription } from "../../../jupyter/commands";
 
 const DEBUG = true;
 
@@ -20,6 +21,7 @@ export class NotebookFrameActions {
   private input_editors: { [id: string]: any } = {};
   private scroll_before_change?: number;
 
+  public commands: { [name: string]: CommandDescription } = {};
   public frame_id: string;
   public store: NotebookFrameStore;
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
@@ -41,6 +43,8 @@ export class NotebookFrameActions {
 
     this.update_cur_id();
     this.init_syncdb_change_hook();
+
+    this.commands = commands(this.jupyter_actions, this);
   }
 
   private init_syncdb_change_hook(): void {
@@ -89,6 +93,7 @@ export class NotebookFrameActions {
       "syncdb-after-change",
       this.syncdb_after_change
     );
+    delete this.commands;
     delete this.frame_tree_actions;
     delete this.jupyter_actions;
     delete this.frame_id;
@@ -138,9 +143,13 @@ export class NotebookFrameActions {
   /***
    * Keyboard handling
    ***/
+  public save(explicit: boolean = true): void {
+    this.frame_tree_actions.save(explicit);
+  }
+
   public enable_key_handler(): void {
     if (this.key_handler == null) {
-      this.key_handler = create_key_handler(this);
+      this.key_handler = create_key_handler(this.jupyter_actions, this);
     }
     this.frame_tree_actions.set_active_key_handler(this.key_handler);
   }
@@ -510,5 +519,29 @@ export class NotebookFrameActions {
       this.move_cursor_before(selected[0]);
     }
     this.jupyter_actions.delete_cells(selected, sync);
+  }
+
+  public set_selected_cell_type(cell_type: CellType): void {
+    const sel_ids = this.store.get("sel_ids");
+    const cur_id = this.store.get("cur_id");
+    if (sel_ids.size === 0) {
+      if (cur_id != null) {
+        this.jupyter_actions.set_cell_type(cur_id, cell_type);
+      }
+    } else {
+      return sel_ids.forEach(id => {
+        this.jupyter_actions.set_cell_type(id, cell_type);
+      });
+    }
+  }
+
+  public command(name: string): void {
+    this.dbg("command", name);
+    const cmd = this.commands[name];
+    if (cmd != null && cmd.f != null) {
+      cmd.f();
+    } else {
+      this.frame_tree_actions.set_error(`Command '${name}' is not implemented`);
+    }
   }
 }

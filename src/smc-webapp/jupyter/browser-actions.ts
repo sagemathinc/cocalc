@@ -9,7 +9,6 @@ import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 const { instantiate_assistant } = require("../assistant/main");
-const { commands } = require("./commands");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -86,7 +85,6 @@ export class JupyterActions extends JupyterActions0 {
       this._account_change_editor_settings = account_store.get(
         "editor_settings"
       );
-      this._commands = commands(this);
     }
   }
 
@@ -98,7 +96,6 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   protected close_client_only(): void {
-    delete this._commands;
     const account = this.redux.getStore("account");
     if (account != null) {
       account.removeListener("change", this._account_change);
@@ -257,6 +254,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   command = (name: any): void => {
+    this.deprecated("command", name);
     if (this._commands == null) return;
     const cmd = this._commands[name];
     if (cmd != null && cmd.f != null) {

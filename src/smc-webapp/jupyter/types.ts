@@ -1,3 +1,7 @@
+export type NotebookMode = "edit" | "escape";
+
+export type CellType = "raw" | "markdown" | "code" | "multi";
+
 export type Scroll =
   | number
   | "cell visible"
@@ -8,3 +12,4 @@ export type Scroll =
   | "cell down"
   | "list up"
   | "list down";
+

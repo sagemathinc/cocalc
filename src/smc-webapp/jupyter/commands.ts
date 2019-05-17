@@ -11,15 +11,43 @@ const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
   .FORMAT_SOURCE_ICON;
 
-// TODO: type
-export function commands(actions: any) {
-  // TODO: if actions is not defined, what does this do?
-  let id: any, store: any;
-  if (actions != null) {
-    ({ store } = actions);
-    id = () => store.get("cur_id");
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+require('./types');
+import { NotebookMode } from "./types";
+
+export interface KeyboardCommand {
+  mode?: NotebookMode;
+  which: number;
+  ctrl?: boolean;
+  alt?: boolean;
+  shift?: boolean;
+  twice?: boolean;
+}
+
+export interface CommandDescription {
+  i?: string; // icon name
+  k?: KeyboardCommand[]; // keyboard commands
+  m?: string; // fuller description for use in menus
+  d?: string; // even more extensive description (e.g., for a tooltip).
+  f: Function; // function that implements command.
+}
+
+export function commands(
+  jupyter_actions: JupyterActions,
+  frame_actions: NotebookFrameActions
+): { [name: string]: CommandDescription } {
+  if (jupyter_actions == null || frame_actions == null) {
+    throw Error("both actions must be defined");
+  }
+  function id(): string {
+    return frame_actions.store.get("cur_id");
   }
 
+  const actions = jupyter_actions; // TODO
+  const store = actions.store; // todo
+  console.log(jupyter_actions, frame_actions);
   return {
     "cell toolbar none": {
       m: "None",
@@ -219,7 +247,7 @@ export function commands(actions: any) {
       f: () => actions.copy_selected_cells()
     },
 
-    "copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
+    //"copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
 
     "cut cell": {
       i: "scissors",
@@ -228,7 +256,7 @@ export function commands(actions: any) {
       f: () => actions.cut_selected_cells()
     },
 
-    "cut cell attachments": undefined, // no clue
+    //"cut cell attachments": undefined, // no clue
 
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
@@ -339,19 +367,19 @@ export function commands(actions: any) {
       f: () => actions.set_toolbar_state(false)
     },
 
-    ignore: undefined, // no clue what this means
+    //ignore: undefined, // no clue what this means
 
     "insert cell above": {
       m: "Insert cell above",
       k: [{ mode: "escape", which: 65 }],
-      f: () => actions.insert_cell(-1)
+      f: () => frame_actions.insert_cell(-1)
     },
 
     "insert cell below": {
       i: "plus",
       m: "Insert cell below",
       k: [{ mode: "escape", which: 66 }],
-      f: () => actions.insert_cell(1)
+      f: () => frame_actions.insert_cell(1)
     },
 
     "insert image": {
@@ -488,7 +516,7 @@ export function commands(actions: any) {
       f: () => actions.paste_cells(-1)
     },
 
-    "paste cell attachments": undefined, // TODO ? not sure what the motivation is...
+    //"paste cell attachments": undefined, // TODO ? not sure what the motivation is...
 
     "paste cell below": {
       // jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
@@ -757,10 +785,10 @@ export function commands(actions: any) {
       f: () => actions.toggle_header()
     },
 
-    "toggle rtl layout": {
+    /* "toggle rtl layout": {
       // TODO
       m: "Toggle RTL layout"
-    },
+    }, */
 
     "toggle toolbar": {
       m: "Toggle toolbar",
@@ -778,10 +806,11 @@ export function commands(actions: any) {
       f: () => actions.undo()
     },
 
+    /*
     "user interface tour": {
       // TODO
       m: "User interface tour"
-    },
+    },*/
 
     "view notebook normal": {
       m: "Cells (normal)",

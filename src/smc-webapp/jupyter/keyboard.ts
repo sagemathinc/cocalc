@@ -5,6 +5,9 @@ Keyboard event handler
 const json = require("json-stable-stringify"); // TODO: import types
 const { merge, copy_without } = require("smc-util/misc"); // TODO: import types
 const commands = require("./commands"); // TODO: import types
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+import { NotebookMode } from "./types";
 
 export function keyCode_to_chr(keyCode: number) {
   const chrCode = keyCode - 48 * Math.floor(keyCode / 48);
@@ -42,11 +45,14 @@ export function evt_to_obj(evt: any, mode: any) {
   return obj;
 }
 
-function evt_to_shortcut(evt: any, mode: any) {
+function evt_to_shortcut(evt: any, mode: NotebookMode) {
   return json(evt_to_obj(evt, mode));
 }
 
-export function create_key_handler(actions: any) : Function {
+export function create_key_handler(
+  jupyter_actions: JupyterActions,
+  frame_actions: NotebookFrameActions
+): Function {
   let val: any;
   const shortcut_to_command: any = {};
 
@@ -65,7 +71,7 @@ export function create_key_handler(actions: any) : Function {
     }
   }
 
-  const object = commands.commands(actions);
+  const object = commands.commands(jupyter_actions, frame_actions);
   for (let name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
@@ -77,10 +83,10 @@ export function create_key_handler(actions: any) : Function {
   }
 
   return (evt: any) => {
-    if (actions.store.get("complete") != null) {
+    if (jupyter_actions.store.get("complete") != null) {
       return;
     }
-    const mode = actions.store.get("mode");
+    const mode = frame_actions.store.get("mode");
     const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
     // console.log 'shortcut', shortcut, cmd

@@ -2,14 +2,14 @@
 Jupyter Frame Editor Actions
 */
 
-import { delay } from "awaiting"; 
+import { delay } from "awaiting";
 import { FrameTree } from "../frame-tree/types";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 
 import {
   create_jupyter_actions,
   close_jupyter_actions
-} from "./cell-notebook/jupyter-actions";
+} from "./jupyter-actions";
 
 interface JupyterEditorState extends CodeEditorState {}
 
@@ -29,6 +29,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   _init2(): void {
     this.create_jupyter_actions();
     this.init_new_frame();
+    this.init_changes_state();
   }
 
   public close(): void {
@@ -54,6 +55,16 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
         this.get_frame_actions(id);
       }
     }
+  }
+
+  private init_changes_state(): void {
+    const syncdb = this.jupyter_actions.syncdb;
+    syncdb.on("has-uncommitted-changes", has_uncommitted_changes =>
+      this.setState({ has_uncommitted_changes })
+    );
+    syncdb.on("has-unsaved-changes", has_unsaved_changes => {
+      this.setState({ has_unsaved_changes });
+    });
   }
 
   async close_frame_hook(id: string, type: string): Promise<void> {
@@ -140,4 +151,31 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   public hide(): void {}
+
+  async save(explicit: boolean = true): Promise<void> {
+    explicit = explicit; // not used yet -- might be used for "strip trailing whitespace"
+
+    // Copy state from live codemirror editor into syncdb
+    // since otherwise it won't be saved to disk.
+    const id = this._active_id();
+    const a = this.get_frame_actions(id);
+    if (a != null) {
+      a.save_input_editor();
+    }
+
+    if (!this.jupyter_actions.syncdb.has_unsaved_changes()) return;
+
+    // Do the save itself, using try/finally to ensure proper
+    // setting of is_saving.
+    try {
+      this.setState({ is_saving: true });
+      await this.jupyter_actions.save();
+    } catch (err) {
+      console.warn("save_to_disk", this.path, "ERROR", err);
+      if (this._state == "closed") return;
+      this.set_error(`error saving file to disk -- ${err}`);
+    } finally {
+      this.setState({ is_saving: false });
+    }
+  }
 }

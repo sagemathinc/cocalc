@@ -13,6 +13,8 @@ const { Button, Modal } = require("react-bootstrap");
 const { Icon, SearchInput } = require("../r_misc");
 const commands = require("./commands");
 const keyboard = require("./keyboard");
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 const SYMBOLS = {
   meta: "⌘",
@@ -24,7 +26,7 @@ const SYMBOLS = {
   tab: "⇥",
   down: "down",
   up: "up",
-  backspace: "BS",
+  backspace: "BS"
 };
 
 function shortcut_to_string(shortcut: any) {
@@ -74,7 +76,9 @@ interface KeyboardShortcutProps {
 export class KeyboardShortcut extends Component<KeyboardShortcutProps> {
   render() {
     return (
-      <span style={{ fontFamily: "monospace" }}>{shortcut_to_string(this.props.shortcut)}</span>
+      <span style={{ fontFamily: "monospace" }}>
+        {shortcut_to_string(this.props.shortcut)}
+      </span>
     );
   }
 }
@@ -83,7 +87,7 @@ const SHORTCUTS_STYLE: React.CSSProperties = {
   width: "20em",
   overflowX: "hidden",
   border: "1px solid transparent",
-  paddingRight: "10px",
+  paddingRight: "10px"
 };
 
 interface ShortcutsProps {
@@ -109,7 +113,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       add: false,
       value: "",
       taken: false,
-      shortcut: undefined,
+      shortcut: undefined
     };
   }
 
@@ -145,7 +149,10 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
 
   render_shortcut(key: any, shortcut: any) {
     return (
-      <span key={key} style={{ border: "1px solid #999", margin: "2px", padding: "1px" }}>
+      <span
+        key={key}
+        style={{ border: "1px solid #999", margin: "2px", padding: "1px" }}
+      >
         <KeyboardShortcut key={key} shortcut={shortcut} />
         {
           undefined // this.render_shortcut_delete_icon(shortcut) // disabled for now
@@ -155,12 +162,25 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
   }
 
   cancel_edit = () => {
-    return this.setState({ add: false, taken: false, value: "", shortcut: undefined });
+    return this.setState({
+      add: false,
+      taken: false,
+      value: "",
+      shortcut: undefined
+    });
   };
 
   confirm_edit = () => {
-    this.props.actions.add_keyboard_shortcut(this.props.name, this.state.shortcut);
-    return this.setState({ add: false, taken: false, value: "", shortcut: undefined });
+    this.props.actions.add_keyboard_shortcut(
+      this.props.name,
+      this.state.shortcut
+    );
+    return this.setState({
+      add: false,
+      taken: false,
+      value: "",
+      shortcut: undefined
+    });
   };
 
   key_down = (e: any) => {
@@ -179,7 +199,7 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     return this.setState({
       value: shortcut_to_string(shortcut),
       shortcut,
-      taken,
+      taken
     });
   };
 
@@ -274,11 +294,12 @@ const COMMAND_STYLE = {
   cursor: "pointer",
   borderTop: "1px solid #ccc",
   padding: "5px 0 5px 10px",
-  height: "2em",
+  height: "2em"
 };
 
 interface CommandProps {
-  actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   name: string;
   desc: string;
   icon?: string;
@@ -305,7 +326,7 @@ class Command extends Component<CommandProps, CommandState> {
   }
 
   run_command = () => {
-    this.props.actions.command(this.props.name);
+    this.props.frame_actions.command(this.props.name);
     this.props.actions.close_keyboard_shortcuts();
   };
 
@@ -314,7 +335,11 @@ class Command extends Component<CommandProps, CommandState> {
   };
 
   render_desc() {
-    return <span style={{ maxWidth: "20em", overflowX: "hidden" }}>{this.props.desc}</span>;
+    return (
+      <span style={{ maxWidth: "20em", overflowX: "hidden" }}>
+        {this.props.desc}
+      </span>
+    );
   }
 
   render_shortcuts() {
@@ -354,11 +379,12 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
   border: "1px solid #ccc",
   borderRadius: "3px",
   overflowY: "scroll",
-  maxHeight: "50vh",
+  maxHeight: "50vh"
 };
 
 interface CommandListProps {
-  actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   taken: any;
   search?: string;
 }
@@ -370,7 +396,7 @@ class CommandList extends Component<CommandListProps> {
 
   render_commands() {
     const v: any[] = [];
-    const obj = commands.commands();
+    const obj = commands.commands(this.props.actions, this.props.frame_actions);
     for (let name in obj) {
       const val = obj[name];
       if (val != null) {
@@ -379,7 +405,10 @@ class CommandList extends Component<CommandListProps> {
     }
     v.sort(misc.field_cmp("name"));
     const cmds: any[] = [];
-    const search = this.props.search != null ? this.props.search.toLowerCase() || "" : undefined;
+    const search =
+      this.props.search != null
+        ? this.props.search.toLowerCase() || ""
+        : undefined;
     for (let x of v) {
       if (x.val.f == null) {
         continue;
@@ -398,11 +427,12 @@ class CommandList extends Component<CommandListProps> {
           key={x.name}
           name={x.name}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           desc={desc}
           icon={icon}
           shortcuts={shortcuts}
           taken={this.props.taken}
-        />,
+        />
       );
     }
     return cmds;
@@ -414,7 +444,8 @@ class CommandList extends Component<CommandListProps> {
 }
 
 interface KeyboardShortcutsProps {
-  actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   keyboard_shortcuts?: ImmutableMap<any, any>;
 }
 
@@ -424,10 +455,17 @@ interface KeyboardShortcutsState {
   taken: any;
 }
 
-export class KeyboardShortcuts extends Component<KeyboardShortcutsProps, KeyboardShortcutsState> {
+export class KeyboardShortcuts extends Component<
+  KeyboardShortcutsProps,
+  KeyboardShortcutsState
+> {
   constructor(props: KeyboardShortcutsProps, context: any) {
     super(props, context);
-    const obj = { search: "", commands: commands.commands(), taken: {} };
+    const obj = {
+      search: "",
+      commands: commands.commands(this.props.actions, this.props.frame_actions),
+      taken: {}
+    };
     for (let name in obj.commands) {
       const val = obj.commands[name];
       const arr = (val != null ? val.k : undefined) || [];
@@ -452,7 +490,15 @@ export class KeyboardShortcuts extends Component<KeyboardShortcutsProps, Keyboar
       <div style={{ color: "#666", marginBottom: "10px" }}>
         Click a command to perform it.
         <br />
-        NOTE: Keyboard shortcuts are <a href="https://github.com/sagemathinc/cocalc/issues/3242" target="_blank" rel="noopener">not yet</a> customizable.
+        NOTE: Keyboard shortcuts are{" "}
+        <a
+          href="https://github.com/sagemathinc/cocalc/issues/3242"
+          target="_blank"
+          rel="noopener"
+        >
+          not yet
+        </a>{" "}
+        customizable.
         {
           undefined // To add a keyboard shortcut, click plus next to the key combination then type the new keys.
         }
@@ -477,10 +523,15 @@ export class KeyboardShortcuts extends Component<KeyboardShortcutsProps, Keyboar
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <SearchInput autoFocus={true} value={this.state.search} on_change={this.search_change} />
+          <SearchInput
+            autoFocus={true}
+            value={this.state.search}
+            on_change={this.search_change}
+          />
           {this.render_instructions()}
           <CommandList
             actions={this.props.actions}
+            frame_actions={this.props.frame_actions}
             taken={this.state.taken}
             search={this.state.search}
           />

@@ -8,7 +8,7 @@ import { React, Rendered, Component } from "../../../app-framework";
 
 import { JupyterEditor } from "../../../jupyter/main";
 
-import { redux_name } from "./jupyter-actions";
+import { redux_name } from "../jupyter-actions";
 
 import { Map } from "immutable";
 
