@@ -81,7 +81,6 @@ export function create_key_handler(actions: any) : Function {
       return;
     }
     const mode = actions.store.get("mode");
-    console.log("mode = ", mode);
     const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
     // console.log 'shortcut', shortcut, cmd

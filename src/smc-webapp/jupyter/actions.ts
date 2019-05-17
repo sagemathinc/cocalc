@@ -333,7 +333,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: any, save = true): void {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     this._set(
@@ -451,7 +451,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         `cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`
       );
     }
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     const obj: any = {
@@ -482,27 +482,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // Might throw a CellWriteProtectedException
   set_md_cell_editing = (id: any): void => {
-    const md_edit_ids = this.store.get("md_edit_ids");
-    if (md_edit_ids.contains(id)) {
-      return;
-    }
-    if (this.store.check_edit_protection(id, this)) {
-      return;
-    }
-    this.setState({ md_edit_ids: md_edit_ids.add(id) });
+    this.deprecated("set_md_cell_editing", id);
   };
 
   set_md_cell_not_editing = (id: string): void => {
-    let md_edit_ids = this.store.get("md_edit_ids");
-    if (!md_edit_ids.contains(id)) {
-      return;
-    }
-    md_edit_ids = md_edit_ids.delete(id);
-    this.setState({ md_edit_ids });
+    this.deprecated("set_md_cell_not_editing", id);
   };
 
   change_cell_to_heading = (id: any, n = 1) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     this.set_md_cell_editing(id);
@@ -642,6 +630,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cell_list = cell_utils.sorted_cell_list(cells);
     if (!cell_list.equals(this.store.get_cell_list())) {
       this.setState({ cell_list });
+      this.store.emit("cell-list-recompute");
     }
   };
 
@@ -780,10 +769,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     if (cell_list_needs_recompute) {
       this.set_cell_list();
-    }
-    const cur_id = this.store.get("cur_id");
-    if (cur_id == null || this.store.getIn(["cells", cur_id]) == null) {
-      this.set_cur_id(this.store.get_cell_list().get(0));
     }
 
     if (this._is_project) {
@@ -980,41 +965,36 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   delete_selected_cells = (sync = true): void => {
-    const selected = this.store.get_selected_cell_ids_list();
-    if (selected.length === 0) {
-      return;
-    }
-    let id = this.store.get("cur_id");
-    this.move_cursor_after(selected[selected.length - 1]);
-    if (this.store.get("cur_id") === id) {
-      this.move_cursor_before(selected[0]);
-    }
-    let not_deletable = 0;
-    for (id of selected) {
-      if (!this.store.is_cell_deletable(id)) {
-        not_deletable += 1;
-      } else {
+    this.deprecated("delete_selected_cells", sync);
+  };
+
+  delete_cells(cells: string[], sync: boolean = true): void {
+    let not_deletable: number = 0;
+    for (let id of cells) {
+      if (this.store.is_cell_deletable(id)) {
         this._delete({ type: "cell", id }, false);
+      } else {
+        not_deletable += 1;
       }
     }
     if (sync) {
       this._sync();
     }
-    if (not_deletable > 0) {
-      if (selected.length === 1) {
-        this.show_delete_protection_error();
-        this.move_cursor_to_cell(id);
-      } else {
-        const verb = not_deletable === 1 ? "is" : "are";
-        this.set_error(
-          `${not_deletable} ${misc.plural(
-            not_deletable,
-            "cell"
-          )} ${verb} protected from deletion.`
-        );
-      }
+    if (not_deletable === 0) return;
+
+    if (cells.length === 1) {
+      this.show_delete_protection_error();
+      this.move_cursor_to_cell(cells[0]);
+    } else {
+      const verb = not_deletable === 1 ? "is" : "are";
+      this.set_error(
+        `${not_deletable} ${misc.plural(
+          not_deletable,
+          "cell"
+        )} ${verb} protected from deletion.`
+      );
     }
-  };
+  }
 
   move_selected_cells = (delta: any) => {
     // Move all selected cells delta positions up or down, e.g., delta = +1 or delta = -1
@@ -1093,9 +1073,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             break;
         }
         break;
-      case "markdown":
-        this.set_md_cell_not_editing(id);
-        break;
     }
     if (save) {
       this.save_asap();
@@ -1138,7 +1115,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_cell = (id: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -1157,7 +1134,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_cell_run_state = (id: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -1313,7 +1290,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // cursor isn't in currently selected cell, so don't know how to split
       return;
     }
-    if (this.store.check_edit_protection(cur_id, this)) {
+    if (this.check_edit_protection(cur_id)) {
       return;
     }
     // insert a new cell before the currently selected one
@@ -2525,7 +2502,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (!value) {
       value = null; // delete
     }
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set({
@@ -2575,7 +2552,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.getIn(["cells", id]) == null) {
       return;
     }
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     let input = this._get_cell_input(id);
@@ -2599,7 +2576,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // no such cell
       return;
     }
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     const attachments =
@@ -2618,7 +2595,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   add_attachment_to_cell = async (id: any, path: any): Promise<void> => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     let name = misc.path_split(path).tail;
@@ -2639,7 +2616,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   delete_attachment_from_cell = (id: any, name: any) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     this.set_cell_attachment(id, name, null, false);
@@ -2654,7 +2631,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   add_tag = (id: any, tag: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -2668,7 +2645,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   remove_tag = (id: any, tag: any, save = true) => {
-    if (this.store.check_edit_protection(id, this)) {
+    if (this.check_edit_protection(id)) {
       return;
     }
     return this._set(
@@ -3023,6 +3000,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   hide(): void {
     this.blur();
+  }
+
+  public check_edit_protection(id: string): boolean {
+    if (!this.store.is_cell_editable(id)) {
+      this.show_edit_protection_error();
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 

@@ -11,9 +11,14 @@ const { Icon, Tip } = require("../r_misc"); // TODO: import type
 const { CellInput } = require("./cell-input"); // TODO: import type
 const { CellOutput } = require("./cell-output"); // TODO: import type
 
+
+import { JupyterActions } from "./actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+
 interface CellProps {
-  actions?: any;
-  frame_actions?: any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
   cm_options: any;
@@ -117,7 +122,7 @@ export class Cell extends Component<CellProps> {
   }
 
   double_click = (event: any): void => {
-    if (this.props.actions == null) {
+    if (this.props.frame_actions == null) {
       return;
     }
     if (this.props.cell.getIn(["metadata", "editable"]) === false) {
@@ -126,10 +131,10 @@ export class Cell extends Component<CellProps> {
     if (this.props.cell.get("cell_type") !== "markdown") {
       return;
     }
-    this.props.actions.unselect_all_cells();
+    this.props.frame_actions.unselect_all_cells();
     const id = this.props.cell.get("id");
-    this.props.actions.set_md_cell_editing(id);
-    this.props.actions.set_cur_id(id);
+    this.props.frame_actions.set_md_cell_editing(id);
+    this.props.frame_actions.set_cur_id(id);
     this.props.frame_actions.set_mode("edit");
     event.stopPropagation();
   };

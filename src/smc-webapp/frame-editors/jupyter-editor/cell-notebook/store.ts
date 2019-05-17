@@ -1,3 +1,5 @@
+import { Set } from "immutable";
+
 import { merge } from "smc-util/misc2";
 
 import { JupyterEditorActions } from "../actions";
@@ -11,6 +13,13 @@ export class NotebookFrameStore {
   constructor(frame_tree_actions: JupyterEditorActions, id: string) {
     this.frame_tree_actions = frame_tree_actions;
     this.id = id;
+
+    // We have to fix some data types, since the frame tree data gets
+    // JSON'd and de-JSON'd to local storage.
+    for (let key of ["sel_ids", "md_edit_ids"]) {
+      console.log("reviving ", key, this.get(key, Set()).toJS());
+      this.setState({ [key]: this.get(key, Set()).toSet() });
+    }
   }
 
   /***

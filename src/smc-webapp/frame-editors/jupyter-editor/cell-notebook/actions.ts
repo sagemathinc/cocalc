@@ -29,6 +29,13 @@ export class NotebookFrameActions {
 
     this.frame_id = frame_id;
     this.store = new NotebookFrameStore(frame_tree_actions, frame_id);
+
+    this.jupyter_actions.store.on(
+      "cell-list-recompute",
+      this.update_cur_id.bind(this)
+    );
+
+    this.update_cur_id();
   }
 
   /***
@@ -123,9 +130,18 @@ export class NotebookFrameActions {
     this.unselect_all_cells();
 
     for (let id of v) {
-      this.jupyter_actions.run_cell(id, false);
+      this.run_cell(id, false);
     }
     this.jupyter_actions.save_asap();
+  }
+
+  public run_cell(id: string, save: boolean = true): void {
+    console.log("run_cell", id, this.store.get("md_edit_ids", Set()).toJS());
+    if (this.store.get("md_edit_ids", Set()).contains(id)) {
+      this.set_md_cell_not_editing(id);
+      return;
+    }
+    this.jupyter_actions.run_cell(id, save);
   }
 
   /***
@@ -166,8 +182,26 @@ export class NotebookFrameActions {
     this.setState({ scroll: state });
   }
 
-  public set_md_cell_editing(id: string): void {
-    this.todo("set_md_cell_editing", id);
+  set_md_cell_editing(id: string): void {
+    const md_edit_ids = this.store.get("md_edit_ids", Set());
+    if (md_edit_ids.contains(id)) {
+      return;
+    }
+    if (this.jupyter_actions.check_edit_protection(id)) {
+      return;
+    }
+    this.setState({ md_edit_ids: md_edit_ids.add(id) });
+  }
+
+  set_md_cell_not_editing(id: string): void {
+    console.log("set_md_cell_not_editing", id);
+    let md_edit_ids = this.store.get("md_edit_ids", Set());
+    if (!md_edit_ids.contains(id)) {
+      return;
+    }
+    md_edit_ids = md_edit_ids.delete(id);
+    console.log("md_edit_ids = ", md_edit_ids.toJS());
+    this.setState({ md_edit_ids });
   }
 
   // Set which cell is currently the cursor.
@@ -183,6 +217,18 @@ export class NotebookFrameActions {
       }
     }
     this.setState({ cur_id });
+  }
+
+  // Called when the cell list changes due to external events.
+  // E.g., another user deleted the cell that is currently selected.
+  private update_cur_id(): void {
+    const cur_id = this.store.get("cur_id");
+    if (
+      cur_id == null ||
+      this.jupyter_actions.store.getIn(["cells", cur_id]) == null
+    ) {
+      this.set_cur_id(this.jupyter_actions.store.get_cell_list().get(0));
+    }
   }
 
   public set_cur_id_from_index(i: number): void {
@@ -389,5 +435,18 @@ export class NotebookFrameActions {
     const new_id = this.jupyter_actions.insert_cell_at(pos);
     this.set_cur_id(new_id);
     return new_id;
+  }
+
+  delete_selected_cells(sync: boolean = true): void {
+    const selected: string[] = this.store.get_selected_cell_ids_list();
+    if (selected.length === 0) {
+      return;
+    }
+    let id: string = this.store.get("cur_id");
+    this.move_cursor_after(selected[selected.length - 1]);
+    if (this.store.get("cur_id") === id) {
+      this.move_cursor_before(selected[0]);
+    }
+    this.jupyter_actions.delete_cells(selected, sync);
   }
 }

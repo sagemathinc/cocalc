@@ -88,7 +88,6 @@ export const initial_jupyter_store_state: {
 export class JupyterStore extends Store<JupyterStoreState> {
   private _is_project: any;
   private _more_output: any;
-  private store: any;
 
   private deprecated(f: string, ...args): void {
     const s = "DEPRECATED JupyterStore." + f;
@@ -99,7 +98,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_selected_cell_ids = () => {
     this.deprecated("get_selected_cell_ids");
     return {};
-    
+
     const selected = {};
     const cur_id = this.get("cur_id");
     if (cur_id != null) {
@@ -418,24 +417,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   is_cell_deletable = (id: any) => {
     return this.get_cell_metadata_flag(id, "deletable");
-  };
-
-  check_edit_protection = (id: any, actions: any) => {
-    if (!this.is_cell_editable(id)) {
-      actions.show_edit_protection_error();
-      return true;
-    } else {
-      return false;
-    }
-  };
-
-  check_delete_protection = (id: any, actions: any) => {
-    if (!this.store.is_cell_deletable(id)) {
-      actions.show_delete_protection_error();
-      return true;
-    } else {
-      return false;
-    }
   };
 
   get_cell_metadata_flag = (id: any, key: any) => {
