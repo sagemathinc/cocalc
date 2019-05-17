@@ -199,11 +199,12 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         "code"
       );
     }
+
     return (
       <FormControl
         componentClass="select"
         placeholder="select"
-        onChange={this.cell_select_type}
+        onChange={this.cell_select_type.bind(this)}
         className="hidden-xs"
         style={{ maxWidth: "8em" }}
         disabled={this.props.read_only}

@@ -47,10 +47,9 @@ export function commands(
 
   const actions = jupyter_actions; // TODO
   const store = actions.store; // todo
-  console.log(jupyter_actions, frame_actions);
   return {
     "cell toolbar none": {
-      m: "None",
+      m: "No cell toolbar",
       f: () => actions.cell_toolbar()
     },
 
@@ -60,7 +59,7 @@ export function commands(
     },
 
     "cell toolbar tags": {
-      m: "Tags",
+      m: "Edit cell tags",
       f: () => actions.cell_toolbar("tags")
     },
 
@@ -70,7 +69,7 @@ export function commands(
     },
 
     "cell toolbar slideshow": {
-      m: "Slideshow",
+      m: "Slideshow toolbar",
       f: () => actions.cell_toolbar("slideshow")
     },
 
@@ -292,13 +291,13 @@ export function commands(
             return;
           }
         }
-        actions.set_mode("escape");
+        frame_actions.set_mode("escape");
       }
     },
 
     "enter edit mode": {
       k: [{ which: 13, mode: "escape" }],
-      f: () => actions.set_mode("edit")
+      f: () => frame_actions.set_mode("edit")
     },
 
     "extend selection above": {
@@ -420,14 +419,14 @@ export function commands(
       i: "arrow-down",
       m: "Move cell down",
       k: [{ alt: true, mode: "escape", which: 40 }],
-      f: () => actions.move_selected_cells(1)
+      f: () => frame_actions.move_selected_cells(1)
     },
 
     "move cell up": {
       i: "arrow-up",
       m: "Move cell up",
       k: [{ alt: true, mode: "escape", which: 38 }],
-      f: () => actions.move_selected_cells(-1)
+      f: () => frame_actions.move_selected_cells(-1)
     },
 
     "move cursor down": {
@@ -597,9 +596,9 @@ export function commands(
       m: "Run cells",
       k: [{ which: 13, ctrl: true }],
       f() {
-        actions.run_selected_cells();
-        actions.set_mode("escape");
-        actions.scroll("cell visible");
+        frame_actions.run_selected_cells();
+        frame_actions.set_mode("escape");
+        frame_actions.scroll("cell visible");
       }
     },
 
@@ -614,8 +613,8 @@ export function commands(
       m: "Run cells and select below",
       k: [{ which: 13, shift: true }],
       f() {
-        actions.shift_enter_run_selected_cells();
-        actions.scroll("cell visible");
+        frame_actions.shift_enter_run_selected_cells();
+        frame_actions.scroll("cell visible");
       }
     },
 
@@ -626,29 +625,29 @@ export function commands(
     },
 
     "scroll cell center": {
-      f: () => actions.scroll("cell center")
+      f: () => frame_actions.scroll("cell center")
     },
 
     "scroll cell top": {
-      f: () => actions.scroll("cell top")
+      f: () => frame_actions.scroll("cell top")
     },
 
     "scroll cell bottom": {
-      f: () => actions.scroll("cell bottom")
+      f: () => frame_actions.scroll("cell bottom")
     },
 
     "scroll cell visible": {
-      f: () => actions.scroll("cell visible")
+      f: () => frame_actions.scroll("cell visible")
     },
 
     "scroll notebook down": {
       k: [{ mode: "escape", which: 32 }],
-      f: () => actions.scroll("list down")
+      f: () => frame_actions.scroll("list down")
     },
 
     "scroll notebook up": {
       k: [{ mode: "escape", shift: true, which: 32 }],
-      f: () => actions.scroll("list up")
+      f: () => frame_actions.scroll("list up")
     },
 
     "select all cells": {
@@ -665,7 +664,7 @@ export function commands(
       f() {
         actions.move_cursor(1);
         actions.unselect_all_cells();
-        actions.scroll("cell visible");
+        frame_actions.scroll("cell visible");
       }
     },
 
@@ -674,7 +673,7 @@ export function commands(
       f() {
         actions.move_cursor(-1);
         actions.unselect_all_cells();
-        actions.scroll("cell visible");
+        frame_actions.scroll("cell visible");
       }
     },
 
@@ -721,8 +720,8 @@ export function commands(
       m: "Split cell",
       k: [{ ctrl: true, shift: true, which: 189 }],
       f() {
-        actions.set_mode("escape");
-        actions.split_current_cell();
+        frame_actions.set_mode("escape");
+        frame_actions.split_current_cell();
       }
     },
 

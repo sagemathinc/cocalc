@@ -216,6 +216,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           frame_actions={this.props.frame_actions}
           name={this.props.name}
           cells={this.props.cells}
+          cur_id={this.props.cur_id}
           sel_ids={this.props.sel_ids}
         />
       );

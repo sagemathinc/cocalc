@@ -1,6 +1,6 @@
 export type NotebookMode = "edit" | "escape";
 
-export type CellType = "raw" | "markdown" | "code" | "multi";
+export type CellType = "raw" | "markdown" | "code" ;
 
 export type Scroll =
   | number

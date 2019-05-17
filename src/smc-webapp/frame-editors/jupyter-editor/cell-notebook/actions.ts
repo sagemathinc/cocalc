@@ -8,9 +8,11 @@ import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";
 import { JupyterActions } from "../../../jupyter/browser-actions";
-import { new_cell_pos } from "../../../jupyter/cell-utils";
+import { move_selected_cells, new_cell_pos } from "../../../jupyter/cell-utils";
 import { CellType, Scroll } from "../../../jupyter/types";
 import { commands, CommandDescription } from "../../../jupyter/commands";
+
+import { isEqual } from "lodash";
 
 const DEBUG = true;
 
@@ -543,5 +545,92 @@ export class NotebookFrameActions {
     } else {
       this.frame_tree_actions.set_error(`Command '${name}' is not implemented`);
     }
+  }
+
+  public move_selected_cells(delta: number): void {
+    // Move all selected cells delta positions up or down, e.g.,
+    // delta = +1 or delta = -1
+    // This action changes the pos attributes of 0 or more cells.
+    if (delta === 0) {
+      return;
+    }
+    const v = this.jupyter_actions.store.get_cell_list().toJS();
+    const w = move_selected_cells(v, this.store.get_selected_cell_ids(), delta);
+    if (w == null) {
+      return;
+    }
+    // now w is a complete list of the id's of the whole worksheet
+    // in the proper order; use it to set pos
+    if (isEqual(v, w)) {
+      // no change
+      return;
+    }
+    const cells = this.jupyter_actions.store.get("cells");
+    // const changes = immutable.Set(); // TODO: unused
+    for (let pos = 0; pos < w.length; pos++) {
+      const id = w[pos];
+      if (cells.getIn([id, "pos"]) !== pos) {
+        this.jupyter_actions.set_cell_pos(id, pos, false);
+      }
+    }
+    this.jupyter_actions._sync();
+  }
+
+  public split_current_cell(): void {
+    /*
+    const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
+    if (cursor == null) {
+      return;
+    }
+    const cur_id = this.store.get("cur_id");
+    if (cursor.id !== cur_id) {
+      // cursor isn't in currently selected cell, so don't know how to split
+      return;
+    }
+    if (this.check_edit_protection(cur_id)) {
+      return;
+    }
+    // insert a new cell before the currently selected one
+    const new_id = this.insert_cell(-1);
+
+    // split the cell content at the cursor loc
+    const cell = this.store.get("cells").get(cursor.id);
+    if (cell == null) {
+      return; // this would be a bug?
+    }
+    const cell_type = cell.get("cell_type");
+    if (cell_type !== "code") {
+      this.set_cell_type(new_id, cell_type);
+      // newly inserted cells are always editable
+      this.set_md_cell_editing(new_id);
+    }
+    const input = cell.get("input");
+    if (input == null) {
+      return;
+    }
+
+    const lines = input.split("\n");
+    let v = lines.slice(0, cursor.y);
+    const line: string | undefined = lines[cursor.y];
+    if (line != null) {
+      const left = line.slice(0, cursor.x);
+      if (left) {
+        v.push(left);
+      }
+    }
+    const top = v.join("\n");
+
+    v = lines.slice(cursor.y + 1);
+    if (line != null) {
+      const right = line.slice(cursor.x);
+      if (right) {
+        v = [right].concat(v);
+      }
+    }
+    const bottom = v.join("\n");
+    this.set_cell_input(new_id, top, false);
+    this.set_cell_input(cursor.id, bottom, true);
+    this.set_cur_id(cursor.id);
+    */
   }
 }

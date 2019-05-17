@@ -26,7 +26,6 @@ declare const window: any;
 declare const localStorage: any;
 
 import * as immutable from "immutable";
-import * as underscore from "underscore";
 import { reuseInFlight } from "async-await-utils/hof";
 
 // for now we also use require here, so also works in
@@ -845,7 +844,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._syncdb_change(immutable.fromJS([{ type: obj.type, id: obj.id }]));
   };
 
-  _sync = () => {
+  public _sync = () => {
     if (this._state === "closed") {
       return;
     }
@@ -963,39 +962,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  move_selected_cells = (delta: any) => {
-    // Move all selected cells delta positions up or down, e.g., delta = +1 or delta = -1
-    // This action changes the pos attributes of 0 or more cells.
-    if (delta === 0) {
-      return;
-    }
-    const v = this.store.get_cell_list().toJS();
-    const w = cell_utils.move_selected_cells(
-      v,
-      this.store.get_selected_cell_ids(),
-      delta
-    );
-    if (w == null) {
-      return;
-    }
-    // now w is a complete list of the id's of the whole worksheet in the proper order; use it to set pos
-    if (underscore.isEqual(v, w)) {
-      // no change
-      return;
-    }
-    const cells = this.store.get("cells");
-    // const changes = immutable.Set(); // TODO: unused
-    for (
-      let pos = 0, end = w.length, asc = 0 <= end;
-      asc ? pos < end : pos > end;
-      asc ? pos++ : pos--
-    ) {
-      const id = w[pos];
-      if (cells.get(id).get("pos") !== pos) {
-        this.set_cell_pos(id, pos, false);
-      }
-    }
-    return this._sync();
+  move_selected_cells = (delta: number) => {
+    this.deprecated("move_selected_cells", delta);
   };
 
   undo = (): void => {
@@ -1248,60 +1216,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   split_current_cell = (): void => {
-    const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
-    if (cursor == null) {
-      return;
-    }
-    const cur_id = this.store.get("cur_id");
-    if (cursor.id !== cur_id) {
-      // cursor isn't in currently selected cell, so don't know how to split
-      return;
-    }
-    if (this.check_edit_protection(cur_id)) {
-      return;
-    }
-    // insert a new cell before the currently selected one
-    const new_id = this.insert_cell(-1);
-
-    // split the cell content at the cursor loc
-    const cell = this.store.get("cells").get(cursor.id);
-    if (cell == null) {
-      return; // this would be a bug?
-    }
-    const cell_type = cell.get("cell_type");
-    if (cell_type !== "code") {
-      this.set_cell_type(new_id, cell_type);
-      // newly inserted cells are always editable
-      this.set_md_cell_editing(new_id);
-    }
-    const input = cell.get("input");
-    if (input == null) {
-      return;
-    }
-
-    const lines = input.split("\n");
-    let v = lines.slice(0, cursor.y);
-    const line: string | undefined = lines[cursor.y];
-    if (line != null) {
-      const left = line.slice(0, cursor.x);
-      if (left) {
-        v.push(left);
-      }
-    }
-    const top = v.join("\n");
-
-    v = lines.slice(cursor.y + 1);
-    if (line != null) {
-      const right = line.slice(cursor.x);
-      if (right) {
-        v = [right].concat(v);
-      }
-    }
-    const bottom = v.join("\n");
-    this.set_cell_input(new_id, top, false);
-    this.set_cell_input(cursor.id, bottom, true);
-    return this.set_cur_id(cursor.id);
-  };
+    this.deprecated('split_current_cell');
+  }
 
   // Copy content from the cell below the current cell into the currently
   // selected cell, then delete the cell below the current cell.s
