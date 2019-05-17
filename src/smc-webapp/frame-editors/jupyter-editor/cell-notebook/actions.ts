@@ -170,7 +170,7 @@ export class NotebookFrameActions {
 
     const cell_list = this.jupyter_actions.store.get_cell_list();
     if (cell_list.get(cell_list.size - 1) === last_id) {
-      const new_id = this.jupyter_actions.insert_cell(1);
+      const new_id = this.insert_cell(1);
       this.set_cur_id(new_id);
       this.set_mode("edit");
     } else {
