@@ -252,7 +252,7 @@ export async function create_account(
       if (reason == null) {
         // generic reason
         reason = {
-          other: `Unable to create account.  Please try later.  ${err}`
+          other: `Unable to create account. Error: "${err}"`
         };
       }
       opts.client.push_to_client(
