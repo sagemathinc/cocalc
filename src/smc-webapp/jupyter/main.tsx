@@ -178,10 +178,13 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_kernel() {
-    if (!this.props.is_focused) return;
     return (
       <span style={KERNEL_STYLE}>
-        <Kernel is_fullscreen={this.props.is_fullscreen} name={this.props.name} actions={this.props.actions} />
+        <Kernel
+          is_fullscreen={this.props.is_fullscreen}
+          name={this.props.name}
+          actions={this.props.actions}
+        />
         <Mode name={this.props.name} />
       </span>
     );
@@ -191,23 +194,17 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     // TODO: may want to keep the vertical space and just
     // render it blank, to avoid the "jump", but reduce clutter...
     // Same for buttonbar.
-    if (!this.props.is_focused) return;
     return <TopMenubar actions={this.props.actions} name={this.props.name} />;
   }
 
   render_buttonbar() {
-    if (!this.props.is_focused) return;
     return <TopButtonbar actions={this.props.actions} name={this.props.name} />;
   }
 
   render_heading() {
+    //if (!this.props.is_focused) return;
     return (
-      <div
-        style={{
-          boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-          zIndex: 100
-        }}
-      >
+      <div style={{ border: "1px solid rgb(231, 231, 231)" }}>
         {this.render_kernel()}
         {this.render_menubar()}
         {this.props.toolbar ? this.render_buttonbar() : undefined}
