@@ -4,6 +4,7 @@ React component that renders the ordered list of cells
 
 declare const $: any;
 
+import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { React, Component } from "../app-framework"; // TODO: this will move
 const { Loading } = require("../r_misc");
@@ -12,6 +13,8 @@ const { InsertCell } = require("./insert-cell");
 
 import { JupyterActions } from "./actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+import { Scroll } from "./types";
 
 const PADDING = 100;
 
@@ -26,6 +29,8 @@ interface CellListProps {
   md_edit_ids?: immutable.Set<any>;
   cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
   mode: string;
+  hook_offset?: number;
+  scroll?: Scroll;
   cm_options: immutable.Map<any, any>;
   project_id?: string;
   directory?: string;
@@ -33,19 +38,18 @@ interface CellListProps {
   complete?: immutable.Map<any, any>; // status of tab completion
   is_focused?: boolean;
   more_output?: immutable.Map<any, any>;
-  scroll?: number | string;
   cell_toolbar?: string;
   trust?: boolean;
 }
 
 export class CellList extends Component<CellListProps> {
   private cell_list_ref: HTMLElement;
+  private is_mounted: boolean = true;
 
   componentWillUnmount() {
-    // save scroll state
-    const state = this.cell_list_ref ? this.cell_list_ref.scrollTop : undefined;
-    if (state != null && this.props.frame_actions != null) {
-      this.props.frame_actions.set_scroll_state(state);
+    this.is_mounted = false;
+    if (this.cell_list_ref != null && this.props.frame_actions != null) {
+      this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
     }
 
     if (this.props.frame_actions != null) {
@@ -57,28 +61,28 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  componentDidMount() {
-    if (this.props.scrollTop != null) {
-      // restore scroll state -- as rendering happens dynamically and asynchronously, and I have no idea how to know
-      // when we are done, we can't just do this once.  Instead, we keep resetting scrollTop until scrollHeight
-      // stops changing or 2s elapses.
-      const locals = {
-        scrollTop: this.props.scrollTop,
-        scrollHeight: 0
-      };
-      const f = () => {
-        const elt = this.cell_list_ref;
-        if (elt != null && elt.scrollHeight !== locals.scrollHeight) {
-          // dynamically rendering actually changed something
-          elt.scrollTop = locals.scrollTop;
-          return (locals.scrollHeight = elt.scrollHeight);
-        }
-      };
-      for (let tm of [0, 250, 750, 1500, 2000]) {
-        setTimeout(f, tm);
+  private async restore_scroll(): Promise<void> {
+    if (this.props.scrollTop == null) return;
+    /* restore scroll state -- as rendering happens dynamically
+       and asynchronously, and I have no idea how to know when
+       we are done, we can't just do this once.  Instead, we
+       keep resetting scrollTop a few times.
+    */
+    let scrollHeight: number = 0;
+    for (let tm of [0, 250, 750, 1500, 2000]) {
+      if (!this.is_mounted) return;
+      const elt = this.cell_list_ref;
+      if (elt != null && elt.scrollHeight !== scrollHeight) {
+        // dynamically rendering actually changed something
+        elt.scrollTop = this.props.scrollTop;
+        scrollHeight = elt.scrollHeight;
       }
+      await delay(tm);
     }
+  }
 
+  componentDidMount() {
+    this.restore_scroll();
     if (this.props.frame_actions != null) {
       // Enable keyboard handler if necessary
       if (this.props.is_focused) {
@@ -146,7 +150,7 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  scroll_cell_list = (scroll: any) => {
+  scroll_cell_list = (scroll: Scroll) => {
     const elt = $(this.cell_list_ref);
     if (elt == null) {
       return;
@@ -158,8 +162,9 @@ export class CellList extends Component<CellListProps> {
         return;
       }
 
-      // supported scroll positions are in commands.coffee
+      // supported scroll positions are in types.ts
       if (scroll === "cell visible") {
+        if (!this.props.cur_id) return;
         // ensure selected cell is visible
         cur = elt.find(`#${this.props.cur_id}`);
         if (cur.length > 0) {
@@ -272,6 +277,7 @@ export class CellList extends Component<CellListProps> {
           cm_options={this.props.cm_options}
           cell={cell_data}
           is_current={id === this.props.cur_id}
+          hook_offset={this.props.hook_offset}
           is_selected={
             this.props.sel_ids != null
               ? this.props.sel_ids.contains(id)

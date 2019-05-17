@@ -2,19 +2,18 @@
 React component that describes a single cell
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const misc_page = require("../misc_page"); // TODO: import type
 const { COLORS } = require("smc-util/theme"); // TODO: import type
-const misc = require("smc-util/misc"); // TODO: import type
 const { Icon, Tip } = require("../r_misc"); // TODO: import type
 const { CellInput } = require("./cell-input"); // TODO: import type
 const { CellOutput } = require("./cell-output"); // TODO: import type
 
-
 import { JupyterActions } from "./actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
+import { merge } from "smc-util/misc2";
 
 interface CellProps {
   actions?: JupyterActions;
@@ -37,6 +36,7 @@ interface CellProps {
   trust?: boolean;
   editable?: boolean;
   deletable?: boolean;
+  hook_offset?: number;
 }
 
 export class Cell extends Component<CellProps> {
@@ -109,15 +109,21 @@ export class Cell extends Component<CellProps> {
     if (event.shiftKey && !this.props.is_current) {
       misc_page.clear_selection();
       this.props.frame_actions.select_cell_range(this.props.id);
-      return
+      return;
     }
     this.props.frame_actions.set_cur_id(this.props.id);
     this.props.frame_actions.unselect_all_cells();
   };
 
   render_hook() {
-    if (this.props.is_current && this.props.actions != null) {
-      return <Hook name={this.props.actions.name} />;
+    if (this.props.is_current && this.props.frame_actions != null) {
+      return (
+        <Hook
+          hook_offset={this.props.hook_offset}
+          mode={this.props.mode}
+          frame_id={this.props.frame_actions.frame_id}
+        />
+      );
     }
   }
 
@@ -250,35 +256,27 @@ const NOT_VISIBLE_STYLE: React.CSSProperties = {
   zIndex: -100
 };
 
-// TODO: type?
-
-interface HookReactProps {
-  name: string;
-}
-
-interface HookReduxProps {
+interface Props {
+  frame_id: string;
   hook_offset?: number;
   mode?: string;
 }
 
-class Hook0 extends Component<HookReactProps & HookReduxProps> {
-  public static reduxProps({ name }) {
-    return {
-      [name]: {
-        hook_offset: rtypes.number,
-        mode: rtypes.string
-      }
-    };
-  }
+class Hook extends Component<Props> {
   render() {
-    const style = misc.copy(NOT_VISIBLE_STYLE);
-    style.top = this.props.mode === "edit" ? this.props.hook_offset : undefined;
+    let style;
+    if (this.props.mode === "edit") {
+      style = merge({ top: this.props.hook_offset }, NOT_VISIBLE_STYLE);
+    } else {
+      style = NOT_VISIBLE_STYLE;
+    }
     return (
-      <div style={style} className="cocalc-jupyter-hook">
+      <div
+        style={style}
+        className={`cocalc-jupyter-hook-${this.props.frame_id}`}
+      >
         &nbsp;
       </div>
     );
   }
 }
-
-const Hook = rclass<HookReactProps>(Hook0);

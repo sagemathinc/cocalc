@@ -74,7 +74,6 @@ export interface JupyterStoreState {
   default_kernel?: string;
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
-  hook_offset?: number;
 }
 
 export const initial_jupyter_store_state: {
@@ -156,10 +155,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
       return; // .get negative for List in immutable wraps around rather than undefined (like Python)
     }
     return cell_list.get(i);
-  };
-
-  get_scroll_state = () => {
-    return this.get_local_storage("scroll");
   };
 
   set_global_clipboard = (clipboard: any) => {

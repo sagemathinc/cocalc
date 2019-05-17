@@ -1,3 +1,5 @@
+declare const $: any;
+
 import { Set } from "immutable";
 
 import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
@@ -7,16 +9,18 @@ import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";
 import { JupyterActions } from "../../../jupyter/actions";
 import { new_cell_pos } from "../../../jupyter/cell-utils";
+import { Scroll } from "../../../jupyter/types";
 
 const DEBUG = true;
 
 export class NotebookFrameActions {
   private frame_tree_actions: JupyterEditorActions;
   private jupyter_actions: JupyterActions;
-  private frame_id: string;
   private key_handler?: Function;
   private input_editors: { [id: string]: any } = {};
+  private scroll_before_change?: number;
 
+  public frame_id: string;
   public store: NotebookFrameStore;
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
 
@@ -36,6 +40,63 @@ export class NotebookFrameActions {
     );
 
     this.update_cur_id();
+    this.init_syncdb_change_hook();
+  }
+
+  private init_syncdb_change_hook(): void {
+    this.syncdb_before_change = this.syncdb_before_change.bind(this);
+    this.syncdb_after_change = this.syncdb_after_change.bind(this);
+    this.jupyter_actions.store.on(
+      "syncdb-before-change",
+      this.syncdb_before_change
+    );
+    this.jupyter_actions.store.on(
+      "syncdb-after-change",
+      this.syncdb_after_change
+    );
+  }
+
+  // maintain scroll hook on change; critical for multiuser editing
+  private syncdb_before_change(): void {
+    const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
+    if (offset == null) {
+      return;
+    }
+    this.scroll_before_change = offset.top;
+  }
+
+  private syncdb_after_change(): void {
+    if (this.scroll_before_change == null) {
+      return;
+    }
+    const offset = $(`.cocalc-jupyter-hook-${this.frame_id}`).offset();
+    if (offset == null) {
+      return;
+    }
+    const scroll_after_change = offset.top;
+    const diff = scroll_after_change - this.scroll_before_change;
+    if (diff) {
+      this.scroll(diff);
+    }
+  }
+
+  public close(): void {
+    this.jupyter_actions.store.removeListener(
+      "syncdb-before-change",
+      this.syncdb_before_change
+    );
+    this.jupyter_actions.store.removeListener(
+      "syncdb-after-change",
+      this.syncdb_after_change
+    );
+    delete this.frame_tree_actions;
+    delete this.jupyter_actions;
+    delete this.frame_id;
+    delete this.key_handler;
+    delete this.input_editors;
+    this.store.close();
+    delete this.store;
+    delete this.cell_list_div;
   }
 
   /***
@@ -70,7 +131,7 @@ export class NotebookFrameActions {
    * standard Actions API
    ***/
 
-  setState(obj: object): void {
+  public setState(obj: object): void {
     this.store.setState(obj);
   }
 
@@ -136,7 +197,6 @@ export class NotebookFrameActions {
   }
 
   public run_cell(id: string, save: boolean = true): void {
-    console.log("run_cell", id, this.store.get("md_edit_ids", Set()).toJS());
     if (this.store.get("md_edit_ids", Set()).contains(id)) {
       this.set_md_cell_not_editing(id);
       return;
@@ -149,12 +209,12 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
-    this.dbg("set_mode", mode);
     this.setState({ mode });
   }
 
   public focus(wait?: boolean): void {
-    if (wait) console.log("focus ignoring wait");
+    // TODO: wait is ignored!
+    wait = wait;
     this.enable_key_handler();
   }
 
@@ -174,12 +234,12 @@ export class NotebookFrameActions {
     this.todo("paste");
   }
 
-  public scroll(pos?: string): void {
-    this.todo("scroll", pos);
+  public scroll(scroll?: Scroll): void {
+    this.setState({ scroll });
   }
 
-  public set_scroll_state(state): void {
-    this.setState({ scroll: state });
+  public set_scrollTop(scrollTop: number): void {
+    this.setState({ scrollTop });
   }
 
   set_md_cell_editing(id: string): void {
@@ -222,12 +282,12 @@ export class NotebookFrameActions {
   // Called when the cell list changes due to external events.
   // E.g., another user deleted the cell that is currently selected.
   private update_cur_id(): void {
+    const cells = this.jupyter_actions.store.get("cells");
+    if (cells == null) return; // can't do anything yet.
     const cur_id = this.store.get("cur_id");
-    if (
-      cur_id == null ||
-      this.jupyter_actions.store.getIn(["cells", cur_id]) == null
-    ) {
-      this.set_cur_id(this.jupyter_actions.store.get_cell_list().get(0));
+    if (cur_id == null || cells.get(cur_id) == null) {
+      const new_cur_id = this.jupyter_actions.store.get_cell_list().get(0);
+      this.set_cur_id(new_cur_id);
     }
   }
 
@@ -364,7 +424,9 @@ export class NotebookFrameActions {
   // Call this to save the state of the current Codemirror editor
   // before it is used for evaluation or other purposes.
   public save_input_editor(): void {
-    this.call_input_editor_method(this.store.get("cur_id"), "save");
+    const id = this.store.get("cur_id");
+    if (this.input_editors[id] == null) return;
+    this.call_input_editor_method(id, "save");
   }
 
   // Used for implementing actions -- keep private

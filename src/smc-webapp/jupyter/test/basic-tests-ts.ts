@@ -104,21 +104,3 @@ describe("test cursors positions (a minimal not very good test) -- ", () => {
     ]);
   });
 });
-
-describe("test saving scroll position -- ", () => {
-  let editor: TestEditor;
-  let store: JupyterStore;
-  let actions: JupyterActions;
-  before(async () => {
-    editor = new TestEditor("ipynb");
-    await editor.wait_until_loaded();
-    store = editor.store;
-    actions = editor.actions;
-  });
-  after(() => {
-    editor.delete();
-  });
-  it("sets the scroll pos", () => actions.set_scroll_state(389.31415));
-  return it("gets the scroll pos", () =>
-    expect(store.get_scroll_state()).to.equal(389.31415));
-});

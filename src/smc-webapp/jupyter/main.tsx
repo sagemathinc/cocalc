@@ -25,6 +25,8 @@ const { RawEditor } = require("./raw-editor");
 const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 
+import { Scroll } from "./types";
+
 const KERNEL_STYLE: React.CSSProperties = {
   float: "right",
   paddingLeft: "5px",
@@ -56,8 +58,11 @@ interface JupyterEditorProps {
   sel_ids?: immutable.Set<any>; // set of selected cells
   md_edit_ids?: immutable.Set<any>; // ids of markdown cells in edit mode
 
+  scroll?: Scroll;  // Causes a scroll when it *changes*
+  scrollTop?: number;
+  hook_offset?: number;
+
   // TODO
-  scroll?: number | string;
   view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw']) -- TODO: get rid of this entirely and use different frame types
   complete?: immutable.Map<any, any>; // status of tab completion
   introspect?: immutable.Map<any, any>; // status of introspection
@@ -128,7 +133,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         confirm_dialog: rtypes.immutable.Map,
         find_and_replace: rtypes.bool,
         keyboard_shortcuts: rtypes.immutable.Map,
-        scroll: rtypes.oneOfType([rtypes.number, rtypes.string]),
         nbconvert: rtypes.immutable.Map, // backend convert state
         nbconvert_dialog: rtypes.immutable.Map, // frontend modal dialog state
         path: rtypes.string,
@@ -255,10 +259,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         md_edit_ids={this.props.md_edit_ids}
         cur_id={this.props.cur_id}
         mode={this.props.mode}
+        hook_offset={this.props.hook_offset}
         cm_options={this.props.cm_options}
         project_id={this.props.project_id}
         directory={this.props.directory}
-        scrollTop={this.props.actions.store.get_scroll_state()}
+        scrollTop={this.props.scrollTop}
         complete={this.props.complete}
         is_focused={this.props.is_focused}
         more_output={this.props.more_output}

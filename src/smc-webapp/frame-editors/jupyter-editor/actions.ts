@@ -2,6 +2,7 @@
 Jupyter Frame Editor Actions
 */
 
+import { delay } from "awaiting"; 
 import { FrameTree } from "../frame-tree/types";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 
@@ -19,7 +20,7 @@ import { NotebookFrameActions } from "./cell-notebook/actions";
 export class JupyterEditorActions extends Actions<JupyterEditorState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   public jupyter_actions: JupyterActions;
-  private frame_actions: { [id: string]: any } = {};
+  private frame_actions: { [id: string]: NotebookFrameActions } = {};
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "jupyter_cell_notebook" };
@@ -27,6 +28,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
 
   _init2(): void {
     this.create_jupyter_actions();
+    this.init_new_frame();
   }
 
   public close(): void {
@@ -34,13 +36,14 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     super.close();
   }
 
-  /*
-  init_new_frame(): void {
+  private init_new_frame(): void {
     this.store.on("new-frame", ({ id, type }) => {
       if (type !== "jupyter_cell_notebook") {
         return;
       }
-      this.create_jupyter_actions(id);
+      // important to do this *before* the frame is rendered,
+      // since it can cause changes during creation.
+      this.get_frame_actions(id);
     });
 
     for (let id in this._get_leaf_ids()) {
@@ -48,16 +51,20 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       if (node == null) return;
       const type = node.get("type");
       if (type === "jupyter_cell_notebook") {
-        this.create_jupyter_actions(id);
+        this.get_frame_actions(id);
       }
     }
   }
 
-  close_frame_hook(id: string, type: string): void {
+  async close_frame_hook(id: string, type: string): Promise<void> {
     if (type != "jupyter_cell_notebook") return;
-    this.close_jupyter_actions();
+    // TODO: need to free up frame actions when frame is destroyed.
+    if (this.frame_actions[id] != null) {
+      await delay(1);
+      this.frame_actions[id].close();
+      delete this.frame_actions[id];
+    }
   }
-  */
 
   private create_jupyter_actions(): void {
     this.jupyter_actions = create_jupyter_actions(
@@ -80,14 +87,20 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.get_frame_actions(id).focus();
   }
 
-  private get_frame_actions(id: string) {
+  private get_frame_actions(id: string): NotebookFrameActions {
     if (this.frame_actions[id] != null) {
       return this.frame_actions[id];
     }
-    return (this.frame_actions[id] = new NotebookFrameActions(this, id));
-    // TODO: need to free up frame actions when frame is destroyed.
-
-    // TODO: throw error if id is not of a valid frame.
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      throw Error(`no frame ${id}`);
+    }
+    const type = node.get("type");
+    if (type === "jupyter_cell_notebook") {
+      return (this.frame_actions[id] = new NotebookFrameActions(this, id));
+    } else {
+      throw Error(`no actions for frame ${id}`);
+    }
   }
 
   // per-session sync-aware undo
@@ -127,6 +140,4 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   public hide(): void {}
-
-  
 }

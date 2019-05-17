@@ -26,6 +26,10 @@ interface Props {
 }
 
 export class CellNotebook extends Component<Props, {}> {
+  private data(key: string, def?: any): any {
+    return this.props.desc.get("data-" + key, def);
+  }
+
   render(): Rendered {
     const name = redux_name(this.props.name);
 
@@ -40,8 +44,6 @@ export class CellNotebook extends Component<Props, {}> {
     if (frame_actions == null) {
       return <Loading />;
     }
-    console.log("CellNotebook", this.props.id, this.props.is_current);
-    const desc = this.props.desc;
     return (
       <JupyterEditor
         actions={jupyter_actions}
@@ -50,10 +52,13 @@ export class CellNotebook extends Component<Props, {}> {
         is_focused={this.props.is_current}
         is_fullscreen={this.props.is_fullscreen}
         font_size={this.props.font_size}
-        mode={desc.get("data-mode", "escape")}
-        cur_id={desc.get("data-cur_id")}
-        sel_ids={desc.get("data-sel_ids")}
-        md_edit_ids={desc.get("data-md_edit_ids")}
+        mode={this.data("mode", "escape")}
+        cur_id={this.data("cur_id")}
+        sel_ids={this.data("sel_ids")}
+        md_edit_ids={this.data("md_edit_ids")}
+        scroll={this.data("scroll")}
+        scrollTop={this.data("scrollTop")}
+        hook_offset={this.data("hook_offset")}
       />
     );
   }

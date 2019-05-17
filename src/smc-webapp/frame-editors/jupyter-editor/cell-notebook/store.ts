@@ -17,7 +17,6 @@ export class NotebookFrameStore {
     // We have to fix some data types, since the frame tree data gets
     // JSON'd and de-JSON'd to local storage.
     for (let key of ["sel_ids", "md_edit_ids"]) {
-      console.log("reviving ", key, this.get(key, Set()).toJS());
       this.setState({ [key]: this.get(key, Set()).toSet() });
     }
   }
@@ -26,11 +25,11 @@ export class NotebookFrameStore {
    * standard Store API
    ***/
 
-  get(key: string, def?: any): any {
+  public get(key: string, def?: any): any {
     return this.frame_tree_actions._get_frame_data(this.id, key, def);
   }
 
-  getIn(key: string[], def?: any): any {
+  public getIn(key: string[], def?: any): any {
     if (key.length == 0) return;
     if (key.length == 1)
       return this.frame_tree_actions._get_frame_data(this.id, key[0], def);
@@ -42,8 +41,13 @@ export class NotebookFrameStore {
     }
   }
 
-  setState(obj): void {
+  public setState(obj): void {
     this.frame_tree_actions.set_frame_data(merge({ id: this.id }, obj));
+  }
+
+  public close(): void {
+    delete this.frame_tree_actions;
+    delete this.id;
   }
 
   /***

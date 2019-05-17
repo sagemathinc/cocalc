@@ -22,7 +22,6 @@ Jupyter notebooks.  The goals are:
 
 */
 
-declare const $: any;
 declare const window: any;
 declare const localStorage: any;
 
@@ -78,8 +77,6 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 export class JupyterActions extends Actions<JupyterStoreState> {
   // TODO: type these
   private _cursor_locs?: any;
-  private _hook_after_change: any;
-  private _hook_before_change: any;
   private _input_editors?: any;
   private _introspect_request?: any;
   private _is_project: any;
@@ -222,24 +219,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       query,
       timeout_ms
     );
-  };
-
-  init_scroll_pos_hook = () => {
-    // maintain scroll hook on change; critical for multiuser editing
-    let after: any;
-    let before: any = (after = undefined);
-    this._hook_before_change = () => {
-      return (before = __guard__(
-        $(".cocalc-jupyter-hook").offset(),
-        x => x.top
-      ));
-    };
-    return (this._hook_after_change = () => {
-      after = __guard__($(".cocalc-jupyter-hook").offset(), x => x.top);
-      if (before != null && after != null && before !== after) {
-        return this.scroll(after - before);
-      }
-    });
   };
 
   dbg = (f: any) => {
@@ -683,16 +662,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   _syncdb_change = (changes: any) => {
-    if (typeof this._hook_before_change === "function") {
-      this._hook_before_change();
-    }
+    if (this.syncdb == null) return;
+    this.store.emit("syncdb-before-change");
     this.__syncdb_change(changes);
-    if (typeof this._hook_after_change === "function") {
-      this._hook_after_change();
+    this.store.emit("syncdb-after-change");
+    if (this.set_save_status != null) {
+      this.set_save_status();
     }
-    return typeof this.set_save_status === "function"
-      ? this.set_save_status()
-      : undefined;
   };
 
   __syncdb_change = (changes: any): void => {
@@ -1648,11 +1624,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   zoom = (delta: any) => {
-    return this.set_font_size(this.store.get("font_size") + delta);
-  };
-
-  set_scroll_state = state => {
-    return this.set_local_storage("scroll", state);
+    this.set_font_size(this.store.get("font_size") + delta);
   };
 
   // File --> Open: just show the file listing page.
@@ -2274,7 +2246,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // supported scroll positions are in commands.ts
   scroll(pos): any {
-    return this.setState({ scroll: pos });
+    this.deprecated("scroll", pos);
   }
 
   // submit input for a particular cell -- this is used by the

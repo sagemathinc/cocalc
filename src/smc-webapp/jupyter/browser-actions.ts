@@ -87,8 +87,6 @@ export class JupyterActions extends JupyterActions0 {
         "editor_settings"
       );
       this._commands = commands(this);
-
-      this.init_scroll_pos_hook();
     }
   }
 

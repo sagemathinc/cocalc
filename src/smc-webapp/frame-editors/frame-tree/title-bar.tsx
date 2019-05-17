@@ -818,7 +818,6 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     const ext = misc.filename_extension(this.props.path).toLowerCase();
-    console.log("render_format", ext, this.is_visible("format"));
     if (!this.is_visible("format") && !util.PRETTIER_SUPPORT[ext]) {
       return;
     }

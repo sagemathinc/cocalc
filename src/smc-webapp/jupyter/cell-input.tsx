@@ -118,15 +118,16 @@ export class CellInput extends Component<CellInputProps> {
   );
 
   handle_md_double_click = (): void => {
-    if (this.props.actions == null) {
+    if (this.props.frame_actions == null) {
       return;
     }
     if (this.props.cell.getIn(["metadata", "editable"]) === false) {
+      // TODO: NEVER ever silently fail!
       return;
     }
     const id = this.props.cell.get("id");
-    this.props.actions.set_md_cell_editing(id);
-    this.props.actions.set_cur_id(id);
+    this.props.frame_actions.set_md_cell_editing(id);
+    this.props.frame_actions.set_cur_id(id);
     this.props.frame_actions.set_mode("edit");
   };
 
