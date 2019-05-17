@@ -1217,11 +1217,11 @@ ProjectSettingsBody = rclass ({name}) ->
 
                     <HideDeletePanel key='hidedelete' project={@props.project} />
                     {<SSHPanel key='ssh-keys' project={@props.project} user_map={@props.user_map} account_id={@props.account_id} /> if @props.kucalc == 'yes'}
-                    {<ProjectCapabilitiesPanel
+                    <ProjectCapabilitiesPanel
                         name={name}
                         key={'capabilities'}
                         project={@props.project}
-                     /> if @props.kucalc == 'yes'}
+                    />
                 </Col>
                 <Col sm={6}>
                     <CurrentCollaboratorsPanel key='current-collabs'  project={@props.project} user_map={@props.user_map} />
