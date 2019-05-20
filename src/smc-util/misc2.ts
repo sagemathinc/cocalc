@@ -8,6 +8,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 */
 
 const underscore = require("underscore");
+const urlRegex = require("url-regex");
+import { to_human_list } from "./misc";
 
 interface SplittedPath {
   head: string;
@@ -479,13 +481,16 @@ export function bind_methods(obj: any, method_names: string[]): void {
   }
 }
 
+// used to test for URLs in a string
+const re_url = urlRegex({ exact: false, strict: false });
+
 // returns undefined if ok, otherwise an error message
-export function is_valid_username(name: string): string | undefined {
-  const blocked = ["http://", "https://"];
-  for (const token of blocked) {
-    if (name.indexOf(token) != -1) {
-      return "URLs are not allowed";
-    }
+export function is_valid_username(str: string): string | undefined {
+  const name = str.toLowerCase();
+
+  const found = name.match(re_url);
+  if (found) {
+    return `URLs are not allowed. Found ${to_human_list(found)}`;
   }
 
   if (name.indexOf("mailto:") != -1 && name.indexOf("@") != -1) {
