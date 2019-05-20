@@ -5,6 +5,8 @@
 const { webapp_client } = require("../webapp_client");
 
 webapp_client.on("signed_in", () => {
+  // console.log("sign-in-hooks mesg=", mesg);
+
   if (localStorage == null) return;
 
   for (let event of ["sign_up_how_find_cocalc"]) {

@@ -175,14 +175,11 @@ exports.sign_in = (opts) ->
                 cb(); return
             dbg("remember_me -- setting the remember_me cookie")
             signed_in_mesg = message.signed_in
-                id            : mesg.id
-                account_id    : account.account_id
-                email_address : mesg.email_address
-                remember_me   : false
-                hub           : opts.host + ':' + opts.port
-                utm           : mesg.utm
-                referrer      : mesg.referrer
-                landing_page  : mesg.landing_page
+                id                : mesg.id
+                account_id        : account.account_id
+                email_address     : mesg.email_address
+                remember_me       : false
+                hub               : opts.host + ':' + opts.port
             client.remember_me
                 account_id    : signed_in_mesg.account_id
                 email_address : signed_in_mesg.email_address
@@ -315,15 +312,13 @@ exports.sign_in_using_auth_token = (opts) ->
 # Record to the database a failed and/or successful login attempt.
 exports.record_sign_in = (opts) ->
     opts = defaults opts,
-        ip_address    : required
-        successful    : required
-        database      : required
-        email_address : undefined
-        account_id    : undefined
-        utm           : undefined
-        referrer      : undefined
-        landing_page  : undefined
-        remember_me   : false
+        ip_address       : required
+        successful       : required
+        database         : required
+        email_address    : undefined
+        account_id       : undefined
+        analytics_token  : undefined
+        remember_me      : false
     if not opts.successful
         record_sign_in_fail
             email : opts.email_address
@@ -334,9 +329,9 @@ exports.record_sign_in = (opts) ->
             email_address : opts.email_address ? null
             remember_me   : opts.remember_me
             account_id    : opts.account_id
-        data.utm          = opts.utm          if opts.utm
-        data.referrer     = opts.referrer     if opts.referrer
-        data.landing_page = opts.landing_page if opts.landing_page
+
+        set_analytics_data(opts.database, null, data, opts.analytics_token) if opts.analytics_token
+
         opts.database.log
             event : 'successful_sign_in'
             value : data

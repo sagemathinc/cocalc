@@ -16,13 +16,24 @@ const png_data =
 export const png_1x1 = new Buffer(png_data, "base64");
 
 export function analytics_rec(db, logger, token, data): void {
-  const dbg = create_log("main", logger);
+  const dbg = create_log("rec", logger);
   dbg(token, data);
+  const rec_data: any = {};
+  // sanitize data (for now, limit size and number of characters)
+  let cnt = 0;
+  for (const key of data) {
+    cnt += 1;
+    if (cnt > 20) break;
+    const rec_key = key.slice(0, 50);
+    const rec_val = data[key].slice(0, 200);
+    rec_data[rec_key] = rec_val;
+  }
+
   db._query({
     query: "INSERT INTO analytics",
     values: {
       "token  :: UUID": token,
-      "data   :: JSONB": data,
+      "data   :: JSONB": rec_data,
       "time   :: TIMESTAMP": new Date()
     },
     conflict: "token"
@@ -38,4 +49,26 @@ export function analytics_cookie(res): void {
     httpOnly: true,
     domain: DNS
   });
+}
+
+// set the recorded analytics information on the given object (event log entry)
+// then delete it
+export function set_analytics_data(
+  db: any,
+  dbg: (str: string) => void | undefined,
+  obj: object,
+  token: string,
+  del_data = true
+): void {
+  if (dbg != null) {
+    dbg(`set_analytics_data ${token} obj=${JSON.stringify(obj)}`);
+  }
+  // TODO IMPL
+  if (del_data) {
+    // delete from analytics table
+    db._query({
+      query: "DELETE FROM analytics",
+      where: [{ "token = $::UUID": token }]
+    });
+  }
 }

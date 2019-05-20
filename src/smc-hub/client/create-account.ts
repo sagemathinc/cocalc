@@ -19,6 +19,7 @@ import { len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
+import { set_analytics_data } from "../analytics";
 
 export function is_valid_password(password: string) {
   const [valid, reason] = client_lib.is_valid_password(password);
@@ -44,9 +45,7 @@ interface CreateAccountData {
   last_name: string;
   email_address: string;
   created_by: string;
-  utm?: string;
-  referrer?: string;
-  landing_page?: string;
+  analytics_token?: string;
 }
 
 // This should not actually throw in case of trouble, but instead send
@@ -179,14 +178,8 @@ export async function create_account(
       created_by: opts.client.ip_address
     };
 
-    if (opts.mesg.utm) {
-      data.utm = opts.mesg.utm;
-    }
-    if (opts.mesg.referrer) {
-      data.referrer = opts.mesg.referrer;
-    }
-    if (opts.mesg.landing_page) {
-      data.landing_page = opts.mesg.landing_page;
+    if (opts.mesg.analytics_token) {
+      set_analytics_data(opts.database, dbg, data, opts.mesg.analytics_token);
     }
 
     await callback2(opts.database.log, {
@@ -214,7 +207,7 @@ export async function create_account(
           tm
         )}seconds)`
       );
-      // no utm/referrer info being logged, because it is already done in the create_account entry above.
+      // no analytics token is logged, because it is already done in the create_account entry above.
       mesg1 = message.signed_in({
         id: opts.mesg.id,
         account_id,

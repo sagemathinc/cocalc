@@ -178,11 +178,10 @@ exports.init_express_http_server = (opts) ->
         # if not, ignore it
         token = req.cookies[misc.analytics_cookie_name]
         if token
-            winston.debug("/analytics.js TOKEN: #{token}")
             # req.body is an object (json middlewhere somewhere?)
             # e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
             # ATTN key/values could be malicious
-            winston.debug("/analytics.js POST: #{JSON.stringify(req.body)}")
+            winston.debug("/analytics.js -- TOKEN=#{token} -- DATA=#{JSON.stringify(req.body)}")
             # record it, there is no need for a callback
             analytics_rec(opts.database, winston, token, req.body)
 

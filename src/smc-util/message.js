@@ -395,18 +395,6 @@ API(
         init: required,
         desc: "must be true for request to succeed"
       },
-      utm: {
-        init: undefined,
-        desc: "UTM parameters"
-      },
-      referrer: {
-        init: undefined,
-        desc: "Referrer URL"
-      },
-      landing_page: {
-        init: undefined,
-        desc: "Landing page"
-      },
       token: {
         init: undefined, // only required when token is set.
         desc: "account creation token - see src/dev/docker/README.md"
@@ -516,9 +504,6 @@ message({
   email_address: required,
   password: required,
   remember_me: false,
-  utm: undefined,
-  referrer: undefined,
-  landing_page: undefined,
   get_api_key: undefined
 }); // same as for create_account
 
@@ -553,9 +538,6 @@ message({
   email_address: undefined, // email address they signed in under
   first_name: undefined,
   last_name: undefined,
-  utm: undefined,
-  referrer: undefined,
-  landing_page: undefined,
   api_key: undefined
 }); // user's api key, if requested in sign_in or create_account messages.
 

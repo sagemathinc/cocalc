@@ -281,9 +281,7 @@ passport_login = (opts) ->
                         last_name     : opts.last_name
                         email_address : locals.email_address ? null
                         created_by    : opts.req.ip
-                    data.utm          = opts.res.locals.utm          if opts.res.locals.utm
-                    data.referrer     = opts.res.locals.referrer     if opts.res.locals.referrer
-                    data.landing_page = opts.res.locals.landing_page if opts.res.locals.landing_page
+                    data.analytics_token = opts.res.locals.analytics_token if opts.res.locals.analytics_token
                     opts.database.log
                         event : 'create_account'
                         value : data
@@ -293,17 +291,15 @@ passport_login = (opts) ->
         (cb) ->
             if locals.new_account_created
                 cb(); return
-            dbg("record_sign_in: #{opts.req.url} -- res.locals.utm: #{misc.to_json(opts.res.locals.utm)}")
+            dbg("record_sign_in: #{opts.req.url} -- res.locals.analytics_token: #{opts.res.locals.analytics_token}")
             sign_in.record_sign_in
-                ip_address    : opts.req.ip
-                successful    : true
-                remember_me   : locals.has_valid_remember_me
-                email_address : locals.email_address
-                account_id    : locals.account_id
-                utm           : opts.res.locals.utm
-                referrer      : opts.res.locals.referrer
-                landing_page  : opts.res.locals.landing_page
-                database      : opts.database
+                ip_address      : opts.req.ip
+                successful      : true
+                remember_me     : locals.has_valid_remember_me
+                email_address   : locals.email_address
+                account_id      : locals.account_id
+                analytics_token : opts.res.locals.analytics_token
+                database        : opts.database
             cb() # don't make client wait for this -- it's just a log message for us.
 
         (cb) ->
