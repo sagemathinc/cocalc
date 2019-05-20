@@ -1868,10 +1868,20 @@ schema.analytics = {
       type: "uuid"
     },
     time: {
-      type: "timestamp"
+      type: "timestamp",
+      desc: "when the token&data fields were set"
     },
     data: {
-      type: "map"
+      type: "map",
+      desc: "referrer, landing page, utm, etc."
+    },
+    account_id: {
+      type: "uuid",
+      desc: "set only once, when the user eventually signed in"
+    },
+    time_account_id: {
+      type: "timestamp",
+      desc: "when the account id was recorded"
     }
   }
 };
