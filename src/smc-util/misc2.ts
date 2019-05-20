@@ -479,4 +479,18 @@ export function bind_methods(obj: any, method_names: string[]): void {
   }
 }
 
+// returns undefined if ok, otherwise an error message
+export function is_valid_username(name: string): string | undefined {
+  const blocked = ["http://", "https://"];
+  for (const token of blocked) {
+    if (name.indexOf(token) != -1) {
+      return "URLs are not allowed";
+    }
+  }
 
+  if (name.indexOf("mailto:") != -1 && name.indexOf("@") != -1) {
+    return "email addresses are not allowed";
+  }
+
+  return;
+}
