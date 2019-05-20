@@ -87,7 +87,11 @@ export class LauncherComponent extends Component<Props, {}> {
     // i.e. wait until we know which apps exist …
     const available = this.props.x11_apps;
     if (available == null) return [];
-    return APP_KEYS.filter(app => available[app]).map(this.render_launcher);
+    // hide those apps, where certainly know they're not available
+    return APP_KEYS.filter(app => {
+      const avail = available[app];
+      return avail !== false;
+    }).map(this.render_launcher);
   }
 
   render(): Rendered {
