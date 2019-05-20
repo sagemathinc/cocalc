@@ -238,5 +238,10 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     icon: "atom",
     label: "VQE Playground",
     desc: "Gaining intuition about Variational Quantum Eigensolver"
+  },
+  kbibtex: {
+    icon: "book-open",
+    label: "KBibTeX",
+    desc: "A reference management software primarily for BibTeX"
   }
 });
