@@ -261,7 +261,7 @@ export function commands(
       // jupyter has this but with d,d as shortcut, since they have no undo.
       m: "Delete cells",
       k: [{ mode: "escape", which: 68, twice: true }],
-      f: () => actions.delete_selected_cells()
+      f: () => frame_actions.delete_selected_cells()
     },
 
     "duplicate notebook": {

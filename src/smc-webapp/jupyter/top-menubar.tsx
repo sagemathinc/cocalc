@@ -4,15 +4,20 @@ The Menu bar across the top
 File, Edit, etc....
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework";
+import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 import * as immutable from "immutable";
-import { ButtonGroup, Dropdown, MenuItem } from "react-bootstrap";
+import { ButtonGroup, Dropdown, MenuItem, SelectCallback } from "react-bootstrap";
 const { Icon } = require("../r_misc");
 const { KeyboardShortcut } = require("./keyboard-shortcuts");
 const misc_page = require("../misc_page");
-const misc = require("smc-util/misc");
-const { required, defaults } = misc;
+
+import { required, defaults } from "smc-util/misc";
+
+import { capitalize, copy, endswith } from "smc-util/misc2";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 // const OPACITY = ".9"; // TODO: this was never read
 const TITLE_STYLE: React.CSSProperties = {
@@ -27,7 +32,10 @@ const SELECTED_STYLE: React.CSSProperties = {
 
 interface TopMenubarProps {
   // OWN PROPS
-  actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
+  cur_id: string;
+  cells: immutable.Map<any, any>; // map from id to cells
   // REDUX PROPS
   // [name]
   kernels: immutable.List<any>;
@@ -36,8 +44,6 @@ interface TopMenubarProps {
   has_unsaved_changes: boolean;
   kernel_info: immutable.Map<any, any>;
   backend_kernel_info: immutable.Map<any, any>;
-  cells: immutable.Map<any, any>;
-  cur_id: string;
   trust: boolean;
   view_mode: string;
   toolbar: boolean;
@@ -57,8 +63,6 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         has_unsaved_changes: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
         backend_kernel_info: rtypes.immutable.Map,
-        cells: rtypes.immutable.Map,
-        cur_id: rtypes.string,
         trust: rtypes.bool,
         view_mode: rtypes.string,
         toolbar: rtypes.bool,
@@ -97,7 +101,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
           ])
         : undefined;
     if (ext != null) {
-      const m = misc.capitalize(
+      const m = capitalize(
         this.props.backend_kernel_info.getIn(["language_info", "name"])
       );
       script_entry = { name: ">nbconvert script", display: `${m} (${ext})...` };
@@ -352,94 +356,92 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
 
   focus() {
     $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-    this.props.actions.focus(true);
+    this.props.frame_actions.focus(true);
   }
-  command = (name: any) => {
+
+  command = (name: string): SelectCallback => {
     return () => {
-      if (this.props.actions != null) {
-        this.props.actions.command(name);
-      }
+      this.props.frame_actions.command(name);
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      if (
-        misc.endswith(
-          this.props.actions._commands &&
-            this.props.actions._commands[name] &&
-            this.props.actions._commands.m,
-          "..."
-        )
-      ) {
-        this.props.actions.blur();
+      const c = this.props.frame_actions.commands[name];
+      if (c && c.m && endswith(c.m, "...")) {
+        this.props.frame_actions.blur();
       } else {
         this.focus();
       }
     };
   };
 
-  menu_item = (key: any, name: any) => {
-    // TODO: this got complicated and should be its own component
-    if (name) {
-      let disabled, display, left, s, style;
-      if (name.props != null) {
-        return name; // it's already a MenuItem components
-      }
-      if (typeof name === "object") {
-        // use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
-        ({ name, display, style } = name);
-        if (style != null) {
-          style = misc.copy(style);
-        }
-      } else {
-        display = undefined;
-      }
-      if (style == null) {
-        style = {};
-      }
-      if (name[0] === "<") {
-        disabled = true;
-        name = name.slice(1);
-      } else {
-        disabled = false;
-      }
-
-      if (name[0] === ">") {
-        style.marginLeft = "4ex";
-        name = name.slice(1);
-      }
-      const obj =
-        this.props.actions._commands != null
-          ? this.props.actions._commands[name]
-          : undefined;
-      if (obj == null) {
-        return (
-          <MenuItem disabled={disabled} key={key}>
-            <span style={style}>{display != null ? display : name}</span>
-          </MenuItem>
-        );
-      }
-
-      const shortcut = obj.k != null ? obj.k[0] : undefined;
-      if (shortcut != null) {
-        s = (
-          <span className="pull-right">
-            <KeyboardShortcut shortcut={shortcut} />
-          </span>
-        );
-      } else {
-        s = <span />;
-      }
-
-      return (
-        <MenuItem key={key} onSelect={this.command(name)} disabled={disabled}>
-          <span style={style}>
-            {s}{" "}
-            {(left = display != null ? display : obj.m) != null ? left : name}{" "}
-            {/* shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 */}
-          </span>
-        </MenuItem>
-      );
-    } else {
+  menu_item = (key: string, name: any): Rendered => {
+    if (name === "") {
       return <MenuItem key={key} divider />;
     }
+
+    if (name.props != null) {
+      return name as Rendered; // it's already a MenuItem components
+    }
+
+    let display: undefined | string;
+    let style: React.CSSProperties | undefined = undefined;
+
+    if (typeof name === "object") {
+      // use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
+      ({ name, display, style } = name);
+      if (style != null) {
+        style = copy(style);
+      }
+    } else {
+      display = undefined;
+    }
+
+    if (style == null) {
+      style = {};
+    }
+
+    let disabled: boolean;
+    if (name[0] === "<") {
+      disabled = true;
+      name = name.slice(1);
+    } else {
+      disabled = false;
+    }
+
+    if (name[0] === ">") {
+      style.marginLeft = "4ex";
+      name = name.slice(1);
+    }
+    const obj = this.props.frame_actions.commands[name];
+    if (obj == null) {
+      return (
+        <MenuItem disabled={disabled} key={key}>
+          <span style={style}>{display != null ? display : name}</span>
+        </MenuItem>
+      );
+    }
+
+    let s: Rendered;
+    const shortcut = obj.k != null ? obj.k[0] : undefined;
+    if (shortcut != null) {
+      s = (
+        <span className="pull-right">
+          <KeyboardShortcut shortcut={shortcut} />
+        </span>
+      );
+    } else {
+      s = <span />;
+    }
+
+    if (!display) display = obj.m;
+    if (!display) display = name;
+
+    return (
+      <MenuItem key={key} onSelect={this.command(name)} disabled={disabled}>
+        <span style={style}>
+          {s} {display}{" "}
+          {/* shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 */}
+        </span>
+      </MenuItem>
+    );
   };
 
   menu_items(names) {

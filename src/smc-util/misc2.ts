@@ -9,7 +9,9 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 
 const underscore = require("underscore");
 const urlRegex = require("url-regex");
+
 import { to_human_list } from "./misc";
+
 
 interface SplittedPath {
   head: string;

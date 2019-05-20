@@ -195,10 +195,24 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_menubar() {
-    // TODO: may want to keep the vertical space and just
-    // render it blank, to avoid the "jump", but reduce clutter...
-    // Same for buttonbar.
-    return <TopMenubar actions={this.props.actions} name={this.props.name} />;
+    if (
+      this.props.actions == null ||
+      this.props.frame_actions == null ||
+      this.props.cells == null ||
+      this.props.sel_ids == null
+    ) {
+      return;
+    } else {
+      return (
+        <TopMenubar
+          actions={this.props.actions}
+          name={this.props.name}
+          frame_actions={this.props.frame_actions}
+          cells={this.props.cells}
+          cur_id={this.props.cur_id}
+        />
+      );
+    }
   }
 
   render_buttonbar() {
