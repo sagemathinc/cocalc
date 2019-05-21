@@ -848,6 +848,16 @@ export function commands(
       f: () => actions.toggle_delete_protection()
     },
 
+    "toggle hide input": {
+      m: "Toggle hide input",
+      f: () => frame_actions.toggle_hide_input()
+    },
+
+    "toggle hide cell": {
+      m: "Toggle hide selected cells",
+      f: () => frame_actions.toggle_hide_cell()
+    },
+
     "format cells": {
       i: FORMAT_SOURCE_ICON,
       m: "Format selected cells",

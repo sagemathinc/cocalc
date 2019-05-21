@@ -576,6 +576,18 @@ export class NotebookFrameActions {
     this.jupyter_actions._sync();
   }
 
+  public toggle_hide_input(): void {
+    for (let id in this.store.get_selected_cell_ids()) {
+      this.jupyter_actions.toggle_hide_input(id);
+    }
+  }
+
+  public toggle_hide_cell(): void {
+    for (let id in this.store.get_selected_cell_ids()) {
+      this.jupyter_actions.toggle_hide_cell(id);
+    }
+  }
+
   public split_current_cell(): void {
     /*
     const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;

@@ -1216,8 +1216,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   split_current_cell = (): void => {
-    this.deprecated('split_current_cell');
-  }
+    this.deprecated("split_current_cell");
+  };
 
   // Copy content from the cell below the current cell into the currently
   // selected cell, then delete the cell below the current cell.s
@@ -2509,7 +2509,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  add_tag = (id: any, tag: any, save = true) => {
+  add_tag(id: string, tag: string, save: boolean = true): void {
     if (this.check_edit_protection(id)) {
       return;
     }
@@ -2521,9 +2521,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
-  remove_tag = (id: any, tag: any, save = true) => {
+  remove_tag(id: string, tag: string, save: boolean = true): void {
     if (this.check_edit_protection(id)) {
       return;
     }
@@ -2535,7 +2535,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
+
+  toggle_tag(id: string, tag: string, save: boolean = true): void {
+    console.log("toggle_tag", id, tag);
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      throw Error(`no cell with id ${id}`);
+    }
+    const tags = cell.get("tags");
+    if (tags == null || !tags.get(tag)) {
+      this.add_tag(id, tag, save);
+    } else {
+      this.remove_tag(id, tag, save);
+    }
+  }
 
   set_view_mode = (mode: any): void => {
     this.setState({ view_mode: mode });
@@ -2888,6 +2902,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       return false;
     }
+  }
+
+  public toggle_hide_input(id: string): void {
+    // See https://github.com/sagemathinc/cocalc/issues/3835
+    // We make it so tags includes "remove_input".
+    this.toggle_tag(id, "remove_input");
+  }
+
+  public toggle_hide_cell(id: string): void {
+    // We make it so tags includes "remove_cell".
+    // TODO: once hidden, how do you show a cell again?
+    // Need a different view mode for notebook that shows
+    // where the hidden stuff is...?
+    this.toggle_tag(id, "remove_cell");
   }
 }
 
