@@ -14,7 +14,7 @@ const { Kernel, Mode } = require("./status");
 const { About } = require("./about");
 const { NBConvert } = require("./nbconvert");
 const { InsertImage } = require("./insert-image");
-const { EditAttachments } = require("./edit-attachments");
+import { EditAttachments } from "./edit-attachments";
 const { EditCellMetadata } = require("./edit-cell-metadata");
 const { FindAndReplace } = require("./find-and-replace");
 const { ConfirmDialog } = require("./confirm-dialog");
@@ -357,13 +357,10 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_edit_attachments() {
-    if (this.props.edit_attachments == null) {
+    if (this.props.edit_attachments == null || this.props.cells == null) {
       return;
     }
-    const cell =
-      this.props.cells != null
-        ? this.props.cells.get(this.props.edit_attachments)
-        : undefined;
+    const cell = this.props.cells.get(this.props.edit_attachments);
     if (cell == null) {
       return;
     }

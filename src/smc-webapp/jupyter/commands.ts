@@ -44,18 +44,19 @@ export function commands(
   function id(): string {
     return frame_actions.store.get("cur_id");
   }
-
+  
   const actions = jupyter_actions; // TODO
   const store = actions.store; // todo
+
   return {
     "cell toolbar none": {
       m: "No cell toolbar",
-      f: () => actions.cell_toolbar()
+      f: () => jupyter_actions.cell_toolbar()
     },
 
     "cell toolbar attachments": {
       m: "Delete attachments",
-      f: () => actions.cell_toolbar("attachments")
+      f: () => jupyter_actions.cell_toolbar("attachments")
     },
 
     "cell toolbar tags": {

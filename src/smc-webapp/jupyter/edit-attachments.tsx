@@ -19,7 +19,7 @@ interface EditAttachmentsProps {
   cell: ImmutableMap<any, any>; // TODO: type
 }
 
-export class EditActtachments extends Component<EditAttachmentsProps> {
+export class EditAttachments extends Component<EditAttachmentsProps> {
   shouldComponentUpdate(nextProps) {
     return nextProps.cell !== this.props.cell;
   }

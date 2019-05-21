@@ -26,7 +26,7 @@ export type show_kernel_selector_reasons = "bad kernel" | "user request";
 export interface JupyterStoreState {
   nbconvert_dialog: any;
   cell_toolbar: string;
-  edit_attachments: any;
+  edit_attachments?: string;
   edit_cell_metadata: any;
   raw_ipynb: any;
   backend_kernel_info: any;
@@ -41,7 +41,7 @@ export interface JupyterStoreState {
   kernels?: Kernels;
   kernel_info?: any;
   max_output_length: number;
-  metadata: any;
+  metadata: any;   // documented at https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
   md_edit_ids: Set<string>;
   path: string;
   directory: string;
