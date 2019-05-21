@@ -12,13 +12,17 @@ import { Button } from "react-bootstrap";
 
 // TODO: use imports
 const misc = require("smc-util/misc");
-const { Icon, Markdown } = require("../r_misc");
+const { Markdown } = require("../r_misc");
 const { CodeMirror } = require("./codemirror");
 const { InputPrompt } = require("./prompt");
 const { Complete } = require("./complete");
 const { CellToolbar } = require("./cell-toolbar");
 const { CellTiming } = require("./cell-output-time");
 const { get_blob_url } = require("./server-urls");
+
+import { Icon } from "../r_misc/icon";
+
+import { CellHiddenPart } from "./cell-hidden-part";
 
 function href_transform(project_id: string, cell: any) {
   return (href: string) => {
@@ -82,6 +86,7 @@ export class CellInput extends Component<CellInputProps> {
   shouldComponentUpdate(nextProps: CellInputProps) {
     return (
       nextProps.cell.get("input") !== this.props.cell.get("input") ||
+      nextProps.cell.get("metadata") !== this.props.cell.get("metadata") ||
       nextProps.cell.get("exec_count") !== this.props.cell.get("exec_count") ||
       nextProps.cell.get("cell_type") !== this.props.cell.get("cell_type") ||
       nextProps.cell.get("state") !== this.props.cell.get("state") ||
@@ -292,7 +297,15 @@ export class CellInput extends Component<CellInputProps> {
     }
   }
 
+  render_hidden() {
+    return <CellHiddenPart title={"Input is hidden; show via Edit --> Toggle hide input in the menu."}/>;
+  }
+
   render() {
+    if (this.props.cell.getIn(["metadata", "jupyter", "source_hidden"])) {
+      return this.render_hidden();
+    }
+
     const type = this.props.cell.get("cell_type") || "code";
     return (
       <div>

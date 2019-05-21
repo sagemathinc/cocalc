@@ -254,6 +254,12 @@ export class NotebookFrameActions {
   }
 
   set_md_cell_editing(id: string): void {
+    this.jupyter_actions.set_jupyter_metadata(
+      id,
+      "input_hidden",
+      undefined,
+      false
+    );
     const md_edit_ids = this.store.get("md_edit_ids", Set());
     if (md_edit_ids.contains(id)) {
       return;
@@ -265,13 +271,17 @@ export class NotebookFrameActions {
   }
 
   set_md_cell_not_editing(id: string): void {
-    console.log("set_md_cell_not_editing", id);
+    this.jupyter_actions.set_jupyter_metadata(
+      id,
+      "input_hidden",
+      undefined,
+      false
+    );
     let md_edit_ids = this.store.get("md_edit_ids", Set());
     if (!md_edit_ids.contains(id)) {
       return;
     }
     md_edit_ids = md_edit_ids.delete(id);
-    console.log("md_edit_ids = ", md_edit_ids.toJS());
     this.setState({ md_edit_ids });
   }
 
@@ -576,16 +586,29 @@ export class NotebookFrameActions {
     this.jupyter_actions._sync();
   }
 
-  public toggle_hide_input(): void {
+  public toggle_source_hidden(): void {
     for (let id in this.store.get_selected_cell_ids()) {
-      this.jupyter_actions.toggle_hide_input(id);
+      this.jupyter_actions.toggle_jupyter_metadata_boolean(id, "source_hidden");
     }
   }
 
-  public toggle_hide_cell(): void {
+  public toggle_outputs_hidden(): void {
     for (let id in this.store.get_selected_cell_ids()) {
-      this.jupyter_actions.toggle_hide_cell(id);
+      this.jupyter_actions.toggle_jupyter_metadata_boolean(
+        id,
+        "outputs_hidden"
+      );
     }
+  }
+
+  public unhide_current_input(): void {
+    const cur_id = this.store.get("cur_id");
+    this.jupyter_actions.set_jupyter_metadata(
+      cur_id,
+      "source_hidden",
+      undefined,
+      true
+    );
   }
 
   public split_current_cell(): void {

@@ -196,7 +196,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "write protect",
         "delete protect",
         "toggle hide input",
-        "toggle hide cell",
+        "toggle hide output",
         "",
         "find and replace",
         "",

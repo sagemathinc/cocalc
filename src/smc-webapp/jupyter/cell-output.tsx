@@ -2,12 +2,13 @@
 React component that describes the output of a cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 import { CellOutputMessages } from "./output-messages/message";
 
 const { OutputPrompt } = require("./prompt");
 const { OutputToggle, CollapsedOutput } = require("./cell-output-toggle");
+import { CellHiddenPart } from "./cell-hidden-part";
 
 interface CellOutputProps {
   actions?: any;
@@ -23,7 +24,7 @@ interface CellOutputProps {
 
 export class CellOutput extends Component<CellOutputProps> {
   shouldComponentUpdate(nextProps) {
-    for (let field of ["collapsed", "scrolled", "exec_count", "state"]) {
+    for (let field of ["collapsed", "scrolled", "exec_count", "state", "metadata"]) {
       if (nextProps.cell.get(field) !== this.props.cell.get(field)) {
         return true;
       }
@@ -132,7 +133,14 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
+  render_hidden() {
+    return <CellHiddenPart title={"Output is hidden; show via Edit --> Toggle hide output in the menu."}/>;
+  }
+
   render() {
+    if (this.props.cell.getIn(["metadata", "jupyter", "outputs_hidden"])) {
+      return this.render_hidden();
+    }
     if (this.props.cell.get("output") == null) {
       return <div />;
     }

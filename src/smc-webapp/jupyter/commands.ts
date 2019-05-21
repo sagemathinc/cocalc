@@ -14,7 +14,7 @@ const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
-require('./types');
+require("./types");
 import { NotebookMode } from "./types";
 
 export interface KeyboardCommand {
@@ -297,7 +297,10 @@ export function commands(
 
     "enter edit mode": {
       k: [{ which: 13, mode: "escape" }],
-      f: () => frame_actions.set_mode("edit")
+      f: () => {
+        frame_actions.unhide_current_input();
+        frame_actions.set_mode("edit");
+      }
     },
 
     "extend selection above": {
@@ -848,14 +851,21 @@ export function commands(
       f: () => actions.toggle_delete_protection()
     },
 
+    /* NOTE:  JupyterLab sticks fricking 9 lines related to this
+    functionality in the View menu.  I tried to implement this, but
+    it is such bad UX, I couldn't bring myself to do it.  It's bad
+    because: (1) the view menu should just show different ways of viewing
+    the doc, not change it, (2) the edit menu is for editing, (3) having
+    9 lines just for this means way more scrolling/searching in the menu.
+    */
     "toggle hide input": {
       m: "Toggle hide input",
-      f: () => frame_actions.toggle_hide_input()
+      f: () => frame_actions.toggle_source_hidden()
     },
 
-    "toggle hide cell": {
-      m: "Toggle hide selected cells",
-      f: () => frame_actions.toggle_hide_cell()
+    "toggle hide output": {
+      m: "Toggle hide output",
+      f: () => frame_actions.toggle_outputs_hidden()
     },
 
     "format cells": {

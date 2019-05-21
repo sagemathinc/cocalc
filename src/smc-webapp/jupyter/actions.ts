@@ -1032,6 +1032,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       start = this._last_start + 1;
     }
     this._last_start = start;
+    this.set_jupyter_metadata(id, 'outputs_hidden', undefined, false);
 
     this._set(
       {
@@ -1046,7 +1047,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-    return this.set_trust_notebook(true, save);
+    this.set_trust_notebook(true, save);
   };
 
   clear_cell = (id: any, save = true) => {
@@ -1384,6 +1385,46 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     this.save_asap();
   };
+
+  public toggle_jupyter_metadata_boolean(
+    id: string,
+    key: string,
+    save: boolean = true
+  ): void {
+    let jupyter = this.store
+      .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
+      .toJS();
+    jupyter[key] = !jupyter[key];
+    this.set_cell_metadata({
+      id,
+      metadata: { jupyter },
+      merge: true,
+      save
+    });
+  }
+
+  public set_jupyter_metadata(
+    id: string,
+    key: string,
+    value: any,
+    save: boolean = true
+  ): void {
+    let jupyter = this.store
+      .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
+      .toJS();
+    if (value == null && jupyter[key] == null) return; // nothing to do.
+    if (value != null) {
+      jupyter[key] = value;
+    } else {
+      delete jupyter[key];
+    }
+    this.set_cell_metadata({
+      id,
+      metadata: { jupyter },
+      merge: true,
+      save
+    });
+  }
 
   // Paste cells from the internal clipboard; also
   //   delta = 0 -- replace currently selected cells
@@ -2902,20 +2943,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       return false;
     }
-  }
-
-  public toggle_hide_input(id: string): void {
-    // See https://github.com/sagemathinc/cocalc/issues/3835
-    // We make it so tags includes "remove_input".
-    this.toggle_tag(id, "remove_input");
-  }
-
-  public toggle_hide_cell(id: string): void {
-    // We make it so tags includes "remove_cell".
-    // TODO: once hidden, how do you show a cell again?
-    // Need a different view mode for notebook that shows
-    // where the hidden stuff is...?
-    this.toggle_tag(id, "remove_cell");
   }
 }
 
