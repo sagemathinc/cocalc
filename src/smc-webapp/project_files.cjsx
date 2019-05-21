@@ -35,6 +35,8 @@ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, Cour
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
 {compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./custom-software/util')
+{ default_ext, EXTs} = require('./project/file-listing/utils')
+ALL_FILE_BUTTON_TYPES = EXTs
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -50,14 +52,6 @@ underscore            = require('underscore')
 {project_tasks}       = require('./project_tasks')
 {CustomSoftwareInfo}  = require('./custom-software/info-bar')
 {CustomSoftwareReset} = require('./custom-software/reset-bar')
-
-# treat this as const/readonly.
-# the order of these buttons also determines the precedence of suggested file extensions
-# see project/file-listing/utils.ts
-ALL_FILE_BUTTON_TYPES = exports.ALL_FILE_BUTTON_TYPES =
-    Object.freeze(['sagews', 'ipynb',  'tex', 'term',  'x11',
-        'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat'
-    ])
 
 
 ROW_INFO_STYLE = Object.freeze
@@ -1623,10 +1617,13 @@ exports.ProjectFiles = rclass ({name}) ->
         @actions(name).setState(page_number : @props.page_number + 1)
 
     create_file: (ext, switch_over=true) ->
-        if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
-            ext = "sagews"
+        file_search = @props.file_search
+        if not ext? and file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
+            disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            ext = default_ext(disabled_ext)
+
         @actions(name).create_file
-            name         : @props.file_search
+            name         : file_search
             ext          : ext
             current_path : @props.current_path
             switch_over  : switch_over

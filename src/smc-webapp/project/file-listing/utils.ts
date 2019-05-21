@@ -2,17 +2,34 @@ import { ProjectActions } from "../../project_actions";
 
 const { file_actions } = require("../../project_store");
 
-const { ALL_FILE_BUTTON_TYPES } = require("../../project_files");
-
 export const TERM_MODE_CHAR = "/";
 
 // default extensions, in their order of precendence
-const EXTs: ReadonlyArray<string> = ALL_FILE_BUTTON_TYPES;
+// the order of these buttons also determines the precedence of suggested file extensions
+// see also smc-webapp/project_files.cjsx
+export const EXTs: ReadonlyArray<string> = Object.freeze([
+  "sagews",
+  "ipynb",
+  "tex",
+  "term",
+  "x11",
+  "rnw",
+  "rtex",
+  "rmd",
+  "md",
+  "tasks",
+  "course",
+  "sage",
+  "py",
+  "sage-chat"
+]);
 
-function default_ext(disabled_ext: string[]) {
-  for (let ext of EXTs) {
-    if (disabled_ext.includes(ext)) continue;
-    return ext;
+export function default_ext(disabled_ext: string[] | undefined) {
+  if (disabled_ext != null) {
+    for (let ext of EXTs) {
+      if (disabled_ext.includes(ext)) continue;
+      return ext;
+    }
   }
   // fallback, markdown files always work.
   return "md";
