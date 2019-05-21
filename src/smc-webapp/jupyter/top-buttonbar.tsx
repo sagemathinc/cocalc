@@ -19,16 +19,17 @@ interface TopButtonbarProps {
   sel_ids: immutable.Set<any>; // set of selected cells
   cells: immutable.Map<any, any>; // map from id to cells
 
+  name:string;
   // REDUX PROPS
   // [name]
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  read_only: boolean;
-  kernel_state: string;
-  kernel_usage: immutable.Map<any, any>;
+  has_unsaved_changes?: boolean;
+  has_uncommitted_changes?: boolean;
+  read_only?: boolean;
+  kernel_state?: string;
+  kernel_usage?: immutable.Map<any, any>;
 
   //page
-  fullscreen: string;
+  fullscreen?: string;
 }
 
 export class TopButtonbar0 extends Component<TopButtonbarProps> {

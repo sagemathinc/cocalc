@@ -4,26 +4,30 @@ Top-level react component, which ties everything together
 
 import { React, Component, Rendered, rclass, rtypes } from "../app-framework"; // TODO: this will move
 import * as immutable from "immutable";
-const { ErrorDisplay, Loading } = require("../r_misc");
+
+import { ErrorDisplay } from "../r_misc/error-display";
+import { Loading } from "../r_misc/loading";
+
 // React components that implement parts of the Jupyter notebook.
-const { TopMenubar } = require("./top-menubar");
-const { TopButtonbar } = require("./top-buttonbar");
-const { CellList } = require("./cell-list");
-const { Introspect } = require("./introspect");
-const { Kernel, Mode } = require("./status");
-const { About } = require("./about");
-const { NBConvert } = require("./nbconvert");
-const { InsertImage } = require("./insert-image");
+import { TopMenubar } from "./top-menubar";
+import { TopButtonbar } from "./top-buttonbar";
+import { CellList } from "./cell-list";
+import { Introspect } from "./introspect";
+import { Kernel, Mode } from "./status";
+import { About } from "./about";
+import { NBConvert } from "./nbconvert";
+import { InsertImage } from "./insert-image";
 import { EditAttachments } from "./edit-attachments";
-const { EditCellMetadata } = require("./edit-cell-metadata");
-const { FindAndReplace } = require("./find-and-replace");
-const { ConfirmDialog } = require("./confirm-dialog");
-const { KernelSelector } = require("./select-kernel");
-const { KeyboardShortcuts } = require("./keyboard-shortcuts");
-const { JSONView } = require("./json-view");
-const { RawEditor } = require("./raw-editor");
-const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
+import { EditCellMetadata } from "./edit-cell-metadata";
+import { FindAndReplace } from "./find-and-replace";
+import { ConfirmDialog } from "./confirm-dialog";
+import { KernelSelector } from "./select-kernel";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import { JSONView } from "./json-view";
+import { RawEditor } from "./raw-editor";
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
+
+const { ExamplesDialog } = require("../assistant/dialog");
 
 import { Scroll } from "./types";
 
@@ -38,11 +42,14 @@ const KERNEL_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap"
 };
 
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 interface JupyterEditorProps {
   // PROPS
   error?: string;
-  actions: any;
-  frame_actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   name: string; // name of the redux store
 
   // Comes explicitly from frontend Jupyter state stored in
@@ -50,7 +57,7 @@ interface JupyterEditorProps {
   // each view of the notebook, and survives closing and
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
-  is_fullscreen?: boolean;
+  is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
   mode: "edit" | "escape"; // oneOf(['edit', 'escape']).isRequired;
   font_size?: number;
 
@@ -199,7 +206,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.actions == null ||
       this.props.frame_actions == null ||
       this.props.cells == null ||
-      this.props.sel_ids == null
+      this.props.sel_ids == null ||
+      this.props.cur_id == null
     ) {
       return;
     } else {
@@ -220,7 +228,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.actions == null ||
       this.props.frame_actions == null ||
       this.props.cells == null ||
-      this.props.sel_ids == null
+      this.props.sel_ids == null ||
+      this.props.cur_id == null
     ) {
       return;
     } else {
@@ -266,7 +275,8 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
       this.props.cell_list == null ||
       this.props.font_size == null ||
       this.props.cm_options == null ||
-      this.props.kernels == null
+      this.props.kernels == null ||
+      this.props.cells == null
     ) {
       return (
         <Loading
@@ -330,14 +340,15 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_nbconvert() {
+    if (this.props.path == null || this.props.project_id == null) return;
     return (
       <NBConvert
         actions={this.props.actions}
         path={this.props.path}
+        project_id={this.props.project_id}
         nbconvert={this.props.nbconvert}
         nbconvert_dialog={this.props.nbconvert_dialog}
         backend_kernel_info={this.props.backend_kernel_info}
-        project_id={this.props.project_id}
       />
     );
   }
@@ -403,6 +414,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_confirm_dialog() {
+    if (this.props.confirm_dialog == null) return;
     return (
       <ConfirmDialog
         actions={this.props.actions}
@@ -412,7 +424,9 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_select_kernel() {
-    if (this.props.editor_settings == null) return;
+    if (this.props.editor_settings == null || this.props.site_name == null)
+      return;
+
     const ask_jupyter_kernel = this.props.editor_settings.get(
       "ask_jupyter_kernel"
     );
@@ -466,7 +480,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_raw_editor() {
-    if (this.props.raw_ipynb == null || this.props.cm_options == null) {
+    if (this.props.raw_ipynb == null || this.props.cm_options == null || this.props.font_size == null) {
       return <Loading />;
     }
     return (

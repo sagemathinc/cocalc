@@ -12,8 +12,9 @@ const { instantiate_assistant } = require("../assistant/main");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
+  public assistant_actions: any;
+
   private cursor_manager: CursorManager;
-  private assistant_actions: any;
   private _account_change_editor_settings: any;
   private _commands: any;
   private update_keyboard_shortcuts: any;

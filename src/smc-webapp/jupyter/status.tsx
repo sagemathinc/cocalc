@@ -11,6 +11,7 @@ import { trunc } from "smc-util/misc2";
 
 interface ModeProps {
   mode?: string;
+  name:string;
 }
 
 class Mode0 extends Component<ModeProps> {
@@ -73,16 +74,18 @@ interface KernelProps {
   // OWN PROPS
   actions: any;
   is_fullscreen?: boolean;
+  name: string;
+
   // REDUX PROPS
-  kernel: string;
-  kernels: immutable.List<any>;
-  project_id: string;
-  kernel_info: immutable.Map<any, any>;
-  backend_state: string;
-  kernel_state: string;
-  kernel_usage: immutable.Map<any, any>;
-  trust: boolean;
-  read_only: boolean;
+  kernel?: string;
+  kernels?: immutable.List<any>;
+  project_id?: string;
+  kernel_info?: immutable.Map<any, any>;
+  backend_state?: string;
+  kernel_state?: string;
+  kernel_usage?: immutable.Map<any, any>;
+  trust?: boolean;
+  read_only?: boolean;
 }
 
 class Kernel0 extends Component<KernelProps> {

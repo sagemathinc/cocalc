@@ -7,7 +7,12 @@ File, Edit, etc....
 import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 import * as immutable from "immutable";
-import { ButtonGroup, Dropdown, MenuItem, SelectCallback } from "react-bootstrap";
+import {
+  ButtonGroup,
+  Dropdown,
+  MenuItem,
+  SelectCallback
+} from "react-bootstrap";
 const { Icon } = require("../r_misc");
 const { KeyboardShortcut } = require("./keyboard-shortcuts");
 const misc_page = require("../misc_page");
@@ -36,21 +41,23 @@ interface TopMenubarProps {
   frame_actions: NotebookFrameActions;
   cur_id: string;
   cells: immutable.Map<any, any>; // map from id to cells
+
+  name: string;
   // REDUX PROPS
   // [name]
-  kernels: immutable.List<any>;
-  kernel: string;
-  kernel_state: string;
-  has_unsaved_changes: boolean;
-  kernel_info: immutable.Map<any, any>;
-  backend_kernel_info: immutable.Map<any, any>;
-  trust: boolean;
-  view_mode: string;
-  toolbar: boolean;
-  cell_toolbar: string;
-  read_only: boolean;
+  kernels?: immutable.List<any>;
+  kernel?: string;
+  kernel_state?: string;
+  has_unsaved_changes?: boolean;
+  kernel_info?: immutable.Map<any, any>;
+  backend_kernel_info?: immutable.Map<any, any>;
+  trust?: boolean;
+  view_mode?: string;
+  toolbar?: boolean;
+  cell_toolbar?: string;
+  read_only?: boolean;
   // page
-  fullscreen: string;
+  fullscreen?: string;
 }
 
 export class TopMenubar0 extends Component<TopMenubarProps> {
@@ -92,23 +99,27 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   }
 
   render_file() {
-    let script_entry, trust;
-    const ext =
-      this.props.backend_kernel_info != null
-        ? this.props.backend_kernel_info.getIn([
-            "language_info",
-            "file_extension"
-          ])
-        : undefined;
-    if (ext != null) {
-      const m = capitalize(
-        this.props.backend_kernel_info.getIn(["language_info", "name"])
-      );
-      script_entry = { name: ">nbconvert script", display: `${m} (${ext})...` };
-    } else {
+    let script_entry: any = undefined;
+    if (this.props.backend_kernel_info != null) {
+      const ext = this.props.backend_kernel_info.getIn([
+        "language_info",
+        "file_extension"
+      ]);
+      if (ext != null) {
+        const m = capitalize(
+          this.props.backend_kernel_info.getIn(["language_info", "name"], "")
+        );
+        script_entry = {
+          name: ">nbconvert script",
+          display: `${m} (${ext})...`
+        };
+      }
+    }
+    if (script_entry === undefined) {
       script_entry = ">nbconvert script";
     }
 
+    let trust;
     if (this.props.trust) {
       trust = { name: "<trust notebook", display: "Trusted notebook" };
     } else {
@@ -206,6 +217,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   }
 
   render_view() {
+    if (this.props.view_mode == null) return;
     const shownb = {
       normal: ">view notebook normal",
       raw: ">view notebook raw",
