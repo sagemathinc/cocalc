@@ -221,7 +221,7 @@ export class NewProjectCreator extends Component<Props, State> {
           onClick={() => this.setState({ show_advanced: true })}
           style={{ cursor: "pointer" }}
         >
-          Advanced ...
+          Advanced…
         </a>
       </div>
     );
