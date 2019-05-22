@@ -84,12 +84,16 @@ block content
         div.col-md-6
           div.
             You can share your Jupyter notebooks privately with project collaborators.
-            Modifications are #[strong synchronized in real time].
-            Watch the cursors of others while they edit the document.
+            All modifications are #[strong synchronized in real time],
+            where you can see the cursors of others while they edit the document.
             You are also notified about the presence of watching collaborators.
           div.
+            Even sliders, menus and knobs of
+            #[a(href="https://ipywidgets.readthedocs.io/en/stable/examples/Widget%20Basics.html") interactive widgets]
+            are synchronized among all collaborators.
+          div.
             Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
-            because it is fully hosted on #{NAME}.
+            because the session runs remotely in #{NAME}'s cluster.
           div.
             Together, everyone involved experiences the document in exactly the same way.
 
