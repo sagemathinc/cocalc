@@ -414,7 +414,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_confirm_dialog() {
-    if (this.props.confirm_dialog == null) return;
+    if (this.props.confirm_dialog == null || this.props.actions == null) return;
     return (
       <ConfirmDialog
         actions={this.props.actions}

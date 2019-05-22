@@ -63,6 +63,8 @@ import { connection_to_project } from "../project/websocket/connect";
 
 import { codemirror_to_jupyter_pos } from "./util";
 
+import { ConfirmDialogOptions } from "./confirm-dialog";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -853,7 +855,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb.commit();
   };
 
-  save = async () => {
+  public save = async (): Promise<void> => {
     if (this.store.get("read_only")) {
       // can't save when readonly
       return;
@@ -2147,11 +2149,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // Display a confirmation dialog, then call opts.cb with the choice.
-  // See confirm-dialog.cjsx for options.
-  confirm_dialog = async (opts: any) => {
+  // TODO: 100% move this to the frame-tree actions, since it would
+  // be generically useful!
+  // Display a confirmation dialog, then return the chosen option.
+  public async confirm_dialog(
+    confirm_dialog: ConfirmDialogOptions
+  ): Promise<string> {
     this.blur_lock();
-    this.setState({ confirm_dialog: opts });
+    this.setState({ confirm_dialog });
     function dialog_is_closed(state): string | undefined {
       const c = state.get("confirm_dialog");
       if (c == null) {
@@ -2162,33 +2167,33 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     try {
-      const choice = await callback2(this.store.wait, {
+      return await callback2(this.store.wait, {
         until: dialog_is_closed,
         timeout: 0
       });
-      opts.cb(choice);
     } catch (err) {
-      console.warn("Error -- ", err); // TODO??!
+      console.warn("Jupyter modal dialog error -- ", err);
+      return "cancel";
     } finally {
       this.focus_unlock();
     }
-  };
+  }
 
-  close_confirm_dialog = (choice: any): void => {
-    if (choice == null) {
-      return this.setState({ confirm_dialog: undefined });
-    } else {
-      const confirm_dialog = this.store.get("confirm_dialog");
-      if (confirm_dialog != null) {
-        this.setState({
-          confirm_dialog: confirm_dialog.set("choice", choice)
-        });
-      }
+  public close_confirm_dialog(choice?: string): void {
+    if (choice === undefined) {
+      this.setState({ confirm_dialog: undefined });
+      return;
     }
-  };
+    const confirm_dialog = this.store.get("confirm_dialog");
+    if (confirm_dialog != null) {
+      this.setState({
+        confirm_dialog: confirm_dialog.set("choice", choice)
+      });
+    }
+  }
 
-  trust_notebook = () => {
-    return this.confirm_dialog({
+  public async trust_notebook(): Promise<void> {
+    const choice = await this.confirm_dialog({
       icon: "warning",
       title: "Trust this Notebook?",
       body:
@@ -2196,14 +2201,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       choices: [
         { title: "Trust", style: "danger", default: true },
         { title: "Cancel" }
-      ],
-      cb: choice => {
-        if (choice === "Trust") {
-          return this.set_trust_notebook(true);
-        }
-      }
+      ]
     });
-  };
+    if (choice === "Trust") {
+      this.set_trust_notebook(true);
+    }
+  }
 
   set_trust_notebook = (trust: any, save: boolean = true) => {
     return this._set(
@@ -2826,8 +2829,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     await this.format_cells(all_cells.toJS(), sync);
   };
 
-  switch_to_classical_notebook = () => {
-    return this.confirm_dialog({
+  public async switch_to_classical_notebook(): Promise<void> {
+    const choice = await this.confirm_dialog({
       title: "Switch to the Classical Notebook?",
       body:
         "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
@@ -2836,19 +2839,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       choices: [
         { title: "Switch to Classical Notebook", style: "warning" },
         { title: "Continue using CoCalc Jupyter Notebook", default: true }
-      ],
-      cb: choice => {
-        if (choice !== "Switch to Classical Notebook") {
-          return;
-        }
-        (this.redux.getTable("account") as any).set({
-          editor_settings: { jupyter_classic: true }
-        });
-        this.save();
-        return this.file_action("reopen_file", this.store.get("path"));
-      }
+      ]
     });
-  };
+    if (choice !== "Switch to Classical Notebook") {
+      return;
+    }
+    (this.redux.getTable("account") as any).set({
+      editor_settings: { jupyter_classic: true }
+    });
+    await this.save();
+    this.file_action("reopen_file", this.store.get("path"));
+  }
 
   public async close_and_halt(): Promise<void> {
     // Display the main file listing page

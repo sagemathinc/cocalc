@@ -143,35 +143,35 @@ export function commands(
       m: "Close pager",
       k: [{ which: 27, mode: "escape" }],
       f: () =>
-        store.get("introspect") != null ? actions.clear_introspect() : undefined
+        store.get("introspect") != null
+          ? jupyter_actions.clear_introspect()
+          : undefined
     },
 
     "confirm restart kernel": {
       m: "Restart kernel...",
       i: "refresh",
       k: [{ mode: "escape", which: 48, twice: true }],
-      f() {
-        return actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Restart kernel?",
           body:
             "Do you want to restart the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Restart", style: "danger", default: true }
-          ],
-          cb(choice) {
-            if (choice === "Restart") {
-              return actions.restart();
-            }
-          }
+          ]
         });
+        if (choice === "Restart") {
+          jupyter_actions.restart();
+        }
       }
     },
 
     "confirm restart kernel and clear output": {
       m: "Restart and clear output...",
-      f() {
-        return actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Restart kernel and clear all output?",
           body:
             "Do you want to restart the current kernel and clear all output?  All variables and outputs will be lost, though most past output is always available in TimeTravel.",
@@ -182,23 +182,20 @@ export function commands(
               style: "danger",
               default: true
             }
-          ],
-          cb(choice) {
-            if (choice === "Restart and clear all outputs") {
-              actions.restart();
-              return actions.clear_all_outputs();
-            }
-          }
+          ]
         });
+        if (choice === "Restart and clear all outputs") {
+          jupyter_actions.restart();
+          jupyter_actions.clear_all_outputs();
+        }
       }
     },
 
     "confirm restart kernel and run all cells": {
       m: "Restart and run all...",
       i: "forward",
-      f() {
-        // TODO: async/await?
-        actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Restart kernel and re-run the whole notebook?",
           body:
             "Are you sure you want to restart the current kernel and re-execute the whole notebook?  All variables and output will be lost, though most past output is always available in TimeTravel.",
@@ -209,34 +206,30 @@ export function commands(
               style: "danger",
               default: true
             }
-          ],
-          async cb(choice) {
-            if (choice === "Restart and run all cells") {
-              await actions.restart();
-              actions.run_all_cells();
-            }
-          }
+          ]
         });
+        if (choice === "Restart and run all cells") {
+          await actions.restart();
+          actions.run_all_cells();
+        }
       }
     },
 
     "confirm shutdown kernel": {
       m: "Shutdown kernel...",
-      f() {
-        actions.confirm_dialog({
+      async f(): Promise<void> {
+        const choice = await jupyter_actions.confirm_dialog({
           title: "Shutdown kernel?",
           body:
             "Do you want to shutdown the current kernel?  All variables will be lost.",
           choices: [
             { title: "Continue running" },
             { title: "Shutdown", style: "danger", default: true }
-          ],
-          cb(choice) {
-            if (choice === "Shutdown") {
-              actions.shutdown();
-            }
-          }
+          ]
         });
+        if (choice === "Shutdown") {
+          actions.shutdown();
+        }
       }
     },
 
@@ -731,7 +724,7 @@ export function commands(
 
     "switch to classical notebook": {
       m: "Switch to classical notebook...",
-      f: () => actions.switch_to_classical_notebook()
+      f: () => jupyter_actions.switch_to_classical_notebook()
     },
 
     "tab key": {
