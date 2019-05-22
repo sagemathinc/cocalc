@@ -41,7 +41,7 @@ export interface JupyterStoreState {
   kernels?: Kernels;
   kernel_info?: any;
   max_output_length: number;
-  metadata: any;   // documented at https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
+  metadata: any; // documented at https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
   md_edit_ids: Set<string>;
   path: string;
   directory: string;
@@ -109,16 +109,16 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return selected;
   };
 
-  public get_cell_list = (): ImmutableList<any> => {
+  public get_cell_list = (): ImmutableList<string> => {
     return this.get("cell_list", ImmutableList([]));
   };
 
-  get_selected_cell_ids_list = () => {
+  public get_selected_cell_ids_list = () => {
     this.deprecated("get_selected_cell_ids_list");
     return [];
   };
 
-  get_cell_index(id: string): number {
+  public get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
     if (cell_list == null) {
       throw Error("ordered list of cell id's not known");
@@ -139,7 +139,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   // cursor or from cell with given id (second input).
   // Returns undefined if no currently selected cell, or if delta
   // positions moves out of the notebook (so there is no such cell).
-  get_cell_id = (delta = 0, id?: any) => {
+  public get_cell_id = (delta = 0, id?: string) => {
     let i;
     if (id != null) {
       i = this.get_cell_index(id);
@@ -158,7 +158,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   set_global_clipboard = (clipboard: any) => {
-    return (global_clipboard = clipboard);
+    global_clipboard = clipboard;
   };
 
   get_global_clipboard = () => {
@@ -406,18 +406,33 @@ export class JupyterStore extends Store<JupyterStoreState> {
       .get_raw_link(path);
   };
 
-  is_cell_editable = (id: any) => {
-    return this.get_cell_metadata_flag(id, "editable");
-  };
+  // NOTE: defaults for these happen to be true if not given (due to bad
+  // choice of name by some extension author).
+  public is_cell_editable(id: string): boolean {
+    return this.get_cell_metadata_flag(id, "editable", true);
+  }
 
-  is_cell_deletable = (id: any) => {
-    return this.get_cell_metadata_flag(id, "deletable");
-  };
+  public is_cell_deletable(id: string): boolean {
+    if (!this.is_cell_editable(id)) {
+      // I've decided that if a cell is not editable, then it is
+      // automatically not deletable.  Relevant facts:
+      //    1. It makes sense to me.
+      //    2. This is what Jupyter classic does.
+      //    3. This is NOT what JupyterLab does.
+      //    4. The spec doesn't mention deletable: https://nbformat.readthedocs.io/en/latest/format_description.html#cell-metadata
+      // See my rant here: https://github.com/jupyter/notebook/issues/3700
+      return false;
+    }
+    return this.get_cell_metadata_flag(id, "deletable", true);
+  }
 
-  get_cell_metadata_flag = (id: any, key: any) => {
-    // default is true
-    return this.unsafe_getIn(["cells", id, "metadata", key], true); // TODO: type
-  };
+  public get_cell_metadata_flag(
+    id: string,
+    key: string,
+    default_value: boolean = false
+  ): boolean {
+    return this.unsafe_getIn(["cells", id, "metadata", key], default_value);
+  }
 
   // canonicalize the language of the kernel
   get_kernel_language = (): string | undefined => {

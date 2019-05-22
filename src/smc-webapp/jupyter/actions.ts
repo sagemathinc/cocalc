@@ -338,15 +338,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   clear_selected_outputs = () => {
+    this.deprecated("clear_selected_outputs");
+  };
+
+  // Clear output in the list of cell id's.
+  public clear_outputs(cell_ids: string[]): void {
     const cells = this.store.get("cells");
     if (cells == null) return; // nothing to do
-    const v = this.store.get_selected_cell_ids_list();
-    for (let id of v) {
+    let not_editable: number = 0;
+    for (let id of cell_ids) {
       const cell = cells.get(id);
       if (!this.store.is_cell_editable(id)) {
-        if (v.length === 1) {
-          this.show_edit_protection_error();
-        }
+        not_editable += 1;
         continue;
       }
       if (cell.get("output") != null || cell.get("exec_count")) {
@@ -354,29 +357,29 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     this._sync();
-  };
-
-  clear_all_outputs = (): void => {
-    let not_editable = 0;
-    const cells = this.store.get("cells");
-    if (cells == null) return; // nothing to do
-    cells.forEach((cell, id) => {
-      if (cell.get("output") != null || cell.get("exec_count")) {
-        if (!this.store.is_cell_editable(id)) {
-          not_editable += 1;
-        } else {
-          this._set(
-            { type: "cell", id, output: null, exec_count: null },
-            false
-          );
-        }
-      }
-    });
-    this._sync();
     if (not_editable > 0) {
-      this.set_error("One or more cells are protected from editing.");
+      this.show_not_editable_error(not_editable);
     }
-  };
+  }
+
+  public clear_all_outputs(): void {
+    this.clear_outputs(this.store.get_cell_list().toJS());
+  }
+
+  private show_not_xable_error(x: string, n: number): void {
+    if (n <= 0) return;
+    const verb: string = n === 1 ? "is" : "are";
+    const noun: string = misc.plural(n, "cell");
+    this.set_error(`${n} ${noun} ${verb} protected from ${x}.`);
+  }
+
+  private show_not_editable_error(n: number = 1): void {
+    this.show_not_xable_error("editing", n);
+  }
+
+  private show_not_deletable_error(n: number = 1): void {
+    this.show_not_xable_error("deletion", n);
+  }
 
   // prop can be: 'collapsed', 'scrolled'
   toggle_output = (id: any, prop: any) => {
@@ -949,17 +952,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (not_deletable === 0) return;
 
     if (cells.length === 1) {
-      this.show_delete_protection_error();
       this.move_cursor_to_cell(cells[0]);
-    } else {
-      const verb = not_deletable === 1 ? "is" : "are";
-      this.set_error(
-        `${not_deletable} ${misc.plural(
-          not_deletable,
-          "cell"
-        )} ${verb} protected from deletion.`
-      );
     }
+    this.show_not_deletable_error(not_deletable);
   }
 
   move_selected_cells = (delta: number) => {
@@ -1032,7 +1027,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       start = this._last_start + 1;
     }
     this._last_start = start;
-    this.set_jupyter_metadata(id, 'outputs_hidden', undefined, false);
+    this.set_jupyter_metadata(id, "outputs_hidden", undefined, false);
 
     this._set(
       {
@@ -1331,60 +1326,43 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.delete_selected_cells();
   };
 
-  // write protection disables any modifications, entering "edit" mode, and prohibits cell evaluations
-  // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  toggle_write_protection = (): void => {
-    // also make sure to switch to escape mode and eval markdown cells
-    this.set_mode("escape");
-    const f = id => {
-      const type = this.store.getIn(["cells", id, "cell_type"]);
-      if (type === "markdown") {
-        return this.set_md_cell_not_editing(id);
-      }
-    };
-    this.toggle_metadata_boolean("editable", f);
-  };
+  /* write protection disables any modifications, entering "edit"
+     mode, and prohibits cell evaluations example: teacher handout
+     notebook and student should not be able to modify an
+     instruction cell in any way. */
+  public toggle_write_protection_on_cells(cell_ids: string[]): void {
+    this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true);
+  }
 
   // this prevents any cell from being deleted, either directly, or indirectly via a "merge"
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
-  toggle_delete_protection = (): void => {
-    this.toggle_metadata_boolean("deletable");
-  };
-
-  show_edit_protection_error = (): void => {
-    this.set_error("This cell is protected from editing.");
-  };
-
-  show_delete_protection_error = (): void => {
-    this.set_error("This cell is protected from deletion.");
-  };
+  public toggle_delete_protection_on_cells(cell_ids: string[]): void {
+    this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true);
+  }
 
   // This toggles the boolean value of given metadata field.
   // If not set, it is assumed to be true and toggled to false
   // For more than one cell, the first one is used to toggle all cells to the inverted state
-  toggle_metadata_boolean = (key: any, extra_processing?: any): void => {
-    let new_value: any = undefined;
-    for (let id of this.store.get_selected_cell_ids_list()) {
-      if (new_value == null) {
-        var left;
-        const current_value =
-          (left = this.store.getIn(["cells", id, "metadata", key])) != null
-            ? left
-            : true;
-        new_value = !current_value;
-      }
-      if (typeof extra_processing === "function") {
-        extra_processing(id);
-      }
+  private toggle_metadata_boolean_on_cells(
+    cell_ids: string[],
+    key: string,
+    default_value: boolean // default metadata value, if the metadata field is not set.
+  ): void {
+    for (let id of cell_ids) {
       this.set_cell_metadata({
         id,
-        metadata: { [key]: new_value },
+        metadata: {
+          [key]: !this.store.getIn(
+            ["cells", id, "metadata", key],
+            default_value
+          )
+        },
         merge: true,
         save: true
       });
     }
     this.save_asap();
-  };
+  }
 
   public toggle_jupyter_metadata_boolean(
     id: string,
@@ -2938,7 +2916,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   public check_edit_protection(id: string): boolean {
     if (!this.store.is_cell_editable(id)) {
-      this.show_edit_protection_error();
+      this.show_not_editable_error();
       return true;
     } else {
       return false;

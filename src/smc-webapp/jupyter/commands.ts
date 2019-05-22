@@ -44,7 +44,7 @@ export function commands(
   function id(): string {
     return frame_actions.store.get("cur_id");
   }
-  
+
   const actions = jupyter_actions; // TODO
   const store = actions.store; // todo
 
@@ -61,76 +61,76 @@ export function commands(
 
     "cell toolbar tags": {
       m: "Edit cell tags",
-      f: () => actions.cell_toolbar("tags")
+      f: () => jupyter_actions.cell_toolbar("tags")
     },
 
     "cell toolbar metadata": {
       m: "Edit custom metadata",
-      f: () => actions.cell_toolbar("metadata")
+      f: () => jupyter_actions.cell_toolbar("metadata")
     },
 
     "cell toolbar slideshow": {
       m: "Slideshow toolbar",
-      f: () => actions.cell_toolbar("slideshow")
+      f: () => jupyter_actions.cell_toolbar("slideshow")
     },
 
     "change cell to code": {
       m: "Change to code",
       k: [{ which: 89, mode: "escape" }],
-      f: () => actions.set_selected_cell_type("code")
+      f: () => frame_actions.set_selected_cell_type("code")
     },
 
     "change cell to heading 1": {
       m: "Heading 1",
       k: [{ which: 49, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 1)
+      f: () => jupyter_actions.change_cell_to_heading(id(), 1)
     },
     "change cell to heading 2": {
       m: "Heading 2",
       k: [{ which: 50, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 2)
+      f: () => jupyter_actions.change_cell_to_heading(id(), 2)
     },
     "change cell to heading 3": {
       m: "Heading 3",
       k: [{ which: 51, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 3)
+      f: () => jupyter_actions.change_cell_to_heading(id(), 3)
     },
     "change cell to heading 4": {
       m: "Heading 4",
       k: [{ which: 52, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 4)
+      f: () => jupyter_actions.change_cell_to_heading(id(), 4)
     },
     "change cell to heading 5": {
       m: "Heading 5",
       k: [{ which: 53, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 5)
+      f: () => jupyter_actions.change_cell_to_heading(id(), 5)
     },
     "change cell to heading 6": {
       m: "Heading 6",
       k: [{ which: 54, mode: "escape" }],
-      f: () => actions.change_cell_to_heading(id(), 6)
+      f: () => jupyter_actions.change_cell_to_heading(id(), 6)
     },
 
     "change cell to markdown": {
       m: "Change to markdown",
       k: [{ which: 77, mode: "escape" }],
-      f: () => actions.set_selected_cell_type("markdown")
+      f: () => frame_actions.set_selected_cell_type("markdown")
     },
 
     "change cell to raw": {
       m: "Change to raw",
       k: [{ which: 82, mode: "escape" }],
-      f: () => actions.set_selected_cell_type("raw")
+      f: () => frame_actions.set_selected_cell_type("raw")
     },
 
     "clear all cells output": {
       m: "Clear all output",
-      f: () => actions.clear_all_outputs()
+      f: () => jupyter_actions.clear_all_outputs()
     },
 
     "clear cell output": {
       m: "Clear output",
-      f: () => actions.clear_selected_outputs()
+      f: () => frame_actions.clear_selected_outputs()
     },
 
     "close and halt": {
@@ -421,14 +421,14 @@ export function commands(
 
     "move cell down": {
       i: "arrow-down",
-      m: "Move cell down",
+      m: "Move cells down",
       k: [{ alt: true, mode: "escape", which: 40 }],
       f: () => frame_actions.move_selected_cells(1)
     },
 
     "move cell up": {
       i: "arrow-up",
-      m: "Move cell up",
+      m: "Move cells up",
       k: [{ alt: true, mode: "escape", which: 38 }],
       f: () => frame_actions.move_selected_cells(-1)
     },
@@ -843,13 +843,13 @@ export function commands(
     },
 
     "write protect": {
-      m: "Toggle write protection",
-      f: () => actions.toggle_write_protection()
+      m: "Toggle whether cells are editable",
+      f: () => frame_actions.toggle_write_protection_on_selected_cells()
     },
 
     "delete protect": {
-      m: "Toggle delete protection",
-      f: () => actions.toggle_delete_protection()
+      m: "Toggle whether cells are deletable",
+      f: () => frame_actions.toggle_delete_protection_on_selected_cells()
     },
 
     /* NOTE:  JupyterLab sticks fricking 9 lines related to this
@@ -860,12 +860,12 @@ export function commands(
     9 lines just for this means way more scrolling/searching in the menu.
     */
     "toggle hide input": {
-      m: "Toggle hide input",
+      m: "Toggle hide input of cells",
       f: () => frame_actions.toggle_source_hidden()
     },
 
     "toggle hide output": {
-      m: "Toggle hide output",
+      m: "Toggle hide output of cells",
       f: () => frame_actions.toggle_outputs_hidden()
     },
 

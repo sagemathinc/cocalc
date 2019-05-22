@@ -611,6 +611,10 @@ export class NotebookFrameActions {
     );
   }
 
+  public clear_selected_outputs(): void {
+    this.jupyter_actions.clear_outputs(this.store.get_selected_cell_ids_list());
+  }
+
   public split_current_cell(): void {
     /*
     const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
@@ -667,5 +671,25 @@ export class NotebookFrameActions {
     this.set_cell_input(cursor.id, bottom, true);
     this.set_cur_id(cursor.id);
     */
+  }
+
+  public toggle_write_protection_on_selected_cells(): void {
+    // also make sure to switch to escape mode and eval markdown cells
+    /*
+    this.set_mode("escape");
+    const f = id => {
+      const type = this.store.getIn(["cells", id, "cell_type"]);
+      if (type === "markdown") {
+        return this.set_md_cell_not_editing(id);
+      }
+    };
+*/
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
+  }
+
+  public toggle_delete_protection_on_selected_cells(): void {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.toggle_delete_protection_on_cells(cell_ids);
   }
 }
