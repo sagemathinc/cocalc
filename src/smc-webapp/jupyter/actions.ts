@@ -27,43 +27,43 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
 
+// NOTE! The smc-util symlink is so we can import this same
+// code in the project as well as here, due to me not
+// being able to properly figure out some typescript path issue.
+// **It's just a hack.**
+
 // for now we also use require here, so also works in
 // project -- do not change willy nilly!
-const { callback2, retry_until_success } = require("smc-util/async-utils");
-
+import { callback2, retry_until_success } from "./smc-util/async-utils";
 import * as awaiting from "awaiting";
-
-const misc = require("smc-util/misc");
+import * as misc from "./smc-util/misc";
 const { required, defaults } = misc;
+
+import { three_way_merge } from "./smc-util/sync/editor/generic/util";
+
+
 import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
   show_kernel_selector_reasons
 } from "./store";
-const util = require("./util");
-const parsing = require("./parsing");
+import * as util from "./util";
+import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
-const { cm_options } = require("./cm_options");
-const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
+import { cm_options } from "./cm_options";
 
 // map project_id (string) -> kernels (immutable)
 import { Kernels, Kernel } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
-const { IPynbImporter } = require("./import-from-ipynb");
-
-// Using require due to project import path issue... :-(
-// import { three_way_merge } from "smc-util/sync/editor/generic/util";
-const { three_way_merge } = require("smc-util/sync/editor/generic/util");
+import { IPynbImporter } from "./import-from-ipynb";
 
 import { JupyterKernelInterface } from "./project-interface";
 
 import { connection_to_project } from "../project/websocket/connect";
 
 import { codemirror_to_jupyter_pos } from "./util";
-
-import { ConfirmDialogOptions } from "./confirm-dialog";
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -1365,21 +1365,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  // Copy all currently selected cells into our internal clipboard
-  copy_selected_cells = (): void => {
+  // Copy the list of cells into our internal clipboard
+  public copy_cells(cell_ids: string[]): void {
     const cells = this.store.get("cells");
     let global_clipboard = immutable.List();
-    for (let id of this.store.get_selected_cell_ids_list()) {
+    for (let id of cell_ids) {
       global_clipboard = global_clipboard.push(cells.get(id));
     }
     this.store.set_global_clipboard(global_clipboard);
-  };
-
-  // Cut currently selected cells, putting them in internal clipboard
-  cut_selected_cells = (): void => {
-    this.copy_selected_cells();
-    this.delete_selected_cells();
-  };
+  }
 
   /* write protection disables any modifications, entering "edit"
      mode, and prohibits cell evaluations example: teacher handout
@@ -1460,31 +1454,32 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   // Paste cells from the internal clipboard; also
-  //   delta = 0 -- replace currently selected cells
-  //   delta = 1 -- paste cells below last selected cell
-  //   delta = -1 -- paste cells above first selected cell
-  paste_cells = (delta = 1) => {
-    let cell_before_pasted_id;
-    const cells = this.store.get("cells");
-    const v = this.store.get_selected_cell_ids_list();
-    if (v.length === 0) {
-      return; // no selected cells
+  //   delta = 0 -- replace cell_ids cells
+  //   delta = 1 -- paste cells below last cell in cell_ids
+  //   delta = -1 -- paste cells above first cell in cell_ids.
+  public paste_cells_at(cell_ids: string[], delta: 0 | 1 | -1 = 1): void {
+    if (cell_ids.length === 0) {
+      throw Error("cell_ids must have length at least 1");
     }
-    if (delta === 0 || delta === -1) {
-      cell_before_pasted_id = this.store.get_cell_id(-1, v[0]); // one before first selected
+    let cell_before_pasted_id: string;
+    const cells = this.store.get("cells");
+    if (delta === -1 || delta === 0) {
+      // one before first selected
+      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]);
     } else if (delta === 1) {
-      cell_before_pasted_id = v[v.length - 1]; // last selected
+      // last selected
+      cell_before_pasted_id = cell_ids[cell_ids.length - 1];
     } else {
-      console.warn(`paste_cells: invalid delta=${delta}`);
-      return;
+      // Typescript should prevent this, but just to be sure.
+      throw Error(`delta (=${delta}) must be 0, -1, or 1`);
     }
     try {
-      let after_pos, before_pos;
+      let after_pos: number, before_pos: number | undefined;
       if (delta === 0) {
-        // replace, so delete currently selected, unless just the cursor, since
-        // cursor vs selection is confusing with Jupyer's model.
-        if (v.length > 1) {
-          this.delete_selected_cells(false);
+        // replace, so delete cell_ids, unless just one, since
+        // cursor cell_ids selection is confusing with Jupyter's model.
+        if (cell_ids.length > 1) {
+          this.delete_cells(cell_ids, false);
         }
       }
       const clipboard = this.store.get_global_clipboard();
@@ -1495,7 +1490,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (cell_before_pasted_id == null) {
         // very top cell
         before_pos = undefined;
-        after_pos = cells.getIn([v[0], "pos"]);
+        after_pos = cells.getIn([cell_ids[0], "pos"]);
       } else {
         before_pos = cells.getIn([cell_before_pasted_id, "pos"]);
         after_pos = cells.getIn([
@@ -1508,7 +1503,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         after_pos,
         clipboard.size
       );
-      return clipboard.forEach((cell, i) => {
+      clipboard.forEach((cell, i) => {
         cell = cell.set("id", this._new_id()); // randomize the id of the cell
         cell = cell.set("pos", positions[i]);
         this._set(cell, false);
@@ -1517,7 +1512,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // very important that we save whatever is done above, so other viewers see it.
       this._sync();
     }
-  };
+  }
 
   toggle_toolbar = () => {
     return this.set_toolbar_state(!this.store.get("toolbar"));
@@ -2149,65 +2144,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  // TODO: 100% move this to the frame-tree actions, since it would
-  // be generically useful!
-  // Display a confirmation dialog, then return the chosen option.
-  public async confirm_dialog(
-    confirm_dialog: ConfirmDialogOptions
-  ): Promise<string> {
-    this.blur_lock();
-    this.setState({ confirm_dialog });
-    function dialog_is_closed(state): string | undefined {
-      const c = state.get("confirm_dialog");
-      if (c == null) {
-        // deleting confirm_dialog prop is same as cancelling.
-        return "cancel";
-      } else {
-        return c.get("choice");
-      }
-    }
-    try {
-      return await callback2(this.store.wait, {
-        until: dialog_is_closed,
-        timeout: 0
-      });
-    } catch (err) {
-      console.warn("Jupyter modal dialog error -- ", err);
-      return "cancel";
-    } finally {
-      this.focus_unlock();
-    }
-  }
-
-  public close_confirm_dialog(choice?: string): void {
-    if (choice === undefined) {
-      this.setState({ confirm_dialog: undefined });
-      return;
-    }
-    const confirm_dialog = this.store.get("confirm_dialog");
-    if (confirm_dialog != null) {
-      this.setState({
-        confirm_dialog: confirm_dialog.set("choice", choice)
-      });
-    }
-  }
-
-  public async trust_notebook(): Promise<void> {
-    const choice = await this.confirm_dialog({
-      icon: "warning",
-      title: "Trust this Notebook?",
-      body:
-        "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
-      choices: [
-        { title: "Trust", style: "danger", default: true },
-        { title: "Cancel" }
-      ]
-    });
-    if (choice === "Trust") {
-      this.set_trust_notebook(true);
-    }
-  }
-
   set_trust_notebook = (trust: any, save: boolean = true) => {
     return this._set(
       {
@@ -2828,37 +2764,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const all_cells = this.store.get_cell_list();
     await this.format_cells(all_cells.toJS(), sync);
   };
-
-  public async switch_to_classical_notebook(): Promise<void> {
-    const choice = await this.confirm_dialog({
-      title: "Switch to the Classical Notebook?",
-      body:
-        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
-        JUPYTER_CLASSIC_MODERN +
-        ")",
-      choices: [
-        { title: "Switch to Classical Notebook", style: "warning" },
-        { title: "Continue using CoCalc Jupyter Notebook", default: true }
-      ]
-    });
-    if (choice !== "Switch to Classical Notebook") {
-      return;
-    }
-    (this.redux.getTable("account") as any).set({
-      editor_settings: { jupyter_classic: true }
-    });
-    await this.save();
-    this.file_action("reopen_file", this.store.get("path"));
-  }
-
-  public async close_and_halt(): Promise<void> {
-    // Display the main file listing page
-    this.file_open();
-    // Fully shutdown kernel, and save this file.
-    await this.shutdown();
-    // Close the file
-    this.file_action("close_file");
-  }
 
   check_select_kernel = (): void => {
     const kernel = this.store.get("kernel");

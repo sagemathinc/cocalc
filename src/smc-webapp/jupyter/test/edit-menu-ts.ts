@@ -137,7 +137,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
     actions.set_cur_id(list[1]);
     actions.select_cell(list[2]);
     actions.select_cell(list[3]);
-  });
+  });/*
   it("cut selected cells leaving only 2 cells", () => {
     actions.cut_selected_cells();
     const list = store.get("cell_list").toJS();
@@ -188,7 +188,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
       result.push(cells.getIn([id, "input"]));
     }
     expect(result).to.deep.equal(["0", "0", "1", "2", "3"]);
-  });
+  });*/
 });
 
 describe("creates and splits cells in various ways", () => {

@@ -509,12 +509,15 @@ export class NotebookFrameActions {
 
   // delta = -1 (above) or +1 (below)
   public insert_cell(delta: 1 | -1): string {
-    const id = this.jupyter_actions.insert_cell_adjacent(this.store.get("cur_id"), delta);
+    const id = this.jupyter_actions.insert_cell_adjacent(
+      this.store.get("cur_id"),
+      delta
+    );
     this.set_cur_id(id);
     return id;
   }
 
-  publicdelete_selected_cells(sync: boolean = true): void {
+  public delete_selected_cells(sync: boolean = true): void {
     const selected: string[] = this.store.get_selected_cell_ids_list();
     if (selected.length === 0) {
       return;
@@ -637,7 +640,24 @@ export class NotebookFrameActions {
     this.jupyter_actions.toggle_delete_protection_on_cells(cell_ids);
   }
 
-  public delete_selected_cells() : void {
-    throw Error("TODO");
+  // Cut currently selected cells, putting them in internal clipboard
+  public cut_selected_cells(): void {
+    this.copy_selected_cells();
+    this.delete_selected_cells();
+  }
+
+  // Copy all currently selected cells into our internal clipboard
+  public copy_selected_cells(): void {
+    this.jupyter_actions.copy_cells(this.store.get_selected_cell_ids_list());
+  }
+
+  // Pastes cells currently in the global clipboard, relative
+  // to current selection.
+  //  0 = replace; 1 = after; -1 = before.
+  public paste_cells(delta: 0 | 1 | -1 = 1): void {
+    this.jupyter_actions.paste_cells_at(
+      this.store.get_selected_cell_ids_list(),
+      delta
+    );
   }
 }

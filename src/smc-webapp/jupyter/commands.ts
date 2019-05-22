@@ -1,20 +1,14 @@
 /*
-Comprehensive list of Jupyter notebook (version 5) command,
-   f : implementation of each using our actions/store
-   k : default keyboard shortcut for that command
+Comprehensive list of Jupyter notebook (version 5) commands
+we support and how they work.
 */
 
-// for now we also use require here (see comment in actions.ts)
-
+// still in coffeescript...
 const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
-const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
-  .FORMAT_SOURCE_ICON;
-
+import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-
-require("./types");
 import { NotebookMode } from "./types";
 
 export interface KeyboardCommand {
@@ -209,8 +203,8 @@ export function commands(
           ]
         });
         if (choice === "Restart and run all cells") {
-          await actions.restart();
-          actions.run_all_cells();
+          await jupyter_actions.restart();
+          jupyter_actions.run_all_cells();
         }
       }
     },
@@ -228,7 +222,7 @@ export function commands(
           ]
         });
         if (choice === "Shutdown") {
-          actions.shutdown();
+          jupyter_actions.shutdown();
         }
       }
     },
@@ -237,7 +231,7 @@ export function commands(
       i: "files-o",
       m: "Copy cells",
       k: [{ mode: "escape", which: 67 }],
-      f: () => actions.copy_selected_cells()
+      f: () => frame_actions.copy_selected_cells()
     },
 
     //"copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
@@ -246,7 +240,7 @@ export function commands(
       i: "scissors",
       m: "Cut cells",
       k: [{ mode: "escape", which: 88 }],
-      f: () => actions.cut_selected_cells()
+      f: () => frame_actions.cut_selected_cells()
     },
 
     //"cut cell attachments": undefined, // no clue
@@ -260,12 +254,12 @@ export function commands(
 
     "duplicate notebook": {
       m: "Make a copy...",
-      f: () => actions.file_action("duplicate")
+      f: () => jupyter_actions.file_action("duplicate")
     },
 
     "edit keyboard shortcuts": {
       m: "Keyboard shortcuts and commands...",
-      f: () => actions.show_keyboard_shortcuts()
+      f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
     "enter command mode": {
@@ -276,12 +270,12 @@ export function commands(
       ],
       f() {
         if (store.get("mode") === "escape" && store.get("introspect") != null) {
-          actions.clear_introspect();
+          jupyter_actions.clear_introspect();
         }
 
-        if (store.getIn(["cm_options", "options", "keyMap"]) === "vim") {
+        if (jupyter_actions.store.getIn(["cm_options", "options", "keyMap"]) === "vim") {
           // Vim mode is trickier...
-          if (store.get("cur_cell_vim_mode", "escape") !== "escape") {
+          if (frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape") {
             return;
           }
         }
@@ -509,7 +503,7 @@ export function commands(
         { mode: "escape", shift: true, ctrl: true, which: 86 },
         { mode: "escape", shift: true, alt: true, which: 86 }
       ],
-      f: () => actions.paste_cells(-1)
+      f: () => frame_actions.paste_cells(-1)
     },
 
     //"paste cell attachments": undefined, // TODO ? not sure what the motivation is...
@@ -517,7 +511,7 @@ export function commands(
     "paste cell below": {
       // jupyter has this with the keyboard shortcut for paste; clearly because they have no undo
       m: "Paste cells below",
-      f: () => actions.paste_cells(1)
+      f: () => frame_actions.paste_cells(1)
     },
 
     "paste cell and replace": {
@@ -530,10 +524,10 @@ export function commands(
         { mode: "escape", ctrl: true, which: 86 }
       ],
       f() {
-        if (store.get("sel_ids", { size: 0 }).size > 0) {
-          actions.paste_cells(0);
+        if (frame_actions.store.get("sel_ids", { size: 0 }).size > 0) {
+          frame_actions.paste_cells(0);
         } else {
-          actions.paste_cells(1);
+          frame_actions.paste_cells(1);
         }
       }
     },

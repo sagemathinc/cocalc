@@ -8,6 +8,9 @@ import { merge_copy, uuid } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
+import { ConfirmDialogOptions } from "./confirm-dialog";
+import { callback2 } from "smc-util/async-utils";
+import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_assistant } = require("../assistant/main");
 
 export class JupyterActions extends JupyterActions0 {
@@ -270,4 +273,97 @@ export class JupyterActions extends JupyterActions0 {
     this._api_call("comm", [msg_id, comm_id, data]);
     return msg_id;
   }
+
+  // NOTE: someday move this to the frame-tree actions, since it would
+  // be generically useful!
+  // Display a confirmation dialog, then return the chosen option.
+  public async confirm_dialog(
+    confirm_dialog: ConfirmDialogOptions
+  ): Promise<string> {
+    this.blur_lock();
+    this.setState({ confirm_dialog });
+    function dialog_is_closed(state): string | undefined {
+      const c = state.get("confirm_dialog");
+      if (c == null) {
+        // deleting confirm_dialog prop is same as cancelling.
+        return "cancel";
+      } else {
+        return c.get("choice");
+      }
+    }
+    try {
+      return await callback2(this.store.wait, {
+        until: dialog_is_closed,
+        timeout: 0
+      });
+    } catch (err) {
+      console.warn("Jupyter modal dialog error -- ", err);
+      return "cancel";
+    } finally {
+      this.focus_unlock();
+    }
+  }
+
+  public close_confirm_dialog(choice?: string): void {
+    if (choice === undefined) {
+      this.setState({ confirm_dialog: undefined });
+      return;
+    }
+    const confirm_dialog = this.store.get("confirm_dialog");
+    if (confirm_dialog != null) {
+      this.setState({
+        confirm_dialog: confirm_dialog.set("choice", choice)
+      });
+    }
+  }
+
+  public async switch_to_classical_notebook(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      title: "Switch to the Classical Notebook?",
+      body:
+        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
+        JUPYTER_CLASSIC_MODERN +
+        ")",
+      choices: [
+        { title: "Switch to Classical Notebook", style: "warning" },
+        { title: "Continue using CoCalc Jupyter Notebook", default: true }
+      ]
+    });
+    if (choice !== "Switch to Classical Notebook") {
+      return;
+    }
+    (this.redux.getTable("account") as any).set({
+      editor_settings: { jupyter_classic: true }
+    });
+    await this.save();
+    this.file_action("reopen_file", this.store.get("path"));
+  }
+
+  public async close_and_halt(): Promise<void> {
+    // Display the main file listing page
+    this.file_open();
+    // Fully shutdown kernel, and save this file.
+    await this.shutdown();
+    // Close the file
+    this.file_action("close_file");
+  }
+
+
+
+  public async trust_notebook(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      icon: "warning",
+      title: "Trust this Notebook?",
+      body:
+        "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
+      choices: [
+        { title: "Trust", style: "danger", default: true },
+        { title: "Cancel" }
+      ]
+    });
+    if (choice === "Trust") {
+      this.set_trust_notebook(true);
+    }
+  }
+
 }
