@@ -445,7 +445,8 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         set_cursor: this._cm_set_cursor,
         tab_key: this.tab_key,
         shift_tab_key: this.shift_tab_key,
-        refresh: this._cm_refresh
+        refresh: this._cm_refresh,
+        get_cursor: () => this.cm.getCursor()
       };
       this.props.frame_actions.register_input_editor(this.props.id, editor);
     }

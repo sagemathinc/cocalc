@@ -22,7 +22,6 @@ Jupyter notebooks.  The goals are:
 
 */
 
-declare const window: any;
 declare const localStorage: any;
 
 import * as immutable from "immutable";
@@ -44,7 +43,7 @@ import {
 } from "./store";
 const util = require("./util");
 const parsing = require("./parsing");
-const cell_utils = require("./cell-utils");
+import * as cell_utils from "./cell-utils";
 const { cm_options } = require("./cm_options");
 const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
 
@@ -933,6 +932,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return new_id; // violates CQRS... (this *is* used elsewhere)
   }
 
+  // insert a cell adjacent to the cell with given id.
+  // -1 = above and +1 = below.
+  insert_cell_adjacent(id: string, delta: -1 | 1): string {
+    const pos = cell_utils.new_cell_pos(
+      this.store.get("cells"),
+      this.store.get_cell_list(),
+      id,
+      delta
+    );
+    return this.insert_cell_at(pos);
+  }
+
   delete_selected_cells = (sync = true): void => {
     this.deprecated("delete_selected_cells", sync);
   };
@@ -1211,9 +1222,51 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb.set_cursor_locs(locs, side_effect);
   };
 
-  split_current_cell = (): void => {
-    this.deprecated("split_current_cell");
-  };
+  public split_cell(id: string, cursor: { line: number; ch: number }): void {
+    if (this.check_edit_protection(id)) {
+      return;
+    }
+    // insert a new cell before the currently selected one
+    const new_id: string = this.insert_cell_adjacent(id, -1);
+
+    // split the cell content at the cursor loc
+    const cell = this.store.get("cells").get(id);
+    if (cell == null) {
+      throw Error(`no cell with id=${id}`);
+    }
+    const cell_type = cell.get("cell_type");
+    if (cell_type !== "code") {
+      this.set_cell_type(new_id, cell_type);
+      // newly inserted cells are always editable
+      this.set_md_cell_editing(new_id);
+    }
+    const input = cell.get("input");
+    if (input == null) {
+      return; // very easy case.
+    }
+
+    const lines = input.split("\n");
+    let v = lines.slice(0, cursor.line);
+    const line: string | undefined = lines[cursor.line];
+    if (line != null) {
+      const left = line.slice(0, cursor.ch);
+      if (left) {
+        v.push(left);
+      }
+    }
+    const top = v.join("\n");
+
+    v = lines.slice(cursor.line + 1);
+    if (line != null) {
+      const right = line.slice(cursor.ch);
+      if (right) {
+        v = [right].concat(v);
+      }
+    }
+    const bottom = v.join("\n");
+    this.set_cell_input(new_id, top, false);
+    this.set_cell_input(id, bottom, true);
+  }
 
   // Copy content from the cell below the current cell into the currently
   // selected cell, then delete the cell below the current cell.s
@@ -1885,7 +1938,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   );
 
-  shutdown = reuseInFlight(
+  public shutdown = reuseInFlight(
     async (): Promise<void> => {
       if (this._state === "closed") return;
       await this.signal("SIGKILL");
@@ -1968,18 +2021,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // the corresponding dialog in
   // the file manager, so gives a step to confirm, etc.
   // The path may optionally be *any* file in this project.
-  file_action = async (action_name: any, path?: any): Promise<void> => {
+  public async file_action(action_name: string, path?: string): Promise<void> {
     const a = this.redux.getProjectActions(this.store.get("project_id"));
     if (path == null) {
       path = this.store.get("path");
+      if (path == null) {
+        throw Error("path must be defined in the store to use default");
+      }
     }
     if (action_name === "reopen_file") {
       a.close_file(path);
       // ensure the side effects from changing registered
       // editors in project_file.* finish happening
-      window.setTimeout(() => {
-        return a.open_file({ path });
-      }, 0);
+      await awaiting.delay(0);
+      a.open_file({ path });
       return;
     }
     if (action_name === "close_file") {
@@ -1996,7 +2051,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     a.set_all_files_unchecked();
     a.set_file_checked(path, true);
     return a.set_file_action(action_name, () => tail);
-  };
+  }
 
   show_about = () => {
     this.setState({ about: true });
@@ -2795,14 +2850,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  close_and_halt = async (): Promise<void> => {
+  public async close_and_halt(): Promise<void> {
     // Display the main file listing page
     this.file_open();
-    // Fully shutdown and save this fact.
+    // Fully shutdown kernel, and save this file.
     await this.shutdown();
     // Close the file
     this.file_action("close_file");
-  };
+  }
 
   check_select_kernel = (): void => {
     const kernel = this.store.get("kernel");
@@ -2922,6 +2977,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return false;
     }
   }
+
+  split_current_cell = () => {
+    this.deprecated("split_current_cell");
+  };
 }
 
 function __guard__(value: any, transform: any) {

@@ -8,7 +8,7 @@ import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";
 import { JupyterActions } from "../../../jupyter/browser-actions";
-import { move_selected_cells, new_cell_pos } from "../../../jupyter/cell-utils";
+import { move_selected_cells } from "../../../jupyter/cell-utils";
 import { CellType, Scroll } from "../../../jupyter/types";
 import { commands, CommandDescription } from "../../../jupyter/commands";
 
@@ -509,18 +509,12 @@ export class NotebookFrameActions {
 
   // delta = -1 (above) or +1 (below)
   public insert_cell(delta: 1 | -1): string {
-    const pos = new_cell_pos(
-      this.jupyter_actions.store.get("cells"),
-      this.jupyter_actions.store.get_cell_list(),
-      this.store.get("cur_id"),
-      delta
-    );
-    const new_id = this.jupyter_actions.insert_cell_at(pos);
-    this.set_cur_id(new_id);
-    return new_id;
+    const id = this.jupyter_actions.insert_cell_adjacent(this.store.get("cur_id"), delta);
+    this.set_cur_id(id);
+    return id;
   }
 
-  delete_selected_cells(sync: boolean = true): void {
+  publicdelete_selected_cells(sync: boolean = true): void {
     const selected: string[] = this.store.get_selected_cell_ids_list();
     if (selected.length === 0) {
       return;
@@ -616,61 +610,11 @@ export class NotebookFrameActions {
   }
 
   public split_current_cell(): void {
-    /*
-    const cursor = this._cursor_locs != null ? this._cursor_locs[0] : undefined;
-    if (cursor == null) {
-      return;
-    }
     const cur_id = this.store.get("cur_id");
-    if (cursor.id !== cur_id) {
-      // cursor isn't in currently selected cell, so don't know how to split
-      return;
-    }
-    if (this.check_edit_protection(cur_id)) {
-      return;
-    }
-    // insert a new cell before the currently selected one
-    const new_id = this.insert_cell(-1);
-
-    // split the cell content at the cursor loc
-    const cell = this.store.get("cells").get(cursor.id);
-    if (cell == null) {
-      return; // this would be a bug?
-    }
-    const cell_type = cell.get("cell_type");
-    if (cell_type !== "code") {
-      this.set_cell_type(new_id, cell_type);
-      // newly inserted cells are always editable
-      this.set_md_cell_editing(new_id);
-    }
-    const input = cell.get("input");
-    if (input == null) {
-      return;
-    }
-
-    const lines = input.split("\n");
-    let v = lines.slice(0, cursor.y);
-    const line: string | undefined = lines[cursor.y];
-    if (line != null) {
-      const left = line.slice(0, cursor.x);
-      if (left) {
-        v.push(left);
-      }
-    }
-    const top = v.join("\n");
-
-    v = lines.slice(cursor.y + 1);
-    if (line != null) {
-      const right = line.slice(cursor.x);
-      if (right) {
-        v = [right].concat(v);
-      }
-    }
-    const bottom = v.join("\n");
-    this.set_cell_input(new_id, top, false);
-    this.set_cell_input(cursor.id, bottom, true);
-    this.set_cur_id(cursor.id);
-    */
+    const editor = this.input_editors[cur_id];
+    if (editor == null) return; // no cursor, no split.
+    const cursor = editor.get_cursor();
+    this.jupyter_actions.split_cell(cur_id, cursor);
   }
 
   public toggle_write_protection_on_selected_cells(): void {
@@ -691,5 +635,9 @@ export class NotebookFrameActions {
   public toggle_delete_protection_on_selected_cells(): void {
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_delete_protection_on_cells(cell_ids);
+  }
+
+  public delete_selected_cells() : void {
+    throw Error("TODO");
   }
 }
