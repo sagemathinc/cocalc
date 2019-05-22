@@ -118,6 +118,15 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return [];
   };
 
+  public get_cell_type(id: string): "markdown" | "code" | "raw" {
+    // NOTE: default cell_type is "code", which is common, to save space.
+    const type = this.getIn(["cells", id, "cell_type"], "code");
+    if (type != "markdown" && type != "code" && type != "raw") {
+      throw Error(`invalid cell type ${type} for cell ${id}`);
+    }
+    return type;
+  }
+
   public get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
     if (cell_list == null) {

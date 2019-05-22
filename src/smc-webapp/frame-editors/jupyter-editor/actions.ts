@@ -95,10 +95,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       id = this._get_active_id();
       if (id === undefined) return;
     }
-    this.get_frame_actions(id).focus();
+    const actions = this.get_frame_actions(id);
+    actions != null ? actions.focus() : super.focus(id);
   }
 
-  private get_frame_actions(id: string): NotebookFrameActions {
+  private get_frame_actions(id: string): NotebookFrameActions | undefined {
     if (this.frame_actions[id] != null) {
       return this.frame_actions[id];
     }
@@ -110,7 +111,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     if (type === "jupyter_cell_notebook") {
       return (this.frame_actions[id] = new NotebookFrameActions(this, id));
     } else {
-      throw Error(`no actions for frame ${id}`);
+      return;
     }
   }
 
@@ -127,18 +128,18 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   cut(id: string): void {
-    console.log("cut", id);
-    this.get_frame_actions(id).cut();
+    const actions = this.get_frame_actions(id);
+    actions != null ? actions.cut() : super.cut(id);
   }
 
   copy(id: string): void {
-    console.log("copy", id);
-    this.get_frame_actions(id).copy();
+    const actions = this.get_frame_actions(id);
+    actions != null ? actions.copy() : super.copy(id);
   }
 
   paste(id: string, value?: string | true): void {
-    console.log("paste", id, value);
-    this.get_frame_actions(id).paste();
+    const actions = this.get_frame_actions(id);
+    actions != null ? actions.paste(value) : super.paste(id, value);
   }
 
   print(id): void {
@@ -146,8 +147,9 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     this.jupyter_actions.show_nbconvert_dialog("html");
   }
 
-  async format(id?: string): Promise<void> {
-    console.log("format", id);
+  async format(id: string): Promise<void> {
+    const actions = this.get_frame_actions(id);
+    actions != null ? await actions.format() : await super.format(id);
   }
 
   public hide(): void {}
@@ -159,7 +161,7 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     // since otherwise it won't be saved to disk.
     const id = this._active_id();
     const a = this.get_frame_actions(id);
-    if (a != null) {
+    if (a != null && a.save_input_editor != null) {
       a.save_input_editor();
     }
 

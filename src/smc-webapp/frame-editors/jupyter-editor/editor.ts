@@ -4,6 +4,7 @@ Spec for editing Jupyter notebooks via a frame tree.
 
 import { set } from "smc-util/misc2";
 import { createEditor } from "../frame-tree/editor";
+import { terminal } from "../terminal-editor/editor";
 
 import { CellNotebook } from "./cell-notebook/cell-notebook";
 
@@ -43,7 +44,10 @@ export const EDITOR_SPEC = {
       "redo",
       "format"
     ])
-  } /*,
+  },
+  terminal
+};
+/*,
   jupyter_singledoc_notebook: {
     short: "SingleDoc",
     name: "Single Doc",
@@ -141,8 +145,8 @@ export const EDITOR_SPEC = {
     icon: "cc-icon-ipynb",
     component: ClassicalNotebook,
     buttons: set([])
-  }*/
-};
+  }
+*/
 
 export const Editor = createEditor({
   format_bar: false,

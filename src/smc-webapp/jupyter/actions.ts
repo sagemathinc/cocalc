@@ -976,11 +976,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   // in the future, might throw a CellWriteProtectedException.
   // for now, just running is ok.
-  run_cell = (id: any, save: boolean = true): void => {
+  public run_cell(id: string, save: boolean = true): void {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return;
+      throw Error(`can't run cell ${id} since it does not exist`);
     }
 
     const cell_type = cell.get("cell_type", "code");
@@ -1008,12 +1008,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (save) {
       this.save_asap();
     }
-  };
+  }
 
-  run_code_cell = (id: any, save: boolean = true) => {
+  public run_code_cell(id: string, save: boolean = true) : void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return;
+      throw Error(`can't run cell ${id} since it does not exist`);
     }
     if (cell.get("state", "done") != "done") {
       // already running -- stop it first somehow if you want to run it again...
@@ -1978,20 +1978,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   focus = (wait?: any) => {
-    console.log(console.trace());
-    console.warn("TODO: jupyter actions.focus", wait);
+    this.deprecated("focus", wait);
   };
 
   blur = (wait?: any) => {
-    console.warn("TODO: jupyter actions.blur", wait);
+    this.deprecated("blur", wait);
   };
 
   blur_lock = () => {
-    console.warn("TODO: jupyter actions.blur_lock");
+    this.deprecated("blur_lock");
   };
 
   focus_unlock = () => {
-    console.warn("TODO: jupyter actions.focus_unlock");
+    this.deprecated("focus_unlock");
   };
 
   set_max_output_length = n => {

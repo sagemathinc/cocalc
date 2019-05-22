@@ -201,19 +201,26 @@ export class NotebookFrameActions {
     // for whatever reason, any running of a cell deselects
     // in official jupyter
     this.unselect_all_cells();
-
     for (let id of v) {
-      this.run_cell(id, false);
+      const save = id === v[v.length - 1]; // save only last one.
+      this.run_cell(id, save);
     }
-    this.jupyter_actions.save_asap();
   }
 
+  // This is here since it depends on knowing the edit state
+  // of markdown cells.
   public run_cell(id: string, save: boolean = true): void {
-    if (this.store.get("md_edit_ids", Set()).contains(id)) {
-      this.set_md_cell_not_editing(id);
+    const type = this.jupyter_actions.store.get_cell_type(id);
+    if (type === "markdown") {
+      if (this.store.get("md_edit_ids", Set()).contains(id)) {
+        this.set_md_cell_not_editing(id);
+      }
       return;
     }
-    this.jupyter_actions.run_cell(id, save);
+    if (type === "code") {
+      this.jupyter_actions.run_cell(id, save);
+    }
+    // running is a no-op for raw cells.
   }
 
   /***
@@ -225,8 +232,10 @@ export class NotebookFrameActions {
     if (mode == "edit") {
       // If we're changing to edit mode and current cell is a markdown
       // cell, switch it to the codemirror editor view.
-      // no op if not markdown cell:
-      this.set_md_cell_editing(this.store.get("cur_id"));
+      const cur_id = this.store.get("cur_id");
+      if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
+        this.set_md_cell_editing(cur_id);
+      }
     }
     this.setState({ mode });
   }
@@ -249,7 +258,8 @@ export class NotebookFrameActions {
     this.todo("copy");
   }
 
-  public paste(): void {
+  public paste(value?: string | true): void {
+    value = value; // ignored -- we use internal buffer
     this.todo("paste");
   }
 
@@ -716,5 +726,9 @@ export class NotebookFrameActions {
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.merge_cells(cell_ids);
     this.set_cur_id(cell_ids[0]);
+  }
+
+  public async format(): Promise<void> {
+    this.todo("format");
   }
 }
