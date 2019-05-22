@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'jupyter';
-    var subtitle = 'Run Jupyter Notebooks Online';
+    var subtitle = 'Collaborative online Jupyter Notebooks';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -37,20 +37,23 @@ block content
 
     div.row
       div.col-md-12.center
-        h1 Run Jupyter Notebooks Online
+        h1 Collaborative online Jupyter Notebooks
       div.col-sm-6
         img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
       div.col-sm-6
         p.
           #{NAME} is an online web service where you can
           #[strong run #[a(href="http://jupyter.org/") Jupyter notebooks] right inside your browser].
+          You can privately share your notebook with your
+          #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") project collaborators].
+          All changes are #[strong synchronized in real-time].
         p.
-          It handles all the tedious details for you. You no longer have to:
+          #{NAME} takes care of all tedious aspects:
         ul
-          li install a Python environment
-          li setup additional kernel environments you want to use
-          li install all the libraries you need
-          li maintain everything on your own
+          li don't bother with settup up a Python environment
+          li you no longer have to fight with installing all the libraries you need
+          li don't worry about Jupyter kernel configurations
+          li and let #{NAME} maintain everything for you
         p.
           Instead, all you need to do to get started is to
         ol
@@ -72,7 +75,8 @@ block content
           h1 Feature overview
         div.col-md-6.col-md-offset-3.
           The following features are specific to Jupyter notebooks.
-          Learn more about the #[a(href=PREFIX) #{NAME} platform here].
+          There is also a
+          #[strong #[a(href="https://doc.cocalc.com/jupyter.html") #{NAME} jupyter documentation]].
 
     a.anchor#a-realtimesync
     div.container.space#realtimesync
