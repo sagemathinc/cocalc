@@ -348,8 +348,6 @@ export class JupyterActions extends JupyterActions0 {
     this.file_action("close_file");
   }
 
-
-
   public async trust_notebook(): Promise<void> {
     const choice = await this.confirm_dialog({
       icon: "warning",
@@ -366,4 +364,54 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
+  private nbconvert_has_started(): boolean {
+    const state = this.store.getIn(["nbconvert", "state"]);
+    return state === "start" || state === "run";
+  }
+
+  public show_nbconvert_dialog(to: string): void {
+    this.setState({ nbconvert_dialog: { to } });
+    if (!this.nbconvert_has_started()) {
+      this.nbconvert(["--to", to]); // start it
+    }
+  }
+
+  public nbconvert(args: string[]): void {
+    if (this.nbconvert_has_started()) {
+      // can't run it while it is already running.
+      throw Error("nbconvert is already running");
+    }
+    this.syncdb.set({
+      type: "nbconvert",
+      args,
+      state: "start",
+      error: null
+    });
+    this.syncdb.commit();
+  }
+
+  public async nbconvert_get_error(): Promise<void> {
+    const key: string | undefined = this.store.getIn([
+      "nbconvert",
+      "error",
+      "key"
+    ]);
+    if (key == null) {
+      return;
+    }
+    let error;
+    try {
+      error = await this._api_call("store", { key });
+    } catch (err) {
+      this.set_error(err);
+      return;
+    }
+    if (this._state === "closed") {
+      return;
+    }
+    const nbconvert = this.store.get("nbconvert");
+    if (nbconvert != null && nbconvert.getIn(["error", "key"]) === key) {
+      this.setState({ nbconvert: nbconvert.set("error", error) });
+    }
+  }
 }

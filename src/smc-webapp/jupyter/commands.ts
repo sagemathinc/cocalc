@@ -534,7 +534,7 @@ export function commands(
 
     "print preview": {
       m: "Print preview...",
-      f: () => actions.show_nbconvert_dialog("html")
+      f: () => jupyter_actions.show_nbconvert_dialog("html")
     },
 
     "refresh kernels": {
