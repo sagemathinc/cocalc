@@ -130,7 +130,7 @@ html.no-js(lang="en")
             >a
               font-size      : 2rem
             &.active>a
-              font-weight  : bold
+              font-weight       : bold
         div.jumbotron
           padding-top      : 10rem
           background-color : $COL_GRAY_LL
@@ -150,7 +150,9 @@ html.no-js(lang="en")
             > footer
               margin-top     : 6rem
             > div.row#top
-              margin         : 10rem 0 0 0
+              margin         : 14rem 0 0 0
+              @media (min-width: 992px)
+                margin       : 10rem 0 0 0
             > div#software-env-top
               margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */
