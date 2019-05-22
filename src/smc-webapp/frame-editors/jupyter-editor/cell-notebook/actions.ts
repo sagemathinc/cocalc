@@ -221,6 +221,13 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
+    if (this.store.get("mode") === mode) return; // no-op
+    if (mode == "edit") {
+      // If we're changing to edit mode and current cell is a markdown
+      // cell, switch it to the codemirror editor view.
+      // no op if not markdown cell:
+      this.set_md_cell_editing(this.store.get("cur_id"));
+    }
     this.setState({ mode });
   }
 
