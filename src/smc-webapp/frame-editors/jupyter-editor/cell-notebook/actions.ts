@@ -660,4 +660,13 @@ export class NotebookFrameActions {
       delta
     );
   }
+
+  // if cell is being edited, use this to move the cursor *in that cell*
+  public move_edit_cursor(delta: 1 | -1): void {
+    const editor = this.input_editors[this.store.get("cur_id")];
+    if (editor == null) return;
+    const xy = editor.get_cursor_xy();
+    xy.y += delta;
+    editor.set_cursor(xy);
+  }
 }

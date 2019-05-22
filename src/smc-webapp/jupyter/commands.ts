@@ -421,79 +421,81 @@ export function commands(
     },
 
     "move cursor down": {
-      f: () => actions.move_edit_cursor(1)
+      m: "Move cursor down",
+      f: () => frame_actions.move_edit_cursor(1)
     },
 
     "move cursor up": {
-      f: () => actions.move_edit_cursor(-1)
+      m: "Move cursor up",
+      f: () => frame_actions.move_edit_cursor(-1)
     },
 
     "new notebook": {
       m: "New...",
-      f: () => actions.file_new()
+      f: () => jupyter_actions.file_new()
     },
 
     "nbconvert ipynb": {
       m: "Notebook (.ipynb)...",
       f() {
-        actions.save();
-        actions.file_action("download");
+        jupyter_actions.save();
+        jupyter_actions.file_action("download");
       }
     },
 
     "nbconvert asciidoc": {
       m: "AsciiDoc (.asciidoc)...",
-      f: () => actions.show_nbconvert_dialog("asciidoc")
+      f: () => jupyter_actions.show_nbconvert_dialog("asciidoc")
     },
 
     "nbconvert python": {
       m: "Python (.py)...",
-      f: () => actions.show_nbconvert_dialog("python")
+      f: () => jupyter_actions.show_nbconvert_dialog("python")
     },
 
     "nbconvert html": {
       m: "HTML (.html)...",
-      f: () => actions.show_nbconvert_dialog("html")
+      f: () => jupyter_actions.show_nbconvert_dialog("html")
     },
 
     "nbconvert markdown": {
       m: "Markdown (.md)...",
-      f: () => actions.show_nbconvert_dialog("markdown")
+      f: () => jupyter_actions.show_nbconvert_dialog("markdown")
     },
 
     "nbconvert rst": {
       m: "reST (.rst)...",
-      f: () => actions.show_nbconvert_dialog("rst")
+      f: () => jupyter_actions.show_nbconvert_dialog("rst")
     },
 
     "nbconvert slides": {
       m: "Slideshow...",
-      f: () => actions.show_nbconvert_dialog("slides")
+      f: () => jupyter_actions.show_nbconvert_dialog("slides")
     },
 
     "nbconvert tex": {
       m: "LaTeX (.tex)...",
-      f: () => actions.show_nbconvert_dialog("latex")
+      f: () => jupyter_actions.show_nbconvert_dialog("latex")
     },
 
     "nbconvert pdf": {
       m: "PDF via LaTeX (.pdf)...",
-      f: () => actions.show_nbconvert_dialog("pdf")
+      f: () => jupyter_actions.show_nbconvert_dialog("pdf")
     },
 
     "nbconvert script": {
       m: "Executable script (.txt)...",
-      f: () => actions.show_nbconvert_dialog("script")
+      f: () => jupyter_actions.show_nbconvert_dialog("script")
     },
 
     "nbconvert sagews": {
       m: "Sage worksheet (.sagews)...",
-      f: () => actions.show_nbconvert_dialog("sagews")
+      f: () => jupyter_actions.show_nbconvert_dialog("sagews")
     },
 
     "open file": {
       m: "Open...",
-      f: () => actions.file_open()
+      f: () => jupyter_actions.file_open()
     },
 
     "paste cell above": {

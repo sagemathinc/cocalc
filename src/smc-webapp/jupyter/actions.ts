@@ -2158,12 +2158,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ insert_image: true });
   };
 
-  // if cell is being edited, use this to move the cursor *in that cell*
-  move_edit_cursor = (delta: any): void => {
-    delta = delta; // TODO: implement/use this
-    this.set_error("move_edit_cursor not implemented");
-  };
-
   // supported scroll positions are in commands.ts
   scroll(pos): any {
     this.deprecated("scroll", pos);
