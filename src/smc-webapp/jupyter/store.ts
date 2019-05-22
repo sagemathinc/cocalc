@@ -125,37 +125,25 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
     const i = cell_list.indexOf(id);
     if (i === -1) {
-      throw Error("unknown cell id");
+      throw Error(`unknown cell id ${id}`);
     }
     return i;
   }
 
-  get_cur_cell_index = () => {
-    this.deprecated("get_cur_cell_index");
-    return 0;
-  };
-
-  // Get the id of the cell that is delta positions from the
-  // cursor or from cell with given id (second input).
-  // Returns undefined if no currently selected cell, or if delta
-  // positions moves out of the notebook (so there is no such cell).
-  public get_cell_id = (delta = 0, id?: string) => {
-    let i;
-    if (id != null) {
-      i = this.get_cell_index(id);
-    } else {
-      i = this.get_cur_cell_index();
-    }
-    if (i == null) {
-      return;
-    }
+  // Get the id of the cell that is delta positions from
+  // cell with given id (second input).
+  // Returns undefined if delta positions moves out of
+  // the notebook (so there is no such cell); in particular,
+  // we do NOT wrap around.
+  public get_cell_id(delta = 0, id: string): string | undefined {
+    let i: number = this.get_cell_index(id);
     i += delta;
     const cell_list = this.get("cell_list");
     if (cell_list == null || i < 0 || i >= cell_list.size) {
       return; // .get negative for List in immutable wraps around rather than undefined (like Python)
     }
     return cell_list.get(i);
-  };
+  }
 
   set_global_clipboard = (clipboard: any) => {
     global_clipboard = clipboard;

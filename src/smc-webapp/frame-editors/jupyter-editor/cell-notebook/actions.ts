@@ -1,6 +1,7 @@
 declare const $: any;
 
 import { Set } from "immutable";
+import { delay } from "awaiting";
 
 import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
 
@@ -668,5 +669,45 @@ export class NotebookFrameActions {
     const xy = editor.get_cursor_xy();
     xy.y += delta;
     editor.set_cursor(xy);
+  }
+
+  // Run all cells strictly above the current cursor position.
+  public run_all_above(): void {
+    this.jupyter_actions.run_all_above_cell(this.store.get("cur_id"));
+  }
+
+  // Run all cells below (and *including*) the current cursor position.
+  public run_all_below(): void {
+    this.jupyter_actions.run_all_below_cell(this.store.get("cur_id"));
+  }
+
+  public async run_selected_cells_and_insert_new_cell_below(): Promise<void> {
+    const v = this.store.get_selected_cell_ids_list();
+    this.run_selected_cells(v);
+    const new_id = this.jupyter_actions.insert_cell_adjacent(
+      v[v.length - 1],
+      1
+    );
+    // Set mode back to edit in the next loop.
+    await delay(0);
+    this.set_cur_id(new_id);
+    this.set_mode("edit");
+    this.scroll("cell visible");
+  }
+
+  public merge_cell_above(save: boolean = true): void {
+    this.move_cursor(-1);
+    this.merge_cell_below(save);
+  }
+
+  public merge_cell_below(save: boolean = true): void {
+    this.jupyter_actions.merge_cell_below_cell(this.store.get("cur_id"), save);
+  }
+
+  // Merge all selected cells into one cell.
+  public merge_selected_cells(): void {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.merge_cells(cell_ids);
+    this.set_cur_id(cell_ids[0]);
   }
 }

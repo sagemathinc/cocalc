@@ -386,24 +386,24 @@ export function commands(
 
     "merge cell with next cell": {
       m: "Merge cell below",
-      f: () => actions.merge_cell_below()
+      f: () => frame_actions.merge_cell_below()
     },
 
     "merge cell with previous cell": {
       m: "Merge cell above",
-      f: () => actions.merge_cell_above()
+      f: () => frame_actions.merge_cell_above()
     },
 
     "merge cells": {
       m: "Merge selected cells",
       k: [{ mode: "escape", shift: true, which: 77 }],
-      f: () => actions.merge_cells()
+      f: () => frame_actions.merge_selected_cells()
     },
 
     "merge selected cells": {
       // why is this in jupyter; it's the same as the above?
       m: "Merge selected cells",
-      f: () => actions.merge_cells()
+      f: () => frame_actions.merge_selected_cells()
     },
 
     "move cell down": {
@@ -541,48 +541,48 @@ export function commands(
 
     "refresh kernels": {
       m: "Refresh kernel list",
-      f: () => actions.fetch_jupyter_kernels()
+      f: () => jupyter_actions.fetch_jupyter_kernels()
     },
 
     "rename notebook": {
       m: "Rename...",
-      f: () => actions.file_action("rename")
+      f: () => jupyter_actions.file_action("rename")
     },
 
     "restart kernel": {
       m: "Restart kernel",
-      f: () => actions.restart()
+      f: () => jupyter_actions.restart()
     },
 
     "restart kernel and clear output": {
       m: "Restart kernel and clear output",
       f() {
-        actions.restart();
-        actions.clear_all_outputs();
+        jupyter_actions.restart();
+        jupyter_actions.clear_all_outputs();
       }
     },
 
     "restart kernel and run all cells": {
       m: "Restart and run all",
       async f() {
-        await actions.restart();
-        actions.run_all_cells();
+        await jupyter_actions.restart();
+        jupyter_actions.run_all_cells();
       }
     },
 
     "run all cells": {
       m: "Run all",
-      f: () => actions.run_all_cells()
+      f: () => jupyter_actions.run_all_cells()
     },
 
     "run all cells above": {
       m: "Run all above",
-      f: () => actions.run_all_above()
+      f: () => frame_actions.run_all_above()
     },
 
     "run all cells below": {
       m: "Run all below",
-      f: () => actions.run_all_below()
+      f: () => frame_actions.run_all_below()
     },
 
     "run cell": {
@@ -598,7 +598,7 @@ export function commands(
     "run cell and insert below": {
       m: "Run cells and insert new cell below",
       k: [{ which: 13, alt: true }],
-      f: () => actions.run_cell_and_insert_new_cell_below()
+      f: () => frame_actions.run_selected_cells_and_insert_new_cell_below()
     },
 
     "run cell and select next": {
@@ -614,7 +614,7 @@ export function commands(
     "save notebook": {
       m: "Save",
       k: [{ which: 83, alt: true }, { which: 83, ctrl: true }],
-      f: () => actions.save()
+      f: () => jupyter_actions.save()
     },
 
     "scroll cell center": {
@@ -649,14 +649,14 @@ export function commands(
         { alt: true, mode: "escape", which: 65 },
         { ctrl: true, mode: "escape", which: 65 }
       ],
-      f: () => actions.select_all_cells()
+      f: () => frame_actions.select_all_cells()
     },
 
     "select next cell": {
       k: [{ which: 40, mode: "escape" }, { which: 74, mode: "escape" }],
       f() {
-        actions.move_cursor(1);
-        actions.unselect_all_cells();
+        frame_actions.move_cursor(1);
+        frame_actions.unselect_all_cells();
         frame_actions.scroll("cell visible");
       }
     },
@@ -664,21 +664,21 @@ export function commands(
     "select previous cell": {
       k: [{ which: 38, mode: "escape" }, { which: 75, mode: "escape" }],
       f() {
-        actions.move_cursor(-1);
-        actions.unselect_all_cells();
+        frame_actions.move_cursor(-1);
+        frame_actions.unselect_all_cells();
         frame_actions.scroll("cell visible");
       }
     },
 
     "show all line numbers": {
       m: "Show all line numbers",
-      f: () => actions.set_line_numbers(true)
+      f: () => jupyter_actions.set_line_numbers(true)
     },
 
     "show command palette": {
       m: "Show command palette...",
       k: [{ alt: true, mode: "escape", shift: true, which: 80 }],
-      f: () => actions.show_keyboard_shortcuts()
+      f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
     "show header": {

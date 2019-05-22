@@ -1,15 +1,4 @@
-/*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS204: Change includes calls to have a more natural evaluation order
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
+//require('./test/edit-menu-ts');
 
 /*
 Jupyter client
@@ -40,7 +29,6 @@ import * as misc from "./smc-util/misc";
 const { required, defaults } = misc;
 
 import { three_way_merge } from "./smc-util/sync/editor/generic/util";
-
 
 import { Actions } from "../app-framework";
 import {
@@ -1095,36 +1083,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.deprecated("run_selected_cells");
   };
 
-  // Run the selected cells, by either clicking the play button or
-  // press shift+enter.  Note that this has somewhat weird/inconsitent
-  // behavior in official Jupyter for usability reasons and due to
-  // their "modal" approach.
-  // In paricular, if the selections goes to the end of the document, we
-  // create a new cell and set it the mode to edit; otherwise, we advance
-  // the cursor and switch to escape mode.
-  shift_enter_run_selected_cells = () => {
-    this.deprecated("shift_enter_run_selected_cells");
-  };
-
-  run_cell_and_insert_new_cell_below = () => {
-    let needle, new_id;
-    const v = this.store.get_selected_cell_ids_list();
-    this.run_selected_cells();
-    if (((needle = this.store.get("cur_id")), v.indexOf(needle) > -1)) {
-      new_id = this.insert_cell(1);
-    } else {
-      new_id = this.insert_cell(-1);
-    }
-    // Set mode back to edit in the next loop since something above
-    // sets it to escape.  See https://github.com/sagemathinc/cocalc/issues/2372
-    const f = () => {
-      this.set_cur_id(new_id);
-      this.set_mode("edit");
-      return this.scroll("cell visible");
-    };
-    return setTimeout(f, 0);
-  };
-
   run_all_cells = (): void => {
     this.store.get_cell_list().forEach(id => {
       this.run_cell(id, false);
@@ -1139,33 +1097,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.save_asap();
   };
 
-  // Run all cells strictly above the current cursor position.
-  run_all_above = (): void => {
-    const i = this.store.get_cur_cell_index();
-    if (i == null) {
-      return;
-    }
+  // Run all cells strictly above the specified cell.
+  run_all_above_cell(id: string): void {
+    const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
     for (let id of v.slice(0, i)) {
       this.run_cell(id, false);
     }
-
     this.save_asap();
-  };
+  }
 
-  // Run all cells below (and *including*) the current cursor position.
-  run_all_below = (): void => {
-    const i = this.store.get_cur_cell_index();
-    if (i == null) {
-      return;
-    }
+  // Run all cells below (and *including*) the specified cell.
+  public run_all_below_cell(id: string): void {
+    const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
     for (let id of v.slice(i)) {
       this.run_cell(id, false);
     }
-
     this.save_asap();
-  };
+  }
 
   move_cursor_after_selected_cells = (): void => {
     const v = this.store.get_selected_cell_ids_list();
@@ -1270,46 +1220,32 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cell_input(id, bottom, true);
   }
 
-  // Copy content from the cell below the current cell into the currently
-  // selected cell, then delete the cell below the current cell.s
-  merge_cell_below = (save = true): void => {
-    let end, left, left1;
-    const cur_id = this.store.get("cur_id");
-    if (cur_id == null) {
-      return;
-    }
-    const next_id = this.store.get_cell_id(1);
+  // Copy content from the cell below the given cell into the currently
+  // selected cell, then delete the cell below the given cell.
+  public merge_cell_below_cell(cell_id: string, save: boolean = true): void {
+    const next_id = this.store.get_cell_id(1, cell_id);
     if (next_id == null) {
+      // no cell below given cell, so trivial.
       return;
     }
-    for (let cell_id of [cur_id, next_id]) {
-      // TODO/WARNING: this doesn't look correct:
-      cell_id = cell_id; // TODO: use?
-      if (!this.store.is_cell_editable(cur_id)) {
-        this.set_error("Cells protected from editing cannot be merged.");
-        return;
-      }
-      if (!this.store.is_cell_deletable(cur_id)) {
-        this.set_error("Cells protected from deletion cannot be merged.");
-        return;
-      }
+    for (let id of [cell_id, next_id]) {
+      if (this.check_edit_protection(id)) return;
     }
+    if (this.check_delete_protection(next_id)) return;
+
     const cells = this.store.get("cells");
     if (cells == null) {
       return;
     }
-    const input =
-      ((left = __guard__(cells.get(cur_id), x => x.get("input"))) != null
-        ? left
-        : "") +
-      "\n" +
-      ((left1 = __guard__(cells.get(next_id), x1 => x1.get("input"))) != null
-        ? left1
-        : "");
 
+    const input: string =
+      cells.getIn([cell_id, "input"], "") +
+      "\n" +
+      cells.getIn([next_id, "input"], "");
+
+    const output0 = cells.getIn([cell_id, "output"]);
+    const output1 = cells.getIn([next_id, "output"]);
     let output: any = undefined;
-    const output0 = __guard__(cells.get(cur_id), x2 => x2.get("output"));
-    const output1 = __guard__(cells.get(next_id), x3 => x3.get("output"));
     if (output0 == null) {
       output = output1;
     } else if (output1 == null) {
@@ -1317,25 +1253,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     } else {
       // both output0 and output1 are defined; need to merge.
       // This is complicated since output is a map from string numbers.
-      let asc, i;
       output = output0;
       let n = output0.size;
-      for (
-        i = 0, end = output1.size, asc = 0 <= end;
-        asc ? i < end : i > end;
-        asc ? i++ : i--
-      ) {
+      for (let i = 0; i < output1.size; i++) {
         output = output.set(`${n}`, output1.get(`${i}`));
         n += 1;
       }
     }
 
-    // we checked above that cell is deletable
     this._delete({ type: "cell", id: next_id }, false);
     this._set(
       {
         type: "cell",
-        id: cur_id,
+        id: cell_id,
         input,
         output: output != null ? output : null,
         start: null,
@@ -1343,27 +1273,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       },
       save
     );
-  };
+  }
 
-  merge_cell_above = (): void => {
-    this.move_cursor(-1);
-    this.merge_cell_below();
-  };
-
-  // Merge all selected cells into one cell.
+  // Merge the given cells into one cell, which replaces
+  // the frist cell in cell_ids.
   // We also merge all output, instead of throwing away
   // all but first output (which jupyter does, and makes no sense).
-  merge_cells = () => {
-    const v = this.store.get_selected_cell_ids_list();
-    const n = v != null ? v.length : undefined;
-    if (n == null || n <= 1) {
-      return;
+  public merge_cells(cell_ids: string[]): void {
+    const n = cell_ids.length;
+    if (n <= 1) return; // trivial special case.
+    for (let i = 0; i < n - 1; i++) {
+      this.merge_cell_below_cell(cell_ids[0], i == n - 2);
     }
-    this.set_cur_id(v[0]);
-    return __range__(0, n - 1, false).map(i =>
-      this.merge_cell_below(i === n - 2)
-    );
-  };
+  }
 
   // Copy the list of cells into our internal clipboard
   public copy_cells(cell_ids: string[]): void {
@@ -2806,6 +2728,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public check_edit_protection(id: string): boolean {
     if (!this.store.is_cell_editable(id)) {
       this.show_not_editable_error();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public check_delete_protection(id: string): boolean {
+    if (!this.store.is_cell_deletable(id)) {
+      this.show_not_deletable_error();
       return true;
     } else {
       return false;
