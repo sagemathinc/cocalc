@@ -1,0 +1,4 @@
+node_modules/
+creds.js
+.*term
+*.x11
