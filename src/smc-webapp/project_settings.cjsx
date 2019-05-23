@@ -1006,6 +1006,7 @@ ProjectControlPanel = rclass
         # this will at least return a suitable default value
         selected_image = @state.compute_image
         default_title = @compute_image_info(DEFAULT_COMPUTE_IMAGE, 'title')
+        selected_title = @compute_image_info(selected_image, 'title')
 
         <div style={color:'#666'}>
             <div style={fontSize : '12pt'}>
@@ -1014,7 +1015,7 @@ ProjectControlPanel = rclass
                 Selected image
                 <Space/>
                 <DropdownButton
-                    title={@compute_image_info(selected_image, 'title')}
+                    title={selected_title ? selected_image}
                     id={selected_image}
                     onToggle={(open)=>@setState(compute_image_focused:open)}
                     onBlur={=>@setState(compute_image_focused:false)}
