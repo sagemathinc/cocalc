@@ -180,4 +180,15 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
       this.setState({ is_saving: false });
     }
   }
+
+  protected async get_shell_spec(
+    id: string
+  ): Promise<undefined | { command: string; args: string[] }> {
+    id = id; // not used
+    // TODO: need to find out the file that corresponds to
+    // socket and put in args.  Can find with ps on the pid.
+    // Also, need to deal with it changing, and shells are
+    // becoming invalid...
+    return { command: "jupyter", args: ["console", "--existing"] };
+  }
 }

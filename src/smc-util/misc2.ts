@@ -12,7 +12,6 @@ const urlRegex = require("url-regex");
 
 import { to_human_list } from "./misc";
 
-
 interface SplittedPath {
   head: string;
   tail: string;
@@ -139,8 +138,9 @@ export function copy_with(obj: object, w: string | string[]): object {
 import { cloneDeep } from "lodash";
 export const deep_copy = cloneDeep;
 
-export function set(v: string[]): object {
-  const s = {};
+// Very poor man's set.
+export function set(v: string[]): { [key: string]: true } {
+  const s: { [key: string]: true } = {};
   for (let x of v) {
     s[x] = true;
   }

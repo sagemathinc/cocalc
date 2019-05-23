@@ -804,17 +804,18 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Returns id of new frame, if a frame is created.
-  split_frame(
+  public split_frame(
     direction: FrameDirection,
-    id?: string,
-    type?: string
+    id?: string, // id of frame being split (uses active_id by default)
+    type?: string, // type of new frame
+    extra?: object // set this data in the new frame immediately.
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
     const before = this._get_leaf_ids();
-    this._tree_op("split_leaf", id, direction, type);
+    this._tree_op("split_leaf", id, direction, type, extra);
     const after = this._get_leaf_ids();
     for (let new_id in after) {
       if (!before[new_id]) {
@@ -1960,8 +1961,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   public hide(): void {}
 
+  // Overload this in a derived class to have a possibly more complicated spec.
+  protected async get_shell_spec(
+    id: string
+  ): Promise<undefined | string | { command: string; args: string[] }> {
+    id = id; // not used.
+    return SHELLS[filename_extension(this.path)];
+  }
+
   public async shell(id: string): Promise<void> {
-    const x = SHELLS[filename_extension(this.path)];
+    const x = await this.get_shell_spec(id);
     let command: string | undefined = undefined;
     let args: string[] | undefined = undefined;
     if (x == null) {
@@ -1981,11 +1990,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     let shell_id: string | undefined = this._get_most_recent_shell_id(command);
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
-      shell_id = this.split_frame("col", id, "terminal");
+      shell_id = this.split_frame("col", id, "terminal", { command, args });
       if (!shell_id) return;
-      this.set_frame_tree({ id: shell_id, command, args });
+    } else {
+      // Change command/args.
+      this.terminals.set_command(shell_id, command, args);
     }
-    this.terminals.set_command(shell_id, command, args);
 
     // De-maximize if in full screen mode.
     this.unset_frame_full();

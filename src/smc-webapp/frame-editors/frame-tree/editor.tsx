@@ -11,7 +11,7 @@ const { ErrorDisplay, Loading } = require("smc-webapp/r_misc");
 import { FormatBar } from "./format-bar";
 import { StatusBar } from "./status-bar";
 const { FrameTree } = require("./frame-tree");
-import { ErrorStyles } from "../frame-tree/types";
+import { EditorSpec, ErrorStyles } from "./types";
 
 import { copy, is_different, filename_extension } from "smc-util/misc2";
 
@@ -275,7 +275,7 @@ interface Options {
   display_name: string;
   format_bar: boolean;
   format_bar_exclude?: SetMap;
-  editor_spec: any;
+  editor_spec: EditorSpec;
 }
 
 interface EditorProps {

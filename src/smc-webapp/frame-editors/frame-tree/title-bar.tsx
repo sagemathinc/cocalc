@@ -34,7 +34,10 @@ const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 import { trunc_middle } from "smc-util/misc2";
 
-import { ConnectionStatus } from "./types";
+import { ConnectionStatus, EditorSpec } from "./types";
+
+// TODO:
+// import { Actions } from "../code-editor/actions";
 
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
@@ -93,7 +96,7 @@ if (IS_TOUCH) {
 }
 
 interface Props {
-  actions: any;
+  actions: any; // TODO -- see above Actions;
   path: string; // assumed to not change for now
   project_id: string; // assumed to not change for now
   active_id: string;
@@ -108,7 +111,7 @@ interface Props {
   is_public: boolean; // public view of a file
   is_paused: boolean;
   type: string;
-  editor_spec: any;
+  editor_spec: EditorSpec;
   status: string;
   title?: string;
   connection_status?: ConnectionStatus;
@@ -702,8 +705,37 @@ export class FrameTitleBar extends Component<Props, State> {
     );
   }
 
-  show_labels(): boolean {
+  private show_labels(): boolean {
     return this.props.is_only || this.props.is_full;
+  }
+
+  private button_text(button_name: string, def?: string): string | undefined {
+    if (!this.show_labels()) return;
+    const custom = this.props.editor_spec[this.props.type].customize_buttons;
+    if (custom != null) {
+      const x = custom[button_name];
+      if (x != null && x.text != null) {
+        return x.text;
+      }
+    }
+    if (def != undefined) {
+      return def;
+    }
+    return misc.capitalize(button_name);
+  }
+
+  private button_title(button_name: string, def?: string): string | undefined {
+    const custom = this.props.editor_spec[this.props.type].customize_buttons;
+    if (custom != null) {
+      const x = custom[button_name];
+      if (x != null && x.title != null) {
+        return x.title;
+      }
+    }
+    if (def != undefined) {
+      return def;
+    }
+    return;
   }
 
   render_timetravel(labels): Rendered {
@@ -1012,10 +1044,10 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"shell"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.shell(this.props.id)}
-        title={"Open a shell for running this code"}
+        title={this.button_title("shell", "Open a shell for running this code")}
       >
         <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{this.show_labels() ? "Shell" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{this.button_text("shell")}</VisibleMDLG>
       </Button>
     );
   }
@@ -1163,9 +1195,7 @@ export class FrameTitleBar extends Component<Props, State> {
       if (spec != null) {
         icon = spec.icon;
         if (!title) {
-          if (spec.title) {
-            title = spec.title;
-          } else if (spec.name) {
+          if (spec.name) {
             title = spec.name;
           } else if (spec.short) {
             title = spec.short;

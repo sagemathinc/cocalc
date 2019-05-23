@@ -42,8 +42,16 @@ export const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format"
-    ])
+      "format",
+      "shell"
+    ]),
+    customize_buttons: {
+      shell: {
+        text: "Console",
+        title:
+          "Open command line Jupyter console session attached to the same kernel as notebook"
+      }
+    }
   },
   terminal
 };
