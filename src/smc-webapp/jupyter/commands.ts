@@ -349,12 +349,12 @@ export function commands(
 
     "hide header": {
       m: "Hide header",
-      f: () => actions.set_header_state(true)
+      f: () => jupyter_actions.set_header_state(true)
     },
 
     "hide toolbar": {
       m: "Hide toolbar",
-      f: () => actions.set_toolbar_state(false)
+      f: () => jupyter_actions.set_toolbar_state(false)
     },
 
     //ignore: undefined, // no clue what this means

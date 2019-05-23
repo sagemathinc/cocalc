@@ -1010,7 +1010,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public run_code_cell(id: string, save: boolean = true) : void {
+  public run_code_cell(id: string, save: boolean = true): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
       throw Error(`can't run cell ${id} since it does not exist`);
@@ -1044,7 +1044,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       save
     );
     this.set_trust_notebook(true, save);
-  };
+  }
 
   clear_cell = (id: any, save = true) => {
     if (this.check_edit_protection(id)) {
@@ -1440,23 +1440,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.set_toolbar_state(!this.store.get("toolbar"));
   };
 
-  set_toolbar_state = (val: any) => {
-    // val = true = visible
-    this.setState({ toolbar: val });
-    return this.set_local_storage("hide_toolbar", !val);
-  };
+  public set_toolbar_state(toolbar: boolean): void {
+    // true = visible
+    this.setState({ toolbar });
+    this.set_local_storage("hide_toolbar", !toolbar);
+  }
 
-  toggle_header = () => {
-    return this.redux != null
-      ? (this.redux.getActions("page") as any).toggle_fullscreen()
-      : undefined;
-  };
+  public toggle_header(): void {
+    (this.redux.getActions("page") as any).toggle_fullscreen();
+  }
 
-  set_header_state = (val: any) => {
-    return this.redux != null
-      ? (this.redux.getActions("page") as any).set_fullscreen(val)
-      : undefined;
-  };
+  public set_header_state(visible: boolean): void {
+    (this.redux.getActions("page") as any).set_fullscreen(
+      visible ? "default" : undefined
+    );
+  }
 
   set_line_numbers = (show: any): void => {
     this.set_local_storage("line_numbers", !!show);
