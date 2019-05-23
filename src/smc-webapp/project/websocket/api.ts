@@ -49,11 +49,15 @@ export class API {
     );
   }
 
-  get_formatting(): Capabilities {
+  get_formatting(): Capabilities | undefined {
     const project_store = redux.getProjectStore(this.project_id) as any;
     const configuration = project_store.get(
       "configuration"
     ) as ProjectConfiguration;
+    // configuration check only for backwards compatibility, i.e. newer clients and old projects
+    if (configuration == null) {
+      return;
+    }
     const main = configuration.get("main");
     if (main != null && isMainConfiguration(main)) {
       return main.capabilities.formatting;
@@ -63,7 +67,12 @@ export class API {
   }
 
   async prettier_string(str: string, options: FormatterOptions): Promise<any> {
-    const formatting: Capabilities = this.get_formatting();
+    const formatting = this.get_formatting();
+    if (formatting == null) {
+      throw new Error(
+        "Code formatting status not available. Please restart your project!"
+      );
+    }
     // TODO refactor the assocated formatter and smc-project into a common configuration object
     const tool = parser2tool[options.parser];
     if (tool == null) {
