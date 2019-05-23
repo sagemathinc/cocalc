@@ -2032,19 +2032,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
     await retry_until_success({
       f: async () => {
-        next = await get_configuration(
-          webapp_client,
-          this.project_id,
-          aspect,
-          prev
-        );
+        try {
+          next = await get_configuration(
+            webapp_client,
+            this.project_id,
+            aspect,
+            prev
+          );
+        } catch (e) {
+          // not implemented error happens, when the project is still the old one
+          // in that case, do as if everything is available
+          if (e.message.indexOf("not implemented") >= 0) {
+            return null;
+          }
+          // console.log("project_actions::init_configuration err:", e);
+          throw e;
+        }
       },
       start_delay: 1000,
       max_delay: 5000,
       desc: "project_actions::init_configuration"
     });
 
-    // there was a problem
+    // there was a problem or configuration is not known
     if (next == null) {
       this.setState({ configuration_loading: false });
       return;
