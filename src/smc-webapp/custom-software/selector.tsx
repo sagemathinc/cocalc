@@ -6,7 +6,7 @@ import { CUSTOM_SOFTWARE_HELP_URL } from "./util";
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
-const legacy: ComputeImageTypes = "legacy";
+const official: ComputeImageTypes = "official";
 const custom: ComputeImageTypes = "custom";
 
 const COLORS = require("smc-util/theme").COLORS;
@@ -215,9 +215,9 @@ export class CustomSoftware extends Component<CSProps, CSState> {
 
         <FormGroup>
           <Radio
-            checked={this.props.image_type === legacy}
+            checked={this.props.image_type === official}
             id={"default-compute-image"}
-            onChange={() => this.props.setParentState({ image_type: legacy })}
+            onChange={() => this.props.setParentState({ image_type: official })}
           >
             <b>Default</b>: large repository of software, maintained by{" "}
             <CompanyName />, running <SiteName />.{" "}

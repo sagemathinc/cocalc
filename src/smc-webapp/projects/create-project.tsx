@@ -29,7 +29,7 @@ const { Icon, Space } = require("../r_misc");
 
 const misc = require("smc-util/misc");
 
-const legacy: ComputeImageTypes = "legacy";
+const official: ComputeImageTypes = "official";
 const custom: ComputeImageTypes = "custom";
 
 interface Props {
@@ -57,7 +57,7 @@ const INIT_STATE: Readonly<State> = Object.freeze({
   error: "",
   show_advanced: false,
   image_selected: undefined,
-  image_type: legacy,
+  image_type: official,
   title_prefill: true
 });
 

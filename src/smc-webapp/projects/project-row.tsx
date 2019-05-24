@@ -176,11 +176,12 @@ export const ProjectRow = rclass<ReactProps>(
         const img = this.props.images.get(id);
         if (img == null) return;
         const name = img.get("display");
-        return <div style={image_name_style}>{name} (custom)</div>;
+        return <div style={image_name_style}>{name} <span title="Custom image created by a third party">(custom)</span></div>;
       } else {
-        // legacy
+        // official
         const name = id2name(ci);
-        return <div style={image_name_style}>{name} (legacy)</div>;
+        if (name === "Default") return; // avoid clutter for the default.
+        return <div style={image_name_style}>{name} <span title="Official image created by CoCalc">(official)</span></div>;
       }
     }
 

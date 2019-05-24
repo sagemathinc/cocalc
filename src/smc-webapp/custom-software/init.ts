@@ -1,5 +1,5 @@
 // Manage DB <-> UI integration of available *custom* compute images
-// TODO: also get rid of hardcoded legacy software images
+// TODO: also get rid of hardcoded official software images
 
 const { redux, Store, Actions, Table } = require("../app-framework");
 import { Map as iMap } from "immutable";
@@ -10,10 +10,10 @@ const { capitalize } = require("smc-util/misc");
 export const NAME = "compute_images";
 
 // this must match db-schema.compute_images → field type → allowed values
-// legacy image names are "default", "exp", or a timestamp-string
+// official image names are "default", "exp", or a timestamp-string
 // custom iamges are "custom/<image-id>/<tag, usually latest>"
 // the "custom/" string is supposed to be CUSTOM_IMG_PREFIX!
-export type ComputeImageTypes = "legacy" | "custom";
+export type ComputeImageTypes = "official" | "custom";
 
 // this must be compatible with db-schema.compute_images → field keys
 export type ComputeImageKeys =
