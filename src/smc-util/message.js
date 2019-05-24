@@ -1235,6 +1235,10 @@ API(
         init: "",
         desc: "project description"
       },
+      image: {
+        init: undefined,
+        desc: "(optional) image ID"
+      },
       start: {
         init: false,
         desc:

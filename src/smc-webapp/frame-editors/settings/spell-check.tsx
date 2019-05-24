@@ -24,11 +24,12 @@ import { DICTS, dict_desc } from "./aspell-dicts";
 interface Props {
   value: string;
   set: Function;
+  available: boolean;
 }
 
 export class SpellCheck extends Component<Props, {}> {
   shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["value"]);
+    return is_different(this.props, props, ["value", "available"]);
   }
 
   render_other_items(): Rendered[] {
@@ -56,13 +57,24 @@ export class SpellCheck extends Component<Props, {}> {
   }
 
   render(): Rendered {
-    return (
-      <div>
-        <span style={{ fontSize: "11pt", paddingRight: "10px" }}>
-          <b>Spellcheck language</b> for this file (updates on save):
-        </span>
-        {this.render_dropdown()}
-      </div>
-    );
+    const style = { fontSize: "11pt", paddingRight: "10px" };
+    if (this.props.available) {
+      return (
+        <div>
+          <span style={style}>
+            <b>Spellcheck language</b> for this file (updates on save):
+          </span>
+          {this.render_dropdown()}
+        </div>
+      );
+    } else {
+      return (
+        <div>
+          <span style={style}>
+            <b>Spellcheck</b> is not available for this project.
+          </span>
+        </div>
+      );
+    }
   }
 }

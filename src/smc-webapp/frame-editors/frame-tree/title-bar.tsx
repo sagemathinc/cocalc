@@ -8,7 +8,6 @@ import * as CSS from "csstype";
 
 import { SaveButton } from "./save-button";
 
-let close_style;
 const { debounce } = require("underscore");
 const {
   ButtonGroup,
@@ -29,7 +28,6 @@ const {
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
 
-const util = require("../frame-tree/util");
 const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
 
 import { trunc_middle } from "smc-util/misc2";
@@ -38,6 +36,10 @@ import { ConnectionStatus, EditorSpec } from "./types";
 
 // TODO:
 // import { Actions } from "../code-editor/actions";
+
+import { Available as AvailableFeatures } from "../../project_configuration";
+
+import { ext2parser, parser2tool } from "smc-util/code-formatter";
 
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
@@ -86,14 +88,16 @@ const ICON_STYLE: CSS.Properties = {
   display: "inline-block"
 };
 
-if (IS_TOUCH) {
-  close_style = undefined;
-} else {
-  close_style = {
-    background: "transparent",
-    borderColor: "transparent"
-  };
-}
+const close_style: CSS.Properties | undefined = (function() {
+  if (IS_TOUCH) {
+    return undefined;
+  } else {
+    return {
+      background: "transparent",
+      borderColor: "transparent"
+    };
+  }
+})();
 
 interface Props {
   actions: any; // TODO -- see above Actions;
@@ -116,6 +120,7 @@ interface Props {
   title?: string;
   connection_status?: ConnectionStatus;
   font_size?: number;
+  available_features?: AvailableFeatures;
 }
 
 interface State {
@@ -145,7 +150,8 @@ export class FrameTitleBar extends Component<Props, State> {
         "status",
         "title",
         "connection_status",
-        "font_size"
+        "font_size",
+        "available_features"
       ]) || misc.is_different(this.state, state, ["close_and_halt_confirm"])
     );
   }
@@ -849,7 +855,17 @@ export class FrameTitleBar extends Component<Props, State> {
   }
 
   render_format(): Rendered {
+    if (!this.is_visible("format")) return;
+    if (this.props.available_features == null) return;
+    const formatting = this.props.available_features.formatting;
+    // there is no formatting available at all
+    if (formatting == null || formatting === false) return;
     const ext = misc.filename_extension(this.props.path).toLowerCase();
+    const parser = ext2parser[ext];
+    if (parser == null) return;
+    const tool = parser2tool[parser];
+    if (tool == null) return;
+    if (!formatting[tool]) return;
     if (!this.is_visible("format") && !util.PRETTIER_SUPPORT[ext]) {
       return;
     }
@@ -858,9 +874,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"format"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.format(this.props.id)}
-        title={
-          "Run Prettier (or some other AST-based service) to canonically format this entire document"
-        }
+        title={`Canonically format the entire document using '${tool}'.`}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>

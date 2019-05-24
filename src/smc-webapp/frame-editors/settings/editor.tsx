@@ -14,15 +14,21 @@ import { Icon } from "../../r_misc/icon";
 
 import { SpellCheck } from "./spell-check";
 
+import { Available as AvailableFeatures } from "../../project_configuration";
+
 interface Props {
   id: string;
   actions: any;
   settings: Map<string, any>;
+  available_features: AvailableFeatures;
 }
 
 export class Settings extends Component<Props, {}> {
   shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["settings"]);
+    return is_different(this.props, props, [
+      "settings",
+      "available_features"
+    ]);
   }
 
   render_settings(): Rendered[] {
@@ -34,6 +40,7 @@ export class Settings extends Component<Props, {}> {
             <SpellCheck
               key={key}
               value={value}
+              available={this.props.available_features.spellcheck}
               set={value => this.props.actions.set_settings({ [key]: value })}
             />
           );

@@ -1049,9 +1049,10 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
+            image       : undefined
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description)
+            message: message.create_project(title:opts.title, description:opts.description, image:opts.image)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -2122,11 +2123,11 @@ class exports.Connection extends EventEmitter
                 mentions : misc.copy_without(opts, 'cb')
             cb : opts.cb
 
-    # This is async, so do "await smc_webapp.capabilities(...project_id...)".
-    capabilities: (project_id) =>
+    # This is async, so do "await smc_webapp.configuration(...project_id...)".
+    configuration: (project_id, aspect) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
             throw Error("project_id must be a valid uuid")
-        return (await @project_websocket(project_id)).api.capabilities()
+        return (await @project_websocket(project_id)).api.configuration(aspect)
 
     syncdoc_history: (opts) =>
         opts = defaults opts,

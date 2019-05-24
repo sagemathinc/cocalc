@@ -145,18 +145,22 @@ class Kernel0 extends Component<KernelProps> {
         this.props.kernel,
         this.props.kernels
       );
-      const closestKernelDisplayName = closestKernel.get("display_name");
-      const closestKernelName = closestKernel.get("name");
-      return (
-        <span
-          style={KERNEL_ERROR_STYLE}
-          onClick={() => this.props.actions.set_kernel(closestKernelName)}
-        >
-          Unknown kernel{" "}
-          <span style={{ fontWeight: "bold" }}>{this.props.kernel}</span>, click
-          here to use {closestKernelDisplayName} instead.
-        </span>
-      );
+      if (closestKernel == null) {
+        return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;
+      } else {
+        const closestKernelDisplayName = closestKernel.get("display_name");
+        const closestKernelName = closestKernel.get("name");
+        return (
+          <span
+            style={KERNEL_ERROR_STYLE}
+            onClick={() => this.props.actions.set_kernel(closestKernelName)}
+          >
+            Unknown kernel{" "}
+            <span style={{ fontWeight: "bold" }}>{this.props.kernel}</span>,
+            click here to use {closestKernelDisplayName} instead.
+          </span>
+        );
+      }
     } else {
       // List of known kernels just not loaded yet.
       if (display_name == null) {

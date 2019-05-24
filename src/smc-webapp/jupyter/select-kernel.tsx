@@ -77,14 +77,14 @@ export class KernelSelector extends Component<
   }
   */
 
-  kernel_name(name: string) {
+  kernel_name(name: string): string | undefined {
     return this.kernel_attr(name, "display_name");
   }
 
-  kernel_attr(name: string, attr: string): string {
-    if (this.props.kernels_by_name == null) return "";
+  kernel_attr(name: string, attr: string): string | undefined {
+    if (this.props.kernels_by_name == null) return undefined;
     const k = this.props.kernels_by_name.get(name);
-    if (k == null) return "";
+    if (k == null) return undefined;
     return k.get(attr, name);
   }
 
@@ -125,7 +125,7 @@ export class KernelSelector extends Component<
         bsSize={size}
         style={{ marginBottom: "5px" }}
       >
-        {icon} {this.kernel_name(name)}
+        {icon} {this.kernel_name(name) || name}
       </Button>
     );
   }
@@ -138,18 +138,24 @@ export class KernelSelector extends Component<
       return;
 
     const entries: Rendered[] = [];
+    const kbn = this.props.kernels_by_name;
+
     this.props.kernel_selection
-      .sort((a, b) => this.kernel_name(a).localeCompare(this.kernel_name(b)))
+      .sort((a, b) => {
+        // try to find the display name, otherwise fallback to kernel ID
+        const name_a = this.kernel_name(a) || a;
+        const name_b = this.kernel_name(b) || b;
+        return name_a.localeCompare(name_b);
+      })
       .map((name, lang) => {
-        const cocalc: ImmutableMap<
-          string,
-          any
-        > = this.props.kernels_by_name!.getIn(
+        const cocalc: ImmutableMap<string, any> = kbn.getIn(
           [name, "metadata", "cocalc"],
           null
         );
         if (cocalc == null) return;
         const prio: number = cocalc.get("priority", 0);
+
+        // drop those below 10, priority is too low
         if (prio < 10) return;
 
         entries.push(
@@ -222,13 +228,18 @@ export class KernelSelector extends Component<
   }
 
   render_last() {
-    if (this.props.default_kernel == null) return;
+    const name = this.props.default_kernel;
+    if (name == null) return;
+    if (this.props.kernels_by_name == null) return;
+    // also don't render "last", if we do not know that kernel!
+    if (!this.props.kernels_by_name.has(name)) return;
+
     return (
       <Row style={row_style}>
         <h4>Quick selection</h4>
         <div>
           Your most recently selected kernel is{" "}
-          {this.render_kernel_button(this.props.default_kernel)}.
+          {this.render_kernel_button(name)}.
         </div>
       </Row>
     );
@@ -279,10 +290,14 @@ export class KernelSelector extends Component<
         </Row>
       );
     } else {
+      const name = this.kernel_name(this.props.kernel);
+      const current =
+        name != null ? <>The currently selected kernel is "{name}".</> : "";
+
       return (
         <Row style={row_style}>
-          <strong>Select a new kernel.</strong> The currently selected kernel is{" "}
-          "{this.kernel_name(this.props.kernel)}".
+          <strong>Select a new kernel.</strong>
+          {current}
         </Row>
       );
     }
