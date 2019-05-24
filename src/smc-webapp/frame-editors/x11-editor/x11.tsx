@@ -23,6 +23,7 @@ import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";
 const { Loading } = require("smc-webapp/r_misc");
+import { retry_until_success } from "smc-util/async-utils";
 
 interface Props {
   actions: Actions;
@@ -88,7 +89,7 @@ class X11Component extends Component<Props, {}> {
     }
 
     // children changed?
-    if (this.props.windows !== next.windows) {
+    if (this.props.windows != null && this.props.windows !== next.windows) {
       const wid: number = next.desc.get("wid");
       const children = this.props.windows.getIn([wid, "children"], Set());
       const next_children = next.windows.getIn([wid, "children"], Set());
@@ -117,15 +118,27 @@ class X11Component extends Component<Props, {}> {
     ]);
   }
 
-  componentDidMount(): void {
+  async componentDidMount(): Promise<void> {
     this.measure_size = debounce(this._measure_size.bind(this), 500);
     this.is_mounted = true;
+
+    // "wait" until window node is available
+    const node: any = await retry_until_success({
+      f: async () => {
+        const node: any = ReactDOM.findDOMNode(this.refs.window);
+        if (node != null) {
+          return node;
+        } else {
+          throw new Error("x11 window node not yet available");
+        }
+      },
+      max_time: 60000,
+      max_delay: 100
+    });
     this.insert_window_in_dom(this.props);
-    this.init_resize_observer();
+    this.init_resize_observer(node);
     this.disable_browser_context_menu();
-    if (this.props.is_current) {
-      this.focus_textarea();
-    }
+
     // set keyboard layout
     this.props.actions.set_physical_keyboard(
       this.props.editor_settings.get("physical_keyboard"),
@@ -144,8 +157,7 @@ class X11Component extends Component<Props, {}> {
     });
   }
 
-  init_resize_observer(): void {
-    const node: any = ReactDOM.findDOMNode(this.refs.window);
+  init_resize_observer(node: any): void {
     new ResizeObserver(() => this.measure_size()).observe(node);
   }
 
