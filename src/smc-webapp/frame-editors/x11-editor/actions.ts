@@ -44,7 +44,8 @@ const { open_new_tab } = require("smc-webapp/misc_page");
 interface X11EditorState extends CodeEditorState {
   windows: Map<number, any>;
   x11_is_idle: boolean;
-  disabled: boolean;
+  disabled?: boolean;
+  config_unknown?: boolean;
   x11_apps: Readonly<Capabilities>;
 }
 
@@ -57,7 +58,7 @@ export class Actions extends BaseActions<X11EditorState> {
   client: XpraClient;
 
   async _init2(): Promise<void> {
-    this.check_capabilities();
+    await this.check_capabilities();
     this.launch = reuseInFlight(this.launch);
     this.setState({ windows: Map() });
     this.init_client();
@@ -78,14 +79,14 @@ export class Actions extends BaseActions<X11EditorState> {
     const proj_actions = this.redux.getProjectActions(this.project_id);
 
     let x11_apps: Readonly<Capabilities> = {};
+    let config_unknown = true;
     const ok = await (async () => {
       // we should already know that:
       const main_conf = await proj_actions.init_configuration("main");
       if (main_conf == null) return false;
       if (!isMainConfiguration(main_conf)) return false;
       if (main_conf.capabilities.x11 === false) {
-        // we know that there is no xpra
-        this.setState({ disabled: true });
+        // we learned there is no xpra
         return false;
       }
 
@@ -94,11 +95,13 @@ export class Actions extends BaseActions<X11EditorState> {
         "x11"
       )) as X11Configuration;
       if (x11_conf == null) return false;
+      // from here, we know that we have x11 status information
+      config_unknown = false;
       x11_apps = Object.freeze(x11_conf.capabilities);
       if (x11_apps == null) return false;
       return true;
     })();
-    this.setState({ disabled: !ok, x11_apps });
+    this.setState({ disabled: !ok, config_unknown, x11_apps });
   }
 
   /*

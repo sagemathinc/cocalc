@@ -22,6 +22,7 @@ import { cmp, is_different } from "smc-util/misc2";
 import { Actions } from "./actions";
 import { WindowTab } from "./window-tab";
 import { TAB_BAR_GREY } from "./theme";
+const { Loading } = require("smc-webapp/r_misc");
 
 interface Props {
   actions: Actions;
@@ -35,6 +36,7 @@ interface Props {
   windows: Map<string, any>;
   x11_is_idle: boolean;
   disabled: boolean;
+  config_unknown: boolean;
 }
 
 class X11Component extends Component<Props, {}> {
@@ -49,7 +51,8 @@ class X11Component extends Component<Props, {}> {
       [name]: {
         windows: rtypes.immutable.Map,
         x11_is_idle: rtypes.bool,
-        disabled: rtypes.bool
+        disabled: rtypes.bool,
+        config_unknown: rtypes.bool
       }
     };
   }
@@ -109,7 +112,8 @@ class X11Component extends Component<Props, {}> {
       "windows",
       "is_current",
       "x11_is_idle",
-      "disabled"
+      "disabled",
+      "config_unknown"
     ]);
   }
 
@@ -355,10 +359,16 @@ class X11Component extends Component<Props, {}> {
   }
 
   render(): Rendered {
+    if (this.props.disabled == null || this.props.config_unknown == null)
+      return <Loading />;
+
     if (this.props.disabled) {
+      const no_info = this.props.config_unknown
+        ? "There is no X11 configuration information available. You might have to restart this project"
+        : "";
       return (
         <div className="smc-vfill" style={{ padding: "100px auto auto auto" }}>
-          X11 is not available
+          X11 is not available for this project. {no_info}
         </div>
       );
     }
