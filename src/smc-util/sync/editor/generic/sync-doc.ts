@@ -129,7 +129,7 @@ export interface UndoState {
 }
 
 export class SyncDoc extends EventEmitter {
-  private project_id: string; // project_id that contains the doc
+  public project_id: string; // project_id that contains the doc
   private path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;

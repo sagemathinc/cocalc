@@ -28,7 +28,7 @@ const {
 const { IS_TOUCH } = require("smc-webapp/feature");
 const misc = require("smc-util/misc");
 
-const FORMAT_SOURCE_ICON = require("../frame-tree/config").FORMAT_SOURCE_ICON;
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 
 import { trunc_middle } from "smc-util/misc2";
 
@@ -861,14 +861,13 @@ export class FrameTitleBar extends Component<Props, State> {
     // there is no formatting available at all
     if (formatting == null || formatting === false) return;
     const ext = misc.filename_extension(this.props.path).toLowerCase();
+
     const parser = ext2parser[ext];
     if (parser == null) return;
     const tool = parser2tool[parser];
     if (tool == null) return;
     if (!formatting[tool]) return;
-    if (!this.is_visible("format") && !util.PRETTIER_SUPPORT[ext]) {
-      return;
-    }
+    if (!this.is_visible("format")) return;
     return (
       <Button
         key={"format"}

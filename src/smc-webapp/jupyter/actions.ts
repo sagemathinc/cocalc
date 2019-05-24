@@ -16,19 +16,16 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
 
-// NOTE! The smc-util symlink is so we can import this same
+// NOTE! The smc-util relative path is so we can import this same
 // code in the project as well as here, due to me not
 // being able to properly figure out some typescript path issue.
 // **It's just a hack.**
-
-// for now we also use require here, so also works in
-// project -- do not change willy nilly!
-import { callback2, retry_until_success } from "./smc-util/async-utils";
-import * as awaiting from "awaiting";
-import * as misc from "./smc-util/misc";
+import { callback2, retry_until_success } from "../../smc-util/async-utils";
+import * as misc from "../../smc-util/misc";
 const { required, defaults } = misc;
 
-import { three_way_merge } from "./smc-util/sync/editor/generic/util";
+import * as awaiting from "awaiting";
+import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
 import { Actions } from "../app-framework";
 import {
