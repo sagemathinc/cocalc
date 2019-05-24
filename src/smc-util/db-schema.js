@@ -338,7 +338,8 @@ schema.accounts = {
           newsletter: false,
           time_ago_absolute: false,
           // if true, do not show warning when using non-member projects
-          no_free_warnings: false
+          no_free_warnings: false,
+          allow_mentions: true
         },
         first_name: "",
         last_name: "",
