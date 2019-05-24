@@ -5,6 +5,14 @@ import { analytics_event } from "../tracker";
 
 import { Component, React, ReactDOM, redux } from "../app-framework";
 
+import {
+  ComputeImages,
+  ComputeImageTypes,
+  custom_image_name
+} from "../custom-software/init";
+
+import { CustomSoftware } from "../custom-software/selector";
+
 const {
   Row,
   Col,
@@ -21,25 +29,45 @@ const { Icon, Space } = require("../r_misc");
 
 const misc = require("smc-util/misc");
 
+const legacy: ComputeImageTypes = "legacy";
+const custom: ComputeImageTypes = "custom";
+
 interface Props {
   start_in_edit_mode?: boolean;
   default_value?: string;
+  images?: ComputeImages;
 }
 
+type EditState = "edit" | "view" | "saving";
+
 interface State {
-  state: "edit" | "view" | "saving";
+  state: EditState;
+  show_advanced: boolean;
   title_text: string;
   error: string;
+  image_type: ComputeImageTypes;
+  image_selected?: string;
+  // toggles form true → false after first edit
+  title_prefill: boolean;
 }
+
+const INIT_STATE: Readonly<State> = Object.freeze({
+  state: "view" as EditState,
+  title_text: "",
+  error: "",
+  show_advanced: false,
+  image_selected: undefined,
+  image_type: legacy,
+  title_prefill: true
+});
 
 export class NewProjectCreator extends Component<Props, State> {
   constructor(props) {
     super(props);
-    this.state = {
-      state: props.start_in_edit_mode ? "edit" : "view", // view --> edit --> saving --> view
-      title_text: "",
-      error: ""
-    };
+    this.state = Object.assign({}, INIT_STATE, {
+      // view --> edit --> saving --> view
+      state: props.start_in_edit_mode ? "edit" : "view"
+    });
   }
 
   start_editing() {
@@ -57,11 +85,7 @@ export class NewProjectCreator extends Component<Props, State> {
   }
 
   cancel_editing = () => {
-    this.setState({
-      state: "view",
-      title_text: "",
-      error: ""
-    });
+    this.setState(Object.assign({}, INIT_STATE, { state: "view" }));
   };
 
   toggle_editing = () => {
@@ -76,11 +100,15 @@ export class NewProjectCreator extends Component<Props, State> {
     const token = misc.uuid();
     this.setState({ state: "saving" });
     const actions = redux.getActions("projects");
+    const compute_image: string =
+      this.state.image_type == custom && this.state.image_selected != null
+        ? custom_image_name(this.state.image_selected)
+        : "default";
     actions.create_project({
       title: this.state.title_text,
+      image: compute_image,
       token
     });
-    analytics_event("create_project", "created_new_project");
     redux
       .getStore("projects")
       .wait_until_project_created(token, 30, (err, project_id) => {
@@ -96,14 +124,7 @@ export class NewProjectCreator extends Component<Props, State> {
           this.cancel_editing();
         }
       });
-  };
-
-  handle_keypress = e => {
-    if (e.keyCode === 27) {
-      this.cancel_editing();
-    } else if (e.keyCode === 13 && this.state.title_text !== "") {
-      this.create_project();
-    }
+    analytics_event("create_project", "created_new_project");
   };
 
   render_info_alert() {
@@ -137,17 +158,72 @@ export class NewProjectCreator extends Component<Props, State> {
       <Row>
         <Col sm={4}>
           <Button
-            bsStyle="success"
+            bsStyle={"success"}
             active={this.state.state !== "view"}
             disabled={this.state.state !== "view"}
             block
-            type="submit"
+            type={"submit"}
             onClick={this.toggle_editing}
           >
             <Icon name="plus-circle" /> Create New Project...
           </Button>
         </Col>
       </Row>
+    );
+  }
+
+  create_disabled() {
+    return (
+      // no name of new project
+      this.state.title_text === "" ||
+      // currently saving (?)
+      this.state.state === "saving" ||
+      // user wants a custom image, but hasn't selected one yet
+      (this.state.image_type === custom && this.state.image_selected == null)
+    );
+  }
+
+  set_title = (text: string) => {
+    this.setState({ title_text: text, title_prefill: false });
+  };
+
+  input_on_change = (): void => {
+    const text = ReactDOM.findDOMNode(this.refs.new_project_title).value;
+    this.set_title(text);
+  };
+
+  handle_keypress = e => {
+    if (e.keyCode === 27) {
+      this.cancel_editing();
+    } else if (e.keyCode === 13 && this.state.title_text !== "") {
+      this.create_project();
+    }
+  };
+
+  render_advanced() {
+    if (!this.state.show_advanced) return;
+    return (
+      <CustomSoftware
+        setParentState={obj => this.setState(obj)}
+        images={this.props.images}
+        image_selected={this.state.image_selected}
+        image_type={this.state.image_type}
+        title_prefill={this.state.title_prefill}
+      />
+    );
+  }
+
+  render_advanced_toggle() {
+    if (this.state.show_advanced) return;
+    return (
+      <div>
+        <a
+          onClick={() => this.setState({ show_advanced: true })}
+          style={{ cursor: "pointer" }}
+        >
+          Advanced…
+        </a>
+      </div>
     );
   }
 
@@ -163,22 +239,28 @@ export class NewProjectCreator extends Component<Props, State> {
                 placeholder="Project title"
                 disabled={this.state.state === "saving"}
                 value={this.state.title_text}
-                onChange={() =>
-                  this.setState({
-                    title_text: ReactDOM.findDOMNode(
-                      this.refs.new_project_title
-                    ).value
-                  })
-                }
+                onChange={this.input_on_change}
                 onKeyDown={this.handle_keypress}
                 autoFocus
               />
             </FormGroup>
+            {this.render_advanced_toggle()}
+          </Col>
+          <Col sm={6}>
+            <div style={{ color: "#666" }}>
+              A <b>project</b> is your own, private computational workspace that
+              you can share with others.
+              <br />
+              You can easily change the project title in project settings.
+            </div>
+          </Col>
+        </Row>
+        {this.render_advanced()}
+        <Row>
+          <Col sm={12} style={{ marginTop: "10px" }}>
             <ButtonToolbar>
               <Button
-                disabled={
-                  this.state.title_text === "" || this.state.state === "saving"
-                }
+                disabled={this.create_disabled()}
                 onClick={() => this.create_project()}
                 bsStyle="success"
               >
@@ -191,14 +273,6 @@ export class NewProjectCreator extends Component<Props, State> {
                 Cancel
               </Button>
             </ButtonToolbar>
-          </Col>
-          <Col sm={6}>
-            <div style={{ color: "#666" }}>
-              A <b>project</b> is your own computational workspace that you can
-              share with others.
-              <br/>
-              You can easily change the project title in project settings.
-            </div>
           </Col>
         </Row>
         <Row>
