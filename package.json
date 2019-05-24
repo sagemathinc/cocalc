@@ -9,6 +9,7 @@
   "author": "Hal Snyder",
   "license": "ISC",
   "dependencies": {
+    "css-to-xpath": "^0.1.0",
     "puppeteer": "^1.16.0"
   }
 }
