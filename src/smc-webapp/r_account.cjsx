@@ -1341,7 +1341,7 @@ OtherSettings = rclass
             ref      = 'allow_mentions'
             onChange = {(e)=>@on_change('allow_mentions', e.target.checked)}
         >
-            Allow mentioning others in chats
+            Allow mentioning others in chats (disable to work around a bug)
         </Checkbox>
 
     render: ->
