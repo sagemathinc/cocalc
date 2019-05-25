@@ -32,30 +32,6 @@ async function run() {
   await page.click(BUTTON_SELECTOR);
   await page.waitForNavigation({'waitUntil':'networkidle0'});
   console.log('02 signed in')
-  
-//  let urls = await page.evaluate(() => {
-//                let results = [];
-//                let items = document.querySelectorAll('input');
-//                items.forEach((item) => {
-//                    results.push({
-//                        url:  item.getAttribute('placeholder'),
-//                        text: item.innerText,
-//                    });
-//                });
-//                return results;
-//            })
-//  console.log(urls);
-//  console.log('xyzzy');
-//  elt = null
-//  while (!elt) {
-//    elt = await page.evaluate(() => {
-//      element = document.querySelector('[placeholder="Search for projects..."]');
-//      return element;
-//    });
-//    console.log('wait')
-//  }
-
-//  console.log(elt);
 
   //const n = 3;
   //console.log(`wait ${n} seconds`);
@@ -79,10 +55,9 @@ async function run() {
   
 try {
   // find the project link and click it
-  //const linkHandlers = await page.$x("//a/span/p[text()='fe-test']");
   const linkHandlers = await page.$x(`//a/span/p[text()='${CREDS.project}']`);
 
-  console.log('found links with the right text',linkHandlers.length)
+  console.log('04 number of links matching test project name',linkHandlers.length)
   if (linkHandlers.length > 0) {
     await linkHandlers[0].click();
   } else {
@@ -92,9 +67,9 @@ try {
   //await page.waitFor(3 * 1000);
   const spath = 'screenshots/cocalc.png';
   await page.screenshot({ path: spath});
-  console.log(`04 screenshot saved to ${spath}`);
+  console.log(`05 screenshot saved to ${spath}`);
 } catch (e) {
-  console.log('oops',e.message);
+  console.log('05 ERROR',e.message);
 }
   browser.close();
 }
