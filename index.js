@@ -76,11 +76,26 @@ async function run() {
   
   // type into the project search blank
   await page.type(sfpSel, CREDS.project);
-  await page.waitFor(3 * 1000);
   
+try {
+  // find the project link and click it
+  //const linkHandlers = await page.$x("//a/span/p[text()='fe-test']");
+  const linkHandlers = await page.$x(`//a/span/p[text()='${CREDS.project}']`);
+
+  console.log('found links with the right text',linkHandlers.length)
+  if (linkHandlers.length > 0) {
+    await linkHandlers[0].click();
+  } else {
+    throw new Error("Link not found");
+  }
+
+  //await page.waitFor(3 * 1000);
   const spath = 'screenshots/cocalc.png';
   await page.screenshot({ path: spath});
   console.log(`04 screenshot saved to ${spath}`);
+} catch (e) {
+  console.log('oops',e.message);
+}
   browser.close();
 }
 
