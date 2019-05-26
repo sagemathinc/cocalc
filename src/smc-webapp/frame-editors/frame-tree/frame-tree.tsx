@@ -269,6 +269,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           complete={this.props.complete.get(desc.get("id"))}
           derived_file_types={this.props.derived_file_types}
           desc={desc}
+          available_features={this.props.available_features}
         />
       </div>
     );
