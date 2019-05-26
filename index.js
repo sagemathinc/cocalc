@@ -5,6 +5,7 @@ const CREDS = require('./creds');
 const sprintf = require('sprintf-js').sprintf;
 
 async function run() {
+try {
   const browser = await puppeteer.launch({
     headless: HEADLESS,
   });
@@ -33,12 +34,7 @@ async function run() {
   await page.waitForNavigation({'waitUntil':'networkidle0'});
   console.log('02 signed in')
 
-  //const n = 3;
-  //console.log(`wait ${n} seconds`);
-  //page.waitFor(n * 1000);
-  
-  // unique attribute for many CoCalc inputs is the placeholder string
-  // here is the selector for project search
+  // selector for project search
   // input[placeholder="Search for projects..."]
   sfpPh="Search for projects...";
   sfpSel = sprintf('input[placeholder=\"%s\"]', sfpPh);
@@ -53,13 +49,12 @@ async function run() {
   // type into the project search blank
   await page.type(sfpSel, CREDS.project);
   
-try {
   // find the project link and click it
-  const linkHandlers = await page.$x(`//a/span/p[text()='${CREDS.project}']`);
+  const lh1 = await page.$x(`//a/span/p[text()='${CREDS.project}']`);
 
-  console.log('04 number of links matching test project name',linkHandlers.length)
-  if (linkHandlers.length > 0) {
-    await linkHandlers[0].click();
+  console.log('04 number of links matching test project name',lh1.length)
+  if (lh1.length > 0) {
+    await lh1[0].click();
   } else {
     throw new Error("Link not found");
   }
@@ -78,30 +73,19 @@ try {
   await page.waitForFunction(sfilex);
 
   // find and click the texfile link
-  //const linkHandlers2 = await page.$x(`//a/span[text()='latex-sample']`);
-  const linkHandlers2 = await page.$x(`//a/span[text()='${CREDS.texfile.slice(0,-4)}']`);
-  console.log('06 number of links matching test texfile name',linkHandlers2.length)
-  if (linkHandlers2.length > 0) {
+  const lh2 = await page.$x(`//a/span[text()='${CREDS.texfile.slice(0,-4)}']`);
+  console.log('06 number of links matching test texfile name',lh2.length)
+  if (lh2.length > 0) {
     await Promise.all([
-      linkHandlers2[0].click(),
+      lh2[0].click(),
       page.waitForNavigation({'waitUntil':'networkidle0'})
     ]);
-    await page.waitFor(3 * 1000);
+    await page.waitFor(1 * 1000);
   } else {
     throw new Error("Link not found");
   }
-  //await page.waitForNavigation({'waitUntil':'networkidle0'});
-
-  // click the frame types pulldown
-  // it displays "Source" in the uppler left frame initially
-  // $x('//button[@id="types"]')[0].click();
-//  const lh3 = await page.$x('//button[@id="types"]');
-//  console.log('07 number of links matching types button',lh3.length)
-//  if (lh3.length > 0) {
-//    await lh3[0].click();
-//  } else {
-//    throw new Error("Link not found");
-//  }
+  
+  //page.waitForNavigation({'waitUntil':'networkidle0'})
   await page.click("#types");
   console.log('07 clicked types menu');
   //await page.waitForNavigation({'waitUntil':'networkidle0'});
@@ -116,16 +100,27 @@ try {
     }
 
   
+    console.log('wait 1')
+    await page.waitFor(1 * 1000);
+    fn5 = 'document.evaluate(\'//div[contains(text(), "Words in text")]\', document, null, XPathResult.STRING_TYPE, null).stringValue'
+    t = await page.waitForFunction(fn5)
   
-} catch (e) {
-  console.log('08 ERROR',e.message);
-}
+    Object.keys(t).forEach(ok => console.log('ok', ok))
+    console.log('tro', t._remoteObject.value)
+
+  
   await page.waitFor(3 * 1000);
   const spath = 'screenshots/cocalc.png';
   await page.screenshot({ path: spath});
-  console.log(`08 screenshot saved to ${spath}`);
+  console.log(`10 screenshot saved to ${spath}`);
   
-  browser.close();
+  console.log('99 closing browser')
+  browser.close()
+
+} catch (e) {
+  console.log('98 ERROR',e.message);
+  process.exit()
+}
 }
 
 run();
