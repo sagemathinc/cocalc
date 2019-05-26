@@ -1,4 +1,5 @@
 node_modules/
-creds.js
+creds*.js
+foo*.js
 .*term
 *.x11

@@ -1,14 +1,33 @@
 // front end test of CoCalc in puppeteer
-// usage: node index.js
+// usage:
+//   npm run test -- [-s] [-c credentials-file]
+// or
+//   node index.js [-s] [-c credentials-file]
+// -s - display the browser window (opposite of headless), default false
+// -c - name of credentials file, without ".js" extension
+//
+// example invocations
+//   npm run test -- -s  // run the test with 'creds.js', not headless
+//   node index.js creds-cocalc // run test headless with 'creds-cocalc.js' credentials file
+//
+// example credentials file "creds.js"
+//
+// module.exports = {
+//     url: 'https://cocalcinstance.com/app',
+//     username: 'testuser@example.com',
+//     password: 'asdf8qwerty',
+//     project:  'my-test',
+//     texfile:  'latex-fu.tex'
+// }
 
 // to do:
-// - command line options for test creds, non-headless operation
+// ✓ command line options for test creds, non-headless operation
 // - run in more environments
 // - add test for jupyter widgets
 // - wrap in jest
 // - write in typescript
 // - host on gce
-// - deal gracefully with test project that stopped/archived
+// - deal gracefully with test project that is stopped/archived
 
 // what it does:
 // - sign into instance with email and password
@@ -30,14 +49,37 @@
 const HEADLESS = true;
 
 const puppeteer = require('puppeteer');
-const CREDS = require('./creds');
+const program = require('commander');
+program.version('0.1.0');
+
+
 const sprintf = require('sprintf-js').sprintf;
 
 async function run() {
 try {
+
+  program
+    .option('-s, --screen', 'opposite of headless')
+    .option('-c, --creds <file>', 'credentials file', "./creds")
+
+
+  program.parse(process.argv);
+
+  headless = !(program.screen);
+  console.log('headless',headless);
+
+  creds = program.creds;
+  if (!creds.includes("/")) {creds = "./" + creds;}
+  console.log('creds file:', creds);
+
+  //throw new Error("early exit");
+
+
   const browser = await puppeteer.launch({
-    headless: HEADLESS,
+    headless: headless,
   });
+
+  const CREDS = require(creds);
 
   //const context = await browser.createIncognitoBrowserContext();
   //const page = await context.newPage();
@@ -46,7 +88,7 @@ try {
 
   // sign in
   await page.goto(CREDS.url);
-  console.log('01 got sign-in page')
+  console.log('01 got sign-in page', CREDS.url);
 
   // get selectors manually by doing Inspect while viewing page in chrome
   const USERNAME_SELECTOR = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-5 > div > input'
@@ -61,7 +103,7 @@ try {
 
   await page.click(BUTTON_SELECTOR);
   await page.waitForNavigation({'waitUntil':'networkidle0'});
-  console.log('02 signed in')
+  console.log('02 signed in');
 
   // selector for project search
   // input[placeholder="Search for projects..."]
@@ -74,14 +116,14 @@ try {
   const sfpx = sprintf("document.querySelector(\'%s\').placeholder == \"%s\"", sfpSel, sfpPh);
   await page.waitForFunction(sfpx);
   console.log('03 got search for projects input element')
-  
+
   // type into the project search blank
   await page.type(sfpSel, CREDS.project);
-  
+
   // find the project link and click it
   const lh1 = await page.$x(`//a/span/p[text()='${CREDS.project}']`);
 
-  console.log('04 number of links matching test project name',lh1.length)
+  console.log('04 number of links matching test project name',lh1.length);
   if (lh1.length > 0) {
     await lh1[0].click();
   } else {
@@ -95,7 +137,7 @@ try {
 
   const sfilex = sprintf("document.querySelector(\'%s\').placeholder == \"%s\"", sfileSel, sfilePh);
   await page.waitForFunction(sfilex);
-  console.log('05 got file search input element')
+  console.log('05 got file search input element');
 
   // type into the file search blank
   await page.type(sfileSel, CREDS.texfile);
@@ -103,7 +145,7 @@ try {
 
   // find and click the texfile link
   const lh2 = await page.$x(`//a/span[text()='${CREDS.texfile.slice(0,-4)}']`);
-  console.log('06 number of links matching test texfile name',lh2.length)
+  console.log('06 number of links matching test texfile name',lh2.length);
   if (lh2.length > 0) {
     await Promise.all([
       lh2[0].click(),
@@ -113,12 +155,12 @@ try {
   } else {
     throw new Error("Link not found");
   }
-  
+
   //page.waitForNavigation({'waitUntil':'networkidle0'})
   await page.click("#types");
   console.log('07 clicked types menu');
   //await page.waitForNavigation({'waitUntil':'networkidle0'});
-  
+
     const lh4 = await page.$x('//div[1]/div/ul/li[6]/a');
     console.log('08 number of links matching word count',lh4.length);
     if (lh4.length > 0) {
@@ -128,23 +170,23 @@ try {
       throw new Error("Link not found");
     }
 
-  
+
     //console.log('wait 1')
     //await page.waitFor(1 * 1000);
-    fn5 = 'document.evaluate(\'//div[contains(text(), "Words in text")]\', document, null, XPathResult.STRING_TYPE, null).stringValue'
-    t = await page.waitForFunction(fn5)
-  
-    //Object.keys(t).forEach(ok => console.log('ok', ok))
-    console.log('10 WORD COUNT FRAME:\n'+ t._remoteObject.value)
+    fn5 = 'document.evaluate(\'//div[contains(text(), "Words in text")]\', document, null, XPathResult.STRING_TYPE, null).stringValue';
+    t = await page.waitForFunction(fn5);
 
-  
+    //Object.keys(t).forEach(ok => console.log('ok', ok))
+    console.log('10 WORD COUNT FRAME:\n'+ t._remoteObject.value);
+
+
   //await page.waitFor(3 * 1000);
   const spath = 'screenshots/cocalc.png';
   await page.screenshot({ path: spath});
   console.log(`98 screenshot saved to ${spath}`);
-  
-  console.log('99 all tests ok - closing browser')
-  browser.close()
+
+  console.log('99 all tests ok - closing browser');
+  browser.close();
 
 } catch (e) {
   console.log('98 ERROR',e.message);
