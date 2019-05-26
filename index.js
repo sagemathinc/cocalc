@@ -1,3 +1,32 @@
+// front end test of CoCalc in puppeteer
+// usage: node index.js
+
+// to do:
+// - command line options for test creds, non-headless operation
+// - run in more environments
+// - add test for jupyter widgets
+// - wrap in jest
+// - write in typescript
+// - host on gce
+// - deal gracefully with test project that stopped/archived
+
+// what it does:
+// - sign into instance with email and password
+// - open test project
+// - open test .tex file
+// - check that word count button in upper left frame works
+// - logs each step that passes to js console
+
+// works with:
+// - cocalc.com
+// - test.cocalc.com
+// - docker containers
+//   - UW regular cocalc†
+//   - UW no-agpl cocalc†
+//   - pixelbook cocalc†
+//   - pixelbook no-agpl cocalc†
+// † - TO DO
+
 const HEADLESS = true;
 
 const puppeteer = require('puppeteer');
@@ -39,7 +68,7 @@ try {
   sfpPh="Search for projects...";
   sfpSel = sprintf('input[placeholder=\"%s\"]', sfpPh);
 
-  // pass function definition as string to page.waitForFunction
+  // pass function defi/nition as string to page.waitForFunction
   // x will be this:
   // document.querySelector('input[placeholder="Search for projects..."]').placeholder == "Search for projects..."
   const sfpx = sprintf("document.querySelector(\'%s\').placeholder == \"%s\"", sfpSel, sfpPh);
@@ -100,21 +129,21 @@ try {
     }
 
   
-    console.log('wait 1')
-    await page.waitFor(1 * 1000);
+    //console.log('wait 1')
+    //await page.waitFor(1 * 1000);
     fn5 = 'document.evaluate(\'//div[contains(text(), "Words in text")]\', document, null, XPathResult.STRING_TYPE, null).stringValue'
     t = await page.waitForFunction(fn5)
   
-    Object.keys(t).forEach(ok => console.log('ok', ok))
-    console.log('tro', t._remoteObject.value)
+    //Object.keys(t).forEach(ok => console.log('ok', ok))
+    console.log('10 WORD COUNT FRAME:\n'+ t._remoteObject.value)
 
   
-  await page.waitFor(3 * 1000);
+  //await page.waitFor(3 * 1000);
   const spath = 'screenshots/cocalc.png';
   await page.screenshot({ path: spath});
-  console.log(`10 screenshot saved to ${spath}`);
+  console.log(`98 screenshot saved to ${spath}`);
   
-  console.log('99 closing browser')
+  console.log('99 all tests ok - closing browser')
   browser.close()
 
 } catch (e) {
