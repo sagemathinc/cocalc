@@ -76,6 +76,6 @@ export async function gofmt(
 
     return s;
   } finally {
-    unlink(input_path); // don't wait and don't worry about any error.
+    unlink(input_path, () => {});
   }
 }

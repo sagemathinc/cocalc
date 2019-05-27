@@ -17,6 +17,7 @@ random_key = require("random-key")
 
 misc_node = require('smc-util-node/misc_node')
 
+misc2 = require('smc-util/misc2')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
@@ -304,6 +305,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
         dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
+
+        for name in ['first_name', 'last_name']
+            test = misc2.is_valid_username(opts[name])
+            if test?
+                opts.cb("#{name} not valid: #{test}")
+                return
 
         if opts.email_address? # canonicalize the email address, if given
             opts.email_address = misc.lower_email_address(opts.email_address)
@@ -1552,6 +1559,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id  : required    # initial owner
             title       : undefined
             description : undefined
+            image       : 'default'   # probably ok to leave it undefined
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         project_id = misc.uuid()
@@ -1559,12 +1567,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         @_query
             query  : "INSERT INTO projects"
             values :
-                project_id  : project_id
-                title       : opts.title
-                description : opts.description
-                created     : now
-                last_edited : now
-                users       : {"#{opts.account_id}":{group:'owner'}}
+                project_id    : project_id
+                title         : opts.title
+                description   : opts.description
+                compute_image : opts.image
+                created       : now
+                last_edited   : now
+                users         : {"#{opts.account_id}":{group:'owner'}}
             cb : (err, result) =>
                 opts.cb(err, if not err then project_id)
 
@@ -2630,6 +2639,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     opts.cb(undefined, w)
 
     ###
+<<<<<<< HEAD
     DEV ONLY: Random announcement messages
     ###
 
@@ -2697,6 +2707,121 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 async.mapSeries(times, insert, cb)
 
         ], opts.cb)
+=======
+    Custom software images
+    ###
+
+    # this is 100% for cc-in-cc dev projects only!
+    insert_random_compute_images: (opts) =>
+        opts = defaults opts,
+            cb     : required
+
+        dbg = @_dbg("database::insert_random_compute_images")
+        dbg()
+
+        capitalize = require('smc-util/misc').capitalize
+
+        words = [
+                    'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
+                    'advanced', 'course', 'yellow', 'bioinformatics', 'R', 'electric', 'sheep',
+                    'theory', 'math', 'physics', 'calculate', 'primer', 'DNA', 'tech', 'space'
+                ]
+
+        # deterministically sample distinct words (such that this is stable after a restart)
+        sample = (idx=0, n=1) ->
+            N = words.length
+            K = (idx * 997) %% N
+            ret = []
+            for i in [0..n]
+                for j in [0..N]
+                    w = words[(K + 97 * i + j) %% N]
+                    if ret.includes(w)
+                        continue
+                    else
+                        ret.push(w)
+                        break
+            return ret
+
+        rseed = 123
+        random = ->
+            x = Math.sin(rseed++)
+            r = x - Math.floor(x)
+            return r
+
+        create = (idx, cb) =>
+            rnd  = sample(idx, 3)
+            id   = rnd[...2].join('-') + "-#{idx}"
+            provider = ['github.com', 'gitlab.com', 'bitbucket.org'][idx % 3]
+            src = "https://#{provider}/#{rnd[2]}/#{id}.git"
+
+            # not all of them have a display-title, url, desc, ...
+            if random() > .25
+                if random() > .5
+                    extra = "(#{sample(idx + 2)})"
+                else
+                    extra = sample(idx+5, 2)
+                disp = (capitalize(_) for _ in rnd[...2].concat(extra)).join(' ')
+            else
+                if random() > .5
+                    disp = undefined
+                else
+                    disp = ''
+
+            if random() > .5
+                url = "https://www.google.com/search?q=#{rnd.join('%20')}"
+            else
+                url = undefined
+
+            if random() > .5
+                if random() > .5
+                    verylong = Array(100).fill('very long *text* for **testing**, ').join(" ")
+                if url?
+                    other_page = ", or point to [yet another page](#{url})"
+                else
+                    other_page = ""
+                desc = """
+                       This is some text describing what **#{disp or id}** is.
+                       Here could also be an [external link](https://doc.cocalc.com).
+                       It might also mention `#{id}`#{other_page}.
+
+                       #{verylong ? ''}
+                       """
+            else
+                desc = undefined
+
+            path = if random() > .5 then "index.ipynb" else "subdir/"
+            tag = if random() > .25 then "master" else null
+
+
+            @_query
+                query  : "INSERT INTO compute_images"
+                values :
+                    "id      :: TEXT     " : id
+                    "src     :: TEXT     " : src
+                    "type    :: TEXT     " : 'custom'
+                    "desc    :: TEXT     " : desc
+                    "display :: TEXT     " : disp
+                    "path    :: TEXT     " : path
+                    "url     :: TEXT     " : url
+                    "disabled:: BOOLEAN  " : idx == 1
+                cb     : cb
+
+        # first we wipe the table's content, then we generate some random stuff
+        async.series([
+            (cb) =>
+                @_query
+                    query  : 'DELETE FROM compute_images'
+                    where  : '1 = 1'
+                    cb     : cb
+
+            (cb) =>
+                async.mapSeries([0..20], create, cb)
+
+        ], (err) =>
+            dbg("all done")
+            opts.cb()
+        )
+>>>>>>> origin/master
 
 
     ###

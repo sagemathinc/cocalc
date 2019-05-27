@@ -526,6 +526,7 @@ exports.start_server = start_server = (cb) ->
             # is done in cocalc-docker.
             misc_node.execute_code  # in the scripts/ path...
                 command : "cocalc_kill_all_dev_projects.py"
+
             async.series([
                 (cb) =>
                     database._query
@@ -536,6 +537,12 @@ exports.start_server = start_server = (cb) ->
                     # For purposes of developing the announcement banner,
                     # this injects a couple of random messages into the database
                     database.insert_random_announcements
+                        cb     : cb
+
+                (cb) =>
+                    # For purposes of developing custom software images,
+                    # we inject a couple of random entries into the table in the DB
+                    database.insert_random_compute_images
                         cb     : cb
             ], (err) =>
                 cb(err)

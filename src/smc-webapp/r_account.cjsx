@@ -1336,6 +1336,15 @@ OtherSettings = rclass
             Hide free warnings: do <b><i>not</i></b> show a warning banner when using a free trial project {extra}
         </Checkbox>
 
+    render_allow_mentions: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('allow_mentions')}
+            ref      = 'allow_mentions'
+            onChange = {(e)=>@on_change('allow_mentions', e.target.checked)}
+        >
+            Allow mentioning others in chats (disable to work around a bug)
+        </Checkbox>
+
     render: ->
         if not @props.other_settings
             return <Loading />
@@ -1344,6 +1353,7 @@ OtherSettings = rclass
             {@render_first_steps()}
             {@render_announcement_high()}
             {@render_announcement_info()}
+            {@render_allow_mentions()}
             {@render_time_ago_absolute()}
             {### @render_katex() ###}
             {@render_mask_files()}
