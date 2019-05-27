@@ -8,8 +8,6 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
-require('ts-node').register()
-
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 5
 

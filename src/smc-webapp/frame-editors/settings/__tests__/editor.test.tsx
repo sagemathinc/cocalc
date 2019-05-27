@@ -14,6 +14,7 @@ test("renders a list of languages", () => {
 
   const render = shallow(
     <Settings
+      available={true}
       actions={actions}
       settings={settings}
       available_features={available_features}
