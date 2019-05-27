@@ -25,10 +25,7 @@ interface Props {
 
 export class Settings extends Component<Props, {}> {
   shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, [
-      "settings",
-      "available_features"
-    ]);
+    return is_different(this.props, props, ["settings", "available_features"]);
   }
 
   render_settings(): Rendered[] {
