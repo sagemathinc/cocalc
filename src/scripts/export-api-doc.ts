@@ -1,5 +1,6 @@
 // run via
 // $ tsc export-api-doc.ts  && nodejs export-api-doc.js
+// or if you have node-ts: $ node-ts scripts/export-api-doc.ts
 // then copy 'api.json' over to the root of cocalc-doc
 
 import { writeFileSync } from "fs";

@@ -1,4 +1,4 @@
-const { writeFile, readFile } = require("fs");
+const { writeFile, readFile, unlink } = require("fs");
 const tmp = require("tmp");
 const { callback } = require("awaiting");
 const { spawn } = require("child_process");
@@ -27,28 +27,32 @@ export async function r_format(
 ): Promise<string> {
   // create input temp file
   const input_path: string = await callback(tmp.file);
-  await callback(writeFile, input_path, input);
+  try {
+    await callback(writeFile, input_path, input);
 
-  // spawn the R formatter
-  const r_formatter = formatR(input_path);
+    // spawn the R formatter
+    const r_formatter = formatR(input_path);
 
-  // stdout/err capture
-  let stdout: string = "";
-  let stderr: string = "";
-  // read data as it is produced.
-  r_formatter.stdout.on("data", data => (stdout += data.toString()));
-  r_formatter.stderr.on("data", data => (stderr += data.toString()));
-  // wait for subprocess to close.
-  let code = await callback(close, r_formatter);
-  if (code) {
-    const err_msg = `${stderr}`;
-    logger.debug(`R_FORMAT ${err_msg}`);
-    throw new Error(err_msg);
+    // stdout/err capture
+    let stdout: string = "";
+    let stderr: string = "";
+    // read data as it is produced.
+    r_formatter.stdout.on("data", data => (stdout += data.toString()));
+    r_formatter.stderr.on("data", data => (stderr += data.toString()));
+    // wait for subprocess to close.
+    const code = await callback(close, r_formatter);
+    if (code) {
+      const err_msg = `${stderr}`;
+      logger.debug(`R_FORMAT ${err_msg}`);
+      throw new Error(err_msg);
+    }
+
+    // all fine, we read from the temp file
+    let output: Buffer = await callback(readFile, input_path);
+    let s: string = output.toString("utf-8");
+
+    return s;
+  } finally {
+    unlink(input_path, () => {});
   }
-
-  // all fine, we read from the temp file
-  let output: Buffer = await callback(readFile, input_path);
-  let s: string = output.toString("utf-8");
-
-  return s;
 }

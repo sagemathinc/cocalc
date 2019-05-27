@@ -58,7 +58,7 @@ export class Ban extends Component<Props, State> {
           name={this.state.running ? "sync" : "unlock-alt"}
           spin={this.state.running}
         />{" "}
-        {this.state.banned ? "Unban" : "Ban"} User...
+        {this.state.banned ? "Unban" : "Ban"} User
       </Button>
     );
   }
@@ -77,11 +77,16 @@ export class Ban extends Component<Props, State> {
     );
   }
 
-
   render(): Rendered {
     return (
       <div>
-        <b>User is currently {this.state.banned ? 'banned:' : 'NOT banned:'}</b>
+        <b>
+          User is currently{" "}
+          {this.state.banned
+            ? "banned:"
+            : "NOT banned:  If you ban them, they lose access to their account.  (NOTE: you can easily *unban* a banned user.)"}
+        </b>
+        <br />
         <br />
         {this.render_error()}
         {this.render_ban_button()}

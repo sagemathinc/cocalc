@@ -163,6 +163,9 @@ export class UserResult extends Component<Props, State> {
         {this.render_more_link("impersonate")}
         <Space />
         <Space />
+        {this.render_more_link("password")}
+        <Space />
+        <Space />
         {this.render_more_link("ban")}
       </div>
     );

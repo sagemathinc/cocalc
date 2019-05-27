@@ -249,6 +249,7 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_error("token")}
         {this.render_error("generic")}
         {this.render_error("account_creation_failed")}
+        {this.render_error("other")}
         {this.render_passports()}
         <form
           style={{ marginTop: 20, marginBottom: 20 }}
