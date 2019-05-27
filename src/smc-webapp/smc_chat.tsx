@@ -767,6 +767,7 @@ interface ChatRoomReduxProps {
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   unsent_user_mentions: MentionList;
+  other_settings: Map<string, any>;
 }
 
 type ChatRoomProps = ChatRoomOwnProps & ChatRoomReduxProps;
@@ -808,7 +809,8 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
 
       account: {
         account_id: rtypes.string,
-        font_size: rtypes.number
+        font_size: rtypes.number,
+        other_settings: rtypes.immutable.Map
       },
 
       file_use: {
@@ -1021,9 +1023,7 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
     ) {
       return <span>(they may receive an email)</span>;
     } else {
-      return (
-        <span>(enable the Internet Access upgrade to send emails)</span>
-      );
+      return <span>(enable the Internet Access upgrade to send emails)</span>;
     }
   }
 
@@ -1375,7 +1375,10 @@ class ChatRoom0 extends Component<ChatRoomProps, ChatRoomState> {
                 name={this.props.name}
                 input={this.props.input}
                 input_ref={this.input_ref}
-                enable_mentions={has_collaborators}
+                enable_mentions={
+                  has_collaborators &&
+                  this.props.other_settings.get("allow_mentions")
+                }
                 project_users={project_users}
                 user_store={this.props.redux.getStore("users")}
                 font_size={this.props.font_size}

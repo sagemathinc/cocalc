@@ -68,6 +68,8 @@ import { connection_to_project } from "../project/websocket/connect";
 
 import { codemirror_to_jupyter_pos } from "./util";
 
+import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -2719,10 +2721,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this._is_project) return;
     const account_store = this.redux.getStore("account") as any;
     if (account_store == null) return;
+    const cur: any = {};
+    // if available, retain existing jupyter config
     const acc_jup = account_store.getIn(["editor_settings", "jupyter"]);
-    if (acc_jup == null) return;
-    let tmp: any;
-    const cur = (tmp = acc_jup.toJS()) != null ? tmp : {};
+    if (acc_jup != null) {
+      Object.assign(cur, acc_jup.toJS());
+    }
+    // set new kernel and save it
     cur.kernel = kernel;
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur }
@@ -2965,7 +2970,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     const code = this._get_cell_input(id).trim();
-    let options: any; // TODO type this with a global interface
+    let options: FormatterOptions;
     const cell_type = cell.get("cell_type", "code");
     const language = this.store.get_kernel_language();
     switch (cell_type) {
@@ -2975,12 +2980,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             `Formatting code cells is impossible, because their language is not known.`
           );
         } else {
-          switch (language) {
+          switch (language.toLowerCase()) {
             case "python":
+            case "python3":
               options = { parser: "python" };
               break;
-            case "r":
+            case "r": // in the wild, the language is "R"
               options = { parser: "r" };
+              break;
+            case "c++":
+            case "C++":
+            case "C++17":
+              options = { parser: "clang-format" };
               break;
             default:
               throw new Error(
@@ -2996,25 +3007,26 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         throw new Error(`Unknown cell_type: '${cell_type}'`);
     }
     // console.log("FMT", cell_type, options, code);
-    let resp;
+    let resp: string | undefined;
     try {
       resp = await this._api_call_prettier(code, options);
     } catch (err) {
       this.set_error(err);
+      // do not process response (probably empty anyways) if there is a problem
+      return;
     }
-    // console.log("FMT resp", resp);
-
+    if (resp == null) return; // make everyone happy …
     // we additionally trim the output, because prettier introduces a trailing newline
-    const trim = function(str: string): string {
-      str = str.trim();
-      if (str.length > 0 && str.slice(-1) == "\n") {
-        return str.slice(0, -2);
-      }
-      return str;
-    };
-
-    this.set_cell_input(id, trim(resp), false);
+    this.set_cell_input(id, JupyterActions.trim_code(resp), false);
   };
+
+  public static trim_code(str: string): string {
+    str = str.trim();
+    if (str.length > 0 && str.slice(-1) == "\n") {
+      return str.slice(0, -2);
+    }
+    return str;
+  }
 
   format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
     this.set_error(null);

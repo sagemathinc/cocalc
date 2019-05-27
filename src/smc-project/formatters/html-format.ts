@@ -99,6 +99,6 @@ export async function html_format(
     return s;
   } finally {
     // logger.debug(`html formatter done, unlinking ${input_path}`);
-    unlink(input_path);
+    unlink(input_path, () => {});
   }
 }

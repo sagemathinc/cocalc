@@ -23,12 +23,14 @@ import { ListingHeader } from "./listing-header";
 import { DirectoryRow } from "./directory-row";
 import { FileRow } from "./file-row";
 import { TERM_MODE_CHAR } from "./utils";
+import { MainConfiguration } from "../../project_configuration";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
   actions: ProjectActions;
   redux: AppRedux;
 
+  name: string;
   active_file_sort?: any;
   listing: any[];
   file_map: object;
@@ -48,6 +50,7 @@ interface Props {
   other_settings?: immutable.Map<any, any>;
   show_new: boolean;
   last_scroll_top?: number;
+  configuration_main?: MainConfiguration;
 }
 
 export class FileListing extends React.Component<Props> {
@@ -252,6 +255,7 @@ export class FileListing extends React.Component<Props> {
     }
     return (
       <NoFiles
+        name={this.props.name}
         current_path={this.props.current_path}
         actions={this.props.actions}
         public_view={this.props.public_view}
@@ -259,6 +263,7 @@ export class FileListing extends React.Component<Props> {
         create_folder={this.props.create_folder}
         create_file={this.props.create_file}
         project_id={this.props.project_id}
+        configuration_main={this.props.configuration_main}
       />
     );
   }
