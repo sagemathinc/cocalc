@@ -417,6 +417,7 @@ ChatRoom = rclass ({name}) ->
         account :
             account_id : rtypes.string
             font_size  : rtypes.number
+            other_settings : rtypes.immutable.Map
         file_use :
             file_use : rtypes.immutable
         projects :
@@ -676,7 +677,7 @@ ChatRoom = rclass ({name}) ->
                         <ChatInput
                             input                = {@props.input}
                             input_ref            = {@input_ref}
-                            enable_mentions      = {has_collaborators}
+                            enable_mentions      = {has_collaborators && @props.other_settings.get('allow_mentions')}
                             project_users        = {project_users}
                             user_store           = {@props.redux.getStore("users")}
                             font_size            = {@props.font_size}

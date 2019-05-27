@@ -7,6 +7,7 @@ import * as CSS from "csstype";
 import { MentionsInput, Mention } from "react-mentions";
 import { USER_MENTION_MARKUP } from "./utils";
 import { cmp_Date } from "smc-util/misc2";
+const { FormControl } = require("react-bootstrap");
 const { Space } = require("../r_misc");
 const { Avatar } = require("../other-users");
 const { IS_MOBILE, isMobile } = require("../feature");
@@ -56,6 +57,7 @@ export class ChatInput extends React.PureComponent<Props> {
   // Without this, MentionsInput does not correctly update its internal representation.
   componentDidUpdate(prev_props) {
     if (
+      this.props.enable_mentions &&
       this.props.on_paste != undefined &&
       prev_props.input != this.props.input
     ) {
@@ -221,6 +223,22 @@ export class ChatInput extends React.PureComponent<Props> {
       id = sha1(this.props.name);
     }
 
+    if (!this.props.enable_mentions) {
+      return (
+        <FormControl
+          id={id}
+          autoFocus={!IS_MOBILE || isMobile.Android()}
+          componentClass="textarea"
+          ref={this.input_ref}
+          onKeyDown={this.on_keydown}
+          value={this.props.input}
+          placeholder={"Type a message..."}
+          onChange={this.on_change}
+          style={{height: "100%"}}
+        />
+      );
+    }
+
     return (
       <MentionsInput
         id={id}
@@ -233,11 +251,7 @@ export class ChatInput extends React.PureComponent<Props> {
         onKeyDown={this.on_keydown}
         singleLine={this.props.componentClass == "input"}
         value={this.props.input}
-        placeholder={
-          this.props.enable_mentions
-            ? "Type a message, @name..."
-            : "Type a message..."
-        }
+        placeholder={"Type a message, @name..."}
         onPaste={this.props.on_paste}
         onChange={this.on_change}
       >

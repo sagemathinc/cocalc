@@ -6,7 +6,10 @@
 #
 ###############################################################################
 
+require('ts-node').register()
+
 misc = require('../misc')
+misc2 = require('../misc2')
 underscore = require('underscore')
 immutable = require('immutable')
 
@@ -1094,7 +1097,7 @@ describe "timestamp_cmp", ->
         tcmp(a, b).should.eql 1
         tcmp(b, a).should.eql -1
         # sometimes, that's -0 instead of 0
-        assert.strictEqual(tcmp(a, a), 0)
+        assert.strictEqual(Math.abs(tcmp(a, a)), 0)
 
     it "handles missing timestamps gracefully", ->
         tcmp(a, {}).should.eql -1
@@ -1628,3 +1631,22 @@ describe 'test closest kernel matching method', ->
     it 'suggests R over ir-35', ->
         expect(misc.closest_kernel_match("ir-35",kernels)).toEqual(ir)
 
+
+describe 'do not allow URLs in names', ->
+    it 'works for usual names', ->
+        expect(misc2.is_valid_username("harald")).toBe(undefined)
+        expect(misc2.is_valid_username("ABC FOO-BAR")).toBe(undefined)
+        # DNS-like substrings easily trigger a violoation. these are fine, though
+        expect(misc2.is_valid_username("is.test.ok")).toBe(undefined)
+        expect(misc2.is_valid_username("is.a.test")).toBe(undefined)
+    it 'blocks suspicious names', ->
+        expect(misc2.is_valid_username("OPEN http://foo.com")).toExist()
+        expect(misc2.is_valid_username("https://earn-money.cc is good" )).toExist()
+        expect(misc2.is_valid_username("OPEN mailto:bla@bar.de")).toExist()
+    it 'is not fooled to easily', ->
+        expect(misc2.is_valid_username("OPEN hTTp://foo.com")).toExist()
+        expect(misc2.is_valid_username("httpS://earn-money.cc is good" )).toExist()
+        expect(misc2.is_valid_username("OPEN MAILTO:bla@bar.de")).toExist()
+        expect(misc2.is_valid_username("test.account.dot")).toInclude("test.account.dot")
+        expect(misc2.is_valid_username("no spam EARN-A-LOT-OF.money Now")).toInclude(".money")
+        expect(misc2.is_valid_username("spam abc.co earn")).toInclude(".co")
