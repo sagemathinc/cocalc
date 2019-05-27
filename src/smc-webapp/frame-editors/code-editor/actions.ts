@@ -31,7 +31,8 @@ import {
   filename_extension,
   history_path,
   len,
-  uuid
+  uuid,
+  unreachable
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -59,6 +60,11 @@ import { TerminalManager } from "../terminal-editor/terminal-manager";
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
+import { Options as FormatterOptions } from "smc-project/formatters/prettier";
+import {
+  Parser as FormatterParser,
+  Exts as FormatterExts
+} from "smc-util/code-formatter";
 import { SHELLS } from "./editor";
 
 interface gutterMarkerParams {
@@ -1497,6 +1503,19 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
     if (this._state == "closed") return;
+    const proj_store = this.redux.getProjectStore(this.project_id);
+    if (proj_store != null) {
+      // TODO why is this an immutable map? it's project_configuration/Available
+      const available = proj_store.get("available_features") as Map<
+        string,
+        boolean
+      >;
+      if (available != null && !available.get("spellcheck", false)) {
+        // console.log("Spellcheck not available");
+        return;
+      }
+    }
+
     // hash combines state of file with spell check setting.
     // TODO: store /type fail.
     const lang = (this.store.get("settings") as Map<string, any>).get("spell");
@@ -1634,9 +1653,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
 
     cm.focus();
-    let parser: string;
-    let variant: string | undefined = undefined;
-    switch (filename_extension(this.path)) {
+    let parser: FormatterParser;
+    const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
+    switch (ext) {
       case "js":
       case "jsx":
         parser = "babylon";
@@ -1697,13 +1716,16 @@ export class Actions<T = CodeEditorState> extends BaseActions<
         parser = "clang-format";
         break;
       default:
+        // make sure all extensions are dealth with
+        unreachable(ext);
         return;
     }
+
     const options: ParserOptions = {
       parser,
       variant,
-      tabWidth: cm.getOption("tabSize"),
-      useTabs: cm.getOption("indentWithTabs")
+      tabWidth: cm.getOption("tabSize") as number,
+      useTabs: cm.getOption("indentWithTabs") as boolean
     };
 
     this.set_status("Running code formatter...");

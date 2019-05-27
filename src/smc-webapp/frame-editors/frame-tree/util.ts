@@ -33,32 +33,3 @@ export function aux_file(path: string, ext: string): string {
     return "." + s.tail;
   }
 }
-
-// the list of filename extensions where we do support source formatting
-export const PRETTIER_SUPPORT = {
-  js: true,
-  jsx: true,
-  md: true,
-  rmd: true,
-  css: true,
-  ts: true,
-  tsx: true,
-  json: true,
-  yaml: true,
-  yml: true,
-  py: true, // use external tool
-  tex: true, // actually use latexformat
-  html: true, // uses old-school "tidy" with some specific parameters
-  r: true, // formatR/styler
-  rnw: true, // styler
-  go: true, // gofmt
-  c: true, // clang-format
-  cc: true, // --*--
-  "c++": true, // --*--
-  cpp: true, // --*--
-  h: true, // --*--
-  xml: true, // tidy
-  cml: true, // tidy for xml
-  kml: true, // tidy for xml
-  bib: true // via biber --tool
-};

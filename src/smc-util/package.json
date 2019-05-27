@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "testsync": "cd sync && npx jest",
-    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee",
+    "test": "export NODE_ENV=mocha-test && SMC_TEST=true node_modules/.bin/mocha --reporter ${REPORTER:-progress} test/*.coffee; cd test && npx jest",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
     "lint": "node_modules/.bin/coffeelint -c *.coffee"
   },
@@ -25,6 +25,7 @@
     "prop-types": "^15.5.10",
     "sha1": "^1.1.1",
     "underscore": "^1.9.1",
+    "url-regex": "^5.0.0",
     "uuid": "^3.0.1"
   },
   "repository": {

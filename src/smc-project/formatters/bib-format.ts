@@ -77,7 +77,7 @@ export async function bib_format(
     return s;
   } finally {
     // logger.debug(`bibtex formatter done, unlinking ${input_path}`);
-    unlink(input_path);
-    unlink(output_path);
+    unlink(input_path, () => {});
+    unlink(output_path, () => {});
   }
 }

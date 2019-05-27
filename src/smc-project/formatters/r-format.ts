@@ -66,6 +66,7 @@ export async function r_format(
 
     // spawn the R formatter
     const r_formatter = formatR(input_path, variant);
+
     // stdout/err capture
     let stdout: string = "";
     let stderr: string = "";
@@ -73,6 +74,7 @@ export async function r_format(
     r_formatter.stdout.on("data", data => (stdout += data.toString()));
     r_formatter.stderr.on("data", data => (stderr += data.toString()));
     // wait for subprocess to close.
+
     let code = await callback(close, r_formatter);
     // special case: return code 0 but warnings are errors, which we want to report back
     if (variant == "styler" && stderr.length > 0) {
@@ -95,6 +97,6 @@ export async function r_format(
 
     return s;
   } finally {
-    unlink(input_path);
+    unlink(input_path, () => {});
   }
 }

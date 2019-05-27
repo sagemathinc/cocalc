@@ -24,15 +24,19 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Form, FormControl, ControlLabel, FormGroup, Radio,
 ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert, Checkbox, Breadcrumb, Navbar} =  require('react-bootstrap')
 misc = require('smc-util/misc')
+misc2 = require('smc-util/misc2')
 {ActivityDisplay, DirectoryInput, Icon, ProjectState, COLORS,
 SearchInput, TimeAgo, ErrorDisplay, Space, Tip, Loading, LoginLink, Footer, CourseProjectExtraHelp, CopyToClipBoard, VisibleMDLG, VisibleLG, HiddenSM, CloseX2} = require('./r_misc')
 {SMC_Dropwrapper} = require('./smc-dropzone')
-{FileTypeSelector, NewFileButton, ProjectNewForm} = require('./project_new')
+{NewFileButton, ProjectNewForm} = require('./project_new')
 {SiteName} = require('./customize')
 {file_actions} = require('./project_store')
 {Library} = require('./library')
 {ProjectSettingsPanel} = require('./project/project-settings-support')
 {analytics_event} = require('./tracker')
+{compute_image2name, compute_image2basename, CUSTOM_IMG_PREFIX} = require('./custom-software/util')
+{ default_ext, EXTs} = require('./project/file-listing/utils')
+ALL_FILE_BUTTON_TYPES = EXTs
 
 STUDENT_COURSE_PRICE = require('smc-util/upgrade-spec').upgrades.subscription.student_course.price.month4
 
@@ -45,7 +49,18 @@ underscore            = require('underscore')
 {webapp_client}       = require('./webapp_client')
 {AccountPage}         = require('./account_page')
 {UsersViewing}        = require('./other-users')
+{project_tasks}       = require('./project_tasks')
+{CustomSoftwareInfo}  = require('./custom-software/info-bar')
+{CustomSoftwareReset} = require('./custom-software/reset-bar')
+
+
+ROW_INFO_STYLE = Object.freeze
+    color      : COLORS.GRAY
+    height     : '22px'
+    margin     : '5px 3px'
+
 {FileListing, TERM_MODE_CHAR} = require("./project/file-listing")
+
 feature = require('./feature')
 {AskNewFilename}      = require('./project/ask-filename')
 
@@ -54,6 +69,7 @@ Combobox = require('react-widgets/lib/Combobox') # TODO: delete this when the co
 pager_range = (page_size, page_number) ->
     start_index = page_size*page_number
     return {start_index: start_index, end_index: start_index + page_size}
+
 
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
@@ -140,13 +156,14 @@ ProjectFilesButtons = rclass
     displayName : 'ProjectFiles-ProjectFilesButtons'
 
     propTypes :
-        kucalc       : rtypes.string
-        show_hidden  : rtypes.bool
-        show_masked  : rtypes.bool
-        public_view  : rtypes.bool
-        show_new     : rtypes.bool
-        show_library : rtypes.bool
-        actions      : rtypes.object.isRequired
+        kucalc             : rtypes.string
+        show_hidden        : rtypes.bool
+        show_masked        : rtypes.bool
+        public_view        : rtypes.bool
+        show_new           : rtypes.bool
+        show_library       : rtypes.bool
+        available_features : rtypes.object
+        actions            : rtypes.object.isRequired
 
     handle_refresh: (e) ->
         e.preventDefault()
@@ -217,7 +234,7 @@ ProjectFilesButtons = rclass
     render: ->
         <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'} className='pull-right'>
             <ButtonGroup bsSize='small'>
-                {@render_library_button()}
+                {@render_library_button() if @props.available_features?.library}
                 {@render_upload_button()}
             </ButtonGroup>
             <ButtonGroup bsSize='small' className='pull-right'>
@@ -232,13 +249,19 @@ ProjectFilesActions = rclass
     displayName : 'ProjectFiles-ProjectFilesActions'
 
     propTypes :
+        project_id    : rtypes.string
         checked_files : rtypes.object
         listing       : rtypes.array
         page_number   : rtypes.number
         page_size     : rtypes.number
         public_view   : rtypes.bool.isRequired
         current_path  : rtypes.string
+        project_map   : rtypes.immutable.Map
+        images        : rtypes.immutable.Map
         actions       : rtypes.object.isRequired
+        available_features  : rtypes.object
+        show_custom_software_reset : rtypes.bool
+        project_is_running : rtypes.bool
 
     getInitialState: ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
@@ -269,6 +292,8 @@ ProjectFilesActions = rclass
             @clear_selection()
 
     render_check_all_button: ->
+        if @props.listing.length is 0
+            return
         if @props.checked_files.size is 0
             button_icon = 'square-o'
             button_text = 'Check All'
@@ -299,12 +324,11 @@ ProjectFilesActions = rclass
                 </Button>
 
     render_currently_selected: ->
+        if @props.listing.length is 0
+            return
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
-        style =
-            color      : COLORS.GRAY
-            height     : '22px'
-            margin     : '5px 3px'
+        style = ROW_INFO_STYLE
 
         if checked is 0
             <div style={style}>
@@ -336,6 +360,8 @@ ProjectFilesActions = rclass
         </Button>
 
     render_action_buttons: ->
+        if not @props.project_is_running
+            return
         if @props.checked_files.size is 0
             return
 
@@ -386,18 +412,32 @@ ProjectFilesActions = rclass
             {(@render_action_button(v) for v in action_buttons)}
         </ButtonGroup>
 
+    render_button_area: ->
+        if @props.checked_files.size is 0
+            return <CustomSoftwareInfo
+                        project_id = {@props.project_id}
+                        images = {@props.images}
+                        project_map = {@props.project_map}
+                        actions = {@props.actions}
+                        available_features = {@props.available_features}
+                        show_custom_software_reset = {@props.show_custom_software_reset}
+                        project_is_running = {@props.project_is_running}
+                    />
+        else
+            return @render_action_buttons()
+
     render: ->
         <div style={flex: '1 0 auto'}>
             <div style={flex: '1 0 auto'}>
                 <ButtonToolbar style={whiteSpace:'nowrap', padding: '0'}>
                     <ButtonGroup>
-                        {@render_check_all_button()}
+                        {@render_check_all_button() if @props.project_is_running}
                     </ButtonGroup>
-                    {@render_action_buttons()}
+                    {@render_button_area()}
                 </ButtonToolbar>
             </div>
             <div style={flex: '1 0 auto'}>
-                {@render_currently_selected()}
+                {@render_currently_selected() if @props.project_is_running}
             </div>
         </div>
 
@@ -1407,16 +1447,23 @@ ProjectFilesNew = rclass
         actions       : rtypes.object.isRequired
         create_folder : rtypes.func.isRequired
         create_file   : rtypes.func.isRequired
+        configuration : rtypes.immutable
         disabled      : rtypes.bool
 
     getDefaultProps: ->
         file_search : ''
 
+    new_file_button_types : ->
+        if @props.configuration?
+            disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            if disabled_ext?
+                return ALL_FILE_BUTTON_TYPES.filter (ext) ->
+                    not disabled_ext.includes(ext)
+        return ALL_FILE_BUTTON_TYPES
+
     # Rendering doesnt rely on props...
     shouldComponentUpdate: ->
         false
-
-    new_file_button_types : ['ipynb', 'sagews', 'tex', 'term',  'x11', 'rnw', 'rtex', 'rmd', 'md', 'tasks', 'course', 'sage', 'py', 'sage-chat']
 
     file_dropdown_icon: ->
         <span style={whiteSpace: 'nowrap'}>
@@ -1450,13 +1497,14 @@ ProjectFilesNew = rclass
             analytics_event('project_file_listing', 'search_create_button', 'file')
 
     render: ->
+        # console.log("ProjectFilesNew configuration", @props.configuration?.toJS())
         <SplitButton
             id={'new_file_dropdown'}
             title={@file_dropdown_icon()}
             onClick={@on_create_button_clicked}
             disabled={@props.disabled}
         >
-                {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
+                {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types())}
                 <MenuItem divider />
                 <MenuItem eventKey='folder' key='folder' onSelect={@props.create_folder}>
                     <Icon name='folder' /> Folder
@@ -1482,16 +1530,20 @@ exports.ProjectFiles = rclass ({name}) ->
             date_when_course_payment_required : rtypes.func
             get_my_group                      : rtypes.func
             get_total_project_quotas          : rtypes.func
-        account :
-            other_settings : rtypes.immutable.Map
-            is_logged_in   : rtypes.bool
-        billing :
-            customer       : rtypes.object
-        customize :
-            kucalc : rtypes.string
 
         account :
             other_settings : rtypes.immutable.Map
+            is_logged_in   : rtypes.bool
+
+        billing :
+            customer       : rtypes.object
+
+        customize :
+            kucalc : rtypes.string
+            site_name : rtypes.string
+
+        compute_images :
+            images        : rtypes.immutable.Map
 
         "#{name}" :
             active_file_sort      : rtypes.object
@@ -1515,7 +1567,10 @@ exports.ProjectFiles = rclass ({name}) ->
             show_library          : rtypes.bool
             show_new              : rtypes.bool
             public_paths          : rtypes.immutable  # used only to trigger table init
+            configuration         : rtypes.immutable
+            available_features    : rtypes.object
             file_listing_scroll_top: rtypes.number
+            show_custom_software_reset : rtypes.bool
 
     propTypes :
         project_id             : rtypes.string
@@ -1562,10 +1617,13 @@ exports.ProjectFiles = rclass ({name}) ->
         @actions(name).setState(page_number : @props.page_number + 1)
 
     create_file: (ext, switch_over=true) ->
-        if not ext? and @props.file_search.lastIndexOf('.') <= @props.file_search.lastIndexOf('/')
-            ext = "sagews"
+        file_search = @props.file_search
+        if not ext? and file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
+            disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            ext = default_ext(disabled_ext)
+
         @actions(name).create_file
-            name         : @props.file_search
+            name         : file_search
             ext          : ext
             current_path : @props.current_path
             switch_over  : switch_over
@@ -1644,17 +1702,23 @@ exports.ProjectFiles = rclass ({name}) ->
             </Col>
         </Row>
 
-    render_files_actions: (listing, public_view) ->
-        if listing.length > 0
-            <ProjectFilesActions
-                checked_files = {@props.checked_files}
-                file_action   = {@props.file_action}
-                page_number   = {@props.page_number}
-                page_size     = {@file_listing_page_size()}
-                public_view   = {public_view}
-                current_path  = {@props.current_path}
-                listing       = {listing}
-                actions       = {@props.actions} />
+    render_files_actions: (listing, public_view, project_is_running) ->
+        <ProjectFilesActions
+            project_id    = {@props.project_id}
+            checked_files = {@props.checked_files}
+            file_action   = {@props.file_action}
+            page_number   = {@props.page_number}
+            page_size     = {@file_listing_page_size()}
+            public_view   = {public_view}
+            current_path  = {@props.current_path}
+            listing       = {listing}
+            project_map   = {@props.project_map}
+            images        = {@props.images}
+            actions       = {@props.actions}
+            available_features = {@props.available_features}
+            show_custom_software_reset = {@props.show_custom_software_reset}
+            project_is_running = {project_is_running}
+        />
 
     render_miniterm: ->
         <MiniTerminal
@@ -1671,6 +1735,7 @@ exports.ProjectFiles = rclass ({name}) ->
             actions       = {@props.actions}
             create_file   = {@create_file}
             create_folder = {@create_folder}
+            configuration = {@props.configuration}
             disabled      = {!!@props.ext_selection}
         />
 
@@ -1778,6 +1843,7 @@ exports.ProjectFiles = rclass ({name}) ->
                 style          = {flex: "1"}
             >
                 <FileListing
+                    name                   = {name}
                     active_file_sort       = {@props.active_file_sort}
                     listing                = {listing}
                     page_size              = {@file_listing_page_size()}
@@ -1799,6 +1865,7 @@ exports.ProjectFiles = rclass ({name}) ->
                     redux                  = {@props.redux}
                     show_new               = {@props.show_new}
                     last_scroll_top        = {@props.file_listing_scroll_top}
+                    configuration_main     = {@props.configuration?.get("main")}
                 />
             </SMC_Dropwrapper>
         else
@@ -1829,7 +1896,7 @@ exports.ProjectFiles = rclass ({name}) ->
         return @props.other_settings?.get('page_size') ? 50
 
     render_control_row: (public_view, visible_listing) ->
-        <div style={display: 'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
+        <div style={display:'flex', flexFlow: 'row wrap', justifyContent: 'space-between', alignItems: 'stretch'}>
             <div style={flex: '1 0 20%', marginRight: '10px', minWidth: '20em'}>
                 <ProjectFilesSearch
                     project_id          = {@props.project_id}
@@ -1882,9 +1949,23 @@ exports.ProjectFiles = rclass ({name}) ->
                     show_new     = {@props.show_new}
                     show_library = {@props.show_library}
                     kucalc       = {@props.kucalc}
+                    available_features = {@props.available_features}
                 />
             }
         </div>
+
+    render_custom_software_reset: () ->
+        return null if not @props.show_custom_software_reset
+        # also don't show this box, if any files are selected
+        return null if @props.checked_files.size > 0
+        <CustomSoftwareReset
+            project_id = {@props.project_id}
+            images = {@props.images}
+            project_map = {@props.project_map}
+            actions = {@props.actions}
+            available_features = {@props.available_features}
+            site_name = {@props.site_name}
+        />
 
     render: ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
@@ -1898,6 +1979,9 @@ exports.ProjectFiles = rclass ({name}) ->
 
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state'])
+            project_is_running = project_state?.get('state') and project_state.get('state') in ['running', 'saving']
+        else
+            project_is_running = false
 
         {listing, error, file_map} = @props.displayed_listing
 
@@ -1928,10 +2012,12 @@ exports.ProjectFiles = rclass ({name}) ->
 
             <div style={flex_row_style}>
                 <div style={flex: '1 0 auto', marginRight: '10px', minWidth: '20em'}>
-                    {@render_files_actions(listing, public_view) if listing?}
+                    {@render_files_actions(listing, public_view, project_is_running) if listing?}
                 </div>
                 {@render_project_files_buttons(public_view)}
             </div>
+
+            {@render_custom_software_reset() if project_is_running}
 
             {@render_library() if @props.show_library}
 
@@ -1946,3 +2032,4 @@ exports.ProjectFiles = rclass ({name}) ->
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
+

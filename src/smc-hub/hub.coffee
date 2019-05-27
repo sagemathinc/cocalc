@@ -526,10 +526,22 @@ exports.start_server = start_server = (cb) ->
             # is done in cocalc-docker.
             misc_node.execute_code  # in the scripts/ path...
                 command : "cocalc_kill_all_dev_projects.py"
-            database._query
-                safety_check : false
-                query : """update projects set state='{"state":"opened"}'"""
-                cb    : cb
+
+            async.series([
+                (cb) =>
+                    database._query
+                        safety_check : false
+                        query : """update projects set state='{"state":"opened"}'"""
+                        cb    : cb
+                (cb) =>
+                    # For purposes of developing custom software images,
+                    # we inject a couple of random entries into the table in the DB
+                    database.insert_random_compute_images
+                        cb     : cb
+            ], (err) =>
+                cb(err)
+            )
+
         (cb) ->
             if not program.dev
                 cb(); return

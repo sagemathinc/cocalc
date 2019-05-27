@@ -228,11 +228,11 @@ exports.mass_email = (opts) ->
     )
 
 
+###
 verify_email_html = (token_url) -> """
 <p style="margin-top:0;margin-bottom:10px;">
 <strong>
-Please <a href="#{token_url}">click here</a> to verify your email address!
-If this link does not work, please copy/paste this URL into a new browser tab and open the link:
+Please <a href="#{token_url}">click here</a> to verify your email address!  If this link does not work, please copy/paste this URL into a new browser tab and open the link:
 </strong>
 </p>
 
@@ -240,6 +240,10 @@ If this link does not work, please copy/paste this URL into a new browser tab an
 #{token_url}
 </pre>
 """
+###
+
+# Disable verify email message for now, since verify isn't working (?).
+verify_email_html = -> ""
 
 # beware, this needs to be HTML which is compatible with email-clients!
 welcome_email_html = (token_url) -> """

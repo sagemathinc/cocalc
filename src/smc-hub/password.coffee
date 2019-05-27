@@ -7,7 +7,7 @@ misc                 = require('smc-util/misc')
 message              = require('smc-util/message')     # message protocol between front-end and back-end
 email                = require('./email')
 {defaults, required} = misc
-{is_valid_password}  = require('./create-account')
+{is_valid_password}  = require('./client/create-account')
 auth                 = require('./auth')
 
 exports.forgot_password = (opts) ->
