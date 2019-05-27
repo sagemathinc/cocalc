@@ -8,6 +8,8 @@ COPYRIGHT : (c) 2017 SageMath, Inc.
 LICENSE   : AGPLv3
 ###
 
+require('ts-node').register()
+
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
 MAP_LIMIT = 5
 
@@ -16,6 +18,7 @@ async   = require('async')
 random_key = require("random-key")
 
 misc_node = require('smc-util-node/misc_node')
+misc2_node = require('smc-util-node/misc2_node')
 
 misc2 = require('smc-util/misc2')
 {defaults} = misc = require('smc-util/misc')
@@ -307,7 +310,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg()
 
         for name in ['first_name', 'last_name']
-            test = misc2.is_valid_username(opts[name])
+            test = misc2_node.is_valid_username(opts[name])
             if test?
                 opts.cb("#{name} not valid: #{test}")
                 return
