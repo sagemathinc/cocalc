@@ -52,7 +52,7 @@ hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
 {http_message_api_v1} = require('./api/handler')
-{analytics_rec, png_1x1, analytics_cookie}  = require('./analytics')
+{analytics_rec, analytics_js, png_1x1, analytics_cookie} = require('./analytics')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
@@ -60,7 +60,6 @@ MetricsRecorder  = require('./metrics-recorder')
 SMC_ROOT    = process.env.SMC_ROOT
 STATIC_PATH = path_module.join(SMC_ROOT, 'static')
 
-analytics_js = fs.readFileSync("../webapp-lib/cocalc-analytics.js").toString().trim()
 
 exports.init_express_http_server = (opts) ->
     opts = defaults opts,
@@ -151,6 +150,7 @@ exports.init_express_http_server = (opts) ->
         # in case user was already here, do not send it again.
         # only the first hit is interesting.
         if req.cookies[misc.analytics_cookie_name]
+            res.write("// NOOP")
             res.end()
             return
 

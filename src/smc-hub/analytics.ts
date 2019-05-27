@@ -1,6 +1,16 @@
 import * as misc from "smc-util/misc";
 import * as ms from "ms";
 const { DNS } = require("smc-util/theme");
+import * as fs from "fs";
+import * as TS from "typescript";
+const UglifyJS = require("uglify-js");
+
+// compiling analytics-script.ts and minifying it.
+export const analytics_js = UglifyJS.minify(
+  TS.transpileModule(fs.readFileSync("./analytics-script.ts").toString(), {
+    compilerOptions: { module: TS.ModuleKind.CommonJS }
+  }).outputText
+).code;
 
 function create_log(name, logger) {
   if (logger != null) {

@@ -428,18 +428,7 @@ if (COMP_ENV) {
     })
   );
 
-  // analytics.js
-
-  staticPages.push(
-    new CopyWebpackPlugin([
-      {
-        from: "webapp-lib/cocalc-analytics.js",
-        to: "analytics.js",
-        force: true
-      }
-    ])
-  );
-
+  // table of installed software packages and libraries
   for (let infn of glob.sync("webapp-lib/doc/software-*.pug")) {
     const sw_env = path
       .basename(infn)

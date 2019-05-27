@@ -12,10 +12,10 @@
 
 // variables DNS and BASE_URL are injected
 
-var href = window.location.href;
+const href = window.location.href;
 
 // TODO: use the array defined in smc-util/misc.js
-var UTM_KEYS = Object.freeze([
+const UTM_KEYS = Object.freeze([
   "source",
   "medium",
   "campaign",
@@ -23,13 +23,14 @@ var UTM_KEYS = Object.freeze([
   "content"
 ]);
 
-var UTM = {};
-var params = href.slice(href.indexOf("?") + 1).split("&");
-for (var i = 0; i < params.length; i++) {
-  var part = params[i];
-  var k_v = part.split("=");
-  var k = k_v[0];
-  var v = k_v[1];
+const UTM = {};
+const params = href.slice(href.indexOf("?") + 1).split("&");
+
+for (const i = 0; i < params.length; i++) {
+  const part = params[i];
+  const k_v = part.split("=");
+  const k = k_v[0];
+  const v = k_v[1];
   if (k == null || v == null) continue;
   if (k.slice(0, 4) !== "utm_") continue;
   k = k.slice(4);
@@ -38,13 +39,13 @@ for (var i = 0; i < params.length; i++) {
 }
 
 // do we have a referrer? (not just "")
-var REF = document.referrer.length > 0 ? document.referrer : undefined;
+const REF = document.referrer.length > 0 ? document.referrer : undefined;
 
 // also keep a note about the very first landing page
-var LANDING = location.protocol + "//" + location.host + location.pathname;
+const LANDING = location.protocol + "//" + location.host + location.pathname;
 
 // send back a beacon (token is in the http-only cookie)
-var xhr = new XMLHttpRequest();
+const xhr = new XMLHttpRequest();
 xhr.open("POST", "https://" + DNS + BASE_URL + "/analytics.js", true);
 xhr.setRequestHeader("Content-Type", "application/json");
 xhr.send(
