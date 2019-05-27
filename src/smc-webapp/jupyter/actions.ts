@@ -1,4 +1,4 @@
-//require('./test/edit-menu-ts');
+// require('./test/edit-menu-ts');
 
 /*
 Jupyter client
@@ -489,96 +489,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       i = cell_list.size - 1;
     }
     this.set_cur_id(cell_list.get(i));
-  };
-
-  select_cell = (id: any): void => {
-    const sel_ids = this.store.get("sel_ids");
-    if (sel_ids.contains(id)) {
-      return;
-    }
-    this.setState({ sel_ids: sel_ids.add(id) });
-  };
-
-  unselect_cell = (id: any): void => {
-    const sel_ids = this.store.get("sel_ids");
-    if (!sel_ids.contains(id)) {
-      return;
-    }
-    this.setState({ sel_ids: sel_ids.remove(id) });
-  };
-
-  unselect_all_cells = (): void => {
-    this.deprecated("unselect_all_cells");
-  };
-
-  select_all_cells = (): void => {
-    this.deprecated("select_all_cells");
-  };
-
-  select_cell_range = (id: any): void => {
-    this.deprecated("select_cell_range", id);
-  };
-
-  extend_selection = (delta: any): void => {
-    const cur_id = this.store.get("cur_id");
-    this.move_cursor(delta);
-    const target_id = this.store.get("cur_id");
-    if (cur_id === target_id) {
-      // no move
-      return;
-    }
-    const sel_ids = this.store.get("sel_ids");
-    if (sel_ids != null ? sel_ids.get(target_id) : undefined) {
-      // moved cursor onto a selected cell
-      if (sel_ids.size <= 2) {
-        // selection clears if shrinks to 1
-        this.unselect_all_cells();
-        return;
-      } else {
-        this.unselect_cell(cur_id);
-        return;
-      }
-    } else {
-      // moved onto a not-selected cell
-      this.select_cell(cur_id);
-      this.select_cell(target_id);
-    }
-  };
-
-  set_mode = (mode: "escape" | "edit"): void => {
-    console.trace();
-    console.warn("TODO: Jupyter.actions set_mode", mode);
-    if (mode === "escape") {
-      // aka "command" mode.
-      if (this.store.get("mode") === "escape") {
-        return;
-      }
-      // switching from edit to escape mode.
-      // save code being typed
-      this._get_cell_input();
-      // Now switch.
-      this.setState({ mode });
-      this.set_cursor_locs([]); // none
-    } else if (mode === "edit") {
-      // switch to focused
-      this.focus_unlock();
-      if (this.store.get("mode") === "edit") {
-        return;
-      }
-      // from escape to edit
-      const id = this.store.get("cur_id");
-      if (!this.store.is_cell_editable(id)) {
-        //@set_error("This cell is protected from being edited.")
-      } else {
-        this.setState({ mode });
-        const type = this.store.getIn(["cells", id, "cell_type"]);
-        if (type === "markdown") {
-          this.set_md_cell_editing(id);
-        }
-      }
-    } else {
-      this.set_error(`unknown mode '${mode}'`);
-    }
   };
 
   set_cell_list = (): void => {
@@ -1969,27 +1879,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return a.set_file_action(action_name, () => tail);
   }
 
-  show_about = () => {
-    this.setState({ about: true });
-    return this.set_backend_kernel_info();
-  };
-
-  focus = (wait?: any) => {
-    this.deprecated("focus", wait);
-  };
-
-  blur = (wait?: any) => {
-    this.deprecated("blur", wait);
-  };
-
-  blur_lock = () => {
-    this.deprecated("blur_lock");
-  };
-
-  focus_unlock = () => {
-    this.deprecated("focus_unlock");
-  };
-
   set_max_output_length = n => {
     return this._set({
       type: "settings",
@@ -2426,7 +2315,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       (left = this.store.getIn(["cells", id, "metadata"])) != null
         ? left
         : immutable.Map();
-    this.blur_lock();
     this.setState({ edit_cell_metadata: { id, metadata } });
   };
 
@@ -2676,6 +2564,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       closestKernel
     });
   };
+
+  set_mode(mode: "escape" | "edit"): void {
+    this.deprecated("set_mode", mode);
+  }
+
+  public focus(wait?: boolean): void {
+    this.deprecated("focus", wait);
+  }
+
+  public blur(): void {
+    this.deprecated("blur");
+  }
 
   show_select_kernel = (reason: show_kernel_selector_reasons): void => {
     this.update_select_kernel_data();

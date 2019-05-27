@@ -388,6 +388,18 @@ export class NotebookFrameActions {
     this.setState({ sel_ids: Set() });
   }
 
+  public unselect_cell(id: string) : void {
+    const sel_ids = this.store.get("sel_ids");
+    if (!sel_ids.contains(id)) return;
+    this.setState({ sel_ids: sel_ids.remove(id) });
+  }
+
+  public select_cell(id: string) : void {
+    const sel_ids = this.store.get("sel_ids");
+    if (sel_ids.contains(id)) return;
+    this.setState({ sel_ids: sel_ids.add(id) });
+  }
+
   public select_all_cells(): void {
     this.setState({
       sel_ids: this.jupyter_actions.store.get_cell_list().toSet()
@@ -730,5 +742,29 @@ export class NotebookFrameActions {
 
   public async format(): Promise<void> {
     this.todo("format");
+  }
+
+  public extend_selection(delta: -1 | 1): void {
+    const cur_id = this.store.get("cur_id");
+    this.move_cursor(delta);
+    const target_id = this.store.get("cur_id");
+    if (cur_id === target_id) {
+      // no move
+      return;
+    }
+    const sel_ids = this.store.get("sel_ids");
+    if (sel_ids.contains(target_id)) {
+      // moved cursor onto a selected cell
+      if (sel_ids.size <= 2) {
+        // selection clears if shrinks to 1
+        this.unselect_all_cells();
+      } else {
+        this.unselect_cell(cur_id);
+      }
+    } else {
+      // moved onto a not-selected cell
+      this.select_cell(cur_id);
+      this.select_cell(target_id);
+    }
   }
 }

@@ -92,6 +92,22 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
+  focus = (wait?: any) => {
+    this.deprecated("focus", wait);
+  };
+
+  blur = (wait?: any) => {
+    this.deprecated("blur", wait);
+  };
+
+  blur_lock = () => {
+    //this.deprecated("blur_lock");
+  };
+
+  focus_unlock = () => {
+    // this.deprecated("focus_unlock");
+  };
+
   private widget_model_ids_add(model_id: string): void {
     const widget_model_ids: Set<string> = this.store
       .get("widget_model_ids")
@@ -199,7 +215,7 @@ export class JupyterActions extends JupyterActions0 {
 
   close_find_and_replace = () => {
     this.setState({ find_and_replace: false });
-    return this.focus_unlock();
+    this.focus_unlock();
   };
 
   show_keyboard_shortcuts = (): void => {
@@ -209,7 +225,7 @@ export class JupyterActions extends JupyterActions0 {
 
   close_keyboard_shortcuts = () => {
     this.setState({ keyboard_shortcuts: undefined });
-    return this.focus_unlock();
+    this.focus_unlock();
   };
 
   add_keyboard_shortcut = (name: any, shortcut: any) => {
@@ -413,5 +429,10 @@ export class JupyterActions extends JupyterActions0 {
     if (nbconvert != null && nbconvert.getIn(["error", "key"]) === key) {
       this.setState({ nbconvert: nbconvert.set("error", error) });
     }
+  }
+
+  public show_about(): void {
+    this.setState({ about: true });
+    this.set_backend_kernel_info();
   }
 }

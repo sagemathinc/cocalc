@@ -296,7 +296,7 @@ export function commands(
         { mode: "escape", shift: true, which: 75 },
         { mode: "escape", shift: true, which: 38 }
       ],
-      f: () => actions.extend_selection(-1)
+      f: () => frame_actions.extend_selection(-1)
     },
 
     "extend selection below": {
@@ -304,7 +304,7 @@ export function commands(
         { mode: "escape", shift: true, which: 74 },
         { mode: "escape", shift: true, which: 40 }
       ],
-      f: () => actions.extend_selection(1)
+      f: () => frame_actions.extend_selection(1)
     },
 
     "find and replace": {
@@ -313,7 +313,7 @@ export function commands(
         { mode: "escape", which: 70 },
         { alt: true, mode: "escape", which: 70 }
       ],
-      f: () => actions.show_find_and_replace()
+      f: () => jupyter_actions.show_find_and_replace()
     },
 
     "global undo": {
@@ -325,7 +325,7 @@ export function commands(
         { alt: true, mode: "escape", which: 90 },
         { ctrl: true, mode: "escape", which: 90 }
       ],
-      f: () => actions.undo()
+      f: () => jupyter_actions.undo()
     },
 
     "global redo": {
@@ -339,12 +339,12 @@ export function commands(
         { alt: true, mode: "escape", which: 89 },
         { ctrl: true, mode: "escape", which: 89 }
       ],
-      f: () => actions.redo()
+      f: () => jupyter_actions.redo()
     },
 
     "hide all line numbers": {
       m: "Hide all line numbers",
-      f: () => actions.set_line_numbers(false)
+      f: () => jupyter_actions.set_line_numbers(false)
     },
 
     "hide header": {
