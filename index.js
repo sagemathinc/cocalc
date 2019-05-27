@@ -140,6 +140,7 @@ try {
   console.log('05 got file search input element');
 
   // type into the file search blank
+  await page.waitFor(2 * 1000);
   await page.type(sfileSel, CREDS.texfile);
   await page.waitForFunction(sfilex);
 
@@ -181,7 +182,7 @@ try {
 
 
   //await page.waitFor(3 * 1000);
-  const spath = 'screenshots/cocalc.png';
+  const spath = 'cocalc.png';
   await page.screenshot({ path: spath});
   console.log(`98 screenshot saved to ${spath}`);
 
