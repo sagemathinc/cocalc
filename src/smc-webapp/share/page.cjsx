@@ -34,6 +34,16 @@ exports.Page = rclass
             title += " - #{@props.subtitle}"
         <title>{title}</title>
 
+    cocalc_link: ->
+        if @props.viewer == 'embed'
+            <div style={right:0, position:'absolute', fontSize: '8pt', border: '1px solid #aaa', padding: '2px'}>
+                <a href={"https://cocalc.com"} target={"_blank"} rel={"noopener"}>Powered by CoCalc</a>
+            </div>
+        else
+            <div style={position:'absolute', left:'50%', transform: 'translate(-50%)', fontSize:'12pt', maxHeight: '68px', overflowY: 'scroll'}>
+                <a href={"https://cocalc.com"} target={"_blank"} rel={"noopener"}>CoCalc lets you use Linux, Python, LaTeX, Jupyter notebooks and much more in your browser! Pivately share with collaborators. Changes are synchronized in realtime.</a>
+            </div>
+
     notranslate: ->
         # don't translate the index pages
         return null if not @props.notranslate
@@ -71,6 +81,7 @@ exports.Page = rclass
         <html lang="en">
             <head>
                 {@title()}
+                {@cocalc_link()}
                 {@notranslate()}
                 {### bootstrap CDN ###}
                 <link
@@ -164,7 +175,7 @@ TopBar = ({viewer, path, project_id, base_url, site_name, is_public}) ->
                 Open in {site_name}
             </a>
 
-    <div key='top' style={padding: '5px 5px 0px 5px', background:'#dfdfdf'} translate='no'>
+    <div key='top' style={padding: '5px 5px 0px 5px', height:'50px', background:'#dfdfdf'} translate='no'>
         <span style={marginRight:'10px'}>
             <a href={top} style={textDecoration:'none'}><CoCalcLogo base_url={base_url} /> Shared</a>
         </span>

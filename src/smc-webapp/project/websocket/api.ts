@@ -3,14 +3,24 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { callback } from "awaiting";
-
 import { Channel } from "./types";
+import {
+  ConfigurationAspect,
+  Capabilities,
+  ProjectConfiguration,
+  isMainConfiguration
+} from "../../project_configuration";
+import { redux } from "../../app-framework";
+import { parser2tool } from "../../../smc-util/code-formatter";
+import { Options as FormatterOptions } from "../../../smc-project/formatters/prettier";
 
 export class API {
   private conn: any;
+  private project_id: string;
 
-  constructor(conn: string) {
+  constructor(conn: string, project_id: string) {
     this.conn = conn;
+    this.project_id = project_id;
   }
 
   async call(mesg: object, timeout_ms: number): Promise<any> {
@@ -28,18 +38,54 @@ export class API {
     );
   }
 
-  async capabilities(): Promise<object[]> {
-    return await this.call({ cmd: "capabilities" }, 15000);
+  async configuration(aspect: ConfigurationAspect): Promise<object[]> {
+    return await this.call({ cmd: "configuration", aspect }, 15000);
   }
 
-  async prettier(path: string, options: any): Promise<any> {
+  async prettier(path: string, options: FormatterOptions): Promise<any> {
     return await this.call(
       { cmd: "prettier", path: path, options: options },
       15000
     );
   }
 
-  async prettier_string(str: string, options: any): Promise<any> {
+  get_formatting(): Capabilities | undefined {
+    const project_store = redux.getProjectStore(this.project_id) as any;
+    const configuration = project_store.get(
+      "configuration"
+    ) as ProjectConfiguration;
+    // configuration check only for backwards compatibility, i.e. newer clients and old projects
+    if (configuration == null) {
+      return;
+    }
+    const main = configuration.get("main");
+    if (main != null && isMainConfiguration(main)) {
+      return main.capabilities.formatting;
+    } else {
+      return {} as Capabilities;
+    }
+  }
+
+  async prettier_string(str: string, options: FormatterOptions): Promise<any> {
+    const formatting = this.get_formatting();
+    if (formatting == null) {
+      throw new Error(
+        "Code formatting status not available. Please restart your project!"
+      );
+    }
+    // TODO refactor the assocated formatter and smc-project into a common configuration object
+    const tool = parser2tool[options.parser];
+    if (tool == null) {
+      throw new Error(`No known tool for '${options.parser}' available`);
+    }
+    if (formatting[tool] !== true) {
+      throw new Error(
+        `For this project, the code formatter '${tool}' for language '${
+          options.parser
+        }' is not available.`
+      );
+    }
+
     return await this.call(
       {
         cmd: "prettier_string",

@@ -3171,6 +3171,7 @@ exports.jupyter_language_to_name = function(lang) {
 
 // Find the kernel whose name is closest to the given name.
 exports.closest_kernel_match = function(name, kernel_list) {
+  if (kernel_list == null) return null;
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
   let bestValue = -1;

@@ -308,7 +308,7 @@ export class Changes extends EventEmitter {
         field = field.slice(1, field.length - 1);
       }
       if (this.select[field] == null) {
-        throw Error(`'${field}' must be in select`);
+        throw Error(`'${field}' must be in select="${JSON.stringify(this.select)}"`);
       }
       if (misc.is_object(val)) {
         throw Error(`val (=${misc.to_json(val)}) must not be an object`);

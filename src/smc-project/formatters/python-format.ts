@@ -22,14 +22,18 @@ function yapf(input_path) {
 }
 
 // from a full stacktrace, only show user the last line (encodes some reason and line number) ... everything else does not help.
-function last_line(str: string): string {
-  return (
-    str
-      .trim()
-      .split(/\r?\n/)
-      .slice(-1)
-      .pop() || ""
-  );
+function last_line(str?: string): string {
+  if (str == null) {
+    return "Problem running formatter.";
+  } else {
+    return (
+      str
+        .trim()
+        .split(/\r?\n/)
+        .slice(-1)
+        .pop() || ""
+    );
+  }
 }
 
 export async function python_format(
@@ -44,7 +48,21 @@ export async function python_format(
 
     // spawn the python formatter
     const util = options.util || "yapf";
+
+    if (util !== "yapf") {
+      throw new Error(
+        "This project only supports 'yapf' for formatting Python"
+      );
+    }
+
     const py_formatter = yapf(input_path);
+
+    py_formatter.on("error", err => {
+      // ATTN do not throw an error here, because this is triggered by the subprocess!
+      logger.debug(
+        `Formatting utility exited with error no ${(err as any).errno}`
+      );
+    });
 
     // stdout/err capture
     let stdout: string = "";
@@ -56,8 +74,12 @@ export async function python_format(
     let code = await callback(close, py_formatter);
     // only last line
     // stdout = last_line(stdout);
-    stderr = last_line(stderr);
     if (code) {
+      if (code === -2) {
+        // ENOENT
+        throw new Error(`Formatting utility "${util}" is not installed`);
+      }
+      stderr = last_line(stderr);
       const err_msg = `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`;
       logger.debug(`format python error: ${err_msg}`);
       throw new Error(err_msg);
@@ -65,7 +87,7 @@ export async function python_format(
 
     // all fine, we read from the temp file
     let output: Buffer = await callback(readFile, input_path);
-    let s: string =  output.toString("utf-8");
+    let s: string = output.toString("utf-8");
     return s;
   } finally {
     unlink(input_path, () => {});

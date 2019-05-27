@@ -151,7 +151,7 @@ class ChatActions extends Actions
     set_use_saved_position: (use_saved_position) =>
         @setState(use_saved_position:use_saved_position)
 
-    set_unsent_user_mentions: (user_mentions, message_plain_text) =>
+    set_unsent_user_mentions: (user_mentions = immutable.List(), message_plain_text = "") =>
         @setState(unsent_user_mentions: user_mentions, message_plain_text: message_plain_text)
 
     submit_user_mentions: (project_id, path) =>

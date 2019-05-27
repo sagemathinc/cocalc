@@ -45,9 +45,16 @@ HelpEmailLink = rclass
             help_email : rtypes.string
     propTypes :
         text : rtypes.string
+        color : rtypes.string
     render: ->
+        style = {}
+        if this.props.color?
+            style.color = this.props.color
+
         if @props.help_email
-            <a href={"mailto:#{@props.help_email}"} target='_blank'>{@props.text ? @props.help_email}</a>
+            <a href={"mailto:#{@props.help_email}"} target='_blank' style={style}>
+                {@props.text ? @props.help_email}
+            </a>
         else
             <Loading/>
 
@@ -55,9 +62,10 @@ exports.HelpEmailLink = rclass
     displayName : 'HelpEmailLink-redux'
     propTypes :
         text : rtypes.string
+        color: rtypes.string
     render: ->
         <Redux>
-            <HelpEmailLink text={@props.text} />
+            <HelpEmailLink text={@props.text} color={@props.color} />
         </Redux>
 
 SiteName = rclass

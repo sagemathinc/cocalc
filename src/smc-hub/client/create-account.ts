@@ -64,7 +64,7 @@ export async function create_account(
     sign_in: false // if true, the newly created user will also be signed in; only makes sense for browser clients!
   });
   const id: string = opts.mesg.id;
-  let mesg1: any = {};
+  let mesg1: { [key: string]: any };
 
   function dbg(m): void {
     if (opts.logger != null) {
@@ -209,7 +209,7 @@ export async function create_account(
       );
       // no analytics token is logged, because it is already done in the create_account entry above.
       mesg1 = message.signed_in({
-        id: opts.mesg.id,
+        id,
         account_id,
         email_address: opts.mesg.email_address,
         first_name: opts.mesg.first_name,
@@ -218,11 +218,13 @@ export async function create_account(
         hub: opts.host + ":" + opts.port
       });
       opts.client.signed_in(mesg1); // records this creation in database...
+    } else {
+      mesg1 = message.account_created({ id, account_id });
     }
 
     if (opts.mesg.email_address != null) {
       try {
-        dbg("send email verification");
+        dbg("send email verification request");
         await callback2(auth.verify_email_send_token, {
           account_id,
           database: opts.database
@@ -235,7 +237,7 @@ export async function create_account(
     }
 
     if (opts.mesg.get_api_key) {
-      dbg("get_api_key -- generate key and include");
+      dbg("get_api_key -- generate key and include in response message");
       mesg1.api_key = await callback2(api_key_action, {
         database: opts.database,
         account_id,
@@ -244,10 +246,7 @@ export async function create_account(
       });
     }
 
-    if (len(mesg1) > 0) {
-      opts.client.push_to_client(mesg1);
-    }
-    opts.client.push_to_client(message.account_created({ id, account_id }));
+    opts.client.push_to_client(mesg1);
   } catch (err) {
     if (err) {
       // IMPORTANT: There are various settings where the user simply never sees

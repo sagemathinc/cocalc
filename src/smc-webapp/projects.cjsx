@@ -46,6 +46,8 @@ markdown = require('./markdown')
 
 {UpgradeStatus} = require('./upgrades/status')
 
+COMPUPTE_IMAGES = require("./custom-software/init").NAME
+
 {ResetProjectsConfirmation} = require('./r_upgrades')
 
 {has_internet_access} = require('./upgrades/upgrade-utils')
@@ -236,6 +238,7 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
+            image       : undefined  # if given, sets the compute image (the ID string)
             token       : undefined  # if given, can use wait_until_project_created
         if opts.token?
             token = opts.token; delete opts.token
@@ -268,10 +271,8 @@ class ProjectsActions extends Actions
             redux.getProjectActions(opts.project_id)?.load_target(opts.target, opts.switch_to, opts.ignore_kiosk, opts.change_history)
         if opts.restore_session
             redux.getActions('page').restore_session(opts.project_id)
-        # init the library after project started.
-        # TODO write a generalized store function that does this in a more robust way
-        project_actions.init_library()
-        project_actions.init_library_index()
+        # initialize project
+        project_actions.init()
 
     # Clearly should be in top.cjsx
     # tab at old_index taken out and then inserted into the resulting array's new index
@@ -1205,6 +1206,7 @@ ProjectList = rclass
     propTypes :
         projects    : rtypes.array.isRequired
         show_all    : rtypes.bool.isRequired
+        images      : rtypes.immutable.Map
         redux       : rtypes.object
 
     getDefaultProps: ->
@@ -1233,6 +1235,7 @@ ProjectList = rclass
                 break
             listing.push <ProjectRow
                              project  = {project}
+                             images   = {@props.images}
                              user_map = {@props.user_map}
                              index    = {i}
                              key      = {i}
@@ -1294,6 +1297,8 @@ exports.ProjectsPage = ProjectsPage = rclass
             load_all_projects_done : rtypes.bool
         billing :
             customer      : rtypes.object
+        compute_images :
+            images        : rtypes.immutable.Map
 
     propTypes :
         redux             : rtypes.object
@@ -1503,7 +1508,8 @@ exports.ProjectsPage = ProjectsPage = rclass
                             <NewProjectCreator
                                 start_in_edit_mode = {@project_list().length == 0}
                                 default_value={@props.search}
-                                />
+                                images = {@props.images}
+                            />
                         </Col>
                     </Row>
                     <Row>
@@ -1525,6 +1531,7 @@ exports.ProjectsPage = ProjectsPage = rclass
                                 projects    = {visible_projects}
                                 show_all    = {@props.show_all}
                                 user_map    = {@props.user_map}
+                                images      = {@props.images}
                                 redux       = {redux} />
                         </Col>
                     </Row>
