@@ -1176,12 +1176,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query)).join(',')} FROM #{table}"
 
     _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
+        #dbg = @_dbg("_user_get_query_satisfied_by_obj)
+        #dbg(user_query, obj)
         for field, value of obj
             date_keys = possible_time_fields[field]
             if date_keys
                 value = misc.fix_json_dates(value, date_keys)
             if (q = user_query[field])?
                 if (op = @_query_is_cmp(q))
+                    #dbg(value:value, op: op, q:q)
                     x = q[op]
                     switch op
                         when '=='
@@ -1301,6 +1304,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             else
                                 return true
                         select : {id:'UUID', time:'TIMESTAMP'}
+
                 else if pg_changefeed == 'five-minutes'
                     pg_changefeed = ->
                         where : (obj) ->

@@ -29,18 +29,30 @@ const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // f
 
 import { once } from "../smc-util/async-utils";
 
+import { Parser as FormatterParser } from "../smc-util/code-formatter";
+
+export interface Options {
+  parser: FormatterParser;
+  tabWidth?: number;
+  useTabs?: boolean;
+}
+
 export async function run_prettier(
   client: any,
   path: string,
-  options: any,
+  options: Options,
   logger: any
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   const syncstring = client.syncdoc({ path });
-  if (syncstring == null || syncstring.get_state() == 'closed') {
-    return { status: "error", error: "document not fully opened",  phase: "format"};
+  if (syncstring == null || syncstring.get_state() == "closed") {
+    return {
+      status: "error",
+      error: "document not fully opened",
+      phase: "format"
+    };
   }
-  if (syncstring.get_state() != 'ready') {
+  if (syncstring.get_state() != "ready") {
     await once(syncstring, "ready");
   }
   const doc = syncstring.get_doc();
@@ -66,7 +78,7 @@ export async function run_prettier(
 export async function run_prettier_string(
   path: string | undefined,
   str: string,
-  options: any,
+  options: Options,
   logger: any
 ): Promise<string> {
   let pretty;
@@ -92,7 +104,7 @@ export async function run_prettier_string(
       pretty = await bib_format(str, options, logger);
       break;
     case "clang-format":
-      const ext = misc.filename_extension(path !== undefined ? path : "");
+      const ext = misc.filename_extension(path != null ? path : "");
       pretty = await clang_format(str, options, ext, logger);
       break;
     case "gofmt":
