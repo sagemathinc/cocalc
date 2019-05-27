@@ -7,7 +7,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
-const underscore = require("underscore");
+import * as lodash from "lodash";
+export const keys = lodash.keys;
 
 interface SplittedPath {
   head: string;
@@ -237,8 +238,6 @@ export function len(obj: object | undefined | null): number {
   }
   return Object.keys(obj).length;
 }
-
-export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
