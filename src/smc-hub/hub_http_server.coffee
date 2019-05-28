@@ -37,12 +37,17 @@ formidable   = require('formidable')
 http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
+# express-js cors plugin
+cors         = require('cors')
+# this splits into { subdomain: "dev" or "", domain: "cocalc",  tld: "com" }
+parseDomain  = require("parse-domain");
 
 winston      = require('./winston-metrics').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 {DNS}        = require('smc-util/theme')
+pdDNS        = parseDomain(DNS)
 
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
@@ -149,7 +154,31 @@ exports.init_express_http_server = (opts) ->
     #
     # The query param "fqd" (fully qualified domain) can be set to true or false (default true)
     # It controlls if the bounce back URL mentions the domain.
-    router.get '/analytics.js', (req, res) ->
+
+    # CORS-setup: allow access from within other known domains.
+    analytics_cors =
+        origin: (origin, cb) ->
+            winston.debug("analytics_cors origin='#{origin}'")
+            if not origin?
+                cb(null, true)
+                return
+            try
+                pd = parseDomain(origin)
+                if pd.tld == 'com'
+                    if pd.domain == 'cocalc' or pd.domain == 'sagemath'
+                        cb(null, true)
+                        return
+                if pd.tld == pdDNS.tld and pd.domain == pdDNS.domain
+                    cb(null, true)
+                    return
+            catch e
+                cb(e)
+                return
+
+            cb('Not allowed by CORS')
+            return
+
+    router.get '/analytics.js', cors(analytics_cors), (req, res) ->
         res.header("Content-Type", "text/javascript")
         timeout = ms('100 days')
         res.header('Cache-Control', "public, max-age='#{timeout}'")
@@ -172,7 +201,7 @@ exports.init_express_http_server = (opts) ->
         res.write(analytics_js)
         res.end()
 
-    router.get '/analytics.js/track.png', (req, res) ->
+    router.get '/analytics.js/track.png', cors(analytics_cors), (req, res) ->
         # in case user was already here, do not set a cookie
         if not req.cookies[misc.analytics_cookie_name]
             analytics_cookie(res)
@@ -180,7 +209,7 @@ exports.init_express_http_server = (opts) ->
         res.header('Content-Length', png_1x1.length)
         res.end(png_1x1)
 
-    router.post '/analytics.js', (req, res) ->
+    router.post '/analytics.js', cors(analytics_cors), (req, res) ->
         # check if token is in the cookie (see above)
         # if not, ignore it
         token = req.cookies[misc.analytics_cookie_name]
