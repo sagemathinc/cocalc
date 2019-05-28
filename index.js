@@ -51,6 +51,7 @@
 const HEADLESS = true;
 
 const puppeteer = require('puppeteer');
+const chalk = require('chalk');
 const program = require('commander');
 program.version('0.1.0');
 
@@ -190,7 +191,7 @@ try {
     t = await page.waitForFunction(fn5);
 
     //Object.keys(t).forEach(ok => console.log('ok', ok))
-    console.log('10 WORD COUNT FRAME:\n'+ t._remoteObject.value);
+    console.log('10 WORD COUNT FRAME:\n'+ chalk.cyan(t._remoteObject.value));
 
 
   //await page.waitFor(3 * 1000);
