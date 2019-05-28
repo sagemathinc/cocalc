@@ -4,20 +4,29 @@ import time
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 
-# suffix "xp" is for "xpath"
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+
+#wait = WebDriverWait(driver, 10)
+#wait.until(lambda driver: driver.current_url != "http://www.website.com/wait.php")
 
 @pytest.mark.incremental
 class TestStartCocalc:
-    def test_landing(self, driver, site):
+    def test_landing(self, driver, site, api):
         r"""
         Load initial landing page and click "Sign In".
         """
+        apival = api
+        print(f'apival is {apival}')
         url = site['url']
         driver.get(url)
         driver.save_screenshot('landing.png')
-        x = driver.find_element_by_class_name('get-started')
-        assert x.text == 'Sign In'
-        x.click()
+        if api:
+            pass
+        else:
+            x = driver.find_element_by_class_name('get-started')
+            assert x.text == 'Sign In'
+            x.click()
 
     def test_signin(self, driver, site):
         r"""
@@ -40,33 +49,38 @@ class TestStartCocalc:
         # conftest.show_attrs(el, driver)
 
         el.submit()
+        time.sleep(3)
+        driver.save_screenshot('sign-in.png')
 
 
     def test_searchproj(self, driver, site):
         r"""
         type in the name of the test project
         """
-        # find this value empirically by loading page and counting inputs
-        inputs_needed = 21
-        ninputs = 0
-        ntries = 0
-        while ninputs < inputs_needed:
-            els = driver.find_elements_by_tag_name("input")
-            ntries += 1
-            ninputs = len(els)
-            if ntries > 5:
-                break
+        #time.sleep(3)
         phtext = "Search for projects..."
-        for x in els:
-            #conftest.show_attrs(x, driver)
-            if x.get_attribute("placeholder") == phtext:
-                break
+        # find this value empirically by loading page and counting inputs
+        for ntries in range(10):
+            els = driver.find_elements_by_tag_name("input")
+            for x in els:
+                try:
+                    if x.get_attribute("placeholder") == phtext:
+                        print('found project placeholder after {ntries+1} tries')
+                        break
+                except:
+                    pass
+            else:
+                continue
+            break
         else:
+            time.sleep(10)
+            driver.save_screenshot('sep.png')
             assert 0, f'Placeholder "{phtext}" not found'
 
         project = site.get('project')
         x.send_keys(project)
         driver.save_screenshot('sfp.png')
+        #assert 0
 
     def test_projitem(self, driver, site):
         r"""
@@ -103,23 +117,15 @@ class TestStartCocalc:
         print(f'type of RETURN is {type(Keys.RETURN)}')
         x.send_keys(texfile + Keys.RETURN)
 
-    def test_open_tex_file(self, driver, site):
-        r"""
-        find the Build button and click it
-        """
+        # look for Build button
         ntries = 0
         sfa = None
         while not sfa:
             soup = BeautifulSoup(driver.page_source, 'html.parser')
-            #sfa = soup.find('button', string='Build project')
-            sfa = soup.find('span', string='Build')
+            sfa = soup.find('button', title='Build project')
             ntries += 1
             print(f'**** {ntries} tries')
-            if ntries > 5:
+            if ntries > 20:
                 break
-        print(sfa)
-        xpath = conftest.xpath_soup(sfa)
-        sfas = driver.find_element_by_xpath(xpath)
-        sfas.click()
-        driver.save_screenshot('tex.png')
+        assert sfa, f"cannot find latex build button for {site.get('texfile')}"
 

@@ -53,6 +53,9 @@ def pytest_addoption(parser):
     parser.addoption(
         "--display", action="store", default="no", help="yes for browser window"
     )
+    parser.addoption(
+        "--api", action="store", default="no", help="yes for api tests"
+    )
 
 @pytest.fixture(scope="session")
 def site(request):
@@ -72,6 +75,14 @@ def display(request):
     """
     dispval = request.config.getoption("--display")
     return dispval in ["y","yes"]
+
+@pytest.fixture(scope="session")
+def api(request):
+    r"""
+    Return Boolean; False (default) to skip api tests, true for api tests
+    """
+    apival = request.config.getoption("--api")
+    return apival in ["y","yes"]
 
 
 ###
