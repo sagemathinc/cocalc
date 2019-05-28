@@ -2258,13 +2258,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  set_view_mode = (mode: any): void => {
-    this.setState({ view_mode: mode });
-    if (mode === "raw") {
-      this.set_raw_ipynb();
-    }
-  };
-
   edit_cell_metadata = (id: string): void => {
     let left: any;
     const metadata =
@@ -2345,14 +2338,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  set_raw_ipynb = (): void => {
+  public set_raw_ipynb(): void {
     if (this._state === "load") {
       return;
     }
     this.setState({
       raw_ipynb: immutable.fromJS(this.store.get_ipynb())
     });
-  };
+  }
 
   _api_call_prettier = async (
     str: string,

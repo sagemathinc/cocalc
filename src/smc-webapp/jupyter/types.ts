@@ -1,6 +1,6 @@
 export type NotebookMode = "edit" | "escape";
 
-export type CellType = "raw" | "markdown" | "code" ;
+export type CellType = "raw" | "markdown" | "code";
 
 export type Scroll =
   | number
@@ -13,3 +13,4 @@ export type Scroll =
   | "list up"
   | "list down";
 
+export type ViewMode = "normal" | "json" | "raw";

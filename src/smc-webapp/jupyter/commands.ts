@@ -789,18 +789,18 @@ export function commands(
 
     "toggle toolbar": {
       m: "Toggle toolbar",
-      f: () => actions.toggle_toolbar()
+      f: () => jupyter_actions.toggle_toolbar()
     },
 
     "trust notebook": {
       m: "Trust notebook",
-      f: () => actions.trust_notebook()
+      f: () => jupyter_actions.trust_notebook()
     },
 
     "undo cell deletion": {
       m: "Undo cell deletion",
       k: [{ mode: "escape", which: 90 }],
-      f: () => actions.undo()
+      f: () => jupyter_actions.undo()
     },
 
     /*
@@ -811,17 +811,17 @@ export function commands(
 
     "view notebook normal": {
       m: "Cells (normal)",
-      f: () => actions.set_view_mode("normal")
+      f: () => frame_actions.set_view_mode("normal")
     },
 
     "view notebook json": {
       m: "Object browser",
-      f: () => actions.set_view_mode("json")
+      f: () => frame_actions.set_view_mode("json")
     },
 
     "view notebook raw": {
       m: "Raw .ipynb (file)",
-      f: () => actions.set_view_mode("raw")
+      f: () => frame_actions.set_view_mode("raw")
     },
 
     "zoom in": {

@@ -41,6 +41,7 @@ interface TopMenubarProps {
   frame_actions: NotebookFrameActions;
   cur_id: string;
   cells: immutable.Map<any, any>; // map from id to cells
+  view_mode?: string;
 
   name: string;
   // REDUX PROPS
@@ -52,7 +53,6 @@ interface TopMenubarProps {
   kernel_info?: immutable.Map<any, any>;
   backend_kernel_info?: immutable.Map<any, any>;
   trust?: boolean;
-  view_mode?: string;
   toolbar?: boolean;
   cell_toolbar?: string;
   read_only?: boolean;
@@ -71,7 +71,6 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         kernel_info: rtypes.immutable.Map,
         backend_kernel_info: rtypes.immutable.Map,
         trust: rtypes.bool,
-        view_mode: rtypes.string,
         toolbar: rtypes.bool,
         cell_toolbar: rtypes.string,
         read_only: rtypes.bool

@@ -10,7 +10,8 @@ import { NotebookFrameStore } from "./store";
 import { create_key_handler } from "../../../jupyter/keyboard";
 import { JupyterActions } from "../../../jupyter/browser-actions";
 import { move_selected_cells } from "../../../jupyter/cell-utils";
-import { CellType, Scroll } from "../../../jupyter/types";
+require("../../../jupyter/types");
+import { CellType, Scroll, ViewMode } from "../../../jupyter/types";
 import { commands, CommandDescription } from "../../../jupyter/commands";
 
 import { isEqual } from "lodash";
@@ -794,5 +795,12 @@ export class NotebookFrameActions {
       this.store.get_selected_cell_ids_list(),
       property
     );
+  }
+
+  public set_view_mode(view_mode: ViewMode): void {
+    this.setState({ view_mode });
+    if (view_mode === "raw") {
+      this.jupyter_actions.set_raw_ipynb();
+    }
   }
 }

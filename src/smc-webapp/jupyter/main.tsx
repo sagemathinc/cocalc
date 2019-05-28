@@ -68,9 +68,9 @@ interface JupyterEditorProps {
   scroll?: Scroll; // Causes a scroll when it *changes*
   scrollTop?: number;
   hook_offset?: number;
+  view_mode?: "normal" | "json" | "raw";
 
   // TODO
-  view_mode?: any; // rtypes.oneOf(['normal', 'json', 'raw']) -- TODO: get rid of this entirely and use different frame types
   complete?: immutable.Map<any, any>; // status of tab completion
   introspect?: immutable.Map<any, any>; // status of introspection
   more_output?: immutable.Map<any, any>;
@@ -119,7 +119,6 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   public static reduxProps({ name }) {
     return {
       [name]: {
-        view_mode: rtypes.oneOf(["normal", "json", "raw"]),
         kernel: rtypes.string, // string name of the kernel
         kernels: rtypes.immutable.List,
         error: rtypes.string,
@@ -218,6 +217,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
           frame_actions={this.props.frame_actions}
           cells={this.props.cells}
           cur_id={this.props.cur_id}
+          view_mode={this.props.view_mode}
         />
       );
     }
@@ -479,7 +479,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_raw_editor() {
-    if (this.props.raw_ipynb == null || this.props.cm_options == null || this.props.font_size == null) {
+    if (
+      this.props.raw_ipynb == null ||
+      this.props.cm_options == null ||
+      this.props.font_size == null
+    ) {
       return <Loading />;
     }
     return (
