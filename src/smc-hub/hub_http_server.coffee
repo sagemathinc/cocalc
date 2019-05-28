@@ -180,11 +180,11 @@ exports.init_express_http_server = (opts) ->
 
     router.get '/analytics.js', cors(analytics_cors), (req, res) ->
         res.header("Content-Type", "text/javascript")
-        timeout = ms('100 days')
-        res.header('Cache-Control', "public, max-age='#{timeout}'")
+        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
 
         # in case user was already here, do not send it again.
         # only the first hit is interesting.
+        winston.debug("/analytics.js GET analytics_cookie='#{req.cookies[misc.analytics_cookie_name]}'")
         if req.cookies[misc.analytics_cookie_name]
             res.write("// NOOP")
             res.end()
@@ -213,6 +213,7 @@ exports.init_express_http_server = (opts) ->
         # check if token is in the cookie (see above)
         # if not, ignore it
         token = req.cookies[misc.analytics_cookie_name]
+        winston.debug("/analytics.js POST token='#{token}'")
         if token
             # req.body is an object (json middlewhere somewhere?)
             # e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}

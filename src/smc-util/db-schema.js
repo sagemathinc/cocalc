@@ -1862,15 +1862,15 @@ schema.mentions = {
 // this table is 100% back-end only
 schema.analytics = {
   primary_key: ["token"],
-  pg_indexes: ["token", "time"],
+  pg_indexes: ["token", "data_time"],
   durability: "soft",
   fields: {
     token: {
       type: "uuid"
     },
-    time: {
+    data_time: {
       type: "timestamp",
-      desc: "when the token&data fields were set"
+      desc: "when the data field was set"
     },
     data: {
       type: "map",
@@ -1878,11 +1878,11 @@ schema.analytics = {
     },
     account_id: {
       type: "uuid",
-      desc: "set only once, when the user eventually signed in"
+      desc: "set only once, when the user (eventually) signs in"
     },
-    time_account_id: {
+    account_id_time: {
       type: "timestamp",
-      desc: "when the account id was recorded"
+      desc: "when the account id was set"
     }
   }
 };

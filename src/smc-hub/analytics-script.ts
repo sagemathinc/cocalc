@@ -12,7 +12,7 @@
 
 // variable PREFIX is injected in the hub
 
-const href = window.location.href;
+const { href, protocol, host, pathname } = window.location;
 
 // TODO: use the array defined in smc-util/misc.js
 const UTM_KEYS = Object.freeze([
@@ -23,9 +23,11 @@ const UTM_KEYS = Object.freeze([
   "content"
 ]);
 
+const response: any = {};
+
 const UTM = {};
 const params = href.slice(href.indexOf("?") + 1).split("&");
-
+let have_utm = false;
 for (const i = 0; i < params.length; i++) {
   const part = params[i];
   const k_v = part.split("=");
@@ -36,22 +38,23 @@ for (const i = 0; i < params.length; i++) {
   k = k.slice(4);
   if (!UTM_KEYS.includes(k)) continue;
   UTM[k] = window.decodeURIComponent(v.slice(0, 100));
+  have_utm = true;
+}
+
+if (have_utm) {
+  response["utm"] = UTM;
 }
 
 // do we have a referrer? (not just "")
-const REF = document.referrer.length > 0 ? document.referrer : undefined;
+if (document.referrer.length > 0) {
+  response["referrer"] = document.referrer;
+}
 
 // also keep a note about the very first landing page
-const LANDING = location.protocol + "//" + location.host + location.pathname;
+response["landing"] = `${protocol}//${host}${pathname}`;
 
-// send back a beacon (token is in the http-only cookie)
+// send back a beacon (token is in an http-only cookie)
 const xhr = new XMLHttpRequest();
 xhr.open("POST", PREFIX + "/analytics.js", true);
 xhr.setRequestHeader("Content-Type", "application/json");
-xhr.send(
-  JSON.stringify({
-    utm: UTM,
-    referrer: REF,
-    landing: LANDING
-  })
-);
+xhr.send(JSON.stringify(response));

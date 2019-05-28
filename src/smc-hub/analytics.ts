@@ -72,16 +72,16 @@ export function analytics_rec(
       where: [{ "token = $::UUID": token }, "account_id IS NULL"],
       set: {
         "account_id       :: UUID": rec_data.account_id,
-        "time_account_id  :: TIMESTAMP": new Date()
+        "account_id_time  :: TIMESTAMP": new Date()
       }
     });
   } else {
     db._query({
       query: "INSERT INTO analytics",
       values: {
-        "token  :: UUID": token,
-        "data   :: JSONB": rec_data,
-        "time   :: TIMESTAMP": new Date()
+        "token     :: UUID": token,
+        "data      :: JSONB": rec_data,
+        "data_time :: TIMESTAMP": new Date()
       },
       conflict: "token"
     });
@@ -89,12 +89,12 @@ export function analytics_rec(
 }
 
 export function analytics_cookie(res): void {
-  // set the cookie (sign it?)
+  // set the cookie (TODO sign it?)
   const analytics_token = misc.uuid();
   // console.log("analytics_cookie DNS=", DNS);
   res.cookie(misc.analytics_cookie_name, analytics_token, {
     path: "/",
-    maxAge: ms("1 day"),
+    maxAge: ms("100 days"),
     httpOnly: true
     //domain: DNS // what's the real implication of setting the domain?
   });
