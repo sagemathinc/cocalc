@@ -147,6 +147,10 @@ exports.init_express_http_server = (opts) ->
     # 3. the script (should) send back a POST request, telling us about the UTM params, referral, and landing page
     # 4. later, upon creating an account, we store that ID of the cookie and cross reference it
     router.get '/analytics.js', (req, res) ->
+        res.header("Content-Type", "text/javascript")
+        timeout = ms('1 day')
+        res.header('Cache-Control', "public, max-age='#{timeout}'")
+
         # in case user was already here, do not send it again.
         # only the first hit is interesting.
         if req.cookies[misc.analytics_cookie_name]
@@ -154,12 +158,8 @@ exports.init_express_http_server = (opts) ->
             res.end()
             return
 
-        analytics_cookie(res)
-
         # write response script
-        res.header("Content-Type", "text/javascript")
-        timeout = ms('1 day')
-        res.header('Cache-Control', "public, max-age='#{timeout}'")
+        analytics_cookie(res)
         res.write("var DNS = '#{DNS}';\n")
         res.write("var BASE_URL = '#{opts.base_url}';\n\n")
         res.write(analytics_js)

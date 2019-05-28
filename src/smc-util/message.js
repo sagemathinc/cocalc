@@ -538,8 +538,8 @@ message({
   email_address: undefined, // email address they signed in under
   first_name: undefined,
   last_name: undefined,
-  api_key: undefined
-}); // user's api key, if requested in sign_in or create_account messages.
+  api_key: undefined // user's api key, if requested in sign_in or create_account messages.
+});
 
 // client --> hub
 message({
