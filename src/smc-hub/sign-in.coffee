@@ -317,7 +317,6 @@ exports.record_sign_in = (opts) ->
         database         : required
         email_address    : undefined
         account_id       : undefined
-        analytics_token  : undefined
         remember_me      : false
     if not opts.successful
         record_sign_in_fail
@@ -329,8 +328,6 @@ exports.record_sign_in = (opts) ->
             email_address : opts.email_address ? null
             remember_me   : opts.remember_me
             account_id    : opts.account_id
-
-        set_analytics_data(opts.database, null, data, opts.analytics_token) if opts.analytics_token
 
         opts.database.log
             event : 'successful_sign_in'

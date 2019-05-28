@@ -25,42 +25,65 @@ const png_data =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 export const png_1x1 = new Buffer(png_data, "base64");
 
-export function analytics_rec(db, logger, token, payload): void {
-  const dbg = create_log("rec", logger);
-  dbg(token, payload);
-  const rec_data: any = {};
-  let account_id: string | undefined = undefined;
-  // sanitize data (for now, limit size and number of characters)
+function sanitize(obj: object): any {
+  const ret: any = {};
   let cnt = 0;
-  for (const key of Object.keys(payload)) {
+  for (const key of Object.keys(obj)) {
     cnt += 1;
     if (cnt > 20) break;
-    const rec_key = key.slice(0, 50);
-    const rec_val = payload[key];
-    // ignore keys without data
-    if (rec_val == null) continue;
-    // also sanitize value
-    const val = rec_val.slice(0, 200);
-    if (rec_key === "account_id") {
-      account_id = val;
+    const key_san = key.slice(0, 50);
+    let val_san = obj[key];
+    if (val_san == null) continue;
+    if (typeof val_san === "object") {
+      val_san = sanitize(val_san);
+    } else if (typeof val_san === "string") {
+      val_san = val_san.slice(0, 2000);
     } else {
-      rec_data[rec_key] = val;
+      // do nothing
     }
+    ret[key_san] = val_san;
   }
+  return ret;
+}
 
-  // TODO merge rec_data into known data in DB
+// record analytics data
+// case 1: store "token" with associated "data", referrer, utm, etc.
+// case 2: update entry with a known "token" with the account_id + 2nd timestamp
+export function analytics_rec(
+  db: any,
+  logger: any,
+  token: string,
+  payload: object | undefined
+): void {
+  if (payload == null) return;
+  const dbg = create_log("rec", logger);
+  dbg(token, payload);
+  // sanitize data (limits size and number of characters)
+  const rec_data = sanitize(payload);
+  dbg("rec_data", rec_data);
 
-  if (account_id == null) return;
-
-  db._query({
-    query: "INSERT INTO analytics",
-    values: {
-      "token            :: UUID": token,
-      "account_id       :: JSONB": account_id,
-      "time_account_id  :: TIMESTAMP": new Date()
-    },
-    conflict: "token"
-  });
+  if (rec_data.account_id != null) {
+    // dbg("update analytics", rec_data.account_id);
+    // only update if account id isn't already set!
+    db._query({
+      query: "UPDATE analytics",
+      where: [{ "token = $::UUID": token }, "account_id IS NULL"],
+      set: {
+        "account_id       :: UUID": rec_data.account_id,
+        "time_account_id  :: TIMESTAMP": new Date()
+      }
+    });
+  } else {
+    db._query({
+      query: "INSERT INTO analytics",
+      values: {
+        "token  :: UUID": token,
+        "data   :: JSONB": rec_data,
+        "time   :: TIMESTAMP": new Date()
+      },
+      conflict: "token"
+    });
+  }
 }
 
 export function analytics_cookie(res): void {
@@ -72,26 +95,4 @@ export function analytics_cookie(res): void {
     httpOnly: true,
     domain: DNS
   });
-}
-
-// set the recorded analytics information on the given object (event log entry)
-// then delete it
-export function set_analytics_data(
-  db: any,
-  dbg: (str: string) => void | undefined,
-  token: string,
-  payload: object,
-  del_data = true
-): void {
-  if (dbg != null) {
-    dbg(`set_analytics_data ${token} obj=${JSON.stringify(payload)}`);
-  }
-  // TODO IMPL
-  if (del_data) {
-    // delete from analytics table
-    db._query({
-      query: "DELETE FROM analytics",
-      where: [{ "token = $::UUID": token }]
-    });
-  }
 }

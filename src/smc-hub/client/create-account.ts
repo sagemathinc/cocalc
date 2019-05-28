@@ -19,7 +19,6 @@ import { len, to_json } from "smc-util/misc2";
 import { callback2 } from "smc-util/async-utils";
 import { PostgreSQL } from "../postgres/types";
 const { api_key_action } = require("../api/manage");
-import { set_analytics_data } from "../analytics";
 
 export function is_valid_password(password: string) {
   const [valid, reason] = client_lib.is_valid_password(password);
@@ -177,10 +176,6 @@ export async function create_account(
       email_address: opts.mesg.email_address,
       created_by: opts.client.ip_address
     };
-
-    if (opts.mesg.analytics_token) {
-      set_analytics_data(opts.database, dbg, data, opts.mesg.analytics_token);
-    }
 
     await callback2(opts.database.log, {
       event: "create_account",

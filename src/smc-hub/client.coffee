@@ -375,7 +375,6 @@ class exports.Client extends EventEmitter
             remember_me     : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
             email_address   : signed_in_mesg.email_address
             account_id      : signed_in_mesg.account_id
-            analytics_token : signed_in_mesg.analytics_token
             database        : @database
 
         # Get user's group from database.

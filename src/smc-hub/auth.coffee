@@ -281,7 +281,6 @@ passport_login = (opts) ->
                         last_name     : opts.last_name
                         email_address : locals.email_address ? null
                         created_by    : opts.req.ip
-                    data.analytics_token = opts.res.locals.analytics_token if opts.res.locals.analytics_token
                     opts.database.log
                         event : 'create_account'
                         value : data
@@ -291,14 +290,13 @@ passport_login = (opts) ->
         (cb) ->
             if locals.new_account_created
                 cb(); return
-            dbg("record_sign_in: #{opts.req.url} -- res.locals.analytics_token: #{opts.res.locals.analytics_token}")
+            dbg("record_sign_in: #{opts.req.url}")
             sign_in.record_sign_in
                 ip_address      : opts.req.ip
                 successful      : true
                 remember_me     : locals.has_valid_remember_me
                 email_address   : locals.email_address
                 account_id      : locals.account_id
-                analytics_token : opts.res.locals.analytics_token
                 database        : opts.database
             cb() # don't make client wait for this -- it's just a log message for us.
 
