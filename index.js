@@ -76,11 +76,18 @@ try {
 
   //throw new Error("early exit");
 
-
-  const browser = await puppeteer.launch({
-    headless: headless,
+  let browser;
+  if (headless) {
+    browser = await puppeteer.launch({
     ignoreHTTPSErrors:true,
-  });
+    })
+  } else {
+    browser = await puppeteer.launch({
+      headless: false,
+      ignoreHTTPSErrors:true,
+      sloMo:200
+    })
+  }
 
   const CREDS = require(creds);
 
@@ -92,7 +99,7 @@ try {
   // sign in
   await page.goto(CREDS.url);
   console.log('01 got sign-in page', CREDS.url);
-  // await page.waitFor(5 * 1000);
+  // await page.waitFor(2 * 1000);
 
   // get selectors manually by doing Inspect while viewing page in chrome
   const USERNAME_SELECTOR = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-5 > div > input'
