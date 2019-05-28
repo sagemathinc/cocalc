@@ -55,6 +55,7 @@ response["landing"] = `${protocol}//${host}${pathname}`;
 
 // send back a beacon (token is in an http-only cookie)
 const xhr = new XMLHttpRequest();
+xhr.withCredentials = true;
 xhr.open("POST", PREFIX + "/analytics.js", true);
 xhr.setRequestHeader("Content-Type", "application/json");
 xhr.send(JSON.stringify(response));

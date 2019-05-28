@@ -157,7 +157,10 @@ exports.init_express_http_server = (opts) ->
 
     # CORS-setup: allow access from within other known domains.
     analytics_cors =
-        origin: (origin, cb) ->
+        credentials     : true
+        methods         : ['GET', 'POST']
+        allowedHeaders  : ['Content-Type', '*']
+        origin          : (origin, cb) ->
             winston.debug("analytics_cors origin='#{origin}'")
             if not origin?
                 cb(null, true)

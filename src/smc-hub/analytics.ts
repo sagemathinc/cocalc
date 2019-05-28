@@ -1,6 +1,6 @@
 import * as misc from "smc-util/misc";
 import * as ms from "ms";
-// const { DNS } = require("smc-util/theme");
+const { DNS } = require("smc-util/theme");
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
@@ -95,7 +95,7 @@ export function analytics_cookie(res): void {
   res.cookie(misc.analytics_cookie_name, analytics_token, {
     path: "/",
     maxAge: ms("100 days"),
-    httpOnly: true
-    //domain: DNS // what's the real implication of setting the domain?
+    httpOnly: true,
+    domain: DNS
   });
 }
