@@ -23,6 +23,8 @@
 // to do:
 // ✓ command line options for test creds, non-headless operation
 // - run in more environments
+//   - client laptop as well as cc project
+//   - target UW and pixelbook as well as cocalc.com & test.cocalc.com
 // - add test for jupyter widgets
 // - wrap in jest
 // - write in typescript
@@ -40,8 +42,8 @@
 // - cocalc.com
 // - test.cocalc.com
 // - docker containers
-//   - UW regular cocalc†
-//   - UW no-agpl cocalc†
+//   - UW regular cocalc
+//   - UW no-agpl cocalc
 //   - pixelbook cocalc†
 //   - pixelbook no-agpl cocalc†
 // † - TO DO
@@ -77,6 +79,7 @@ try {
 
   const browser = await puppeteer.launch({
     headless: headless,
+    ignoreHTTPSErrors:true,
   });
 
   const CREDS = require(creds);
@@ -89,6 +92,7 @@ try {
   // sign in
   await page.goto(CREDS.url);
   console.log('01 got sign-in page', CREDS.url);
+  // await page.waitFor(5 * 1000);
 
   // get selectors manually by doing Inspect while viewing page in chrome
   const USERNAME_SELECTOR = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-5 > div > input'
@@ -104,6 +108,7 @@ try {
   await page.click(BUTTON_SELECTOR);
   await page.waitForNavigation({'waitUntil':'networkidle0'});
   console.log('02 signed in');
+  await page.waitFor(2 * 1000);
 
   // selector for project search
   // input[placeholder="Search for projects..."]
@@ -196,3 +201,4 @@ try {
 }
 
 run();
+

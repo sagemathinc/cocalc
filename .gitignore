@@ -3,3 +3,4 @@ creds*.js
 foo*.js
 .*term
 *.x11
+*.png
