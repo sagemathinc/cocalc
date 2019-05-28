@@ -10,7 +10,7 @@
  * e.g. this filters the SSO auth pages, which are uninteresting referrals
  */
 
-// variables DNS and BASE_URL are injected
+// variable PREFIX is injected in the hub
 
 const href = window.location.href;
 
@@ -46,7 +46,7 @@ const LANDING = location.protocol + "//" + location.host + location.pathname;
 
 // send back a beacon (token is in the http-only cookie)
 const xhr = new XMLHttpRequest();
-xhr.open("POST", "https://" + DNS + BASE_URL + "/analytics.js", true);
+xhr.open("POST", PREFIX + "/analytics.js", true);
 xhr.setRequestHeader("Content-Type", "application/json");
 xhr.send(
   JSON.stringify({

@@ -4,6 +4,7 @@ const { DNS } = require("smc-util/theme");
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
+import { is_valid_uuid_string } from "../smc-util/misc2";
 
 // compiling analytics-script.ts and minifying it.
 export const analytics_js = UglifyJS.minify(
@@ -56,6 +57,7 @@ export function analytics_rec(
   payload: object | undefined
 ): void {
   if (payload == null) return;
+  if (!is_valid_uuid_string(token)) return;
   const dbg = create_log("rec", logger);
   dbg(token, payload);
   // sanitize data (limits size and number of characters)

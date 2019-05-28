@@ -144,11 +144,14 @@ exports.init_express_http_server = (opts) ->
     # cocalc analytics: this extracts tracking information about lading pages, measure campaign performance, etc.
     # 1. it sends a static js file (which is included in a script tag) to a page
     # 2. a unique ID is generated and stored in a cookie
-    # 3. the script (should) send back a POST request, telling us about the UTM params, referral, and landing page
-    # 4. later, upon creating an account, we store that ID of the cookie and cross reference it
+    # 3. the script (should) send back a POST request, telling us about
+    #    the UTM params, referral, landing page, etc.
+    #
+    # The query param "fqd" (fully qualified domain) can be set to true or false (default true)
+    # It controlls if the bounce back URL mentions the domain.
     router.get '/analytics.js', (req, res) ->
         res.header("Content-Type", "text/javascript")
-        timeout = ms('1 day')
+        timeout = ms('100 days')
         res.header('Cache-Control', "public, max-age='#{timeout}'")
 
         # in case user was already here, do not send it again.
@@ -160,8 +163,12 @@ exports.init_express_http_server = (opts) ->
 
         # write response script
         analytics_cookie(res)
-        res.write("var DNS = '#{DNS}';\n")
-        res.write("var BASE_URL = '#{opts.base_url}';\n\n")
+        #  BASE_URL
+        if req.query.fqd == 'false'
+            res.write("var PREFIX = '#{opts.base_url}';\n")
+        else
+            prefix = "//#{DNS}#{opts.base_url}"
+            res.write("var PREFIX = '#{prefix}';\n\n")
         res.write(analytics_js)
         res.end()
 
