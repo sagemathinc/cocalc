@@ -447,8 +447,8 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-L"       : (editor)   => @goto_line(editor)
             "Cmd-L"        : (editor)   => @goto_line(editor)
 
-            "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
-            "Cmd-I"        : (editor)   => @toggle_split_view(editor)
+            "Shift-Ctrl-I" : (editor)   => @toggle_split_view(editor)
+            "Shift-Cmd-I"  : (editor)   => @toggle_split_view(editor)
 
             "Shift-Cmd-L"  : (editor)   => editor.align_assignments()
             "Shift-Ctrl-L" : (editor)   => editor.align_assignments()
