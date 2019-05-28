@@ -22,9 +22,9 @@
 
 // to do:
 // ✓ command line options for test creds, non-headless operation
-// - run in more environments
-//   - client laptop as well as cc project
-//   - target UW and pixelbook as well as cocalc.com & test.cocalc.com
+// ✓ run in more environments
+//   ✓ client laptop as well as cc project
+//   ✓ target UW and pixelbook as well as cocalc.com & test.cocalc.com
 // - add test for jupyter widgets
 // - wrap in jest
 // - write in typescript
@@ -102,17 +102,17 @@ try {
   // await page.waitFor(2 * 1000);
 
   // get selectors manually by doing Inspect while viewing page in chrome
-  const USERNAME_SELECTOR = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-5 > div > input'
-  const PASSWORD_SELECTOR = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-4 > div > input'
-  const BUTTON_SELECTOR = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-3 > button'
+  const emailSel = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-5 > div > input'
+  const pwSel = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-4 > div > input'
+  const btnSel = '#smc-react-container > div > div:nth-child(4) > div > div > div.hidden-xs.row > div:nth-child(1) > form > div > div:nth-child(1) > div.col-xs-3 > button'
 
-  await page.click(USERNAME_SELECTOR);
+  await page.click(emailSel);
   await page.keyboard.type(CREDS.username);
 
-  await page.click(PASSWORD_SELECTOR);
+  await page.click(pwSel);
   await page.keyboard.type(CREDS.password);
 
-  await page.click(BUTTON_SELECTOR);
+  await page.click(btnSel);
   await page.waitForNavigation({'waitUntil':'networkidle0'});
   console.log('02 signed in');
   await page.waitFor(2 * 1000);
@@ -122,7 +122,7 @@ try {
   sfpPh="Search for projects...";
   sfpSel = sprintf('input[placeholder=\"%s\"]', sfpPh);
 
-  // pass function defi/nition as string to page.waitForFunction
+  // pass function definition as string to page.waitForFunction
   // x will be this:
   // document.querySelector('input[placeholder="Search for projects..."]').placeholder == "Search for projects..."
   const sfpx = sprintf("document.querySelector(\'%s\').placeholder == \"%s\"", sfpSel, sfpPh);
