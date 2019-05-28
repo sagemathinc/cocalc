@@ -388,13 +388,13 @@ export class NotebookFrameActions {
     this.setState({ sel_ids: Set() });
   }
 
-  public unselect_cell(id: string) : void {
+  public unselect_cell(id: string): void {
     const sel_ids = this.store.get("sel_ids");
     if (!sel_ids.contains(id)) return;
     this.setState({ sel_ids: sel_ids.remove(id) });
   }
 
-  public select_cell(id: string) : void {
+  public select_cell(id: string): void {
     const sel_ids = this.store.get("sel_ids");
     if (sel_ids.contains(id)) return;
     this.setState({ sel_ids: sel_ids.add(id) });
@@ -574,13 +574,24 @@ export class NotebookFrameActions {
     }
   }
 
-  public command(name: string): void {
+  public set_error(error: string): void {
+    this.frame_tree_actions.set_error(error,
+      undefined,
+      this.frame_id
+    );
+  }
+
+  public async command(name: string): Promise<void> {
     this.dbg("command", name);
     const cmd = this.commands[name];
     if (cmd != null && cmd.f != null) {
-      cmd.f();
+      try {
+        await cmd.f();
+      } catch (err) {
+        this.set_error(`error running '${name}' -- ${err}`);
+      }
     } else {
-      this.frame_tree_actions.set_error(`Command '${name}' is not implemented`);
+      this.set_error(`Command '${name}' not implemented`);
     }
   }
 
@@ -765,6 +776,15 @@ export class NotebookFrameActions {
       // moved onto a not-selected cell
       this.select_cell(cur_id);
       this.select_cell(target_id);
+    }
+  }
+
+  public insert_image(): void {
+    const cur_id = this.store.get("cur_id");
+    if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
+      this.jupyter_actions.insert_image(cur_id); // causes a modal dialog to appear.
+    } else {
+      throw Error(`insert_image -- cell must be a markdown cell`);
     }
   }
 }

@@ -1460,7 +1460,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // big scary error shown at top
-  set_error(error?: object | string, style?: ErrorStyles): void {
+  public set_error(
+    error?: object | string,
+    style?: ErrorStyles,
+    id?: string
+  ): void {
+    id = id; // id - not currently used, but would be for frame-specific error.
     if (error === undefined) {
       this.setState({ error });
     } else {

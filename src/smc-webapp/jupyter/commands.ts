@@ -373,15 +373,15 @@ export function commands(
     },
 
     "insert image": {
-      m: "Insert images in markdown cell...",
-      f: () => actions.insert_image()
+      m: "Insert images in selected markdown cell...",
+      f: () => frame_actions.insert_image()
     },
 
     "interrupt kernel": {
       i: "stop",
       m: "Interrupt kernel",
       k: [{ mode: "escape", which: 73, twice: true }],
-      f: () => actions.signal("SIGINT")
+      f: () => jupyter_actions.signal("SIGINT")
     },
 
     "merge cell with next cell": {

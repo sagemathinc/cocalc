@@ -99,7 +99,7 @@ interface JupyterEditorProps {
   nbconvert_dialog?: immutable.Map<any, any>; // frontend modal dialog state
   path?: string;
   cell_toolbar?: string;
-  insert_image?: boolean; // show insert image dialog
+  insert_image?: string; // show insert image dialog
   edit_attachments?: string;
   edit_cell_metadata?: immutable.Map<any, any>;
   editor_settings?: immutable.Map<any, any>;
@@ -144,7 +144,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         nbconvert_dialog: rtypes.immutable.Map, // frontend modal dialog state
         path: rtypes.string,
         cell_toolbar: rtypes.string,
-        insert_image: rtypes.bool, // show insert image dialog
+        insert_image: rtypes.string, // show insert image dialog
         edit_attachments: rtypes.string,
         edit_cell_metadata: rtypes.immutable.Map,
         raw_ipynb: rtypes.immutable.Map,
@@ -354,13 +354,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_insert_image() {
-    if (this.props.cur_id == null || this.props.project_id == null) {
+    if (this.props.insert_image == null || this.props.project_id == null) {
       return;
     }
     return (
       <InsertImage
         actions={this.props.actions}
-        cur_id={this.props.cur_id}
         project_id={this.props.project_id}
         insert_image={this.props.insert_image}
       />

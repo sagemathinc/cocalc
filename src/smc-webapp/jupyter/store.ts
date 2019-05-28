@@ -63,7 +63,7 @@ export interface JupyterStoreState {
   find_and_replace: any;
   keyboard_shortcuts: any;
   confirm_dialog: any;
-  insert_image: any;
+  insert_image: string; // id of a markdown cell
   scroll: any;
   check_select_kernel_init: boolean;
   show_kernel_selector: boolean;

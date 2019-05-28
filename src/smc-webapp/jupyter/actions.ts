@@ -1961,9 +1961,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     ); // case to bool
   };
 
-  insert_image = (): void => {
-    this.setState({ insert_image: true });
-  };
+  public insert_image(id: string): void {
+    if (this.store.get_cell_type(id) != "markdown") {
+      throw Error("must be a markdown cell -- id " + id);
+    }
+    this.setState({ insert_image: id }); // causes a modal dialog to appear.
+  }
 
   // supported scroll positions are in commands.ts
   scroll(pos): any {
@@ -2224,15 +2227,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  add_attachment_to_cell = async (id: any, path: any): Promise<void> => {
+  public async add_attachment_to_cell(id: string, path: string): Promise<void> {
     if (this.check_edit_protection(id)) {
       return;
     }
-    let name = misc.path_split(path).tail;
-    name = name.toLowerCase();
-    name = encodeURIComponent(name)
-      .replace(/\(/g, "%28")
-      .replace(/\)/g, "%29");
+    let name: string = encodeURIComponent(
+      misc.path_split(path).tail.toLowerCase()
+    );
+    name = name.replace(/\(/g, "%28").replace(/\)/g, "%29");
     this.set_cell_attachment(id, name, { type: "load", value: path });
     await callback2(this.store.wait, {
       until: () =>
@@ -2243,7 +2245,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // can update before the attachments props are updated.
     await awaiting.delay(10);
     this.insert_input_at_cursor(id, this._attachment_markdown(name), true);
-  };
+  }
 
   delete_attachment_from_cell = (id: any, name: any) => {
     if (this.check_edit_protection(id)) {
