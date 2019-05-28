@@ -2,7 +2,7 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
-import { Set } from "immutable";
+import { Map, Set } from "immutable";
 import { debounce, isEqual } from "underscore";
 import { merge_copy, uuid } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
@@ -18,8 +18,7 @@ export class JupyterActions extends JupyterActions0 {
   public assistant_actions: any;
 
   private cursor_manager: CursorManager;
-  private _account_change_editor_settings: any;
-  private _commands: any;
+  private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
 
   // Only run this code on the browser frontend (not in project).
@@ -85,8 +84,9 @@ export class JupyterActions extends JupyterActions0 {
 
       // set codemirror editor options whenever account editor_settings change.
       const account_store = this.redux.getStore("account") as any; // TODO: check if ever is undefined
-      account_store.on("change", this._account_change);
-      this._account_change_editor_settings = account_store.get(
+      this.account_change = this.account_change.bind(this);
+      account_store.on("change", this.account_change);
+      this.account_change_editor_settings = account_store.get(
         "editor_settings"
       );
     }
@@ -118,7 +118,7 @@ export class JupyterActions extends JupyterActions0 {
   protected close_client_only(): void {
     const account = this.redux.getStore("account");
     if (account != null) {
-      account.removeListener("change", this._account_change);
+      account.removeListener("change", this.account_change);
     }
   }
 
@@ -138,67 +138,73 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  show_code_assistant = () => {
+  public show_code_assistant(id: string): void {
     if (this.assistant_actions == null) {
-      return;
+      throw Error("code assistant not available");
     }
     this.blur_lock();
 
     const lang = this.store.get_kernel_language();
 
     this.assistant_actions.init(lang);
-    return this.assistant_actions.set({
+    this.assistant_actions.set({
       show: true,
       lang,
       lang_select: false,
-      handler: this.code_assistant_handler
+      handler: this.code_assistant_handler.bind(this),
+      cell_id: id
     });
-  };
+  }
 
-  code_assistant_handler = (data: { code: string[]; descr?: string }): void => {
+  private code_assistant_handler(data: {
+    code: string[];
+    descr?: string;
+    cell_id: string;
+  }): void {
     this.focus_unlock();
-    const { code, descr } = data;
+    const { cell_id, code, descr } = data;
     //if DEBUG then console.log("assistant data:", data, code, descr)
 
+    let id = cell_id;
     if (descr != null) {
-      const descr_cell = this.insert_cell(1);
-      this.set_cell_input(descr_cell, descr);
-      this.set_cell_type(descr_cell, "markdown");
+      id = this.insert_cell_adjacent(cell_id, +1);
+      this.set_cell_input(id, descr);
+      this.set_cell_type(id, "markdown");
     }
-
     for (let c of code) {
-      const code_cell = this.insert_cell(1);
-      this.set_cell_input(code_cell, c);
-      this.run_code_cell(code_cell);
+      id = this.insert_cell_adjacent(id, +1);
+      this.set_cell_input(id, c);
+      this.run_code_cell(id);
     }
     this.scroll("cell visible");
-  };
+  }
 
-  _account_change = (state: any): void => {
-    // TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
+  private account_change(state: Map<string, any>): void {
+    // TODO: it might be better to implement redux
+    // change listeners for particular keys.
     if (
-      !state.get("editor_settings").equals(this._account_change_editor_settings)
+      !state.get("editor_settings").equals(this.account_change_editor_settings)
     ) {
       const new_settings = state.get("editor_settings");
       if (
-        this._account_change_editor_settings.get(
+        this.account_change_editor_settings.get(
           "jupyter_keyboard_shortcuts"
         ) !== new_settings.get("jupyter_keyboard_shortcuts")
       ) {
         this.update_keyboard_shortcuts();
       }
 
-      this._account_change_editor_settings = new_settings;
+      this.account_change_editor_settings = new_settings;
       this.set_cm_options();
     }
-  };
+  }
 
   _keyboard_settings = () => {
-    if (this._account_change_editor_settings == null) {
+    if (this.account_change_editor_settings == null) {
       console.warn("account settings not loaded"); // should not happen
       return;
     }
-    const k = this._account_change_editor_settings.get(
+    const k = this.account_change_editor_settings.get(
       "jupyter_keyboard_shortcuts"
     );
     if (k != null) {
@@ -275,13 +281,6 @@ export class JupyterActions extends JupyterActions0 {
 
   command = (name: any): void => {
     this.deprecated("command", name);
-    if (this._commands == null) return;
-    const cmd = this._commands[name];
-    if (cmd != null && cmd.f != null) {
-      cmd.f();
-    } else {
-      this.set_error(`Command '${name}' is not implemented`);
-    }
   };
 
   public send_comm_message_to_kernel(comm_id: string, data: any): string {
@@ -434,5 +433,22 @@ export class JupyterActions extends JupyterActions0 {
   public show_about(): void {
     this.setState({ about: true });
     this.set_backend_kernel_info();
+  }
+
+  public toggle_line_numbers(): void {
+    this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
+  }
+
+  public toggle_cell_line_numbers(id: string): void {
+    const cells = this.store.get("cells");
+    const cell = cells.get(id);
+    if (cell == null) throw Error(`no cell with id ${id}`);
+    const line_numbers: boolean = !!cell.get(
+      "line_numbers",
+      this.store.get_local_storage("line_numbers")
+    );
+    this.setState({
+      cells: cells.set(id, cell.set("line_numbers", !line_numbers))
+    });
   }
 }

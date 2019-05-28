@@ -369,48 +369,40 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.show_not_xable_error("deletion", n);
   }
 
-  // prop can be: 'collapsed', 'scrolled'
-  toggle_output = (id: any, prop: any) => {
-    const cell_type = this.store.getIn(["cells", id, "cell_type"]);
-    if (cell_type == null || cell_type == "code") {
-      this._set({
-        type: "cell",
-        id,
-        [prop]: !this.store.getIn(["cells", id, prop])
-      });
-    }
-  };
+  public toggle_output(id: string, property: "collapsed" | "scrolled"): void {
+    this.toggle_outputs([id], property);
+  }
 
-  toggle_selected_outputs = (prop: any) => {
+  public toggle_outputs(
+    cell_ids: string[],
+    property: "collapsed" | "scrolled"
+  ): void {
     const cells = this.store.get("cells");
-    if (cells == null) return; // nothing to do
-    for (let id of this.store.get_selected_cell_ids_list()) {
-      var left;
+    if (cells == null) {
+      throw Error("cells not defined");
+    }
+    for (let id of cell_ids) {
       const cell = cells.get(id);
-      if ((left = cell.get("cell_type")) != null ? left : "code" === "code") {
-        this._set({ type: "cell", id, [prop]: !cell.get(prop) }, false);
+      if (cell == null) {
+        throw Error(`no cell with id ${id}`);
+      }
+      if (cell.get("cell_type", "code") == "code") {
+        this._set({ type: "cell", id, [property]: !cell.get(property) }, false);
       }
     }
-    return this._sync();
-  };
+    this._sync();
+  }
 
-  toggle_all_outputs = (prop: any) => {
-    const cells = this.store.get("cells");
-    if (cells == null) return; // nothing to do
-    cells.forEach((cell, id) => {
-      let left: any;
-      if ((left = cell.get("cell_type")) != null ? left : "code" === "code") {
-        this._set({ type: "cell", id, [prop]: !cell.get(prop) }, false);
-      }
-    });
-    return this._sync();
-  };
+  public toggle_all_outputs(property: "collapsed" | "scrolled"): void {
+    this.toggle_outputs(this.store.get_cell_ids_list(), property);
+  }
 
-  set_cell_pos = (id: any, pos: any, save = true) => {
-    return this._set({ type: "cell", id, pos }, save);
-  };
+  public set_cell_pos(id: string, pos: number, save: boolean = true): void {
+    this._set({ type: "cell", id, pos }, save);
+  }
 
-  set_cell_type = (id, cell_type = "code") => {
+  public set_cell_type(id: string, cell_type: string = "code"): void {
+    if (this.check_edit_protection(id)) return;
     if (
       cell_type !== "markdown" &&
       cell_type !== "raw" &&
@@ -419,9 +411,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       throw Error(
         `cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`
       );
-    }
-    if (this.check_edit_protection(id)) {
-      return;
     }
     const obj: any = {
       type: "cell",
@@ -432,14 +421,13 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // delete output and exec time info when switching to non-code cell_type
       obj.output = obj.start = obj.end = obj.collapsed = obj.scrolled = null;
     }
-    return this._set(obj);
-  };
+    this._set(obj);
+  }
 
-  set_selected_cell_type = (cell_type: any) => {
+  public set_selected_cell_type(cell_type: string): void {
     this.deprecated("set_selected_cell_type", cell_type);
-  };
+  }
 
-  // Might throw a CellWriteProtectedException
   set_md_cell_editing = (id: any): void => {
     this.deprecated("set_md_cell_editing", id);
   };
@@ -449,9 +437,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   change_cell_to_heading = (id: any, n = 1) => {
-    if (this.check_edit_protection(id)) {
-      return;
-    }
+    if (this.check_edit_protection(id)) return;
     this.set_md_cell_editing(id);
     this.set_cell_type(id, "markdown");
     let input = misc.lstrip(this._get_cell_input(id));
@@ -1379,29 +1365,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cm_options();
   };
 
-  toggle_line_numbers = (): void => {
-    this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
-  };
-
-  toggle_cell_line_numbers = (id: any): void => {
-    let left, left1;
-    const cells = this.store.get("cells");
-    const cell = cells.get(id);
-    if (cell == null) {
-      return;
-    }
-    const line_numbers =
-      (left =
-        (left1 = cell.get("line_numbers")) != null
-          ? left1
-          : this.store.get_local_storage("line_numbers")) != null
-        ? left
-        : false;
-    this.setState({
-      cells: cells.set(id, cell.set("line_numbers", !line_numbers))
-    });
-  };
-
   // zoom in or out delta font sizes
   set_font_size = (pixels: any) => {
     this.setState({
@@ -1461,14 +1424,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   private get_cell_input(id: string): string {
     return this.store.getIn(["cells", id, "input"], "");
   }
-
-  tab_key = () => {
-    this.deprecated("tab_key");
-  };
-
-  shift_tab_key = () => {
-    this.deprecated("shift_tab_key");
-  };
 
   set_kernel = (kernel: any) => {
     if (this.syncdb.get_state() != "ready") {
@@ -1968,7 +1923,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ insert_image: id }); // causes a modal dialog to appear.
   }
 
-  // supported scroll positions are in commands.ts
   scroll(pos): any {
     this.deprecated("scroll", pos);
   }

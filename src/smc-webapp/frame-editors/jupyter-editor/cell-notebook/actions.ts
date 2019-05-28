@@ -575,10 +575,7 @@ export class NotebookFrameActions {
   }
 
   public set_error(error: string): void {
-    this.frame_tree_actions.set_error(error,
-      undefined,
-      this.frame_id
-    );
+    this.frame_tree_actions.set_error(error, undefined, this.frame_id);
   }
 
   public async command(name: string): Promise<void> {
@@ -786,5 +783,16 @@ export class NotebookFrameActions {
     } else {
       throw Error(`insert_image -- cell must be a markdown cell`);
     }
+  }
+
+  public show_code_assistant(): void {
+    this.jupyter_actions.show_code_assistant(this.store.get("cur_id"));
+  }
+
+  public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
+    this.jupyter_actions.toggle_outputs(
+      this.store.get_selected_cell_ids_list(),
+      property
+    );
   }
 }

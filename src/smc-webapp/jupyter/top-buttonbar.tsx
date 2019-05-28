@@ -19,7 +19,7 @@ interface TopButtonbarProps {
   sel_ids: immutable.Set<any>; // set of selected cells
   cells: immutable.Map<any, any>; // map from id to cells
 
-  name:string;
+  name: string;
   // REDUX PROPS
   // [name]
   has_unsaved_changes?: boolean;
@@ -258,6 +258,15 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     return this.render_button("close and halt", obj);
   }
 
+  private render_group_assistant_halt() : Rendered {
+    return (
+      <ButtonGroup className="hidden-xs">
+        {this.render_assistant()}
+        {this.render_close_and_halt()}
+      </ButtonGroup>
+    );
+  }
+
   render() {
     return (
       <div style={{ margin: "1px 1px 0px 1px", backgroundColor: "#fff" }}>
@@ -271,6 +280,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           {this.render_select_cell_type()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_keyboard()}
+          <span style={{ marginLeft: "5px" }} />
+          {this.render_group_assistant_halt()}
         </Form>
       </div>
     );

@@ -273,9 +273,14 @@ export function commands(
           jupyter_actions.clear_introspect();
         }
 
-        if (jupyter_actions.store.getIn(["cm_options", "options", "keyMap"]) === "vim") {
+        if (
+          jupyter_actions.store.getIn(["cm_options", "options", "keyMap"]) ===
+          "vim"
+        ) {
           // Vim mode is trickier...
-          if (frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape") {
+          if (
+            frame_actions.store.get("cur_cell_vim_mode", "escape") !== "escape"
+          ) {
             return;
           }
         }
@@ -683,30 +688,30 @@ export function commands(
 
     "show header": {
       m: "Show header",
-      f: () => actions.set_header_state(false)
+      f: () => jupyter_actions.set_header_state(false)
     },
 
     "show keyboard shortcuts": {
       i: "keyboard-o",
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
-      f: () => actions.show_keyboard_shortcuts()
+      f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
     "show code assistant": {
       i: ASSISTANT_ICON_NAME,
       m: "Show code assistant",
-      f: () => actions.show_code_assistant()
+      f: () => frame_actions.show_code_assistant()
     },
 
     "show toolbar": {
       m: "Show toolbar",
-      f: () => actions.set_toolbar_state(true)
+      f: () => jupyter_actions.set_toolbar_state(true)
     },
 
     "shutdown kernel": {
       m: "Shutdown kernel",
-      f: () => actions.shutdown()
+      f: () => jupyter_actions.shutdown()
     },
 
     "split cell at cursor": {
@@ -725,56 +730,56 @@ export function commands(
 
     "tab key": {
       m: "Tab key (completion)",
-      f: () => actions.tab_key()
+      f: () => frame_actions.tab_key()
     },
 
     "shift+tab key": {
       m: "Shift+Tab introspection (show function docstring)",
-      f: () => actions.shift_tab_key()
+      f: () => frame_actions.shift_tab_key()
     },
 
     "time travel": {
       m: "TimeTravel...",
-      f: () => actions.show_history_viewer()
+      f: () => jupyter_actions.show_history_viewer()
     },
 
     "toggle all cells output collapsed": {
       m: "Toggle all collapsed",
-      f: () => actions.toggle_all_outputs("collapsed")
+      f: () => jupyter_actions.toggle_all_outputs("collapsed")
     },
 
     "toggle all cells output scrolled": {
       m: "Toggle all scrolled",
-      f: () => actions.toggle_all_outputs("scrolled")
+      f: () => jupyter_actions.toggle_all_outputs("scrolled")
     },
 
     "toggle all line numbers": {
       m: "Toggle all line numbers",
       k: [{ mode: "escape", shift: true, which: 76 }],
-      f: () => actions.toggle_line_numbers()
+      f: () => jupyter_actions.toggle_line_numbers()
     },
 
     "toggle cell line numbers": {
       m: "Toggle cell line numbers",
       k: [{ mode: "escape", which: 76 }],
-      f: () => actions.toggle_cell_line_numbers(id())
+      f: () => jupyter_actions.toggle_cell_line_numbers(id())
     },
 
     "toggle cell output collapsed": {
       m: "Toggle collapsed",
       k: [{ mode: "escape", which: 79 }],
-      f: () => actions.toggle_selected_outputs("collapsed")
+      f: () => frame_actions.toggle_selected_outputs("collapsed")
     },
 
     "toggle cell output scrolled": {
       m: "Toggle scrolled",
       k: [{ mode: "escape", which: 79, shift: true }],
-      f: () => actions.toggle_selected_outputs("scrolled")
+      f: () => frame_actions.toggle_selected_outputs("scrolled")
     },
 
     "toggle header": {
       m: "Toggle header",
-      f: () => actions.toggle_header()
+      f: () => jupyter_actions.toggle_header()
     },
 
     /* "toggle rtl layout": {

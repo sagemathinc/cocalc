@@ -109,9 +109,15 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return selected;
   };
 
+  // immutable List
   public get_cell_list = (): ImmutableList<string> => {
     return this.get("cell_list", ImmutableList([]));
   };
+
+  // string[]
+  public get_cell_ids_list(): string[] {
+    return this.get_cell_list().toJS();
+  }
 
   public get_selected_cell_ids_list = () => {
     this.deprecated("get_selected_cell_ids_list");
