@@ -827,13 +827,13 @@ export function commands(
     "zoom in": {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
-      f: () => actions.zoom(1)
+      f: () => frame_actions.zoom(1)
     },
 
     "zoom out": {
       m: "Zoom out",
       k: [{ ctrl: true, shift: true, which: 188 }],
-      f: () => actions.zoom(-1)
+      f: () => frame_actions.zoom(-1)
     },
 
     "write protect": {

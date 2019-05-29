@@ -803,4 +803,8 @@ export class NotebookFrameActions {
       this.jupyter_actions.set_raw_ipynb();
     }
   }
+
+  public zoom(delta: -1 | 1): void {
+    this.frame_tree_actions.change_font_size(delta, this.frame_id);
+  }
 }

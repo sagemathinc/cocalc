@@ -1365,15 +1365,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.set_cm_options();
   };
 
-  // zoom in or out delta font sizes
-  set_font_size = (pixels: any) => {
-    this.setState({
-      font_size: pixels
-    });
-    // store in localStorage
-    return this.set_local_storage("font_size", pixels);
-  };
-
   set_local_storage = (key, value) => {
     if (typeof localStorage !== "undefined" && localStorage !== null) {
       let current = localStorage[this.name];
@@ -1389,10 +1380,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       return (localStorage[this.name] = misc.to_json(current));
     }
-  };
-
-  zoom = (delta: any) => {
-    this.set_font_size(this.store.get("font_size") + delta);
   };
 
   // File --> Open: just show the file listing page.
