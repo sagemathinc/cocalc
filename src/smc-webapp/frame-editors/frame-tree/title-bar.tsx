@@ -39,7 +39,6 @@ import { ConnectionStatus, EditorSpec } from "./types";
 
 import { Available as AvailableFeatures } from "../../project_configuration";
 
-import { ext2parser, parser2tool } from "smc-util/code-formatter";
 
 const title_bar_style: CSS.Properties = {
   background: "#ddd",
@@ -856,24 +855,17 @@ export class FrameTitleBar extends Component<Props, State> {
 
   render_format(): Rendered {
     if (!this.is_visible("format")) return;
-    if (this.props.available_features == null) return;
-    const formatting = this.props.available_features.formatting;
-    // there is no formatting available at all
-    if (formatting == null || formatting === false) return;
-    const ext = misc.filename_extension(this.props.path).toLowerCase();
-
-    const parser = ext2parser[ext];
-    if (parser == null) return;
-    const tool = parser2tool[parser];
-    if (tool == null) return;
-    if (!formatting[tool]) return;
-    if (!this.is_visible("format")) return;
+    let desc : any = this.props.actions.has_format_support(this.props.id, this.props.available_features);
+    if (!desc) return;
+    if (desc === true) {
+      desc = "Canonically format the entire document.";
+    }
     return (
       <Button
         key={"format"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.format(this.props.id)}
-        title={`Canonically format the entire document using '${tool}'.`}
+        title={desc}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Format" : undefined}</VisibleMDLG>

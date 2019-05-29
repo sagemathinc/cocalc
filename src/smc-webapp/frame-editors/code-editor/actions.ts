@@ -56,6 +56,10 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
+import { Available as AvailableFeatures } from "../../project_configuration";
+import { ext2parser, parser2tool } from "smc-util/code-formatter";
+
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -1675,6 +1679,24 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     } finally {
       this.set_status("");
     }
+  }
+
+  // Not an action, but works to make code clean
+  has_format_support(id:string, available_features?: AvailableFeatures) : boolean | string {
+    const cm = this._get_cm(id);
+    if (!cm) return false;  // not a code editor
+    if (available_features == null) return false;
+    const formatting = available_features.formatting;
+    // there is no formatting available at all
+    if (!formatting) return false;
+    const ext = filename_extension(this.path).toLowerCase();
+
+    const parser = ext2parser[ext];
+    if (parser == null) return false;
+    const tool = parser2tool[parser];
+    if (tool == null) return false;
+    if (!formatting[tool]) return false;
+    return `Canonically format the entire document using '${tool}'.`
   }
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar

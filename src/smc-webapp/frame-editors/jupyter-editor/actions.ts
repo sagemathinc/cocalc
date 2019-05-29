@@ -191,4 +191,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     // becoming invalid...
     return { command: "jupyter", args: ["console", "--existing"] };
   }
+
+  // Not an action, but works to make code clean
+  has_format_support(id:string, available_features?) : boolean | string {
+    id=id;
+    available_features=available_features;
+    return "Canonically aormat all (or selected cells)"
+  }
 }
