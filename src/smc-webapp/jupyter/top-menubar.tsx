@@ -505,13 +505,13 @@ render_widgets: -> # TODO: not supported in v1
 
   links_python() {
     return {
-      Python: "https://docs.python.org/2.7/",
+      Python: "https://docs.python.org/3/",
       IPython: "http://ipython.org/documentation.html",
-      Numpy: "https://docs.scipy.org/doc/numpy/reference/",
+      NumPy: "https://docs.scipy.org/doc/numpy/reference/",
       SciPy: "https://docs.scipy.org/doc/scipy/reference/",
-      Matplotlib: "http://matplotlib.org/contents.html",
-      Sympy: "http://docs.sympy.org/latest/index.html",
-      Pandas: "http://pandas.pydata.org/pandas-docs/stable/",
+      matplotlib: "http://matplotlib.org/contents.html",
+      SymPy: "http://docs.sympy.org/latest/index.html",
+      pandas: "http://pandas.pydata.org/pandas-docs/stable/",
       SageMath: "http://doc.sagemath.org/"
     };
   }
@@ -614,7 +614,7 @@ render_widgets: -> # TODO: not supported in v1
           )}
           {external_link(
             "Jupyter in CoCalc",
-            "https://github.com/sagemathinc/cocalc/wiki/sagejupyter"
+            "https://doc.cocalc.com/jupyter.html"
           )}
           {external_link(
             "Markdown",
