@@ -39,9 +39,6 @@ export function commands(
     return frame_actions.store.get("cur_id");
   }
 
-  const actions = jupyter_actions; // TODO
-  const store = actions.store; // todo
-
   return {
     "cell toolbar none": {
       m: "No cell toolbar",
@@ -136,10 +133,11 @@ export function commands(
     "close pager": {
       m: "Close pager",
       k: [{ which: 27, mode: "escape" }],
-      f: () =>
-        store.get("introspect") != null
-          ? jupyter_actions.clear_introspect()
-          : undefined
+      f: () => {
+        if (jupyter_actions.store.get("introspect") != null) {
+          jupyter_actions.clear_introspect();
+        }
+      }
     },
 
     "confirm restart kernel": {
@@ -269,7 +267,7 @@ export function commands(
         { alt: true, mode: "edit", which: 77 }
       ],
       f() {
-        if (store.get("mode") === "escape" && store.get("introspect") != null) {
+        if (frame_actions.store.get("mode") === "escape" && jupyter_actions.store.get("introspect") != null) {
           jupyter_actions.clear_introspect();
         }
 
