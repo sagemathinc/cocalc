@@ -749,10 +749,6 @@ export class NotebookFrameActions {
     this.set_cur_id(cell_ids[0]);
   }
 
-  public async format(): Promise<void> {
-    this.todo("format");
-  }
-
   public extend_selection(delta: -1 | 1): void {
     const cur_id = this.store.get("cur_id");
     this.move_cursor(delta);
@@ -806,5 +802,25 @@ export class NotebookFrameActions {
 
   public zoom(delta: -1 | 1): void {
     this.frame_tree_actions.change_font_size(delta, this.frame_id);
+  }
+
+  public async format_selected_cells(sync: boolean = true): Promise<void> {
+    this.save_input_editor();
+    await this.jupyter_actions.format_cells(
+      this.store.get_selected_cell_ids_list(),
+      sync
+    );
+  }
+  public async format_all_cells(sync: boolean = true): Promise<void> {
+    this.save_input_editor();
+    await this.jupyter_actions.format_all_cells(sync);
+  }
+  public async format(): Promise<void> {
+    const sel_ids = this.store.get("sel_ids");
+    if (sel_ids == null || sel_ids.size === 0) {
+      await this.format_all_cells();
+    } else {
+      await this.format_selected_cells();
+    }
   }
 }

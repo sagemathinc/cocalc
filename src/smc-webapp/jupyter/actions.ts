@@ -2349,14 +2349,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  _format_cell = async (id: string): Promise<void> => {
+  private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      return;
+      throw Error(`no cell with id ${id}`);
     }
-    const code = this._get_cell_input(id).trim();
+    const code: string = cell.get("input", "").trim();
     let options: FormatterOptions;
-    const cell_type = cell.get("cell_type", "code");
+    const cell_type: string = cell.get("cell_type", "code");
     const language = this.store.get_kernel_language();
     switch (cell_type) {
       case "code":
@@ -2403,9 +2403,9 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (resp == null) return; // make everyone happy …
     // we additionally trim the output, because prettier introduces a trailing newline
     this.set_cell_input(id, JupyterActions.trim_code(resp), false);
-  };
+  }
 
-  public static trim_code(str: string): string {
+  private static trim_code(str: string): string {
     str = str.trim();
     if (str.length > 0 && str.slice(-1) == "\n") {
       return str.slice(0, -2);
@@ -2413,7 +2413,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return str;
   }
 
-  format_cells = async (cell_ids: string[], sync = true): Promise<void> => {
+  public async format_cells(
+    cell_ids: string[],
+    sync: boolean = true
+  ): Promise<void> {
     this.set_error(null);
     let jobs: string[] = [];
     for (let id of cell_ids) {
@@ -2424,7 +2427,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
 
     try {
-      await awaiting.map(jobs, 4, this._format_cell);
+      await awaiting.map(jobs, 4, this.format_cell.bind(this));
     } catch (err) {
       this.set_error(err.message);
       return;
@@ -2433,17 +2436,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (sync) {
       this._sync();
     }
-  };
+  }
 
-  format_selected_cells = async (sync = true): Promise<void> => {
-    const selected = this.store.get_selected_cell_ids_list();
-    await this.format_cells(selected, sync);
-  };
-
-  format_all_cells = async (sync = true): Promise<void> => {
-    const all_cells = this.store.get_cell_list();
-    await this.format_cells(all_cells.toJS(), sync);
-  };
+  public async format_all_cells(sync: boolean = true): Promise<void> {
+    await this.format_cells(this.store.get_cell_ids_list(), sync);
+  }
 
   check_select_kernel = (): void => {
     const kernel = this.store.get("kernel");
