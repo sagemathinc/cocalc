@@ -2,6 +2,8 @@
 Keyboard event handler
 */
 
+declare const $: any;  // jQuery
+
 const json = require("json-stable-stringify"); // TODO: import types
 const { merge, copy_without } = require("smc-util/misc"); // TODO: import types
 const commands = require("./commands"); // TODO: import types
@@ -87,6 +89,11 @@ export function create_key_handler(
       return;
     }
     const mode = frame_actions.store.get("mode");
+    if (mode === 'escape' && $(":focus").length > 0) {
+      // Never use keyboard shortcuts when something is focused, e.g.,
+      // getting a password or using text input widget.
+      return;
+    }
     const shortcut = evt_to_shortcut(evt, mode);
     const cmd = shortcut_to_command[shortcut];
     // console.log 'shortcut', shortcut, cmd
