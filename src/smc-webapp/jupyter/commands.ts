@@ -699,9 +699,9 @@ export function commands(
       f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
-    "show code assistant": {
+    "show code snippets": {
       i: ASSISTANT_ICON_NAME,
-      m: "Show code assistant",
+      m: "Show code snippets",
       f: () => frame_actions.show_code_assistant()
     },
 

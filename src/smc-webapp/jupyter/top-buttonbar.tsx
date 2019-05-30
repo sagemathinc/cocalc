@@ -227,8 +227,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
 
   render_assistant() {
     return this.render_button("assistant", {
-      name: "show code assistant",
-      label: <VisibleMDLG>Assistant</VisibleMDLG>
+      name: "show code snippets",
+      label: <VisibleMDLG>Snippets</VisibleMDLG>
     });
   }
 
