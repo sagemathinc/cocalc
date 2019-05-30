@@ -161,7 +161,6 @@ export class FindAndReplace extends Component<
   get_text() {
     const v: any = [];
     let sel: any = undefined;
-    (window as any).sel_ids = this.props.sel_ids;
     if (!this.state.all && this.props.sel_ids != null) {
       sel = this.props.sel_ids.add(this.props.cur_id);
     }

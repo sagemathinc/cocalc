@@ -9,7 +9,6 @@ import { Icon } from "../r_misc/icon";
 const { ShowSupportLink } = require("../support");
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 import { KernelInfo } from "./types";
-
 import { JupyterActions } from "./browser-actions";
 
 interface AboutProps {
