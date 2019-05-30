@@ -16,6 +16,7 @@ import {
 const { export_to_ipynb } = require("./export-to-ipynb");
 const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
 import { Kernels, Kernel } from "./util";
+import { KernelInfo } from "./types";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -29,7 +30,7 @@ export interface JupyterStoreState {
   edit_attachments?: string;
   edit_cell_metadata: any;
   raw_ipynb: any;
-  backend_kernel_info: any;
+  backend_kernel_info: KernelInfo;
   cell_list: any;
   cells: any;
   cur_id: any;
@@ -229,19 +230,23 @@ export class JupyterStore extends Store<JupyterStoreState> {
     });
   };
 
-  get_language_info = () => {
-    const a = this.getIn(["backend_kernel_info", "language_info"]);
-    const b = this.getIn(["metadata", "language_info"]);
-    return a != null ? a : b;
-  };
+  public get_language_info(): object | undefined {
+    for (let key of ["backend_kernel_info", "metadata"]) {
+      const language_info = this.unsafe_getIn([key, "language_info"]);
+      if (language_info != null) return language_info;
+    }
+  }
 
   get_cm_mode = () => {
-    let metadata = this.get("backend_kernel_info");
-    if (metadata == null) {
-      metadata = this.get("metadata");
+    let metadata_immutable = this.get("backend_kernel_info");
+    if (metadata_immutable == null) {
+      metadata_immutable = this.get("metadata");
     }
-    if (metadata != null) {
-      metadata = metadata.toJS();
+    let metadata: { language_info?: any; kernelspec?: any } | undefined;
+    if (metadata_immutable != null) {
+      metadata = metadata_immutable.toJS();
+    } else {
+      metadata = undefined;
     }
     let mode: any;
     if (metadata != null) {

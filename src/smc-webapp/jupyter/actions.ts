@@ -21,13 +21,14 @@ const { required, defaults } = misc;
 import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
+import { KernelInfo } from "./types";
+
 import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
   show_kernel_selector_reasons
 } from "./store";
-import * as util from "./util";
 import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
 import { cm_options } from "./cm_options";
@@ -61,19 +62,20 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   protected project_id: string;
   private _last_start?: number;
   protected jupyter_kernel?: JupyterKernelInterface;
+  private last_cursor_move_time: Date = new Date(0);
+
+  public _account_id: string; // Note: this is used in test
 
   // TODO: type these
   private _cursor_locs?: any;
   private _introspect_request?: any;
   protected set_save_status: any;
   private project_conn: any;
-  private last_cursor_move_time: Date = new Date(0);
 
   protected _client: any;
   protected _file_watcher: any;
   protected _state: any;
 
-  public _account_id: any; // Note: this is used in test
   public _complete_request?: any;
   public _output_handler?: any;
   public ensure_backend_kernel_setup?: any;
@@ -83,15 +85,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public nbconvert_change: any;
   public store: any;
   public syncdb: any;
-  public util: any; // TODO: check if this is used publicly
 
-  _init = (
+  public _init(
     project_id: string,
     path: string,
     syncdb: any,
     store: any,
     client: any
-  ): void => {
+  ): void {
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -100,7 +101,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     store.dbg = f => {
       return client.dbg(`JupyterStore('${store.get("path")}').${f}`);
     };
-    this.util = util; // TODO: for debugging only
     this._state = "init"; // 'init', 'load', 'ready', 'closed'
     this.store = store;
     this.project_id = project_id;
@@ -153,7 +153,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (!this.is_project) {
       this.init_client_only();
     }
-  };
+  }
 
   protected init_client_only(): void {
     throw Error("must define in a derived class");
@@ -1638,13 +1638,16 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         return;
       }
       dbg("getting kernel_info...");
+      let backend_kernel_info: KernelInfo;
       try {
-        this.setState({
-          backend_kernel_info: await this.jupyter_kernel.kernel_info()
-        });
+        backend_kernel_info = immutable.fromJS(
+          await this.jupyter_kernel.kernel_info()
+        );
       } catch (err) {
         dbg(`error = ${err}`);
+        return;
       }
+      this.setState({ backend_kernel_info });
     } else {
       await this._set_backend_kernel_info_client();
     }

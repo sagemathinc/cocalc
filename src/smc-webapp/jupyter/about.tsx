@@ -2,27 +2,29 @@
 About dialog -- provides info about the Jupyter Notebook
 */
 
-const Ansi = require("ansi-to-react");
-import { React, Component } from "../app-framework"; // TODO: this will move
+import * as Ansi from "ansi-to-react";
+import { React, Component, Rendered } from "../app-framework";
 import { Button, Modal } from "react-bootstrap";
-const { Icon } = require("../r_misc"); // TODO: import types
-const { ShowSupportLink } = require("../support"); // TODO: import types
-import { Map as ImmutableMap } from "immutable";
-const { JUPYTER_CLASSIC_MODERN } = require("smc-util/theme");
+import { Icon } from "../r_misc/icon";
+const { ShowSupportLink } = require("../support");
+import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
+import { KernelInfo } from "./types";
+
+import { JupyterActions } from "./browser-actions";
 
 interface AboutProps {
-  actions: any;
+  actions: JupyterActions;
   about?: boolean;
-  backend_kernel_info?: ImmutableMap<any, any>;
+  backend_kernel_info?: KernelInfo;
 }
 
 export class About extends Component<AboutProps> {
-  close = () => {
+  private close(): void {
     this.props.actions.setState({ about: false });
     this.props.actions.focus(true);
-  };
+  }
 
-  render_server_info() {
+  private render_server_info() : Rendered {
     const version =
       this.props.backend_kernel_info != null
         ? this.props.backend_kernel_info.get("nodejs_version")
@@ -33,7 +35,7 @@ export class About extends Component<AboutProps> {
     return <pre>Node.js Version {version}</pre>;
   }
 
-  render_kernel_info() {
+  private render_kernel_info() : Rendered {
     const banner =
       this.props.backend_kernel_info != null
         ? this.props.backend_kernel_info.get("banner")
@@ -48,7 +50,7 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  render_faq() {
+  private render_faq() : Rendered {
     return (
       <span>
         Read{" "}
@@ -67,7 +69,7 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  render_features() {
+  private render_features() : Rendered {
     return (
       <ul
         style={{
@@ -120,9 +122,13 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  render() {
+  public render() : Rendered {
     return (
-      <Modal show={this.props.about} bsSize="large" onHide={this.close}>
+      <Modal
+        show={this.props.about}
+        bsSize="large"
+        onHide={this.close.bind(this)}
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             <Icon name="question-circle" /> About CoCalc Jupyter notebook
@@ -166,7 +172,7 @@ export class About extends Component<AboutProps> {
         </Modal.Body>
 
         <Modal.Footer>
-          <Button onClick={this.close}>Close</Button>
+          <Button onClick={this.close.bind(this)}>Close</Button>
         </Modal.Footer>
       </Modal>
     );

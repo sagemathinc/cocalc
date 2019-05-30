@@ -1,3 +1,5 @@
+import * as immutable from "immutable";
+
 export type NotebookMode = "edit" | "escape";
 
 export type CellType = "raw" | "markdown" | "code";
@@ -14,3 +16,5 @@ export type Scroll =
   | "list down";
 
 export type ViewMode = "normal" | "json" | "raw";
+
+export type KernelInfo = immutable.Map<string,any>;
