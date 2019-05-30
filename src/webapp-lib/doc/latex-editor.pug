@@ -30,7 +30,7 @@ block content
       div.col-sm-2.col-sm-offset-5.center
         img(src=require("webapp-lib/assets/latex-logo.svg")).fit
       div.col-md-12.center
-        h1 Collaborative Online LaTeX Eitor
+        h1 #{subtitle}
       div.col-sm-6
         img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
       div.col-sm-6
@@ -49,7 +49,7 @@ block content
         ul
           li You no longer have to install and maintain a LaTeX environment.
           li You do not have to configure the LaTeX engine and install packages.
-          li Full edit-history and periodic backups keep your content safe.
+          li Full #[a(href="#a-timetravel") edit-history] and periodic #[a(href="#a-backups") backups] keep your content safe.
 
   +start_free_banner
 
@@ -229,7 +229,7 @@ block content
             img(src=require("webapp-lib/assets/latex-editor-timetravel-01.png")).fit
         div.col-md-6
           div.
-            The #[strong Time-travel] feature is specific to the #{NAME} platform.
+            The #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel feature]] is specific to the #{NAME} platform.
             It records all changes in the LaTeX notebook in fine detail.
             You can go back and forth in time across hundreds of changes to recover your previous edits.
           div.
@@ -245,7 +245,7 @@ block content
           img(src=require("webapp-lib/assets/cocalc-latex-side-chat-v2.png")).fit
         div.col-md-6
           div.
-            A #[strong side-by-side chat] for each LaTeX file
+            A #[strong #[a(href="https://doc.cocalc.com/chat.html") side-by-side chat]] for each LaTeX file
             gives you the ability to discuss the content with your project collaborators
             or give feedback to your students working on their assignments.
           div.
