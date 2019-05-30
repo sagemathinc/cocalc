@@ -482,7 +482,9 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         <Dropdown.Toggle noCaret bsStyle="default" style={TITLE_STYLE}>
           {heading}
         </Dropdown.Toggle>
-        <Dropdown.Menu style={{ opacity, minWidth: min_width }}>
+        <Dropdown.Menu
+          style={{ opacity, minWidth: min_width, maxHeight: "30vh" }}
+        >
           {this.menu_items(names)}
         </Dropdown.Menu>
       </Dropdown>
@@ -593,7 +595,7 @@ render_widgets: -> # TODO: not supported in v1
         <Dropdown.Toggle noCaret bsStyle="default" style={TITLE_STYLE}>
           Help
         </Dropdown.Toggle>
-        <Dropdown.Menu>
+        <Dropdown.Menu style={{ maxHeight: "30vh" }}>
           <MenuItem
             eventKey="help-about"
             onSelect={() => this.props.actions.show_about()}
