@@ -74,32 +74,32 @@ export function commands(
     "change cell to heading 1": {
       m: "Heading 1",
       k: [{ which: 49, mode: "escape" }],
-      f: () => jupyter_actions.change_cell_to_heading(id(), 1)
+      f: () => frame_actions.change_cell_to_heading(id(), 1)
     },
     "change cell to heading 2": {
       m: "Heading 2",
       k: [{ which: 50, mode: "escape" }],
-      f: () => jupyter_actions.change_cell_to_heading(id(), 2)
+      f: () => frame_actions.change_cell_to_heading(id(), 2)
     },
     "change cell to heading 3": {
       m: "Heading 3",
       k: [{ which: 51, mode: "escape" }],
-      f: () => jupyter_actions.change_cell_to_heading(id(), 3)
+      f: () => frame_actions.change_cell_to_heading(id(), 3)
     },
     "change cell to heading 4": {
       m: "Heading 4",
       k: [{ which: 52, mode: "escape" }],
-      f: () => jupyter_actions.change_cell_to_heading(id(), 4)
+      f: () => frame_actions.change_cell_to_heading(id(), 4)
     },
     "change cell to heading 5": {
       m: "Heading 5",
       k: [{ which: 53, mode: "escape" }],
-      f: () => jupyter_actions.change_cell_to_heading(id(), 5)
+      f: () => frame_actions.change_cell_to_heading(id(), 5)
     },
     "change cell to heading 6": {
       m: "Heading 6",
       k: [{ which: 54, mode: "escape" }],
-      f: () => jupyter_actions.change_cell_to_heading(id(), 6)
+      f: () => frame_actions.change_cell_to_heading(id(), 6)
     },
 
     "change cell to markdown": {
@@ -267,7 +267,10 @@ export function commands(
         { alt: true, mode: "edit", which: 77 }
       ],
       f() {
-        if (frame_actions.store.get("mode") === "escape" && jupyter_actions.store.get("introspect") != null) {
+        if (
+          frame_actions.store.get("mode") === "escape" &&
+          jupyter_actions.store.get("introspect") != null
+        ) {
           jupyter_actions.clear_introspect();
         }
 

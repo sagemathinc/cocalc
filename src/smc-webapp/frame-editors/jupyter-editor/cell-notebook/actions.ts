@@ -518,12 +518,12 @@ export class NotebookFrameActions {
   public change_cell_to_heading(id: string, n: number = 1): void {
     this.validate({ id });
     if (
-      this.jupyter_actions.store.check_edit_protection(id, this.jupyter_actions)
+      this.jupyter_actions.check_edit_protection(id)
     ) {
       return;
     }
-    this.set_md_cell_editing(id);
     this.jupyter_actions.set_cell_type(id, "markdown");
+    this.set_md_cell_editing(id);
     const input: string = lstrip(this.get_cell_input(id));
     let i: number = 0;
     while (i < input.length && input[i] === "#") {
@@ -831,4 +831,5 @@ export class NotebookFrameActions {
       this.input_editors[id].refresh();
     }
   }
+
 }
