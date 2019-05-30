@@ -64,7 +64,6 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 export class JupyterActions extends Actions<JupyterStoreState> {
   // TODO: type these
   private _cursor_locs?: any;
-  private _input_editors?: any;
   private _introspect_request?: any;
   private _is_project: any;
   private _key_handler: any;
@@ -2543,26 +2542,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       editor_settings: { ask_jupyter_kernel: !dont_ask }
     });
   };
-
-  // TODO: move to notebook actions
-  async show(): Promise<void> {
-    // called when tab is shown
-    // refresh all input codemirrors (after they appear)
-    await awaiting.delay(0); // wait until next render loop
-    this.focus();
-    if (this._state === "closed") return;
-    if (this._input_editors == null) return;
-    for (let id in this._input_editors) {
-      const editor = this._input_editors[id];
-      if (editor != null) {
-        editor.refresh();
-      }
-    }
-  }
-
-  hide(): void {
-    this.blur();
-  }
 
   public check_edit_protection(id: string): boolean {
     if (!this.store.is_cell_editable(id)) {

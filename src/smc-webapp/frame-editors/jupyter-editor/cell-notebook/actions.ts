@@ -14,6 +14,8 @@ require("../../../jupyter/types");
 import { CellType, Scroll, ViewMode } from "../../../jupyter/types";
 import { commands, CommandDescription } from "../../../jupyter/commands";
 
+import { EditorFunctions } from "../../../jupyter/codemirror-editor";
+
 import { isEqual } from "lodash";
 
 const DEBUG = true;
@@ -22,7 +24,7 @@ export class NotebookFrameActions {
   private frame_tree_actions: JupyterEditorActions;
   private jupyter_actions: JupyterActions;
   private key_handler?: Function;
-  private input_editors: { [id: string]: any } = {};
+  private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
 
   public commands: { [name: string]: CommandDescription } = {};
@@ -447,7 +449,7 @@ export class NotebookFrameActions {
    * Codemirror input editor control and tracking.
    ***/
 
-  register_input_editor(id: string, editor: any): void {
+  register_input_editor(id: string, editor: EditorFunctions): void {
     this.validate({ id });
     this.input_editors[id] = editor;
   }
@@ -821,6 +823,12 @@ export class NotebookFrameActions {
       await this.format_all_cells();
     } else {
       await this.format_selected_cells();
+    }
+  }
+
+  public refresh(): void {
+    for (let id in this.input_editors) {
+      this.input_editors[id].refresh();
     }
   }
 }

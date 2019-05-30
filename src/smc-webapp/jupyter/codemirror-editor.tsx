@@ -26,6 +26,17 @@ const FOCUSED_STYLE: React.CSSProperties = {
   lineHeight: "1.21429em"
 };
 
+// Todo: the frame-editor/code-editor needs a similar treatment...?
+export interface EditorFunctions {
+  save: () => string | undefined;
+  set_cursor: (pos: { x?: number; y?: number }) => void;
+  tab_key: () => void;
+  shift_tab_key: () => void;
+  refresh: () => void;
+  get_cursor: () => { line: number; ch: number };
+  get_cursor_xy: () => { x: number; y: number };
+}
+
 interface CodeMirrorEditorProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
@@ -153,7 +164,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.setCursor({ line: y, ch: x });
   };
 
-  _cm_refresh = (): string | undefined => {
+  _cm_refresh = (): void => {
     if (this.cm == null || this.props.frame_actions == null) {
       return;
     }
@@ -440,7 +451,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.redo = this._cm_redo;
 
     if (this.props.frame_actions != null) {
-      const editor = {
+      const editor : EditorFunctions = {
         save: this._cm_save,
         set_cursor: this._cm_set_cursor,
         tab_key: this.tab_key,

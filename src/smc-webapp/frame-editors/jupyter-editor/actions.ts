@@ -77,6 +77,24 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     }
   }
 
+  public focus(id?: string): void {
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.focus();
+    } else {
+      super.focus(id);
+    }
+  }
+
+  public refresh(id: string): void {
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.refresh();
+    } else {
+      super.refresh(id);
+    }
+  }
+
   private create_jupyter_actions(): void {
     this.jupyter_actions = create_jupyter_actions(
       this.redux,
@@ -90,16 +108,11 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     close_jupyter_actions(this.redux, this.name);
   }
 
-  focus(id?: string): void {
+  private get_frame_actions(id?: string): NotebookFrameActions | undefined {
     if (id === undefined) {
       id = this._get_active_id();
-      if (id === undefined) return;
+      if (id == null) throw Error("no active frame");
     }
-    const actions = this.get_frame_actions(id);
-    actions != null ? actions.focus() : super.focus(id);
-  }
-
-  private get_frame_actions(id: string): NotebookFrameActions | undefined {
     if (this.frame_actions[id] != null) {
       return this.frame_actions[id];
     }
@@ -193,9 +206,9 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   // Not an action, but works to make code clean
-  has_format_support(id:string, available_features?) : boolean | string {
-    id=id;
-    available_features=available_features;
-    return "Canonically aormat all (or selected cells)"
+  has_format_support(id: string, available_features?): boolean | string {
+    id = id;
+    available_features = available_features;
+    return "Canonically format input code in all cells (or in selected cells). Uses yapf for Python.";
   }
 }

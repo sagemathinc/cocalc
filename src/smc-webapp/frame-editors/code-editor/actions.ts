@@ -59,7 +59,6 @@ import { TerminalManager } from "../terminal-editor/terminal-manager";
 import { Available as AvailableFeatures } from "../../project_configuration";
 import { ext2parser, parser2tool } from "smc-util/code-formatter";
 
-
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -1682,9 +1681,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // Not an action, but works to make code clean
-  has_format_support(id:string, available_features?: AvailableFeatures) : boolean | string {
+  has_format_support(
+    id: string,
+    available_features?: AvailableFeatures
+  ): boolean | string {
     const cm = this._get_cm(id);
-    if (!cm) return false;  // not a code editor
+    if (!cm) return false; // not a code editor
     if (available_features == null) return false;
     const formatting = available_features.formatting;
     // there is no formatting available at all
@@ -1696,7 +1698,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     const tool = parser2tool[parser];
     if (tool == null) return false;
     if (!formatting[tool]) return false;
-    return `Canonically format the entire document using '${tool}'.`
+    return `Canonically format the entire document using '${tool}'.`;
   }
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar
@@ -1999,16 +2001,41 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     await delay(0); // wait until next render loop
     if (this._state == "closed") return;
-    for (let id in this._cm) {
-      const cm: CodeMirror.Editor | undefined = this._cm[id];
-      if (cm != null) {
-        cm.refresh();
-      }
-    }
+    this.refresh_visible();
     this.focus();
   }
 
   public hide(): void {}
+
+  // Refresh all visible frames.
+  public refresh_visible(): void {
+    // Right now either there is one that is "fullscreen", and
+    // only that one is visible, or all are visible.
+    const full_id = this.store.getIn(["local_view_state", "full_id"]);
+    if (full_id != null) {
+      this.refresh(full_id);
+    } else {
+      for (let id in this._get_leaf_ids()) {
+        this.refresh(id);
+      }
+    }
+  }
+
+  // Called when frame with given id is displayed.
+  // Use this as a hook, e.g., for resizing codemirror etc.
+  // This is called after the frame is already displayed,
+  // so no need to wait.
+  public refresh(id: string): void {
+    if (this._cm[id] != null) {
+      this._cm[id].refresh();
+      return;
+    }
+    const t = this.terminals.get(id);
+    if (t != null) {
+      t.refresh();
+      return;
+    }
+  }
 
   // Overload this in a derived class to have a possibly more complicated spec.
   protected async get_shell_spec(

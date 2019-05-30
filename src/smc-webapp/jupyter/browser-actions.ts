@@ -451,4 +451,10 @@ export class JupyterActions extends JupyterActions0 {
       cells: cells.set(id, cell.set("line_numbers", !line_numbers))
     });
   }
+
+  hide(): void {
+    this.deprecated('hide');
+    // this.blur();
+  }
+
 }
