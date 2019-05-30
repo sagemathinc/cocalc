@@ -285,7 +285,7 @@ export class JupyterActions extends JupyterActions0 {
 
   public send_comm_message_to_kernel(comm_id: string, data: any): string {
     const msg_id = uuid();
-    this._api_call("comm", [msg_id, comm_id, data]);
+    this.api_call("comm", [msg_id, comm_id, data]);
     return msg_id;
   }
 
@@ -416,7 +416,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     let error;
     try {
-      error = await this._api_call("store", { key });
+      error = await this.api_call("store", { key });
     } catch (err) {
       this.set_error(err);
       return;

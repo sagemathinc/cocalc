@@ -1,9 +1,9 @@
-// require('./test/edit-menu-ts');
-
 /*
 Jupyter client -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
+// require('./test/edit-menu-ts');
+// require("./project-actions");
 
 declare const localStorage: any;
 
@@ -56,21 +56,21 @@ const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export class JupyterActions extends Actions<JupyterStoreState> {
+  private is_project: boolean;
+  protected path: string;
+  protected project_id: string;
+  private _last_start?: number;
+  protected jupyter_kernel?: JupyterKernelInterface;
+
   // TODO: type these
   private _cursor_locs?: any;
   private _introspect_request?: any;
-  private _is_project: any;
-  private _key_handler: any;
-  private _last_start?: number;
-  protected path: string;
-  protected project_id: string;
   protected set_save_status: any;
   private project_conn: any;
   private last_cursor_move_time: Date = new Date(0);
 
   protected _client: any;
   protected _file_watcher: any;
-  protected _jupyter_kernel?: JupyterKernelInterface;
   protected _state: any;
 
   public _account_id: any; // Note: this is used in test
@@ -109,8 +109,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb = syncdb;
     this._client = client;
     // the project client is designated to manage execution/conflict, etc.
-    this._is_project = client.is_project();
-    store._is_project = this._is_project;
+    this.is_project = client.is_project();
+    store._is_project = this.is_project;
     this._account_id = client.client_id(); // project or account's id
 
     let font_size: any = this.store.get_local_storage("font_size");
@@ -150,7 +150,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
-    if (!this._is_project) {
+    if (!this.is_project) {
       this.init_client_only();
     }
   };
@@ -184,12 +184,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   );
 
-  // private api call function
-  protected _api_call = async (
+  protected async api_call(
     endpoint: string,
     query?: any,
     timeout_ms?: number
-  ): Promise<any> => {
+  ): Promise<any> {
     if (this._state === "closed") {
       throw Error("closed");
     }
@@ -199,17 +198,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       query,
       timeout_ms
     );
-  };
+  }
 
-  dbg = (f: any) => {
+  public dbg(f: string): (...args) => void {
     return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
-  };
+  }
 
   protected close_client_only(): void {
     throw Error("must define in derived client class");
   }
 
-  close = async (): Promise<void> => {
+  public async close(): Promise<void> {
     if (this._state === "closed") {
       return;
     }
@@ -225,25 +224,19 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.syncdb.close();
       delete this.syncdb;
     }
-    if (this._key_handler != null) {
-      (this.redux.getActions("page") as any).erase_active_key_handler(
-        this._key_handler
-      );
-      delete this._key_handler;
-    }
     if (this._file_watcher != null) {
       this._file_watcher.close();
       delete this._file_watcher;
     }
-    if (!this._is_project) {
+    if (!this.is_project) {
       this.close_client_only();
     }
-  };
+  }
 
   fetch_jupyter_kernels = async (): Promise<void> => {
     let data;
     try {
-      data = await this._api_call("kernels");
+      data = await this.api_call("kernels");
     } catch (err) {
       this.set_error(err);
       return;
@@ -308,7 +301,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   set_cell_output = (id: any, output: any, save = true) => {
-    return this._set(
+    this._set(
       {
         type: "cell",
         id,
@@ -491,7 +484,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    if (this._is_project) {
+    if (this.is_project) {
       this.manager_on_cell_change(id, new_cell, old_cell);
     }
     this.store.emit("cell_change", id, new_cell, old_cell);
@@ -513,7 +506,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.syncdb == null) {
       return;
     }
-    const do_init = this._is_project && this._state === "init";
+    const do_init = this.is_project && this._state === "init";
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
     if (changes != null) {
@@ -539,7 +532,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             break;
           case "nbconvert":
-            if (this._is_project) {
+            if (this.is_project) {
               // before setting in store, let backend react to change
               this.nbconvert_change(this.store.get("nbconvert"), record);
             }
@@ -572,7 +565,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               obj.backend_kernel_info = undefined;
             }
             this.setState(obj);
-            if (!this._is_project && orig_kernel !== kernel) {
+            if (!this.is_project && orig_kernel !== kernel) {
               this.set_backend_kernel_info();
               this.set_cm_options();
             }
@@ -585,7 +578,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       this.set_cell_list();
     }
 
-    if (this._is_project) {
+    if (this.is_project) {
       if (do_init) {
         this.initialize_manager();
       }
@@ -609,7 +602,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      if (!this._is_project) {
+      if (!this.is_project) {
         // we either let the user select a kernel, or use a stored one
         let using_default_kernel = false;
 
@@ -714,7 +707,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       // Make sure syncdb content is all sent to the project.
       await this.syncdb.save();
       // Export the ipynb file to disk.
-      await this._api_call("save_ipynb_file", {});
+      await this.api_call("save_ipynb_file", {});
       // Save our custom-format syncdb to disk.
       await this.syncdb.save_to_disk();
     } catch (err) {
@@ -744,21 +737,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _id_is_available = (id: any) => {
+  private id_is_available(id: string): boolean {
     return this.store.getIn(["cells", id]) == null;
-  };
+  }
 
-  _new_id = (is_available?: any) => {
-    if (is_available == null) {
-      is_available = this._id_is_available;
-    }
+  protected new_id(is_available?: (string) => boolean): string {
     while (true) {
       const id = misc.uuid().slice(0, 6);
-      if (is_available(id)) {
+      if (
+        (is_available != null && is_available(id)) ||
+        this.id_is_available(id)
+      ) {
         return id;
       }
     }
-  };
+  }
 
   insert_cell(delta: any): string {
     this.deprecated("insert-cell", delta);
@@ -769,7 +762,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (this.store.get("read_only")) {
       throw Error("document is read only");
     }
-    const new_id = this._new_id();
+    const new_id = this.new_id();
     this._set({
       type: "cell",
       id: new_id,
@@ -1237,7 +1230,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         clipboard.size
       );
       clipboard.forEach((cell, i) => {
-        cell = cell.set("id", this._new_id()); // randomize the id of the cell
+        cell = cell.set("id", this.new_id()); // randomize the id of the cell
         cell = cell.set("pos", positions[i]);
         this._set(cell, false);
       });
@@ -1400,7 +1393,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const start = new Date();
     let complete;
     try {
-      complete = await this._api_call("complete", {
+      complete = await this.api_call("complete", {
         code,
         cursor_pos
       });
@@ -1573,7 +1566,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
     let introspect;
     try {
-      introspect = await this._api_call("introspect", {
+      introspect = await this.api_call("introspect", {
         code,
         cursor_pos,
         level
@@ -1598,7 +1591,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   signal = async (signal = "SIGINT"): Promise<void> => {
     // TODO: some setStates, awaits, and UI to reflect this happening...
     try {
-      await this._api_call("signal", { signal: signal }, 5000);
+      await this.api_call("signal", { signal: signal }, 5000);
     } catch (err) {
       this.set_error(err);
     }
@@ -1635,11 +1628,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    if (this._is_project) {
+    if (this.is_project) {
       const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
       if (
-        this._jupyter_kernel == null ||
-        this._jupyter_kernel.get_state() == "closed"
+        this.jupyter_kernel == null ||
+        this.jupyter_kernel.get_state() == "closed"
       ) {
         dbg("no Jupyter kernel defined");
         return;
@@ -1647,7 +1640,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       dbg("getting kernel_info...");
       try {
         this.setState({
-          backend_kernel_info: await this._jupyter_kernel.kernel_info()
+          backend_kernel_info: await this.jupyter_kernel.kernel_info()
         });
       } catch (err) {
         dbg(`error = ${err}`);
@@ -1674,7 +1667,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (this._state === "closed") {
         return;
       }
-      const data = await this._api_call("kernel_info", {});
+      const data = await this.api_call("kernel_info", {});
       this.setState({
         backend_kernel_info: data,
         // this is when the server for this doc started, not when kernel last started!
@@ -1745,11 +1738,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   fetch_more_output = async (id: any): Promise<void> => {
     const time = this._client.server_time() - 0;
     try {
-      const more_output = await this._api_call(
-        "more_output",
-        { id: id },
-        60000
-      );
+      const more_output = await this.api_call("more_output", { id: id }, 60000);
       if (!this.store.getIn(["cells", id, "scrolled"])) {
         // make output area scrolled, since there is going to be a lot of output
         this.toggle_output(id, "scrolled");
@@ -1870,7 +1859,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     value: any
   ): Promise<void> => {
     try {
-      await this._api_call("store", { key, value });
+      await this.api_call("store", { key, value });
     } catch (err) {
       this.set_error(err);
     }
@@ -1942,10 +1931,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     importer.import({
       ipynb,
       existing_ids,
-      new_id: this._new_id,
+      new_id: this.new_id.bind(this),
       process_attachment:
-        this._jupyter_kernel != null
-          ? this._jupyter_kernel.process_attachment
+        this.jupyter_kernel != null
+          ? this.jupyter_kernel.process_attachment
           : undefined,
       output_handler: this._output_handler // undefined in client; defined in project
     });
@@ -2016,7 +2005,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   set_default_kernel = (kernel: any): void => {
     // doesn't make sense for project (right now at least)
-    if (this._is_project) return;
+    if (this.is_project) return;
     const account_store = this.redux.getStore("account") as any;
     if (account_store == null) return;
     const cur: any = {};
@@ -2250,11 +2239,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   }
 
-  _api_call_prettier = async (
+  private async api_call_prettier(
     str: string,
     options: object,
     timeout_ms?: number
-  ): Promise<any> => {
+  ): Promise<string | undefined> {
     if (this._state === "closed") {
       throw Error("closed");
     }
@@ -2263,7 +2252,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       options,
       timeout_ms
     );
-  };
+  }
 
   private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
@@ -2310,10 +2299,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
-      resp = await this._api_call_prettier(code, options);
+      resp = await this.api_call_prettier(code, options);
     } catch (err) {
       this.set_error(err);
-      // do not process response (probably empty anyways) if there is a problem
+      // do not process response (probably empty anyways) if
+      // there is a problem
       return;
     }
     if (resp == null) return; // make everyone happy …
