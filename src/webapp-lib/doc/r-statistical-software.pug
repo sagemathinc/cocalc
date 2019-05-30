@@ -24,25 +24,28 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-md-12.center
-        h1 #{subtitle}
-      div.col-sm-2.col-sm-offset-2
+      div.col-sm-2.col-sm-offset-5.center
         a(href="https://www.r-project.org/")
           img(src=require("webapp-lib/assets/r-logo.svg")).fit
-      div.col-sm-6
+      div.col-sm-8.col-sm-offset-2.center
+        h1 #{subtitle}
+      div.col-sm-8.col-sm-offset-2
         p.
           #{NAME} is an online web service where you can
           #[strong run #[a(href="https://www.r-project.org/") R code] online via your browser].
         p.
           It handles all the tedious details for you,
-          regardless of whether you want to work on the command line, run Jupyter Notebooks, create RMarkdown files, or use Knitr in LaTeX documents.
+          regardless of whether you want to work on the command line,
+          run #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks],
+          create RMarkdown files, or use
+          #[a(href=PREFIX + "latex-editor.html#a-knitr") Knitr in LaTeX documents].
         p.
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
 
 
   a.anchor#a-nosetup
-  div.space
+  div
     div.container
       div.row
         div.col-md-12.center
@@ -123,7 +126,7 @@ block content
           div.
             Combined, this means you can do #[strong your entire workflow online on #{NAME}]:
           ol
-            li Upload or fetch your datasets,
+            li #[a(href="https://doc.cocalc.com/howto/upload.html") Upload] or fetch your datasets,
             li.
               Use #[a(href="#a-jupyternotebook") Jupyter Notebooks]
               to explore the data and test your hypothesis,
@@ -216,7 +219,9 @@ block content
           div.
             Terminals can be used #[em by multiple users at once].
             This means you can work with your collaborators in the same session at the same time.
-            Everyone sees the same output, and via side-chat next to the terminal, the whole team can coordinate what you're doing.
+            Everyone sees the same output, and via
+            #[a(href="https://doc.cocalc.com/chat.html") side chat]
+            next to the terminal, the whole team can coordinate what you're doing.
           div.
             Beyond that, you can simultaneously work with several terminal sessions.
             This gives you the ability to run your code concurrently.

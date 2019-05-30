@@ -39,7 +39,7 @@ block content
           #[strong collaboratively edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
         p.
           #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
-          and create/upload a #[code *.tex] file to get started.
+          and create/#[a(href="https://doc.cocalc.com/howto/upload.html") upload] a #[code *.tex] file to get started.
           #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] has a
           #[strong side-by-side preview],
           compiles on the fly, marks errors in the sources,
@@ -121,6 +121,14 @@ block content
           div.
             This ensures that everyone involved experiences editing the document in exactly the same way.
 
+    div.container
+      div.row
+        div.col-md-8.col-md-offset-2.center
+          h2 Dynamic content for your LaTeX documents!
+        div.col-md-8.col-md-offset-2.
+          Embed snippets of code into LaTeX doucuments,
+          which will be evaluated during compilation and their output is included in the generated document.
+
     a.anchor#a-sagetex
     div.container.space#sagetex
       div.row
@@ -130,17 +138,39 @@ block content
           img(src=require("webapp-lib/assets/cocalc-sagetex.png")).fit
         div.col-md-6
           div
-            strong #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX] lets you embed #[a(href="https://www.sagemath.org/") SageMath] in your document!
+            strong.
+              #[a(href="http://doc.sagemath.org/html/en/tutorial/sagetex.html") SageTeX]
+              lets you embed #[a(href="https://www.sagemath.org/") SageMath] in your document!
           div.
-            This means you can write LaTeX like #[code \sage{2 + 2}] and the document will contain "4",
-            or #[code \sage{f.taylor(x, 0, 10)}] for the Taylor-expansion of a function "f".
-            Drawing graphs becomes as simple as this: #[code \sageplot{sin(x)}].
-          div.
-            #{NAME} deals with all the underlying details for you:
+            Write Sage commands like #[code \sage{2 + 2}] in LaTeX
+            and the document will contain "4",
+            #[code \sage{f.taylor(x, 0, 10)}] for the Taylor-expansion a function "f",
+            and drawing graphs becomes as simple as #[code \sageplot{sin(x)}].
+          div
+            strong.
+              #{NAME} deals with all the underlying details for you:
           ul
             li It runs the initial compilation pass,
-            li uses Sage to produce all output and graphs/images,
-            li and then runs the second compilation pass to produce the final output.
+            li uses Sage/Python to compute the text output and graphs/images,
+            li and then runs a second compilation pass to produce the final output.
+
+    a.anchor#a-pythontex
+    div.container.space#pythontex
+      div.row
+        div.col-md-12
+          h2 #[i.fa.fa-heartbeat] PythonTeX
+          div.col-md-6
+            img(src=require("webapp-lib/assets/cocalc-pythontex.png")).fit
+          div
+            strong.
+              #[a(href="https://ctan.org/pkg/pythontex") PythonTeX] allows you to
+              run Python from within a document and typeset the results.
+          div.
+            For example, #[code \py{2 + 4**2}] produces "18".
+            You can use all #[a(href=PREFIX + "./software-python.html") available python libraries] for Python 3,
+            and in particular, check out PythonTeX's support for SymPy and drawing plots via #[code pylab].
+          div.
+            Again, #{NAME} automatically detects that you want to run PythonTeX and handles all the details for you.
 
     a.anchor#a-knitr
     div.container.space#knitr
@@ -161,6 +191,12 @@ block content
             li.
               reconciles the line-numbers of the .Rnw file with the corresponding .tex document
               for correct #[a(href="#a-forwardinverse") #[strong forward/inverse search]].
+
+
+    div.container
+      div.row
+        div.col-md-8.col-md-offset-2.center
+          h2 Features
 
     a.anchor#a-forwardinverse
     div.container.space#forwardinverse
