@@ -524,6 +524,23 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     }
   }
 
+  render_modals() {
+    if (!this.props.is_focused) return;
+    return (
+      <>
+        {this.render_about()}
+        {this.render_nbconvert()}
+        {this.render_insert_image()}
+        {this.render_edit_attachments()}
+        {this.render_edit_cell_metadata()}
+        {this.render_find_and_replace()}
+        {this.render_keyboard_shortcuts()}
+        {this.render_assistant_dialog()}
+        {this.render_confirm_dialog()}
+      </>
+    );
+  }
+
   render() {
     if (this.props.fatal) {
       return this.render_fatal();
@@ -538,15 +555,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         }}
       >
         {this.render_error()}
-        {this.render_about()}
-        {this.render_nbconvert()}
-        {this.render_insert_image()}
-        {this.render_edit_attachments()}
-        {this.render_edit_cell_metadata()}
-        {this.render_find_and_replace()}
-        {this.render_keyboard_shortcuts()}
-        {this.render_assistant_dialog()}
-        {this.render_confirm_dialog()}
+        {this.render_modals()}
         {this.render_heading()}
         {this.render_main()}
       </div>
