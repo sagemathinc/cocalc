@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'jupyter';
-    var subtitle = 'Collaborative online Jupyter Notebooks';
+    var subtitle = 'Collaborative Online Jupyter Notebooks';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -27,17 +27,13 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/jupyter-logo.svg")).fit
       div.col-md-12.center
-        h1 Collaborative online Jupyter Notebooks
+        h1 #{subtitle}
+
+  div.container
+    div.row
       div.col-sm-6
         img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
       div.col-sm-6
@@ -55,16 +51,18 @@ block content
           li don't worry about Jupyter kernel configurations
           li and let #{NAME} maintain everything for you
         p.
-          Instead, all you need to do to get started is to
+          To get started,
         ol
-          li create an account
-          li create a project
-          li upload your #[code *.ipynb] files or create a new Jupyter notebook
+          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project],
+          li #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
         p.
           #{NAME} supports many kernels right out of the box:
           several Python environments, #[a(href="http://www.sagemath.org/") SageMath],
           #[a(href="http://www.r-project.org/") R Statistical Software], #[a(href="http://julialang.org") Julia] and many more.
           Consult the #[a(href=PREFIX + "doc/software.html") Available Software page] for more information.
+
+
+  +start_free_banner
 
 
   a.anchor#a-overview
@@ -75,8 +73,9 @@ block content
           h1 Feature overview
         div.col-md-6.col-md-offset-3.
           The following features are specific to Jupyter notebooks.
-          There is also a
-          #[strong #[a(href="https://doc.cocalc.com/jupyter.html") #{NAME} jupyter documentation]].
+          #[br]
+          There is also a comprehensive
+          #[strong #[a(href="https://doc.cocalc.com/jupyter.html") #{NAME} Jupyter documentation]].
 
     a.anchor#a-realtimesync
     div.container.space#realtimesync
@@ -113,7 +112,7 @@ block content
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
         div.col-md-6
           div.
-            The #[strong Time-travel] feature is specific to the #{NAME} platform.
+            The #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel feature]] is specific to the #{NAME} platform.
             It records all your changes in the Jupyter notebook in fine detail.
             You can go back and forth in time across hundreds of changes to recover your previous edits.
           div.
@@ -153,7 +152,7 @@ block content
           img(src=require("webapp-lib/assets/cocalc-chat-jupyter-20171120-2.png")).fit
         div.col-md-6
           div.
-            A #[strong side-by-side chat] for each Jupyter file
+            A #[strong #[a(href="https://doc.cocalc.com/chat.html") side-by-side chat]] for each Jupyter file
             gives you the ability to discuss the content with your colleagues or students.
           div.
             Collaborators who are not online will be notified about new messages the next time they sign in.
@@ -220,8 +219,7 @@ block content
             This approach does not suffer from the same shortcomings as other solutions based on
             #[a(href="https://nbconvert.readthedocs.io") nbconvert].
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
+
+  +start_free_banner
+
+
