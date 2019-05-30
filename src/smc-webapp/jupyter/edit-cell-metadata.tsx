@@ -3,10 +3,10 @@ Modal for editing cell metadata that are attached to any cell
 */
 
 import { React, Component, Rendered } from "../app-framework";
-const { Icon } = require("../r_misc");
+import { Icon } from "../r_misc/icon";
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
-const { JSONEditor } = require("./json-editor");
+import { JSONEditor } from "./json-editor";
 
 interface EditCellMetadataProps {
   actions: any;
@@ -30,7 +30,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
     this.props.actions.focus_unlock();
   }
 
-  private render_directions() : Rendered {
+  private render_directions(): Rendered {
     return (
       <span color="#666">
         Manually edit the JSON below to manipulate the custom metadata for this
@@ -39,7 +39,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
     );
   }
 
-  private render_note() : Rendered {
+  private render_note(): Rendered {
     return (
       <span color="#888">
         NOTE: The metadata fields "collapsed", "scrolled", "slideshow", and
@@ -59,7 +59,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
     });
   }
 
-  private render_editor() : Rendered {
+  private render_editor(): Rendered {
     return (
       <div
         style={{
@@ -81,7 +81,7 @@ export class EditCellMetadata extends Component<EditCellMetadataProps> {
     );
   }
 
-  public render() : Rendered {
+  public render(): Rendered {
     return (
       <Modal show={this.props.id != null} onHide={this.close.bind(this)}>
         <Modal.Header closeButton>
