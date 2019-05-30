@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'latex';
-    subtitle = 'Online LaTeX Editor';
+    subtitle = 'Collaborative Online LaTeX Editor';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -27,35 +27,31 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/latex-logo.svg")).fit
       div.col-md-12.center
-        h1 Online LaTeX Editor
+        h1 Collaborative Online LaTeX Eitor
       div.col-sm-6
         img(src=require("webapp-lib/assets/latex-editor-02.png")).fit
       div.col-sm-6
         p.
-          #{NAME} is a web service where you can
-          #[strong edit #[a(href="https://www.latex-project.org/") LaTeX documents] online right inside your browser].
+          #{NAME} let's you
+          #[strong collaboratively edit #[a(href="https://www.latex-project.org/") LaTeX documents] right inside your browser].
         p.
-          It handles all tedious details for you. You no longer have to:
+          #[a(href="https://doc.cocalc.com/getting-started.html") Sign up, create a project],
+          and create/upload a #[code *.tex] file to get started.
+          #{NAME}'s #[a(href="https://doc.cocalc.com/latex.html") LaTeX editor] has a
+          #[strong side-by-side preview],
+          compiles on the fly, marks errors in the sources,
+          and #[strong forward/inverse search] helps to navigate around.
+        p.
+          All tedious details are taken care of:
         ul
-          li Install a LaTeX environment,
-          li Configure its engine and install packages,
-          li Periodically backup versions of your LaTeX files.
-        p.
-          Instead, all you need to do to get started is to
-        ol
-          li Create an account,
-          li Create a project,
-          li Write or upload your #[code *.tex] files and open them in #{NAME}'s online environment.
+          li You no longer have to install and maintain a LaTeX environment.
+          li You do not have to configure the LaTeX engine and install packages.
+          li Full edit-history and periodic backups keep your content safe.
+
+  +start_free_banner
 
   a.anchor#a-overview
   div.space#overview
@@ -251,8 +247,5 @@ block content
             You can configure if your published files should be listed publicly, or rather only be available via a confidential URL.
 
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
+  +start_free_banner
+

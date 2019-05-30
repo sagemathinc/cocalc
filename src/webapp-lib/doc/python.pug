@@ -27,17 +27,13 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/python-logo.svg")).fit
       div.col-md-12.center
-        h1 All around Python
+        h1 All around Python in #{NAME}
+
+  div.container
+    div.row
       div.col-sm-6
         div
           img(src="https://storage.googleapis.com/cocalc-extra/frame-editor-python.png").fit
@@ -100,8 +96,4 @@ block content
           experiences and inspects the same problems at the same time,
           and you can get help via side-chat by #[a(href="https://doc.cocalc.com/chat.html") "@name" mention someone].
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
+  +start_free_banner

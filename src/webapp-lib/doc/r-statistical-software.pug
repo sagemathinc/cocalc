@@ -19,22 +19,11 @@ block content
   style
     :sass
       @import "webapp-lib/doc/_style.sass"
-      #nosetup
-        background-color  : $COL_GRAY_LL
-        padding-bottom    : 4rem
+
 
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
       div.col-md-12.center
         h1 #{subtitle}
       div.col-sm-2.col-sm-offset-2
@@ -51,27 +40,34 @@ block content
           This page explains a couple of ways how to use R on #{NAME}.
           Learn more about the #[a(href=PREFIX) #{NAME} platform here].
 
+
   a.anchor#a-nosetup
-  div.space#nosetup
+  div.space
     div.container
       div.row
         div.col-md-12.center
           h2 #[i.fa.fa-lightbulb-o] Zero setup
       div.col-sm-5.col-sm-offset-1
-        p.
-          You no longer have to
         ul
-          li Download and install the R software
-          li Setup additional packages you want to use
-          li Integrate additional software like a LaTeX editor with R
-          li Maintain everything on your own
+          li No need to download and install #[a(href="https://www.r-project.org/") R]
+          li #{NAME} already #[a(href=PREFIX + "/doc/software-r.html") provides many packages] for you
+          li The #[a(href=PREFIX + "/doc/latex-editor.html") LaTeX editor] is already integrated with R
+          li No longer maintain everything on your own
       div.col-sm-5
         p.
-          Instead, all you need to do to get started is to
+          To get started,
         ol
-          li Create an account
-          li Create a project
-          li Start working by creating or uploading LaTeX files, RMarkdown or Jupyter Notebooks
+          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project]
+          li.
+            Start working by creating or
+            #[a(href="https://doc.cocalc.com/howto/upload.html") uploading LaTeX files],
+            RMarkdown,
+            #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebooks],
+            or #[a(href="https://doc.cocalc.com/howto/overleaf.html") import from Overlaf/ShareLatex].
+
+
+  +start_free_banner
+
 
   div.space
     a.anchor#a-jupyternotebook
@@ -237,13 +233,13 @@ block content
         div.col-md-6
           div.
             Collaboration is a first class citizen on #{NAME}.
-            A #[strong side-by-side chat] for each file gives you the ability to discuss the content with your colleagues or students.
+            A #[a(href="https://doc.cocalc.com/chat.html") side-by-side chat] for each file gives you the ability to discuss the content with your colleagues or students.
           div.
             Additionally, little avatars give you #[strong presence information] about who is currently also working on that file.
           div.
             Collaborators who are not online will be notified about new messages the next time they sign in.
           div.
-            Chat supports markdown formatting and LaTeX formulas.
+            #[a(href="https://doc.cocalc.com/chat.html") Chat] supports markdown formatting and LaTeX formulas.
 
     a.anchor#a-environment
     div.container.space#environment
@@ -316,9 +312,4 @@ block content
           div.
             Example: #[a(href="https://share.cocalc.com/share/20e4a191-73ea-4921-80e9-0a5d792fc511/ir-display.ipynb?viewer=share") Published R notebook].
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
-
+  +start_free_banner
