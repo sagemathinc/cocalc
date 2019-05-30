@@ -2,13 +2,16 @@
 React component that describes a single cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
-import { Map as ImmutableMap } from "immutable";
+import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { Map } from "immutable";
+
 const misc_page = require("../misc_page"); // TODO: import type
-const { COLORS } = require("smc-util/theme"); // TODO: import type
-const { Icon, Tip } = require("../r_misc"); // TODO: import type
-const { CellInput } = require("./cell-input"); // TODO: import type
-const { CellOutput } = require("./cell-output"); // TODO: import type
+
+import { COLORS } from "smc-util/theme";
+import { Icon } from "../r_misc/icon";
+import { Tip } from "../r_misc/tip";
+import { CellInput } from "./cell-input";
+import { CellOutput } from "./cell-output";
 
 import { JupyterActions } from "./actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
@@ -21,17 +24,17 @@ interface CellProps {
   name?: string;
   id: string;
   cm_options: any;
-  cell: ImmutableMap<any, any>; // TODO: types
+  cell: Map<string, any>; // TODO: types
   is_current?: boolean;
   is_selected?: boolean;
   is_markdown_edit?: boolean;
   mode: "edit" | "escape";
-  font_size?: number;
+  font_size: number;
   project_id?: string;
   directory?: string;
-  complete?: ImmutableMap<any, any>; // TODO: types
+  complete?: Map<string, any>; // TODO: types
   is_focused?: boolean;
-  more_output?: ImmutableMap<any, any>; // TODO: types
+  more_output?: Map<string, any>; // TODO: types
   cell_toolbar?: string;
   trust?: boolean;
   editable?: boolean;
@@ -40,9 +43,9 @@ interface CellProps {
 }
 
 export class Cell extends Component<CellProps> {
-  shouldComponentUpdate(nextProps) {
+  public shouldComponentUpdate(nextProps: CellProps): boolean {
     // note: we assume project_id and directory don't change
-    return (
+    return !!(
       nextProps.id !== this.props.id ||
       nextProps.cm_options !== this.props.cm_options ||
       nextProps.cell !== this.props.cell ||
@@ -62,7 +65,7 @@ export class Cell extends Component<CellProps> {
     );
   } // only worry about complete when editing this cell
 
-  render_cell_input(cell: any) {
+  private render_cell_input(cell: Map<string, any>): Rendered {
     return (
       <CellInput
         key="in"
@@ -70,9 +73,9 @@ export class Cell extends Component<CellProps> {
         actions={this.props.actions}
         frame_actions={this.props.frame_actions}
         cm_options={this.props.cm_options}
-        is_markdown_edit={this.props.is_markdown_edit}
-        is_focused={this.props.is_current && this.props.mode === "edit"}
-        is_current={this.props.is_current}
+        is_markdown_edit={!!this.props.is_markdown_edit}
+        is_focused={!!(this.props.is_current && this.props.mode === "edit")}
+        is_current={!!this.props.is_current}
         id={this.props.id}
         font_size={this.props.font_size}
         project_id={this.props.project_id}
@@ -85,7 +88,7 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  render_cell_output(cell: any) {
+  private render_cell_output(cell: Map<string, any>): Rendered {
     return (
       <CellOutput
         key="out"
@@ -102,7 +105,7 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  click_on_cell = (event: any) => {
+  private click_on_cell = (event: any): void => {
     if (this.props.frame_actions == null) {
       return;
     }
@@ -115,7 +118,7 @@ export class Cell extends Component<CellProps> {
     this.props.frame_actions.unselect_all_cells();
   };
 
-  render_hook() {
+  private render_hook(): Rendered {
     if (this.props.is_current && this.props.frame_actions != null) {
       return (
         <Hook
@@ -127,7 +130,7 @@ export class Cell extends Component<CellProps> {
     }
   }
 
-  double_click = (event: any): void => {
+  private double_click = (event: any): void => {
     if (this.props.frame_actions == null) {
       return;
     }
@@ -145,7 +148,7 @@ export class Cell extends Component<CellProps> {
     event.stopPropagation();
   };
 
-  render_metadata_state() {
+  private render_metadata_state(): Rendered {
     const style: React.CSSProperties = {
       position: "absolute",
       top: "2px",
@@ -189,7 +192,7 @@ export class Cell extends Component<CellProps> {
     );
   }
 
-  render() {
+  public render(): Rendered {
     let color1: string, color2: string;
     if (this.props.is_current) {
       // is the current cell
@@ -263,7 +266,7 @@ interface Props {
 }
 
 class Hook extends Component<Props> {
-  render() {
+  public render(): Rendered {
     let style;
     if (this.props.mode === "edit") {
       style = merge({ top: this.props.hook_offset }, NOT_VISIBLE_STYLE);

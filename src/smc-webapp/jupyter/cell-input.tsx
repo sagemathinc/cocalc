@@ -18,7 +18,14 @@ import { CellTiming } from "./cell-output-time";
 import { get_blob_url } from "./server-urls";
 import { CellHiddenPart } from "./cell-hidden-part";
 
-function href_transform(project_id: string, cell: Map<string, any>): Function {
+import { JupyterActions } from "./actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+
+function href_transform(
+  project_id: string | undefined,
+  cell: Map<string, any>
+): Function {
   return (href: string) => {
     if (!startswith(href, "attachment:")) {
       return href;
@@ -29,6 +36,9 @@ function href_transform(project_id: string, cell: Map<string, any>): Function {
     switch (data != null ? data.get("type") : undefined) {
       case "sha1":
         const sha1 = data.get("value");
+        if (project_id == null) {
+          return href; // can't do anything.
+        }
         return get_blob_url(project_id, ext, sha1);
       case "base64":
         if (ext === "jpg") {
@@ -59,19 +69,19 @@ function markdown_post_hook(elt) {
 }
 
 export interface CellInputProps {
-  actions: any;
-  frame_actions: any;
+  actions?: JupyterActions; // if not defined, then everything read only
+  frame_actions?: NotebookFrameActions;
   cm_options: Map<string, any>; // TODO: what is this
   cell: Map<string, any>; // TODO: what is this
   is_markdown_edit: boolean;
   is_focused: boolean;
   is_current: boolean;
   font_size: number;
-  project_id: string;
-  directory: string;
-  complete: Map<string, any>; // TODO: what is this
-  cell_toolbar: string;
-  trust: boolean;
+  project_id?: string;
+  directory?: string;
+  complete?: Map<string, any>;
+  cell_toolbar?: string;
+  trust?: boolean;
   is_readonly: boolean;
   id: any; // TODO: what is this
 }

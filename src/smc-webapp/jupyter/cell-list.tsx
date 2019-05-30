@@ -6,15 +6,15 @@ declare const $: any;
 
 import { delay } from "awaiting";
 import * as immutable from "immutable";
-import { React, Component } from "../app-framework"; // TODO: this will move
-const { Loading } = require("../r_misc");
-const { Cell } = require("./cell");
-const { InsertCell } = require("./insert-cell");
+import { React, Component, Rendered } from "../app-framework";
+import { Loading } from "../r_misc/loading";
+import { Cell } from "./cell";
+import { InsertCell } from "./insert-cell";
 
 import { JupyterActions } from "./actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
-import { Scroll } from "./types";
+import { NotebookMode, Scroll } from "./types";
 
 const PADDING = 100;
 
@@ -28,7 +28,7 @@ interface CellListProps {
   sel_ids?: immutable.Set<any>; // set of selected cells
   md_edit_ids?: immutable.Set<any>;
   cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
-  mode: string;
+  mode: NotebookMode;
   hook_offset?: number;
   scroll?: Scroll;
   cm_options: immutable.Map<any, any>;
@@ -46,7 +46,7 @@ export class CellList extends Component<CellListProps> {
   private cell_list_ref: HTMLElement;
   private is_mounted: boolean = true;
 
-  componentWillUnmount() {
+  public componentWillUnmount(): void {
     this.is_mounted = false;
     if (this.cell_list_ref != null && this.props.frame_actions != null) {
       this.props.frame_actions.set_scrollTop(this.cell_list_ref.scrollTop);
@@ -81,7 +81,7 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  componentDidMount() {
+  public componentDidMount(): void {
     this.restore_scroll();
     if (this.props.frame_actions != null) {
       // Enable keyboard handler if necessary
@@ -101,7 +101,7 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  window_click = (event: any) => {
+  private window_click = (event: any): void => {
     if (this.props.frame_actions == null) return;
     if ($(".in.modal").length) {
       // A bootstrap modal is currently opened, e.g., support page, etc.
@@ -134,7 +134,7 @@ export class CellList extends Component<CellListProps> {
     }
   };
 
-  componentWillReceiveProps(nextProps) {
+  public componentWillReceiveProps(nextProps): void {
     if (this.props.frame_actions == null) return;
     if (nextProps.is_focused !== this.props.is_focused) {
       // the focus state changed.
@@ -150,7 +150,7 @@ export class CellList extends Component<CellListProps> {
     }
   }
 
-  scroll_cell_list = (scroll: Scroll) => {
+  private scroll_cell_list = (scroll: Scroll): void => {
     const elt = $(this.cell_list_ref);
     if (elt == null) {
       return;
@@ -220,7 +220,7 @@ export class CellList extends Component<CellListProps> {
     }
   };
 
-  render_loading() {
+  private render_loading(): Rendered {
     return (
       <div
         style={{
@@ -235,7 +235,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  on_click = e => {
+  private on_click = e => {
     if (this.props.actions) this.props.actions.clear_complete();
     if ($(e.target).hasClass("cocalc-complete")) {
       // Bootstrap simulates a click even when user presses escape; can't catch there.
@@ -244,7 +244,11 @@ export class CellList extends Component<CellListProps> {
     }
   };
 
-  render_insert_cell(id, position = "above") {
+  private render_insert_cell(
+    id: string,
+    position: "above" | "below" = "above"
+  ): Rendered {
+    if (this.props.actions == null || this.props.frame_actions == null) return;
     return (
       <InsertCell
         id={id}
@@ -256,7 +260,7 @@ export class CellList extends Component<CellListProps> {
     );
   }
 
-  render() {
+  public render(): Rendered {
     if (this.props.cell_list == null) {
       return this.render_loading();
     }
