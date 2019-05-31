@@ -11,7 +11,7 @@ import { Loading } from "../r_misc/loading";
 import { Cell } from "./cell";
 import { InsertCell } from "./insert-cell";
 
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 import { NotebookMode, Scroll } from "./types";

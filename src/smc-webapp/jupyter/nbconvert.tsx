@@ -8,6 +8,7 @@ const { Icon, Loading } = require("../r_misc");
 const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 const misc = require("smc-util/misc");
+import { JupyterActions } from "./browser-actions";
 
 const NAMES = {
   python: { ext: "py", display: "Python", internal: true },
@@ -28,8 +29,8 @@ const NAMES = {
 };
 
 interface ErrorProps {
-  actions: any;
-  nbconvert?: immutable.Map<any, any>;
+  actions: JupyterActions;
+  nbconvert?: immutable.Map<string, any>;
 }
 
 class Error extends Component<ErrorProps> {

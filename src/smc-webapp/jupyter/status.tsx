@@ -8,10 +8,11 @@ const { Icon, Loading, Tip } = require("../r_misc");
 const { closest_kernel_match } = require("smc-util/misc");
 const { Logo } = require("./logo");
 import { trunc } from "smc-util/misc2";
+import { JupyterActions } from "./browser-actions";
 
 interface ModeProps {
   mode?: string;
-  name:string;
+  name: string;
 }
 
 class Mode0 extends Component<ModeProps> {
@@ -72,7 +73,7 @@ const BACKEND_STATE_STYLE: React.CSSProperties = {
 
 interface KernelProps {
   // OWN PROPS
-  actions: any;
+  actions: JupyterActions;
   is_fullscreen?: boolean;
   name: string;
 
@@ -80,10 +81,10 @@ interface KernelProps {
   kernel?: string;
   kernels?: immutable.List<any>;
   project_id?: string;
-  kernel_info?: immutable.Map<any, any>;
+  kernel_info?: immutable.Map<string, any>;
   backend_state?: string;
   kernel_state?: string;
-  kernel_usage?: immutable.Map<any, any>;
+  kernel_usage?: immutable.Map<string, any>;
   trust?: boolean;
   read_only?: boolean;
 }

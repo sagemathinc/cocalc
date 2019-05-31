@@ -6,6 +6,7 @@ import { React, Component } from "../app-framework"; // TODO: this will move
 
 import { FormControl } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
+import { JupyterActions } from "./browser-actions";
 
 const TYPES = [
   { title: "-", value: "" },
@@ -23,8 +24,8 @@ const rendered_options = TYPES.map(x => (
 ));
 
 interface SlideshowProps {
-  actions: any;
-  cell: ImmutableMap<string,any>; // TODO: what is this
+  actions: JupyterActions;
+  cell: ImmutableMap<string,any>;
 }
 
 export class Slideshow extends Component<SlideshowProps> {

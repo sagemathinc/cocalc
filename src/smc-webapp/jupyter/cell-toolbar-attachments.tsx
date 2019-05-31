@@ -7,8 +7,10 @@ import { React, Component } from "../app-framework"; // TODO: this will move
 import { Button } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
 
+import { JupyterActions } from "./browser-actions";
+
 interface AttachmentsProps {
-  actions: any;
+  actions: JupyterActions;
   cell: ImmutableMap<string, any>; // TODO types
 }
 

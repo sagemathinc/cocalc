@@ -14,7 +14,7 @@ const { Complete } = require("./complete");
 const { Cursors } = require("./cursors");
 declare const CodeMirror: any; // TODO: type
 
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 const FOCUSED_STYLE: React.CSSProperties = {

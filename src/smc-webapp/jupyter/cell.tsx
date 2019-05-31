@@ -13,7 +13,7 @@ import { Tip } from "../r_misc/tip";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
 
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 import { merge } from "smc-util/misc2";

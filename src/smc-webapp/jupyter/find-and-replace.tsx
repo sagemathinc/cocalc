@@ -13,14 +13,15 @@ import {
 import * as immutable from "immutable";
 const { ErrorDisplay, Icon } = require("../r_misc");
 const { find_matches } = require("./find");
+import { JupyterActions } from "./browser-actions";
 
 interface FindAndReplaceProps {
-  actions: any;
+  actions: JupyterActions;
   find_and_replace?: boolean;
-  cells: immutable.Map<any, any>;
-  sel_ids?: immutable.Set<any>;
-  cur_id?: string;
-  cell_list?: immutable.List<any>;
+  cells: immutable.Map<string, any>;
+  cur_id: string;
+  sel_ids?: immutable.Set<string>;
+  cell_list?: immutable.List<string>;
 }
 
 interface FindAndReplaceState {

@@ -7,9 +7,10 @@ import { Icon } from "../r_misc/icon";
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
 import { JSONEditor } from "./json-editor";
+import { JupyterActions } from "./browser-actions";
 
 interface EditCellMetadataProps {
-  actions: any;
+  actions: JupyterActions;
   id?: string;
   font_size?: number;
   metadata: ImmutableMap<string, any>;

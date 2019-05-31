@@ -9,6 +9,7 @@ const { Icon } = require("../r_misc"); // TODO: import types
 const { merge } = require("smc-util/misc"); // TODO: import types
 
 import { CellOutputMessage } from "./output-messages/message";
+import { JupyterActions } from "./browser-actions";
 
 const STYLE: React.CSSProperties = {
   padding: "10px 25px 5px",
@@ -34,8 +35,8 @@ const CLOSE_STYLE: React.CSSProperties = {
 };
 
 export interface IntrospectProps {
-  actions: any; // TODO: type
-  introspect: ImmutableMap<any, any>; // TODO: type
+  actions: JupyterActions;
+  introspect: ImmutableMap<string, any>;
   font_size?: number;
 }
 

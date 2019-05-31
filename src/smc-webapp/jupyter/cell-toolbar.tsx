@@ -9,7 +9,7 @@ import { Attachments } from "./cell-toolbar-attachments";
 import { TagsToolbar } from "./cell-toolbar-tags";
 import { Metadata } from "./cell-toolbar-metadata";
 import { Map } from "immutable";
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 
 const BAR_STYLE = {
   width: "100%",

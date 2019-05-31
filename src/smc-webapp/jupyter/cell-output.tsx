@@ -10,7 +10,7 @@ import { OutputPrompt } from "./prompt";
 import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
 import { CellHiddenPart } from "./cell-hidden-part";
 
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface CellOutputProps {

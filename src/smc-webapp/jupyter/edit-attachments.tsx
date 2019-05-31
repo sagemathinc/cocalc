@@ -6,6 +6,7 @@ import { React, Component } from "../app-framework"; // TODO: this will move
 const { Icon } = require("../r_misc");
 import { Button, Modal } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
+import { JupyterActions } from "./browser-actions";
 
 const ROW_STYLE: React.CSSProperties = {
   display: "flex",
@@ -15,8 +16,8 @@ const ROW_STYLE: React.CSSProperties = {
 };
 
 interface EditAttachmentsProps {
-  actions: any; // TODO: type
-  cell: ImmutableMap<any, any>; // TODO: type
+  actions: JupyterActions;
+  cell: ImmutableMap<string, any>;
 }
 
 export class EditAttachments extends Component<EditAttachmentsProps> {

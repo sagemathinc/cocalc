@@ -6,7 +6,7 @@ import { React, Component } from "../app-framework"; // TODO: this will move
 
 const { IS_TOUCH } = require("../feature"); // TODO: use import with types
 
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 export interface InsertCellProps {

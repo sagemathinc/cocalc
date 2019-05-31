@@ -9,12 +9,13 @@ subtlely comes from editing JSON, but not saving when state is invalid.
 import { React, Component } from "../app-framework"; // TODO: this will move
 import { Map as ImmutableMap } from "immutable";
 const { JSONEditor } = require("./json-editor");
+import { JupyterActions } from "./browser-actions";
 
 interface RawEditorProps {
-  actions: any;
+  actions: JupyterActions;
   font_size: number;
-  raw_ipynb: ImmutableMap<any, any>;
-  cm_options: ImmutableMap<any, any>;
+  raw_ipynb: ImmutableMap<string, any>;
+  cm_options: ImmutableMap<string, any>;
 }
 
 export class RawEditor extends Component<RawEditorProps> {

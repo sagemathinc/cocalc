@@ -14,9 +14,12 @@ const { CodeMirrorEditor } = require("./codemirror-editor");
 const { CodeMirrorStatic } = require("./codemirror-static");
 //const { IS_TOUCH } = require("../feature");
 
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 interface CodeMirrorProps {
-  actions?: any;
-  frame_actions?:any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
   id: string;
   options: ImmutableMap<any, any>;
   value: string;

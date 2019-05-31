@@ -7,13 +7,14 @@ import { React, Component, Rendered } from "../app-framework"; // TODO: this wil
 const { Icon } = require("../r_misc"); // TODO: import types
 const { Button, Modal } = require("react-bootstrap"); // TODO: import types
 const { SMC_Dropzone } = require("../smc-dropzone"); // TODO: import types
+import { JupyterActions } from "./browser-actions";
 
 const TMP = ".smc/tmp"; // TODO: maybe .smc will change...
 
 interface InsertImageProps {
-  actions: any; // TODO: type
+  actions: JupyterActions;
   project_id: string;
-  insert_image?: string;
+  insert_image: string;
 }
 
 export class InsertImage extends Component<InsertImageProps> {

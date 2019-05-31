@@ -18,7 +18,7 @@ import { CellTiming } from "./cell-output-time";
 import { get_blob_url } from "./server-urls";
 import { CellHiddenPart } from "./cell-hidden-part";
 
-import { JupyterActions } from "./actions";
+import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 
@@ -247,6 +247,7 @@ export class CellInput extends Component<CellInputProps> {
 
   private render_complete(): Rendered {
     if (
+      this.props.actions != null &&
       this.props.complete &&
       this.props.complete.get("matches", fromJS([])).size > 0
     ) {

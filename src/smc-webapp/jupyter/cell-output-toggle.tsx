@@ -19,8 +19,10 @@ const NORMAL_STYLE: React.CSSProperties = merge(
   SCROLLED_STYLE
 );
 
+import { JupyterActions } from "./browser-actions";
+
 interface OutputToggleProps {
-  actions?: any; // TODO: types
+  actions?: JupyterActions;
   id: string;
   scrolled?: boolean;
 }
@@ -55,7 +57,7 @@ export class OutputToggle extends Component<OutputToggleProps> {
 }
 
 interface CollapsedOutputProps {
-  actions?: any;
+  actions?: JupyterActions;
   id: string;
 }
 

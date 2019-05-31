@@ -2,27 +2,24 @@
 Viewer for public ipynb files.
 */
 
-import {
-  React,
-  Component,
-  rclass,
-  rtypes
-} from "../app-framework"; // TODO: this will move
+import { List, Map } from "immutable";
+import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
 
 const { ErrorDisplay, Loading } = require("../r_misc"); // TODO: import
 const { CellList } = require("./cell-list"); // TODO: import
 const { path_split } = require("smc-util/misc"); // TODO: import
+import { JupyterActions } from "./browser-actions";
 
 interface NBViewerProps {
-  actions: any; // TODO: type, also this isn't in redux props
+  actions: JupyterActions;
   project_id?: string;
   path: string;
   loading?: object;
   error?: string;
-  cell_list?: any; // was `rtypes.immutable`
-  cells?: any; // was `rtypes.immutable`
+  cell_list?: List<string>;
+  cells?: Map<string, any>;
   font_size: number;
-  cm_options?: any; // was `rtypes.immutable`
+  cm_options?: Map<string, any>;
 }
 
 export class NBViewer0 extends Component<NBViewerProps> {

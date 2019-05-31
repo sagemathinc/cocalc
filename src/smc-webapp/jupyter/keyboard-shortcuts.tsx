@@ -91,10 +91,10 @@ const SHORTCUTS_STYLE: React.CSSProperties = {
 };
 
 interface ShortcutsProps {
-  actions: any;
+  actions: JupyterActions;
   name: string;
   shortcuts: any[];
-  taken: any;
+  taken: boolean;
 }
 
 interface ShortcutsState {

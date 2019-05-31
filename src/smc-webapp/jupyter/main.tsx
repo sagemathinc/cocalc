@@ -397,7 +397,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_find_and_replace() {
-    if (this.props.cells == null) {
+    if (this.props.cells == null || this.props.cur_id == null) {
       return;
     }
     return (
@@ -468,12 +468,12 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
   }
 
   render_json_viewer() {
+    if (this.props.cells == null) return <Loading />;
     return (
       <JSONView
         actions={this.props.actions}
         cells={this.props.cells}
         font_size={this.props.font_size}
-        kernel={this.props.kernel}
       />
     );
   }
