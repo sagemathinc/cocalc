@@ -114,6 +114,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("change", this._backend_syncdb_change);
 
     // Listen for model state changes...
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     this.syncdb.ipywidgets_state.on(
       "change",
       this.handle_ipywidgets_state_change.bind(this)
@@ -237,6 +240,9 @@ export class JupyterActions extends JupyterActions0 {
       actions: this
     });
 
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     this.syncdb.ipywidgets_state.clear();
 
     if (this.jupyter_kernel == null) {
@@ -1153,6 +1159,9 @@ export class JupyterActions extends JupyterActions0 {
       dbg("no kernel, so ignoring changes to ipywidgets");
       return;
     }
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     for (let key of keys) {
       dbg("key = ", key);
       const [, model_id, type] = JSON.parse(key);
@@ -1187,10 +1196,16 @@ export class JupyterActions extends JupyterActions0 {
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
     dbg(mesg);
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
   }
 
   public capture_output_message(mesg: any): boolean {
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     return this.syncdb.ipywidgets_state.capture_output_message(mesg);
   }
 }

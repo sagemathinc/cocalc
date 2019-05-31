@@ -18,6 +18,7 @@ export interface KeyboardCommand {
   alt?: boolean;
   shift?: boolean;
   twice?: boolean;
+  meta?: boolean;
 }
 
 export interface CommandDescription {

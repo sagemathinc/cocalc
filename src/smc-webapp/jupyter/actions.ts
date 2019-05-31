@@ -2,7 +2,7 @@
 Jupyter client -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
-// require('./test/edit-menu-ts');
+// require('./test/basic-tests-ts');
 // require("./project-actions");
 
 declare const localStorage: any;
@@ -47,6 +47,9 @@ import { codemirror_to_jupyter_pos } from "./util";
 
 import { Options as FormatterOptions } from "../../smc-project/formatters/prettier";
 
+import { SyncDB } from "../../smc-util/sync/editor/db/sync";
+
+
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.
@@ -84,12 +87,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public manager_run_cell_process_queue: any;
   public nbconvert_change: any;
   public store: any;
-  public syncdb: any;
+  public syncdb: SyncDB;
 
   public _init(
     project_id: string,
     path: string,
-    syncdb: any,
+    syncdb: SyncDB,
     store: any,
     client: any
   ): void {

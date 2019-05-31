@@ -5,31 +5,33 @@ The keyboard shortcuts and command listing dialog, which:
   - see and change the keyboard shortcuts for those commands\
 */
 
-import { React, Component } from "../app-framework";
-import { Map as ImmutableMap } from "immutable";
-const json = require("json-stable-stringify");
-const misc = require("smc-util/misc");
-const { Button, Modal } = require("react-bootstrap");
-const { Icon, SearchInput } = require("../r_misc");
-const commands = require("./commands");
-const keyboard = require("./keyboard");
+import { React, Component, Rendered } from "../app-framework";
+import { Map } from "immutable";
+import * as json from "json-stable-stringify";
+import * as misc from "smc-util/misc";
+import { Button, Modal } from "react-bootstrap";
+import { Icon } from "../r_misc/icon";
+const { SearchInput } = require("../r_misc");
+import { commands, CommandDescription, KeyboardCommand } from "./commands";
+import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
+// See http://xahlee.info/comp/unicode_computing_symbols.html
 const SYMBOLS = {
   meta: "⌘",
   ctrl: "⌃",
   alt: "⌥",
   shift: "⇧",
-  return: "↩",
+  return: "⏎",
   space: "Space",
-  tab: "⇥",
-  down: "down",
-  up: "up",
-  backspace: "BS"
+  tab: "↹",
+  down: "⬇",
+  up: "⬆",
+  backspace: "⌫"
 };
 
-function shortcut_to_string(shortcut: any) {
+function shortcut_to_string(shortcut: KeyboardCommand): string {
   let s = "";
   if (shortcut.shift) {
     s += SYMBOLS.shift;
@@ -61,7 +63,7 @@ function shortcut_to_string(shortcut: any) {
       s += SYMBOLS.up;
       break;
     default:
-      s += keyboard.keyCode_to_chr(keyCode);
+      s += keyCode_to_chr(keyCode);
   }
   if (shortcut.twice) {
     s = s + "," + s;
@@ -70,11 +72,11 @@ function shortcut_to_string(shortcut: any) {
 }
 
 interface KeyboardShortcutProps {
-  shortcut: any;
+  shortcut: KeyboardCommand;
 }
 
 export class KeyboardShortcut extends Component<KeyboardShortcutProps> {
-  render() {
+  public render(): Rendered {
     return (
       <span style={{ fontFamily: "monospace" }}>
         {shortcut_to_string(this.props.shortcut)}
@@ -93,7 +95,7 @@ const SHORTCUTS_STYLE: React.CSSProperties = {
 interface ShortcutsProps {
   actions: JupyterActions;
   name: string;
-  shortcuts: any[];
+  shortcuts: KeyboardCommand[];
   taken: boolean;
 }
 
@@ -102,7 +104,7 @@ interface ShortcutsState {
   add: boolean;
   value: string;
   taken: boolean;
-  shortcut: undefined | any;
+  shortcut?: KeyboardCommand;
 }
 
 class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
@@ -117,16 +119,12 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     };
   }
 
-  edit_shortcut = (e: any) => {
+  private edit_shortcut = (e: any): void => {
     e.stopPropagation();
   };
 
-  delete_shortcut = (shortcut: any) => {
-    this.props.actions.delete_keyboard_shortcut(this.props.name, shortcut);
-  };
-
-  render_shortcuts() {
-    const result: any[] = [];
+  private render_shortcuts(): Rendered[] {
+    const result: Rendered[] = [];
     for (let key in this.props.shortcuts) {
       const shortcut = this.props.shortcuts[key];
       result.push(this.render_shortcut(key, shortcut));
@@ -134,7 +132,11 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     return result;
   }
 
-  render_shortcut_delete_icon(shortcut: any) {
+  /* TODO: implement this...
+  private delete_shortcut = (shortcut: KeyboardCommand): void => {
+    this.props.actions.delete_keyboard_shortcut(this.props.name, shortcut);
+  };
+  private render_shortcut_delete_icon(shortcut: KeyboardCommand) {
     return (
       <Icon
         onClick={(e: any) => {
@@ -146,8 +148,9 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
       />
     );
   }
+  */
 
-  render_shortcut(key: any, shortcut: any) {
+  private render_shortcut(key: string, shortcut: KeyboardCommand): Rendered {
     return (
       <span
         key={key}
@@ -161,8 +164,8 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     );
   }
 
-  cancel_edit = () => {
-    return this.setState({
+  private cancel_edit = (): void => {
+    this.setState({
       add: false,
       taken: false,
       value: "",
@@ -170,12 +173,12 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     });
   };
 
-  confirm_edit = () => {
+  private confirm_edit = (): void => {
     this.props.actions.add_keyboard_shortcut(
       this.props.name,
       this.state.shortcut
     );
-    return this.setState({
+    this.setState({
       add: false,
       taken: false,
       value: "",
@@ -183,27 +186,27 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     });
   };
 
-  key_down = (e: any) => {
+  private key_down = (e: any): void => {
     if (!e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey) {
       if (e.which === 27) {
         this.cancel_edit();
         return;
       }
     }
-    const shortcut = keyboard.evt_to_obj(e, "escape");
-    // Is this shortcut already taken, either in escape mode or both modes.
-    let taken = this.props.taken[json(keyboard.evt_to_obj(e))];
+    const shortcut = evt_to_obj(e, "escape");
+    // Is this shortcut already taken, either in escape mode or both modes?
+    let taken = this.props.taken[json(evt_to_obj(e, "edit"))];
     if (taken == null) {
       taken = this.props.taken[json(shortcut)];
     }
-    return this.setState({
+    this.setState({
       value: shortcut_to_string(shortcut),
       shortcut,
       taken
     });
   };
 
-  render_edit_shortcut() {
+  private render_edit_shortcut(): Rendered {
     let bg: string;
     let color: string;
     if (this.state.taken) {
@@ -225,33 +228,27 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     );
   }
 
-  render_cancel_edit_shortcut() {
+  private render_cancel_edit_shortcut(): Rendered {
     return (
       <Icon
-        onClick={e => {
-          e.stopPropagation();
-          return this.cancel_edit();
-        }}
+        onClick={this.cancel_edit}
         name="times"
         style={{ color: "#888", paddingLeft: "1ex" }}
       />
     );
   }
 
-  render_confirm_edit_shortcut() {
+  private render_confirm_edit_shortcut(): Rendered {
     return (
       <Icon
-        onClick={e => {
-          e.stopPropagation();
-          return this.confirm_edit();
-        }}
+        onClick={this.confirm_edit}
         name="check"
         style={{ color: "#888", paddingLeft: "1ex" }}
       />
     );
   }
 
-  render_taken_note() {
+  private render_taken_note(): Rendered {
     return (
       <span style={{ backgroundColor: "#fff" }}>
         <br />
@@ -260,9 +257,9 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     );
   }
 
-  render() {
+  public render(): Rendered {
     let { hover } = this.state;
-    hover = false; // editing shortcuts disabled until #v2
+    hover = false; // TODO: editing shortcuts disabled until I implement it!
     return (
       <div
         className="pull-right"
@@ -283,10 +280,10 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
   }
 }
 
-function capitalize(s: string) {
+function capitalize_each_word(s: string): string {
   return misc
     .split(s)
-    .map((x: any) => misc.capitalize(x))
+    .map((x: string) => misc.capitalize(x))
     .join(" ");
 }
 
@@ -303,8 +300,8 @@ interface CommandProps {
   name: string;
   desc: string;
   icon?: string;
-  shortcuts: any[];
-  taken: any;
+  shortcuts: KeyboardCommand[];
+  taken: boolean;
 }
 
 interface CommandState {
@@ -385,7 +382,7 @@ const COMMAND_LIST_STYLE: React.CSSProperties = {
 interface CommandListProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
-  taken: any;
+  taken: { [name: string]: boolean };
   search?: string;
 }
 
@@ -396,7 +393,7 @@ class CommandList extends Component<CommandListProps> {
 
   render_commands() {
     const v: any[] = [];
-    const obj = commands.commands(this.props.actions, this.props.frame_actions);
+    const obj = commands(this.props.actions, this.props.frame_actions);
     for (let name in obj) {
       const val = obj[name];
       if (val != null) {
@@ -413,7 +410,7 @@ class CommandList extends Component<CommandListProps> {
       if (x.val.f == null) {
         continue;
       }
-      const desc = x.val.m != null ? x.val.m : capitalize(x.name);
+      const desc = x.val.m != null ? x.val.m : capitalize_each_word(x.name);
       if (desc == null) {
         continue;
       }
@@ -431,7 +428,7 @@ class CommandList extends Component<CommandListProps> {
           desc={desc}
           icon={icon}
           shortcuts={shortcuts}
-          taken={this.props.taken}
+          taken={this.props.taken[x.name]}
         />
       );
     }
@@ -446,13 +443,13 @@ class CommandList extends Component<CommandListProps> {
 interface KeyboardShortcutsProps {
   actions: JupyterActions;
   frame_actions: NotebookFrameActions;
-  keyboard_shortcuts?: ImmutableMap<any, any>;
+  keyboard_shortcuts?: Map<string, any>;
 }
 
 interface KeyboardShortcutsState {
   search: string;
-  commands: any;
-  taken: any;
+  commands: { [name: string]: CommandDescription };
+  taken: { [name: string]: boolean };
 }
 
 export class KeyboardShortcuts extends Component<
@@ -463,7 +460,7 @@ export class KeyboardShortcuts extends Component<
     super(props, context);
     const obj = {
       search: "",
-      commands: commands.commands(this.props.actions, this.props.frame_actions),
+      commands: commands(this.props.actions, this.props.frame_actions),
       taken: {}
     };
     for (let name in obj.commands) {
@@ -476,16 +473,16 @@ export class KeyboardShortcuts extends Component<
     this.state = obj;
   }
 
-  close = () => {
+  private close = (): void => {
     this.props.actions.close_keyboard_shortcuts();
     this.props.actions.focus(true);
   };
 
-  search_change = (search: string) => {
+  private search_change = (search: string): void => {
     this.setState({ search });
   };
 
-  render_instructions() {
+  private render_instructions(): Rendered {
     return (
       <div style={{ color: "#666", marginBottom: "10px" }}>
         Click a command to perform it.
@@ -506,17 +503,10 @@ export class KeyboardShortcuts extends Component<
     );
   }
 
-  render() {
+  public render(): Rendered {
+    if (this.props.keyboard_shortcuts == null) return <span />;
     return (
-      <Modal
-        show={
-          this.props.keyboard_shortcuts != null
-            ? this.props.keyboard_shortcuts.get("show")
-            : undefined
-        }
-        onHide={this.close}
-        bsSize="large"
-      >
+      <Modal show={true} onHide={this.close} bsSize="large">
         <Modal.Header closeButton>
           <Modal.Title>
             <Icon name="keyboard-o" /> Commands and keyboard shortcuts

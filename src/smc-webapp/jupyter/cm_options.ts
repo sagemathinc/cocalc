@@ -7,7 +7,7 @@ const { IS_TOUCH } = require("../feature"); // TODO: import type
 // mode = codemirror mode object
 // editor_settings - from account store.
 // TODO: type parameters
-export function cm_options(mode: any, editor_settings?: any, line_numbers?: any, read_only?: any) {
+export function cm_options(mode?: any, editor_settings?: any, line_numbers?: any, read_only?: any) {
   if (editor_settings == null) {
     editor_settings = {};
   }

@@ -53,8 +53,12 @@ export class JupyterActions extends JupyterActions0 {
     this.init_project_conn();
 
     this.syncdb.once("ready", () => {
+      const ipywidgets_state = this.syncdb.ipywidgets_state;
+      if (ipywidgets_state == null) {
+        throw Error("bug -- ipywidgets_state must be defined");
+      }
       this.widget_manager = new WidgetManager(
-        this.syncdb.ipywidgets_state,
+        ipywidgets_state,
         this.widget_model_ids_add.bind(this)
       );
       // Stupid hack for now -- this just causes some activity so
@@ -131,7 +135,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     const cells = this.cursor_manager.process(
       this.store.get("cells"),
-      this.syncdb.get_cursors()
+      this.syncdb.get_cursors() as any /* typescript is being dumb */
     );
     if (cells != null) {
       this.setState({ cells });

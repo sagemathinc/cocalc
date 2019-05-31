@@ -2,33 +2,32 @@
 Keyboard event handler
 */
 
-declare const $: any;  // jQuery
+declare const $: any; // jQuery
 
-const json = require("json-stable-stringify"); // TODO: import types
-const { merge, copy_without } = require("smc-util/misc"); // TODO: import types
-const commands = require("./commands"); // TODO: import types
+import * as json from "json-stable-stringify";
+import { merge, copy_without } from "../../smc-util/misc";
+import { KeyboardCommand, commands } from "./commands";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 import { NotebookMode } from "./types";
 
-export function keyCode_to_chr(keyCode: number) {
+export function keyCode_to_chr(keyCode: number): string {
   const chrCode = keyCode - 48 * Math.floor(keyCode / 48);
   return String.fromCharCode(96 <= keyCode ? chrCode : keyCode);
 }
 
-const is_equal = function(e1: any, e2: any) {
-  // TODO: type
+function is_equal(e1: KeyboardCommand, e2: KeyboardCommand): boolean {
   for (let field of ["which", "ctrl", "shift", "alt", "meta"]) {
     if (e1[field] !== e2[field]) {
       return false;
     }
   }
   return true;
-};
+}
 
 let last_evt: any = undefined;
 
-export function evt_to_obj(evt: any, mode: any) {
+export function evt_to_obj(evt: any, mode: NotebookMode): KeyboardCommand {
   const obj: any = { which: evt.which };
   if (last_evt != null && is_equal(last_evt, evt)) {
     obj.twice = true;
@@ -47,7 +46,7 @@ export function evt_to_obj(evt: any, mode: any) {
   return obj;
 }
 
-function evt_to_shortcut(evt: any, mode: NotebookMode) {
+function evt_to_shortcut(evt: any, mode: NotebookMode) : string {
   return json(evt_to_obj(evt, mode));
 }
 
@@ -73,7 +72,7 @@ export function create_key_handler(
     }
   }
 
-  const object = commands.commands(jupyter_actions, frame_actions);
+  const object = commands(jupyter_actions, frame_actions);
   for (let name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
@@ -89,7 +88,7 @@ export function create_key_handler(
       return;
     }
     const mode = frame_actions.store.get("mode");
-    if (mode === 'escape' && $(":focus").length > 0) {
+    if (mode === "escape" && $(":focus").length > 0) {
       // Never use keyboard shortcuts when something is focused, e.g.,
       // getting a password or using text input widget.
       return;

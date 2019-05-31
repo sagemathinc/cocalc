@@ -3,7 +3,7 @@ Exporting from our in-memory sync-friendly format to ipynb
 */
 
 import * as immutable from "immutable";
-const misc = require("smc-util/misc");
+import * as misc from "../../smc-util/misc";
 
 export function export_to_ipynb(opts: any) {
   opts = misc.defaults(opts, {

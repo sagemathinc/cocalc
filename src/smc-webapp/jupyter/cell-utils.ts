@@ -2,8 +2,8 @@
 Misc utility functions for manipulating and working wth cells.
 */
 
-import * as immutable from "immutable";
-const misc = require("smc-util/misc");
+import { List, Map} from "immutable";
+import { field_cmp, len } from "../../smc-util/misc";
 
 export function positions_between(
   before_pos: number | undefined,
@@ -47,21 +47,21 @@ export function positions_between(
   return v;
 }
 
-export function sorted_cell_list(cells: immutable.Map<any, any>) {
+export function sorted_cell_list(cells: Map<string, any>) : List<string> {
   // Given an immutable Map from id's to cells, returns an immutable List whose
   // entries are the id's in the correct order, as defined by the pos field (a float).
   if (cells == null) {
-    return immutable.List([]);
+    return List([]);
   }
   return cells
     .map((record, id) => ({ id, pos: record.get("pos", -1) }))
     .filter(x => x.id != null)
-    .sort(misc.field_cmp("pos"))
+    .sort(field_cmp("pos"))
     .map(x => x.id)
     .toList();
 }
 
-export function ensure_positions_are_unique(cells?: immutable.Map<any, any>) {
+export function ensure_positions_are_unique(cells?: Map<string, any>) {
   // Verify that pos's of cells are distinct.  If not
   // return map from id's to new unique positions.
   if (cells == null) {
@@ -91,8 +91,8 @@ export function ensure_positions_are_unique(cells?: immutable.Map<any, any>) {
 }
 
 export function new_cell_pos(
-  cells: immutable.Map<any, any>,
-  cell_list: immutable.List<string>,
+  cells: Map<string, any>,
+  cell_list: List<string>,
   cur_id: string,
   delta: -1 | 1
 ) : number {
@@ -108,7 +108,7 @@ export function new_cell_pos(
     Returned undefined whenever don't really know what to do; then caller
     just makes up a pos, and it'll get sorted out.
   */
-  let cell_list_0: immutable.List<string>;
+  let cell_list_0: List<string>;
   if (cell_list == null) {
     cell_list_0 = sorted_cell_list(cells)!;
   } else {
@@ -149,7 +149,7 @@ export function move_selected_cells(
 
     Returns new ordered js array of all cell id's or undefined if nothing to do.
   */
-  if (v == null || selected == null || !delta || misc.len(selected) === 0) {
+  if (v == null || selected == null || !delta || len(selected) === 0) {
     return; // nothing to do
   }
   const w: string[] = [];

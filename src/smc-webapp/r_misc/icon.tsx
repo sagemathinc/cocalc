@@ -14,9 +14,9 @@ interface Props {
   inverse?: boolean;
   Component?: React.Component;
   style?: any;
-  onClick?: () => undefined;
-  onMouseOver?: () => undefined;
-  onMouseOut?: () => undefined;
+  onClick?: () => void;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
 }
 
 // Converted from https://github.com/andreypopp/react-fa
