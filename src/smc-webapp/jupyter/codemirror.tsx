@@ -7,7 +7,7 @@ TODO:
 
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 
 import { CodeMirrorEditor } from "./codemirror-editor";

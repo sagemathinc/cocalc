@@ -2,7 +2,7 @@
 Insert a cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 const { IS_TOUCH } = require("../feature"); // TODO: use import with types
 

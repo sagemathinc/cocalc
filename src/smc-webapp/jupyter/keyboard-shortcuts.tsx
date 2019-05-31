@@ -5,7 +5,7 @@ The keyboard shortcuts and command listing dialog, which:
   - see and change the keyboard shortcuts for those commands\
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 const json = require("json-stable-stringify");
 const misc = require("smc-util/misc");

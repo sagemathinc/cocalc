@@ -2,7 +2,7 @@
 Components for rendering input and output prompts.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 const { Icon, TimeAgo, Tip } = require("../r_misc");
 
 const misc = require("smc-util/misc");

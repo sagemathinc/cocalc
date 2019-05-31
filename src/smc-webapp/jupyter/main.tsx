@@ -2,7 +2,7 @@
 Top-level react component, which ties everything together
 */
 
-import { React, Component, Rendered, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
 
 import { ErrorDisplay } from "../r_misc/error-display";

@@ -6,7 +6,7 @@ declare const $: any;
 
 const SAVE_DEBOUNCE_MS = 1500;
 
-import { React, Component, ReactDOM } from "../app-framework"; // TODO: this will move
+import { React, Component, ReactDOM } from "../app-framework";
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";

@@ -2,7 +2,7 @@
 help users selecting a kernel
 */
 
-import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import {
   Map as ImmutableMap,
   List,

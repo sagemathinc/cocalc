@@ -6,7 +6,7 @@ the file codemirror-editor.cjsx, and also many differences.  Part of the
 subtlely comes from editing JSON, but not saving when state is invalid.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 const { JSONEditor } = require("./json-editor");
 import { JupyterActions } from "./browser-actions";

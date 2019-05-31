@@ -2,7 +2,7 @@
 The attachment editing toolbar functionality for cells.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 import { Button } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";

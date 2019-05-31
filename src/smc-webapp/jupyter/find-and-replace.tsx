@@ -2,7 +2,7 @@
 The find and replace modal dialog
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import {
   Button,
   FormControl,

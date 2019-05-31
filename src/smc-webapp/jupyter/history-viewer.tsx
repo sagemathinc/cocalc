@@ -3,7 +3,7 @@ History viewer for Jupyter notebooks
 */
 
 import * as immutable from "immutable";
-import { React, Component, ReactDOM, Redux, redux } from "../app-framework"; // TODO: this will move
+import { React, Component, ReactDOM, Redux, redux } from "../app-framework";
 import { path_split } from "smc-util/misc";
 const cell_utils = require("./cell-utils");
 const { CellList } = require("./cell-list");

@@ -2,7 +2,7 @@
 The kernel's logo display
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 const { get_logo_url } = require("./server-urls"); // TODO: regular import
 

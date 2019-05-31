@@ -2,7 +2,7 @@
 React component that describes a single cell
 */
 
-import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
 
 const misc_page = require("../misc_page"); // TODO: import type

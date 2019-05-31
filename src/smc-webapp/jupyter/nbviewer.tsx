@@ -3,7 +3,7 @@ Viewer for public ipynb files.
 */
 
 import { List, Map } from "immutable";
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, rclass, rtypes } from "../app-framework";
 
 const { ErrorDisplay, Loading } = require("../r_misc"); // TODO: import
 const { CellList } = require("./cell-list"); // TODO: import

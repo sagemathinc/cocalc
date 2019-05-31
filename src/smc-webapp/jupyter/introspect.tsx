@@ -2,7 +2,7 @@
 Introspection display panel
 */
 
-import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 
 const { Icon } = require("../r_misc"); // TODO: import types

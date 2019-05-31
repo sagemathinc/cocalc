@@ -4,7 +4,7 @@ React component that describes the input of a cell
 
 declare const $: any;
 
-import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import { Map, fromJS } from "immutable";
 import { Button } from "react-bootstrap";
 import { startswith, filename_extension } from "smc-util/misc";

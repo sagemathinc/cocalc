@@ -2,7 +2,7 @@
 Confirmation dialog, for explicitly confirming dangerous actions.
 */
 
-import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
 
 const { Icon, Markdown } = require("../r_misc"); // TODO: import types
