@@ -4,7 +4,7 @@ History viewer for Jupyter notebooks
 
 import * as immutable from "immutable";
 import { React, Component, ReactDOM, Redux, redux } from "../app-framework"; // TODO: this will move
-const misc = require("smc-util/misc");
+import { path_split } from "smc-util/misc";
 const cell_utils = require("./cell-utils");
 const { CellList } = require("./cell-list");
 const { cm_options } = require("./cm_options");
@@ -27,7 +27,7 @@ interface HistoryViewerProps {
 export class HistoryViewer extends Component<HistoryViewerProps> {
   render_cells() {
     const project_id = this.props.syncdb.get_project_id();
-    const { head: directory } = misc.path_split(this.props.syncdb.get_path());
+    const { head: directory } = path_split(this.props.syncdb.get_path());
     const { cells, cell_list } = get_cells(this.props.syncdb, this.props.version);
 
     const options = immutable.fromJS({

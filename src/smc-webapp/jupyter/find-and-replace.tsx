@@ -11,8 +11,9 @@ import {
   Modal
 } from "react-bootstrap";
 import * as immutable from "immutable";
-const { ErrorDisplay, Icon } = require("../r_misc");
-const { find_matches } = require("./find");
+import { ErrorDisplay } from "../r_misc/error-display";
+import { Icon } from "../r_misc/icon";
+import { find_matches } from "./find";
 import { JupyterActions } from "./browser-actions";
 
 interface FindAndReplaceProps {
@@ -178,14 +179,13 @@ export class FindAndReplace extends Component<
 
   get_matches() {
     const text = this.get_text();
-    const x = find_matches(
+    const { matches, abort, error } = find_matches(
       this.state.find,
       text,
       this.state.case,
       this.state.regexp
     );
-    x.text = text;
-    return x;
+    return { matches, abort, error, text };
   }
 
   render_abort(n = 0) {
@@ -422,7 +422,7 @@ export class FindAndReplace extends Component<
   }
 
   render() {
-    if (!this.props.find_and_replace) return <span/>;
+    if (!this.props.find_and_replace) return <span />;
     this._matches = this.get_matches();
     return (
       <Modal

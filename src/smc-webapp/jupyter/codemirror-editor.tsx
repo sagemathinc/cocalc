@@ -10,8 +10,8 @@ import { React, Component, ReactDOM } from "../app-framework"; // TODO: this wil
 import * as underscore from "underscore";
 import { Map as ImmutableMap } from "immutable";
 import { three_way_merge } from "smc-util/sync/editor/generic/util";
-const { Complete } = require("./complete");
-const { Cursors } = require("./cursors");
+import { Complete } from "./complete";
+import { Cursors } from "./cursors";
 declare const CodeMirror: any; // TODO: type
 
 import { JupyterActions } from "./browser-actions";
