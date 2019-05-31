@@ -42,8 +42,9 @@ export const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format",
-      "shell"
+      "format"
+      /* ,
+      "shell" -- disable for now since not fully implemented*/
     ]),
     customize_buttons: {
       shell: {
