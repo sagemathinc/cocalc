@@ -1,14 +1,21 @@
 /*
-Viewer for public ipynb files.
+Viewer for public ipynb files, e.g., on the share server.
 */
 
 import { List, Map } from "immutable";
-import { React, Component, rclass, rtypes } from "../app-framework";
+import {
+  React,
+  Component,
+  rclass,
+  rtypes,
+  Rendered
+} from "../../app-framework";
 
-const { ErrorDisplay, Loading } = require("../r_misc"); // TODO: import
-const { CellList } = require("./cell-list"); // TODO: import
-const { path_split } = require("smc-util/misc"); // TODO: import
-import { JupyterActions } from "./browser-actions";
+import { ErrorDisplay } from "../../r_misc/error-display";
+import { Loading } from "../../r_misc/loading";
+import { CellList } from "../cell-list";
+import { path_split } from "smc-util/misc";
+import { JupyterActions } from "../browser-actions";
 
 interface NBViewerProps {
   actions: JupyterActions;
@@ -23,7 +30,7 @@ interface NBViewerProps {
 }
 
 export class NBViewer0 extends Component<NBViewerProps> {
-  static reduxProps({ name }) {
+  public static reduxProps({ name }) {
     return {
       [name]: {
         project_id: rtypes.string,
@@ -37,7 +44,8 @@ export class NBViewer0 extends Component<NBViewerProps> {
       }
     };
   }
-  render_loading() {
+
+  private render_loading(): Rendered {
     return (
       <Loading
         style={{
@@ -49,7 +57,8 @@ export class NBViewer0 extends Component<NBViewerProps> {
       />
     );
   }
-  render_error() {
+
+  private render_error(): Rendered {
     return (
       <ErrorDisplay
         error={this.props.error}
@@ -57,7 +66,9 @@ export class NBViewer0 extends Component<NBViewerProps> {
       />
     );
   }
-  render_cells() {
+
+  private render_cells(): Rendered {
+    if (this.props.cell_list == null || this.props.cells == null) return <Loading />;
     const directory = path_split(this.props.path).head;
     return (
       <CellList
@@ -65,14 +76,15 @@ export class NBViewer0 extends Component<NBViewerProps> {
         cells={this.props.cells}
         font_size={this.props.font_size}
         mode="escape"
-        cm_options={this.props.cm_options}
+        cm_options={this.props.cm_options ? this.props.cm_options : Map()}
         project_id={this.props.project_id}
         directory={directory}
         trust={false}
       />
     );
   }
-  render_body() {
+
+  private render_body(): Rendered {
     return (
       <div
         style={{
@@ -86,7 +98,7 @@ export class NBViewer0 extends Component<NBViewerProps> {
       </div>
     );
   }
-  render() {
+  public render(): Rendered {
     if (this.props.error != null) {
       return this.render_error();
     } else if (

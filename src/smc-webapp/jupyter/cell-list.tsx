@@ -22,22 +22,22 @@ interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything read only
   frame_actions?: NotebookFrameActions;
   name?: string;
-  cell_list: immutable.List<any>; // list of ids of cells in order
-  cells: immutable.Map<any, any>;
+  cell_list: immutable.List<string>; // list of ids of cells in order
+  cells: immutable.Map<string, any>;
   font_size: number;
-  sel_ids?: immutable.Set<any>; // set of selected cells
-  md_edit_ids?: immutable.Set<any>;
+  sel_ids?: immutable.Set<string>; // set of selected cells
+  md_edit_ids?: immutable.Set<string>;
   cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
   mode: NotebookMode;
   hook_offset?: number;
   scroll?: Scroll;
-  cm_options: immutable.Map<any, any>;
+  cm_options: immutable.Map<string, any>;
   project_id?: string;
   directory?: string;
   scrollTop?: number;
-  complete?: immutable.Map<any, any>; // status of tab completion
+  complete?: immutable.Map<string, any>; // status of tab completion
   is_focused?: boolean;
-  more_output?: immutable.Map<any, any>;
+  more_output?: immutable.Map<string, any>;
   cell_toolbar?: string;
   trust?: boolean;
 }
@@ -316,7 +316,9 @@ export class CellList extends Component<CellListProps> {
     });
     if (this.props.actions != null && v.length > 0) {
       const id = this.props.cell_list.get(this.props.cell_list.size - 1);
-      v.push(this.render_insert_cell(id, "below"));
+      if (id != null) {
+        v.push(this.render_insert_cell(id, "below"));
+      }
     }
 
     const style: React.CSSProperties = {

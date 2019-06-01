@@ -23,7 +23,7 @@ interface CellProps {
   frame_actions?: NotebookFrameActions;
   name?: string;
   id: string;
-  cm_options: any;
+  cm_options: Map<string, any>;
   cell: Map<string, any>; // TODO: types
   is_current?: boolean;
   is_selected?: boolean;

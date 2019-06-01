@@ -2,25 +2,27 @@
 Redux actions for nbviewer.
 */
 
-const { Actions } = require("../app-framework");
-const { cm_options } = require("./cm_options");
 import { fromJS } from "immutable";
-const cell_utils = require("./cell-utils"); // TODO: import types
-const { JUPYTER_MIMETYPES } = require("./util");
-const { IPynbImporter } = require("./import-from-ipynb"); // TODO: import types
+import { Actions } from "../../app-framework";
+import { cm_options } from "../cm_options";
+import { sorted_cell_list } from "../cell-utils";
+import { JUPYTER_MIMETYPES } from "../util";
+import { IPynbImporter } from "../import-from-ipynb";
 
-export class NBViewerActions extends Actions {
-  private store: any; // TODO: type
-  private client: any; // TODO: type
-  private redux: any; // TODO: type
+import { NBViewerState, NBViewerStore } from "./store";
+
+export class NBViewerActions extends Actions<NBViewerState> {
+  private store: NBViewerStore;
+  private client: any;
   private _state: "ready" | "closed";
-  _init = (
+
+  public _init = (
     project_id: string,
-    path: any,
-    store: any,
+    path: string,
+    store: NBViewerStore,
     client: any,
-    content: any
-  ) => {
+    content: string | undefined
+  ): void => {
     this.store = store;
     if (client == null && content == null) {
       throw Error("@client or content must be defined");
@@ -35,23 +37,24 @@ export class NBViewerActions extends Actions {
     });
     this._state = "ready";
     if (content == null) {
-      return this.load_ipynb();
+      this.load_ipynb();
+      return;
     }
     // optionally specify the pre-loaded content of the path directly.
     try {
-      return this.set_from_ipynb(JSON.parse(content));
+      this.set_from_ipynb(JSON.parse(content));
     } catch (err) {
       this.setState({ error: `Error parsing -- ${err}` });
     }
   };
 
-  load_ipynb = () => {
+  private load_ipynb = (): void => {
     if (this.store.get("loading")) {
       return;
     }
     this.setState({ loading: new Date() });
     // TODO: is this return required?
-    return this.client.public_get_text_file({
+    this.client.public_get_text_file({
       project_id: this.store.get("project_id"),
       path: this.store.get("path"),
       // TODO: rewrite with async
@@ -61,7 +64,8 @@ export class NBViewerActions extends Actions {
         }
         this.setState({ loading: undefined });
         if (err) {
-          return this.setState({ error: `Error loading -- ${err}` });
+          this.setState({ error: `Error loading -- ${err}` });
+          return;
         }
         try {
           return this.set_from_ipynb(JSON.parse(data));
@@ -72,7 +76,7 @@ export class NBViewerActions extends Actions {
     });
   };
 
-  _process = (content: any) => {
+  private _process = (content: any): void => {
     if (content.data == null) {
       return;
     }
@@ -103,7 +107,7 @@ export class NBViewerActions extends Actions {
     });
 
     const cells = fromJS(importer.cells());
-    const cell_list = cell_utils.sorted_cell_list(cells);
+    const cell_list = sorted_cell_list(cells);
 
     let mode: string | undefined = undefined;
     if (

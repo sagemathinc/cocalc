@@ -19,7 +19,7 @@ require('./stopwatch/register')
 #require('./jupyter/register')
 # public read-only jupyter view:
 { webapp_client } = require("./webapp_client");
-require("./jupyter/register-nbviewer").register(webapp_client)
+require("./jupyter/nbviewer/register").register(webapp_client)
 
 require('./tasks/register')
 
