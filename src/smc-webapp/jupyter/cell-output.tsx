@@ -26,7 +26,7 @@ interface CellOutputProps {
 }
 
 export class CellOutput extends Component<CellOutputProps> {
-  public shouldComponentUpdate(nextProps : CellOutputProps) : boolean {
+  public shouldComponentUpdate(nextProps: CellOutputProps): boolean {
     for (let field of [
       "collapsed",
       "scrolled",
@@ -55,7 +55,7 @@ export class CellOutput extends Component<CellOutputProps> {
     return !new_output.equals(cur_output);
   }
 
-  private render_output_prompt() : Rendered {
+  private render_output_prompt(): Rendered {
     const collapsed = this.props.cell.get("collapsed");
     let exec_count = undefined;
     const output = this.props.cell.get("output");
@@ -95,11 +95,11 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
-  private render_collapsed() : Rendered {
+  private render_collapsed(): Rendered {
     return <CollapsedOutput actions={this.props.actions} id={this.props.id} />;
   }
 
-  private render_output_value() : Rendered {
+  private render_output_value(): Rendered {
     if (this.props.cell.get("collapsed")) {
       return this.render_collapsed();
     } else {
@@ -142,7 +142,7 @@ export class CellOutput extends Component<CellOutputProps> {
     }
   }
 
-  private render_hidden() : Rendered {
+  private render_hidden(): Rendered {
     return (
       <CellHiddenPart
         title={
@@ -152,7 +152,7 @@ export class CellOutput extends Component<CellOutputProps> {
     );
   }
 
-  public render() : Rendered {
+  public render(): Rendered {
     if (this.props.cell.getIn(["metadata", "jupyter", "outputs_hidden"])) {
       return this.render_hidden();
     }

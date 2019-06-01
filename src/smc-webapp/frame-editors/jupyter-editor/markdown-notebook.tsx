@@ -13,6 +13,8 @@ interface Props {
 
 export class MarkdownNotebook extends Component<Props, {}> {
   render(): Rendered {
-    return <div>Jupyter notebook as live markdown document -- {this.props.path}</div>;
+    return (
+      <div>Jupyter notebook as live markdown document -- {this.props.path}</div>
+    );
   }
 }

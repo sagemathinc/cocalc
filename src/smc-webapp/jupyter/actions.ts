@@ -49,7 +49,6 @@ import { Options as FormatterOptions } from "../../smc-project/formatters/pretti
 
 import { SyncDB } from "../../smc-util/sync/editor/db/sync";
 
-
 /*
 The actions -- what you can do with a jupyter notebook, and also the
 underlying synchronized state.

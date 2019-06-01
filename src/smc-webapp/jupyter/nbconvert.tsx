@@ -131,7 +131,11 @@ export class NBConvert extends Component<NBConvertProps> {
   }
 
   render_download() {
-    if (this.props.nbconvert == null || this.props.nbconvert.get("error") || this.props.nbconvert_dialog == null) {
+    if (
+      this.props.nbconvert == null ||
+      this.props.nbconvert.get("error") ||
+      this.props.nbconvert_dialog == null
+    ) {
       return;
     }
     const to = this.props.nbconvert_dialog.get("to");

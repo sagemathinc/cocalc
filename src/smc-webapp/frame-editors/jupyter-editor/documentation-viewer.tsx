@@ -15,10 +15,6 @@ interface Props {
 
 export class DocumentationViewer extends Component<Props, {}> {
   render(): Rendered {
-    return (
-      <div>
-        Documentation for something...
-      </div>
-    );
+    return <div>Documentation for something...</div>;
   }
 }

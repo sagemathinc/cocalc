@@ -23,7 +23,7 @@ export class About extends Component<AboutProps> {
     this.props.actions.focus(true);
   }
 
-  private render_server_info() : Rendered {
+  private render_server_info(): Rendered {
     const version =
       this.props.backend_kernel_info != null
         ? this.props.backend_kernel_info.get("nodejs_version")
@@ -34,7 +34,7 @@ export class About extends Component<AboutProps> {
     return <pre>Node.js Version {version}</pre>;
   }
 
-  private render_kernel_info() : Rendered {
+  private render_kernel_info(): Rendered {
     const banner =
       this.props.backend_kernel_info != null
         ? this.props.backend_kernel_info.get("banner")
@@ -49,7 +49,7 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  private render_faq() : Rendered {
+  private render_faq(): Rendered {
     return (
       <span>
         Read{" "}
@@ -68,7 +68,7 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  private render_features() : Rendered {
+  private render_features(): Rendered {
     return (
       <ul
         style={{
@@ -121,7 +121,7 @@ export class About extends Component<AboutProps> {
     );
   }
 
-  public render() : Rendered {
+  public render(): Rendered {
     return (
       <Modal
         show={this.props.about}

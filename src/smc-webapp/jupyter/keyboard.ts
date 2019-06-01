@@ -46,7 +46,7 @@ export function evt_to_obj(evt: any, mode: NotebookMode): KeyboardCommand {
   return obj;
 }
 
-function evt_to_shortcut(evt: any, mode: NotebookMode) : string {
+function evt_to_shortcut(evt: any, mode: NotebookMode): string {
   return json(evt_to_obj(evt, mode));
 }
 

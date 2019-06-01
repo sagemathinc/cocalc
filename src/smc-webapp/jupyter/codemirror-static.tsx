@@ -85,7 +85,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
 
     try {
       CodeMirror.runMode(this.props.value, mode, append);
-    } catch(err) {
+    } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626
          However, basically silently ignoring it (with a console.log)
@@ -136,10 +136,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
     }
 
     return (
-      <pre
-        className="CodeMirror cm-s-default CodeMirror-wrap"
-        style={style}
-      >
+      <pre className="CodeMirror cm-s-default CodeMirror-wrap" style={style}>
         {this.render_lines(width)}
         {this.render_gutter(width)}
       </pre>

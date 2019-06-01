@@ -13,6 +13,10 @@ interface Props {
 
 export class IPythonTerminal extends Component<Props, {}> {
   render(): Rendered {
-    return <div>IPython Terminal connected to underlying kernel -- {this.props.path}</div>;
+    return (
+      <div>
+        IPython Terminal connected to underlying kernel -- {this.props.path}
+      </div>
+    );
   }
 }

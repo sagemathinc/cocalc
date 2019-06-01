@@ -12,6 +12,11 @@ interface Props {
 
 export class ClassicalNotebook extends Component<Props, {}> {
   render(): Rendered {
-    return <div>Classical version of the notebook in an iframe with sync (?) -- {this.props.path}</div>;
+    return (
+      <div>
+        Classical version of the notebook in an iframe with sync (?) --{" "}
+        {this.props.path}
+      </div>
+    );
   }
 }

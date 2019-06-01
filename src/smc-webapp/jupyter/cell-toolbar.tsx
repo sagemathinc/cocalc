@@ -35,7 +35,7 @@ const TOOLBARS = {
 };
 
 export class CellToolbar extends Component<CellToolbarProps> {
-  public render() : Rendered {
+  public render(): Rendered {
     const T = TOOLBARS[this.props.cell_toolbar];
     if (T === undefined) {
       return <span> Toolbar not implemented: {this.props.cell_toolbar} </span>;

@@ -457,8 +457,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   hide(): void {
-    this.deprecated('hide');
+    this.deprecated("hide");
     // this.blur();
   }
-
 }

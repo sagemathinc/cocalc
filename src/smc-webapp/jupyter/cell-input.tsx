@@ -21,7 +21,6 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
-
 function href_transform(
   project_id: string | undefined,
   cell: Map<string, any>

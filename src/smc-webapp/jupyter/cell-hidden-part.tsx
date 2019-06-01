@@ -6,7 +6,7 @@ import { Icon } from "../r_misc/icon";
 // This is just an mvp. See https://github.com/sagemathinc/cocalc/issues/3835
 
 interface Props {
-  title : string;
+  title: string;
 }
 
 export class CellHiddenPart extends Component<Props, {}> {

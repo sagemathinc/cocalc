@@ -7,7 +7,12 @@ const { IS_TOUCH } = require("../feature"); // TODO: import type
 // mode = codemirror mode object
 // editor_settings - from account store.
 // TODO: type parameters
-export function cm_options(mode?: any, editor_settings?: any, line_numbers?: any, read_only?: any) {
+export function cm_options(
+  mode?: any,
+  editor_settings?: any,
+  line_numbers?: any,
+  read_only?: any
+) {
   if (editor_settings == null) {
     editor_settings = {};
   }
@@ -28,7 +33,9 @@ export function cm_options(mode?: any, editor_settings?: any, line_numbers?: any
   const options: any = {
     mode,
     firstLineNumber: editor_settings.first_line_number,
-    showTrailingSpace: editor_settings.show_trailing_whitespace || (mode && mode.name) === "gfm2",
+    showTrailingSpace:
+      editor_settings.show_trailing_whitespace ||
+      (mode && mode.name) === "gfm2",
     indentUnit: editor_settings.indent_unit,
     tabSize: editor_settings.tab_size,
     smartIndent: editor_settings.smart_indent,
@@ -61,7 +68,10 @@ export function cm_options(mode?: any, editor_settings?: any, line_numbers?: any
   // due to our static fallback not being done for them (will do in #v2).
   // TODO: Implement jupyter-specific account-wide default setting.
 
-  if (editor_settings.bindings != null && editor_settings.bindings !== "standard") {
+  if (
+    editor_settings.bindings != null &&
+    editor_settings.bindings !== "standard"
+  ) {
     options.keyMap = editor_settings.bindings;
   }
 

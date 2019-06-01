@@ -15,7 +15,6 @@ interface AttachmentsProps {
 }
 
 export class Attachments extends Component<AttachmentsProps> {
-
   edit(): void {
     this.props.actions.edit_attachments(this.props.cell.get("id"));
   }

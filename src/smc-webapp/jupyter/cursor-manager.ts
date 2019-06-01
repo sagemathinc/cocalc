@@ -21,7 +21,7 @@ export class CursorManager {
         locs.forEach(loc => {
           if (loc == null) return;
           const id: string | undefined = loc.get("id");
-          if (id == null) return;  // be super careful.
+          if (id == null) return; // be super careful.
           let cell: CursorMap | undefined = cells.get(id);
           if (cell == null) return;
           const cursors = cell.get("cursors", Map());
@@ -53,7 +53,10 @@ export class CursorManager {
     return cells;
   }
 
-  public process(cells: CursorMap | undefined | null, cursors: CursorMap): CursorMap | undefined {
+  public process(
+    cells: CursorMap | undefined | null,
+    cursors: CursorMap
+  ): CursorMap | undefined {
     if (cells == null) {
       // cells need not be defined in which case, don't bother; see
       // https://github.com/sagemathinc/cocalc/issues/3456
@@ -64,7 +67,7 @@ export class CursorManager {
     }
     const before = cells;
     cursors.forEach((info: CursorMap | undefined, account_id: string) => {
-      cells = this.process_one_user(info, account_id, cells as CursorMap);  // we know cells defined.
+      cells = this.process_one_user(info, account_id, cells as CursorMap); // we know cells defined.
     });
     this.last_cursors = cursors;
     if (cells.equals(before)) {

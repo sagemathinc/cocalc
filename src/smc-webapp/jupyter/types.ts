@@ -17,4 +17,4 @@ export type Scroll =
 
 export type ViewMode = "normal" | "json" | "raw";
 
-export type KernelInfo = immutable.Map<string,any>;
+export type KernelInfo = immutable.Map<string, any>;

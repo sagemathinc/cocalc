@@ -12,6 +12,8 @@ interface Props {
 
 export class ObjectBrowser extends Component<Props, {}> {
   render(): Rendered {
-    return <div>Jupyter Notebook Object Browser View for {this.props.path}</div>;
+    return (
+      <div>Jupyter Notebook Object Browser View for {this.props.path}</div>
+    );
   }
 }

@@ -31,7 +31,10 @@ export class EditAttachments extends Component<EditAttachmentsProps> {
   };
 
   delete_attachment = (name: string) => {
-    this.props.actions.delete_attachment_from_cell(this.props.cell.get("id"), name);
+    this.props.actions.delete_attachment_from_cell(
+      this.props.cell.get("id"),
+      name
+    );
   };
 
   render_attachment = (name: string) => {
@@ -61,7 +64,11 @@ export class EditAttachments extends Component<EditAttachmentsProps> {
       }
     }
     if (v.length === 0) {
-      return <span>There are no attachments. To attach images, use Edit -> Insert Image.</span>;
+      return (
+        <span>
+          There are no attachments. To attach images, use Edit -> Insert Image.
+        </span>
+      );
     }
     return v;
   };

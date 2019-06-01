@@ -92,7 +92,7 @@ export class CellList extends Component<CellListProps> {
     this.init_codemirror();
   }
 
-  private cm_destroy = () : void => {
+  private cm_destroy = (): void => {
     if (this.cm != null) {
       this.cm.toTextArea();
       if (this.cm_change != null) {
@@ -115,7 +115,7 @@ export class CellList extends Component<CellListProps> {
     this.props.actions.set_cursor_locs(locs);
   };
 
-  private cm_save = () : void => {
+  private cm_save = (): void => {
     if (this.cm == null) {
       return;
     }

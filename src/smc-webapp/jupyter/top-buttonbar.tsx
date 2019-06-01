@@ -258,7 +258,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     return this.render_button("close and halt", obj);
   }
 
-  private render_group_assistant_halt() : Rendered {
+  private render_group_assistant_halt(): Rendered {
     return (
       <ButtonGroup className="hidden-xs">
         {this.render_assistant()}

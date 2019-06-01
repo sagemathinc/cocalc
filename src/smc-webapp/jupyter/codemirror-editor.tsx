@@ -451,7 +451,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     this.cm.redo = this._cm_redo;
 
     if (this.props.frame_actions != null) {
-      const editor : EditorFunctions = {
+      const editor: EditorFunctions = {
         save: this._cm_save,
         set_cursor: this._cm_set_cursor,
         tab_key: this.tab_key,

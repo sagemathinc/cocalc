@@ -14,7 +14,13 @@ export class NBViewerActions extends Actions {
   private client: any; // TODO: type
   private redux: any; // TODO: type
   private _state: "ready" | "closed";
-  _init = (project_id: string, path: any, store: any, client: any, content: any) => {
+  _init = (
+    project_id: string,
+    path: any,
+    store: any,
+    client: any,
+    content: any
+  ) => {
     this.store = store;
     if (client == null && content == null) {
       throw Error("@client or content must be defined");
@@ -24,7 +30,8 @@ export class NBViewerActions extends Actions {
       project_id,
       path,
       font_size:
-        this.redux.getStore("account") && this.redux.getStore("account").get("font_size", 14)
+        this.redux.getStore("account") &&
+        this.redux.getStore("account").get("font_size", 14)
     });
     this._state = "ready";
     if (content == null) {
@@ -111,7 +118,11 @@ export class NBViewerActions extends Actions {
       ipynb.metadata.language_info.name
     ) {
       mode = ipynb.metadata.language_info.name;
-    } else if (ipynb.metadata && ipynb.metadata.kernelspec && ipynb.metadata.kernelspec.language) {
+    } else if (
+      ipynb.metadata &&
+      ipynb.metadata.kernelspec &&
+      ipynb.metadata.kernelspec.language
+    ) {
       mode = ipynb.metadata.kernelspec.language.toLowerCase();
     }
     const options = fromJS({

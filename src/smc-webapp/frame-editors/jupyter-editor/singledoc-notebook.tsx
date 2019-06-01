@@ -13,6 +13,8 @@ interface Props {
 
 export class SingleDocNotebook extends Component<Props, {}> {
   render(): Rendered {
-    return <div>Jupyter notebook as a single document -- {this.props.path}</div>;
+    return (
+      <div>Jupyter notebook as a single document -- {this.props.path}</div>
+    );
   }
 }

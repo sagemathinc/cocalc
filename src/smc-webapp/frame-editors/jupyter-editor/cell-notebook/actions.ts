@@ -517,9 +517,7 @@ export class NotebookFrameActions {
 
   public change_cell_to_heading(id: string, n: number = 1): void {
     this.validate({ id });
-    if (
-      this.jupyter_actions.check_edit_protection(id)
-    ) {
+    if (this.jupyter_actions.check_edit_protection(id)) {
       return;
     }
     this.jupyter_actions.set_cell_type(id, "markdown");
@@ -831,5 +829,4 @@ export class NotebookFrameActions {
       this.input_editors[id].refresh();
     }
   }
-
 }

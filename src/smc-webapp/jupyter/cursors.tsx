@@ -329,24 +329,24 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     this.state = { n: 0 };
   }
 
-  public shouldComponentUpdate(props : CursorsProps, state : CursorsState) : boolean {
+  public shouldComponentUpdate(
+    props: CursorsProps,
+    state: CursorsState
+  ): boolean {
     return (
-      is_different(this.props, props, [
-        "cursors",
-        "user_map",
-        "account_id"
-      ]) || this.state.n !== state.n
+      is_different(this.props, props, ["cursors", "user_map", "account_id"]) ||
+      this.state.n !== state.n
     );
   }
 
-  public componentDidMount() : void {
+  public componentDidMount(): void {
     this._interval = setInterval(
       () => this.setState({ n: this.state.n + 1 }),
       CURSOR_TIME_MS / 2
     );
   }
 
-  public componentWillUnmount() : void {
+  public componentWillUnmount(): void {
     clearInterval(this._interval);
   }
 
@@ -362,7 +362,7 @@ class Cursors0 extends Component<CursorsProps, CursorsState> {
     return { color, name };
   }
 
-  public render() : Rendered {
+  public render(): Rendered {
     let C: any;
     const now = server_time().valueOf();
     const v: any[] = [];
