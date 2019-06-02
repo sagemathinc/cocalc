@@ -4,9 +4,11 @@ Kernel display
 
 import { React, Component, rclass, rtypes } from "../app-framework";
 import * as immutable from "immutable";
-const { Icon, Loading, Tip } = require("../r_misc");
-const { closest_kernel_match } = require("smc-util/misc");
-const { Logo } = require("./logo");
+import { Icon } from "../r_misc/icon";
+import { Loading } from "../r_misc/loading";
+import { Tip } from "../r_misc/tip";
+import { closest_kernel_match } from "smc-util/misc";
+import { Logo } from "./logo";
 import { trunc } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
 

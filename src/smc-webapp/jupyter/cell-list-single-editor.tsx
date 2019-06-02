@@ -3,14 +3,17 @@ React component that renders the ordered list of cells
 **as a single codemirror editor document**
 
 Meant as a simple proof of concept.
+
+NOT used right now...
 */
 
-import { React, Component, ReactDOM, Rendered } from "../app-framework";
-import { CodeMirror } from "./codemirror";
-import * as immutable from "immutable";
-import { Loading } from "../r_misc/loading";
-import * as syncstring from "smc-util/syncstring";
 import * as underscore from "underscore";
+import * as immutable from "immutable";
+declare const CodeMirror: any; // TODO: type
+
+import { React, Component, ReactDOM, Rendered } from "../app-framework";
+import { Loading } from "../r_misc/loading";
+import * as syncstring from "../../smc-util/sync/editor/generic/util";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "./types";
 
@@ -102,17 +105,6 @@ export class CellList extends Component<CellListProps> {
       delete this.cm_last_remote;
       delete this.cm;
     }
-  };
-
-  private cm_cursor = (): void => {
-    if (this.cm._setValueNoJump) {
-      // if true, cursor move is being caused by external setValueNoJump
-      return;
-    }
-    const locs = this.cm
-      .listSelections()
-      .map(c => ({ x: c.anchor.ch, y: c.anchor.line }));
-    this.props.actions.set_cursor_locs(locs);
   };
 
   private cm_save = (): void => {

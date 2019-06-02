@@ -2,7 +2,9 @@
 Jupyter client -- these are the actions for the underlying document structure.
 This can be used both on the frontend and the backend.
 */
-// require('./test/basic-tests-ts');
+
+// Uncomment to temporarily force build, since otherwise webpack doesn't find:
+// require('./test/export-to-ipynb-ts');
 // require("./project-actions");
 
 declare const localStorage: any;

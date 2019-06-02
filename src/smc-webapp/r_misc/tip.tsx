@@ -6,9 +6,9 @@ import * as feature from "../feature";
 const { OverlayTrigger, Popover, Tooltip } = require("react-bootstrap");
 
 interface Props {
-  title: string | React.Component; // not checked for update
+  title: string | JSX.Element | JSX.Element[]; // not checked for update
   placement?: "top" | "right" | "bottom" | "left";
-  tip?: string | React.Component; // not checked for update
+  tip?: string | JSX.Element | JSX.Element[]; // not checked for update
   size?: "xsmall" | "small" | "medium" | "large";
   delayShow?: number;
   delayHide?: number;

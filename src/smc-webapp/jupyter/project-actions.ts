@@ -10,13 +10,13 @@ fully unit test it via mocking of components.
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
 
-const { callback2, once } = require("smc-util/async-utils");
+import { callback2, once } from "../../smc-util/async-utils";
 
-const async = require("async");
-const underscore = require("underscore");
-const misc = require("smc-util/misc");
-const json_stable = require("json-stable-stringify");
-const { OutputHandler } = require("./output-handler");
+import * as async from "async";
+import * as underscore from "underscore";
+import * as misc from "../../smc-util/misc";
+import * as json_stable from "json-stable-stringify";
+import { OutputHandler } from "./output-handler";
 
 export class JupyterActions extends JupyterActions0 {
   // TODO: type

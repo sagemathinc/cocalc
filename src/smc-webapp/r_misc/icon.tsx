@@ -12,7 +12,7 @@ interface Props {
   pulse?: boolean;
   stack?: "1x" | "2x";
   inverse?: boolean;
-  Component?: React.Component;
+  Component?: JSX.Element | JSX.Element[];
   style?: any;
   onClick?: () => void;
   onMouseOver?: () => void;

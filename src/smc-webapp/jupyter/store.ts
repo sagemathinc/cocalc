@@ -4,17 +4,11 @@ The Store
 
 declare const localStorage: any;
 
-const misc = require("smc-util/misc");
+import { from_json, cmp, startswith } from "../../smc-util/misc";
 import { Store } from "../app-framework";
-import {
-  Set,
-  Map as ImmutableMap,
-  List as ImmutableList,
-  OrderedMap,
-  fromJS as immutableFromJS
-} from "immutable";
-const { export_to_ipynb } = require("./export-to-ipynb");
-const { DEFAULT_COMPUTE_IMAGE } = require("smc-util/compute-images");
+import { Set, Map, List, OrderedMap, fromJS } from "immutable";
+import { export_to_ipynb } from "./export-to-ipynb";
+import { DEFAULT_COMPUTE_IMAGE } from "../../smc-util/compute-images";
 import { Kernels, Kernel } from "./util";
 import { KernelInfo } from "./types";
 
@@ -33,7 +27,7 @@ export interface JupyterStoreState {
   backend_kernel_info: KernelInfo;
   cell_list: any;
   cells: any;
-  cur_id: any;
+  cur_id: string;
   error?: string;
   fatal: string;
   has_unsaved_changes?: boolean;
@@ -69,9 +63,9 @@ export interface JupyterStoreState {
   check_select_kernel_init: boolean;
   show_kernel_selector: boolean;
   show_kernel_selector_reason?: show_kernel_selector_reasons;
-  kernel_selection?: ImmutableMap<string, string>;
-  kernels_by_name?: OrderedMap<string, ImmutableMap<string, string>>;
-  kernels_by_language?: OrderedMap<string, ImmutableList<string>>;
+  kernel_selection?: Map<string, string>;
+  kernels_by_name?: OrderedMap<string, Map<string, string>>;
+  kernels_by_language?: OrderedMap<string, List<string>>;
   default_kernel?: string;
   closestKernel?: Kernel;
   widget_model_ids: Set<string>;
@@ -111,8 +105,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   // immutable List
-  public get_cell_list = (): ImmutableList<string> => {
-    return this.get("cell_list", ImmutableList([]));
+  public get_cell_list = (): List<string> => {
+    return this.get("cell_list", List([]));
   };
 
   // string[]
@@ -175,7 +169,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
         ? localStorage[this.name]
         : undefined;
     if (value != null) {
-      const x = misc.from_json(value);
+      const x = from_json(value);
       if (x != null) {
         return x[key];
       }
@@ -345,7 +339,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
    *
    * Return dict of language <-> kernel_name
    */
-  get_kernel_selection = (kernels: Kernels): ImmutableMap<string, string> => {
+  get_kernel_selection = (kernels: Kernels): Map<string, string> => {
     const data: any = {};
     kernels
       .filter(entry => entry.get("language") != null)
@@ -355,7 +349,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
           .sort((a, b) => {
             const va = -a.getIn(["metadata", "cocalc", "priority"], 0);
             const vb = -b.getIn(["metadata", "cocalc", "priority"], 0);
-            return misc.cmp(va, vb);
+            return cmp(va, vb);
           })
           .first();
         if (top == null || lang == null) return true;
@@ -364,14 +358,14 @@ export class JupyterStore extends Store<JupyterStoreState> {
         data[lang] = name;
       });
 
-    return ImmutableMap<string, string>(data);
+    return Map<string, string>(data);
   };
 
   get_kernels_by_name_or_language = (
     kernels: Kernels
   ): [
-    OrderedMap<string, ImmutableMap<string, string>>,
-    OrderedMap<string, ImmutableList<string>>
+    OrderedMap<string, Map<string, string>>,
+    OrderedMap<string, List<string>>
   ] => {
     let data_name: any = {};
     let data_lang: any = {};
@@ -390,19 +384,19 @@ export class JupyterStore extends Store<JupyterStoreState> {
         add_lang(lang, entry);
       }
     });
-    const by_name = OrderedMap<string, ImmutableMap<string, string>>(
+    const by_name = OrderedMap<string, Map<string, string>>(
       data_name
     ).sortBy((v, k) => {
       return v.get("display_name", v.get("name", k)).toLowerCase();
     });
     // data_lang, we're only interested in the kernel names, not the entry itself
-    data_lang = immutableFromJS(data_lang).map((v, k) => {
+    data_lang = fromJS(data_lang).map((v, k) => {
       v = v
         .sortBy(v => v.get("display_name", v.get("name", k)).toLowerCase())
         .map(v => v.get("name"));
       return v;
     });
-    const by_lang = OrderedMap<string, ImmutableList<string>>(data_lang).sortBy(
+    const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy(
       (_v, k) => k.toLowerCase()
     );
     return [by_name, by_lang];
@@ -446,7 +440,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   get_kernel_language = (): string | undefined => {
     let lang;
     // special case: sage is language "python", but the assistant needs "sage"
-    if (misc.startswith(this.get("kernel"), "sage")) {
+    if (startswith(this.get("kernel"), "sage")) {
       lang = "sage";
     } else {
       lang = this.getIn(["kernel_info", "language"]);
