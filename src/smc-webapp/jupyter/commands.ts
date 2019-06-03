@@ -6,7 +6,7 @@ Comprehensive list of Jupyter notebook (version 5) command,
 
 // for now we also use require here (see comment in actions.ts)
 
-const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
+const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
 const FORMAT_SOURCE_ICON = require("smc-webapp/frame-editors/frame-tree/config")
   .FORMAT_SOURCE_ICON;
@@ -673,10 +673,10 @@ export function commands(actions: any) {
       f: () => actions.show_keyboard_shortcuts()
     },
 
-    "show code assistant": {
-      i: ASSISTANT_ICON_NAME,
-      m: "Show code assistant",
-      f: () => actions.show_code_assistant()
+    "show code snippets": {
+      i: SNIPPET_ICON_NAME,
+      m: "Show code snippets",
+      f: () => actions.show_code_snippets()
     },
 
     "show toolbar": {

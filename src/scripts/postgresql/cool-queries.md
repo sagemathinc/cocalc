@@ -198,7 +198,7 @@ Copied library entries .. timestamp is about when the feature was released
     GROUP BY title, docid
     ORDER BY count DESC;
 
-Usage of Assistant Examples
+Usage of Snippet Examples
 
     WITH stats AS (
         SELECT COUNT(*) AS cnt
