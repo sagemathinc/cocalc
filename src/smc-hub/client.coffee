@@ -738,7 +738,7 @@ class exports.Client extends EventEmitter
 
     mesg_sign_out: (mesg) =>
         if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"Not signed in."))
+            @push_to_client(message.error(id:mesg.id, error:"not signed in"))
             return
 
         if mesg.everywhere
