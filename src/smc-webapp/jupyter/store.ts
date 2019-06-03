@@ -439,7 +439,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   // canonicalize the language of the kernel
   get_kernel_language = (): string | undefined => {
     let lang;
-    // special case: sage is language "python", but the assistant needs "sage"
+    // special case: sage is language "python", but the snippet dialog needs "sage"
     if (startswith(this.get("kernel"), "sage")) {
       lang = "sage";
     } else {

@@ -11,11 +11,11 @@ import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { callback2 } from "smc-util/async-utils";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
-const { instantiate_assistant } = require("../assistant/main");
+const { instantiate_snippets } = require("../assistant/main");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
-  public assistant_actions: any;
+  public snippet_actions: any;
 
   private cursor_manager: CursorManager;
   private account_change_editor_settings: any;
@@ -78,9 +78,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("cursor_activity", this.syncdb_cursor_activity);
     this.cursor_manager = new CursorManager();
 
-    // this initializes actions+store for the assistant
+    // this initializes actions+store for the snippet dialog
     // this is also only a UI specific action
-    this.assistant_actions = instantiate_assistant(this.project_id, this.path);
+    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
 
     if (window != null && (window as any).$ != null) {
       // frontend browser client with jQuery
@@ -142,32 +142,31 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  public show_code_assistant(id: string): void {
-    if (this.assistant_actions == null) {
+  public show_code_snippets(id: string): void {
+    if (this.snippet_actions == null) {
       throw Error("code assistant not available");
     }
     this.blur_lock();
 
     const lang = this.store.get_kernel_language();
 
-    this.assistant_actions.init(lang);
-    this.assistant_actions.set({
+    this.snippet_actions.init(lang);
+    this.snippet_actions.set({
       show: true,
       lang,
       lang_select: false,
-      handler: this.code_assistant_handler.bind(this),
+      handler: this.code_snippet_handler.bind(this),
       cell_id: id
     });
   }
 
-  private code_assistant_handler(data: {
+  private code_snippet_handler(data: {
     code: string[];
     descr?: string;
     cell_id: string;
   }): void {
     this.focus_unlock();
     const { cell_id, code, descr } = data;
-    //if DEBUG then console.log("assistant data:", data, code, descr)
 
     let id = cell_id;
     if (descr != null) {

@@ -225,8 +225,8 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     return this.render_button("0", "show keyboard shortcuts");
   }
 
-  render_assistant() {
-    return this.render_button("assistant", {
+  render_snippets() {
+    return this.render_button("snippets", {
       name: "show code snippets",
       label: <VisibleMDLG>Snippets</VisibleMDLG>
     });
@@ -261,7 +261,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   private render_group_assistant_halt(): Rendered {
     return (
       <ButtonGroup className="hidden-xs">
-        {this.render_assistant()}
+        {this.render_snippets()}
         {this.render_close_and_halt()}
       </ButtonGroup>
     );

@@ -82,12 +82,12 @@ export function register(): void {
         return;
       }
 
-      // cleanup assistant
-      if (actions.assistant_actions != null) {
-        const assistant_name = actions.assistant_actions.name;
-        delete redux.getStore(assistant_name).state;
-        redux.removeStore(assistant_name);
-        redux.removeActions(assistant_name);
+      // cleanup snippets
+      if (actions.snippets_actions != null) {
+        const snippets_name = actions.snippets_actions.name;
+        delete redux.getStore(snippets_name).state;
+        redux.removeStore(snippets_name);
+        redux.removeActions(snippets_name);
       }
 
       // cleanup main store/actions

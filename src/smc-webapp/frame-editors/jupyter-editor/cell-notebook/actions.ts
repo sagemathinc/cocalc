@@ -782,8 +782,8 @@ export class NotebookFrameActions {
     }
   }
 
-  public show_code_assistant(): void {
-    this.jupyter_actions.show_code_assistant(this.store.get("cur_id"));
+  public show_code_snippets(): void {
+    this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
   }
 
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {

@@ -29,12 +29,12 @@ immutable = require('immutable')
 {CodeMirrorStatic} = require('../jupyter/codemirror-static');
 # cocalc libs
 {defaults, required, optional} = misc = require('smc-util/misc')
-# Assistant
+# Snippets
 {REPO_URL} = require('./common')
 
 
 exports.ExamplesBody = rclass
-    displayName : 'ExamplesBody'
+    displayName : 'SnippetsBody'
 
     propTypes:
         actions             : rtypes.object

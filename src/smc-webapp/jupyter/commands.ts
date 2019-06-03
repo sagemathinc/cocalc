@@ -4,7 +4,8 @@ we support and how they work.
 */
 
 // still in coffeescript...
-const ASSISTANT_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
+// for now we also use require here (see comment in actions.ts)
+const SNIPPET_ICON_NAME = require("smc-webapp/assistant/common").ICON_NAME;
 
 import { FORMAT_SOURCE_ICON } from "smc-webapp/frame-editors/frame-tree/config";
 import { JupyterActions } from "./browser-actions";
@@ -701,9 +702,9 @@ export function commands(
     },
 
     "show code snippets": {
-      i: ASSISTANT_ICON_NAME,
+      i: SNIPPET_ICON_NAME,
       m: "Show code snippets",
-      f: () => frame_actions.show_code_assistant()
+      f: () => frame_actions.show_code_snippets()
     },
 
     "show toolbar": {
