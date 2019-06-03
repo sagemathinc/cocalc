@@ -22,7 +22,7 @@ const { KernelSelector } = require("./select-kernel");
 const { KeyboardShortcuts } = require("./keyboard-shortcuts");
 const { JSONView } = require("./json-view");
 const { RawEditor } = require("./raw-editor");
-const { ExamplesDialog } = require("smc-webapp/assistant/dialog");
+const { SnippetsDialog } = require("smc-webapp/assistant/dialog");
 import { Kernel as KernelType, Kernels as KernelsType } from "./util";
 
 const KERNEL_STYLE: React.CSSProperties = {
@@ -398,11 +398,11 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
     );
   }
 
-  render_assistant_dialog() {
+  render_snippets_dialog() {
     return (
-      <ExamplesDialog
-        name={this.props.actions.assistant_actions.name}
-        actions={this.props.actions.assistant_actions}
+      <SnippetsDialog
+        name={this.props.actions.snippet_actions.name}
+        actions={this.props.actions.snippet_actions}
       />
     );
   }
@@ -481,7 +481,7 @@ class JupyterEditor0 extends Component<JupyterEditorProps> {
         {this.render_edit_cell_metadata()}
         {this.render_find_and_replace()}
         {this.render_keyboard_shortcuts()}
-        {this.render_assistant_dialog()}
+        {this.render_snippets_dialog()}
         {this.render_confirm_dialog()}
         {this.render_heading()}
         {this.render_main()}
