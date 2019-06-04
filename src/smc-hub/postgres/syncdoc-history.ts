@@ -25,7 +25,7 @@ async function get_users(db: PostgreSQL, where): Promise<User[]> {
   }
   const account_ids: string[] = results.rows[0].users
     ? results.rows[0].users
-    : [];   // syncdoc exists, but not used yet.
+    : []; // syncdoc exists, but not used yet.
   const project_id: string = results.rows[0].project_id;
   const project_title: string = trunc(
     (await callback2(db.get_project, {

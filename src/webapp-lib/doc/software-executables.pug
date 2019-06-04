@@ -21,6 +21,23 @@ block content
       return info[a].name.toLowerCase().localeCompare(info[b].name.toLowerCase());
     });
 
+  //- CSS comes at the top: overwrites styles defined in the header
+  style
+    :sass
+      @import "smc-webapp/_colors.sass"
+      .container > div.row
+        margin           : 0
+      code.software
+        font-size        : 80%
+        margin-left      : 2rem
+        position         : relative
+        bottom           : 2px
+      pre.stdout
+        font-size        : 80%
+        font-family      : monospace
+        max-height       : 12rem
+        white-space      : pre-wrap
+
   a.anchor#a-top
   div.container
     div.row#top
@@ -47,20 +64,3 @@ block content
           a(href="#" + ref, class="marker") ¶
         //- this also escapes the output, which is necessary because there are some strings that could be interpreted as html
         pre.stdout= execs[idx]
-
-  //- CSS comes at the bottom: overwrites styles defined in the header
-  style
-    :sass
-      @import "smc-webapp/_colors.sass"
-      .container > div.row
-        margin           : 0
-      code.software
-        font-size        : 80%
-        margin-left      : 2rem
-        position         : relative
-        bottom           : 2px
-      pre.stdout
-        font-size        : 80%
-        font-family      : monospace
-        max-height       : 12rem
-        white-space      : pre-wrap

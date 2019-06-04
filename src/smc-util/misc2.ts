@@ -478,5 +478,3 @@ export function bind_methods(obj: any, method_names: string[]): void {
     obj[method_name] = obj[method_name].bind(obj);
   }
 }
-
-

@@ -37,6 +37,7 @@ HEIGHT = '275px'
 # https://github.com/sagemathinc/cocalc-examples
 exports.examples_path = ROOT = '/ext/library/cocalc-examples'
 
+{LIBRARY_INDEX_FILE} = require('./project_configuration')
 
 # This is the main library component. It consists of a "selector" and a preview.
 # Later, we probably want to filter by tags, free-text search, ... but for now we just have the main categories

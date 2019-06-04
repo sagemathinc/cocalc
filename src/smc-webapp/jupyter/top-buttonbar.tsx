@@ -230,10 +230,10 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     return this.render_button("0", "show keyboard shortcuts");
   }
 
-  render_assistant() {
-    return this.render_button("assistant", {
-      name: "show code assistant",
-      label: <VisibleMDLG>Assistant</VisibleMDLG>
+  render_snippets() {
+    return this.render_button("snippets", {
+      name: "show code snippets",
+      label: <VisibleMDLG>Snippets</VisibleMDLG>
     });
   }
 
@@ -330,7 +330,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         >
           <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
         </Button>
-        {this.render_assistant()}
+        {this.render_snippets()}
         {this.render_close_and_halt()}
         {/*this.render_switch_button()*/}
       </ButtonGroup>

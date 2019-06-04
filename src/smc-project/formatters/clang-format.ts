@@ -37,9 +37,9 @@ export async function clang_format(
     // logger.debug(`clang_format tmp file: ${input_path}`);
     await callback(writeFile, input_path, input);
 
-    // spawn the html formatter
+    // spawn the c formatter
     let formatter;
-    let indent = options.tabWidth || 2;
+    const indent = options.tabWidth || 2;
 
     switch (options.parser) {
       case "clang-format":
@@ -57,7 +57,8 @@ export async function clang_format(
     formatter.stdout.on("data", data => (stdout += data.toString()));
     formatter.stderr.on("data", data => (stderr += data.toString()));
     // wait for subprocess to close.
-    let code = await callback(close, formatter);
+    const code = await callback(close, formatter);
+
     if (code >= 1) {
       const err_msg = `C/C++ code formatting utility "${
         options.parser
@@ -68,11 +69,12 @@ export async function clang_format(
 
     // all fine, we read from the temp file
     let output: Buffer = await callback(readFile, input_path);
+
     let s: string = output.toString("utf-8");
     // logger.debug(`clang_format output s ${s}`);
 
     return s;
   } finally {
-    unlink(input_path);
+    unlink(input_path, () => {});
   }
 }

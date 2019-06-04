@@ -1,5 +1,5 @@
 import * as React from "react";
-
+import { Rendered } from "../../app-framework";
 import { analytics_event } from "../../tracker";
 import { Icon } from "../../r_misc/icon";
 import { ProjectActions } from "../../project_actions";
@@ -10,7 +10,10 @@ import { full_path_text } from "./utils";
 const { FileTypeSelector } = require("../../project_new");
 const { Button, Row, Col } = require("react-bootstrap");
 
+import { MainConfiguration } from "../../project_configuration";
+
 interface Props {
+  name: string;
   actions: ProjectActions;
   create_folder: () => void;
   create_file: () => void;
@@ -18,6 +21,7 @@ interface Props {
   file_search: string;
   current_path?: string;
   project_id: string;
+  configuration_main?: MainConfiguration;
 }
 
 const row_style = {
@@ -27,7 +31,11 @@ const row_style = {
   wordWrap: "break-word"
 };
 
-const create_button_style = { fontSize: "40px", color: "#888", maxWidth: "100%" }
+const create_button_style = {
+  fontSize: "40px",
+  color: "#888",
+  maxWidth: "100%"
+};
 
 export class NoFiles extends React.PureComponent<Props> {
   static defaultProps = { file_search: "" };
@@ -51,20 +59,17 @@ export class NoFiles extends React.PureComponent<Props> {
     }
   };
 
-  render_create_button() {
+  render_create_button(actual_new_filename: string): Rendered {
     let button_text: string;
 
     if (this.props.file_search.length === 0) {
       button_text = "Create or Upload Files...";
     } else {
-      button_text = `Create ${full_path_text(this.props.file_search)}`;
+      button_text = `Create ${actual_new_filename}`;
     }
 
     return (
-      <Button
-        style={create_button_style}
-        onClick={() => this.handle_click()}
-      >
+      <Button style={create_button_style} onClick={() => this.handle_click()}>
         <Icon name="plus-circle" /> {button_text}
       </Button>
     );
@@ -75,6 +80,7 @@ export class NoFiles extends React.PureComponent<Props> {
       <div>
         <h4 style={{ color: "#666" }}>Or select a file type</h4>
         <FileTypeSelector
+          name={this.props.name}
           project_id={this.props.project_id}
           create_file={this.props.create_file}
           create_folder={this.props.create_folder}
@@ -84,13 +90,26 @@ export class NoFiles extends React.PureComponent<Props> {
   }
 
   render() {
+    if (this.props.configuration_main == null) return null;
+    const actual_new_filename =
+      this.props.file_search.length === 0
+        ? ""
+        : full_path_text(
+            this.props.file_search,
+            this.props.configuration_main.disabled_ext
+          );
     return (
       <Row style={row_style}>
         <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
           <span style={{ fontSize: "20px" }}>No files found</span>
           <hr />
-          {!this.props.public_view ? this.render_create_button() : undefined}
-          <HelpAlert file_search={this.props.file_search} />
+          {!this.props.public_view
+            ? this.render_create_button(actual_new_filename)
+            : undefined}
+          <HelpAlert
+            file_search={this.props.file_search}
+            actual_new_filename={actual_new_filename}
+          />
           {this.props.file_search.length > 0
             ? this.render_file_type_selection()
             : undefined}

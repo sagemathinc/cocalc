@@ -425,7 +425,7 @@ Create a new account:
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
-    -d email_address=jd@some_email \\
+    -d email_address=jd@example.com \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
 \`\`\`
@@ -440,7 +440,7 @@ Attempting to create the same account a second time results in an error:
   curl -u sk_abcdefQWERTY090900000000: \\
     -d first_name=John00 \\
     -d last_name=Doe00 \\
-    -d email_address=jd@some_email \\
+    -d email_address=jd@example.com \\
     -d password=xyzabc09090 \\
     -d agreed_to_terms=true https://cocalc.com/api/v1/create_account
   ==> {"event":"account_creation_failed",
@@ -1234,6 +1234,10 @@ API(
       description: {
         init: "",
         desc: "project description"
+      },
+      image: {
+        init: undefined,
+        desc: "(optional) image ID"
       },
       start: {
         init: false,
@@ -2393,7 +2397,7 @@ Example:
 
 \`\`\`
   curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
-    -d '{"email_address":"jd@some_email", \\
+    -d '{"email_address":"jd@example.com", \\
          "subject":"package xyz", \\
          "account_id":"291f43c1-deae-431c-b763-712307fa6859", \\
          "body":"please install package xyz for use with Python3", \\
