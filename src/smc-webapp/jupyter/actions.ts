@@ -1455,12 +1455,10 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ complete: undefined });
   };
 
-  select_complete = (id: any, item: any): void => {
+  public select_complete(id: string, item: string): void {
     const complete = this.store.get("complete");
     this.clear_complete();
     if (complete == null) {
-      this.clear_complete();
-      this.set_mode("edit");
       return;
     }
     const input = complete.get("code");
@@ -1471,17 +1469,18 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       const base = complete.get("base");
       this.complete_cell(id, base, new_input);
     }
-  };
+  }
 
-  complete_cell = (id: any, base: any, new_input: any) => {
-    this.set_mode("edit");
-    // We don't actually make the completion until the next render loop,
-    // so that the editor is already in edit mode.  This way the cursor is
-    // in the right position after making the change.
-    return setTimeout(() => this.merge_cell_input(id, base, new_input), 0);
-  };
+  complete_cell(id: string, base: string, new_input: string): void {
+    this.merge_cell_input(id, base, new_input);
+  }
 
-  merge_cell_input = (id: any, base: any, input: any, save = true): void => {
+  merge_cell_input(
+    id: string,
+    base: string,
+    input: string,
+    save: boolean = true
+  ): void {
     const remote = this.store.getIn(["cells", id, "input"]);
     // console.log 'merge', "'#{base}'", "'#{input}'", "'#{remote}'"
     if (remote == null || base == null || input == null) {
@@ -1493,7 +1492,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       remote
     });
     this.set_cell_input(id, new_input, save);
-  };
+  }
 
   complete_handle_key = (_: string, keyCode: any): void => {
     // User presses a key while the completions dialog is open.
@@ -1523,7 +1522,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     })();
     if (complete.matches.length === 0) {
       this.clear_complete();
-      this.set_mode("edit");
     } else {
       const orig_base = complete.base;
       complete.base = complete.code;

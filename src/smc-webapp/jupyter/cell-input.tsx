@@ -247,6 +247,7 @@ export class CellInput extends Component<CellInputProps> {
   private render_complete(): Rendered {
     if (
       this.props.actions != null &&
+      this.props.frame_actions != null &&
       this.props.complete &&
       this.props.complete.get("matches", fromJS([])).size > 0
     ) {
@@ -254,6 +255,7 @@ export class CellInput extends Component<CellInputProps> {
         <Complete
           complete={this.props.complete}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           id={this.props.id}
         />
       );

@@ -544,6 +544,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
         <Complete
           complete={this.props.complete}
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           id={this.props.id}
         />
       );
