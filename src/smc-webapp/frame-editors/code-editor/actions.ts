@@ -748,6 +748,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   _tree_is_single_leaf(): boolean {
     return tree_ops.is_leaf(this._get_tree());
   }
+
   // Delete the frame with given id.
   // If this is the active frame, then the new active frame becomes whichever
   // frame still exists that was most recently active before this frame.

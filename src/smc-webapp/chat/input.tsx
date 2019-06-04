@@ -3,6 +3,7 @@ import memoizeOne from "memoize-one";
 import * as immutable from "immutable";
 const sha1 = require("sha1");
 import * as CSS from "csstype";
+import { delay } from "awaiting";
 
 import { MentionsInput, Mention } from "react-mentions";
 import { USER_MENTION_MARKUP } from "./utils";
@@ -55,21 +56,27 @@ export class ChatInput extends React.PureComponent<Props> {
 
   // Hack around updating mentions when pasting an image (which we have to handle ourselves)
   // Without this, MentionsInput does not correctly update its internal representation.
-  componentDidUpdate(prev_props) {
+  async componentDidUpdate(prev_props): Promise<void> {
     if (
       this.props.enable_mentions &&
-      this.props.on_paste != undefined &&
+      this.props.on_paste != null &&
       prev_props.input != this.props.input
     ) {
-      window.setTimeout(() => {
+      await delay(0);
+      // after await, so aspects of this object could have changed; it might
+      // not be mounted anymore, etc.
+      const target = this.input_ref.current;
+      if (this.mentions_input_ref.current != null && target != null) {
+        // see https://github.com/sagemathinc/cocalc/issues/3849 and
+        // https://stackoverflow.com/questions/51693111/current-is-always-null-when-using-react-createref
         this.mentions_input_ref.current.wrappedInstance.handleChange({
-          target: this.input_ref.current
+          target
         });
-      }, 0);
+      }
     }
   }
 
-  input_style = memoizeOne(
+  private input_style = memoizeOne(
     (font_size: number, height: string, input_height: InputHeight) => {
       // TODO not sure what's going on with all these heights
 
@@ -153,31 +160,33 @@ export class ChatInput extends React.PureComponent<Props> {
     }
   );
 
-  mentions_data = memoizeOne((project_users: immutable.Map<string, any>) => {
-    const user_array = project_users
-      .keySeq()
-      .filter(account_id => {
-        return account_id !== this.props.account_id;
-      })
-      .map(account_id => {
-        return {
-          id: account_id,
-          display: this.props.user_store.get_name(account_id),
-          last_active: this.props.user_store.get_last_active(account_id)
-        };
-      })
-      .toJS();
+  private mentions_data = memoizeOne(
+    (project_users: immutable.Map<string, any>) => {
+      const user_array = project_users
+        .keySeq()
+        .filter(account_id => {
+          return account_id !== this.props.account_id;
+        })
+        .map(account_id => {
+          return {
+            id: account_id,
+            display: this.props.user_store.get_name(account_id),
+            last_active: this.props.user_store.get_last_active(account_id)
+          };
+        })
+        .toJS();
 
-    user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
+      user_array.sort((x, y) => -cmp_Date(x.last_active, y.last_active));
 
-    return user_array;
-  });
+      return user_array;
+    }
+  );
 
-  on_change = (e, _, plain_text, mentions) => {
+  private on_change = (e, _, plain_text, mentions) => {
     this.props.on_change(e.target.value, mentions, plain_text);
   };
 
-  on_keydown = (e: any) => {
+  private on_keydown = (e: any) => {
     // TODO: Add timeout component to is_typing
     if (
       e.keyCode === 13 &&
@@ -196,7 +205,7 @@ export class ChatInput extends React.PureComponent<Props> {
     }
   };
 
-  render_user_suggestion = (entry: { id: string; display: string }) => {
+  private render_user_suggestion = (entry: { id: string; display: string }) => {
     return (
       <span>
         <Avatar size={this.props.font_size + 12} account_id={entry.id} />
@@ -234,7 +243,7 @@ export class ChatInput extends React.PureComponent<Props> {
           value={this.props.input}
           placeholder={"Type a message..."}
           onChange={this.on_change}
-          style={{height: "100%"}}
+          style={{ height: "100%" }}
         />
       );
     }

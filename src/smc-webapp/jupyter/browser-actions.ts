@@ -8,13 +8,13 @@ import { merge_copy, uuid } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
-const { instantiate_assistant } = require("../assistant/main");
+const { instantiate_snippets } = require("../assistant/main");
 const { commands } = require("./commands");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
   private cursor_manager: CursorManager;
-  private assistant_actions: any;
+  private snippet_actions: any;
   private _account_change_editor_settings: any;
   private _commands: any;
   private update_keyboard_shortcuts: any;
@@ -72,9 +72,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("cursor_activity", this.syncdb_cursor_activity);
     this.cursor_manager = new CursorManager();
 
-    // this initializes actions+store for the assistant
+    // this initializes actions+store for the snippet dialog
     // this is also only a UI specific action
-    this.assistant_actions = instantiate_assistant(this.project_id, this.path);
+    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
 
     if (window != null && (window as any).$ != null) {
       // frontend browser client with jQuery
@@ -123,27 +123,27 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  show_code_assistant = () => {
-    if (this.assistant_actions == null) {
+  show_code_snippets = () => {
+    if (this.snippet_actions == null) {
       return;
     }
     this.blur_lock();
 
     const lang = this.store.get_kernel_language();
 
-    this.assistant_actions.init(lang);
-    return this.assistant_actions.set({
+    this.snippet_actions.init(lang);
+    return this.snippet_actions.set({
       show: true,
       lang,
       lang_select: false,
-      handler: this.code_assistant_handler
+      handler: this.code_snippet_handler
     });
   };
 
-  code_assistant_handler = (data: { code: string[]; descr?: string }): void => {
+  code_snippet_handler = (data: { code: string[]; descr?: string }): void => {
     this.focus_unlock();
     const { code, descr } = data;
-    //if DEBUG then console.log("assistant data:", data, code, descr)
+    //if DEBUG then console.log("snippet data:", data, code, descr)
 
     if (descr != null) {
       const descr_cell = this.insert_cell(1);

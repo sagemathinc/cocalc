@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'terminal';
-    subtitle = 'Online Linux Terminal';
+    subtitle = 'Collaborative Online Linux Terminal';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -27,17 +27,10 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/linux-logo.svg")).fit
       div.col-md-12.center
-        h1 Online Linux Terminal
+        h1 #{subtitle}
       div.col-sm-6
         div
           img(src="https://storage.googleapis.com/cocalc-extra/terminal.png").fit
@@ -61,23 +54,39 @@ block content
           li.
             You can #[strong copy/paste] between your local desktop the terminal.
 
-        p.
-          #[strong Popular applications] are
-          #[a(href="https://git-scm.com/") Git] to e.g. interact with #[a(href="https://www.github.com")],
-          #[a(href="https://www.vim.org/") VIM],
-          #[a(href="https://www.gnu.org/software/emacs/") Emacs],
-          various programming shells like #[a(href="https://ipython.org/") IPython],
-          #[a(href="https://www.r-project.org/") R shell],
-          or software compilers like #[a(href="https://gcc.gnu.org/") GNU GCC] or
-          #[a(href="https://clang.llvm.org/") Clang].
-          Look at our
-          #[a(href="software-executables.html") list of executables]
-          to find even more!
-        p.
-          Finally, take a look at our
-          #[strong #[a(href="https://doc.cocalc.com/terminal.html") terminal documentation]]
-          to learn more about it!
+    a.anchor#a-software
+    div.container#software
+      div.row
+        div.col-md-12.center
+          h2 Comprehensive software stack
+        div.col-md-8.col-md-offset-2
+          p.
+            #[strong Popular applications] are
+            #[a(href="https://git-scm.com/") Git]
+            to e.g. interact with #[a(href="https://www.github.com") GitHub],
+            #[a(href="https://www.vim.org/") VIM],
+            #[a(href="https://www.gnu.org/software/emacs/") Emacs],
+            various programming shells like #[a(href="https://ipython.org/") IPython],
+            #[a(href="https://www.r-project.org/") R shell],
+            or software compilers like #[a(href="https://gcc.gnu.org/") GNU GCC] or
+            #[a(href="https://clang.llvm.org/") Clang].
+          p.
+            There is also support for many programming languages.
+            #[a(href=PREFIX + "/doc/python.html") Python],
+            JAVA, C/C++,
+            #[a(href="https://en.wikipedia.org/wiki/Ada_(programming_language)") Ada],
+            #[a(href="https://en.wikipedia.org/wiki/Haskell_(programming_language)") Haskell],
+            #[a(href="https://en.wikipedia.org/wiki/Smalltalk") Smalltalk] and many more.
+          p.
+            Look at our
+            #[strong #[a(href="software-executables.html") list of executables]]
+            to check what is available!
+          p.
+            Finally, take a look at our
+            #[strong #[a(href="https://doc.cocalc.com/terminal.html") terminal documentation]]
+            to learn more about it!
 
+  +start_free_banner
 
   a.anchor#a-real-time
   div.container.space#real-time
@@ -95,7 +104,7 @@ block content
           Both see the same view, which adaptively resizes to a common size.
         p.
           Open
-          #[a(href="https://doc.cocalc.com/chat.html") side-chat]
+          #[a(href="https://doc.cocalc.com/chat.html") side chat]
           to exchange thoughts and ideas.
 
 
@@ -125,8 +134,4 @@ block content
           Therefore, this is ideal to learn basic shell commands or more about Linux online.
 
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
+  +start_free_banner
