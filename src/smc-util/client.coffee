@@ -542,6 +542,10 @@ class exports.Connection extends EventEmitter
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
 
+    _set_signed_out: =>
+        @_signed_in = false
+        @_redux?.getActions('account')?.set_user_type('public')
+
     change_data_channel: (opts) =>
         opts = defaults opts,
             prev_channel : undefined
@@ -1988,6 +1992,10 @@ class exports.Connection extends EventEmitter
                 options : opts.options
                 standby : opts.standby
                 cb      : (err, resp) =>
+                    if err == 'not signed in'
+                        @_set_signed_out()
+                        opts.cb?(err, resp)
+                        return
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return

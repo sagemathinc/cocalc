@@ -45,10 +45,15 @@ export class TerminalFrame extends Component<Props, {}> {
   }
 
   componentWillReceiveProps(next: Props): void {
-    if (this.props.font_size !== next.font_size) {
+    if (this.props.id != next.id || this.terminal == null) {
+      /* yes, this can change!! -- see https://github.com/sagemathinc/cocalc/issues/3819 */
+      this.delete_terminal();
+      this.init_terminal();
+    }
+    if (this.props.font_size !== next.font_size && this.terminal != null) {
       this.set_font_size(next.font_size);
     }
-    if (!this.props.is_current && next.is_current) {
+    if (!this.props.is_current && next.is_current && this.terminal != null) {
       this.terminal.focus();
     }
   }
@@ -63,13 +68,16 @@ export class TerminalFrame extends Component<Props, {}> {
 
   componentWillUnmount(): void {
     this.is_mounted = false;
-    if (this.terminal !== undefined) {
-      this.terminal.element.remove();
-      this.terminal.is_mounted = false;
-      // Ignore size for this terminal.
-      this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
-      delete this.terminal;
-    }
+    this.delete_terminal();
+  }
+
+  delete_terminal(): void {
+    if (this.terminal == null) return;
+    this.terminal.element.remove();
+    this.terminal.is_mounted = false;
+    // Ignore size for this terminal.
+    this.terminal.conn_write({ cmd: "size", rows: 0, cols: 0 });
+    delete this.terminal;
   }
 
   init_terminal(): void {
@@ -77,7 +85,11 @@ export class TerminalFrame extends Component<Props, {}> {
     if (node == null) {
       throw Error("refs.terminal MUST be defined");
     }
-    this.terminal = this.props.actions._get_terminal(this.props.id, node);
+    try {
+      this.terminal = this.props.actions._get_terminal(this.props.id, node);
+    } catch (err) {
+      return; // not yet ready.
+    }
     this.set_font_size(this.props.font_size);
     this.measure_size();
     new ResizeObserver(() => this.measure_size()).observe(node);
@@ -145,7 +157,7 @@ export class TerminalFrame extends Component<Props, {}> {
           onClick={() => {
             /* otherwise, clicking right outside term defocuses,
              which is confusing */
-            this.terminal.focus();
+            if (this.terminal != null) this.terminal.focus();
           }}
         >
           <div className={"smc-vfill cocalc-xtermjs"} ref={"terminal"} />

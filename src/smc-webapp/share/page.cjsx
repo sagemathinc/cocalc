@@ -40,8 +40,11 @@ exports.Page = rclass
                 <a href={"https://cocalc.com"} target={"_blank"} rel={"noopener"}>Powered by CoCalc</a>
             </div>
         else
-            <div style={position:'absolute', left:'50%', transform: 'translate(-50%)', fontSize:'12pt', maxHeight: '68px', overflowY: 'scroll'}>
-                <a href={"https://cocalc.com"} target={"_blank"} rel={"noopener"}>CoCalc lets you use Linux, Python, LaTeX, Jupyter notebooks and much more in your browser! Pivately share with collaborators. Changes are synchronized in realtime.</a>
+            <div style={position:'absolute', left:'50%', transform: 'translate(-50%)', fontSize:'12pt', maxHeight: '68px', overflowY: 'hidden', background: 'white', padding: '0 5px',border: '1px solid #aaa'}>
+                <a href={"https://cocalc.com/doc/features.html"} target={"_blank"} rel={"noopener"}>
+                CoCalc -- Linux, Python, Courses, Jupyter notebooks, LaTeX and much more in your browser!
+                Privately collaborate. Changes synchronized in realtime.
+                </a>
             </div>
 
     notranslate: ->

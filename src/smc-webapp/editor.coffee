@@ -67,7 +67,7 @@ syncdoc  = require('./syncdoc')
 sagews   = require('./sagews/sagews')
 printing = require('./printing')
 
-{render_examples_dialog} = require('./assistant/legacy')
+{render_snippets_dialog} = require('./assistant/legacy')
 
 copypaste = require('./copy-paste-buffer')
 {extra_alt_keys} = require('mobile/codemirror')
@@ -621,7 +621,7 @@ class CodeMirrorEditor extends FileEditor
         if misc.filename_extension(@filename)?.toLowerCase() == 'sagews'
             @init_sagews_edit_buttons()
 
-        @examples_dialog = null
+        @snippets_dialog = null
 
     programmatical_goto_line: (line) =>
         cm = @codemirror_with_last_focus
@@ -1475,23 +1475,23 @@ class CodeMirrorEditor extends FileEditor
                 # needed so that dropdown menu closes when clicked.
                 return true
 
-    examples_dialog_handler: () =>
-        # @examples_dialog is an ExampleActions object, unique for each editor instance
+    snippets_dialog_handler: () =>
+        # @snippets_dialog is an ExampleActions object, unique for each editor instance
         lang = @_current_mode
         # special case sh → bash
         if lang == 'sh' then lang = 'bash'
 
-        if not @examples_dialog?
+        if not @snippets_dialog?
             $target = @mode_display.parent().find('.react-target')
-            @examples_dialog = render_examples_dialog(
+            @snippets_dialog = render_snippets_dialog(
                 target     : $target[0]
                 project_id : @project_id
                 path       : @filename
                 lang       : lang
             )
         else
-            @examples_dialog.show(lang)
-        @examples_dialog.set_handler(@example_insert_handler)
+            @snippets_dialog.show(lang)
+        @snippets_dialog.set_handler(@example_insert_handler)
         analytics_event('editor_assistant', @ext, lang)
 
     example_insert_handler: (insert) =>
@@ -1646,7 +1646,7 @@ class CodeMirrorEditor extends FileEditor
         # show the assistant button to reveal the dialog for example selection
         @element.find('.webapp-editor-codeedit-buttonbar-assistant').show()
         assistant_button = @element.find('a[href="#assistant"]')
-        assistant_button.click(@examples_dialog_handler)
+        assistant_button.click(@snippets_dialog_handler)
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for

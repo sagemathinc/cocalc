@@ -173,7 +173,7 @@ export class Terminal {
     delete this.number;
     delete this.render_buffer;
     delete this.history;
-    this.terminal.destroy();
+    this.terminal.dispose();
     if (this.conn != null) {
       this.disconnect();
     }
