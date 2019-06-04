@@ -54,8 +54,17 @@ if (document.referrer.length > 0) {
 response["landing"] = `${protocol}//${host}${pathname}`;
 
 // send back a beacon (token is in an http-only cookie)
-const xhr = new XMLHttpRequest();
-xhr.withCredentials = true;
-xhr.open("POST", PREFIX + "/analytics.js", true);
-xhr.setRequestHeader("Content-Type", "application/json");
-xhr.send(JSON.stringify(response));
+window
+  .fetch(PREFIX + "/analytics.js", {
+    method: "POST",
+    mode: "cors",
+    cache: "no-cache",
+    credentials: "include", // include, *same-origin, omit
+    headers: {
+      "Content-Type": "application/json"
+    },
+    redirect: "follow",
+    body: JSON.stringify(response)
+  })
+  .then(response => console.log("Success:", response))
+  .catch(error => console.error("Error:", error));
