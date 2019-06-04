@@ -252,7 +252,6 @@ const assetsPlugin = new AssetsPlugin({
 
 // https://www.npmjs.com/package/html-webpack-plugin
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const CopyWebpackPlugin = require("copy-webpack-plugin");
 // we need our own chunk sorter, because just by dependency doesn't work
 // this way, we can be 100% sure
 function smcChunkSorter(a, b) {
