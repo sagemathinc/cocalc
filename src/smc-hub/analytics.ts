@@ -1,6 +1,6 @@
-import * as misc from "smc-util/misc";
-import * as ms from "ms";
-const { DNS } = require("smc-util/theme");
+//import * as misc from "smc-util/misc";
+//import * as ms from "ms";
+//const { DNS } = require("smc-util/theme");
 import * as fs from "fs";
 import * as TS from "typescript";
 const UglifyJS = require("uglify-js");
@@ -88,14 +88,14 @@ export function analytics_rec(
   }
 }
 
-export function analytics_cookie(res): void {
-  // set the cookie (TODO sign it?)
-  const analytics_token = misc.uuid();
-  // console.log("analytics_cookie DNS=", DNS);
-  res.cookie(misc.analytics_cookie_name, analytics_token, {
-    path: "/",
-    maxAge: ms("100 days"),
-    httpOnly: true,
-    domain: DNS
-  });
-}
+//export function analytics_cookie(res): void {
+//  // set the cookie (TODO sign it?)
+//  const analytics_token = misc.uuid();
+//  // console.log("analytics_cookie DNS=", DNS);
+//  res.cookie(misc.analytics_cookie_name, analytics_token, {
+//    path: "/",
+//    maxAge: ms("100 days"),
+//    httpOnly: true,
+//    domain: DNS
+//  });
+//}

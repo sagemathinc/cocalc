@@ -194,7 +194,10 @@ exports.init_express_http_server = (opts) ->
             return
 
         # write response script
-        analytics_cookie(res)
+        #analytics_cookie(res)
+        res.write("var NAME = '#{misc.analytics_cookie_name}';\n")
+        res.write("var ID = '#{misc.uuid()}';\n")
+        res.write("var DOMAIN = '#{pdDNS.domain}.#{pdDNS.tld}';\n")
         #  BASE_URL
         if req.query.fqd == 'false'
             res.write("var PREFIX = '#{opts.base_url}';\n")

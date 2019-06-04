@@ -20,18 +20,27 @@ async function tracking_events(): Promise<void> {
 }
 
 async function analytics_send(mesg: SignedIn): Promise<void> {
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", APP_BASE_URL + "/analytics.js", true);
-  xhr.setRequestHeader("Content-Type", "application/json");
-  xhr.send(
-    JSON.stringify({
-      account_id: mesg.account_id
+  window
+    .fetch(APP_BASE_URL + "/analytics.js", {
+      method: "POST",
+      cache: "no-cache",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      redirect: "follow",
+      body: JSON.stringify({
+        account_id: mesg.account_id
+      })
     })
-  );
+    // .then(response => console.log("Success:", response))
+    .catch(error =>
+      console.error("sign-in-hooks::analytics_send error:", error)
+    );
 }
 
 webapp_client.on("signed_in", (mesg: SignedIn) => {
-  console.log("sign-in-hooks::signed_in mesg=", mesg);
+  // console.log("sign-in-hooks::signed_in mesg=", mesg);
   // these run in parallel
   tracking_events();
   analytics_send(mesg);

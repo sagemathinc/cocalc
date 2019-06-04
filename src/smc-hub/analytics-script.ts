@@ -10,7 +10,11 @@
  * e.g. this filters the SSO auth pages, which are uninteresting referrals
  */
 
-// variable PREFIX is injected in the hub
+// variable PREFIX, DOMAIN and ID are injected in the hub's http server
+
+// write cookie. it would be cool to set this via the http request itself,
+// but for reasons I don't know it doesn't work across subdomains.
+document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${24*60*60}`
 
 const { href, protocol, host, pathname } = window.location;
 
