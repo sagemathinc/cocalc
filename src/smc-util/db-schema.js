@@ -1868,13 +1868,13 @@ schema.analytics = {
     token: {
       type: "uuid"
     },
-    data_time: {
-      type: "timestamp",
-      desc: "when the data field was set"
-    },
     data: {
       type: "map",
       desc: "referrer, landing page, utm, etc."
+    },
+    data_time: {
+      type: "timestamp",
+      desc: "when the data field was set"
     },
     account_id: {
       type: "uuid",

@@ -61,7 +61,7 @@ response["landing"] = `${protocol}//${host}${pathname}`;
 window
   .fetch(PREFIX + "/analytics.js", {
     method: "POST",
-    mode: "cors",
+    mode: "no-cors",
     cache: "no-cache",
     credentials: "include", // include, *same-origin, omit
     headers: {
