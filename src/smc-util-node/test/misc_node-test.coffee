@@ -1,8 +1,12 @@
+
+require('ts-node').register()
+
 expect = require('expect')
 
 misc = require('smc-util/misc')
 
 misc_node = require('../misc_node')
+misc2_node = require('../misc2_node')
 
 describe 'computing a sha1 hash: ', ->
     expect(misc_node.sha1("SageMathCloud")).toBe('31acd8ca91346abcf6a49d2b1d88333f439d57a6')
@@ -183,3 +187,27 @@ describe 'check sales tax work', ->
             lower_bound = 0.0650
             expect(v).toBeLessThan(upper_bound, "sales tax for #{zip} was #{v} but should be less than #{upper_bound}")
             expect(v).toBeGreaterThan(lower_bound, "sales tax for #{zip} was #{v} but should be greater than #{lower_bound}")
+
+
+describe 'do not allow URLs in names', ->
+    {is_valid_username} = misc2_node
+
+    it 'works for usual names', ->
+        expect(is_valid_username("harald")).toBe(undefined)
+        expect(is_valid_username("ABC FOO-BAR")).toBe(undefined)
+        # DNS-like substrings easily trigger a violoation. these are fine, though
+        expect(is_valid_username("is.test.ok")).toBe(undefined)
+        expect(is_valid_username("is.a.test")).toBe(undefined)
+
+    it 'blocks suspicious names', ->
+        expect(is_valid_username("OPEN http://foo.com")).toExist()
+        expect(is_valid_username("https://earn-money.cc is good" )).toExist()
+        expect(is_valid_username("OPEN mailto:bla@bar.de")).toExist()
+
+    it 'is not fooled to easily', ->
+        expect(is_valid_username("OPEN hTTp://foo.com")).toExist()
+        expect(is_valid_username("httpS://earn-money.cc is good" )).toExist()
+        expect(is_valid_username("OPEN MAILTO:bla@bar.de")).toExist()
+        expect(is_valid_username("test.account.dot")).toInclude("test.account.dot")
+        expect(is_valid_username("no spam EARN-A-LOT-OF.money Now")).toInclude(".money")
+        expect(is_valid_username("spam abc.co earn")).toInclude(".co")

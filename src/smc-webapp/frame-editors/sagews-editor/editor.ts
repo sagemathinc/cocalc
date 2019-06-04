@@ -68,7 +68,7 @@ const EDITOR_SPEC = {
 - Exporting to different formats
 - Slideshow
 - Sage documentation (e.g., the entire reference manual)
-- Assistant
+- Snippets
 - Terminal (interface to running sage server)
 - List of variables you have defined
 

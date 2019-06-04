@@ -17,6 +17,13 @@ mixin start_free
        A new project runs under a free plan (unlimited trial) has a quota of #{free_memory_gb} GB memory and #{free_disk_gb} GB of disk space.
        Purchasing #[a(href=PREFIX + "policies/pricing.html") a subscription] and upgrading your projects makes hosting more robust and increases its quotas.
 
+mixin start_free_banner
+  div(style="margin-top: 6rem").darkbg
+    div.container
+      +start_free
+      div.col-sm-12.center
+        +start_button
+
 
 mixin video-player
   div.video-player.fit
@@ -150,9 +157,9 @@ html.no-js(lang="en")
             > footer
               margin-top     : 6rem
             > div.row#top
-              margin         : 14rem 0 0 0
+              margin         : 14rem 0 4rem 0
               @media (min-width: 992px)
-                margin       : 10rem 0 0 0
+                margin       : 14rem 0 4rem 0
             > div#software-env-top
               margin         : 2rem 0 5rem 0
         /* used for a.anchor#a-name with an offset to compensate for the static navbar on top */

@@ -17,7 +17,7 @@ test("renders a list of languages", () => {
       actions={actions}
       settings={settings}
       available_features={available_features}
-      id="unused??"
+      id={"unused??"}
     />
   );
 
