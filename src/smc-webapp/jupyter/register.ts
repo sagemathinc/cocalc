@@ -4,16 +4,16 @@ Register the Jupyter Notebook editor and viewer with CoCalc
     and how to init and remove the actions/store
 */
 
-const misc = require("smc-util/misc");
+import { meta_file } from "smc-util/misc";
 
 const { register_file_editor } = require("../file-editors");
 const { alert_message } = require("../alerts");
 import { redux_name } from "../app-framework";
 const { webapp_client } = require("../webapp_client");
 
-const { JupyterEditor } = require("./main");
-const { JupyterActions } = require("./browser-actions");
-const { JupyterStore, initial_jupyter_store_state } = require("./store");
+import { JupyterEditor } from "./main";
+import { JupyterActions } from "./browser-actions";
+import { JupyterStore, initial_jupyter_store_state } from "./store";
 
 import { syncdb2 as new_syncdb } from "../frame-editors/generic/client";
 
@@ -39,7 +39,7 @@ export function register(): void {
         JupyterStore,
         initial_jupyter_store_state
       );
-      const sync_path = misc.meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
+      const sync_path = meta_file(path, "jupyter2"); // a.ipynb --> ".a.ipynb.sage-jupyter2"
 
       const syncdb = new_syncdb({
         project_id,

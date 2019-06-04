@@ -8,7 +8,7 @@ subtlely comes from editing JSON, but not saving when state is invalid.
 
 import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
-const { JSONEditor } = require("./json-editor");
+import { JSONEditor } from "./json-editor";
 import { JupyterActions } from "./browser-actions";
 
 interface RawEditorProps {
