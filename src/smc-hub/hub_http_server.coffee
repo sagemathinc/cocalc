@@ -231,6 +231,9 @@ exports.init_express_http_server = (opts) ->
         res.end()
         return
 
+    # additionally, custom content types require a preflight cors check
+    router.options('/analytics.js', cors(analytics_cors))
+
     # The /static content
     router.use '/static',
         express.static(STATIC_PATH, setHeaders: cacheLongTerm)
