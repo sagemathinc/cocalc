@@ -1154,7 +1154,7 @@ KEYBOARD_SHORTCUTS =
     'Fold/unfold selected code'    : 'control+Q'
     'Shift selected text right'    : 'tab'
     'Shift selected text left'     : 'shift+tab'
-    'Split view in any editor'     : 'control+I'
+    'Split view in Sage worksheet' : 'shift+control+I'
     'Autoindent selection'         : "control+'"
     'Format code (use Prettier)'   : 'control+shift+F'
     'Multiple cursors'             : 'control+click'

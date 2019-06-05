@@ -11,7 +11,7 @@ import { PDF } from "./pdf";
 import { STDERR_STYLE, STDOUT_STYLE } from "./style";
 import { TextPlain } from "./text-plain";
 
-// share server can't handle this, so we have to use require.
+// share server can't handle this (yet!), so we have to use require.
 // import { Widget } from "./widget";
 let Widget: any = undefined;
 try {

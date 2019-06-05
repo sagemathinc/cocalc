@@ -2,12 +2,16 @@
 Insert a cell
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 const { IS_TOUCH } = require("../feature"); // TODO: use import with types
 
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 export interface InsertCellProps {
-  actions: any; // TODO: types
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   id: string;
   position?: "above" | "below";
 }
@@ -32,10 +36,10 @@ export class InsertCell extends Component<InsertCellProps, InsertCellState> {
     );
   }
   click = (e: any) => {
-    this.props.actions.set_cur_id(this.props.id);
-    const new_id = this.props.actions.insert_cell(
+    this.props.frame_actions.set_cur_id(this.props.id);
+    const new_id = this.props.frame_actions.insert_cell(
       this.props.position === "below" ? 1 : -1
-    ); // TODO: is this ok if position is undefined?
+    );
     if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) {
       this.props.actions.set_cell_type(new_id, "markdown");
     }

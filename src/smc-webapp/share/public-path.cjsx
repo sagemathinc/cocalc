@@ -14,7 +14,7 @@ misc = require('smc-util/misc')
 file_editors = require('../file-editors')
 
 # Register the Jupyter editor, so we can use it to render public ipynb
-require('../jupyter/register-nbviewer').register()
+require('../jupyter/nbviewer/register').register()
 
 {PDF} = require('./pdf')
 

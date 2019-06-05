@@ -18,7 +18,7 @@ export class Stdout extends Component<StdoutProps> {
 
   render(): Rendered {
     let value = this.props.message.get("text");
-    if (typeof value != 'string') {
+    if (typeof value != "string") {
       value = `${value}`;
     }
     if (is_ansi(value)) {

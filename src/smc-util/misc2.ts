@@ -7,9 +7,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
-const underscore = require("underscore");
-const urlRegex = require("url-regex");
-import { to_human_list } from "./misc";
+import * as lodash from "lodash";
+export const keys = lodash.keys;
 
 interface SplittedPath {
   head: string;
@@ -137,8 +136,9 @@ export function copy_with(obj: object, w: string | string[]): object {
 import { cloneDeep } from "lodash";
 export const deep_copy = cloneDeep;
 
-export function set(v: string[]): object {
-  const s = {};
+// Very poor man's set.
+export function set(v: string[]): { [key: string]: true } {
+  const s: { [key: string]: true } = {};
   for (let x of v) {
     s[x] = true;
   }
@@ -238,8 +238,6 @@ export function len(obj: object | undefined | null): number {
   }
   return Object.keys(obj).length;
 }
-
-export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
@@ -479,23 +477,4 @@ export function bind_methods(obj: any, method_names: string[]): void {
   for (let method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
-}
-
-// used to test for URLs in a string
-const re_url = urlRegex({ exact: false, strict: false });
-
-// returns undefined if ok, otherwise an error message
-export function is_valid_username(str: string): string | undefined {
-  const name = str.toLowerCase();
-
-  const found = name.match(re_url);
-  if (found) {
-    return `URLs are not allowed. Found ${to_human_list(found)}`;
-  }
-
-  if (name.indexOf("mailto:") != -1 && name.indexOf("@") != -1) {
-    return "email addresses are not allowed";
-  }
-
-  return;
 }

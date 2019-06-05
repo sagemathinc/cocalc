@@ -1,3 +1,3 @@
 [submodule "src/examples"]
 	path = src/examples
-	url = https://github.com/sagemathinc/cocalc-assistant.git
+	url = https://github.com/sagemathinc/cocalc-snippets.git

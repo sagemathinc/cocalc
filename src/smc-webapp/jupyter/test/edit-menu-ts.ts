@@ -84,6 +84,7 @@ describe("tests inserting several cells, selecting several, and deleting all tha
     actions.insert_cell(1);
     expect(store.get("cells").size).to.equal(4);
   });
+  /*
   it("select cells 0-2 with the current at position 0", () => {
     actions.set_cur_id(store.get("cell_list").get(0));
     actions.select_cell(store.get("cell_list").get(1));
@@ -95,6 +96,7 @@ describe("tests inserting several cells, selecting several, and deleting all tha
     expect(store.get("cell_list").toJS()).to.deep.equal([id]);
     expect(store.get("cur_id")).to.equal(id);
   });
+  */
   it("undo deleting those 3 cells", () => {
     actions.undo();
     expect(store.get("cell_list").size).to.equal(4);
@@ -132,6 +134,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
       actions.set_cell_input(id, `${k}`);
     }
   });
+  /*
   it("select cells 1-3 with the current at position 0", () => {
     const list = store.get("cell_list").toJS();
     actions.set_cur_id(list[1]);
@@ -188,7 +191,7 @@ describe("tests inserting several cells, selecting several, and cut/paste/copy t
       result.push(cells.getIn([id, "input"]));
     }
     expect(result).to.deep.equal(["0", "0", "1", "2", "3"]);
-  });
+  });*/
 });
 
 describe("creates and splits cells in various ways", () => {
@@ -275,12 +278,12 @@ describe("merge cell with cell above", () => {
     actions.set_cursor_locs([{ id, x: 3, y: 0 }]);
     actions.split_current_cell();
   });
-  it("now merge cells back together above", () => {
+/*  it("now merge cells back together above", () => {
     actions.merge_cell_above();
     const list = store.get("cell_list");
     expect(list.size).to.equal(1);
     expect(store.getIn(["cells", list.get(0), "input"])).to.equal("abc\n123");
-  });
+  });*/
 });
 
 describe("merge cell with cell below", () => {
@@ -302,13 +305,14 @@ describe("merge cell with cell below", () => {
     actions.set_cursor_locs([{ id, x: 3, y: 0 }]);
     actions.split_current_cell();
   });
+  /*
   it("now merge cells back together below", () => {
     actions.set_cur_id(store.get("cell_list").get(0));
     actions.merge_cell_below();
     const list = store.get("cell_list");
     expect(list.size).to.equal(1);
     expect(store.getIn(["cells", list.get(0), "input"])).to.equal("abc\n123");
-  });
+  });*/
 });
 
 describe("inserting a cell in various ways", () => {
