@@ -135,10 +135,11 @@ export class NotebookFrameActions {
     }
   }
 
-  private todo(f: string, ...args): void {
+  /* private todo(f: string, ...args): void {
     if (!DEBUG) return;
     this.dbg(f, "TODO", ...args);
   }
+  */
 
   /***
    * standard Actions API
@@ -256,16 +257,16 @@ export class NotebookFrameActions {
   }
 
   public cut(): void {
-    this.todo("cut");
+    this.command("cut cell");
   }
 
   public copy(): void {
-    this.todo("copy");
+    this.command("copy cell");
   }
 
   public paste(value?: string | true): void {
     value = value; // ignored -- we use internal buffer
-    this.todo("paste");
+    this.command("paste cell and replace");
   }
 
   public scroll(scroll?: Scroll): void {
