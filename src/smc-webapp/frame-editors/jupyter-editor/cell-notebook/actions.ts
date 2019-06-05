@@ -4,6 +4,7 @@ import { Set } from "immutable";
 import { delay } from "awaiting";
 
 import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
+import { bind_methods } from "smc-util/misc2";
 
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
@@ -33,6 +34,8 @@ export class NotebookFrameActions {
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
+    bind_methods(this, ['update_cur_id', 'syncdb_before_change', 'syncdb_after_change']);
+
     // General frame tree editor actions:
     this.frame_tree_actions = frame_tree_actions;
 
@@ -42,10 +45,7 @@ export class NotebookFrameActions {
     this.frame_id = frame_id;
     this.store = new NotebookFrameStore(frame_tree_actions, frame_id);
 
-    this.jupyter_actions.store.on(
-      "cell-list-recompute",
-      this.update_cur_id.bind(this)
-    );
+    this.jupyter_actions.store.on("cell-list-recompute", this.update_cur_id);
 
     this.update_cur_id();
     this.init_syncdb_change_hook();
@@ -54,8 +54,6 @@ export class NotebookFrameActions {
   }
 
   private init_syncdb_change_hook(): void {
-    this.syncdb_before_change = this.syncdb_before_change.bind(this);
-    this.syncdb_after_change = this.syncdb_after_change.bind(this);
     this.jupyter_actions.store.on(
       "syncdb-before-change",
       this.syncdb_before_change
@@ -94,6 +92,10 @@ export class NotebookFrameActions {
     this.jupyter_actions.store.removeListener(
       "syncdb-before-change",
       this.syncdb_before_change
+    );
+    this.jupyter_actions.store.removeListener(
+      "cell-list-recompute",
+      this.update_cur_id
     );
     this.jupyter_actions.store.removeListener(
       "syncdb-after-change",
@@ -815,7 +817,7 @@ export class NotebookFrameActions {
     this.save_input_editor();
     await this.jupyter_actions.format_all_cells(sync);
   }
-  
+
   public async format(): Promise<void> {
     await this.format_selected_cells();
   }
