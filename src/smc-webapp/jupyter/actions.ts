@@ -1369,15 +1369,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Only the most recent fetch has any impact, and calling
   // clear_complete() ensures any fetch made before that
   // is ignored.
-  complete = async (
-    code: any,
+
+  // Returns true if a dialog with options appears, and false otherwise.
+  public async complete(
+    code: string,
     pos?: any,
-    id?: any,
+    id?: string,
     offset?: any
-  ): Promise<void> => {
+  ): Promise<boolean> {
     if (this.project_conn === undefined) {
       this.setState({ complete: { error: "no project connection" } });
-      return;
+      return false;
     }
 
     let cursor_pos;
@@ -1402,19 +1404,22 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         cursor_pos
       });
     } catch (err) {
-      if (this._complete_request > req) return;
+      if (this._complete_request > req) return false;
       this.setState({ complete: { error: err } });
       // no op for now...
-      return;
+      throw Error("ignore");
+      //return false;
     }
 
     if (this.last_cursor_move_time >= start) {
       // see https://github.com/sagemathinc/cocalc/issues/3611
-      return;
+      throw Error("ignore");
+      //return false;
     }
     if (this._complete_request > req) {
       // future completion or clear happened; so ignore this result.
-      return;
+      throw Error("ignore");
+      //return false;
     }
 
     if (complete.status !== "ok") {
@@ -1423,11 +1428,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           error: complete.error ? complete.error : "completion failed"
         }
       });
-      return;
+      return false;
     }
 
     if (complete.matches == 0) {
-      return;
+      return false;
     }
 
     delete complete.status;
@@ -1446,8 +1451,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (complete.matches && complete.matches.length === 1 && id != null) {
       // special case -- a unique completion and we know id of cell in which completing is given
       this.select_complete(id, complete.matches[0]);
+      return false;
+    } else {
+      return true;
     }
-  };
+  }
 
   clear_complete = (): void => {
     this._complete_request =

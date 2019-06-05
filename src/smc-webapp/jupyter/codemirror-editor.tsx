@@ -340,7 +340,7 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     return cur.ch === 0 || /\s/.test(this.cm.getLine(cur.line)[cur.ch - 1]);
   };
 
-  tab_nothing_selected = (): void => {
+  tab_nothing_selected = async (): Promise<void> => {
     if (this.cm == null || this.props.actions == null) {
       return;
     }
@@ -357,11 +357,23 @@ export class CodeMirrorEditor extends Component<CodeMirrorEditorProps> {
     const top = pos.bottom;
     const { left } = pos;
     const gutter = $(this.cm.getGutterElement()).width();
-    this.props.actions.complete(this.cm.getValue(), cur, this.props.id, {
-      top,
-      left,
-      gutter
-    });
+    try {
+      const show_dialog: boolean = await this.props.actions.complete(
+        this.cm.getValue(),
+        cur,
+        this.props.id,
+        {
+          top,
+          left,
+          gutter
+        }
+      );
+      if (!show_dialog) {
+        this.props.frame_actions.set_mode("edit");
+      }
+    } catch(err) {
+      // ignore -- maybe another complete happened and this should be ignored.
+    }
   };
 
   update_codemirror_options = (next: any, current: any): void => {
