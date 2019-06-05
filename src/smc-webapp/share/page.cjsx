@@ -93,14 +93,14 @@ exports.Page = rclass
                 {### codemirror CDN -- https://cdnjs.com/libraries/codemirror ###}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.40.2/codemirror.min.css"
                     integrity="sha256-I8NyGs4wjbMuBSUE40o55W6k6P7tu/7G28/JGUUYCIs="
-                    crossorigin="anonymous" />
+                    crossOrigin="anonymous" />
 
                 {### Katex CDN ###}
                 <link
                     rel="stylesheet"
                     href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.2/katex.min.css"
                     integrity="sha256-uT5rNa8r/qorzlARiO7fTBE7EWQiX/umLlXsq7zyQP8="
-                    crossorigin="anonymous" />
+                    crossOrigin="anonymous" />
 
                 {@render_favicon()}
                 {@render_css()}

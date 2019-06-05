@@ -47,9 +47,9 @@ import { debug_transform, MODES } from "./app-framework/react-rendering-debug";
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { keys, is_valid_uuid_string } from "../smc-util/misc2";
 
-import { AdminStore, AdminActions } from "./admin"
+import { AdminStore, AdminActions } from "./admin";
 
-import { MentionsActions, MentionsStore } from "./notifications"
+import { MentionsActions, MentionsStore } from "./notifications";
 
 // Only import the types
 declare type ProjectStore = import("./project_store").ProjectStore;
@@ -423,12 +423,14 @@ const connect_component = spec => {
       return props;
     }
     for (let store_name in spec) {
-      const info = spec[store_name];
       if (store_name === "undefined") {
-        // gets turned into this string when making a common mistake
+        // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
-        throw Error("store_name of spec *must* be defined");
+        throw Error(
+          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " + JSON.stringify(spec)
+        );
       }
+      const info = spec[store_name];
       const store: Store<any> | undefined = redux.getStore(store_name);
       for (let prop in info) {
         var val;
