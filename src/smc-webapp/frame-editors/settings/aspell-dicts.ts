@@ -6,7 +6,6 @@ and removing dups.  Maybe update this someday...
 import { language } from "../generic/misc-page";
 
 const langs = require("langs");
-(window as any).langs = langs;
 
 export const DICTS: string[] = [
   "default",

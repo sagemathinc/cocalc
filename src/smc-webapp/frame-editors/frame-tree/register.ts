@@ -16,10 +16,18 @@ interface Register {
     | string[] /* the filename extension or extentions that this editor should handle. */;
   component: any /* the renderable react component used for this editor */;
   Actions: any /* the class that defines the actions. */;
+  is_public?: boolean /* if given, only register public or not public editors (not both) */;
 }
 
 export function register_file_editor(opts: Register) {
-  for (let is_public of [true, false]) {
+  const v: boolean[] = [];
+  if (opts.is_public != undefined) {
+    v.push(opts.is_public);
+  } else {
+    v.push(true);
+    v.push(false);
+  }
+  for (let is_public of v) {
     register(opts.icon, opts.ext, opts.component, opts.Actions, is_public);
   }
 }
