@@ -129,7 +129,7 @@ export interface UndoState {
 }
 
 export class SyncDoc extends EventEmitter {
-  private project_id: string; // project_id that contains the doc
+  public project_id: string; // project_id that contains the doc
   private path: string; // path of the file corresponding to the doc
   private string_id: string;
   private my_user_id: number;
@@ -1456,7 +1456,7 @@ export class SyncDoc extends EventEmitter {
     if (s == null) {
       throw Error("bug -- get should not return null once table initialized");
     }
-    s.forEach((locs: any[], k: string) => {
+    s.forEach((locs: any, k: string) => {
       if (locs == null) {
         return;
       }
@@ -1500,10 +1500,10 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  /* Returns from account_id to list
+  /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
   */
-  public get_cursors(): Map<string, any[]> {
+  public get_cursors(): Map<string, any> {
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }

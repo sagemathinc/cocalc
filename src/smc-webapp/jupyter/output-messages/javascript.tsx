@@ -52,9 +52,10 @@ export class Javascript extends Component<JavascriptProps, JavascriptState> {
       // This conflicts with official Jupyter
       return (
         <div style={STDERR_STYLE}>
-          <span>{this.state.errors}
-          <br/>
-          See your browser Javascript console for more details.
+          <span>
+            {this.state.errors}
+            <br />
+            See your browser Javascript console for more details.
           </span>
         </div>
       );

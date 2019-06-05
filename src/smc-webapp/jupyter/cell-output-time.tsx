@@ -1,4 +1,4 @@
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 const { TimeAgo } = require("../r_misc"); // TODO: import
 

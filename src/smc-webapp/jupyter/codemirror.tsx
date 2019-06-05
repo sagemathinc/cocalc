@@ -7,15 +7,19 @@ TODO:
 
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
 
-const { CodeMirrorEditor } = require("./codemirror-editor");
-const { CodeMirrorStatic } = require("./codemirror-static");
+import { CodeMirrorEditor } from "./codemirror-editor";
+import { CodeMirrorStatic } from "./codemirror-static";
 //const { IS_TOUCH } = require("../feature");
 
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
 interface CodeMirrorProps {
-  actions?: any;
+  actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
   id: string;
   options: ImmutableMap<any, any>;
   value: string;
@@ -76,7 +80,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
   render() {
     // Regarding IS_TOUCH, see https://github.com/sagemathinc/cocalc/issues/2584 -- fix that properly and then
     // we can remove this use of the slower non-static fallback...
-    if (this.props.actions != null) {
+    if (this.props.actions != null && this.props.frame_actions != null) {
       // For some reason the static renderer has some REALLY bad performance, especially for
       // larger documents.  This may be an issue with using react at all (i.e., we should just
       // directly generate html).  For now, probably the best fix is not to use the static
@@ -86,6 +90,7 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
       return (
         <CodeMirrorEditor
           actions={this.props.actions}
+          frame_actions={this.props.frame_actions}
           id={this.props.id}
           options={this.props.options}
           value={this.props.value}
@@ -102,7 +107,6 @@ export class CodeMirror extends Component<CodeMirrorProps, CodeMirrorState> {
     } else {
       return (
         <CodeMirrorStatic
-          actions={this.props.actions}
           id={this.props.id}
           options={this.props.options}
           value={this.props.value}

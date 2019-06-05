@@ -2,37 +2,40 @@
 The static buttonbar at the top.
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework"; // TODO: this will move
+import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import * as immutable from "immutable";
 import { Button, ButtonGroup, Form, FormControl } from "react-bootstrap";
 const { Icon, VisibleMDLG, VisibleLG } = require("../r_misc");
-const misc = require("smc-util/misc");
-const { UncommittedChanges } = require("./uncommitted-changes");
+import { endswith } from "smc-util/misc2";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
 interface TopButtonbarProps {
   // OWN PROPS
-  actions: any;
-  // REDUX PROPS
-  // [name]
-  cells: immutable.Map<any, any>; // map from id to cells
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
   cur_id: string; // id of currently selected cell
   sel_ids: immutable.Set<any>; // set of selected cells
-  has_unsaved_changes: boolean;
-  has_uncommitted_changes: boolean;
-  read_only: boolean;
-  kernel_state: string;
-  kernel_usage: immutable.Map<any, any>;
+  cells: immutable.Map<any, any>; // map from id to cells
+
+  name: string;
+  // REDUX PROPS
+  // [name]
+  has_unsaved_changes?: boolean;
+  has_uncommitted_changes?: boolean;
+  read_only?: boolean;
+  kernel_state?: string;
+  kernel_usage?: immutable.Map<any, any>;
+
   //page
-  fullscreen: string;
+  fullscreen?: string;
 }
 
 export class TopButtonbar0 extends Component<TopButtonbarProps> {
   public static reduxProps({ name }) {
     return {
       [name]: {
-        cells: rtypes.immutable.Map, // map from id to cells
-        cur_id: rtypes.string, // id of currently selected cell
-        sel_ids: rtypes.immutable.Set, // set of selected cells
         has_unsaved_changes: rtypes.bool,
         has_uncommitted_changes: rtypes.bool,
         read_only: rtypes.bool,
@@ -46,18 +49,14 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
   }
 
   focus = () => {
-    this.props.actions.focus(true);
+    this.props.frame_actions.focus(true);
   };
 
   shouldComponentUpdate(nextProps) {
     return (
       nextProps.cur_id !== this.props.cur_id ||
-      (nextProps.cells != null
-        ? nextProps.cells.getIn([this.props.cur_id, "cell_type"])
-        : undefined) !==
-        (this.props.cells != null
-          ? this.props.cells.getIn([this.props.cur_id, "cell_type"])
-          : undefined) ||
+      nextProps.cells.getIn([this.props.cur_id, "cell_type"]) !==
+        this.props.cells.getIn([this.props.cur_id, "cell_type"]) ||
       nextProps.has_unsaved_changes !== this.props.has_unsaved_changes ||
       nextProps.read_only !== this.props.read_only ||
       nextProps.has_uncommitted_changes !==
@@ -67,19 +66,17 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     );
   }
 
-  command = (name: any, focus: any) => {
-    return () => {
+  command(name: string, focus: boolean): (event?) => void {
+    return (_event?): void => {
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      if (this.props.actions != null) {
-        this.props.actions.command(name);
-      }
+      this.props.frame_actions.command(name);
       if (focus) {
-        return this.focus();
+        this.focus();
       } else {
-        return this.props.actions.blur();
+        this.props.frame_actions.blur();
       }
     };
-  };
+  }
 
   render_button(key: any, name: any) {
     // TODO: this is weird and confusing.
@@ -107,15 +104,12 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
       // all buttons disabled in read-only mode
       disabled = true;
     }
-    const obj =
-      this.props.actions._commands != null
-        ? this.props.actions._commands[name]
-        : undefined;
+    const obj = this.props.frame_actions.commands[name];
     if (obj == null) {
-      return;
+      throw Error(`command ${name} is not defined`);
     }
-    let icon: any;
-    const focus = !misc.endswith(obj.m, "...");
+    let icon: Rendered;
+    const focus: boolean = !endswith(obj.m ? obj.m : "", "...");
     if (obj.i) {
       icon = <Icon name={obj.i} />;
     }
@@ -183,38 +177,39 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     }
 
     return this.render_button_group([
-      { name: "run cell and select next", label: <VisibleLG>Run</VisibleLG> },
+      { name: "run cell and select next" },
       { name: "interrupt kernel", style: stop_style },
       "confirm restart kernel",
       "confirm restart kernel and run all cells",
-      { name: "tab key", label: "Tab" }
+      { name: "tab key", label: "tab" }
     ]);
   }
 
-  cell_select_type = (event: any) => {
-    this.props.actions.set_selected_cell_type(event.target.value);
-    return this.focus();
-  };
+  cell_select_type(event: any): void {
+    this.props.frame_actions.set_selected_cell_type(event.target.value);
+    this.focus();
+  }
 
   render_select_cell_type() {
     let cell_type: any;
-    if (this.props.sel_ids != null ? this.props.sel_ids.size > 1 : false) {
+    if (this.props.sel_ids.size > 1) {
       cell_type = "multi";
     } else {
-      cell_type =
-        (this.props.cells != null &&
-          this.props.cells.getIn([this.props.cur_id, "cell_type"])) ||
-        "code";
+      cell_type = this.props.cells.getIn(
+        [this.props.cur_id, "cell_type"],
+        "code"
+      );
     }
+
     return (
       <FormControl
         componentClass="select"
         placeholder="select"
-        onChange={this.cell_select_type}
+        onChange={this.cell_select_type.bind(this)}
         className="hidden-xs"
         style={{ maxWidth: "8em" }}
         disabled={this.props.read_only}
-        value={cell_type != null ? cell_type : "code"}
+        value={cell_type}
       >
         <option value="code">Code</option>
         <option value="markdown">Markdown</option>
@@ -237,49 +232,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     });
   }
 
-  render_group_undo_redo() {
-    return (
-      <VisibleLG>
-        {this.render_button_group(["global undo", "global redo"])}
-      </VisibleLG>
-    );
-  }
-
-  render_group_zoom() {
-    return (
-      <VisibleLG>
-        <ButtonGroup>
-          <Button
-            onClick={() => {
-              this.props.actions.zoom(-1);
-              return this.focus();
-            }}
-            title="Zoom out (make text smaller)"
-          >
-            <Icon name="font" style={{ fontSize: "7pt" }} />
-          </Button>
-          <Button
-            onClick={() => {
-              this.props.actions.zoom(1);
-              return this.focus();
-            }}
-            title="Zoom in (make text larger)"
-          >
-            <Icon name="font" style={{ fontSize: "11pt" }} />
-          </Button>
-        </ButtonGroup>
-      </VisibleLG>
-    );
-  }
-
-  render_uncommitted() {
-    return (
-      <UncommittedChanges
-        has_uncommitted_changes={this.props.has_uncommitted_changes}
-      />
-    );
-  }
-
+  // TODO -- should just be a frame at some point.
   render_switch_button() {
     // TODO: does "$" have a "browser" property?
     if (this.props.fullscreen === "kiosk" || ($ as any).browser.firefox) {
@@ -305,34 +258,11 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
     return this.render_button("close and halt", obj);
   }
 
-  render_group_save_timetravel() {
+  private render_group_assistant_halt(): Rendered {
     return (
       <ButtonGroup className="hidden-xs">
-        <Button
-          title="Save file to disk"
-          bsStyle="success"
-          onClick={() => {
-            this.props.actions.save();
-            return this.focus();
-          }}
-          disabled={!this.props.has_unsaved_changes || this.props.read_only}
-        >
-          <Icon name="save" />{" "}
-          <span className="hidden-sm">
-            {this.props.read_only ? "Readonly" : "Save"}
-          </span>
-          {this.render_uncommitted()}
-        </Button>
-        <Button
-          title="Show complete edit history"
-          bsStyle="info"
-          onClick={() => this.props.actions.show_history_viewer()}
-        >
-          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
-        </Button>
         {this.render_snippets()}
         {this.render_close_and_halt()}
-        {/*this.render_switch_button()*/}
       </ButtonGroup>
     );
   }
@@ -343,13 +273,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
         <Form inline style={{ whiteSpace: "nowrap" }}>
           {this.render_add_cell()}
           <span style={{ marginLeft: "5px" }} />
-          {this.render_group_edit()}
-          <span style={{ marginLeft: "5px" }} />
           {this.render_group_move()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_group_undo_redo()}
-          <span style={{ marginLeft: "5px" }} />
-          {this.render_group_zoom()}
           <span style={{ marginLeft: "5px" }} />
           {this.render_group_run()}
           <span style={{ marginLeft: "5px" }} />
@@ -357,7 +281,7 @@ export class TopButtonbar0 extends Component<TopButtonbarProps> {
           <span style={{ marginLeft: "5px" }} />
           {this.render_keyboard()}
           <span style={{ marginLeft: "5px" }} />
-          {this.render_group_save_timetravel()}
+          {this.render_group_assistant_halt()}
         </Form>
       </div>
     );

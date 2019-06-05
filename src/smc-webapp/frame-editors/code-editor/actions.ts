@@ -57,6 +57,9 @@ import { createTypedMap, TypedMap } from "../../app-framework/TypedMap";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
+import { Available as AvailableFeatures } from "../../project_configuration";
+import { ext2parser, parser2tool } from "smc-util/code-formatter";
+
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
 
@@ -665,8 +668,29 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // to change a field in some node in the tree.  Typically
   // obj is of the form {id:'blah', foo:'bar'}, which sets
   // node.foo = 'bar' in the tree node with id 'blah'.
-  set_frame_tree(obj): void {
+  public set_frame_tree(obj: object): void {
     this._tree_op("set", obj);
+  }
+
+  // Same as set_frame_tree, but all fields except id
+  // have "data-" prepended to them.  Use this for custom
+  // data, so it doesn't interfere with generic data
+  // like 'type' or 'font_size'.
+  public set_frame_data(obj: object): void {
+    const x: any = obj["id"] != null ? { id: obj["id"] } : {};
+    for (let key in obj) {
+      if (key === "id") continue;
+      x["data-" + key] = obj[key];
+    }
+    this.set_frame_tree(x);
+  }
+
+  public _get_frame_data(id: string, key: string, def?: any): any {
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      return;
+    }
+    return node.get("data-" + key, def);
   }
 
   // Reset the frame tree layout to the default.
@@ -734,7 +758,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
   // raises an exception if the node does not exist; always
   // call _has_frame_node first.
-  _get_frame_node(id: string): Map<string, any> | undefined {
+  public _get_frame_node(id: string): Map<string, any> | undefined {
     return tree_ops.get_node(this._get_tree(), id);
   }
 
@@ -763,6 +787,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       this.reset_local_view_state();
       return;
     }
+    const node = this._get_frame_node(id);
+    if (node == null) return; // does not exist.
+    const type = node.get("type");
     this._tree_op("delete_node", id);
     this.save_editor_state(id);
     if (this._cm_selections != null) {
@@ -773,7 +800,7 @@ export class Actions<T = CodeEditorState> extends BaseActions<
       delete this._cm[id];
     }
     this.terminals.close_terminal(id);
-    this.close_frame_hook(id);
+    this.close_frame_hook(id, type);
 
     // if id is the current active_id, change to most recent one.
     if (id === this.store.getIn(["local_view_state", "active_id"])) {
@@ -781,22 +808,25 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  close_frame_hook(_: string): void {
+  close_frame_hook(id: string, type: string): void {
     // overload in derived class...
+    id = id;
+    type = type;
   }
 
   // Returns id of new frame, if a frame is created.
-  split_frame(
+  public split_frame(
     direction: FrameDirection,
-    id?: string,
-    type?: string
+    id?: string, // id of frame being split (uses active_id by default)
+    type?: string, // type of new frame
+    extra?: object // set this data in the new frame immediately.
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
       if (!id) return;
     }
     const before = this._get_leaf_ids();
-    this._tree_op("split_leaf", id, direction, type);
+    this._tree_op("split_leaf", id, direction, type, extra);
     const after = this._get_leaf_ids();
     for (let new_id in after) {
       if (!before[new_id]) {
@@ -1138,8 +1168,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     );
   }
 
+  public _active_id(): string {
+    return this.store.getIn(["local_view_state", "active_id"]);
+  }
+
   _active_cm(): CodeMirror.Editor | undefined {
-    return this._cm[this.store.getIn(["local_view_state", "active_id"])];
+    return this._cm[this._active_id()];
   }
 
   _get_terminal(id: string, parent: HTMLElement): Terminal {
@@ -1431,7 +1465,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   // big scary error shown at top
-  set_error(error?: object | string, style?: ErrorStyles): void {
+  public set_error(
+    error?: object | string,
+    style?: ErrorStyles,
+    id?: string
+  ): void {
+    id = id; // id - not currently used, but would be for frame-specific error.
     if (error === undefined) {
       this.setState({ error });
     } else {
@@ -1641,6 +1680,27 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     } finally {
       this.set_status("");
     }
+  }
+
+  // Not an action, but works to make code clean
+  has_format_support(
+    id: string,
+    available_features?: AvailableFeatures
+  ): boolean | string {
+    const cm = this._get_cm(id);
+    if (!cm) return false; // not a code editor
+    if (available_features == null) return false;
+    const formatting = available_features.formatting;
+    // there is no formatting available at all
+    if (!formatting) return false;
+    const ext = filename_extension(this.path).toLowerCase();
+
+    const parser = ext2parser[ext];
+    if (parser == null) return false;
+    const tool = parser2tool[parser];
+    if (tool == null) return false;
+    if (!formatting[tool]) return false;
+    return `Canonically format the entire document using '${tool}'.`;
   }
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar
@@ -1952,19 +2012,52 @@ export class Actions<T = CodeEditorState> extends BaseActions<
 
     await delay(0); // wait until next render loop
     if (this._state == "closed") return;
-    for (let id in this._cm) {
-      const cm: CodeMirror.Editor | undefined = this._cm[id];
-      if (cm != null) {
-        cm.refresh();
-      }
-    }
+    this.refresh_visible();
     this.focus();
   }
 
   public hide(): void {}
 
+  // Refresh all visible frames.
+  public refresh_visible(): void {
+    // Right now either there is one that is "fullscreen", and
+    // only that one is visible, or all are visible.
+    const full_id = this.store.getIn(["local_view_state", "full_id"]);
+    if (full_id != null) {
+      this.refresh(full_id);
+    } else {
+      for (let id in this._get_leaf_ids()) {
+        this.refresh(id);
+      }
+    }
+  }
+
+  // Called when frame with given id is displayed.
+  // Use this as a hook, e.g., for resizing codemirror etc.
+  // This is called after the frame is already displayed,
+  // so no need to wait.
+  public refresh(id: string): void {
+    if (this._cm[id] != null) {
+      this._cm[id].refresh();
+      return;
+    }
+    const t = this.terminals.get(id);
+    if (t != null) {
+      t.refresh();
+      return;
+    }
+  }
+
+  // Overload this in a derived class to have a possibly more complicated spec.
+  protected async get_shell_spec(
+    id: string
+  ): Promise<undefined | string | { command: string; args: string[] }> {
+    id = id; // not used.
+    return SHELLS[filename_extension(this.path)];
+  }
+
   public async shell(id: string): Promise<void> {
-    const x = SHELLS[filename_extension(this.path)];
+    const x = await this.get_shell_spec(id);
     let command: string | undefined = undefined;
     let args: string[] | undefined = undefined;
     if (x == null) {
@@ -1984,11 +2077,12 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     let shell_id: string | undefined = this._get_most_recent_shell_id(command);
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
-      shell_id = this.split_frame("col", id, "terminal");
+      shell_id = this.split_frame("col", id, "terminal", { command, args });
       if (!shell_id) return;
-      this.set_frame_tree({ id: shell_id, command, args });
+    } else {
+      // Change command/args.
+      this.terminals.set_command(shell_id, command, args);
     }
-    this.terminals.set_command(shell_id, command, args);
 
     // De-maximize if in full screen mode.
     this.unset_frame_full();
@@ -2005,5 +2099,19 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     // also, restart that terminal...
     this.terminals.set_command(id, undefined, undefined);
     this.terminals.kill(id);
+  }
+
+  public set_active_key_handler(key_handler: Function): void {
+    (this.redux.getActions("page") as any).set_active_key_handler(
+      key_handler,
+      this.project_id,
+      this.path
+    );
+  }
+
+  public erase_active_key_handler(key_handler: Function): void {
+    (this.redux.getActions("page") as any).erase_active_key_handler(
+      key_handler
+    );
   }
 }
