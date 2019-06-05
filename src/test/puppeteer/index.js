@@ -27,6 +27,7 @@
 //   ✓ target UW and pixelbook as well as cocalc.com & test.cocalc.com
 // - add test for jupyter widgets
 // - wrap in jest
+// - add test to get api key
 // - write in typescript
 // - host on gce
 // - deal gracefully with test project that is stopped/archived
