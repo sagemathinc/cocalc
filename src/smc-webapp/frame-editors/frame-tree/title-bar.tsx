@@ -1032,7 +1032,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"print"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.print(this.props.id)}
-        title={"Print file to PDF"}
+        title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
