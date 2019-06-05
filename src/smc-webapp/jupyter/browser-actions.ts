@@ -2,21 +2,23 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
-import { Set } from "immutable";
+import { Map, Set } from "immutable";
 import { debounce, isEqual } from "underscore";
 import { merge_copy, uuid } from "smc-util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
+import { ConfirmDialogOptions } from "./confirm-dialog";
+import { callback2 } from "smc-util/async-utils";
+import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
-const { commands } = require("./commands");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
+  public snippet_actions: any;
+
   private cursor_manager: CursorManager;
-  private snippet_actions: any;
-  private _account_change_editor_settings: any;
-  private _commands: any;
+  private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
 
   // Only run this code on the browser frontend (not in project).
@@ -51,8 +53,12 @@ export class JupyterActions extends JupyterActions0 {
     this.init_project_conn();
 
     this.syncdb.once("ready", () => {
+      const ipywidgets_state = this.syncdb.ipywidgets_state;
+      if (ipywidgets_state == null) {
+        throw Error("bug -- ipywidgets_state must be defined");
+      }
       this.widget_manager = new WidgetManager(
-        this.syncdb.ipywidgets_state,
+        ipywidgets_state,
         this.widget_model_ids_add.bind(this)
       );
       // Stupid hack for now -- this just causes some activity so
@@ -82,15 +88,29 @@ export class JupyterActions extends JupyterActions0 {
 
       // set codemirror editor options whenever account editor_settings change.
       const account_store = this.redux.getStore("account") as any; // TODO: check if ever is undefined
-      account_store.on("change", this._account_change);
-      this._account_change_editor_settings = account_store.get(
+      this.account_change = this.account_change.bind(this);
+      account_store.on("change", this.account_change);
+      this.account_change_editor_settings = account_store.get(
         "editor_settings"
       );
-      this._commands = commands(this);
-
-      this.init_scroll_pos_hook();
     }
   }
+
+  focus = (wait?: any) => {
+    this.deprecated("focus", wait);
+  };
+
+  blur = (wait?: any) => {
+    this.deprecated("blur", wait);
+  };
+
+  blur_lock = () => {
+    //this.deprecated("blur_lock");
+  };
+
+  focus_unlock = () => {
+    // this.deprecated("focus_unlock");
+  };
 
   private widget_model_ids_add(model_id: string): void {
     const widget_model_ids: Set<string> = this.store
@@ -100,10 +120,9 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   protected close_client_only(): void {
-    delete this._commands;
     const account = this.redux.getStore("account");
     if (account != null) {
-      account.removeListener("change", this._account_change);
+      account.removeListener("change", this.account_change);
     }
   }
 
@@ -116,74 +135,79 @@ export class JupyterActions extends JupyterActions0 {
       return;
     const cells = this.cursor_manager.process(
       this.store.get("cells"),
-      this.syncdb.get_cursors()
+      this.syncdb.get_cursors() as any /* typescript is being dumb */
     );
     if (cells != null) {
       this.setState({ cells });
     }
   };
 
-  show_code_snippets = () => {
+  public show_code_snippets(id: string): void {
     if (this.snippet_actions == null) {
-      return;
+      throw Error("code assistant not available");
     }
     this.blur_lock();
 
     const lang = this.store.get_kernel_language();
 
     this.snippet_actions.init(lang);
-    return this.snippet_actions.set({
+    this.snippet_actions.set({
       show: true,
       lang,
       lang_select: false,
-      handler: this.code_snippet_handler
+      handler: this.code_snippet_handler.bind(this),
+      cell_id: id
     });
-  };
+  }
 
-  code_snippet_handler = (data: { code: string[]; descr?: string }): void => {
+  private code_snippet_handler(data: {
+    code: string[];
+    descr?: string;
+    cell_id: string;
+  }): void {
     this.focus_unlock();
-    const { code, descr } = data;
-    //if DEBUG then console.log("snippet data:", data, code, descr)
+    const { cell_id, code, descr } = data;
 
+    let id = cell_id;
     if (descr != null) {
-      const descr_cell = this.insert_cell(1);
-      this.set_cell_input(descr_cell, descr);
-      this.set_cell_type(descr_cell, "markdown");
+      id = this.insert_cell_adjacent(cell_id, +1);
+      this.set_cell_input(id, descr);
+      this.set_cell_type(id, "markdown");
     }
-
     for (let c of code) {
-      const code_cell = this.insert_cell(1);
-      this.set_cell_input(code_cell, c);
-      this.run_code_cell(code_cell);
+      id = this.insert_cell_adjacent(id, +1);
+      this.set_cell_input(id, c);
+      this.run_code_cell(id);
     }
     this.scroll("cell visible");
-  };
+  }
 
-  _account_change = (state: any): void => {
-    // TODO: this is just an ugly hack until we implement redux change listeners for particular keys.
+  private account_change(state: Map<string, any>): void {
+    // TODO: it might be better to implement redux
+    // change listeners for particular keys.
     if (
-      !state.get("editor_settings").equals(this._account_change_editor_settings)
+      !state.get("editor_settings").equals(this.account_change_editor_settings)
     ) {
       const new_settings = state.get("editor_settings");
       if (
-        this._account_change_editor_settings.get(
+        this.account_change_editor_settings.get(
           "jupyter_keyboard_shortcuts"
         ) !== new_settings.get("jupyter_keyboard_shortcuts")
       ) {
         this.update_keyboard_shortcuts();
       }
 
-      this._account_change_editor_settings = new_settings;
+      this.account_change_editor_settings = new_settings;
       this.set_cm_options();
     }
-  };
+  }
 
   _keyboard_settings = () => {
-    if (this._account_change_editor_settings == null) {
+    if (this.account_change_editor_settings == null) {
       console.warn("account settings not loaded"); // should not happen
       return;
     }
-    const k = this._account_change_editor_settings.get(
+    const k = this.account_change_editor_settings.get(
       "jupyter_keyboard_shortcuts"
     );
     if (k != null) {
@@ -200,7 +224,7 @@ export class JupyterActions extends JupyterActions0 {
 
   close_find_and_replace = () => {
     this.setState({ find_and_replace: false });
-    return this.focus_unlock();
+    this.focus_unlock();
   };
 
   show_keyboard_shortcuts = (): void => {
@@ -210,7 +234,7 @@ export class JupyterActions extends JupyterActions0 {
 
   close_keyboard_shortcuts = () => {
     this.setState({ keyboard_shortcuts: undefined });
-    return this.focus_unlock();
+    this.focus_unlock();
   };
 
   add_keyboard_shortcut = (name: any, shortcut: any) => {
@@ -259,18 +283,180 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   command = (name: any): void => {
-    if (this._commands == null) return;
-    const cmd = this._commands[name];
-    if (cmd != null && cmd.f != null) {
-      cmd.f();
-    } else {
-      this.set_error(`Command '${name}' is not implemented`);
-    }
+    this.deprecated("command", name);
   };
 
   public send_comm_message_to_kernel(comm_id: string, data: any): string {
     const msg_id = uuid();
-    this._api_call("comm", [msg_id, comm_id, data]);
+    this.api_call("comm", [msg_id, comm_id, data]);
     return msg_id;
+  }
+
+  // NOTE: someday move this to the frame-tree actions, since it would
+  // be generically useful!
+  // Display a confirmation dialog, then return the chosen option.
+  public async confirm_dialog(
+    confirm_dialog: ConfirmDialogOptions
+  ): Promise<string> {
+    this.blur_lock();
+    this.setState({ confirm_dialog });
+    function dialog_is_closed(state): string | undefined {
+      const c = state.get("confirm_dialog");
+      if (c == null) {
+        // deleting confirm_dialog prop is same as cancelling.
+        return "cancel";
+      } else {
+        return c.get("choice");
+      }
+    }
+    try {
+      return await callback2(this.store.wait, {
+        until: dialog_is_closed,
+        timeout: 0
+      });
+    } catch (err) {
+      console.warn("Jupyter modal dialog error -- ", err);
+      return "cancel";
+    } finally {
+      this.focus_unlock();
+    }
+  }
+
+  public close_confirm_dialog(choice?: string): void {
+    if (choice === undefined) {
+      this.setState({ confirm_dialog: undefined });
+      return;
+    }
+    const confirm_dialog = this.store.get("confirm_dialog");
+    if (confirm_dialog != null) {
+      this.setState({
+        confirm_dialog: confirm_dialog.set("choice", choice)
+      });
+    }
+  }
+
+  public async switch_to_classical_notebook(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      title: "Switch to the Classical Notebook?",
+      body:
+        "If you are having trouble with the the CoCalc Jupyter Notebook, you can switch to the Classical Jupyter Notebook.   You can always switch back to the CoCalc Jupyter Notebook easily later from Jupyter or account settings (and please let us know what is missing so we can add it!).\n\n---\n\n**WARNING:** Multiple people simultaneously editing a notebook, with some using classical and some using the new mode, will NOT work!  Switching back and forth will likely also cause problems (use TimeTravel to recover).  *Please avoid using classical notebook mode if you possibly can!*\n\n[More info and the latest status...](" +
+        JUPYTER_CLASSIC_MODERN +
+        ")",
+      choices: [
+        { title: "Switch to Classical Notebook", style: "warning" },
+        { title: "Continue using CoCalc Jupyter Notebook", default: true }
+      ]
+    });
+    if (choice !== "Switch to Classical Notebook") {
+      return;
+    }
+    (this.redux.getTable("account") as any).set({
+      editor_settings: { jupyter_classic: true }
+    });
+    await this.save();
+    this.file_action("reopen_file", this.store.get("path"));
+  }
+
+  public async close_and_halt(): Promise<void> {
+    // Display the main file listing page
+    this.file_open();
+    // Fully shutdown kernel, and save this file.
+    await this.shutdown();
+    // Close the file
+    this.file_action("close_file");
+  }
+
+  public async trust_notebook(): Promise<void> {
+    const choice = await this.confirm_dialog({
+      icon: "warning",
+      title: "Trust this Notebook?",
+      body:
+        "A trusted Jupyter notebook may execute hidden malicious Javascript code when you open it. Selecting trust below, or evaluating any cell, will immediately execute any Javascript code in this notebook now and henceforth. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
+      choices: [
+        { title: "Trust", style: "danger", default: true },
+        { title: "Cancel" }
+      ]
+    });
+    if (choice === "Trust") {
+      this.set_trust_notebook(true);
+    }
+  }
+
+  private nbconvert_has_started(): boolean {
+    const state = this.store.getIn(["nbconvert", "state"]);
+    return state === "start" || state === "run";
+  }
+
+  public show_nbconvert_dialog(to: string): void {
+    this.setState({ nbconvert_dialog: { to } });
+    if (!this.nbconvert_has_started()) {
+      this.nbconvert(["--to", to]); // start it
+    }
+  }
+
+  public nbconvert(args: string[]): void {
+    if (this.nbconvert_has_started()) {
+      // can't run it while it is already running.
+      throw Error("nbconvert is already running");
+    }
+    this.syncdb.set({
+      type: "nbconvert",
+      args,
+      state: "start",
+      error: null
+    });
+    this.syncdb.commit();
+  }
+
+  public async nbconvert_get_error(): Promise<void> {
+    const key: string | undefined = this.store.getIn([
+      "nbconvert",
+      "error",
+      "key"
+    ]);
+    if (key == null) {
+      return;
+    }
+    let error;
+    try {
+      error = await this.api_call("store", { key });
+    } catch (err) {
+      this.set_error(err);
+      return;
+    }
+    if (this._state === "closed") {
+      return;
+    }
+    const nbconvert = this.store.get("nbconvert");
+    if (nbconvert != null && nbconvert.getIn(["error", "key"]) === key) {
+      this.setState({ nbconvert: nbconvert.set("error", error) });
+    }
+  }
+
+  public show_about(): void {
+    this.setState({ about: true });
+    this.set_backend_kernel_info();
+  }
+
+  public toggle_line_numbers(): void {
+    this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
+  }
+
+  public toggle_cell_line_numbers(id: string): void {
+    const cells = this.store.get("cells");
+    const cell = cells.get(id);
+    if (cell == null) throw Error(`no cell with id ${id}`);
+    const line_numbers: boolean = !!cell.get(
+      "line_numbers",
+      this.store.get_local_storage("line_numbers")
+    );
+    this.setState({
+      cells: cells.set(id, cell.set("line_numbers", !line_numbers))
+    });
+  }
+
+  hide(): void {
+    this.deprecated("hide");
+    // this.blur();
   }
 }

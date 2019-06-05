@@ -2,7 +2,7 @@
 Components related to toggling the way output is displayed.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 const { Icon } = require("../r_misc"); // TODO: type
 const { merge } = require("smc-util/misc");
@@ -19,8 +19,10 @@ const NORMAL_STYLE: React.CSSProperties = merge(
   SCROLLED_STYLE
 );
 
+import { JupyterActions } from "./browser-actions";
+
 interface OutputToggleProps {
-  actions?: any; // TODO: types
+  actions?: JupyterActions;
   id: string;
   scrolled?: boolean;
 }
@@ -55,7 +57,7 @@ export class OutputToggle extends Component<OutputToggleProps> {
 }
 
 interface CollapsedOutputProps {
-  actions?: any;
+  actions?: JupyterActions;
   id: string;
 }
 

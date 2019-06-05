@@ -4,6 +4,8 @@ misc = require('smc-util/misc')
 
 {React} = require('./app-framework')
 
+{delay} = require('awaiting')
+
 # Map of extensions to the appropriate structures below
 file_editors =
     true  : {}    # true = is_public
@@ -99,6 +101,9 @@ exports.remove = (path, redux, project_id, is_public) ->
         exports.save(path, redux, project_id, is_public)
 
     e = get_ed(path, is_public)
+    # Wait until the next render cycle before actually removing,
+    # to give the UI a chance to save some state (e.g., scroll positions).
+    await delay(0)
     e.remove?(path, redux, project_id)
 
     if not is_public

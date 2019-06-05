@@ -14,7 +14,8 @@ export function run_mode(code: string, mode: string, language: string) {
     const needle = last_style(code, mode);
     if (needle === "comment" || needle === "string") {
       return "execute";
-    } else if (endswith(code, "??")) { // TODO: can we not just use "string.endsWith"?
+    } else if (endswith(code, "??")) {
+      // TODO: can we not just use "string.endsWith"?
       return "show_source";
     } else if (endswith(code, "?")) {
       return "show_doc";

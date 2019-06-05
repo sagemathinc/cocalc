@@ -114,7 +114,7 @@ exports.ExamplesHeader = rclass
                 <h2>
                     <Icon name={ICON_NAME} />
                     <Space/>
-                    {misc.jupyter_language_to_name(@props.lang) if not @props.lang_select} Snippets
+                    {misc.jupyter_language_to_name(@props.lang) if not @props.lang_select} Code Snippets
                 </h2>
             </div>
             <div style={nav_style}>

@@ -2,7 +2,7 @@
 Components for rendering input and output prompts.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 const { Icon, TimeAgo, Tip } = require("../r_misc");
 
 const misc = require("smc-util/misc");
@@ -32,7 +32,9 @@ export class InputPrompt extends Component<InputPromptProps> {
     if (this.props.type !== "code") {
       return <div style={INPUT_STYLE} />;
     }
-    const kernel = misc.capitalize(this.props.kernel != null ? this.props.kernel : "");
+    const kernel = misc.capitalize(
+      this.props.kernel != null ? this.props.kernel : ""
+    );
     let tip: string | JSX.Element = "Enter code to be evaluated.";
     switch (this.props.state) {
       case "start":
@@ -44,11 +46,14 @@ export class InputPrompt extends Component<InputPromptProps> {
         tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
         break;
       case "busy":
-        n = <Icon name="circle" style={{ fontSize: "80%", color: "#5cb85c" }} />;
+        n = (
+          <Icon name="circle" style={{ fontSize: "80%", color: "#5cb85c" }} />
+        );
         if (this.props.start != null) {
           tip = (
             <span>
-              Running since <TimeAgo date={new Date(this.props.start)} /> using {kernel}.
+              Running since <TimeAgo date={new Date(this.props.start)} /> using{" "}
+              {kernel}.
             </span>
           );
         } else {
@@ -62,7 +67,8 @@ export class InputPrompt extends Component<InputPromptProps> {
           if (this.props.end != null) {
             tip = (
               <span>
-                Evaluated <TimeAgo date={new Date(this.props.end)} /> using {kernel}.
+                Evaluated <TimeAgo date={new Date(this.props.end)} /> using{" "}
+                {kernel}.
               </span>
             );
           } else if (kernel) {

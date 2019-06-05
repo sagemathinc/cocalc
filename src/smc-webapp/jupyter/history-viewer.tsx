@@ -2,22 +2,29 @@
 History viewer for Jupyter notebooks
 */
 
-import * as immutable from "immutable";
-import { React, Component, ReactDOM, Redux, redux } from "../app-framework"; // TODO: this will move
-const misc = require("smc-util/misc");
-const cell_utils = require("./cell-utils");
-const { CellList } = require("./cell-list");
-const { cm_options } = require("./cm_options");
+import { fromJS, List, Map } from "immutable";
 
-const get_cells = function(syncdb, version) {
-  let cells = immutable.Map<any, any>();
+import { SyncDB } from "smc-util/sync/editor/db/sync";
+import { React, Component, ReactDOM, Redux, redux } from "../app-framework";
+import { path_split } from "smc-util/misc";
+import * as cell_utils from "./cell-utils";
+import { CellList } from "./cell-list";
+import { cm_options } from "./cm_options";
+
+function get_cells(
+  syncdb: SyncDB,
+  version?: Date
+): { cells: Map<string, any>; cell_list: List<string> } {
+  let cells = Map<string, any>();
   const othercells = syncdb.version(version).get({ type: "cell" });
   if (othercells != null) {
-    othercells.forEach((cell: any) => (cells = cells.set(cell.get("id"), cell)));
+    othercells.forEach(
+      (cell: any) => (cells = cells.set(cell.get("id"), cell))
+    );
   }
   const cell_list = cell_utils.sorted_cell_list(cells);
   return { cells, cell_list };
-};
+}
 
 interface HistoryViewerProps {
   syncdb: any; // syncdb object corresponding to a jupyter notebook
@@ -27,13 +34,16 @@ interface HistoryViewerProps {
 export class HistoryViewer extends Component<HistoryViewerProps> {
   render_cells() {
     const project_id = this.props.syncdb.get_project_id();
-    const { head: directory } = misc.path_split(this.props.syncdb.get_path());
-    const { cells, cell_list } = get_cells(this.props.syncdb, this.props.version);
+    const { head: directory } = path_split(this.props.syncdb.get_path());
+    const { cells, cell_list } = get_cells(
+      this.props.syncdb,
+      this.props.version
+    );
 
-    const options = immutable.fromJS({
+    const options = fromJS({
       markdown: undefined,
-      options: cm_options(),
-    }); // TODO
+      options: cm_options()
+    });
 
     const account_store = redux.getStore("account") as any;
     let font_size = 14;
@@ -57,7 +67,12 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
   render() {
     return (
       <div
-        style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "hidden" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflowY: "hidden"
+        }}
       >
         {this.render_cells()}
       </div>
@@ -66,10 +81,10 @@ export class HistoryViewer extends Component<HistoryViewerProps> {
 }
 
 // The following is just for integrating the history viewer.
-const { export_to_ipynb } = require("./export-to-ipynb");
-const json_stable = require("json-stable-stringify");
+import { export_to_ipynb } from "./export-to-ipynb";
+import * as json_stable from "json-stable-stringify";
 
-export function jupyter_history_viewer_jquery_shim(syncdb: any) {
+export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
   const elt = $("<div class='smc-vfill'></div>");
   return {
     element: elt,
@@ -87,12 +102,12 @@ export function jupyter_history_viewer_jquery_shim(syncdb: any) {
         <Redux>
           <HistoryViewer syncdb={syncdb} version={version} />
         </Redux>,
-        elt[0],
+        elt[0]
       );
     },
     to_str(version) {
       const ipynb = export_to_ipynb(get_cells(syncdb, version));
       return json_stable(ipynb, { space: 1 });
-    },
+    }
   };
 }

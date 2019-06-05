@@ -198,7 +198,7 @@ export function syncstring2(opts: SyncstringOpts2): SyncString {
   return new SyncString(opts1);
 }
 
-interface SyncDBOpts {
+export interface SyncDBOpts {
   project_id: string;
   path: string;
   primary_keys: string[];

@@ -10,13 +10,13 @@ fully unit test it via mocking of components.
 import * as immutable from "immutable";
 import { JupyterActions as JupyterActions0 } from "./actions";
 
-const { callback2, once } = require("smc-util/async-utils");
+import { callback2, once } from "../../smc-util/async-utils";
 
-const async = require("async");
-const underscore = require("underscore");
-const misc = require("smc-util/misc");
-const json_stable = require("json-stable-stringify");
-const { OutputHandler } = require("./output-handler");
+import * as async from "async";
+import * as underscore from "underscore";
+import * as misc from "../../smc-util/misc";
+import * as json_stable from "json-stable-stringify";
+import { OutputHandler } from "./output-handler";
 
 export class JupyterActions extends JupyterActions0 {
   // TODO: type
@@ -114,6 +114,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("change", this._backend_syncdb_change);
 
     // Listen for model state changes...
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     this.syncdb.ipywidgets_state.on(
       "change",
       this.handle_ipywidgets_state_change.bind(this)
@@ -204,9 +207,9 @@ export class JupyterActions extends JupyterActions0 {
     }
 
     let current: string | undefined = undefined;
-    if (this._jupyter_kernel != null) {
-      current = this._jupyter_kernel.name;
-      if (current === kernel && this._jupyter_kernel.get_state() != "closed") {
+    if (this.jupyter_kernel != null) {
+      current = this.jupyter_kernel.name;
+      if (current === kernel && this.jupyter_kernel.get_state() != "closed") {
         dbg("everything is properly setup and working");
         return;
       }
@@ -215,12 +218,12 @@ export class JupyterActions extends JupyterActions0 {
     dbg(`kernel='${kernel}', current='${current}'`);
 
     if (
-      this._jupyter_kernel != null &&
-      this._jupyter_kernel.get_state() != "closed"
+      this.jupyter_kernel != null &&
+      this.jupyter_kernel.get_state() != "closed"
     ) {
       if (current != kernel) {
         dbg("kernel changed -- kill running kernel to trigger switch");
-        this._jupyter_kernel.close();
+        this.jupyter_kernel.close();
         return;
       } else {
         dbg("nothing to do");
@@ -231,15 +234,18 @@ export class JupyterActions extends JupyterActions0 {
     dbg("make a new kernel");
 
     // No kernel wrapper object setup at all. Make one.
-    this._jupyter_kernel = this._client.jupyter_kernel({
+    this.jupyter_kernel = this._client.jupyter_kernel({
       name: kernel,
       path: this.store.get("path"),
       actions: this
     });
 
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     this.syncdb.ipywidgets_state.clear();
 
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       // to satisfy compiler.
       throw Error("Jupter kernel must be defined");
     }
@@ -249,7 +255,7 @@ export class JupyterActions extends JupyterActions0 {
     this.clear_all_cell_run_state();
 
     // When the kernel closes, make sure a new kernel gets setup.
-    this._jupyter_kernel.once("closed", () => {
+    this.jupyter_kernel.once("closed", () => {
       dbg("kernel closed -- make new one.");
       this.ensure_backend_kernel_setup();
     });
@@ -257,7 +263,7 @@ export class JupyterActions extends JupyterActions0 {
     // Track backend state changes other than closing, so they
     // are visible to user etc.
     // TODO: all these need to move to ephemeral table!!
-    this._jupyter_kernel.on("state", state => {
+    this.jupyter_kernel.on("state", state => {
       switch (state) {
         case "spawning":
         case "starting":
@@ -266,14 +272,14 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
 
-    this._jupyter_kernel.on("execution_state", this.set_kernel_state);
+    this.jupyter_kernel.on("execution_state", this.set_kernel_state);
 
-    this._jupyter_kernel.on("spawn_error", err => {
+    this.jupyter_kernel.on("spawn_error", err => {
       // TODO: need to save so gets reported to frontend...
       dbg(`error: ${err}`);
     });
 
-    this._jupyter_kernel.on("usage", this.set_kernel_usage);
+    this.jupyter_kernel.on("usage", this.set_kernel_usage);
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
@@ -404,12 +410,12 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg(`_cancel_run ${id}`);
     // All these checks are so we only cancel if it is actually running
     // with the current kernel...
-    if (this._running_cells == null || this._jupyter_kernel == null) return;
+    if (this._running_cells == null || this.jupyter_kernel == null) return;
     const identity = this._running_cells[id];
     if (identity == null) return;
-    if (this._jupyter_kernel.identity == identity) {
+    if (this.jupyter_kernel.identity == identity) {
       dbg("cancelling");
-      this._jupyter_kernel.cancel_execute(id);
+      this.jupyter_kernel.cancel_execute(id);
     } else {
       dbg("not canceling since wrong identity");
     }
@@ -460,8 +466,8 @@ export class JupyterActions extends JupyterActions0 {
   _output_handler = (cell: any) => {
     const dbg = this.dbg(`handler(id='${cell.id}')`);
     if (
-      this._jupyter_kernel == null ||
-      this._jupyter_kernel.get_state() == "closed"
+      this.jupyter_kernel == null ||
+      this.jupyter_kernel.get_state() == "closed"
     ) {
       throw Error("jupyter kernel must exist and not be closed;");
     }
@@ -474,7 +480,7 @@ export class JupyterActions extends JupyterActions0 {
       dbg
     });
 
-    this._jupyter_kernel.once("closed", () => {
+    this.jupyter_kernel.once("closed", () => {
       dbg("closing due to jupyter kernel closed");
       handler.close();
     });
@@ -484,8 +490,8 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     handler.on("process", mesg => {
-      if (this._jupyter_kernel != null) {
-        this._jupyter_kernel.process_output(mesg);
+      if (this.jupyter_kernel != null) {
+        this.jupyter_kernel.process_output(mesg);
       }
     });
 
@@ -528,10 +534,10 @@ export class JupyterActions extends JupyterActions0 {
 
     const input = ((left = orig_cell.get("input")) != null ? left : "").trim();
 
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       throw Error("bug -- this is guaranteed by the above");
     }
-    this._running_cells[id] = this._jupyter_kernel.identity;
+    this._running_cells[id] = this.jupyter_kernel.identity;
 
     const cell: any = {
       id,
@@ -566,19 +572,19 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
 
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       handler.error("Unable to start Jupyter");
       return;
     }
 
     const get_password = (): string => {
-      if (this._jupyter_kernel == null) {
+      if (this.jupyter_kernel == null) {
         dbg("get_password", id, "no kernel");
         return "";
       }
-      const password = this._jupyter_kernel.store.get(id);
+      const password = this.jupyter_kernel.store.get(id);
       dbg("get_password", id, password);
-      this._jupyter_kernel.store.delete(id);
+      this.jupyter_kernel.store.delete(id);
       return password;
     };
 
@@ -591,7 +597,7 @@ export class JupyterActions extends JupyterActions0 {
     };
     this.store.on("cell_change", cell_change);
 
-    const exec = this._jupyter_kernel.execute_code({
+    const exec = this.jupyter_kernel.execute_code({
       code: input,
       id,
       stdin: handler.stdin
@@ -923,7 +929,7 @@ export class JupyterActions extends JupyterActions0 {
     let err;
     const dbg = this.dbg("save_ipynb_file");
     dbg("saving to file");
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       err = "no kernel so cannot save";
       dbg(err);
       if (typeof cb === "function") {
@@ -940,7 +946,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     dbg("going to try to save");
-    const ipynb = this.store.get_ipynb(this._jupyter_kernel.get_blob_store());
+    const ipynb = this.store.get_ipynb(this.jupyter_kernel.get_blob_store());
     // We use json_stable (and indent 1) to be more diff friendly to user, and more consistent
     // with official Jupyter.
     const data = json_stable(ipynb, { space: 1 });
@@ -978,7 +984,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cells == null || cells.size === 0) {
       this._set({
         type: "cell",
-        id: this._new_id(),
+        id: this.new_id(),
         pos: 0,
         input: ""
       });
@@ -1058,10 +1064,10 @@ export class JupyterActions extends JupyterActions0 {
           },
           cb => {
             dbg("now actually running nbconvert");
-            if (this._jupyter_kernel == null) {
+            if (this.jupyter_kernel == null) {
               cb("jupyter kernel not defined");
             } else {
-              this._jupyter_kernel
+              this.jupyter_kernel
                 .nbconvert(args)
                 .then(data => cb(undefined, data))
                 .catch(err => cb(err));
@@ -1081,8 +1087,8 @@ export class JupyterActions extends JupyterActions0 {
             }
             if (err.length >= 50) {
               // save in key:value store.
-              if (this._jupyter_kernel && this._jupyter_kernel.store) {
-                this._jupyter_kernel.store.set("nbconvert_error", err);
+              if (this.jupyter_kernel && this.jupyter_kernel.store) {
+                this.jupyter_kernel.store.set("nbconvert_error", err);
               }
               err = { key: "nbconvert_error" };
             }
@@ -1109,7 +1115,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   handle_cell_attachments = (cell: any) => {
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       // can't do anything
       return;
     }
@@ -1125,8 +1131,8 @@ export class JupyterActions extends JupyterActions0 {
             type: "loading",
             value: null
           });
-          if (this._jupyter_kernel != null) {
-            this._jupyter_kernel
+          if (this.jupyter_kernel != null) {
+            this.jupyter_kernel
               .load_attachment(x.get("value"))
               .then(sha1 => {
                 this.set_cell_attachment(cell.get("id"), name, {
@@ -1149,9 +1155,12 @@ export class JupyterActions extends JupyterActions0 {
   private handle_ipywidgets_state_change(keys): void {
     const dbg = this.dbg("handle_ipywidgets_state_change");
     dbg(keys);
-    if (this._jupyter_kernel == null) {
+    if (this.jupyter_kernel == null) {
       dbg("no kernel, so ignoring changes to ipywidgets");
       return;
+    }
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
     }
     for (let key of keys) {
       dbg("key = ", key);
@@ -1160,7 +1169,7 @@ export class JupyterActions extends JupyterActions0 {
       if (type === "value") {
         const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
         data = { method: "update", state };
-        this._jupyter_kernel.send_comm_message_to_kernel(
+        this.jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),
           model_id,
           data
@@ -1172,7 +1181,7 @@ export class JupyterActions extends JupyterActions0 {
         /*
         const state = this.syncdb.ipywidgets_state.get_model_state(model_id);
         data = { method: "update", state };
-        this._jupyter_kernel.send_comm_message_to_kernel(
+        this.jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),
           model_id,
           data
@@ -1187,10 +1196,16 @@ export class JupyterActions extends JupyterActions0 {
   public async process_comm_message_from_kernel(mesg: any): Promise<void> {
     const dbg = this.dbg("process_comm_message_from_kernel");
     dbg(mesg);
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     await this.syncdb.ipywidgets_state.process_comm_message_from_kernel(mesg);
   }
 
   public capture_output_message(mesg: any): boolean {
+    if (this.syncdb.ipywidgets_state == null) {
+      throw Error("syncdb's ipywidgets_state must be defined!");
+    }
     return this.syncdb.ipywidgets_state.capture_output_message(mesg);
   }
 }

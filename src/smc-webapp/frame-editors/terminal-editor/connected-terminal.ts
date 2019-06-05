@@ -619,6 +619,10 @@ export class Terminal {
     this.terminal.focus();
   }
 
+  refresh() : void {
+    this.terminal.refresh(0, this.terminal.rows - 1);
+  }
+
   async edit_init_script(): Promise<void> {
     try {
       await open_init_file(this.actions._get_project_actions(), this.term_path);

@@ -27,7 +27,6 @@ interface Props {
 class TerminalCommandPanel extends Component<Props, {}> {
   constructor(props) {
     super(props);
-    (window as any).x = this;
   }
 
   static reduxProps({ name }) {

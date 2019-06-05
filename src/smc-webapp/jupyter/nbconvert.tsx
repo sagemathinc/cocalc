@@ -1,13 +1,14 @@
 /*
 NBConvert dialog -- for running nbconvert
 */
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 import * as immutable from "immutable";
 const shell_escape = require("shell-escape");
 const { Icon, Loading } = require("../r_misc");
 const TimeAgo = require("react-timeago").default;
 const { Button, ButtonGroup, Modal } = require("react-bootstrap");
 const misc = require("smc-util/misc");
+import { JupyterActions } from "./browser-actions";
 
 const NAMES = {
   python: { ext: "py", display: "Python", internal: true },
@@ -28,8 +29,8 @@ const NAMES = {
 };
 
 interface ErrorProps {
-  actions: any;
-  nbconvert?: immutable.Map<any, any>;
+  actions: JupyterActions;
+  nbconvert?: immutable.Map<string, any>;
 }
 
 class Error extends Component<ErrorProps> {
@@ -130,7 +131,11 @@ export class NBConvert extends Component<NBConvertProps> {
   }
 
   render_download() {
-    if (this.props.nbconvert == null || this.props.nbconvert.get("error") || this.props.nbconvert_dialog == null) {
+    if (
+      this.props.nbconvert == null ||
+      this.props.nbconvert.get("error") ||
+      this.props.nbconvert_dialog == null
+    ) {
       return;
     }
     const to = this.props.nbconvert_dialog.get("to");
