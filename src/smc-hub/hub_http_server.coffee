@@ -37,17 +37,12 @@ formidable   = require('formidable')
 http_proxy   = require('http-proxy')
 http         = require('http')
 winston      = require('winston')
-# express-js cors plugin
-cors         = require('cors')
-# this splits into { subdomain: "dev" or "", domain: "cocalc",  tld: "com" }
-parseDomain  = require("parse-domain");
 
 winston      = require('./winston-metrics').get_logger('hub_http_server')
 
 misc         = require('smc-util/misc')
 {defaults, required} = misc
 {DNS}        = require('smc-util/theme')
-pdDNS        = parseDomain(DNS)
 
 misc_node    = require('smc-util-node/misc_node')
 hub_register = require('./hub_register')
@@ -57,7 +52,7 @@ hub_projects = require('./projects')
 MetricsRecorder  = require('./metrics-recorder')
 
 {http_message_api_v1} = require('./api/handler')
-{analytics_rec, analytics_js, png_1x1, analytics_cookie} = require('./analytics')
+{setup_analytics_js} = require('./analytics')
 
 # Rendering stripe invoice server side to PDF in memory
 {stripe_render_invoice} = require('./stripe/invoice')
@@ -146,93 +141,8 @@ exports.init_express_http_server = (opts) ->
                   ''')
         res.end()
 
-    # cocalc analytics: this extracts tracking information about lading pages, measure campaign performance, etc.
-    # 1. it sends a static js file (which is included in a script tag) to a page
-    # 2. a unique ID is generated and stored in a cookie
-    # 3. the script (should) send back a POST request, telling us about
-    #    the UTM params, referral, landing page, etc.
-    #
-    # The query param "fqd" (fully qualified domain) can be set to true or false (default true)
-    # It controlls if the bounce back URL mentions the domain.
-
-    # CORS-setup: allow access from within other known domains.
-    analytics_cors =
-        credentials     : true
-        methods         : ['GET', 'POST']
-        allowedHeaders  : ['Content-Type', '*']
-        origin          : (origin, cb) ->
-            winston.debug("analytics_cors origin='#{origin}'")
-            if not origin?
-                cb(null, true)
-                return
-            try
-                pd = parseDomain(origin)
-                if pd.tld == 'com'
-                    if pd.domain == 'cocalc' or pd.domain == 'sagemath'
-                        cb(null, true)
-                        return
-                if pd.tld == pdDNS.tld and pd.domain == pdDNS.domain
-                    cb(null, true)
-                    return
-            catch e
-                cb(e)
-                return
-
-            cb('Not allowed by CORS')
-            return
-
-    router.get '/analytics.js', cors(analytics_cors), (req, res) ->
-        res.header("Content-Type", "text/javascript")
-        res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
-
-        # in case user was already here, do not send it again.
-        # only the first hit is interesting.
-        winston.debug("/analytics.js GET analytics_cookie='#{req.cookies[misc.analytics_cookie_name]}'")
-        if req.cookies[misc.analytics_cookie_name]
-            res.write("// NOOP")
-            res.end()
-            return
-
-        # write response script
-        #analytics_cookie(res)
-        res.write("var NAME = '#{misc.analytics_cookie_name}';\n")
-        res.write("var ID = '#{misc.uuid()}';\n")
-        res.write("var DOMAIN = '#{pdDNS.domain}.#{pdDNS.tld}';\n")
-        #  BASE_URL
-        if req.query.fqd == 'false'
-            res.write("var PREFIX = '#{opts.base_url}';\n")
-        else
-            prefix = "//#{DNS}#{opts.base_url}"
-            res.write("var PREFIX = '#{prefix}';\n\n")
-        res.write(analytics_js)
-        res.end()
-
-    router.get '/analytics.js/track.png', cors(analytics_cors), (req, res) ->
-        # in case user was already here, do not set a cookie
-        if not req.cookies[misc.analytics_cookie_name]
-            analytics_cookie(res)
-        res.header('Content-Type', 'image/png')
-        res.header('Content-Length', png_1x1.length)
-        res.end(png_1x1)
-
-    router.post '/analytics.js', cors(analytics_cors), (req, res) ->
-        # check if token is in the cookie (see above)
-        # if not, ignore it
-        token = req.cookies[misc.analytics_cookie_name]
-        winston.debug("/analytics.js POST token='#{token}'")
-        if token
-            # req.body is an object (json middlewhere somewhere?)
-            # e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
-            # ATTN key/values could be malicious
-            winston.debug("/analytics.js -- TOKEN=#{token} -- DATA=#{JSON.stringify(req.body)}")
-            # record it, there is no need for a callback
-            analytics_rec(opts.database, winston, token, req.body)
-
-        res.end()
-        return
-
-    # additionally, custom content types require a preflight cors check
-    router.options('/analytics.js', cors(analytics_cors))
+    # setup the /analytics.js endpoint
+    setup_analytics_js(router, opts.database, winston, opts.base_url)
 
     # The /static content
     router.use '/static',

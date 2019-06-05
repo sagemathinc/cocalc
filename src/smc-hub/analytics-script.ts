@@ -14,12 +14,13 @@
 
 // write cookie. it would be cool to set this via the http request itself,
 // but for reasons I don't know it doesn't work across subdomains.
-document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${24*60*60}`
+const maxage = 7 * 24 * 60 * 60; // 7 days
+document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${maxage}`;
 
 const { href, protocol, host, pathname } = window.location;
 
 // TODO: use the array defined in smc-util/misc.js
-const UTM_KEYS = Object.freeze([
+const UTM_KEYS: ReadonlyArray<string> = Object.freeze([
   "source",
   "medium",
   "campaign",
@@ -63,12 +64,12 @@ window
     method: "POST",
     mode: "cors",
     cache: "no-cache",
-    credentials: "include", // include, *same-origin, omit
+    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
     redirect: "follow",
     body: JSON.stringify(response)
   })
-  .then(response => console.log("Success:", response))
+  //.then(response => console.log("Success:", response))
   .catch(error => console.error("Error:", error));
