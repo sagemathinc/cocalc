@@ -469,7 +469,7 @@ export function delete_null_fields(obj: object): void {
 }
 
 // for switch/case -- https://www.typescriptlang.org/docs/handbook/advanced-types.html
-export function unreachable(x: any) {
+export function unreachable(x: never) {
   throw new Error(`All types should be exhausted, but I got ${x}`);
 }
 

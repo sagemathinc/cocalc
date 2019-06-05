@@ -1,8 +1,6 @@
 // common configuration for mapping programming languages (lower case) to formatters
 // this is used by webapp and the project
 
-import { unreachable } from "./misc2";
-
 // ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
   | "r"
@@ -242,9 +240,7 @@ export function format_parser_for_extension(ext: string): Parser {
       parser = "clang-format";
       break;
     default:
-      // make sure all extensions are dealt with
-      unreachable(ext);
-      throw Error('');  // make typescript happy...
+      throw Error(`no code formatting support for ${ext}`);
   }
   return parser;
 }
