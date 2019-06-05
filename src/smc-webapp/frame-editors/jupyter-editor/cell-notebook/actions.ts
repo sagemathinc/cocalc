@@ -18,7 +18,7 @@ import { EditorFunctions } from "../../../jupyter/codemirror-editor";
 
 import { isEqual } from "lodash";
 
-const DEBUG = true;
+declare var DEBUG: boolean;
 
 export class NotebookFrameActions {
   private frame_tree_actions: JupyterEditorActions;
@@ -815,13 +815,9 @@ export class NotebookFrameActions {
     this.save_input_editor();
     await this.jupyter_actions.format_all_cells(sync);
   }
+  
   public async format(): Promise<void> {
-    const sel_ids = this.store.get("sel_ids");
-    if (sel_ids == null || sel_ids.size === 0) {
-      await this.format_all_cells();
-    } else {
-      await this.format_selected_cells();
-    }
+    await this.format_selected_cells();
   }
 
   public refresh(): void {

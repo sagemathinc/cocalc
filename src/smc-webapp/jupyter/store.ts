@@ -384,11 +384,11 @@ export class JupyterStore extends Store<JupyterStoreState> {
         add_lang(lang, entry);
       }
     });
-    const by_name = OrderedMap<string, Map<string, string>>(
-      data_name
-    ).sortBy((v, k) => {
-      return v.get("display_name", v.get("name", k)).toLowerCase();
-    });
+    const by_name = OrderedMap<string, Map<string, string>>(data_name).sortBy(
+      (v, k) => {
+        return v.get("display_name", v.get("name", k)).toLowerCase();
+      }
+    );
     // data_lang, we're only interested in the kernel names, not the entry itself
     data_lang = fromJS(data_lang).map((v, k) => {
       v = v
@@ -437,7 +437,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   }
 
   // canonicalize the language of the kernel
-  get_kernel_language = (): string | undefined => {
+  public get_kernel_language(): string | undefined {
     let lang;
     // special case: sage is language "python", but the snippet dialog needs "sage"
     if (startswith(this.get("kernel"), "sage")) {
@@ -446,7 +446,34 @@ export class JupyterStore extends Store<JupyterStoreState> {
       lang = this.getIn(["kernel_info", "language"]);
     }
     return lang;
-  };
+  }
+
+  // heuristic **attempt** to get what would be the filename
+  // extension for the kernel language.  Probably not very good.
+  // It does work for most of the kernels we have installed on June 2019.
+  public get_kernel_ext(): string | undefined {
+    let lang = this.get_kernel_language();
+    if (!lang) return undefined;
+    lang = lang.toLowerCase();
+    switch (lang) {
+      case "python":
+      case "python3":
+        return "py";
+      case "r":
+        return "r";
+      case "julia":
+        return "jl";
+      case "octave":
+        return "m";
+      case "c++":
+      case "c++17":
+        return "cpp";
+      case "bash":
+        return "sh";
+      case "gp":
+        return "gp";
+    }
+  }
 
   jupyter_kernel_key = (): string => {
     const project_id = this.get("project_id");

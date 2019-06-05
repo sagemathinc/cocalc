@@ -1,5 +1,7 @@
 // common configuration for mapping programming languages (lower case) to formatters
-// this is used by webapp and the projectc
+// this is used by webapp and the project
+
+import { unreachable } from "./misc2";
 
 // ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
@@ -183,3 +185,66 @@ for (const tool of Object.keys(t2d)) {
 }
 
 export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);
+
+export function format_parser_for_extension(ext: string): Parser {
+  let parser: Parser;
+  switch (ext) {
+    case "js":
+    case "jsx":
+      parser = "babylon";
+      break;
+    case "json":
+      parser = "json";
+      break;
+    case "ts":
+    case "tsx":
+      parser = "typescript";
+      break;
+    case "md":
+    case "rmd":
+      parser = "markdown";
+      break;
+    case "css":
+      parser = "postcss";
+      break;
+    case "tex":
+      parser = "latex";
+      break;
+    case "py":
+      parser = "python";
+      break;
+    case "yml":
+    case "yaml":
+      parser = "yaml";
+      break;
+    case "r":
+      parser = "r";
+      break;
+    case "go":
+      parser = "gofmt";
+      break;
+    case "html":
+      parser = "html-tidy";
+      break;
+    case "xml":
+    case "cml":
+    case "kml":
+      parser = "xml-tidy";
+      break;
+    case "bib":
+      parser = "bib-biber";
+      break;
+    case "c":
+    case "c++":
+    case "cc":
+    case "cpp":
+    case "h":
+      parser = "clang-format";
+      break;
+    default:
+      // make sure all extensions are dealt with
+      unreachable(ext);
+      throw Error('');  // make typescript happy...
+  }
+  return parser;
+}
