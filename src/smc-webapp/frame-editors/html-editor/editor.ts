@@ -29,9 +29,8 @@ const EDITOR_SPEC = {
       "paste",
       "copy",
       "undo",
-      "redo",
-      "reload",
-      "format"
+      "redo"
+      /* "format" -- disabled -- see https://github.com/sagemathinc/cocalc/issues/3867 */
     ])
   },
 

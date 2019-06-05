@@ -15,6 +15,8 @@ import { FileUseViewer } from "./viewer";
 
 import { Map as iMap } from "immutable";
 
+import { MentionsMap } from "../notifications/mentions/types";
+
 interface Props {
   redux: any;
 
@@ -23,6 +25,8 @@ interface Props {
   get_sorted_file_use_list2: Function;
   user_map?: iMap<string, any>;
   project_map?: iMap<string, any>;
+  mentions: MentionsMap;
+  get_unseen_size: (mentions: MentionsMap) => number;
 }
 
 class FileUsePage extends Component<Props, {}> {
@@ -37,6 +41,10 @@ class FileUsePage extends Component<Props, {}> {
       },
       projects: {
         project_map: rtypes.immutable
+      },
+      mentions: {
+        mentions: rtypes.immutable.Map,
+        get_unseen_size: rtypes.func
       }
     };
   }
@@ -71,6 +79,7 @@ class FileUsePage extends Component<Props, {}> {
         user_map={this.props.user_map}
         project_map={this.props.project_map}
         account_id={account_id}
+        unseen_mentions_size={this.props.get_unseen_size(this.props.mentions)}
       />
     );
   }

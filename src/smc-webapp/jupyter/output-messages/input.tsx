@@ -2,7 +2,7 @@ import { delay } from "awaiting";
 import { React, Component, Rendered } from "smc-webapp/app-framework";
 import { Map } from "immutable";
 import { INPUT_STYLE, STDOUT_STYLE } from "./style";
-import { JupyterActions } from "../actions";
+import { JupyterActions } from "../browser-actions";
 
 interface InputProps {
   message: Map<string, any>;

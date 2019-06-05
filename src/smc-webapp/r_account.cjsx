@@ -32,6 +32,8 @@
 {ProfileImageSelector} = require('./r_profile_image')
 {PHYSICAL_KEYBOARDS, KEYBOARD_VARIANTS} = require('./frame-editors/x11-editor/xpra/keyboards')
 {JUPYTER_CLASSIC_MODERN} = require('smc-util/theme')
+{NewFilenameFamilies, NewFilenames} = require('smc-webapp/project/utils')
+{NEW_FILENAMES} = require('smc-util/db-schema')
 
 md5 = require('md5')
 
@@ -1152,7 +1154,7 @@ KEYBOARD_SHORTCUTS =
     'Fold/unfold selected code'    : 'control+Q'
     'Shift selected text right'    : 'tab'
     'Shift selected text left'     : 'shift+tab'
-    'Split view in any editor'     : 'control+I'
+    'Split view in Sage worksheet' : 'shift+control+I'
     'Autoindent selection'         : "control+'"
     'Format code (use Prettier)'   : 'control+shift+F'
     'Multiple cursors'             : 'control+click'
@@ -1298,6 +1300,18 @@ OtherSettings = rclass
             />
         </LabeledRow>
 
+
+    render_new_filenames: ->
+        selected = @props.other_settings.get(NEW_FILENAMES) ? NewFilenames.default_family
+        <LabeledRow label='Generated filenames'>
+            <SelectorInput
+                selected  = {selected}
+                options   = {NewFilenameFamilies}
+                on_change = {(value)=>@on_change(NEW_FILENAMES, value)}
+            />
+        </LabeledRow>
+
+
     render_page_size: ->
         <LabeledRow label='Number of files per page'>
             <NumberInput
@@ -1321,6 +1335,15 @@ OtherSettings = rclass
             Hide free warnings: do <b><i>not</i></b> show a warning banner when using a free trial project {extra}
         </Checkbox>
 
+    render_allow_mentions: ->
+        <Checkbox
+            checked  = {!!@props.other_settings.get('allow_mentions')}
+            ref      = 'allow_mentions'
+            onChange = {(e)=>@on_change('allow_mentions', e.target.checked)}
+        >
+            Allow mentioning others in chats (disable to work around a bug)
+        </Checkbox>
+
     render: ->
         if not @props.other_settings
             return <Loading />
@@ -1328,10 +1351,12 @@ OtherSettings = rclass
             {@render_confirm()}
             {@render_first_steps()}
             {@render_global_banner()}
+            {@render_allow_mentions()}
             {@render_time_ago_absolute()}
             {### @render_katex() ###}
             {@render_mask_files()}
             {@render_no_free_warnings()}
+            {@render_new_filenames()}
             {@render_default_file_sort()}
             {@render_page_size()}
             {@render_standby_timeout()}
@@ -1383,7 +1408,7 @@ exports.AccountSettingsTop = rclass
                         redux                  = {@props.redux} />
                     <OtherSettings
                         other_settings     = {@props.other_settings}
-                        is_stripe_customer = {@props.stripe_customer?}
+                        is_stripe_customer = {!!@props.stripe_customer?.getIn(['subscriptions', 'total_count'])}
                         redux              = {@props.redux} />
                     <ProfileSettings
                         email_address = {@props.email_address}

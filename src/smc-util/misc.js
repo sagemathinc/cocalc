@@ -470,7 +470,7 @@ exports.fix_json_dates = fix_json_dates = function(obj, date_keys) {
 
 // converts a Date object to an ISO string in UTC.
 // NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
-// the SMC servers are assumed to be on UTC.
+// the CoCalc servers are assumed to be on UTC.
 exports.to_iso = d =>
   new Date(d - d.getTimezoneOffset() * 60 * 1000).toISOString().slice(0, -5);
 
@@ -3172,6 +3172,7 @@ exports.jupyter_language_to_name = function(lang) {
 
 // Find the kernel whose name is closest to the given name.
 exports.closest_kernel_match = function(name, kernel_list) {
+  if (kernel_list == null) return null;
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
   let bestValue = -1;

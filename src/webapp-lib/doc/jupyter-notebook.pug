@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'jupyter';
-    var subtitle = 'Run Jupyter Notebooks Online';
+    var subtitle = 'Collaborative Online Jupyter Notebooks';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -18,40 +18,7 @@ block content
   //- CSS: overwrites styles defined in the header
   style
     :sass
-      @import "smc-webapp/_colors.sass"
-      body > div.space
-        margin-top       : 5rem
-      div#top
-        margin           : 10rem 0 5rem 0
-        .descr
-          color          : $COL_GRAY
-          font-size      : 2rem
-        > div
-          margin-bottom  : 2rem
-      blockquote.blockquote
-        font-size        : 16px
-        img
-          height         : 10rem
-          width          : auto
-          float          : left
-          margin         : 0 1rem 1rem 0
-      ul,
-      ol
-        padding-left     : 2rem
-      div
-        img
-          width             : 100%
-          height            : auto
-        &.row
-          margin-top        : 2rem
-          margin-bottom     : 4rem
-          > div
-            > h1
-              margin-bottom : 4rem
-            > h2, h3
-              margin-bottom : 2rem
-            > div
-              margin-bottom : 1rem
+      @import "webapp-lib/doc/_style.sass"
 
   - var free_quotas = htmlWebpackPlugin.options.SCHEMA.DEFAULT_QUOTAS
   - var free_memory_gb = (free_quotas['memory'] / 1000).toFixed(1)
@@ -60,41 +27,42 @@ block content
   a.anchor#a-top
   div.container
     div.row.intro#top
-      div.col-sm-4.col-sm-offset-4.center
-        a(href=PREFIX + "app")
-          img(src=require('!url-loader?mimetype=image/svg+xml!cocalc-logo.svg'))
-      div.col-sm-12.center.descr.
-        #{htmlWebpackPlugin.options.description}
-      div.col-sm-12.center
-        +start_button
-
-    div.row
+      div.col-sm-2.col-sm-offset-5.center
+        img(src=require("webapp-lib/assets/jupyter-logo.svg")).fit
       div.col-md-12.center
-        h1 Run Jupyter Notebooks Online
+        h1 #{subtitle}
+
+  div.container
+    div.row
       div.col-sm-6
         img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
       div.col-sm-6
         p.
           #{NAME} is an online web service where you can
           #[strong run #[a(href="http://jupyter.org/") Jupyter notebooks] right inside your browser].
+          You can privately share your notebook with your
+          #[a(href="https://doc.cocalc.com/project-settings.html#about-collaborators") project collaborators].
+          All changes are #[strong synchronized in real-time].
         p.
-          It handles all the tedious details for you. You no longer have to:
+          #{NAME} takes care of all tedious aspects:
         ul
-          li install a Python environment
-          li setup additional kernel environments you want to use
-          li install all the libraries you need
-          li maintain everything on your own
+          li don't bother setting up a Python environment
+          li you no longer have to fight with installing all the libraries you need
+          li don't worry about Jupyter kernel configurations
+          li and let #{NAME} maintain everything for you
         p.
-          Instead, all you need to do to get started is to
+          To get started,
         ol
-          li create an account
-          li create a project
-          li upload your #[code *.ipynb] files or create a new Jupyter notebook
+          li #[a(href="https://doc.cocalc.com/getting-started.html") Sign up and create a project],
+          li #[a(href="https://doc.cocalc.com/howto/upload.html") upload] your #[code *.ipynb] files or create a new Jupyter notebook.
         p.
           #{NAME} supports many kernels right out of the box:
           several Python environments, #[a(href="http://www.sagemath.org/") SageMath],
           #[a(href="http://www.r-project.org/") R Statistical Software], #[a(href="http://julialang.org") Julia] and many more.
           Consult the #[a(href=PREFIX + "doc/software.html") Available Software page] for more information.
+
+
+  +start_free_banner
 
 
   a.anchor#a-overview
@@ -105,7 +73,9 @@ block content
           h1 Feature overview
         div.col-md-6.col-md-offset-3.
           The following features are specific to Jupyter notebooks.
-          Learn more about the #[a(href=PREFIX) #{NAME} platform here].
+          #[br]
+          There is also a comprehensive
+          #[strong #[a(href="https://doc.cocalc.com/jupyter.html") #{NAME} Jupyter documentation]].
 
     a.anchor#a-realtimesync
     div.container.space#realtimesync
@@ -117,12 +87,16 @@ block content
         div.col-md-6
           div.
             You can share your Jupyter notebooks privately with project collaborators.
-            Modifications are #[strong synchronized in real time].
-            Watch the cursors of others while they edit the document.
+            All modifications are #[strong synchronized in real time],
+            where you can see the cursors of others while they edit the document.
             You are also notified about the presence of watching collaborators.
           div.
+            Even sliders, menus and knobs of
+            #[a(href="https://ipywidgets.readthedocs.io/en/stable/examples/Widget%20Basics.html") interactive widgets]
+            are synchronized among all collaborators.
+          div.
             Additionally, the status and results of all computations in the currently running kernel session are also synchronized,
-            because it is fully hosted on #{NAME}.
+            because the session runs remotely in #{NAME}'s cluster.
           div.
             Together, everyone involved experiences the document in exactly the same way.
 
@@ -138,7 +112,7 @@ block content
               source(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter2-timetravel-20170515-3x.mp4" type="video/mp4")
         div.col-md-6
           div.
-            The #[strong Time-travel] feature is specific to the #{NAME} platform.
+            The #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel feature]] is specific to the #{NAME} platform.
             It records all your changes in the Jupyter notebook in fine detail.
             You can go back and forth in time across hundreds of changes to recover your previous edits.
           div.
@@ -178,7 +152,7 @@ block content
           img(src=require("webapp-lib/assets/cocalc-chat-jupyter-20171120-2.png")).fit
         div.col-md-6
           div.
-            A #[strong side-by-side chat] for each Jupyter file
+            A #[strong #[a(href="https://doc.cocalc.com/chat.html") side-by-side chat]] for each Jupyter file
             gives you the ability to discuss the content with your colleagues or students.
           div.
             Collaborators who are not online will be notified about new messages the next time they sign in.
@@ -245,8 +219,7 @@ block content
             This approach does not suffer from the same shortcomings as other solutions based on
             #[a(href="https://nbconvert.readthedocs.io") nbconvert].
 
-  div.container
-    div.row(style="margin-top: 6rem")
-      +start_free
-      div.col-sm-12.center
-        +start_button
+
+  +start_free_banner
+
+

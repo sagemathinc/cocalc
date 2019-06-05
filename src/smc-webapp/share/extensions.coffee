@@ -17,8 +17,9 @@ set = (v) ->
 exports.image = set(['png', 'jpg', 'gif', 'svg', 'jpeg', 'bmp', 'apng', 'ico'])
 
 # https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video
-{VIDEO_EXTS} = require('smc-webapp/file-associations')
+{VIDEO_EXTS, AUDIO_EXTS} = require('smc-webapp/file-associations')
 exports.video = set(VIDEO_EXTS)
+exports.audio = set(AUDIO_EXTS)
 
 exports.pdf = set(['pdf'])
 

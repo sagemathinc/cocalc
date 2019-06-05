@@ -382,6 +382,7 @@ ChatRoom = rclass ({name}) ->
         account :
             account_id : rtypes.string
             font_size  : rtypes.number
+            other_settings : rtypes.immutable.Map
         file_use :
             file_use : rtypes.immutable
         projects :
@@ -419,13 +420,13 @@ ChatRoom = rclass ({name}) ->
         scroll_to_bottom(@refs.log_container, @props.actions)
         @props.actions.submit_user_mentions(
             @props.project_id,
-            @props.path
+            misc.original_path(@props.path)
         )
         @props.actions.send_chat(value)
         @input_ref.current.focus();
 
-    on_input_change: (value, mentions) ->
-        @props.actions.set_unsent_user_mentions(mentions)
+    on_input_change: (value, mentions, plain_text) ->
+        @props.actions.set_unsent_user_mentions(mentions, plain_text)
         @props.actions.set_input(value)
 
     on_clear: () ->
@@ -557,7 +558,7 @@ ChatRoom = rclass ({name}) ->
                         <ChatInput
                             input                = {@props.input}
                             input_ref            = {@input_ref}
-                            enable_mentions      = {has_collaborators}
+                            enable_mentions      = {has_collaborators && @props.other_settings.get('allow_mentions')}
                             project_users        = {project_users}
                             user_store           = {@props.redux.getStore("users")}
                             font_size            = {@props.font_size}

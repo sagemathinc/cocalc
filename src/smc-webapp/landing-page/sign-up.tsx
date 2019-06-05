@@ -1,14 +1,16 @@
 import * as React from "react";
-import { ReactDOM, Rendered, redux } from "./app-framework";
-import { Passports } from "./passports";
+import { ReactDOM, Rendered, redux } from "../app-framework";
+import { Passports } from "../passports";
 import { List } from "immutable";
 
-const { COLORS, UNIT, Icon, Loading } = require("./r_misc");
+const { COLORS, UNIT, Icon, Loading } = require("../r_misc");
+
 const {
   HelpEmailLink,
   TermsOfService,
   AccountCreationEmailInstructions
-} = require("./customize");
+} = require("../customize");
+
 const {
   Button,
   Checkbox,
@@ -189,22 +191,39 @@ export class SignUp extends React.Component<Props, State> {
     );
   }
 
+  question_blur() {
+    const question: string = ReactDOM.findDOMNode(this.refs.question).value;
+    if (!question) return;
+    try {
+      // We store the question in localStorage.
+      // It can get saved to the backend (associated
+      // with their account) once they have signed in
+      // or created an account in some way.
+      localStorage.sign_up_how_find_cocalc = question;
+    } catch (err) {
+      // silently fail -- only for analytics.
+    }
+  }
+
   render_question() {
+    /*
     return (
       <>
-        <span>What would you like to do with CoCalc? (optional)</span>
+        <div style={{ marginBottom: "5px" }}>
+          'Where did you find out about CoCalc? '(optional)
+        </div>
         <FormGroup>
           <FormControl
-            disabled={!this.state.terms_checkbox}
             name="question"
             ref="question"
             type="text"
             autoFocus={false}
-            placeholder="Enter some keywords"
+            onBlur={this.question_blur.bind(this)}
           />
         </FormGroup>
       </>
     );
+    */
   }
 
   render_button(): Rendered {
@@ -230,6 +249,7 @@ export class SignUp extends React.Component<Props, State> {
         {this.render_error("token")}
         {this.render_error("generic")}
         {this.render_error("account_creation_failed")}
+        {this.render_error("other")}
         {this.render_passports()}
         <form
           style={{ marginTop: 20, marginBottom: 20 }}
@@ -253,6 +273,7 @@ export class SignUp extends React.Component<Props, State> {
     return (
       <Well style={well_style}>
         <AccountCreationEmailInstructions />
+        {this.render_question()}
         {this.render_terms()}
         {this.render_creation_form()}
         <div style={{ textAlign: "center" }}>

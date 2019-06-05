@@ -25,6 +25,7 @@ exports[`renders a list of languages 1`] = `
      Editor Settings
   </h3>
   <SpellCheck
+    available={true}
     key="spell"
     set={[Function]}
     value="Value"

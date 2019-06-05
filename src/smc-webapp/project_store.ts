@@ -38,6 +38,10 @@ import * as immutable from "immutable";
 
 const misc = require("smc-util/misc");
 import { QUERIES, FILE_ACTIONS, ProjectActions } from "./project_actions";
+import {
+  Available as AvailableFeatures,
+  isMainConfiguration
+} from "./project_configuration";
 
 import {
   project_redux_name,
@@ -48,6 +52,8 @@ import {
 } from "./app-framework";
 
 import { literal } from "./app-framework/literal";
+
+import { ProjectConfiguration } from "./project_configuration";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -74,6 +80,10 @@ export interface ProjectStoreState {
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
+  configuration?: ProjectConfiguration;
+  configuration_loading: boolean; // for UI feedback
+  available_features?: AvailableFeatures;
+  show_custom_software_reset: boolean;
 
   // Project Page
   active_project_tab: string;
@@ -97,6 +107,8 @@ export interface ProjectStoreState {
   show_library: boolean;
   show_new: boolean;
   file_listing_scroll_top?: number;
+  new_filename?: string;
+  ext_selection?: string;
 
   // Project Log
   project_log?: any; // immutable,
@@ -135,6 +147,7 @@ export interface ProjectStoreState {
 
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
+  private previous_runstate: string | undefined;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -149,7 +162,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     this._projects_store_change = this._projects_store_change.bind(this);
   }
 
-  _init = () => {
+  _init = (): void => {
     // If we are explicitly listed as a collaborator on this project,
     // watch for this to change, and if it does, close the project.
     // This avoids leaving it open after we are removed, which is confusing,
@@ -163,11 +176,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
     ) {
       // console.log('ProjectStore::_init projects.on("change", ... )');
       // only do this if we are on project in the first place!
-      return projects.on("change", this._projects_store_change);
+      projects.on("change", this._projects_store_change);
     }
   };
 
-  destroy = () => {
+  destroy = (): void => {
     let projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
@@ -177,13 +190,33 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // constructor binds this callback, such that "this.project_id" works!
   private _projects_store_change(state): void {
     const change = state.getIn(["project_map", this.project_id]);
+    //const log = (...args) =>
+    //  console.log("project_store/_projects_store_change", ...args);
     if (change == null) {
       // User has been removed from the project!
       (this.redux.getActions("page") as any).close_project_tab(this.project_id);
+    } else {
+      const new_state = change.getIn(["state", "state"]);
+      //log(this.previous_runstate, "=>", new_state);
+      // fire started or stopped when certain state transitions happen
+      if (this.previous_runstate != null) {
+        if (this.previous_runstate != "running" && new_state == "running") {
+          this.emit("started");
+        }
+        if (this.previous_runstate == "running" && new_state != "running") {
+          this.emit("stopped");
+        }
+      } else {
+        // null → "running"
+        if (new_state == "running") {
+          this.emit("started");
+        }
+      }
+      this.previous_runstate = new_state;
     }
   }
 
-  getInitialState = () => {
+  getInitialState = (): ProjectStoreState => {
     return {
       // Shared
       current_path: "",
@@ -195,6 +228,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
       create_file_alert: false,
       displayed_listing: undefined, // computed(object),
       show_masked: true,
+      configuration: undefined,
+      configuration_loading: false, // for UI feedback
+      show_custom_software_reset: false,
 
       // Project Page
       active_project_tab: "files",
@@ -482,6 +518,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
     url = url.slice(0, url.indexOf("/projects/"));
     return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
   };
+
+  // returns false, if this project isn't capable of opening a file with the given extension
+  async can_open_file_ext(
+    ext: string,
+    actions: ProjectActions
+  ): Promise<boolean> {
+    // to make sure we know about disabled file types
+    const conf = await actions.init_configuration("main");
+    // if we don't know anything, we're optimistic and skip this check
+    if (conf == null) return true;
+    if (!isMainConfiguration(conf)) return true;
+    const disabled_ext = conf.disabled_ext;
+    return !disabled_ext.includes(ext);
+  }
 }
 
 function _match(words, s, is_dir) {

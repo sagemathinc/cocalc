@@ -13,8 +13,16 @@ function escape_regexp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function construct_regexp(string: string, flags: string, is_regexp: false): RegExp;
-function construct_regexp(string: RegExp, flags: string, is_regexp: true): RegExp;
+function construct_regexp(
+  string: string,
+  flags: string,
+  is_regexp: false
+): RegExp;
+function construct_regexp(
+  string: RegExp,
+  flags: string,
+  is_regexp: true
+): RegExp;
 function construct_regexp(string, flags, is_regexp) {
   // return a Pseudo RegExp object that acts
   // either as a plain RegExp Object, or as a pure string matching.
@@ -39,7 +47,11 @@ export function find_matches(
   is_case_sensitive = false,
   is_regexp = false,
   max_matches = 100
-): { matches?: Array<{ start: number; stop: number }>; abort?: boolean; error?: string } {
+): {
+  matches?: Array<{ start: number; stop: number }>;
+  abort?: boolean;
+  error?: string;
+} {
   let flags = "g";
   if (!is_case_sensitive) {
     flags += "i";

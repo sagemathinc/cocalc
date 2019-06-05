@@ -32,8 +32,6 @@ Example:
     ['10.1.1.4', '10.1.3.4', '10.1.2.4']
 """
 
-import math
-import sys
 from bisect import bisect
 
 import hashlib

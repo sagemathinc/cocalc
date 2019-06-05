@@ -28,6 +28,8 @@ copy_to_clipboard = require('copy-to-clipboard')
 {reportException} = require('../../webapp-lib/webapp-error-reporter')
 {PROJECT_UPGRADES} = require('smc-util/schema')
 
+{A} = require('./A')
+exports.A = A
 {Icon} = require('./icon')
 exports.Icon = Icon
 {Tip} = require('./tip')
@@ -1007,7 +1009,7 @@ exports.NonMemberProjectWarning = (opts) ->
 
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only hosting {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your upgrade contributions...' below.</span>
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
@@ -1030,7 +1032,7 @@ exports.NoNetworkProjectWarning = (opts) ->
     {total, used, avail} = project_warning_opts(opts)
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+        suggestion = <span><b><i>You have {avail} unused internet access {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your upgrade contributions...' below.</span>
     else if avail <= 0
         url = PolicyPricingPageUrl
         if total > 0
@@ -1041,7 +1043,7 @@ exports.NoNetworkProjectWarning = (opts) ->
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have full internet access</strong></h4>
         <p>
-            Projects without internet access enabled, cannot connect to external websites or download software packages.
+            Projects without internet access enabled cannot connect to external websites, download software packages, or invite and notify collaborators via email.
             {suggestion}
         </p>
     </Alert>
@@ -1502,7 +1504,7 @@ exports.UpgradeAdjustor = rclass
 
             <Alert bsStyle='warning' style={@props.style}>
                 {<div>
-                    <h3><Icon name='arrow-circle-up' /> Adjust your quota contributions to this project</h3>
+                    <h3><Icon name='arrow-circle-up' /> Adjust your upgrade contributions to this project</h3>
 
                     <div style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.  <a onClick={@show_account_upgrades} style={cursor:'pointer'}>See your current upgrade allocations...</a>
                     </div>
@@ -1618,6 +1620,12 @@ exports.HiddenSM = rclass
             {@props.children}
         </span>
 
+exports.HiddenXSSM = rclass
+    render: ->
+        <span className={'hidden-xs hidden-sm'}>
+            {@props.children}
+        </span>
+
 # VisibleMDLG = visible on medium or large devices (anything with width > 992px)
 exports.VisibleMDLG = VisibleMDLG = rclass
     render: ->
@@ -1629,6 +1637,12 @@ exports.VisibleMDLG = VisibleMDLG = rclass
 exports.VisibleLG = rclass
     render: ->
         <span className={'visible-lg-inline'}>
+            {@props.children}
+        </span>
+
+exports.VisibleXSSM = rclass
+    render: ->
+        <span className={'visible-xs-inline visible-sm-inline'}>
             {@props.children}
         </span>
 

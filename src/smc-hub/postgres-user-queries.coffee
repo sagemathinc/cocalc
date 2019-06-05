@@ -1176,12 +1176,15 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return "SELECT #{(quote_field(field) for field in @_user_get_query_columns(user_query)).join(',')} FROM #{table}"
 
     _user_get_query_satisfied_by_obj: (user_query, obj, possible_time_fields) =>
+        #dbg = @_dbg("_user_get_query_satisfied_by_obj)
+        #dbg(user_query, obj)
         for field, value of obj
             date_keys = possible_time_fields[field]
             if date_keys
                 value = misc.fix_json_dates(value, date_keys)
             if (q = user_query[field])?
                 if (op = @_query_is_cmp(q))
+                    #dbg(value:value, op: op, q:q)
                     x = q[op]
                     switch op
                         when '=='
@@ -1301,6 +1304,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             else
                                 return true
                         select : {id:'UUID', time:'TIMESTAMP'}
+
                 else if pg_changefeed == 'five-minutes'
                     pg_changefeed = ->
                         where : (obj) ->
@@ -1521,17 +1525,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             dbg("awakening project #{project_id}")
             awaken_project(@, project_id)
 
-        # 2. Log that this particular file is being used/accessed; this is used only
-        # longterm for analytics.  Note that log_file_access is throttled.
-        # Also, record in a local cache that the user has permission to write
-        # to this syncstring.
-        if project_id? and new_val?.last_active?
-            filename = old_val?.path
-            if filename? and account_id?
-                @log_file_access
-                    project_id : project_id
-                    account_id : account_id
-                    filename   : filename
 
     # Verify that writing a patch is allowed.
     _user_set_query_patches_check: (obj, account_id, project_id, cb) =>

@@ -72,7 +72,7 @@ export class JupyterLabServerPanel extends Component<Props, {}> {
   }
 }
 
-async function jupyterlab_server_url(project_id: string): Promise<string> {
+export async function jupyterlab_server_url(project_id: string): Promise<string> {
   let out = JSON.parse(
     (await exec({ project_id, command: "cc-jupyterlab", args: ["status"] }))
       .stdout

@@ -98,6 +98,7 @@ class exports.ExamplesActions extends Actions
             code  : code
             lang  : @get('lang')
             descr : if descr then @get('descr') else null
+            cell_id : @get('cell_id')
         @get('handler')?(ret)
 
     load_data: () ->

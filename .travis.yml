@@ -9,6 +9,7 @@ branches:
 
 # there is no single language, but python is ok
 language: "python"
+python: 3.6
 
 # travis supports 8 and 11 (as of winter 2018)
 node_js:
@@ -28,8 +29,11 @@ addons:
     update: true
     packages:
       - "python-pip"
+      - "python-yaml"
+      - "python-pytest"
       - "python3-pip"
       - "python3-pytest"
+      - "python3-yaml"
 
 # Travis supports "global" and "build matrix" variables
 # http://docs.travis-ci.com/user/environment-variables/
@@ -63,6 +67,7 @@ before_script:
 # the setup & compilation of CoCalc
 # if broken, this will also trigger a test failure, i.e. that's also a test
 install:
+  - "pip3 install --upgrade pytest PyYAML"
   - "cd src"
   - "source smc-env"
   - 'if [[ $KUCALC_MODE != "services" ]]; then npm run make; fi'

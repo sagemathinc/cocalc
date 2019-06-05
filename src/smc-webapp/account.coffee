@@ -108,21 +108,21 @@ webapp_client.on "remember_me_failed", () ->
 redux.getActions('account').setState(has_remember_me : get_cookie("#{APP_BASE_URL}has_remember_me") == 'true')
 
 # Return a default filename with the given ext (or not extension if ext not given)
-# FUTURE: make this configurable with different schemas.
-exports.default_filename = (ext, is_folder) ->
-    return default_filename_iso(ext)
-    #return default_filename_mac(ext)
+# this is just a wrapper for backwards compatibility
+{NewFilenames} = require('project/utils')
+{NEW_FILENAMES} = require('smc-util/db-schema')
+new_filenames_generator = new NewFilenames(undefined, true)
+exports.default_filename = (ext, project_id) ->
+    type = redux.getStore("account")?.getIn(["other_settings", NEW_FILENAMES]) ? NewFilenames.default_family
+    new_filenames_generator.set_ext(ext)
+    if project_id?
+        avoid = redux.getProjectActions(project_id).get_filenames_in_current_dir()
+        return new_filenames_generator.gen(type, avoid)
+    else
+        return new_filenames_generator.gen(type)
 
-default_filename_iso = (ext, is_folder) ->
-    base = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-    if ext
-        base += '.' + ext
-    return base
 
-# This isn't used yet -- will not a config option in account settings.
-default_filename_mac = (ext, is_folder) ->
-    switch ext
-        when 'zip'
-            return 'Archive.zip'
-        else
-            return 'untitled ' + (if is_folder then 'folder' else 'file')
+# Ensure the hooks to process various things after user signs in
+# are enabled.
+require('./landing-page/sign-in-hooks')
+

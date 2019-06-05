@@ -1,5 +1,4 @@
-import { Component, React, Rendered } from "../app-framework";
-const { default_filename } = require("../account.coffee");
+import { Component, React, /* ReactDOM,*/ Rendered } from "../app-framework";
 const { file_options } = require("../editor");
 const {
   Col,
@@ -9,37 +8,53 @@ const {
   Button,
   Form
 } = require("react-bootstrap");
-const { SearchInput } = require("../r_misc");
+const { SearchInput, SelectorInput, Icon } = require("../r_misc");
 const { IS_TOUCH } = require("../feature");
+import { NewFilenameFamilies, NewFilenames } from "smc-webapp/project/utils";
+import { FileSpec } from "../file-associations";
+import { NEW_FILENAMES } from "smc-util/db-schema";
 
 interface Props {
   actions: any;
   ext_selection: string;
   current_path: string;
+  new_filename?: string;
+  other_settings: any;
 }
-interface State {
-  new_name: string;
-}
+
+interface State {}
 
 export class AskNewFilename extends Component<Props, State> {
-  displayName = "ProjectFiles-AskNewFilename";
+  private searchRef: React.RefObject<HTMLInputElement>;
+
   constructor(props) {
     super(props);
-    this.state = {
-      new_name: default_filename()
-    };
+    this.searchRef = React.createRef();
   }
 
-  componentDidMount() {
-    this.setState({ new_name: default_filename() });
+  componentWillReceiveProps(next): void {
+    const curr_rfn = this.props.other_settings.get(NEW_FILENAMES);
+    const next_rfn = next.other_settings.get(NEW_FILENAMES);
+    if (curr_rfn != next_rfn) {
+      this.shuffle();
+    }
   }
 
   cancel = (): void => {
-    this.props.actions.setState({ ext_selection: undefined });
+    this.props.actions.ask_filename(undefined);
+  };
+
+  shuffle = (): void => {
+    this.props.actions.ask_filename(this.props.ext_selection);
+    // TODO somehow focus & select the new text in the box
+    //const el = this.searchRef.current;
+    //if (el != null) {
+    //  ReactDOM.findDOMNode(el.refs.input).select();
+    //}
   };
 
   create = (name, focus): void => {
-    this.props.actions.setState({ ext_selection: undefined });
+    this.props.actions.ask_filename(undefined);
     this.props.actions.create_file({
       name: name,
       ext: this.props.ext_selection,
@@ -53,51 +68,72 @@ export class AskNewFilename extends Component<Props, State> {
   };
 
   create_click = (): void => {
-    this.create(this.state.new_name, true);
+    this.create(this.props.new_filename, true);
   };
 
   change = (val: string): void => {
-    this.setState({ new_name: val });
+    this.props.actions.setState({ new_filename: val });
   };
 
-  render_filename() {
-    const data: any = file_options(`foo.${this.props.ext_selection}`);
+  filename(): string {
+    const data: FileSpec = file_options(`foo.${this.props.ext_selection}`);
     return data.name;
   }
 
+  change_family = (family: string): void => {
+    this.props.actions.set_new_filename_family(family);
+  };
+
   render(): Rendered {
+    if (this.props.new_filename == null) return <div>Loading …</div>;
+    const rfn = this.props.other_settings.get(NEW_FILENAMES);
+    const selected = rfn != null ? rfn : NewFilenames.default_family;
     return (
-      <Row>
+      <Row style={{ marginBottom: "10px" }}>
         <Col md={6} mdOffset={0} lg={4} lgOffset={0}>
           <ControlLabel>
-            Enter name for new {this.render_filename()} file:
+            Enter name for new {this.filename()} file:
           </ControlLabel>
           <Form>
             <SearchInput
               autoFocus={!IS_TOUCH}
               autoSelect={!IS_TOUCH}
-              ref={"new_filename2"}
-              key={"new_filename2"}
+              ref={this.searchRef}
               type={"text"}
-              value={this.state.new_name}
+              value={this.props.new_filename}
               placeholder={"Enter filename..."}
               on_submit={this.submit}
               on_escape={this.cancel}
               on_change={this.change}
             />
-            <ButtonToolbar
-              style={{ whiteSpace: "nowrap", padding: "0" }}
-              className={"pull-right"}
-            >
-              <Button
-                bsStyle={"primary"}
-                onClick={this.create_click}
-                disabled={this.state.new_name.length == 0}
-              >
-                Create
-              </Button>
-              <Button onClick={this.cancel}>Cancel</Button>
-            </ButtonToolbar>
+            <Row>
+              <Col md={5}>
+                <SelectorInput
+                  selected={selected}
+                  options={NewFilenameFamilies}
+                  on_change={this.change_family}
+                />
+              </Col>
+
+              <Col md={7}>
+                <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
+                  <Button onClick={this.shuffle}>
+                    <Icon name={"sync-alt"} />
+                  </Button>
+                  <Button
+                    className={"pull-right"}
+                    bsStyle={"primary"}
+                    onClick={this.create_click}
+                    disabled={this.props.new_filename.length == 0}
+                  >
+                    <Icon name={"plus-circle"} /> Create
+                  </Button>
+                  <Button className={"pull-right"} onClick={this.cancel}>
+                    Cancel
+                  </Button>
+                </ButtonToolbar>
+              </Col>
+            </Row>
           </Form>
         </Col>
       </Row>

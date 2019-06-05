@@ -12,11 +12,11 @@ interface Props {
   pulse?: boolean;
   stack?: "1x" | "2x";
   inverse?: boolean;
-  Component?: React.Component;
+  Component?: JSX.Element | JSX.Element[];
   style?: any;
-  onClick?: () => undefined;
-  onMouseOver?: () => undefined;
-  onMouseOut?: () => undefined;
+  onClick?: () => void;
+  onMouseOver?: () => void;
+  onMouseOut?: () => void;
 }
 
 // Converted from https://github.com/andreypopp/react-fa

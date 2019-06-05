@@ -1,12 +1,15 @@
 import { Component, Rendered, React } from "../app-framework";
 
-const { Loading, Space } = require("../r_misc");
+const { Loading, Space, Icon } = require("../r_misc");
+
+const { Button } = require("react-bootstrap");
 
 import { retry_until_success } from "smc-util/async-utils";
 
 interface Props {
   href?: string;
   get_href: () => Promise<string>; // optional async function that determines url
+  mode: "link" | "button";
 }
 
 interface State {
@@ -29,6 +32,10 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
     };
     this.click = this.click.bind(this);
   }
+
+  public static defaultProps = {
+    mode: "link"
+  };
 
   componentDidMount() {
     this.is_mounted = true;
@@ -94,7 +101,7 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
   }
 
   render_loading(): Rendered {
-    if (this.state.loading) {
+    if (this.props.mode === "link" && this.state.loading) {
       return (
         <span>
           <Space /> <Loading />
@@ -121,13 +128,42 @@ export class LinkRetryUntilSuccess extends Component<Props, State> {
     );
   }
 
-  render(): Rendered {
+  render_button_info(): Rendered {
+    if (this.state.loading) {
+      return <Icon name="cc-icon-cocalc-ring" spin />;
+    } else if (this.state.error) {
+      <span style={{ color: "darkred" }}>(failed to load)</span>;
+    } else {
+      return undefined;
+    }
+  }
+
+  render_button(): Rendered {
     return (
-      <span>
-        {this.render_link()}
-        {this.render_loading()}
-        {this.render_error()}
-      </span>
+      <Button onClick={this.click} bsSize={"small"}>
+        {this.props.children} {this.render_button_info()}
+      </Button>
     );
   }
+
+  render(): Rendered {
+    switch (this.props.mode) {
+      case "link":
+        return (
+          <span>
+            {this.render_link()}
+            {this.render_loading()}
+            {this.render_error()}
+          </span>
+        );
+      case "button":
+        return this.render_button();
+    }
+  }
+}
+
+export class ButtonRetryUntilSuccess extends LinkRetryUntilSuccess {
+  public static defaultProps = {
+    mode: "button"
+  };
 }

@@ -7,7 +7,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
-const underscore = require("underscore");
+import * as lodash from "lodash";
+export const keys = lodash.keys;
 
 interface SplittedPath {
   head: string;
@@ -135,8 +136,9 @@ export function copy_with(obj: object, w: string | string[]): object {
 import { cloneDeep } from "lodash";
 export const deep_copy = cloneDeep;
 
-export function set(v: string[]): object {
-  const s = {};
+// Very poor man's set.
+export function set(v: string[]): { [key: string]: true } {
+  const s: { [key: string]: true } = {};
   for (let x of v) {
     s[x] = true;
   }
@@ -236,8 +238,6 @@ export function len(obj: object | undefined | null): number {
   }
   return Object.keys(obj).length;
 }
-
-export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
@@ -457,4 +457,24 @@ export function is_object(obj: any): boolean {
 
 export function is_date(obj: any): boolean {
   return obj instanceof Date;
+}
+
+// delete any null fields, to avoid wasting space.
+export function delete_null_fields(obj: object): void {
+  for (let k in obj) {
+    if (obj[k] == null) {
+      delete obj[k];
+    }
+  }
+}
+
+// for switch/case -- https://www.typescriptlang.org/docs/handbook/advanced-types.html
+export function unreachable(x: never) {
+  throw new Error(`All types should be exhausted, but I got ${x}`);
+}
+
+export function bind_methods(obj: any, method_names: string[]): void {
+  for (let method_name of method_names) {
+    obj[method_name] = obj[method_name].bind(obj);
+  }
 }

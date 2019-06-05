@@ -3,23 +3,48 @@ Render a single project entry, which goes in the list of projects
 */
 
 import * as immutable from "immutable";
-import { AppRedux, Component, React, rclass, rtypes } from "../app-framework";
+import {
+  AppRedux,
+  Component,
+  React,
+  Rendered,
+  rclass,
+  rtypes
+} from "../app-framework";
 import { ProjectUsers } from "./project-users";
 import { analytics_event } from "../tracker";
 
 const { Row, Col, Well } = require("react-bootstrap");
 const { Icon, Markdown, ProjectState, Space, TimeAgo } = require("../r_misc");
 const { AddCollaborators } = require("../collaborators/add-to-project");
+import { id2name, ComputeImages } from "../custom-software/init";
+import {
+  CUSTOM_IMG_PREFIX,
+  compute_image2basename
+} from "custom-software/util";
+const COLORS = require("smc-util/theme").COLORS;
+
+const image_name_style: React.CSSProperties = {
+  fontSize: "12px",
+  color: COLORS.GRAY,
+  marginTop: "5px"
+};
+
+interface Project {
+  project_id: string;
+  state;
+  last_edited;
+  description: string;
+  title: string;
+  compute_image: string;
+}
+
+import { user_tracking } from "../user-tracking";
 
 interface ReactProps {
-  project: {
-    project_id: string;
-    state;
-    last_edited;
-    description: string;
-    title: string;
-  };
+  project: Project;
   index: number;
+  images?: ComputeImages;
   redux: AppRedux;
 }
 
@@ -142,10 +167,33 @@ export const ProjectRow = rclass<ReactProps>(
       );
     }
 
+    // transforms the compute image ID to a human readable string
+    render_image_name(): Rendered {
+      const ci = this.props.project.compute_image;
+      if (ci == null || this.props.images == null) return;
+      if (ci.startsWith(CUSTOM_IMG_PREFIX)) {
+        const id = compute_image2basename(ci);
+        const img = this.props.images.get(id);
+        if (img == null) return;
+        const name = img.get("display");
+        return <div style={image_name_style}>{name} <span title="Custom image created by a third party">(custom)</span></div>;
+      } else {
+        // official
+        const name = id2name(ci);
+        if (name === "Default") return; // avoid clutter for the default.
+        return <div style={image_name_style}>{name} <span title="Official image created by CoCalc">(official)</span></div>;
+      }
+    }
+
     render_project_description() {
       if (this.props.project.description !== "No Description") {
         // don't bother showing that default; it's clutter
-        return <Markdown value={this.props.project.description} />;
+        return (
+          <Markdown
+            style={{ color: COLORS.GRAY }}
+            value={this.props.project.description}
+          />
+        );
       }
     }
 
@@ -169,12 +217,14 @@ export const ProjectRow = rclass<ReactProps>(
     };
 
     open_project_from_list = e => {
+      const project_id = this.props.project.project_id;
       this.props.redux.getActions("projects").open_project({
-        project_id: this.props.project.project_id,
+        project_id,
         switch_to: !(e.which === 2 || (e.ctrlKey || e.metaKey))
       });
       e.preventDefault();
       analytics_event("projects_page", "opened_a_project");
+      user_tracking("open_project", { how: "projects_page", project_id });
     };
 
     open_project_settings = e => {
@@ -204,26 +254,26 @@ export const ProjectRow = rclass<ReactProps>(
           <Row>
             <Col
               onClick={this.handle_click}
-              sm={2}
+              sm={3}
               style={{
-                fontWeight: "bold",
-                maxHeight: "7em",
+                maxHeight: "10em",
                 overflowY: "auto"
               }}
             >
-              {this.render_project_title()}
-            </Col>
-            <Col
-              onClick={this.handle_click}
-              sm={2}
-              style={{ color: "#666", maxHeight: "7em", overflowY: "auto" }}
-            >
+              <div style={{ fontWeight: "bold" }}>
+                {this.render_project_title()}
+              </div>
               {this.render_last_edited()}
+              {this.render_image_name()}
             </Col>
             <Col
               onClick={this.handle_click}
-              sm={2}
-              style={{ color: "#666", maxHeight: "7em", overflowY: "auto" }}
+              sm={3}
+              style={{
+                color: COLORS.GRAY,
+                maxHeight: "10em",
+                overflowY: "auto"
+              }}
             >
               {this.render_project_description()}
             </Col>

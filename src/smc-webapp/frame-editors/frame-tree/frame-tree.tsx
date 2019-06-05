@@ -39,6 +39,7 @@ const feature = require("smc-webapp/feature");
 const { FrameTitleBar } = require("./title-bar");
 const tree_ops = require("./tree-ops");
 const { Loading } = require("smc-webapp/r_misc");
+import { Available as AvailableFeatures } from "../../project_configuration";
 
 const drag_offset = feature.IS_TOUCH ? 5 : 2;
 
@@ -97,6 +98,7 @@ interface FrameTreeProps {
   settings: Map<string, any>;
   complete: Map<string, any>;
   derived_file_types: Set<string>;
+  available_features: AvailableFeatures;
 }
 
 interface FrameTreeState {
@@ -140,7 +142,8 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         "settings",
         "status",
         "complete",
-        "derived_file_types"
+        "derived_file_types",
+        "available_features"
       ])
     );
   }
@@ -176,6 +179,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         status={this.props.status}
         complete={this.props.complete}
         derived_file_types={this.props.derived_file_types}
+        available_features={this.props.available_features}
       />
     );
   }
@@ -207,6 +211,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
         title={desc.get("title")}
         connection_status={desc.get("connection_status")}
         font_size={desc.get("font_size")}
+        available_features={this.props.available_features}
       />
     );
   }
@@ -264,6 +269,7 @@ export class FrameTree extends Component<FrameTreeProps, FrameTreeState> {
           complete={this.props.complete.get(desc.get("id"))}
           derived_file_types={this.props.derived_file_types}
           desc={desc}
+          available_features={this.props.available_features}
         />
       </div>
     );

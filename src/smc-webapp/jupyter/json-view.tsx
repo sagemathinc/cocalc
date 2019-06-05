@@ -2,18 +2,17 @@
 Provide nice JSON view of the ipynb
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
-import { Map as ImmutableMap } from "immutable";
+import { React, Component } from "../app-framework";
+import { Map } from "immutable";
 const Inspector = require("react-json-inspector");
+import { JupyterActions } from "./browser-actions";
 
 const { Loading } = require("../r_misc"); // TODO: import types
 
 interface JSONViewProps {
-  actions: any; // TODO: type
+  actions: JupyterActions;
   font_size?: number;
-  // TODO: delete these?
-  cells?: ImmutableMap<any, any>; // ipynb object depends on this
-  kernel?: string; // ipynb object depends on this
+  cells: Map<string, any>; // to cause update when these change.
 }
 
 export class JSONView extends Component<JSONViewProps> {
@@ -31,7 +30,7 @@ export class JSONView extends Component<JSONViewProps> {
           backgroundColor: "#eee",
           height: "100%",
           overflowY: "auto",
-          overflowX: "hidden",
+          overflowX: "hidden"
         }}
       >
         <div
@@ -39,7 +38,7 @@ export class JSONView extends Component<JSONViewProps> {
             backgroundColor: "#fff",
             padding: "15px",
             boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
-            position: "relative",
+            position: "relative"
           }}
         >
           <div
@@ -48,7 +47,7 @@ export class JSONView extends Component<JSONViewProps> {
               fontSize: "12pt",
               right: "15px",
               position: "absolute",
-              background: "white",
+              background: "white"
             }}
           >
             Read-only view of notebook's underlying object structure.

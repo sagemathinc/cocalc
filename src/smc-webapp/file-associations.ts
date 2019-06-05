@@ -23,6 +23,8 @@ const codemirror_associations: { [ext: string]: string } = {
   cljc: "text/x-clojure",
   edn: "text/x-clojure",
   elm: "text/x-elm",
+  erl: "text/x-erlang",
+  hrl: "text/x-erlang", // according to https://en.wikipedia.org/wiki/Erlang_(programming_language)
   cjsx: "text/cjsx",
   coffee: "coffeescript",
   css: "css",
@@ -89,7 +91,7 @@ const codemirror_associations: { [ext: string]: string } = {
   "": "text"
 };
 
-interface Spec {
+export interface FileSpec {
   editor?: string;
   binary?: boolean;
   icon: string;
@@ -103,7 +105,7 @@ interface Spec {
   exclude_from_menu?: boolean;
 }
 
-const file_associations: { [ext: string]: Spec } = {};
+const file_associations: { [ext: string]: FileSpec } = {};
 exports.file_associations = file_associations;
 
 const MODE_TO_ICON: { [mode: string]: string } = {

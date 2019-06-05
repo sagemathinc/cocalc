@@ -542,6 +542,10 @@ class exports.Connection extends EventEmitter
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
 
+    _set_signed_out: =>
+        @_signed_in = false
+        @_redux?.getActions('account')?.set_user_type('public')
+
     change_data_channel: (opts) =>
         opts = defaults opts,
             prev_channel : undefined
@@ -1049,9 +1053,10 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
+            image       : undefined
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description)
+            message: message.create_project(title:opts.title, description:opts.description, image:opts.image)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -1059,6 +1064,7 @@ class exports.Connection extends EventEmitter
                     opts.cb?(resp.error)
                 else
                     opts.cb?(undefined, resp.project_id)
+                    @user_tracking({event:'create_project', value:{project_id:resp.project_id, title:opts.title}})
 
     #################################################
     # Individual Projects
@@ -1416,7 +1422,7 @@ class exports.Connection extends EventEmitter
             query_id : -1     # So we can check that it matches the most recent query
             limit    : 20
             timeout  : DEFAULT_TIMEOUT
-            active   : '13 months'
+            active   : ''   # if given, would restrict to users active this recently
             admin    : false  # admins can do and admin version of the query, which returns email addresses and does substring searches on email
             cb       : required
 
@@ -1994,6 +2000,10 @@ class exports.Connection extends EventEmitter
                 options : opts.options
                 standby : opts.standby
                 cb      : (err, resp) =>
+                    if err == 'not signed in'
+                        @_set_signed_out()
+                        opts.cb?(err, resp)
+                        return
                     if not err or not opts.standby
                         opts.cb?(err, resp)
                         return
@@ -2108,7 +2118,9 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             target     : required # account_id (for now)
+            source     : required # account_id
             priority   : undefined # optional integer; larger number is higher; 0 is default.
+            description: undefined # optional string context eg. part of the message
             cb         : undefined
         if not @is_signed_in()
             # wait until signed in, otherwise query below just fails
@@ -2119,11 +2131,11 @@ class exports.Connection extends EventEmitter
                 mentions : misc.copy_without(opts, 'cb')
             cb : opts.cb
 
-    # This is async, so do "await smc_webapp.capabilities(...project_id...)".
-    capabilities: (project_id) =>
+    # This is async, so do "await smc_webapp.configuration(...project_id...)".
+    configuration: (project_id, aspect) =>
         if not misc.is_valid_uuid_string(project_id) or typeof(name) != 'string'
             throw Error("project_id must be a valid uuid")
-        return (await @project_websocket(project_id)).api.capabilities()
+        return (await @project_websocket(project_id)).api.configuration(aspect)
 
     syncdoc_history: (opts) =>
         opts = defaults opts,
@@ -2139,6 +2151,43 @@ class exports.Connection extends EventEmitter
                     opts.cb(err)
                 else
                     opts.cb(undefined, resp.history)
+
+    user_tracking: (opts) =>
+        opts = defaults opts,
+            event : required
+            value : {}
+            cb    : undefined
+        @call
+            message    : message.user_tracking(evt:opts.event, value:opts.value)
+            allow_post : true
+            cb         : opts.cb
+
+    admin_reset_password: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb         : required
+        @call
+            message    : message.admin_reset_password(email_address:opts.email_address)
+            allow_post : true
+            error_event : true
+            cb         : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.link)
+
+    admin_ban_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            ban        : true     # if true, ban user  -- if false, unban them.
+            cb         : required
+        @call
+            message    : message.admin_ban_user(account_id:opts.account_id, ban:opts.ban)
+            allow_post : true
+            error_event : true
+            cb         : (err, resp) =>
+                opts.cb(err)
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################

@@ -161,6 +161,10 @@ class PageActions extends Actions
                 if change_history
                     history.set_url('/admin')
                 set_window_title('Admin')
+            when 'notifications'
+                if change_history
+                    history.set_url('/notifications')
+                set_window_title('Notifications')
             when undefined
                 return
             else
@@ -213,7 +217,7 @@ class PageActions extends Actions
     set_new_version: (version) =>
         @setState(new_version : version)
 
-    set_fullscreen: (val) =>
+    set_fullscreen: (val) =>  # val = 'default', 'kiosk', undefined
         # if kiosk is ever set, disable toggling back
         if redux.getStore('page').get('fullscreen') == 'kiosk'
             return

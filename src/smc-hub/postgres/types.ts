@@ -44,21 +44,79 @@ export interface PostgreSQL extends EventEmitter {
   ): void;
   changefeed(opts: ChangefeedOptions): Changes;
 
-  account_ids_to_usernames(opts: { account_ids: string[]; cb: Function });
+  account_ids_to_usernames(opts: { account_ids: string[]; cb: Function }): void;
 
-  get_project(opts: { project_id: string; columns?: string[]; cb: Function });
+  get_project(opts: {
+    project_id: string;
+    columns?: string[];
+    cb: Function;
+  }): void;
+  get_account(opts: {
+    account_id: string;
+    columns?: string[];
+    cb: Function;
+  }): void;
 
   add_user_to_project(opts: {
     account_id: string;
     project_id: string;
     group?: string;
     cb: Function;
-  });
+  }): void;
 
   user_is_in_project_group(opts: {
     account_id: string;
     project_id: string;
     group?: string[];
     cb: Function;
-  });
+  }): void;
+
+  do_account_creation_actions(opts: {
+    email_address: string;
+    account_id: string;
+    cb: Function;
+  }): void;
+
+  mark_account_deleted(opts: {
+    email_address: string;
+    account_id: string;
+    cb: Function;
+  }): void;
+
+  count_accounts_created_by(opts: {
+    ip_address: string;
+    age_s: number;
+    cb: Function;
+  }): void;
+
+  account_exists(opts: { email_address: string; cb: Function }): void;
+
+  is_banned_user(opts: {
+    email_address: string;
+    account_id: string;
+    cb: Function;
+  }): void;
+
+  get_server_setting(opts: { name: string; cb: Function }): void;
+
+  create_account(opts: {
+    first_name: string;
+    last_name: string;
+    created_by?: string;
+    email_address?: string;
+    password_hash?: string;
+    passport_strategy?: any;
+    passport_id?: string;
+    passport_profile?: any;
+    usage_intent?: string;
+    cb: Function;
+  }): void;
+
+  log(opts: { event: string; value: any; cb: Function }): void;
+
+  user_is_in_group(opts: {
+    account_id: string;
+    group: string;
+    cb: Function;
+  }): void;
 }

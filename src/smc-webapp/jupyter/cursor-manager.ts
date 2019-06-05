@@ -1,15 +1,15 @@
 import { List, Map } from "immutable";
-type iMap = Map<string, any>;
+type CursorMap = Map<string, any>;
 
 export class CursorManager {
-  private last_cursors: iMap = Map();
+  private last_cursors: CursorMap = Map();
 
   private process_one_user(
-    info: iMap | undefined,
+    info: CursorMap | undefined,
     account_id: string,
-    cells: iMap
-  ): iMap {
-    const last_info: iMap | undefined = this.last_cursors.get(account_id);
+    cells: CursorMap
+  ): CursorMap {
+    const last_info: CursorMap | undefined = this.last_cursors.get(account_id);
     if (last_info != null) {
       if (last_info.equals(info)) {
         // no change for this particular users, so nothing further to do
@@ -21,8 +21,8 @@ export class CursorManager {
         locs.forEach(loc => {
           if (loc == null) return;
           const id: string | undefined = loc.get("id");
-          if (id == null) return;  // be super careful.
-          let cell: iMap | undefined = cells.get(id);
+          if (id == null) return; // be super careful.
+          let cell: CursorMap | undefined = cells.get(id);
           if (cell == null) return;
           const cursors = cell.get("cursors", Map());
           if (cursors == null) return;
@@ -42,7 +42,7 @@ export class CursorManager {
       const id = loc.get("id");
       let cell = cells.get(id);
       if (cell == null) return;
-      let cursors: iMap = cell.get("cursors", Map());
+      let cursors: CursorMap = cell.get("cursors", Map());
       loc = loc.set("time", info.get("time")).delete("id");
       const locs = cursors.get(account_id, List()).push(loc);
       cursors = cursors.set(account_id, locs);
@@ -53,7 +53,10 @@ export class CursorManager {
     return cells;
   }
 
-  public process(cells: iMap | undefined | null, cursors: iMap): iMap | undefined {
+  public process(
+    cells: CursorMap | undefined | null,
+    cursors: CursorMap
+  ): CursorMap | undefined {
     if (cells == null) {
       // cells need not be defined in which case, don't bother; see
       // https://github.com/sagemathinc/cocalc/issues/3456
@@ -63,8 +66,8 @@ export class CursorManager {
       return;
     }
     const before = cells;
-    cursors.forEach((info: iMap | undefined, account_id: string) => {
-      cells = this.process_one_user(info, account_id, cells as iMap);  // we know cells defined.
+    cursors.forEach((info: CursorMap | undefined, account_id: string) => {
+      cells = this.process_one_user(info, account_id, cells as CursorMap); // we know cells defined.
     });
     this.last_cursors = cursors;
     if (cells.equals(before)) {
