@@ -60,7 +60,7 @@ export class About extends Component<AboutProps> {
         >
           documentation
         </a>
-        , create a <ShowSupportLink />, or see the latest{" "}
+        , create a <ShowSupportLink />, or check the latest{" "}
         <a href={JUPYTER_CLASSIC_MODERN} target="_blank" rel="noopener">
           status of Jupyter in CoCalc.
         </a>
@@ -80,42 +80,60 @@ export class About extends Component<AboutProps> {
         }}
       >
         <li>
-          Multiple people can simultaneously edit notebooks: multiple cursors,
-          document-wide user-specific undo and redo, realtime synchronized
-          ipywidgets
+          <b>Realtime sync:</b> Multiple people can simultaneously edit
+          notebooks: multiple cursors, document-wide user-specific undo and
+          redo, realtime synchronized ipywidgets
         </li>
         <li>
-          TimeTravel shows detailed history of exactly how a notebook was
+          <b>Document split:</b> edit and see multiple parts of a large notebook
+          at once
+        </li>
+        <li>
+          <b>TimeTravel:</b> see detailed history of exactly how a notebook was
           created
         </li>
-        <li> Zoom in and out for demos or tired eyes</li>
-        <li> Code folding</li>
         <li>
-          Modern look with buttons, menus and cell execution hints that better
-          reflect state
+          <b>Snippets:</b> code samples for many kernels
         </li>
         <li>
-          Sophisticated handling of large output: throttling, windowing, backend
-          buffering
+          {" "}
+          <b>Zoom:</b> easily change font size
         </li>
         <li>
-          Background capture of output even if no user has the notebook open
-        </li>
-        <li> Improved phone and tablet support</li>
-        <li> Click blue line between cells to create new cells</li>
-        <li>
-          Easily sharing your work publicly with our client-side notebook viewer
+          {" "}
+          <b>Code folding:</b> see structure of input
         </li>
         <li>
-          Raw file edit mode: synchronized editing of underlying ipynb file
+          <b>Modern look:</b> buttons, menus and cell execution hints that
+          better reflect state
         </li>
         <li>
-          Easily export notebook to LaTeX, then edit the generated LaTeX with
-          our integrated LaTeX editor
+          <b>Large output:</b> server-side throttling, windowing, and buffering
         </li>
         <li>
-          VIM, Emacs, and Sublime keybindings, and color schemes (in account
-          settings)
+          <b>Background capture of output:</b> works if no user has the notebook
+          open
+        </li>
+        <li>
+          {" "}
+          <b>Mobile support:</b> phones and tablets{" "}
+        </li>
+        <li>
+          {" "}
+          <b>Cell creation:</b> click blue line between cells to create new
+          cells
+        </li>
+        <li>
+          <b>Share:</b> your work is visible publicly via our fast lightweight
+          notebook viewer
+        </li>
+        <li>
+          <b>LaTeX:</b> export notebook to LaTeX, then edit the generated LaTeX
+          directly in CoCalc.
+        </li>
+        <li>
+          <b>Keybindings and color schemes:</b> VIM, Emacs, and Sublime
+          keybindings, and many color schemes (in account settings)
         </li>
       </ul>
     );
