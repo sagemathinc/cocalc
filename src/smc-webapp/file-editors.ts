@@ -12,7 +12,7 @@ import { delay } from "awaiting";
 
 declare var DEBUG: boolean;
 
-type Elt = JSX.Element | JSX.Element[];
+type Elt = any;
 
 /*
 component : rclass|function
@@ -28,9 +28,18 @@ remove    : function (path, redux, project_id) -> string (redux name)
 interface FileEditorSpec {
   icon?: string;
   component?: Elt | Function;
-  generator?: (path: string, redux: any, project_id: string) => Elt | Function;
-  init?: (path: string, redux: any, project_id: string, content?:string) => string; // returned string = redux name
-  remove?: (path: string, redux: any, project_id: string) => string; // returned string = redux name
+  generator?: (
+    path: string,
+    redux: any,
+    project_id: string | undefined
+  ) => Elt | Function;
+  init?: (
+    path: string,
+    redux: any,
+    project_id: string | undefined,
+    content?: string
+  ) => string; // returned string = redux name
+  remove?: (path: string, redux: any, project_id: string | undefined) => string; // returned string = redux name
   save?: (
     path: string,
     redux: any,
@@ -130,7 +139,7 @@ function get_ed(path: string, is_public?: boolean): FileEditorSpec {
 export function initialize(
   path: string,
   redux,
-  project_id: string,
+  project_id: string | undefined,
   is_public: boolean,
   content?: string
 ): string | undefined {
@@ -144,7 +153,7 @@ export function initialize(
 export function generate(
   path: string,
   redux,
-  project_id: string,
+  project_id: string | undefined,
   is_public: boolean
 ) {
   const e = get_ed(path, is_public);
@@ -167,7 +176,7 @@ export function generate(
 export async function remove(
   path: string,
   redux,
-  project_id: string,
+  project_id: string | undefined,
   is_public: boolean
 ): Promise<string | undefined> {
   if (path == null) {
@@ -184,7 +193,7 @@ export async function remove(
     return;
   }
 
-  if (!is_public) {
+  if (!is_public && project_id != null) {
     // always fire off a save to disk when closing.
     save(path, redux, project_id, is_public);
   }
