@@ -54,39 +54,44 @@ block content
           li.
             You can #[strong copy/paste] between your local desktop the terminal.
 
-    a.anchor#a-software
-    div.container#software
-      div.row
-        div.col-md-12.center
-          h2 Comprehensive software stack
-        div.col-md-8.col-md-offset-2
-          p.
-            #[strong Popular applications] are
-            #[a(href="https://git-scm.com/") Git]
-            to e.g. interact with #[a(href="https://www.github.com") GitHub],
-            #[a(href="https://www.vim.org/") VIM],
-            #[a(href="https://www.gnu.org/software/emacs/") Emacs],
-            various programming shells like #[a(href="https://ipython.org/") IPython],
-            #[a(href="https://www.r-project.org/") R shell],
-            or software compilers like #[a(href="https://gcc.gnu.org/") GNU GCC] or
-            #[a(href="https://clang.llvm.org/") Clang].
-          p.
-            There is also support for many programming languages.
-            #[a(href=PREFIX + "/doc/python.html") Python],
-            JAVA, C/C++,
-            #[a(href="https://en.wikipedia.org/wiki/Ada_(programming_language)") Ada],
-            #[a(href="https://en.wikipedia.org/wiki/Haskell_(programming_language)") Haskell],
-            #[a(href="https://en.wikipedia.org/wiki/Smalltalk") Smalltalk] and many more.
-          p.
-            Look at our
-            #[strong #[a(href="software-executables.html") list of executables]]
-            to check what is available!
-          p.
-            Finally, take a look at our
-            #[strong #[a(href="https://doc.cocalc.com/terminal.html") terminal documentation]]
-            to learn more about it!
-
   +start_free_banner
+
+
+  a.anchor#a-software
+  div.container#software
+    div.row
+      div.col-md-12.center
+        h2 Comprehensive software stack
+      div.col-sm-6
+        div
+          img(src="https://storage.googleapis.com/cocalc-extra/terminal-software.png").fit
+      div.col-sm-6
+        p.
+          A lot of #[strong popular applications] are included.
+          #[a(href="https://git-scm.com/") Git]
+          to e.g. interact with #[a(href="https://www.github.com") GitHub],
+          #[a(href="https://www.vim.org/") VIM],
+          #[a(href="https://www.gnu.org/software/emacs/") Emacs],
+          various programming shells like #[a(href="https://ipython.org/") IPython],
+          #[a(href="https://www.r-project.org/") R shell],
+          or software compilers like #[a(href="https://gcc.gnu.org/") GNU GCC] or
+          #[a(href="https://clang.llvm.org/") Clang].
+        p.
+          There is also support for many programming languages.
+          #[a(href=PREFIX + "/doc/python.html") Python],
+          JAVA, C/C++,
+          #[a(href="https://en.wikipedia.org/wiki/Ada_(programming_language)") Ada],
+          #[a(href="https://en.wikipedia.org/wiki/Haskell_(programming_language)") Haskell],
+          #[a(href="https://en.wikipedia.org/wiki/Smalltalk") Smalltalk] and many more.
+        p.
+          Look at our
+          #[strong #[a(href="software-executables.html") list of executables]]
+          to check what is available!
+        p.
+          Finally, take a look at our
+          #[strong #[a(href="https://doc.cocalc.com/terminal.html") terminal documentation]]
+          to learn more about it!
+
 
   a.anchor#a-real-time
   div.container.space#real-time
@@ -120,7 +125,8 @@ block content
           List of Snapshots
       div.col-sm-6
         p.
-          In case you make mistake, #{NAME} has your back!
+          The #{NAME} terminal is ideal for #[strong teaching/learning Linux],
+          because in case you make mistake it has your back!
         p.
           Everything runs remotely on #{NAME}'s servers!
           This means you do not have to worry about messing up your own computer,
@@ -132,6 +138,36 @@ block content
           Restore your file(s) by copying back the one(s) that were lost or got corrupted.
         p.
           Therefore, this is ideal to learn basic shell commands or more about Linux online.
+
+
+  a.anchor#a-database
+  div.container.space#database
+    div.row
+      div.col-md-12.center
+        h2 Databases (PostgreSQL, MySQL, SQLite, ...)
+      div.col-sm-6
+        div
+          img(src="https://storage.googleapis.com/cocalc-extra/terminal-jupyter-postgresql.png").fit
+        div.center.
+          Jupyter Notebook interacting with a hosted PostgreSQL database
+      div.col-sm-6
+        p.
+          #[strong #{NAME} supports running various databases inside a project.]
+          They run in the same protected networking environment as all other processes in a project.
+          This is ideal for #[strong learning SQL] or #[strong persistently storing data] as a result of your computations.
+        p.
+          #[strong PostgreSQL]: read the #[a(href="https://doc.cocalc.com/howto/postgresql.html") PostgreSQL Setup Guide] to get started.
+        p.
+          Besides #[a(href="https://https://www.postgresql.org/") PostgreSQL],
+          #{NAME} also supports #[a(href="https://www.mysql.com/") MySQL] and
+          #[a(href="https://sqlite.org") SQLite].
+        p.
+          To interact with the databases, #{NAME} #[strong pre-installs suitable Python and R libraries] for your convenience.
+        p.
+          In the screenshot on the left, you can see how a PostgreSQL database was setup and started in the first terminal.
+          In the second terminal, #[code psql] is used to connect to it and create a table and insert data.
+          Finally, in the #[a(href=PREFIX + "/doc/jupyter-notebook.html") Jupyter Notebook] on the left connects via
+          the #[a(href="http://initd.org/psycopg/docs/") psycopg2] library and issues a query to the database!
 
 
   +start_free_banner
