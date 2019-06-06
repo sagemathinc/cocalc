@@ -13,7 +13,7 @@ meta(name="version"     content=htmlWebpackPlugin.options.version)
 link(rel="apple-touch-icon", sizes="180x180", href=require("!file-loader!apple-touch-icon.png"))
 link(rel="icon", type="image/png", href=require("!file-loader!favicon-32x32.png"), sizes="32x32")
 link(rel="icon", type="image/png", href=require("!file-loader!favicon-16x16.png"), sizes="16x16")
-link(rel="manifest", href=require("manifest.json"))
+link(rel="manifest", href=require("!file-loader!manifest.json"))
 link(rel="mask-icon", href=require("!file-loader!safari-pinned-tab.svg"), color="#fbb635")
 
 meta(name="apple-mobile-web-app-title", content="CoCalc")
