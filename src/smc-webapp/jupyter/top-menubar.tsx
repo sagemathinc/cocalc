@@ -22,7 +22,7 @@ import { capitalize, copy, endswith } from "smc-util/misc2";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
-import { LINKS } from "./help-links";
+import { get_help_links } from "./help-links";
 
 type MenuItemName =
   | string
@@ -519,7 +519,7 @@ render_widgets: -> # TODO: not supported in v1
     if (this.props.kernel_info == null) return [];
     const v: Rendered[] = [];
     const lang = this.props.kernel_info.get("language");
-    const links = LINKS[lang];
+    const links = get_help_links(lang);
     if (links == null) return v;
     for (let name in links) {
       const url = links[name];
