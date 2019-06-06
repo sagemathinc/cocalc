@@ -24,6 +24,7 @@ import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
 import { KernelInfo } from "./types";
+import { Parser, format_parser_for_extension } from "../../smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
@@ -2275,52 +2276,39 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const code: string = cell.get("input", "").trim();
     let options: FormatterOptions;
     const cell_type: string = cell.get("cell_type", "code");
-    const language = this.store.get_kernel_language();
     switch (cell_type) {
       case "code":
-        if (language == null) {
-          throw new Error(
-            `Formatting code cells is impossible, because their language is not known.`
-          );
-        } else {
-          switch (language.toLowerCase()) {
-            case "python":
-            case "python3":
-              options = { parser: "python" };
-              break;
-            case "r": // in the wild, the language is "R"
-              options = { parser: "r" };
-              break;
-            case "c++":
-            case "C++":
-            case "C++17":
-              options = { parser: "clang-format" };
-              break;
-            default:
-              throw new Error(
-                `Formatting "${language}" cells is not supported yet.`
-              );
-          }
+        const ext = this.store.get_kernel_ext();
+        if (ext == null) {
+          return; // no-op on these.
+        }
+        try {
+          const parser : Parser = format_parser_for_extension(ext);
+          options = { parser };
+        } catch (err) {
+          return; // no parser available.
         }
         break;
       case "markdown":
         options = { parser: "markdown" };
         break;
       default:
-        throw new Error(`Unknown cell_type: '${cell_type}'`);
+        // no-op -- do not format unknown cells
+        return;
     }
-    // console.log("FMT", cell_type, options, code);
+    //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     try {
       resp = await this.api_call_prettier(code, options);
     } catch (err) {
       this.set_error(err);
-      // do not process response (probably empty anyways) if
+      // Do not process response (probably empty anyways) if
       // there is a problem
       return;
     }
     if (resp == null) return; // make everyone happy …
-    // we additionally trim the output, because prettier introduces a trailing newline
+    // We additionally trim the output, because prettier introduces
+    // a trailing newline
     this.set_cell_input(id, JupyterActions.trim_code(resp), false);
   }
 
