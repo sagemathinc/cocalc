@@ -57,12 +57,28 @@ generic HTML message rather than a JSON string.
 ## Authentication
 
 A valid API key is required on all API requests.
-To obtain a key, log into
+
+To obtain a key manually, log into
 CoCalc and click on Settings (gear icon next to user name at upper
 right), and look under \`Account Settings\`.
 With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
+
+It is also possible to obtain an API key using an automated web client.
+This option is useful for applications that embed CoCalc
+in a custom environment, for example [juno.sh](https://juno.sh),
+the iOS application for Jupyter notebooks.
+Sending a request to :samp:\`https://cocalc.com/app?get_api_key=myapp\`,
+where "myapp" is an identifier for your application,
+returns a modified sign-in page with the banner
+"CoCalc API Key Access for Myapp".
+Your client needs be javascript-enabled and
+sign in at this point with credentials for the account in question.
+Response headers from successful sign-in will include a url of the form
+:samp:\`https://authenticated/?api_key=sk_abcdefQWERTY090900000000\`.
+The client should intercept this response and capture the string
+after the equals sign as the API key.
 
 Your API key carries access privileges, just like your login and password.
 __Keep it secret.__
