@@ -130,7 +130,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   public get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
-    if (cell_list == null) {
+    if (cell_list == null) {  // truly fatal
       throw Error("ordered list of cell id's not known");
     }
     const i = cell_list.indexOf(id);

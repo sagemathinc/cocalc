@@ -422,7 +422,15 @@ export class NotebookFrameActions {
    ***/
 
   move_cursor(delta: number): void {
-    this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
+    try {
+      this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
+    } catch (err) {
+      // This could fail if the cur_id is invalid for some reason (e.g.,
+      // maybe that cell just got deleted by another user). So we update
+      // the current id so next time it will work. See
+      // https://github.com/sagemathinc/cocalc/issues/3873
+      this.update_cur_id();
+    }
   }
 
   move_cursor_after(id: string): void {
