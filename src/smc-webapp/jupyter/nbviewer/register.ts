@@ -14,7 +14,7 @@ import { NBViewer } from "./nbviewer";
 import { NBViewerActions } from "./actions";
 import { NBViewerStore } from "./store";
 
-export function register(webapp_client) {
+export function register(webapp_client?) {
   return register_file_editor({
     ext: ["ipynb"],
 

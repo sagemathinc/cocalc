@@ -478,3 +478,22 @@ export function bind_methods(obj: any, method_names: string[]): void {
     obj[method_name] = obj[method_name].bind(obj);
   }
 }
+
+export function human_readable_size(bytes: number | null | undefined): string {
+  if (bytes == null) {
+    return "?";
+  }
+  if (bytes < 1000) {
+    return `${bytes} bytes`;
+  }
+  if (bytes < 1000000) {
+    const b = Math.floor(bytes / 100);
+    return `${b / 10} KB`;
+  }
+  if (bytes < 1000000000) {
+    const b = Math.floor(bytes / 100000);
+    return `${b / 10} MB`;
+  }
+  const b = Math.floor(bytes / 100000000);
+  return `${b / 10} GB`;
+}

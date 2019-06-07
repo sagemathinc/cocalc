@@ -318,7 +318,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
-  get_store(): ProjectStore | undefined {
+  public get_store(): ProjectStore | undefined {
     if (this.redux.hasStore(this.name)) {
       return this.redux.getStore<ProjectStoreState, ProjectStore>(this.name);
     } else {
@@ -933,10 +933,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     let store = this.get_store();
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
-      return;
-    }
+    if (store == undefined) return;
 
     const can_open_file = await store.can_open_file_ext(ext, this);
     if (!can_open_file) {
@@ -959,6 +956,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
+    store = this.get_store();
+    if (store == undefined) return;
     let open_files = store.get("open_files");
     if (!open_files.has(opts.path)) {
       // Make the tab appear ASAP
@@ -978,11 +977,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       });
       return;
     }
+    if (this.get_store() == null) return;
 
     // Next get the group.
     let group: string;
     try {
       group = await this.get_my_group();
+      if (this.get_store() == null) return;
     } catch (err) {
       this.set_activity({
         id: misc.uuid(),
@@ -1009,10 +1010,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     store = this.get_store(); // because async stuff happened above.
-    if (store == undefined) {
-      // e.g., the project got closed along the way...
-      return;
-    }
+    if (store == undefined) return;
 
     // Only generate the editor component if we don't have it already
     // Also regenerate if view type (public/not-public) changes

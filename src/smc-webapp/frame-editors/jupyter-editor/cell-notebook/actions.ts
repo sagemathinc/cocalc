@@ -34,7 +34,11 @@ export class NotebookFrameActions {
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
-    bind_methods(this, ['update_cur_id', 'syncdb_before_change', 'syncdb_after_change']);
+    bind_methods(this, [
+      "update_cur_id",
+      "syncdb_before_change",
+      "syncdb_after_change"
+    ]);
 
     // General frame tree editor actions:
     this.frame_tree_actions = frame_tree_actions;
@@ -785,8 +789,8 @@ export class NotebookFrameActions {
     }
   }
 
-  public show_code_snippets(): void {
-    this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
+  public async show_code_snippets(): Promise<void> {
+    await this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
   }
 
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
