@@ -65,17 +65,17 @@ With the \`API key\` dialogue, you can create a key,
 view a previously assigned key, generate a replacement key,
 and delete your key entirely.
 
-It is also possible to obtain an API key using an automated web client.
+It is also possible to obtain an API key using a javascript-enabled automated web client.
 This option is useful for applications that embed CoCalc
 in a custom environment, for example [juno.sh](https://juno.sh),
 the iOS application for Jupyter notebooks.
-Sending a request to :samp:\`https://cocalc.com/app?get_api_key=myapp\`,
+Visiting the link :samp:\`https://cocalc.com/app?get_api_key=myapp\`,
 where "myapp" is an identifier for your application,
 returns a modified sign-in page with the banner
 "CoCalc API Key Access for Myapp".
-Your client needs be javascript-enabled and
-sign in at this point with credentials for the account in question.
-Response headers from successful sign-in will include a url of the form
+The web client must
+sign in with credentials for the account in question.
+Response headers from a successful sign-in will include a url of the form
 :samp:\`https://authenticated/?api_key=sk_abcdefQWERTY090900000000\`.
 The client should intercept this response and capture the string
 after the equals sign as the API key.
