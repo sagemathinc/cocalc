@@ -685,7 +685,7 @@ export function commands(
 
     "show command palette": {
       m: "Show command palette...",
-      k: [{ alt: true, mode: "escape", shift: true, which: 80 }],
+      k: [{ alt: true, shift: true, which: 80 }, { ctrl: true, shift: true, which: 80 }],
       f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
