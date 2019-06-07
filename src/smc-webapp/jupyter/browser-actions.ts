@@ -9,6 +9,7 @@ import { JupyterActions as JupyterActions0 } from "./actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
+import { callback } from "awaiting";
 import { callback2 } from "smc-util/async-utils";
 import { JUPYTER_CLASSIC_MODERN } from "smc-util/theme";
 const { instantiate_snippets } = require("../assistant/main");
@@ -142,22 +143,25 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  public show_code_snippets(id: string): void {
+  public async show_code_snippets(id: string): Promise<void> {
     if (this.snippet_actions == null) {
       throw Error("code assistant not available");
     }
-    this.blur_lock();
-
     const lang = this.store.get_kernel_language();
 
     this.snippet_actions.init(lang);
-    this.snippet_actions.set({
-      show: true,
-      lang,
-      lang_select: false,
-      handler: this.code_snippet_handler.bind(this),
-      cell_id: id
-    });
+    const wait_for_user_input = cb => {
+      this.snippet_actions.set({
+        show: true,
+        lang,
+        lang_select: false,
+        handler: data => cb(undefined, data),
+        cell_id: id
+      });
+    };
+
+    const data = await callback(wait_for_user_input);
+    this.code_snippet_handler(data);
   }
 
   private code_snippet_handler(data: {
@@ -165,7 +169,6 @@ export class JupyterActions extends JupyterActions0 {
     descr?: string;
     cell_id: string;
   }): void {
-    this.focus_unlock();
     const { cell_id, code, descr } = data;
 
     let id = cell_id;
@@ -179,7 +182,6 @@ export class JupyterActions extends JupyterActions0 {
       this.set_cell_input(id, c);
       this.run_code_cell(id);
     }
-    this.scroll("cell visible");
   }
 
   private account_change(state: Map<string, any>): void {

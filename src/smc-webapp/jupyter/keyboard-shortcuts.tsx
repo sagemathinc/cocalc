@@ -474,7 +474,7 @@ export class KeyboardShortcuts extends Component<
 
   private close = (): void => {
     this.props.actions.close_keyboard_shortcuts();
-    this.props.actions.focus(true);
+    this.props.frame_actions.focus();
   };
 
   private search_change = (search: string): void => {

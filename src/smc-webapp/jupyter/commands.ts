@@ -685,7 +685,10 @@ export function commands(
 
     "show command palette": {
       m: "Show command palette...",
-      k: [{ alt: true, shift: true, which: 80 }, { ctrl: true, shift: true, which: 80 }],
+      k: [
+        { alt: true, shift: true, which: 80 },
+        { ctrl: true, shift: true, which: 80 }
+      ],
       f: () => jupyter_actions.show_keyboard_shortcuts()
     },
 
@@ -704,7 +707,10 @@ export function commands(
     "show code snippets": {
       i: SNIPPET_ICON_NAME,
       m: "Show code snippets",
-      f: () => frame_actions.show_code_snippets()
+      f: async () => {
+        await frame_actions.show_code_snippets();
+        frame_actions.scroll("cell visible");
+      }
     },
 
     "show toolbar": {
