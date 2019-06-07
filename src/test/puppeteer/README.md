@@ -39,6 +39,10 @@ To view the browser during testing, run the script from a .x11 terminal and add 
       -c - name of credentials file, without ".js" extension
     ```
 
+1. If the Cocalc instance was recently restarted or the test project is stopped, the first one or two runs of the test will timeout. (See TODO below.)
+
+1. These tests have been tested with the latest regular and no-agpl Docker images as well as test and production cocalc.com.
+
 ## What is tested
 
 ### index.js
@@ -65,12 +69,18 @@ To view the browser during testing, run the script from a .x11 terminal and add 
 
 ## Limitations
 
+1. CoCalc instance undergoing test must be fully started.
 1. Test project must be created before testing.
+1. Test files must be in place:
+    - latex-sample.tex
+    - widget-sample.ipynb
 1. Test project must be in recent project list and running.
+1. Does not work with CoCalc-in-CoCalc instances.
 
 ## TODO
 
-1. Needs to be put in test framework (jest).
-1. Should probably be in typescript.
+1. Put in jest framework.
+1. Be more forgiving of projects that are not started.
+1. Code in typescript.
 1. Needs to be hosted & run regularly.
-1. Fill out the test suite.
+1. Expand the test suite.
