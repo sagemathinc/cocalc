@@ -104,7 +104,7 @@ this extracts tracking information about lading pages, measure campaign performa
    the UTM params, referral, landing page, etc.
 
 The query param "fqd" (fully qualified domain) can be set to true or false (default true)
-It controlls if the bounce back URL mentions the domain.
+It controls if the bounce back URL mentions the domain.
 */
 
 export function setup_analytics_js(
