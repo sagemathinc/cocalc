@@ -1,9 +1,7 @@
 declare const $: any;
 
-import { delay } from "awaiting";
-
 import { React, Component, Rendered } from "../app-framework";
-import { Map as ImmutableMap } from "immutable";
+import { Map } from "immutable";
 import { JupyterActions } from "./browser-actions";
 import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
 
@@ -11,7 +9,7 @@ interface CompleteProps {
   actions: JupyterActions;
   frame_actions : NotebookFrameActions;
   id: string;
-  complete: ImmutableMap<string, any>;
+  complete: Map<string, any>;
 }
 
 // WARNING: Complete closing when clicking outside the complete box
@@ -20,12 +18,7 @@ interface CompleteProps {
 export class Complete extends Component<CompleteProps> {
   private node: HTMLElement;
 
-  private async select(item: any): Promise<void> {
-    this.props.frame_actions.set_mode("edit");
-    // We don't actually make the completion until the next render loop,
-    // so that the editor is already in edit mode.  This way the cursor is
-    // in the right position after making the change.
-    await delay(0);
+  private select(item: string): void {
     this.props.actions.select_complete(this.props.id, item);
     this.props.frame_actions.set_mode("edit");
   }
