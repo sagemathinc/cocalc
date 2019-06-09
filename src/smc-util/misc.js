@@ -3128,13 +3128,29 @@ exports.sanitize_html_attributes = ($, node) =>
     }
   });
 
-// common UTM parameters
-// changes must also be done in webapp-lib/_inc_analytics.pug
+// common UTM parameters -- reference: https://en.wikipedia.org/wiki/UTM_parameters
+// Parameter                 Purpose/Example
+// utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
+//                           utm_source=Google
+//
+// utm_medium                Identifies what type of link was used,
+//                           such as cost per click or email.
+//                           utm_medium=cpc
+//
+// utm_campaign              Identifies a specific product promotion or strategic campaign.
+//                           utm_campaign=spring_sale
+//
+// utm_term                  Identifies search terms.
+//                           utm_term=running+shoes
+//
+// utm_content               Identifies what specifically was clicked to bring the user to the site,
+//                           such as a banner ad or a text link. It is often used for A/B testing
+//                           and content-targeted ads.
+//                           utm_content=logolink or utm_content=textlink
 exports.utm_keys = ["source", "medium", "campaign", "term", "content"];
-exports.utm_cookie_name = "CC_UTM";
 
-// referrer
-exports.referrer_cookie_name = "CC_REF";
+// cocalc analytics cookie name
+exports.analytics_cookie_name = "CC_ANA";
 
 exports.human_readable_size = function(bytes) {
   let b;

@@ -9,7 +9,7 @@ Share server top-level landing page.
 
 import { React, Component, Rendered } from "../app-framework";
 
-import { SITE_NAME, BASE_URL } from "smc-util/theme";
+import { SITE_NAME, BASE_URL, DNS } from "smc-util/theme";
 
 //import { r_join } from "../r_misc";
 const { r_join } = require("../r_misc");
@@ -152,6 +152,10 @@ gtag('config', '${this.props.google_analytics}');\
     ];
   }
 
+  render_cocalc_analytics(): Rendered {
+    return <script async={true} src={`https://${DNS}/analytics.js`} />;
+  }
+
   private render_cdn_links(): Rendered[] {
     const v: Rendered[] = [];
     for (let x of CDN_LINKS) {
@@ -181,6 +185,7 @@ gtag('config', '${this.props.google_analytics}');\
           {this.render_css()}
           {this.render_noindex()}
           {this.render_google_analytics()}
+          {this.render_cocalc_analytics()}
         </head>
         <body>
           <TopBar

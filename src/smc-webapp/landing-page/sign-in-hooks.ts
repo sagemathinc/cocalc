@@ -3,15 +3,45 @@
 */
 
 const { webapp_client } = require("../webapp_client");
+import * as LS from "misc/local-storage";
+const { APP_BASE_URL } = require("../misc_page");
+import { SignedIn } from "../../smc-util/message-types";
 
-webapp_client.on("signed_in", () => {
+async function tracking_events(): Promise<void> {
   if (localStorage == null) return;
 
-  for (let event of ["sign_up_how_find_cocalc"]) {
-    let value = localStorage[event];
+  for (const event of ["sign_up_how_find_cocalc"]) {
+    const value = localStorage[event];
     if (value != null) {
-      delete localStorage[event];
+      LS.del(event);
       webapp_client.user_tracking({ event, value });
     }
   }
+}
+
+async function analytics_send(mesg: SignedIn): Promise<void> {
+  window
+    .fetch(APP_BASE_URL + "/analytics.js", {
+      method: "POST",
+      cache: "no-cache",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      redirect: "follow",
+      body: JSON.stringify({
+        account_id: mesg.account_id
+      })
+    })
+    // .then(response => console.log("Success:", response))
+    .catch(error =>
+      console.error("sign-in-hooks::analytics_send error:", error)
+    );
+}
+
+webapp_client.on("signed_in", (mesg: SignedIn) => {
+  // console.log("sign-in-hooks::signed_in mesg=", mesg);
+  // these run in parallel
+  tracking_events();
+  analytics_send(mesg);
 });

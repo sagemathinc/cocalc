@@ -830,18 +830,16 @@ class exports.Connection extends EventEmitter
     #################################################
     create_account: (opts) =>
         opts = defaults opts,
-            first_name     : required
-            last_name      : required
-            email_address  : required
-            password       : required
-            agreed_to_terms: required
-            usage_intent   : undefined
-            get_api_key    : undefined       # if given, will create/get api token in response message
-            token          : undefined       # only required if an admin set the account creation token.
-            utm            : undefined
-            referrer       : undefined
-            timeout        : 40
-            cb             : required
+            first_name       : required
+            last_name        : required
+            email_address    : required
+            password         : required
+            agreed_to_terms  : required
+            usage_intent     : undefined
+            get_api_key      : undefined       # if given, will create/get api token in response message
+            token            : undefined       # only required if an admin set the account creation token.
+            timeout          : 40
+            cb               : required
 
         if not opts.agreed_to_terms
             opts.cb(undefined, message.account_creation_failed(reason:{"agreed_to_terms":"Agree to the CoCalc Terms of Service."}))
@@ -863,8 +861,6 @@ class exports.Connection extends EventEmitter
                 agreed_to_terms : opts.agreed_to_terms
                 usage_intent    : opts.usage_intent
                 token           : opts.token
-                utm             : opts.utm
-                referrer        : opts.referrer
                 get_api_key     : opts.get_api_key
             timeout : opts.timeout
             cb      : (err, resp) =>
@@ -897,24 +893,20 @@ class exports.Connection extends EventEmitter
 
     sign_in: (opts) ->
         opts = defaults opts,
-            email_address : required
-            password      : required
-            remember_me   : false
-            cb            : required
-            timeout       : 40
-            utm           : undefined
-            referrer      : undefined
-            get_api_key   : undefined       # if given, will create/get api token in response message
+            email_address   : required
+            password        : required
+            remember_me     : false
+            cb              : required
+            timeout         : 40
+            get_api_key     : undefined       # if given, will create/get api token in response message
 
         @call
             allow_post : false
             message : message.sign_in
-                email_address : opts.email_address
-                password      : opts.password
-                remember_me   : opts.remember_me
-                utm           : opts.utm
-                referrer      : opts.referrer
-                get_api_key   : opts.get_api_key
+                email_address    : opts.email_address
+                password         : opts.password
+                remember_me      : opts.remember_me
+                get_api_key      : opts.get_api_key
             timeout : opts.timeout
             cb      : opts.cb
 
