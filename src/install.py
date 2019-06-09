@@ -31,16 +31,6 @@ def cmd(s, error=True):
     print("TOTAL TIME: %.1f seconds" % (time.time() - t0))
 
 
-def thread_map(callable, inputs, nb_threads=None):
-    if len(inputs) == 0:
-        return []
-    from multiprocessing.pool import ThreadPool
-    if not nb_threads:
-        nb_threads = min(50, len(inputs))
-    tp = ThreadPool(nb_threads)
-    return tp.map(callable, inputs)
-
-
 def pull():
     cmd("git submodule update --init")
     cmd("git pull")
@@ -58,18 +48,22 @@ def install_sagews():
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root
-    def f(m):
-        cmd(SUDO +
-            "npm --loglevel=warn --unsafe-perm=true install --upgrade %s -g" %
-            m)
 
-    thread_map(
-        f,
-        './smc-util ./smc-util-node ./smc-project ./smc-webapp coffeescript forever'
-        .split())
+    for pkg in ['coffeescript', 'forever']:
+        cmd(SUDO +
+            "npm --loglevel=warn --unsafe-perm=true install %s -g" % pkg)
+
+    # npm ci for using pkg lock file
+    for path in [
+            './smc-util',
+            './smc-util-node',
+            './smc-project',
+            './smc-webapp',
+    ]:
+        cmd(SUDO + "npm --loglevel=warn --unsafe-perm=true ci %s -g" % pkg)
 
     # UGLY; hard codes the path -- TODO: fix at some point.
-    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn install --unsafe-perm=true --upgrade"
+    cmd("cd /usr/lib/node_modules/smc-project/jupyter && %s npm --loglevel=warn ci --unsafe-perm=true --upgrade"
         % SUDO)
 
     # At least run typescript...
@@ -86,7 +80,7 @@ def install_project():
 
 def install_hub():
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
-        cmd("cd %s; npm --loglevel=warn install" % path)
+        cmd("cd %s; npm --loglevel=warn ci" % path)
 
 
 def install_webapp(*args):
@@ -97,14 +91,17 @@ def install_webapp(*args):
     if 'build' in action:
         cmd("git submodule update --init")
         cmd("cd examples && env OUTDIR=../webapp-lib/examples make")
-        # clean up all package-lock files in cocalc's codebase (before running npm install again)
+        # clean up all package-lock files in cocalc's codebase (before running npm ci again)
         # DISABLED -- causes troubles building
         #cmd("git ls-files '../*/package-lock.json' | xargs rm -f")
         for path in [
-                '.', 'smc-util', 'smc-util-node', 'smc-webapp',
-                'smc-webapp/jupyter'
+                '.',
+                'smc-util',
+                'smc-util-node',
+                'smc-webapp',
+                'smc-webapp/jupyter',
         ]:
-            cmd("cd %s; npm --loglevel=warn install" % path)
+            cmd("cd %s; npm --loglevel=warn ci" % path)
 
         # react static step must come *before* webpack step
         cmd("update_react_static")

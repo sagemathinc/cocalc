@@ -10,8 +10,7 @@ cd `dirname $0`/..
 # the "endpoint is not available"
 run_install() {
     cd "$1"
-    npm install
-    npm install --only=dev
+    npm ci
     #npm audit fix
 }
 
