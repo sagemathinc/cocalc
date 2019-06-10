@@ -105,6 +105,7 @@ export interface CodeEditorState {
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
   derived_file_types: Set<string>;
+  visible: boolean;
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -151,6 +152,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager(this);
+
+    this.set_resize = this.set_resize.bind(this);
+    window.addEventListener("resize", this.set_resize);
 
     if (is_public) {
       this._init_value();
@@ -402,7 +406,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Call this whenever the frames are moved, so that content can potentially
   // get updated due to resizing.  E.g., this ensures that codemirror editors
   // are properly updated (by calling cm.refresh()), so they don't look broken.
+  // This is called when the window is resized.
+  // It is only called when the editor is visible, and is always called
+  // when it is shown.
   set_resize(): void {
+    if (!this.store.get("visible")) return;
     this.setState({
       resize: this.store.get("resize", 0) + 1
     });
@@ -421,10 +429,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.setValue(value);
   }
 
-  close(): void {
+  public close(): void {
     if (this._state == "closed") {
       return;
     }
+    window.removeEventListener("resize", this.set_resize);
     this._state = "closed";
     this.__save_local_view_state();
     // switch back to non-debounced version, in case called after this point.
@@ -1950,16 +1959,25 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return undefined;
   }
 
+  // If you override show, make sure to still call this
+  // super class!
   public async show(): Promise<void> {
-    if (this._cm == null) return;
+    this.setState({
+      visible: true
+    });
 
     await delay(0); // wait until next render loop
     if (this._state == "closed") return;
+    this.set_resize();
     this.refresh_visible();
     this.focus();
   }
 
-  public hide(): void {}
+  // If you override hide, make sure to still call this
+  // super class!
+  public hide(): void {
+    this.setState({ visible: false });
+  }
 
   // Refresh all visible frames.
   public refresh_visible(): void {

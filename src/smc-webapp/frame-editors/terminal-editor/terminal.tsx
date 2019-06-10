@@ -3,7 +3,6 @@ A single terminal frame.
 */
 
 import { Map } from "immutable";
-import { ResizeObserver } from "resize-observer";
 
 import { Terminal } from "./connected-terminal";
 
@@ -25,6 +24,7 @@ interface Props {
   is_current: boolean;
   terminal: Map<string, any>;
   desc: Map<string, any>;
+  resize: number;
 }
 
 export class TerminalFrame extends Component<Props, {}> {
@@ -40,7 +40,8 @@ export class TerminalFrame extends Component<Props, {}> {
       "path",
       "font_size",
       "terminal",
-      "desc"
+      "desc",
+      "resize"
     ]);
   }
 
@@ -55,6 +56,9 @@ export class TerminalFrame extends Component<Props, {}> {
     }
     if (!this.props.is_current && next.is_current && this.terminal != null) {
       this.terminal.focus();
+    }
+    if (this.props.resize != next.resize) {
+      this.measure_size();
     }
   }
 
@@ -92,7 +96,6 @@ export class TerminalFrame extends Component<Props, {}> {
     }
     this.set_font_size(this.props.font_size);
     this.measure_size();
-    new ResizeObserver(() => this.measure_size()).observe(node);
     if (this.props.is_current) {
       this.terminal.focus();
     }
@@ -131,7 +134,7 @@ export class TerminalFrame extends Component<Props, {}> {
   render_command(): Rendered {
     const command = this.props.desc.get("command");
     if (!command) return;
-    const args = this.props.desc.get("args",[]); // todo: need to quote if args have spaces...
+    const args = this.props.desc.get("args", []); // todo: need to quote if args have spaces...
     return (
       <div
         style={{
