@@ -1682,7 +1682,7 @@ exports.path_is_in_public_paths = (path, paths) =>
 // returns a string in paths if path is public because of that string
 // Otherwise, returns undefined.
 // IMPORTANT: a possible returned string is "", which is falsey but defined!
-// paths can be an array or object (with keys the paths)
+// paths can be an array or object (with keys the paths) or a Set
 exports.containing_public_path = function(path, paths) {
   let p;
   if (paths == null || path == null) {
@@ -1692,9 +1692,9 @@ exports.containing_public_path = function(path, paths) {
     // just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
     return;
   }
-  if (is_array(paths)) {
+  if (is_array(paths) || is_set(paths)) {
+    // array so "of"
     for (p of Array.from(paths)) {
-      // array so "in"
       if (p === "") {
         // the whole project is public, which matches everything
         return "";
@@ -2112,6 +2112,9 @@ exports.is_string = obj => typeof obj === "string";
 // NOT include Date.
 exports.is_object = is_object = obj =>
   Object.prototype.toString.call(obj) === "[object Object]";
+
+exports.is_set = is_set = obj =>
+  Object.prototype.toString.call(obj) === "[object Set]";
 
 exports.is_date = is_date = obj => obj instanceof Date;
 

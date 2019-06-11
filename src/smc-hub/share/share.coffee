@@ -1,6 +1,5 @@
 ###
 The share express server.
-
 ###
 
 # Enable transparent server-side requiring of cjsx files.
