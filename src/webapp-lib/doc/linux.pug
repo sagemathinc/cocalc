@@ -54,7 +54,8 @@ block content
           li.
             #[strong Automatic backup] keeps your files safe!
           li.
-            You can #[strong copy/paste] between your local desktop the terminal.
+            You can #[strong copy/paste] between your local desktop and the online terminal.
+
 
   +start_free_banner
 
@@ -119,24 +120,23 @@ block content
   div.container.space#shell-script
     div.row
       div.col-md-12.center
-        h2 Run shell scripts
+        h2 Run Bash scripts
       div.col-sm-6
         div
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit
         div.center.
-          Bash script (left), #[code bash -f filename.sh] to run (right)
+          Bash #[code script.sh] file (left), #[code bash -f script.sh] to run (right)
       div.col-sm-6
         p.
-          #{NAME}'s #[a(href="https://doc.cocalc.com/frame-editor.html") frame editor] supports editing
-          a #[code script.sh] bash script side-by-side with a #[a(href="https://doc.cocalc.com/terminal.html") terminal].
+          #{NAME}'s #[a(href="https://doc.cocalc.com/frame-editor.html") frame editor] supports
+          #[strong editing a #[a(href="https://www.gnu.org/software/bash/") bash script] side-by-side with a #[a(href="https://doc.cocalc.com/terminal.html") terminal]].
         p.
           To get started, create a script file ending with #[code .sh], for example #[code script.sh].
-          Opening that file presents you an editor with syntax highlighting.
+          Opening that file presents you an editor with #[strong syntax highlighting].
           Then click the #[code Shell] button to open up a Terminal and type in #[code bash -f <filename.sh>] to run your script.
         p.
-          This helps you learning #[a(href="https://www.gnu.org/software/bash/") GNU Bash] by exploring its commands
+          This helps you learning Bash by exploring its commands
           directly in your browser and immediately experiencing the results.
-
 
 
 
@@ -144,19 +144,20 @@ block content
   div.container.space#jupyter
     div.row
       div.col-md-12.center
-        h2 Jupyter Bash Kernel
+        h2 Jupyter Bash kernel
       div.col-sm-6
         div
           img(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-bash.png").fit
         div.center.
-          Jupyter Notebook running bash kernel
+          Jupyter Notebook running a bash kernel
       div.col-sm-6
         p.
           Are you looking for something beyond a terminal or editing shell scripts?
-          #{NAME} also offers the #[strong #[a(href="https://github.com/takluyver/bash_kernel") bash kernel] for Jupyter Notebooks].
+          #{NAME} also offers #[strong Jupyter Notebooks running the #[a(href="https://github.com/takluyver/bash_kernel") bash kernel]].
         p.
-          This is similar to working with a terminal, but it saves all the intput you typed and the corresponding output in "cells".
-          That helps you with learning linux commands, because it makes it easier to edit the input and compare different outcomes of similar code.
+          This is similar to working with a terminal, but it saves all the input you typed and the corresponding output in "cells".
+          That helps you with learning Linux commands, because it makes it easier to edit the code input or
+          compare different outcomes of similar code.
           Besides that, you can also take notes between code cells.
 
 
@@ -174,7 +175,7 @@ block content
       div.col-sm-6
         p.
           The #{NAME} terminal is ideal for #[strong teaching/learning Linux],
-          because in case you make mistake it has your back!
+          because in case you make a mistake it has your back!
         p.
           Everything runs remotely on #{NAME}'s servers!
           This means you do not have to worry about messing up your own computer,
