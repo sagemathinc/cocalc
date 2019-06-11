@@ -17,13 +17,13 @@ react_support        = require('./react')
 
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
 {Page}               = require('smc-webapp/share/page')
-{get_public_paths}   = require('./public_paths')
+{get_public_paths0}   = require('./public-paths')
 {render_public_path} = require('./render-public-path')
 {render_static_path} = require('./render-static-path')
-util                 = require('./util')
+util                 = require('./util.coffee')
 
 # this reads it from disk
-google_analytics     = require('./util').google_analytics_token()
+google_analytics     = util.google_analytics_token()
 
 react_viewer = (base_url, path, project_id, notranslate, viewer, is_public) ->
     return (res, component, subtitle) ->
@@ -75,7 +75,7 @@ exports.share_router = (opts) ->
     _ready_queue = []
     public_paths = undefined
     dbg("getting_public_paths")
-    get_public_paths opts.database, (err, x) ->
+    get_public_paths0 opts.database, (err, x) ->
         if err
             # This is fatal and should be impossible...
             dbg("get_public_paths - ERROR", err)
@@ -85,6 +85,17 @@ exports.share_router = (opts) ->
             for cb in _ready_queue
                 cb()
             _ready_queue = []
+    ###
+    try
+        public_paths = await get_public_paths(opts.database)
+        dbg("got_public_paths - initialized")
+        for cb in _ready_queue
+            cb()
+        _ready_queue = []
+    catch err
+        # This is fatal and should be impossible...
+        dbg("get_public_paths - ERROR", err)
+    ###
 
     ready = (cb) ->
         if public_paths?
