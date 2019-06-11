@@ -1,4 +1,4 @@
-//- latex landing page
+//- linux landing page
 
 extends ../_base.pug
 
@@ -6,7 +6,7 @@ block vars
   -
     navbar_active = 'features';
     subnavbar_active = 'terminal';
-    subtitle = 'Collaborative Online Linux Terminal';
+    subtitle = 'Online Linux Environment';
 
 block header
   meta(name="description" content=NAME + ' - ' + subtitle)
@@ -35,7 +35,7 @@ block content
         div
           img(src="https://storage.googleapis.com/cocalc-extra/terminal.png").fit
         div.center.
-          Linux Shell in CoCalc
+          Linux Terminal in #{NAME}
       div.col-sm-6
         p
           strong.
@@ -48,7 +48,9 @@ block content
             You no longer have to #[strong install and maintain] any software.
             In particular when you're teaching a class, students just have to sign in to #{NAME} to get started!
           li.
-            It is also possible to #[strong collaboratively] edit the same terminal in real-time.
+            It is possible to #[strong collaboratively] edit the same terminal in real-time.
+          li.
+            You can also edit shell script files in an editor and run the script.
           li.
             #[strong Automatic backup] keeps your files safe!
           li.
@@ -111,6 +113,52 @@ block content
           Open
           #[a(href="https://doc.cocalc.com/chat.html") side chat]
           to exchange thoughts and ideas.
+
+
+  a.anchor#a-shell-script
+  div.container.space#shell-script
+    div.row
+      div.col-md-12.center
+        h2 Run shell scripts
+      div.col-sm-6
+        div
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-shell-script-run.png").fit
+        div.center.
+          Bash script (left), #[code bash -f filename.sh] to run (right)
+      div.col-sm-6
+        p.
+          #{NAME}'s #[a(href="https://doc.cocalc.com/frame-editor.html") frame editor] supports editing
+          a #[code script.sh] bash script side-by-side with a #[a(href="https://doc.cocalc.com/terminal.html") terminal].
+        p.
+          To get started, create a script file ending with #[code .sh], for example #[code script.sh].
+          Opening that file presents you an editor with syntax highlighting.
+          Then click the #[code Shell] button to open up a Terminal and type in #[code bash -f <filename.sh>] to run your script.
+        p.
+          This helps you learning #[a(href="https://www.gnu.org/software/bash/") GNU Bash] by exploring its commands
+          directly in your browser and immediately experiencing the results.
+
+
+
+
+  a.anchor#a-jupyter
+  div.container.space#jupyter
+    div.row
+      div.col-md-12.center
+        h2 Jupyter Bash Kernel
+      div.col-sm-6
+        div
+          img(src="https://storage.googleapis.com/cocalc-extra/cocalc-jupyter-bash.png").fit
+        div.center.
+          Jupyter Notebook running bash kernel
+      div.col-sm-6
+        p.
+          Are you looking for something beyond a terminal or editing shell scripts?
+          #{NAME} also offers the #[strong #[a(href="https://github.com/takluyver/bash_kernel") bash kernel] for Jupyter Notebooks].
+        p.
+          This is similar to working with a terminal, but it saves all the intput you typed and the corresponding output in "cells".
+          That helps you with learning linux commands, because it makes it easier to edit the input and compare different outcomes of similar code.
+          Besides that, you can also take notes between code cells.
+
 
 
   a.anchor#a-snapshot-backups
