@@ -46,3 +46,6 @@ export function times_n(s: string, n: number): string {
   for (let i = 0; i < n; i++) t += s;
   return t;
 }
+
+// category for analytics events concerining cocalc's jupyter front-end
+export const ANALYTICS_CATEGORY = "cocalc_jupyter";

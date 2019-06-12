@@ -16,7 +16,7 @@ import {
 import { Icon } from "../r_misc/icon";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 const misc_page = require("../misc_page");
-
+import { ANALYTICS_CATEGORY } from "./util";
 import { capitalize, copy, endswith } from "smc-util/misc2";
 
 import { JupyterActions } from "./browser-actions";
@@ -336,7 +336,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         onSelect={() => {
           this.props.actions.set_kernel(kernel.name);
           this.focus();
-          analytics_event("cocal_jupyter", "change kernel", kernel.name);
+          analytics_event(ANALYTICS_CATEGORY, "change kernel", kernel.name);
           return this.props.actions.set_default_kernel(kernel.name);
         }}
       >
@@ -534,7 +534,13 @@ render_widgets: -> # TODO: not supported in v1
         <Dropdown.Toggle noCaret bsStyle="default" style={TITLE_STYLE}>
           Help
         </Dropdown.Toggle>
-        <Dropdown.Menu style={{ /* maxHeight: "30vh" */ }}>
+        <Dropdown.Menu
+          style={
+            {
+              /* maxHeight: "30vh" */
+            }
+          }
+        >
           <MenuItem
             eventKey="help-about"
             onSelect={() => this.props.actions.show_about()}
