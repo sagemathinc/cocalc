@@ -108,7 +108,6 @@
     "redux": "^4.0.1",
     "requirejs": "^2.3.6",
     "reselect": "^3.0.0",
-    "resize-observer": "^1.0.0-alpha.1",
     "shell-escape": "^0.2.0",
     "superb": "^3.0.0",
     "three": "^0.78.0",

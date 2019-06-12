@@ -4,6 +4,7 @@ import { Set } from "immutable";
 import { delay } from "awaiting";
 
 import { enumerate, is_whitespace, lstrip } from "smc-util/misc";
+import { bind_methods } from "smc-util/misc2";
 
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
@@ -18,7 +19,7 @@ import { EditorFunctions } from "../../../jupyter/codemirror-editor";
 
 import { isEqual } from "lodash";
 
-const DEBUG = true;
+declare var DEBUG: boolean;
 
 export class NotebookFrameActions {
   private frame_tree_actions: JupyterEditorActions;
@@ -33,6 +34,12 @@ export class NotebookFrameActions {
   public cell_list_div?: any; // the div for the cell list is stored here and accessed from here.
 
   constructor(frame_tree_actions: JupyterEditorActions, frame_id: string) {
+    bind_methods(this, [
+      "update_cur_id",
+      "syncdb_before_change",
+      "syncdb_after_change"
+    ]);
+
     // General frame tree editor actions:
     this.frame_tree_actions = frame_tree_actions;
 
@@ -42,10 +49,7 @@ export class NotebookFrameActions {
     this.frame_id = frame_id;
     this.store = new NotebookFrameStore(frame_tree_actions, frame_id);
 
-    this.jupyter_actions.store.on(
-      "cell-list-recompute",
-      this.update_cur_id.bind(this)
-    );
+    this.jupyter_actions.store.on("cell-list-recompute", this.update_cur_id);
 
     this.update_cur_id();
     this.init_syncdb_change_hook();
@@ -54,8 +58,6 @@ export class NotebookFrameActions {
   }
 
   private init_syncdb_change_hook(): void {
-    this.syncdb_before_change = this.syncdb_before_change.bind(this);
-    this.syncdb_after_change = this.syncdb_after_change.bind(this);
     this.jupyter_actions.store.on(
       "syncdb-before-change",
       this.syncdb_before_change
@@ -96,6 +98,10 @@ export class NotebookFrameActions {
       this.syncdb_before_change
     );
     this.jupyter_actions.store.removeListener(
+      "cell-list-recompute",
+      this.update_cur_id
+    );
+    this.jupyter_actions.store.removeListener(
       "syncdb-after-change",
       this.syncdb_after_change
     );
@@ -133,10 +139,11 @@ export class NotebookFrameActions {
     }
   }
 
-  private todo(f: string, ...args): void {
+  /* private todo(f: string, ...args): void {
     if (!DEBUG) return;
     this.dbg(f, "TODO", ...args);
   }
+  */
 
   /***
    * standard Actions API
@@ -254,16 +261,16 @@ export class NotebookFrameActions {
   }
 
   public cut(): void {
-    this.todo("cut");
+    this.command("cut cell");
   }
 
   public copy(): void {
-    this.todo("copy");
+    this.command("copy cell");
   }
 
   public paste(value?: string | true): void {
     value = value; // ignored -- we use internal buffer
-    this.todo("paste");
+    this.command("paste cell and replace");
   }
 
   public scroll(scroll?: Scroll): void {
@@ -415,7 +422,15 @@ export class NotebookFrameActions {
    ***/
 
   move_cursor(delta: number): void {
-    this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
+    try {
+      this.set_cur_id_from_index(this.store.get_cur_cell_index() + delta);
+    } catch (err) {
+      // This could fail if the cur_id is invalid for some reason (e.g.,
+      // maybe that cell just got deleted by another user). So we update
+      // the current id so next time it will work. See
+      // https://github.com/sagemathinc/cocalc/issues/3873
+      this.update_cur_id();
+    }
   }
 
   move_cursor_after(id: string): void {
@@ -782,8 +797,8 @@ export class NotebookFrameActions {
     }
   }
 
-  public show_code_snippets(): void {
-    this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
+  public async show_code_snippets(): Promise<void> {
+    await this.jupyter_actions.show_code_snippets(this.store.get("cur_id"));
   }
 
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
@@ -815,13 +830,9 @@ export class NotebookFrameActions {
     this.save_input_editor();
     await this.jupyter_actions.format_all_cells(sync);
   }
+
   public async format(): Promise<void> {
-    const sel_ids = this.store.get("sel_ids");
-    if (sel_ids == null || sel_ids.size === 0) {
-      await this.format_all_cells();
-    } else {
-      await this.format_selected_cells();
-    }
+    await this.format_selected_cells();
   }
 
   public refresh(): void {

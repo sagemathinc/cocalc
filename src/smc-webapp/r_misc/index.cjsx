@@ -317,15 +317,22 @@ exports.TimeAgoElement = rclass
 
     render_timeago: (d) ->
         if @props.popover
-            s = d.toLocaleString()
-            <Tip title={s} tip={@props.tip} id={s} placement={@props.placement}>
+            try
+                s = d.toLocaleString()
+            catch err
+                s = "#{err}"
+            <Tip title={s} tip={@props.tip} placement={@props.placement}>
                 {@render_timeago_element(d)}
             </Tip>
         else
             @render_timeago_element(d)
 
     render_absolute: (d) ->
-        <span>{d.toLocaleString()}</span>
+        try
+            s = d.toLocaleString()
+        catch err
+            s = "#{err}"
+        <span>{s}</span>
 
     render: ->
         d = if misc.is_date(@props.date) then @props.date else new Date(@props.date)

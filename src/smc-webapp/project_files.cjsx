@@ -1619,7 +1619,10 @@ exports.ProjectFiles = rclass ({name}) ->
     create_file: (ext, switch_over=true) ->
         file_search = @props.file_search
         if not ext? and file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
-            disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            if @props.configuration?
+                disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            else
+                disabled_ext = []
             ext = default_ext(disabled_ext)
 
         @actions(name).create_file
