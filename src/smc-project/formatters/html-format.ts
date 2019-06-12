@@ -34,9 +34,15 @@ async function tidy(input_path) {
     "yes",
     "--write-back",
     "yes",
+    // enable it, if we want to show warnings upon exit code == 1
     "--show-warnings",
-    "no", // enable it, if we want to show warnings upon exit code == 1
+    "no",
     "--tidy-mark",
+    "no",
+    // https://github.com/sagemathinc/cocalc/issues/3867
+    "--drop-empty-elements",
+    "no",
+    "--drop-empty-paras",
     "no",
     input_path
   ];
