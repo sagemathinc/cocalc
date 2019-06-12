@@ -24,7 +24,10 @@ import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
 import { KernelInfo } from "./types";
-import { Parser, format_parser_for_extension } from "../../smc-util/code-formatter";
+import {
+  Parser,
+  format_parser_for_extension
+} from "../../smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
@@ -2283,7 +2286,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           return; // no-op on these.
         }
         try {
-          const parser : Parser = format_parser_for_extension(ext);
+          const parser: Parser = format_parser_for_extension(ext);
           options = { parser };
         } catch (err) {
           return; // no parser available.
