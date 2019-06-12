@@ -13,7 +13,7 @@ Then visit (say)
 
 or for smc-in-smc project, info.py URL, e.g.
 
-    https://cloud.sagemath.com/14eed217-2d3c-4975-a381-b69edcb40e0e/port/56754/
+    https://cocalc.com/14eed217-2d3c-4975-a381-b69edcb40e0e/port/56754/
 
 This is far from ready to use yet, e.g., we need to properly serve primus websockets, etc.:
 
@@ -427,6 +427,7 @@ if (COMP_ENV) {
     })
   );
 
+  // table of installed software packages and libraries
   for (let infn of glob.sync("webapp-lib/doc/software-*.pug")) {
     const sw_env = path
       .basename(infn)

@@ -105,8 +105,7 @@ export interface FileSpec {
   exclude_from_menu?: boolean;
 }
 
-const file_associations: { [ext: string]: FileSpec } = {};
-exports.file_associations = file_associations;
+export const file_associations: { [ext: string]: FileSpec } = {};
 
 const MODE_TO_ICON: { [mode: string]: string } = {
   python: "cc-icon-python",
@@ -289,15 +288,15 @@ for (let ext of ["png", "jpg", "jpeg", "gif", "svg", "bmp"]) {
 }
 
 // See https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
-exports.IMAGE_EXTS = <ReadonlyArray<string>>(
+export const IMAGE_EXTS = <ReadonlyArray<string>>(
   Object.freeze(["jpg", "jpeg", "png", "bmp", "gif", "apng", "svg", "ico"])
 );
 
-exports.VIDEO_EXTS = <ReadonlyArray<string>>(
+export const VIDEO_EXTS = <ReadonlyArray<string>>(
   Object.freeze(["webm", "mp4", "avi", "mkv", "ogv", "ogm", "3gp"])
 );
 
-exports.AUDIO_EXTS = <ReadonlyArray<string>>(
+export const AUDIO_EXTS = <ReadonlyArray<string>>(
   Object.freeze([
     "wav",
     "ogg",

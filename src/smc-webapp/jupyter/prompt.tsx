@@ -7,9 +7,11 @@ const { Icon, TimeAgo, Tip } = require("../r_misc");
 
 const misc = require("smc-util/misc");
 
+const PROMPT_MIN_WIDTH = "125px";
+
 const INPUT_STYLE: React.CSSProperties = {
   color: "#303F9F",
-  minWidth: "14ex",
+  minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: ".4em",
@@ -90,7 +92,7 @@ export class InputPrompt extends Component<InputPromptProps> {
 
 const OUTPUT_STYLE: React.CSSProperties = {
   color: "#D84315",
-  minWidth: "14ex",
+  minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: ".4em",

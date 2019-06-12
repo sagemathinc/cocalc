@@ -370,14 +370,12 @@ class exports.Client extends EventEmitter
         @account_id = signed_in_mesg.account_id
 
         sign_in.record_sign_in
-            ip_address    : @ip_address
-            successful    : true
-            remember_me   : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
-            email_address : signed_in_mesg.email_address
-            account_id    : signed_in_mesg.account_id
-            utm           : signed_in_mesg.utm
-            referrer      : signed_in_mesg.referrer
-            database      : @database
+            ip_address      : @ip_address
+            successful      : true
+            remember_me     : signed_in_mesg.remember_me    # True if sign in accomplished via rememember me token.
+            email_address   : signed_in_mesg.email_address
+            account_id      : signed_in_mesg.account_id
+            database        : @database
 
         # Get user's group from database.
         @get_groups()

@@ -38,6 +38,15 @@ interface AccountCreationOptions {
   sign_in?: boolean; // if true, the newly created user will also be signed in; only makes sense for browser clients!
 }
 
+interface CreateAccountData {
+  account_id: string;
+  first_name: string;
+  last_name: string;
+  email_address: string;
+  created_by: string;
+  analytics_token?: string;
+}
+
 // This should not actually throw in case of trouble, but instead send
 // error directly to the client.
 export async function create_account(
@@ -160,19 +169,13 @@ export async function create_account(
     });
 
     // log to database
-    const data: any = {
+    const data: CreateAccountData = {
       account_id,
       first_name: opts.mesg.first_name,
       last_name: opts.mesg.last_name,
       email_address: opts.mesg.email_address,
       created_by: opts.client.ip_address
     };
-    if (opts.mesg.utm) {
-      data.utm = opts.mesg.utm;
-    }
-    if (opts.mesg.referrer) {
-      data.referrer = opts.mesg.referrer;
-    }
 
     await callback2(opts.database.log, {
       event: "create_account",
@@ -199,7 +202,7 @@ export async function create_account(
           tm
         )}seconds)`
       );
-      // no utm/referrer info being logged, because it is already done in the create_account entry above.
+      // no analytics token is logged, because it is already done in the create_account entry above.
       mesg1 = message.signed_in({
         id,
         account_id,

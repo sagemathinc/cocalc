@@ -9,9 +9,9 @@ import { React, Component, Rendered } from "../app-framework";
 import { Map } from "immutable";
 import * as json from "json-stable-stringify";
 import * as misc from "smc-util/misc";
-import { Button, Modal } from "react-bootstrap";
+import { Button, Modal, Grid, Row, Col } from "react-bootstrap";
 import { Icon } from "../r_misc/icon";
-const { SearchInput } = require("../r_misc");
+const { SearchInput, r_join } = require("../r_misc");
 import { commands, CommandDescription, KeyboardCommand } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 import { JupyterActions } from "./browser-actions";
@@ -24,7 +24,7 @@ const SYMBOLS = {
   alt: "⌥",
   shift: "⇧",
   return: "⏎",
-  space: "Space",
+  space: "⌴",
   tab: "↹",
   down: "⬇",
   up: "⬆",
@@ -52,6 +52,9 @@ function shortcut_to_string(shortcut: KeyboardCommand): string {
       break;
     case 13:
       s += SYMBOLS.return;
+      break;
+    case 32:
+      s += SYMBOLS.space;
       break;
     case 27:
       s += "Esc";
@@ -86,8 +89,6 @@ export class KeyboardShortcut extends Component<KeyboardShortcutProps> {
 }
 
 const SHORTCUTS_STYLE: React.CSSProperties = {
-  width: "20em",
-  overflowX: "hidden",
   border: "1px solid transparent",
   paddingRight: "10px"
 };
@@ -123,13 +124,13 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     e.stopPropagation();
   };
 
-  private render_shortcuts(): Rendered[] {
+  private render_shortcuts(): Rendered {
     const result: Rendered[] = [];
     for (let key in this.props.shortcuts) {
       const shortcut = this.props.shortcuts[key];
       result.push(this.render_shortcut(key, shortcut));
     }
-    return result;
+    return r_join(result, ", ");
   }
 
   /* TODO: implement this...
@@ -262,7 +263,6 @@ class Shortcuts extends Component<ShortcutsProps, ShortcutsState> {
     hover = false; // TODO: editing shortcuts disabled until I implement it!
     return (
       <div
-        className="pull-right"
         style={SHORTCUTS_STYLE}
         onClick={this.edit_shortcut}
         onMouseEnter={() => this.setState({ hover: true })}
@@ -290,8 +290,7 @@ function capitalize_each_word(s: string): string {
 const COMMAND_STYLE = {
   cursor: "pointer",
   borderTop: "1px solid #ccc",
-  padding: "5px 0 5px 10px",
-  height: "2em"
+  padding: "5px 0 5px 10px"
 };
 
 interface CommandProps {
@@ -314,32 +313,28 @@ class Command extends Component<CommandProps, CommandState> {
     this.state = { highlight: false };
   }
 
-  render_icon() {
+  private render_icon(): Rendered {
     return (
-      <span style={{ width: "2em", display: "inline-block" }}>
+      <span>
         {this.props.icon ? <Icon name={this.props.icon} /> : undefined}
       </span>
     );
   }
 
-  run_command = () => {
+  private run_command = () => {
     this.props.frame_actions.command(this.props.name);
     this.props.actions.close_keyboard_shortcuts();
   };
 
-  on_click = () => {
+  private on_click = () => {
     this.run_command();
   };
 
-  render_desc() {
-    return (
-      <span style={{ maxWidth: "20em", overflowX: "hidden" }}>
-        {this.props.desc}
-      </span>
-    );
+  private render_desc(): Rendered {
+    return <span>{this.props.desc}</span>;
   }
 
-  render_shortcuts() {
+  private render_shortcuts(): Rendered {
     return (
       <Shortcuts
         actions={this.props.actions}
@@ -350,7 +345,7 @@ class Command extends Component<CommandProps, CommandState> {
     );
   }
 
-  render() {
+  public render(): Rendered {
     let style: React.CSSProperties;
     if (this.state.highlight) {
       style = misc.merge_copy(COMMAND_STYLE, { backgroundColor: "#ddd" });
@@ -364,9 +359,13 @@ class Command extends Component<CommandProps, CommandState> {
         onMouseEnter={() => this.setState({ highlight: true })}
         onMouseLeave={() => this.setState({ highlight: false })}
       >
-        {this.render_icon()}
-        {this.render_desc()}
-        {this.render_shortcuts()}
+        <Grid style={{ width: "100%" }}>
+          <Row>
+            <Col md={1} sm={1}>{this.render_icon()}</Col>
+            <Col md={7} sm={7}>{this.render_desc()}</Col>
+            <Col md={4} sm={4}>{this.render_shortcuts()}</Col>
+          </Row>
+        </Grid>
       </div>
     );
   }
@@ -391,7 +390,7 @@ class CommandList extends Component<CommandListProps> {
     return nextProps.search !== this.props.search;
   }
 
-  render_commands() {
+  private render_commands(): Rendered[] {
     const v: any[] = [];
     const obj = commands(this.props.actions, this.props.frame_actions);
     for (let name in obj) {
@@ -401,7 +400,7 @@ class CommandList extends Component<CommandListProps> {
       }
     }
     v.sort(misc.field_cmp("name"));
-    const cmds: any[] = [];
+    const cmds: Rendered[] = [];
     const search =
       this.props.search != null
         ? this.props.search.toLowerCase() || ""
@@ -435,7 +434,7 @@ class CommandList extends Component<CommandListProps> {
     return cmds;
   }
 
-  render() {
+  public render(): Rendered {
     return <div style={COMMAND_LIST_STYLE}>{this.render_commands()}</div>;
   }
 }
@@ -475,18 +474,48 @@ export class KeyboardShortcuts extends Component<
 
   private close = (): void => {
     this.props.actions.close_keyboard_shortcuts();
-    this.props.actions.focus(true);
+    this.props.frame_actions.focus();
   };
 
   private search_change = (search: string): void => {
     this.setState({ search });
   };
 
+  private render_symbols(): Rendered {
+    return <ul style={{ marginTop: "30px" }}>{this.render_symbols_list()}</ul>;
+  }
+
+  private render_symbols_list(): Rendered[] {
+    const v: Rendered[] = [];
+    for (let key in SYMBOLS) {
+      v.push(
+        <li key={key}>
+          <span style={{ width: "20px", display: "inline-block" }}>
+            {SYMBOLS[key]}
+          </span>{" "}
+          {key}
+        </li>
+      );
+    }
+    return v;
+  }
+
+  private render_heading(): Rendered {
+    return (
+      <Grid style={{ width: "100%", fontWeight: "bold", color: "#666" }}>
+        <Row>
+          <Col md={1} sm={1}/>
+          <Col md={7} sm={7}>Command (click to run)</Col>
+          <Col md={4} sm={4}>Keyboard shortcut</Col>
+        </Row>
+      </Grid>
+    );
+  }
+
+  /*
   private render_instructions(): Rendered {
     return (
       <div style={{ color: "#666", marginBottom: "10px" }}>
-        Click a command to perform it.
-        <br />
         NOTE: Keyboard shortcuts are{" "}
         <a
           href="https://github.com/sagemathinc/cocalc/issues/3242"
@@ -495,13 +524,13 @@ export class KeyboardShortcuts extends Component<
         >
           not yet
         </a>{" "}
-        customizable.
-        {
-          undefined // To add a keyboard shortcut, click plus next to the key combination then type the new keys.
+        customizable.}
+        {//To add a keyboard shortcut, click plus next to the key combination then type the new keys.
         }
       </div>
     );
   }
+  */
 
   public render(): Rendered {
     if (this.props.keyboard_shortcuts == null) return <span />;
@@ -513,18 +542,30 @@ export class KeyboardShortcuts extends Component<
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <SearchInput
-            autoFocus={true}
-            value={this.state.search}
-            on_change={this.search_change}
-          />
-          {this.render_instructions()}
-          <CommandList
-            actions={this.props.actions}
-            frame_actions={this.props.frame_actions}
-            taken={this.state.taken}
-            search={this.state.search}
-          />
+          <Grid style={{ width: "100%" }}>
+            <Row>
+              <Col md={12}>
+                <SearchInput
+                  autoFocus={true}
+                  value={this.state.search}
+                  on_change={this.search_change}
+                  placeholder={"Search commands..."}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col md={9}>
+                {this.render_heading()}
+                <CommandList
+                  actions={this.props.actions}
+                  frame_actions={this.props.frame_actions}
+                  taken={this.state.taken}
+                  search={this.state.search}
+                />
+              </Col>
+              <Col md={3}>{this.render_symbols()}</Col>
+            </Row>
+          </Grid>
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={this.close}>Close</Button>

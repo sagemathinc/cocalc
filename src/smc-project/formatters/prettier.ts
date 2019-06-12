@@ -29,10 +29,14 @@ const { remove_math, replace_math } = require("../smc-util/mathjax-utils"); // f
 
 import { once } from "../smc-util/async-utils";
 
-import { Parser as FormatterParser } from "../smc-util/code-formatter";
+import {
+  Parser as FormatterParser,
+  Variant as FormatterVariant
+} from "../smc-util/code-formatter";
 
 export interface Options {
   parser: FormatterParser;
+  variant?: FormatterVariant;
   tabWidth?: number;
   useTabs?: boolean;
 }

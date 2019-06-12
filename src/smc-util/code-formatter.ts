@@ -1,5 +1,5 @@
 // common configuration for mapping programming languages (lower case) to formatters
-// this is used by webapp and the projectc
+// this is used by webapp and the project
 
 // ideally, this is the "syntax", but for historic reasons it's what is being "parsed"
 export type Parser =
@@ -30,11 +30,20 @@ export type Parser =
   | "py"
   | "R"
   | "RMarkdown"
+  | "rnw"
+  | "rmd"
   | "TypeScript"
   | "typescript"
   | "JavaScript"
   | "tsx"
   | "jsx";
+
+export type Variant = "styler" | "formatR" | undefined;
+
+export interface ParserVariant {
+  parser: Parser;
+  variant: Variant;
+}
 
 export type Tool =
   | "prettier" // always available
@@ -127,6 +136,8 @@ export const parser2tool: Readonly<Config> = Object.freeze({
   markdown: "prettier",
   Markdown: "prettier",
   RMarkdown: "prettier", // same as markdown!
+  rnw: "formatR",
+  rmd: "formatR",
   c: "clang-format",
   clang: "clang-format",
   "clang-format": "clang-format",
@@ -183,3 +194,72 @@ for (const tool of Object.keys(t2d)) {
 }
 
 export const tool2display: Readonly<Tool2Display> = Object.freeze(t2d);
+
+export function format_parser_for_extension(ext: string): ParserVariant {
+  let parser: Parser;
+  let variant: Variant;
+  switch (ext) {
+    case "js":
+    case "jsx":
+      parser = "babylon";
+      break;
+    case "json":
+      parser = "json";
+      break;
+    case "ts":
+    case "tsx":
+      parser = "typescript";
+      break;
+    case "md":
+      parser = "markdown";
+      break;
+    case "rmd":
+      parser = "rmd"; // runs markdown + styler
+      break;
+    case "rnw":
+      parser = "rnw";
+      variant = "styler";
+      break;
+    case "css":
+      parser = "postcss";
+      break;
+    case "tex":
+      parser = "latex";
+      break;
+    case "py":
+      parser = "python";
+      break;
+    case "yml":
+    case "yaml":
+      parser = "yaml";
+      break;
+    case "r":
+      parser = "r";
+      variant = "styler"; // or "formatR"
+      break;
+    case "go":
+      parser = "gofmt";
+      break;
+    case "html":
+      parser = "html-tidy";
+      break;
+    case "xml":
+    case "cml":
+    case "kml":
+      parser = "xml-tidy";
+      break;
+    case "bib":
+      parser = "bib-biber";
+      break;
+    case "c":
+    case "c++":
+    case "cc":
+    case "cpp":
+    case "h":
+      parser = "clang-format";
+      break;
+    default:
+      throw Error(`no code formatting support for ${ext}`);
+  }
+  return { parser, variant };
+}
