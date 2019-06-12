@@ -46,9 +46,6 @@ if BACKEND? and BACKEND
 else
     ENABLED = (not DEBUG) or enable_for_testing
 
-# Temporarily disabling since this is burning a lot of cpu in some cases.
-ENABLED = false
-
 # this is the MAIN function of this module
 # it's exported publicly and also used in various spots where exceptions are already
 # caught and reported to the browser's console.
