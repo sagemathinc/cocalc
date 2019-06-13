@@ -165,8 +165,6 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
     actions != null ? await actions.format() : await super.format(id);
   }
 
-  public hide(): void {}
-
   async save(explicit: boolean = true): Promise<void> {
     explicit = explicit; // not used yet -- might be used for "strip trailing whitespace"
 
@@ -206,9 +204,14 @@ export class JupyterEditorActions extends Actions<JupyterEditorState> {
   }
 
   // Not an action, but works to make code clean
-  has_format_support(id: string, available_features?): boolean | string {
+  has_format_support(id: string, available_features?): false | string {
     id = id;
-    available_features = available_features;
-    return "Canonically format input code in all cells (or in selected cells). Uses yapf for Python.";
+    const ext = this.jupyter_actions.store.get_kernel_ext();
+    const markdown_only = "Format selected markdown cells using prettier.";
+    if (ext == null) return markdown_only;
+    if (available_features == null) return markdown_only;
+    const tool = this.format_support_for_extension(available_features, ext);
+    if (!tool) return markdown_only;
+    return `Format selected code cells using "${tool}", stopping on first error; formats markdown using prettier.`;
   }
 }

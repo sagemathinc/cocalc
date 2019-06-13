@@ -649,6 +649,7 @@ export class Actions extends BaseActions<X11EditorState> {
     // This is called when the X11 editor tab is hidden.
     // In this case, we disable the keyboard handler.
     this.blur();
+    super.hide(); // Critical to also call parent hide.
   }
 
   public async show(): Promise<void> {

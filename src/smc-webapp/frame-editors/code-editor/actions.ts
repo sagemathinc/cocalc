@@ -30,8 +30,7 @@ import {
   filename_extension,
   history_path,
   len,
-  uuid,
-  unreachable
+  uuid
 } from "smc-util/misc2";
 import { print_code } from "../frame-tree/print-code";
 import {
@@ -57,7 +56,11 @@ import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 
 import { Available as AvailableFeatures } from "../../project_configuration";
-import { ext2parser, parser2tool } from "smc-util/code-formatter";
+import {
+  ext2parser,
+  parser2tool,
+  format_parser_for_extension
+} from "smc-util/code-formatter";
 
 const copypaste = require("smc-webapp/copy-paste-buffer");
 const { open_new_tab } = require("smc-webapp/misc_page");
@@ -102,6 +105,7 @@ export interface CodeEditorState {
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
   derived_file_types: Set<string>;
+  visible: boolean;
 }
 
 export class Actions<T = CodeEditorState> extends BaseActions<
@@ -148,6 +152,9 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager(this);
+
+    this.set_resize = this.set_resize.bind(this);
+    window.addEventListener("resize", this.set_resize);
 
     if (is_public) {
       this._init_value();
@@ -399,7 +406,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   // Call this whenever the frames are moved, so that content can potentially
   // get updated due to resizing.  E.g., this ensures that codemirror editors
   // are properly updated (by calling cm.refresh()), so they don't look broken.
+  // This is called when the window is resized.
+  // It is only called when the editor is visible, and is always called
+  // when it is shown.
   set_resize(): void {
+    if (!this.store.get("visible")) return;
     this.setState({
       resize: this.store.get("resize", 0) + 1
     });
@@ -418,10 +429,11 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     cm.setValue(value);
   }
 
-  close(): void {
+  public close(): void {
     if (this._state == "closed") {
       return;
     }
+    window.removeEventListener("resize", this.set_resize);
     this._state = "closed";
     this.__save_local_view_state();
     // switch back to non-debounced version, in case called after this point.
@@ -1681,29 +1693,37 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
   }
 
-  // Not an action, but works to make code clean
-  has_format_support(
-    id: string,
-    available_features?: AvailableFeatures
-  ): boolean | string {
-    const cm = this._get_cm(id);
-    if (!cm) return false; // not a code editor
-    if (available_features == null) return false;
+  public format_support_for_extension(
+    available_features: AvailableFeatures,
+    ext: string
+  ): false | string {
     const formatting = available_features.formatting;
     // there is no formatting available at all
     if (!formatting) return false;
-    const ext = filename_extension(this.path).toLowerCase();
-
     const parser = ext2parser[ext];
     if (parser == null) return false;
     const tool = parser2tool[parser];
     if (tool == null) return false;
     if (!formatting[tool]) return false;
-    return `Canonically format the entire document using '${tool}'.`;
+    return tool;
+  }
+
+  // Not an action, but works to make code clean
+  has_format_support(
+    id: string,
+    available_features?: AvailableFeatures
+  ): false | string {
+    const cm = this._get_cm(id);
+    if (!cm || available_features == null) return false; // not a code editor or no features
+    const ext = filename_extension(this.path).toLowerCase();
+    const tool = this.format_support_for_extension(available_features, ext);
+    if (!tool) return false;
+    return `Format the entire document using '${tool}'.`;
   }
 
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
+  // and the action has_format_support.
   async format(id?: string): Promise<void> {
     const cm = this._get_cm(id);
     if (!cm) return;
@@ -1713,66 +1733,8 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     }
 
     cm.focus();
-    let parser: FormatterParser;
     const ext = filename_extension(this.path).toLowerCase() as FormatterExts;
-    switch (ext) {
-      case "js":
-      case "jsx":
-        parser = "babylon";
-        break;
-      case "json":
-        parser = "json";
-        break;
-      case "ts":
-      case "tsx":
-        parser = "typescript";
-        break;
-      case "md":
-      case "rmd":
-        parser = "markdown";
-        break;
-      case "css":
-        parser = "postcss";
-        break;
-      case "tex":
-        parser = "latex";
-        break;
-      case "py":
-        parser = "python";
-        break;
-      case "yml":
-      case "yaml":
-        parser = "yaml";
-        break;
-      case "r":
-        parser = "r";
-        break;
-      case "go":
-        parser = "gofmt";
-        break;
-      case "html":
-        parser = "html-tidy";
-        break;
-      case "xml":
-      case "cml":
-      case "kml":
-        parser = "xml-tidy";
-        break;
-      case "bib":
-        parser = "bib-biber";
-        break;
-      case "c":
-      case "c++":
-      case "cc":
-      case "cpp":
-      case "h":
-        parser = "clang-format";
-        break;
-      default:
-        // make sure all extensions are dealth with
-        unreachable(ext);
-        return;
-    }
+    const parser: FormatterParser = format_parser_for_extension(ext);
     const options: FormatterOptions = {
       parser,
       tabWidth: cm.getOption("tabSize") as number,
@@ -1997,16 +1959,25 @@ export class Actions<T = CodeEditorState> extends BaseActions<
     return undefined;
   }
 
+  // If you override show, make sure to still call this
+  // super class!
   public async show(): Promise<void> {
-    if (this._cm == null) return;
+    this.setState({
+      visible: true
+    });
 
     await delay(0); // wait until next render loop
     if (this._state == "closed") return;
+    this.set_resize();
     this.refresh_visible();
     this.focus();
   }
 
-  public hide(): void {}
+  // If you override hide, make sure to still call this
+  // super class!
+  public hide(): void {
+    this.setState({ visible: false });
+  }
 
   // Refresh all visible frames.
   public refresh_visible(): void {

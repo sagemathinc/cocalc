@@ -1889,6 +1889,36 @@ schema.mentions = {
   }
 };
 
+// Tracking web-analytics
+// this records data about users hitting cocalc and cocalc-related websites
+// this table is 100% back-end only
+schema.analytics = {
+  primary_key: ["token"],
+  pg_indexes: ["token", "data_time"],
+  durability: "soft",
+  fields: {
+    token: {
+      type: "uuid"
+    },
+    data: {
+      type: "map",
+      desc: "referrer, landing page, utm, etc."
+    },
+    data_time: {
+      type: "timestamp",
+      desc: "when the data field was set"
+    },
+    account_id: {
+      type: "uuid",
+      desc: "set only once, when the user (eventually) signs in"
+    },
+    account_id_time: {
+      type: "timestamp",
+      desc: "when the account id was set"
+    }
+  }
+};
+
 // what software environments there are available
 schema.compute_images = {
   primary_key: ["id"],
@@ -1953,12 +1983,6 @@ schema.compute_images = {
 //  time: a timestamp
 //  key: 'sign_up_how_find_cocalc'
 //  value: 'via a google search'
-//
-// We could also have:
-//  account_id: 'some uuid'
-//  time: a timestamp
-//  key: 'utm'
-//  value: 'a utm referrer code'
 //
 // Or if user got to cocalc via a chat mention link:
 //

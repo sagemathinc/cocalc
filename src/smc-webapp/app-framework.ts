@@ -423,12 +423,14 @@ const connect_component = spec => {
       return props;
     }
     for (let store_name in spec) {
-      const info = spec[store_name];
       if (store_name === "undefined") {
-        // gets turned into this string when making a common mistake
+        // "undefined" gets turned into this string when making a common mistake
         console.warn("spec = ", spec);
-        throw Error("store_name of spec *must* be defined");
+        throw Error(
+          "WARNING: redux spec is invalid because it contains 'undefined' as a key. " + JSON.stringify(spec)
+        );
       }
+      const info = spec[store_name];
       const store: Store<any> | undefined = redux.getStore(store_name);
       for (let prop in info) {
         var val;

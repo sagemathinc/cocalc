@@ -542,7 +542,7 @@ export class FrameTitleBar extends Component<Props, State> {
     return (
       <Button
         key={"cut"}
-        title={"Cut selected text"}
+        title={"Cut selected"}
         onClick={() => this.props.actions.cut(this.props.id)}
         disabled={this.props.read_only}
         bsSize={this.button_size()}
@@ -580,7 +580,7 @@ export class FrameTitleBar extends Component<Props, State> {
     return (
       <Button
         key={"copy"}
-        title={"Copy selected text"}
+        title={"Copy selected"}
         onClick={() => this.props.actions.copy(this.props.id)}
         bsSize={this.button_size()}
       >
@@ -1032,7 +1032,7 @@ export class FrameTitleBar extends Component<Props, State> {
         key={"print"}
         bsSize={this.button_size()}
         onClick={() => this.props.actions.print(this.props.id)}
-        title={"Print file to PDF"}
+        title={"Print file..."}
       >
         <Icon name={"print"} />{" "}
         <VisibleMDLG>{this.show_labels() ? "Print" : undefined}</VisibleMDLG>
