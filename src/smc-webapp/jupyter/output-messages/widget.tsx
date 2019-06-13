@@ -24,9 +24,12 @@ require("@jupyter-widgets/controls/css/widgets.css");
 
 import { CellOutputMessages } from "./message";
 
+import { NotebookFrameActions } from "../../frame-editors/jupyter-editor/cell-notebook/actions";
+
 interface WidgetProps {
   value: Map<string, any>;
   actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
   name?: string;
   project_id?: string;
   directory?: string;
@@ -242,13 +245,13 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
     );
     if (focuseable.length > 0) {
       focuseable.on("focus", () => {
-        if (this.props.actions != null) {
-          this.props.actions.disable_key_handler();
+        if (this.props.frame_actions != null) {
+          this.props.frame_actions.disable_key_handler();
         }
       });
       focuseable.on("blur", () => {
-        if (this.props.actions != null) {
-          this.props.actions.enable_key_handler();
+        if (this.props.frame_actions != null) {
+          this.props.frame_actions.enable_key_handler();
         }
       });
     }
@@ -308,7 +311,11 @@ export class Widget0 extends Component<WidgetProps, WidgetState> {
             target={"_blank"}
             rel={"noopener noreferrer"}
           >
-            Unsupported Third Party Widget <code>{this.model.module}.{this.model.name}</code>...
+            Unsupported Third Party Widget{" "}
+            <code>
+              {this.model.module}.{this.model.name}
+            </code>
+            ...
           </a>
         </div>
       );

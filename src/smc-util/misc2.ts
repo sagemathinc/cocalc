@@ -7,7 +7,8 @@ it in a more modern ES 2018/Typescript/standard libraries approach.
 **The exact behavior of functions may change from what is in misc.js!**
 */
 
-const underscore = require("underscore");
+import * as lodash from "lodash";
+export const keys = lodash.keys;
 
 interface SplittedPath {
   head: string;
@@ -135,8 +136,9 @@ export function copy_with(obj: object, w: string | string[]): object {
 import { cloneDeep } from "lodash";
 export const deep_copy = cloneDeep;
 
-export function set(v: string[]): object {
-  const s = {};
+// Very poor man's set.
+export function set(v: string[]): { [key: string]: true } {
+  const s: { [key: string]: true } = {};
   for (let x of v) {
     s[x] = true;
   }
@@ -236,8 +238,6 @@ export function len(obj: object | undefined | null): number {
   }
   return Object.keys(obj).length;
 }
-
-export const keys = underscore.keys;
 
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
@@ -477,4 +477,23 @@ export function bind_methods(obj: any, method_names: string[]): void {
   for (let method_name of method_names) {
     obj[method_name] = obj[method_name].bind(obj);
   }
+}
+
+export function human_readable_size(bytes: number | null | undefined): string {
+  if (bytes == null) {
+    return "?";
+  }
+  if (bytes < 1000) {
+    return `${bytes} bytes`;
+  }
+  if (bytes < 1000000) {
+    const b = Math.floor(bytes / 100);
+    return `${b / 10} KB`;
+  }
+  if (bytes < 1000000000) {
+    const b = Math.floor(bytes / 100000);
+    return `${b / 10} MB`;
+  }
+  const b = Math.floor(bytes / 100000000);
+  return `${b / 10} GB`;
 }

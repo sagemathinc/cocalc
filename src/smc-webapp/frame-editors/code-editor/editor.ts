@@ -43,10 +43,10 @@ export const SHELLS = {
   ts: "ts-node",
   coffee: "coffee",
   gp: "gp",
-  lua:"lua",
-  ml:"ocaml",
-  pl:"perl",
-  rb:"ruby"
+  lua: "lua",
+  ml: "ocaml",
+  pl: "perl",
+  rb: "ruby"
 };
 
 export const cm = {
@@ -54,7 +54,7 @@ export const cm = {
   name: "Source Code",
   icon: "code",
   component: CodemirrorEditor,
-  buttons: function(path: string): any {
+  buttons: function(path: string): { [name: string]: true } {
     const buttons: any = set([
       "print",
       "decrease_font_size",

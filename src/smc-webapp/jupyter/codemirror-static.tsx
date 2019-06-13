@@ -7,8 +7,7 @@ of these on the page at once.
 
 import { React, Component } from "../app-framework"; // TODO: this
 import { Map as ImmutableMap } from "immutable";
-const misc_page = require("../misc_page");
-const misc = require("smc-util/misc");
+import { copy, merge } from "smc-util/misc";
 
 declare const CodeMirror: any; // TODO: find typings for this UMD
 
@@ -29,7 +28,6 @@ const BLURRED_STYLE: React.CSSProperties = {
 
 interface CodeMirrorStaticProps {
   value: string;
-  actions?: any;
   id?: string;
   options?: ImmutableMap<any, any>;
   font_size?: number;
@@ -40,32 +38,6 @@ interface CodeMirrorStaticProps {
 }
 
 export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
-  focus = (event: any) => {
-    if (this.props.actions == null || this.props.id == null) {
-      // read only
-      return;
-    }
-    if (event.shiftKey) {
-      misc_page.clear_selection();
-      this.props.actions.select_cell_range(this.props.id);
-      event.stopPropagation();
-      return;
-    }
-    if (window.getSelection().toString()) {
-      // User is selected some text in the cell; if we switch to edit mode
-      // then the selection would be cleared, which is annoying.  NOTE that
-      // this makes the behavior slightly different than official Jupyter.
-      event.stopPropagation();
-      return;
-    }
-    this.props.actions.unselect_all_cells();
-    this.props.actions.set_cur_id(this.props.id);
-    this.props.actions.set_mode("edit"); // important to set this *AFTER* setting the current id - see issue #2547
-    if (this.props.set_click_coords) {
-      this.props.set_click_coords({ left: event.clientX, top: event.clientY });
-    }
-  };
-
   line_number = (key: string | number, line: number, width: number) => {
     return (
       <div key={key} className="CodeMirror-gutter-wrapper">
@@ -113,7 +85,7 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
 
     try {
       CodeMirror.runMode(this.props.value, mode, append);
-    } catch(err) {
+    } catch (err) {
       /* This does happen --
             https://github.com/sagemathinc/cocalc/issues/3626
          However, basically silently ignoring it (with a console.log)
@@ -151,24 +123,20 @@ export class CodeMirrorStatic extends Component<CodeMirrorStaticProps> {
         // nobody better do this...
         width = 59;
       }
-      style = misc.merge({ paddingLeft: `${width + 4}px` }, BLURRED_STYLE);
+      style = merge({ paddingLeft: `${width + 4}px` }, BLURRED_STYLE);
       if (this.props.style != null) {
-        style = misc.merge(style, this.props.style);
+        style = merge(style, this.props.style);
       }
     } else {
       width = 0;
       style = BLURRED_STYLE;
       if (this.props.style != null) {
-        style = misc.merge(misc.copy(style), this.props.style);
+        style = merge(copy(style), this.props.style);
       }
     }
 
     return (
-      <pre
-        className="CodeMirror cm-s-default CodeMirror-wrap"
-        style={style}
-        onMouseUp={this.focus}
-      >
+      <pre className="CodeMirror cm-s-default CodeMirror-wrap" style={style}>
         {this.render_lines(width)}
         {this.render_gutter(width)}
       </pre>

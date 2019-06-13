@@ -4,15 +4,30 @@ The Menu bar across the top
 File, Edit, etc....
 */
 
-import { React, Component, rclass, rtypes } from "../app-framework";
+import { React, Component, rclass, rtypes, Rendered } from "../app-framework";
 import { analytics_event } from "../tracker";
 import * as immutable from "immutable";
-import { ButtonGroup, Dropdown, MenuItem } from "react-bootstrap";
-const { Icon } = require("../r_misc");
-const { KeyboardShortcut } = require("./keyboard-shortcuts");
+import {
+  ButtonGroup,
+  Dropdown,
+  MenuItem,
+  SelectCallback
+} from "react-bootstrap";
+import { Icon } from "../r_misc/icon";
+import { KeyboardShortcut } from "./keyboard-shortcuts";
 const misc_page = require("../misc_page");
-const misc = require("smc-util/misc");
-const { required, defaults } = misc;
+
+import { capitalize, copy, endswith } from "smc-util/misc2";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
+
+import { get_help_links } from "./help-links";
+
+type MenuItemName =
+  | string
+  | { name: string; display?: string; style?: object }
+  | Rendered;
 
 // const OPACITY = ".9"; // TODO: this was never read
 const TITLE_STYLE: React.CSSProperties = {
@@ -27,24 +42,27 @@ const SELECTED_STYLE: React.CSSProperties = {
 
 interface TopMenubarProps {
   // OWN PROPS
-  actions: any;
+  actions: JupyterActions;
+  frame_actions: NotebookFrameActions;
+  cur_id: string;
+  cells: immutable.Map<any, any>; // map from id to cells
+  view_mode?: string;
+  name: string;
+
   // REDUX PROPS
   // [name]
-  kernels: immutable.List<any>;
-  kernel: string;
-  kernel_state: string;
-  has_unsaved_changes: boolean;
-  kernel_info: immutable.Map<any, any>;
-  backend_kernel_info: immutable.Map<any, any>;
-  cells: immutable.Map<any, any>;
-  cur_id: string;
-  trust: boolean;
-  view_mode: string;
-  toolbar: boolean;
-  cell_toolbar: string;
-  read_only: boolean;
+  kernels?: immutable.List<any>;
+  kernel?: string;
+  kernel_state?: string;
+  has_unsaved_changes?: boolean;
+  kernel_info?: immutable.Map<any, any>;
+  backend_kernel_info?: immutable.Map<any, any>;
+  trust?: boolean;
+  toolbar?: boolean;
+  cell_toolbar?: string;
+  read_only?: boolean;
   // page
-  fullscreen: string;
+  fullscreen?: string;
 }
 
 export class TopMenubar0 extends Component<TopMenubarProps> {
@@ -57,10 +75,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         has_unsaved_changes: rtypes.bool,
         kernel_info: rtypes.immutable.Map,
         backend_kernel_info: rtypes.immutable.Map,
-        cells: rtypes.immutable.Map,
-        cur_id: rtypes.string,
         trust: rtypes.bool,
-        view_mode: rtypes.string,
         toolbar: rtypes.bool,
         cell_toolbar: rtypes.string,
         read_only: rtypes.bool
@@ -70,7 +85,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
       }
     };
   }
-  shouldComponentUpdate(nextProps) {
+
+  public shouldComponentUpdate(nextProps: TopMenubarProps): boolean {
     return (
       nextProps.has_unsaved_changes !== this.props.has_unsaved_changes ||
       nextProps.read_only !== this.props.read_only ||
@@ -87,24 +103,28 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     );
   }
 
-  render_file() {
-    let script_entry, trust;
-    const ext =
-      this.props.backend_kernel_info != null
-        ? this.props.backend_kernel_info.getIn([
-            "language_info",
-            "file_extension"
-          ])
-        : undefined;
-    if (ext != null) {
-      const m = misc.capitalize(
-        this.props.backend_kernel_info.getIn(["language_info", "name"])
-      );
-      script_entry = { name: ">nbconvert script", display: `${m} (${ext})...` };
-    } else {
+  private render_file(): Rendered {
+    let script_entry: any = undefined;
+    if (this.props.backend_kernel_info != null) {
+      const ext = this.props.backend_kernel_info.getIn([
+        "language_info",
+        "file_extension"
+      ]);
+      if (ext != null) {
+        const m = capitalize(
+          this.props.backend_kernel_info.getIn(["language_info", "name"], "")
+        );
+        script_entry = {
+          name: ">nbconvert script",
+          display: `${m} (${ext})...`
+        };
+      }
+    }
+    if (script_entry === undefined) {
       script_entry = ">nbconvert script";
     }
 
+    let trust;
     if (this.props.trust) {
       trust = { name: "<trust notebook", display: "Trusted notebook" };
     } else {
@@ -162,7 +182,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     });
   }
 
-  render_edit() {
+  private render_edit(): Rendered {
     const cell_type =
       this.props.cells != null
         ? this.props.cells.getIn([this.props.cur_id, "cell_type"])
@@ -192,6 +212,9 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "write protect",
         "delete protect",
         "",
+        "toggle hide input",
+        "toggle hide output",
+        "",
         "find and replace",
         "",
         `${cell_type !== "markdown" ? "<" : ""}insert image`
@@ -199,7 +222,8 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     }); // disable if not markdown
   }
 
-  render_view() {
+  private render_view(): Rendered {
+    if (this.props.view_mode == null) return;
     const shownb = {
       normal: ">view notebook normal",
       raw: ">view notebook raw",
@@ -253,7 +277,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     });
   }
 
-  render_insert() {
+  private render_insert(): Rendered {
     return this.render_menu({
       heading: "Insert",
       names: ["insert cell above", "insert cell below"],
@@ -262,7 +286,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     });
   }
 
-  render_cell() {
+  private render_cell(): Rendered {
     return this.render_menu({
       heading: "Cell",
       disabled: this.props.read_only,
@@ -274,22 +298,22 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         "run all cells above",
         "run all cells below",
         "",
-        "<Cell Type...",
+        "<Cell type...",
         ">change cell to code",
         ">change cell to markdown",
         ">change cell to raw",
         "",
-        "<Current Output...",
+        "<Selected output...",
         ">toggle cell output collapsed",
         ">toggle cell output scrolled",
         ">clear cell output",
         "",
-        "<All Output...",
+        "<All output...",
         ">toggle all cells output collapsed",
         ">toggle all cells output scrolled",
         ">clear all cells output",
         "",
-        "<Format Code...",
+        "<Format code...",
         ">format cells",
         ">format all cells"
       ]
@@ -299,7 +323,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
   // TODO: upper case kernel names, descriptions... and make it a new component for
   // efficiency so don't re-render if not change
 
-  render_kernel_item(kernel: any) {
+  private render_kernel_item(kernel: any): Rendered {
     const style: React.CSSProperties = { marginLeft: "4ex" };
     if (kernel.name === this.props.kernel) {
       style.color = "#2196F3";
@@ -312,7 +336,7 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
         onSelect={() => {
           this.props.actions.set_kernel(kernel.name);
           this.focus();
-          analytics_event('cocal_jupyter', 'change kernel', kernel.name);
+          analytics_event("cocal_jupyter", "change kernel", kernel.name);
           return this.props.actions.set_default_kernel(kernel.name);
         }}
       >
@@ -321,16 +345,15 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     );
   }
 
-  render_kernel_items() {
+  private render_kernel_items(): Rendered[] | undefined {
     if (this.props.kernels == null) {
       return;
-    } else {
-      const kernels = this.props.kernels.toJS();
-      return kernels.map(kernel => this.render_kernel_item(kernel));
     }
+    const kernels = this.props.kernels.toJS();
+    return kernels.map(kernel => this.render_kernel_item(kernel));
   }
 
-  render_kernel() {
+  private render_kernel(): Rendered {
     const items = this.render_kernel_items();
     const names: any[] = [
       `${this.props.kernel_state !== "busy" ? "<" : ""}interrupt kernel`,
@@ -350,124 +373,129 @@ export class TopMenubar0 extends Component<TopMenubarProps> {
     });
   }
 
-  focus() {
+  private focus(): void {
     $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-    this.props.actions.focus(true);
+    this.props.frame_actions.focus(true);
   }
-  command = (name: any) => {
+
+  private command = (name: string): SelectCallback => {
     return () => {
-      if (this.props.actions != null) {
-        this.props.actions.command(name);
-      }
+      this.props.frame_actions.command(name);
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
-      if (
-        misc.endswith(
-          this.props.actions._commands &&
-            this.props.actions._commands[name] &&
-            this.props.actions._commands.m,
-          "..."
-        )
-      ) {
-        this.props.actions.blur();
+      const c = this.props.frame_actions.commands[name];
+      if (c && c.m && endswith(c.m, "...")) {
+        this.props.frame_actions.blur();
       } else {
         this.focus();
       }
     };
   };
 
-  menu_item = (key: any, name: any) => {
-    // TODO: this got complicated and should be its own component
-    if (name) {
-      let disabled, display, left, s, style;
-      if (name.props != null) {
-        return name; // it's already a MenuItem components
-      }
-      if (typeof name === "object") {
-        // use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
-        ({ name, display, style } = name);
-        if (style != null) {
-          style = misc.copy(style);
-        }
-      } else {
-        display = undefined;
-      }
-      if (style == null) {
-        style = {};
-      }
-      if (name[0] === "<") {
-        disabled = true;
-        name = name.slice(1);
-      } else {
-        disabled = false;
-      }
-
-      if (name[0] === ">") {
-        style.marginLeft = "4ex";
-        name = name.slice(1);
-      }
-      const obj =
-        this.props.actions._commands != null
-          ? this.props.actions._commands[name]
-          : undefined;
-      if (obj == null) {
-        return (
-          <MenuItem disabled={disabled} key={key}>
-            <span style={style}>{display != null ? display : name}</span>
-          </MenuItem>
-        );
-      }
-
-      const shortcut = obj.k != null ? obj.k[0] : undefined;
-      if (shortcut != null) {
-        s = (
-          <span className="pull-right">
-            <KeyboardShortcut shortcut={shortcut} />
-          </span>
-        );
-      } else {
-        s = <span />;
-      }
-
-      return (
-        <MenuItem key={key} onSelect={this.command(name)} disabled={disabled}>
-          <span style={style}>
-            {s}{" "}
-            {(left = display != null ? display : obj.m) != null ? left : name}{" "}
-            {/* shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 */}
-          </span>
-        </MenuItem>
-      );
-    } else {
+  private render_menu_item(key: string, name: MenuItemName): Rendered {
+    if (name === "") {
       return <MenuItem key={key} divider />;
     }
-  };
 
-  menu_items(names) {
-    return (() => {
-      const result: any = [];
-      for (let key in names) {
-        const name = names[key];
-        result.push(this.menu_item(key, name));
+    if (name != null && (name as any).props != null) {
+      return name as Rendered; // it's already a MenuItem components
+    }
+
+    let display: undefined | string;
+    let style: React.CSSProperties | undefined = undefined;
+
+    if (typeof name === "object") {
+      // use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
+      ({ name, display, style } = name as any);
+      if (style != null) {
+        style = copy(style);
       }
-      return result;
-    })();
+    } else {
+      display = undefined;
+    }
+
+    if (style == null) {
+      style = {};
+    }
+
+    if (typeof name != "string") {
+      throw Error("bug -- name must be a string at this point.");
+    }
+
+    let disabled: boolean;
+    if (name[0] === "<") {
+      disabled = true;
+      name = name.slice(1);
+    } else {
+      disabled = false;
+    }
+
+    if (name[0] === ">") {
+      style.marginLeft = "4ex";
+      name = name.slice(1);
+    }
+    const obj = this.props.frame_actions.commands[name];
+    if (obj == null) {
+      return (
+        <MenuItem disabled={disabled} key={key}>
+          <span style={style}>{display != null ? display : name}</span>
+        </MenuItem>
+      );
+    }
+
+    let s: Rendered;
+    const shortcut = obj.k != null ? obj.k[0] : undefined;
+    if (shortcut != null) {
+      s = (
+        <span className="pull-right">
+          <KeyboardShortcut shortcut={shortcut} />
+        </span>
+      );
+    } else {
+      s = <span />;
+    }
+
+    if (!display) display = obj.m;
+    if (!display) display = name;
+
+    return (
+      <MenuItem key={key} onSelect={this.command(name)} disabled={disabled}>
+        <span style={style}>
+          {s} {display}{" "}
+          {/* shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 */}
+        </span>
+      </MenuItem>
+    );
   }
 
-  render_menu(opts) {
-    const { heading, names, opacity, min_width } = defaults(opts, {
-      heading: required,
-      names: required,
-      opacity: 1,
-      min_width: "20em",
-      disabled: false
-    });
+  private render_menu_items(names: MenuItemName[]): Rendered[] {
+    const result: Rendered[] = [];
+    for (let key in names) {
+      const name = names[key];
+      result.push(this.render_menu_item(key, name));
+    }
+    return result;
+  }
+
+  private render_menu(opts: {
+    heading: string;
+    names: MenuItemName[];
+    opacity?: number;
+    min_width?: string;
+    disabled?: boolean;
+  }): Rendered {
+    let { heading, names, opacity, min_width, disabled } = opts;
+    if (opacity == null) opacity = 1;
+    if (min_width == null) min_width = "20em";
+    if (disabled == null) disabled = false;
     return (
       <Dropdown key={heading} id={heading} disabled={opts.disabled}>
         <Dropdown.Toggle noCaret bsStyle="default" style={TITLE_STYLE}>
           {heading}
         </Dropdown.Toggle>
-        <Dropdown.Menu style={{ opacity, minWidth: min_width }}>
-          {this.menu_items(names)}
+        <Dropdown.Menu
+          style={{ opacity, minWidth: min_width /*, maxHeight: "30vh"*/ }}
+        >
+          {this.render_menu_items(names)}
         </Dropdown.Menu>
       </Dropdown>
     );
@@ -487,97 +515,26 @@ render_widgets: -> # TODO: not supported in v1
   </Dropdown>
 */
 
-  links_python() {
-    return {
-      Python: "https://docs.python.org/2.7/",
-      IPython: "http://ipython.org/documentation.html",
-      Numpy: "https://docs.scipy.org/doc/numpy/reference/",
-      SciPy: "https://docs.scipy.org/doc/scipy/reference/",
-      Matplotlib: "http://matplotlib.org/contents.html",
-      Sympy: "http://docs.sympy.org/latest/index.html",
-      Pandas: "http://pandas.pydata.org/pandas-docs/stable/",
-      SageMath: "http://doc.sagemath.org/"
-    };
-  }
-
-  links_r() {
-    return {
-      R: "https://www.r-project.org/",
-      "R Jupyter Kernel": "https://irkernel.github.io/faq/",
-      Bioconductor: "https://www.bioconductor.org/",
-      ggplot2: "http://ggplot2.org/"
-    };
-  }
-
-  links_bash() {
-    return {
-      Bash: "https://tiswww.case.edu/php/chet/bash/bashtop.html",
-      Tutorial: "http://ryanstutorials.net/linuxtutorial/"
-    };
-  }
-
-  links_julia() {
-    return {
-      "Julia Documentation": "http://docs.julialang.org/en/stable/",
-      "Gadly Plotting": "http://gadflyjl.org/stable/"
-    };
-  }
-
-  links_octave() {
-    return {
-      Octave: "https://www.gnu.org/software/octave/",
-      "Octave Documentation":
-        "https://www.gnu.org/software/octave/doc/interpreter/",
-      "Octave Tutorial":
-        "https://en.wikibooks.org/wiki/Octave_Programming_Tutorial",
-      "Octave FAQ": "http://wiki.octave.org/FAQ"
-    };
-  }
-
-  links_postgresql() {
-    return {
-      PostgreSQL: "https://www.postgresql.org/docs/",
-      "PostgreSQL Jupyter Kernel":
-        "https://github.com/bgschiller/postgres_kernel"
-    };
-  }
-
-  links_scala211() {
-    return {
-      "Scala Documentation": "https://www.scala-lang.org/documentation/"
-    };
-  }
-
-  links_singular() {
-    return {
-      "Singular Manual": "http://www.singular.uni-kl.de/Manual/latest/index.htm"
-    };
-  }
-
-  render_links() {
-    const v: any = [];
-    const lang =
-      this.props.kernel_info != null
-        ? this.props.kernel_info.get("language")
-        : undefined;
-    const f = this[`links_${lang}`];
-    if (f != null) {
-      const object = f();
-      for (let name in object) {
-        const url = object[name];
-        v.push(external_link(name, url));
-      }
+  private render_links(): Rendered[] {
+    if (this.props.kernel_info == null) return [];
+    const v: Rendered[] = [];
+    const lang = this.props.kernel_info.get("language");
+    const links = get_help_links(lang);
+    if (links == null) return v;
+    for (let name in links) {
+      const url = links[name];
+      v.push(external_link(name, url));
     }
     return v;
   }
 
-  render_help() {
+  private render_help(): Rendered {
     return (
       <Dropdown key="help" id="menu-help" className="hidden-xs">
         <Dropdown.Toggle noCaret bsStyle="default" style={TITLE_STYLE}>
           Help
         </Dropdown.Toggle>
-        <Dropdown.Menu>
+        <Dropdown.Menu style={{ /* maxHeight: "30vh" */ }}>
           <MenuItem
             eventKey="help-about"
             onSelect={() => this.props.actions.show_about()}
@@ -598,7 +555,7 @@ render_widgets: -> # TODO: not supported in v1
           )}
           {external_link(
             "Jupyter in CoCalc",
-            "https://github.com/sagemathinc/cocalc/wiki/sagejupyter"
+            "https://doc.cocalc.com/jupyter.html"
           )}
           {external_link(
             "Markdown",
@@ -616,8 +573,7 @@ render_widgets: -> # TODO: not supported in v1
       <div
         style={{
           backgroundColor: "rgb(247,247,247)",
-          border: "1px solid #e7e7e7",
-          height: "34px"
+          border: "1px solid #e7e7e7"
         }}
       >
         <ButtonGroup>
@@ -636,8 +592,10 @@ render_widgets: -> # TODO: not supported in v1
 
 export const TopMenubar = rclass(TopMenubar0);
 
-const external_link = (name, url) => (
-  <MenuItem key={name} onSelect={() => misc_page.open_new_tab(url)}>
-    <Icon name="external-link" /> {name}
-  </MenuItem>
-);
+function external_link(name: string, url: string): Rendered {
+  return (
+    <MenuItem key={name} onSelect={() => misc_page.open_new_tab(url)}>
+      <Icon name="external-link" /> {name}
+    </MenuItem>
+  );
+}

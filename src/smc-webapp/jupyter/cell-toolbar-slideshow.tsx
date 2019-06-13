@@ -2,10 +2,11 @@
 The slideshow toolbar functionality for cells.
 */
 
-import { React, Component } from "../app-framework"; // TODO: this will move
+import { React, Component } from "../app-framework";
 
 import { FormControl } from "react-bootstrap";
 import { Map as ImmutableMap } from "immutable";
+import { JupyterActions } from "./browser-actions";
 
 const TYPES = [
   { title: "-", value: "" },
@@ -23,12 +24,16 @@ const rendered_options = TYPES.map(x => (
 ));
 
 interface SlideshowProps {
-  actions: any;
-  cell: ImmutableMap<string,any>; // TODO: what is this
+  actions: JupyterActions;
+  cell: ImmutableMap<string, any>;
 }
 
 export class Slideshow extends Component<SlideshowProps> {
-  select = (e: any) => this.props.actions.set_cell_slide(this.props.cell.get("id"), e.target.value);
+  select = (e: any) =>
+    this.props.actions.set_cell_slide(
+      this.props.cell.get("id"),
+      e.target.value
+    );
   render() {
     return (
       <FormControl

@@ -14,7 +14,7 @@ export class Stderr extends Component<StderrProps> {
 
   render(): Rendered {
     let value = this.props.message.get("text");
-    if (typeof value != 'string') {
+    if (typeof value != "string") {
       value = `${value}`;
     }
     if (is_ansi(value)) {

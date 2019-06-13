@@ -2,7 +2,7 @@
 help users selecting a kernel
 */
 
-import { React, Component, Rendered } from "../app-framework"; // TODO: this will move
+import { React, Component, Rendered } from "../app-framework";
 import {
   Map as ImmutableMap,
   List,
@@ -20,6 +20,7 @@ const {
 } = require("react-bootstrap"); // TODO: import types
 import { Kernel } from "./util";
 const { COLORS } = require("smc-util/theme");
+import { JupyterActions } from "./browser-actions";
 
 const row_style: React.CSSProperties = {
   marginTop: "5px",
@@ -33,7 +34,7 @@ const main_style: React.CSSProperties = {
 };
 
 interface KernelSelectorProps {
-  actions: any;
+  actions: JupyterActions;
   site_name: string;
   kernel?: string;
   kernel_info?: any;

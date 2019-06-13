@@ -1619,7 +1619,10 @@ exports.ProjectFiles = rclass ({name}) ->
     create_file: (ext, switch_over=true) ->
         file_search = @props.file_search
         if not ext? and file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
-            disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            if @props.configuration?
+                disabled_ext = @props.configuration.get('main', {}).disabled_ext
+            else
+                disabled_ext = []
             ext = default_ext(disabled_ext)
 
         @actions(name).create_file
@@ -1975,13 +1978,22 @@ exports.ProjectFiles = rclass ({name}) ->
         if pay? and pay <= webapp_client.server_time()
             return @render_course_payment_required()
 
-        public_view = @props.get_my_group(@props.project_id) == 'public'
+        my_group = @props.get_my_group(@props.project_id)
 
-        if not public_view
+        # regardless of consequences, for admins a project is always running
+        # see https://github.com/sagemathinc/cocalc/issues/3863
+        if my_group == 'admin'
+            project_state = immutable.Map('state': 'running')
+            project_is_running = true
+        # next, we check if this is a common user (not public)
+        else if my_group != 'public'
             project_state = @props.project_map?.getIn([@props.project_id, 'state'])
             project_is_running = project_state?.get('state') and project_state.get('state') in ['running', 'saving']
         else
             project_is_running = false
+
+        # enables/disables certain aspects if project is viewed publicly by a non-collaborator
+        public_view = my_group == 'public'
 
         {listing, error, file_map} = @props.displayed_listing
 

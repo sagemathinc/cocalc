@@ -1682,7 +1682,7 @@ exports.path_is_in_public_paths = (path, paths) =>
 // returns a string in paths if path is public because of that string
 // Otherwise, returns undefined.
 // IMPORTANT: a possible returned string is "", which is falsey but defined!
-// paths can be an array or object (with keys the paths)
+// paths can be an array or object (with keys the paths) or a Set
 exports.containing_public_path = function(path, paths) {
   let p;
   if (paths == null || path == null) {
@@ -1692,9 +1692,9 @@ exports.containing_public_path = function(path, paths) {
     // just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
     return;
   }
-  if (is_array(paths)) {
+  if (is_array(paths) || is_set(paths)) {
+    // array so "of"
     for (p of Array.from(paths)) {
-      // array so "in"
       if (p === "") {
         // the whole project is public, which matches everything
         return "";
@@ -2112,6 +2112,9 @@ exports.is_string = obj => typeof obj === "string";
 // NOT include Date.
 exports.is_object = is_object = obj =>
   Object.prototype.toString.call(obj) === "[object Object]";
+
+exports.is_set = is_set = obj =>
+  Object.prototype.toString.call(obj) === "[object Set]";
 
 exports.is_date = is_date = obj => obj instanceof Date;
 
@@ -3128,13 +3131,29 @@ exports.sanitize_html_attributes = ($, node) =>
     }
   });
 
-// common UTM parameters
-// changes must also be done in webapp-lib/_inc_analytics.pug
+// common UTM parameters -- reference: https://en.wikipedia.org/wiki/UTM_parameters
+// Parameter                 Purpose/Example
+// utm_source (required)     Identifies which site sent the traffic, and is a required parameter.
+//                           utm_source=Google
+//
+// utm_medium                Identifies what type of link was used,
+//                           such as cost per click or email.
+//                           utm_medium=cpc
+//
+// utm_campaign              Identifies a specific product promotion or strategic campaign.
+//                           utm_campaign=spring_sale
+//
+// utm_term                  Identifies search terms.
+//                           utm_term=running+shoes
+//
+// utm_content               Identifies what specifically was clicked to bring the user to the site,
+//                           such as a banner ad or a text link. It is often used for A/B testing
+//                           and content-targeted ads.
+//                           utm_content=logolink or utm_content=textlink
 exports.utm_keys = ["source", "medium", "campaign", "term", "content"];
-exports.utm_cookie_name = "CC_UTM";
 
-// referrer
-exports.referrer_cookie_name = "CC_REF";
+// cocalc analytics cookie name
+exports.analytics_cookie_name = "CC_ANA";
 
 exports.human_readable_size = function(bytes) {
   let b;

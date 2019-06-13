@@ -392,9 +392,10 @@ ProjectContentViewer = rclass
                     @render_editor_tab()
 
     render: ->
-        <div
-            className = {if not @props.is_visible then "hide"}
-            style={overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}>
+        style = {overflowY:'auto', overflowX:'hidden', flex:1, height:0, position:'relative'}
+        if !@props.is_visible
+            style.display = "none"
+        <div style={style}>
             {@render_tab_content()}
         </div>
 

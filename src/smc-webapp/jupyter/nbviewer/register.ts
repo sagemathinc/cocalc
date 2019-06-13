@@ -7,12 +7,14 @@ This is in a separate module from the main non-public version, so it can
 be used on the backend.
 */
 
-const { register_file_editor } = require("../file-editors"); // TODO: import types
-const { redux_name } = require("../app-framework"); // TODO: import types
-const { NBViewer } = require("./nbviewer"); // TODO: import types
-const { NBViewerActions } = require("./nbviewer-actions"); // TODO: import types
+const { register_file_editor } = require("../../file-editors");
+//TODO -- import { register_file_editor } from "../../file-editors";
+import { redux_name } from "../../app-framework";
+import { NBViewer } from "./nbviewer";
+import { NBViewerActions } from "./actions";
+import { NBViewerStore } from "./store";
 
-export function register(webapp_client) {
+export function register(webapp_client?) {
   return register_file_editor({
     ext: ["ipynb"],
 
@@ -29,7 +31,7 @@ export function register(webapp_client) {
         return name; // already initialized
       }
       const actions = redux.createActions(name, NBViewerActions);
-      const store = redux.createStore(name);
+      const store = redux.createStore(name, NBViewerStore);
       actions._init(project_id, path, store, webapp_client, content);
       return name;
     },

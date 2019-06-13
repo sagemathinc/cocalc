@@ -7,7 +7,7 @@ os_path              = require('path')
 
 misc                 = require('smc-util/misc')
 {defaults, required} = misc
-{get_public_paths}   = require('./public_paths')
+{get_public_paths0}   = require('./public-paths')
 {render_static_path} = require('./render-static-path')
 util                 = require('./util')
 
@@ -27,7 +27,7 @@ exports.virtual_hosts = (opts) ->
 
     public_paths = undefined
     dbg("getting_public_paths")
-    get_public_paths opts.database, (err, x) ->
+    get_public_paths0 opts.database, (err, x) ->
         if err
             # This is fatal and should be impossible...
             dbg("get_public_paths - ERROR", err)
