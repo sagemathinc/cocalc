@@ -29,6 +29,9 @@ export function cm_options(
   if (mode.name === "singular") {
     mode.name = "clike"; // better than nothing
   }
+  if (mode.name === "ihaskell") {
+    mode.name = "haskell";
+  }
 
   const options: any = {
     mode,
