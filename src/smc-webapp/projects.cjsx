@@ -783,11 +783,6 @@ class ProjectsStore extends Store
             for prop, val of info.upgrades ? {}
                 upgrades[prop] = (upgrades[prop] ? 0) + val
 
-        # Ensure every upgrade is at least set, possibly to the default.
-        for prop, val of require('smc-util/schema').DEFAULT_QUOTAS
-            if not upgrades[prop]?
-                upgrades[prop] = val
-
         return upgrades
 
     # The timestap (in server time) when this project will
