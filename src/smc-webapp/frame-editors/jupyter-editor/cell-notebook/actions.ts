@@ -330,12 +330,14 @@ export class NotebookFrameActions {
 
   // Called when the cell list changes due to external events.
   // E.g., another user deleted the cell that is currently selected.
+  // This does nothing if cur_id is set to an actual cell.
   private update_cur_id(): void {
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return; // can't do anything yet.
     const cur_id = this.store.get("cur_id");
     if (cur_id == null || cells.get(cur_id) == null) {
       const new_cur_id = this.jupyter_actions.store.get_cell_list().get(0);
+      if (new_cur_id == null) return; // can't do anything -- no cells
       this.set_cur_id(new_cur_id);
     }
   }
