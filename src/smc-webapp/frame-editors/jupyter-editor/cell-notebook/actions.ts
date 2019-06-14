@@ -281,14 +281,15 @@ export class NotebookFrameActions {
     this.setState({ scrollTop });
   }
 
-  set_md_cell_editing(id: string): void {
+  public set_md_cell_editing(id: string): void {
     this.jupyter_actions.set_jupyter_metadata(
       id,
       "input_hidden",
       undefined,
       false
     );
-    const md_edit_ids = this.store.get("md_edit_ids", Set());
+    let md_edit_ids = this.store.get("md_edit_ids");
+    if (md_edit_ids == null) md_edit_ids = Set();
     if (md_edit_ids.contains(id)) {
       return;
     }
@@ -298,15 +299,15 @@ export class NotebookFrameActions {
     this.setState({ md_edit_ids: md_edit_ids.add(id) });
   }
 
-  set_md_cell_not_editing(id: string): void {
+  public set_md_cell_not_editing(id: string): void {
     this.jupyter_actions.set_jupyter_metadata(
       id,
       "input_hidden",
       undefined,
       false
     );
-    let md_edit_ids = this.store.get("md_edit_ids", Set());
-    if (!md_edit_ids.contains(id)) {
+    let md_edit_ids = this.store.get("md_edit_ids");
+    if (md_edit_ids == null || !md_edit_ids.contains(id)) {
       return;
     }
     md_edit_ids = md_edit_ids.delete(id);
