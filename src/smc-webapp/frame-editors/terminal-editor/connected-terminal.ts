@@ -58,6 +58,7 @@ export class Terminal {
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
   private is_paused: boolean = false;
+  private meta_pressed: boolean = false;
   private keyhandler_initialized: boolean = false;
   /* We initially have to ignore when rendering the initial history.
     To TEST this, do this in a terminal, then reconnect:
@@ -369,6 +370,31 @@ export class Terminal {
       if (event.type === "keypress") {
         // ignore this
         return true;
+      }
+
+      if (event.ctrlKey && event.key === "i") {
+        this.meta_pressed = true;
+        // ignore this
+        return true;
+      }
+
+      if (this.meta_pressed) {
+        // TODO: ignore ctrl up, allow C-i, 1 ; right now requires C-i C-1
+        this.meta_pressed = false;
+        if (event.key >= '1' && event.key <= '9') {
+          // switch tabs
+          const project_actions = this.actions._get_project_actions();
+          // const names = project_actions.get_store()!.selectors.displayed_listing.fn().listing.map(x => x.name!);
+          let names : string[] = [];
+          const store = project_actions.get_store()!;
+          const open_files = store.get("open_files")!;
+          open_files.forEach(({}, path) => names.push(path));
+          const index : number = event.key.charCodeAt(0) - '1'.charCodeAt(0);
+          const name = names[index % names.length];
+          project_actions.set_active_tab("editor-" + name);  // TODO: function providing tab_to_path?
+          // ignore this
+          return true;
+        }
       }
 
       if (
