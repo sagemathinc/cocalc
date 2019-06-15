@@ -34,6 +34,44 @@ mixin video-player
     video(loop).fit
       block
 
+mixin teaching-made-easy
+  a.anchor#a-teaching
+  div.space#teaching
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-graduation-cap] Teaching made easy
+        div.col-sm-6
+          div
+            img(src="https://storage.googleapis.com/cocalc-extra/cocalc-teaching.svg.png").fit
+        div.col-sm-6
+          p.
+            Have you experienced the pain of setting up the software environments for your students?
+            With #{NAME} #[strong no software needs to be setup] and you
+            can finally #[strong focus on your students]!
+          ol
+            li Create a course file on #{NAME}
+            li Add your students
+            li Distribute assignments and handouts
+            li Jump into a student's files right where they are working
+            li Collect and grade assignments
+          p.
+            Combined with #{NAME}'s other unique features you can check, guide and retrace all steps a student takes.
+          ul
+            li Use #[strong TimeTravel] to see each step a student took to get to the solution.
+            li Consistent and immutable #[strong Backups] make losing files impossible.
+            li #[strong Integrated Chat] allows your to guide students directly where they work or discuss collected files with your teaching assistents.
+            li The project's #[strong Activity Log] records exactly when a file is accessed and by which user.
+          p More information
+          div.row
+            div.col-md-6
+              ul
+                li #[a(href="https://doc.cocalc.com/") CoCalc Manual]
+                li #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching") Courses using #{htmlWebpackPlugin.options.title}]
+            div.col-md-6
+              a.btn.btn-default.btn-lg.cc-create-account-btn(href=htmlWebpackPlugin.options.theme.LIVE_DEMO_REQUEST target="_blank" rel="noopener") Request a live demo!
+
+
 mixin software-environment-table(lang)
   -
     var components = htmlWebpackPlugin.options.components[lang] || {}
