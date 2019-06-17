@@ -25,7 +25,7 @@ block content
       div.col-sm-2.col-sm-offset-5.center
         // img(src="")).fit
       div.col-md-12.center
-        h1 All about teaching with #{NAME}
+        h1 Teaching with #{NAME}
 
 
   div.container
@@ -38,6 +38,8 @@ block content
       div.col-sm-6
         p.
           #[a(href="https://doc.cocalc.com/teaching-instructors.html") Instructor guide]
+        p.
+          #[a(href="https://github.com/sagemathinc/cocalc/wiki/Teaching") Courses using #{htmlWebpackPlugin.options.title}]
 
 
   a.anchor#a-course
@@ -55,5 +57,35 @@ block content
           Teaching a course online via Jupyter Notebooks is challenging!
 
   +teaching-made-easy
+
+
+  a.anchor#a-testimonials
+  div#testimonials
+    div.container
+      div.row
+        div.col-md-12.center
+          h1 #[i.fa.fa-commenting-o] Testimonials
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!kiran.jpeg') title="© Autor: Mathematisches Forschungsinstitut Oberwolfach gGmbH (MFO) -- Lizenz: CC BY-SA 2.0 (de)")
+            p.
+              I just found out that my #{NAME} class got by far the best course evaluations
+              for any course I've taught at UCSD to date (over 85% on the favorable/&shy;unfavorable scale),
+              which makes it a sure thing that I'll be teaching this course again (in some form) next year!
+              Many thanks for the backend work on #{NAME}, for the course materials, for the guest lecture...
+            footer.
+              #[strong Kiran Kedlaya] &mdash; UC San Diego, March 2017
+        div.col-md-6
+          blockquote.blockquote
+            img.pull-left.img-rounded(src=require('!file-loader!will_conley.jpg'))
+            p.
+              #{NAME} provides a user-friendly interface.
+              Students don't need to install any software at all.
+              They just open up a web browser and go to #[a(href=URL) #{URL}] and that's it.
+              They just type code directly in, hit shift+enter and it runs, and they can see if it works.
+              It provides immediate feedback.
+              The #[a(href="https://doc.cocalc.com/teaching-instructors.html") course management features] work really well.
+            footer.
+              #[strong Will Conley] &mdash; Math professor, University of California at Los Angeles, Fall 2016
 
   +start_free_banner
