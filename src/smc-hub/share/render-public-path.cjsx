@@ -22,7 +22,7 @@ misc                 = require('smc-util/misc')
 
 extensions = require('smc-webapp/share/extensions')
 
-{get_listing}        = require('./listing')
+{get_listing}        = require('./listing.ts')
 util                 = require('./util')
 
 
