@@ -127,7 +127,7 @@ const DEVMODE = !PRODMODE;
 const MINIFY = !!process.env.WP_MINIFY;
 const DEBUG = process.argv.includes("--debug");
 const { MEASURE } = process.env;
-const SOURCE_MAP = !!process.env.SOURCE_MAP;
+const SOURCE_MAP = !!process.env.SOURCE_MAP; // ignored!
 const STATICPAGES = !!process.env.CC_STATICPAGES; // special mode where just the landing page is built
 const date = new Date();
 const BUILD_DATE = date.toISOString();
@@ -602,7 +602,7 @@ module.exports = {
   // https://webpack.js.org/configuration/devtool/#devtool
   // **do** use cheap-module-eval-source-map; it produces too large files, but who cares since we are not
   // using this in production.  DO NOT use 'source-map', which is VERY slow.
-  devtool: SOURCE_MAP ? "#cheap-module-eval-source-map" : undefined,
+  devtool: PRODMODE ? "cheap-source-map" : "cheap-module-eval-source-map",
 
   mode: PRODMODE ? "production" : "development",
 
