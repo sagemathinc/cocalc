@@ -33,7 +33,6 @@ function get_serve_index(dir: string): Function {
 }
 
 // res = html response object
-// obj = immutable js data about this public path
 export function render_static_path(opts: {
   req: any;
   res: any;
@@ -42,11 +41,16 @@ export function render_static_path(opts: {
 }): void {
   // We first test that we have access to the file (and it exists) before
   // messing with the express static server.  I don't know why, but for some
-  // reason it hangs forever when fed an uknown path, which obviously leads
+  // reason it hangs forever when fed an unknown path, which obviously leads
   // to a very bad experience for users!
   const { req, res, dir, path } = opts;
   // see https://stackoverflow.com/questions/14166898/node-js-with-express-how-to-remove-the-query-string-from-the-url
   const pathname = url.parse(path).pathname;
+  if (pathname == null) {
+    // I think this shouldn't be possible, but typescript thinks it is.
+    res.sendStatus(404);
+    return;
+  }
   const target = os_path.join(dir, decodeURI(pathname));
   fs.access(target, fs.constants.R_OK, function(err) {
     if (err != null) {

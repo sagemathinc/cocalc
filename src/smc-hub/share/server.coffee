@@ -11,4 +11,4 @@ The share router:
 ###
 
 exports.share_router = require('./share').share_router
-exports.init = require('./dev').init
+exports.init = require('./http-server').init
