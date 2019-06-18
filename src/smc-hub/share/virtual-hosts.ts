@@ -7,11 +7,7 @@ import * as os_path from "path";
 import { get_public_paths0, HostInfo, PublicPaths } from "./public-paths";
 import { render_static_path } from "./render-static-path";
 import * as util from "./util";
-
-const { is_authenticated } = require("./authenticate");
-
-//import { is_authenticated } from "./authenticate";
-
+import { is_authenticated } from "./authenticate";
 import { Database, Logger } from "./types";
 
 export function virtual_hosts(opts: {
