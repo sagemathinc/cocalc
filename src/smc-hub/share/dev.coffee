@@ -1,6 +1,9 @@
 ###
 Simple http server that serves share server, is used for local
-development (cc-in-cc), and also the Docker image.
+development (cc-in-cc), the Docker image, and in production for
+the main share server.
+
+In particular, this is NOT just used for development, despite the filename.
 ###
 
 express      = require('express')
@@ -23,7 +26,7 @@ exports.init = (opts) ->
         share_path     : required
         logger         : undefined
 
-    opts.logger?.debug("initializing share dev server using share_path='#{opts.share_path}', base_url='#{opts.base_url}'")
+    opts.logger?.debug("initializing share server using share_path='#{opts.share_path}', base_url='#{opts.base_url}'")
 
     # Create an express application
     router = express.Router()
