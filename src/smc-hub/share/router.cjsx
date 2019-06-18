@@ -18,7 +18,7 @@ react_support        = require('./react')
 {PublicPathsBrowser} = require('smc-webapp/share/public-paths-browser')
 {Page}               = require('smc-webapp/share/page')
 {get_public_paths0}   = require('./public-paths')
-{render_public_path} = require('./render-public-path')
+{render_public_path} = require('./render-public-path.ts')
 {render_static_path} = require('./render-static-path')
 util                 = require('./util.coffee')
 
