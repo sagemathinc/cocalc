@@ -14,7 +14,7 @@ export function google_analytics_token(): string | undefined {
     "/data/secrets/google_analytics";
   let ga: string | undefined = undefined;
   try {
-    const s: string = readFileSync(filename);
+    const s: Buffer = readFileSync(filename);
     ga = s.toString().trim();
   } catch (error) {}
   console.log(`share/util/google_analytics_token: ${ga}`);
