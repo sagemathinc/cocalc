@@ -14,9 +14,9 @@ import { callback2, once, retry_until_success } from "smc-util/async-utils";
 import { cmp, bind_methods  } from "smc-util/misc2";
 import { containing_public_path } from "smc-util/misc";
 
-type HostInfo = immutable.Map<string, any>;
+export type HostInfo = immutable.Map<string, any>;
 
-class PublicPaths extends EventEmitter {
+export class PublicPaths extends EventEmitter {
   public is_ready: boolean = false;
   private synctable: any;
   private vhosts: { [hostname: string]: HostInfo } = {};
