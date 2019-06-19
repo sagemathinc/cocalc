@@ -50,16 +50,16 @@ export function init(opts: {
 
   app.use(vhost);
 
-  router.get("/alive", function(_req, res) {
+  router.get("/alive", function(_req, res) : void {
     if (!hub_register.database_is_working()) {
       // this will stop haproxy from routing traffic to us
       // until db connection starts working again.
       if (opts.logger != null) {
         opts.logger.debug("alive: answering *NO*");
       }
-      return res.status(404).end();
+      res.status(404).end();
     } else {
-      return res.send("alive");
+      res.send("alive");
     }
   });
 

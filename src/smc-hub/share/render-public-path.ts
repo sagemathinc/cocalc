@@ -10,6 +10,7 @@ const MAX_SIZE: number = 1000000 * MAX_SIZE_MB; // size in bytes
 
 import * as os_path from "path";
 import { stat, readFile } from "fs";
+import { callback } from "awaiting";
 
 import { filename_extension, field_cmp } from "smc-util/misc";
 
@@ -23,7 +24,7 @@ import { get_listing } from "./listing";
 import { redirect_to_directory } from "./util";
 import { HostInfo } from "./public-paths";
 
-export function render_public_path(opts: {
+export async function render_public_path(opts: {
   req: any;
   res: any; // html response object
   info?: HostInfo; // immutable.js info about the public share, if url starts with share id (as opposed to project_id)
@@ -33,7 +34,7 @@ export function render_public_path(opts: {
   viewer: string;
   hidden?: boolean;
   sort: string; // e.g., '-mtime' = sort files in reverse by timestamp
-}): void {
+}): Promise<void> {
   const path_to_file = os_path.join(opts.dir, opts.path);
 
   function dbg(...args): void {
@@ -41,98 +42,79 @@ export function render_public_path(opts: {
   }
   dbg();
 
-  stat(path_to_file, function(err, stats): void {
-    if (err) {
-      dbg("error", err);
-      opts.res.sendStatus(404);
+  let stats;
+  try {
+    stats = await callback(stat, path_to_file);
+  } catch (err) {
+    dbg("error", err);
+    opts.res.sendStatus(404);
+    return;
+  }
+
+  if (stats.isDirectory()) {
+    dbg("is directory");
+    if (opts.path.slice(-1) !== "/") {
+      redirect_to_directory(opts.req, opts.res);
       return;
     }
 
-    if (stats.isDirectory()) {
-      dbg("is directory");
-      if (opts.path.slice(-1) !== "/") {
-        redirect_to_directory(opts.req, opts.res);
-        return;
-      }
-
-      get_listing(path_to_file, function(err, files) {
-        if (err) {
-          // TODO: show directory listing
-          opts.res.send(`Error getting directory listing -- ${err}`);
-          return;
-        } else {
-          let reverse, sort;
-          if (opts.sort[0] === "-") {
-            reverse = true;
-            sort = opts.sort.slice(1);
-          } else {
-            reverse = false;
-            sort = opts.sort;
-          }
-          files.sort(field_cmp(sort));
-          if (reverse) {
-            files.reverse();
-          }
-          const C = React.createElement(DirectoryListing, {
-            hidden: opts.hidden,
-            info: opts.info as any, // typescript gets confused between two copies of immutable, breaking checking in this case.
-            files: files,
-            viewer: opts.viewer,
-            path: opts.path
-          });
-          opts.react(opts.res, C, opts.path);
-        }
-      });
+    let files;
+    try {
+      files = await get_listing(path_to_file);
+    } catch (err) {
+      // TODO: show directory listing
+      opts.res.send(`Error getting directory listing -- ${err}`);
       return;
     }
-
-    dbg("is file");
-    // stats.size
-    // TODO: if too big... just show an error and direct raw download link
-    let content: string | undefined = undefined;
-    function get_content(cb): void {
-      if (stats.size > MAX_SIZE) {
-        content = undefined; // means -- too big to load.
-        cb();
-        return;
-      }
-
-      let ext = filename_extension(path_to_file);
-      if (ext != null) ext = ext.toLowerCase();
-      if (
-        extensions.image[ext] ||
-        extensions.pdf[ext] ||
-        extensions.video[ext]
-      ) {
-        cb();
-      } else {
-        readFile(path_to_file, function(err, data): void {
-          if (err) {
-            dbg("file read error");
-            cb(err);
-          } else {
-            content = data.toString();
-            cb();
-          }
-        });
-      }
+    let reverse: boolean;
+    let sort: string;
+    if (opts.sort[0] === "-") {
+      reverse = true;
+      sort = opts.sort.slice(1);
+    } else {
+      reverse = false;
+      sort = opts.sort;
     }
+    files.sort(field_cmp(sort));
+    if (reverse) {
+      files.reverse();
+    }
+    const C = React.createElement(DirectoryListing, {
+      hidden: opts.hidden,
+      info: opts.info as any, // typescript gets confused between two copies of immutable, breaking checking in this case.
+      files: files,
+      viewer: opts.viewer,
+      path: opts.path
+    });
+    opts.react(opts.res, C, opts.path);
+    return;
+  }
 
-    get_content(function(err): void {
-      if (err) {
+  dbg("is file");
+  let content: string | undefined = undefined;
+  if (stats.size <= MAX_SIZE) {
+    let ext = filename_extension(path_to_file);
+    if (ext != null) ext = ext.toLowerCase();
+    if (
+      !(extensions.image[ext] || extensions.pdf[ext] || extensions.video[ext])
+    ) {
+      try {
+        content = (await callback(readFile, path_to_file)).toString();
+      } catch (err) {
         opts.res.sendStatus(404);
         return;
       }
-      const component = React.createElement(PublicPath, {
-        info: opts.info as any, // see comment where this is done above.
-        content,
-        viewer: opts.viewer,
-        path: opts.path,
-        size: stats.size,
-        max_size: MAX_SIZE
-      });
+    }
+  }
 
-      opts.react(opts.res, component, opts.path);
-    });
+  const component = React.createElement(PublicPath, {
+    info: opts.info as any, // see comment where this is done above.
+    content,
+    viewer: opts.viewer,
+    path: opts.path,
+    size: stats.size,
+    max_size: MAX_SIZE
   });
+
+  opts.react(opts.res, component, opts.path);
 }
