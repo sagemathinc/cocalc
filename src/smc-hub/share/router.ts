@@ -19,8 +19,7 @@ import { get_public_paths0, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
 import { render_static_path } from "./render-static-path";
 
-const util = require("./util.coffee");
-// import * as util from "./util.coffee";
+import * as util from "./util";
 
 import { Database, Logger } from "./types";
 

@@ -29,7 +29,7 @@ many HUBs running.
 require('coffee2-cache')
 
 # Make loading typescript just work.
-require('ts-node').register()
+require('ts-node').register({ cacheDirectory: "/tmp" })
 
 DEBUG = false
 
