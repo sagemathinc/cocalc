@@ -103,20 +103,22 @@ block content
         div.youtube-video-container
           iframe(src="https://www.youtube.com/embed/fHr0LFjE8Uk?rel=0" frameborder="0" allowfullscreen)
       div.col-sm-6
-        h4 #{NAME} is a sophisticated online workspace
+        h4
+          strong #{NAME} is a sophisticated online workspace
         p.
-          #{NAME} supports running #[a(href="./doc/jupyter-notebook.html") Jupyter notebooks] and
-          #[a(href="") SageMath worksheets] online.
+          #{NAME} supports running #[strong #[a(href="./doc/jupyter-notebook.html") Jupyter notebooks]]
+          and #[strong #[a(href="https://doc.cocalc.com/sagews.html") SageMath worksheets]] online.
         p.
-          It is also possible to edit #[a(href="./doc/latex-editor.html") LaTeX files] and
+          It is also possible to #[strong edit #[a(href="./doc/latex-editor.html") LaTeX files]] and
           #[a(href="./doc/r-statistical-software.html") R documents] right inside your browser.
         p.
-          A #[a(href="./doc/terminal.html") full Linux terminal] and
-          an environment to run #[a(href="./doc/x11.html") graphical applications online] complete #{NAME} as a very versatile platform.
+          A #[strong #[a(href="./doc/terminal.html") full Linux terminal]] and
+          an environment to #[strong run #[a(href="./doc/x11.html") graphical applications]] complete #{NAME} as a very versatile platform.
         p.
           Beyond that, #[strong #{NAME} is made for #[a(href="./doc/teaching.html") teaching a class online]]!
           Avoid the hassle of installing software on every student's machine and help your students more precsely by collaborating on their notebooks.
 
+  div.container
     div.row
       div.col-sm-6
         h4 Zero Setup
@@ -132,7 +134,7 @@ block content
             #[a(href="https://www.gap-system.org/") GAP],
             #[a(href="https://www.sympy.org/") SymPy],
             #[a(href="http://maxima.sourceforge.net/") Maxima],
-            …;
+            …
           li.
             #[strong Statistics and Data Science]:
             #[a(href="https://www.r-project.org/") R Project],
@@ -141,7 +143,7 @@ block content
             #[a(href="http://scikit-learn.org/") Scikit-Learn],
             #[a(href="https://www.tensorflow.org/") TensorFlow],
             #[a(href="http://www.nltk.org/") NLTK],
-            …;
+            …
           li.
             #[strong Document authoring]:
             #[a(href="https://www.latex-project.org/") LaTeX],
@@ -158,10 +160,16 @@ block content
       div.col-sm-6
         h4 Collaborative environment
         ul
-          li Share your files #[strong privately] with project collaborators &mdash; all files are synchronized in real-time.
-          li Exchange thoughts and ideas via #[a(href="https://doc.cocalc.com/chat.html") Chatrooms or Side-chat].
-          li #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel]] is a detailed history of all your edits and everything is backed up in #[strong consistent snapshots].
-          li Finally, select any document to #[strong #[a(href="https://share.cocalc.com/share/") publish it online]].
+          li.
+            Share your files #[strong privately] with project collaborators &mdash; all files are synchronized in real-time.
+          li.
+            Exchange thoughts and ideas via
+            #[a(href="https://doc.cocalc.com/chat.html") #[strong chatrooms] or #[strong side-chat]].
+          li.
+            #[strong #[a(href="https://doc.cocalc.com/time-travel.html") Time-travel]] is a detailed history
+            of all your edits and everything is backed up in #[strong consistent snapshots].
+          li.
+            Finally, select any document to #[strong #[a(href="https://share.cocalc.com/share/") publish it online]].
 
 
 
@@ -195,7 +203,7 @@ block content
     div.container
       div.row
         div.col-md-12.center
-          h1 #[i.fa.fa-lightbulb-o] Explore #{NAME}
+          h1 #[i.fa.fa-lightbulb] Explore #{NAME}
         div.col-md-3.col-sm-6
           h3 #[i.fa.fa-archive] Projects
           div.
@@ -220,7 +228,7 @@ block content
             While students work on it, assist them by jumping right into their files where they're working.
             Later, collect, grade and re-distribute the files.
         div.col-md-3.col-sm-6
-          h3 #[i.fa.fa-file-text-o] Authoring
+          h3 #[i.fa.fa-file-alt] Authoring
           div.
             Write scientific documents online in a #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]].
             It offers a full LaTeX setup, has a side-by-side preview with forward and inverse search,
@@ -238,7 +246,7 @@ block content
         div.col-md-12.center
           h1 #[i.fa.fa-exclamation-circle] Unique Features
         div.col-md-6
-          h2 #[i.fa.fa-fw.cc-icon-jupyter] Native Jupyter Notebooks
+          h2 #[img(src=require("webapp-lib/assets/jupyter-logo.svg"), style="width:30px")] Native Jupyter Notebooks
           div.
             This is a #[strong #[a(href="./doc/jupyter-notebook.html") fully compatible rewrite]] of the classical #[a(href="http://jupyter.org/") Jupyter Notebook].
             It is tightly integrated into #{NAME} and adds real-time collaboration,
@@ -249,7 +257,7 @@ block content
           div
             img(src=require("webapp-lib/assets/cocalc-jupyter2-20170508.png")).fit
         div.col-md-6
-          h2 #[i.fa.fa-comments-o] Chat
+          h2 #[i.fa.fa-comment] Chatrooms
           div.
             A #[strong stand-alone] chat and #[strong side-by-side] chat for each file
             gives you the ability to discuss the content with your collegues.
@@ -290,9 +298,9 @@ block content
     div.container
       div.row
         div.col-md-12.center
-          h1 #[i.fa.fa-file-text-o] Authoring
+          h1 #[i.fa.fa-file-alt] Authoring
         div.col-md-6
-          h2 #[i.fa.cc-icon-tex-file] LaTeX Editor
+          h2 LaTeX Editor
           div.
             #{NAME} includes a full #[strong #[a(href="./doc/latex-editor.html") LaTeX editor]] with
             #[strong side-by-side] preview and forward/inverse search.
@@ -307,7 +315,7 @@ block content
           div
             img(src="https://storage.googleapis.com/cocalc-extra/cocalc-latex-editor-2019.png").fit
         div.col-md-6
-          h2 #[i.fa.cc-icon-markdown] Markdown/HTML/Rmd
+          h2 Markdown/HTML/Rmd
           div.
             Conveniently edit
             #[a(href="https://en.wikipedia.org/wiki/Markdown") Markdown] #[code .md]
@@ -337,7 +345,7 @@ block content
             a.btn.btn-default(href="doc/software.html" role="button") Software environment details &raquo
         a.anchor#a-stats
         div.col-md-6#stats
-          h2 #[i.fa.fa-line-chart] Statistics
+          h2 #[i.fa.fa-chart-line] Statistics
           div.
             There are currently #[strong #[span#sum_clients ?] users] connected to #{htmlWebpackPlugin.options.title}.
           div(style="margin-top: 3rem")
