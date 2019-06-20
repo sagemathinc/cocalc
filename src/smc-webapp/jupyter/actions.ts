@@ -24,7 +24,10 @@ import * as awaiting from "awaiting";
 import { three_way_merge } from "../../smc-util/sync/editor/generic/util";
 
 import { KernelInfo } from "./types";
-import { Parser, format_parser_for_extension } from "../../smc-util/code-formatter";
+import {
+  Parser,
+  format_parser_for_extension
+} from "../../smc-util/code-formatter";
 
 import { Actions } from "../app-framework";
 import {
@@ -1189,9 +1192,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   //   delta = 1 -- paste cells below last cell in cell_ids
   //   delta = -1 -- paste cells above first cell in cell_ids.
   public paste_cells_at(cell_ids: string[], delta: 0 | 1 | -1 = 1): void {
-    if (cell_ids.length === 0) {
-      throw Error("cell_ids must have length at least 1");
+    const clipboard = this.store.get_global_clipboard();
+    if (clipboard == null || clipboard.size === 0) {
+      return; // nothing to do
     }
+
+    if (cell_ids.length === 0) {
+      // There are no cells currently selected.  This can
+      // happen in an edge case with slow network -- see
+      // https://github.com/sagemathinc/cocalc/issues/3899
+      clipboard.forEach((cell, i) => {
+        cell = cell.set("id", this.new_id()); // randomize the id of the cell
+        cell = cell.set("pos", i);
+        this._set(cell, false);
+      });
+      this.ensure_positions_are_unique();
+      this._sync();
+      return;
+    }
+
     let cell_before_pasted_id: string;
     const cells = this.store.get("cells");
     if (delta === -1 || delta === 0) {
@@ -1212,10 +1231,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         if (cell_ids.length > 1) {
           this.delete_cells(cell_ids, false);
         }
-      }
-      const clipboard = this.store.get_global_clipboard();
-      if (clipboard == null || clipboard.size === 0) {
-        return; // nothing more to do
       }
       // put the cells from the clipboard into the document, setting their positions
       if (cell_before_pasted_id == null) {
@@ -1990,21 +2005,21 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({ cell_toolbar: name });
   };
 
-  set_cell_slide = (id: any, value: any) => {
+  public set_cell_slide(id: string, value: any): void {
     if (!value) {
       value = null; // delete
     }
     if (this.check_edit_protection(id)) {
       return;
     }
-    return this._set({
+    this._set({
       type: "cell",
       id,
       slide: value
     });
-  };
+  }
 
-  ensure_positions_are_unique = () => {
+  public ensure_positions_are_unique(): void {
     const changes = cell_utils.ensure_positions_are_unique(
       this.store.get("cells")
     );
@@ -2014,8 +2029,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_cell_pos(id, pos, false);
       }
     }
-    return this._sync();
-  };
+    this._sync();
+  }
 
   set_default_kernel = (kernel: any): void => {
     // doesn't make sense for project (right now at least)
@@ -2283,7 +2298,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
           return; // no-op on these.
         }
         try {
-          const parser : Parser = format_parser_for_extension(ext);
+          const parser: Parser = format_parser_for_extension(ext);
           options = { parser };
         } catch (err) {
           return; // no parser available.

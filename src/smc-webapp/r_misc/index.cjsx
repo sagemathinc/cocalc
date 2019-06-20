@@ -63,6 +63,8 @@ exports.LabeledRow = LabeledRow
 {TimeElapsed} = require('./time-elapsed')
 exports.TimeElapsed = TimeElapsed
 
+share_server = require('./share-server');
+
 # injected by webpack, but not for react-static renderings (ATTN don't assign to uppercase vars!)
 smc_version = SMC_VERSION ? 'N/A'
 build_date  = BUILD_DATE  ? 'N/A'
@@ -530,9 +532,6 @@ exports.SearchInput = rclass
             </InputGroup>
         </FormGroup>
 
-# This is set to true when run from the share server.  All rendering of HTML must then be synchronous.
-exports.SHARE_SERVER = false
-
 exports.HTML = HTML = rclass
     displayName : 'Misc-HTML' # this name is assumed and USED in the smc-hub/share/mathjax-support to identify this component; do NOT change!
 
@@ -601,7 +600,7 @@ exports.HTML = HTML = rclass
             $(ReactDOM.findDOMNode(@)).highlight_code()
 
     _do_updates: ->
-        if exports.SHARE_SERVER
+        if share_server.SHARE_SERVER
             return
         @_update_mathjax()
         @_update_links()
@@ -636,7 +635,7 @@ exports.HTML = HTML = rclass
         else
             html = require('../misc_page').sanitize_html(@props.value, true, true, @props.post_hook)
 
-        if exports.SHARE_SERVER
+        if share_server.SHARE_SERVER
             {jQuery} = require('smc-webapp/jquery-plugins/katex')  # ensure have plugin here.
             elt = jQuery("<div>")
             elt.html(html)

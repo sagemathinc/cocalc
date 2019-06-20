@@ -33,7 +33,7 @@ const CDN_LINKS = [
   }
 ];
 
-type IsPublicFunction = (project_id: string, path: string) => boolean;
+export type IsPublicFunction = (project_id: string, path: string) => boolean;
 
 interface PageProps {
   site_name?: string;

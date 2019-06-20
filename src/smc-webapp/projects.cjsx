@@ -41,6 +41,8 @@ markdown = require('./markdown')
 {BillingPageSimplifiedRedux} = require('./billing')
 {UsersViewing} = require('./other-users')
 {PROJECT_UPGRADES} = require('smc-util/schema')
+{fromPairs} = require('lodash')
+ZERO_QUOTAS = fromPairs(Object.keys(PROJECT_UPGRADES.params).map(((x) -> [x, 0])))
 
 { reuseInFlight } = require("async-await-utils/hof")
 
@@ -778,15 +780,11 @@ class ProjectsStore extends Store
         users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
-        upgrades = {}
+        # clone zeroed quota upgrades, to make sure they're always defined
+        upgrades = Object.assign({}, ZERO_QUOTAS)
         for account_id, info of users
             for prop, val of info.upgrades ? {}
                 upgrades[prop] = (upgrades[prop] ? 0) + val
-
-        # Ensure every upgrade is at least set, possibly to the default.
-        for prop, val of require('smc-util/schema').DEFAULT_QUOTAS
-            if not upgrades[prop]?
-                upgrades[prop] = val
 
         return upgrades
 
@@ -1569,7 +1567,7 @@ LoadAllProjects = rclass
             bsStyle='info'
             bsSize='large'>
             {@render_loading()}
-            Load projects older than 3 weeks...
+            Show projects not used in the last few months...
         </Button>
 
     render: ->

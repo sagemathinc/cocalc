@@ -945,7 +945,7 @@ schema.project_log = {
 
   user_query: {
     get: {
-      pg_where: ["time >= NOW() - interval '30 days'", "projects"],
+      pg_where: ["time >= NOW() - interval '2 months'", "projects"],
       pg_changefeed: "projects",
       options: [{ order_by: "-time" }, { limit: 300 }],
       throttle_changes: 2000,
@@ -1151,7 +1151,7 @@ schema.projects = {
   user_query: {
     get: {
       // if you change the interval, change the text in projects.cjsx
-      pg_where: ["last_edited >= NOW() - interval '3 weeks'", "projects"],
+      pg_where: ["last_edited >= NOW() - interval '2 months'", "projects"],
       pg_changefeed: "projects",
       throttle_changes: 2000,
       fields: {
