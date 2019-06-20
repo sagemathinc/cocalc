@@ -8,6 +8,7 @@ const { file_associations } = require("smc-webapp/file-associations");
 const feature = require("smc-webapp/feature");
 import { path_split } from "smc-util/misc2";
 import { get_editor_settings } from "../generic/client";
+const { EDITOR_COLOR_SCHEMES } = require("../../r_account");
 
 const { filename_extension_notilde, defaults } = require("misc");
 
@@ -34,6 +35,15 @@ export function cm_options(
         : undefined
       : {};
 
+  let theme = editor_settings.get("theme");
+  // if we do not know the theme, fallback to default
+  if (EDITOR_COLOR_SCHEMES[theme] == null) {
+    console.warn(
+      `codemirror theme '${theme}' not known -- fallback to 'Default'`
+    );
+    theme = "default";
+  }
+
   let opts = defaults(default_opts, {
     undoDepth: 0, // we use our own sync-aware undo.
     mode: "txt",
@@ -58,7 +68,7 @@ export function cm_options(
     spaces_instead_of_tabs: editor_settings.get("spaces_instead_of_tabs", true),
     style_active_line: editor_settings.get("style_active_line", true),
     bindings: editor_settings.get("bindings"),
-    theme: editor_settings.get("theme")
+    theme: theme
   });
   if (opts.mode == null) {
     // to satisfy typescript

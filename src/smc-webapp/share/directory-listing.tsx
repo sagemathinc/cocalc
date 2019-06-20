@@ -17,7 +17,7 @@ interface DirectoryListingEntry {
 }
 
 interface DirectoryListingProps {
-  info: Map<string, any>;
+  info?: Map<string, any>;
   files: DirectoryListingEntry[];
   viewer: string;
   path: string;

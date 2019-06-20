@@ -11,12 +11,12 @@ import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { cmp, bind_methods  } from "smc-util/misc2";
+import { cmp, bind_methods } from "smc-util/misc2";
 import { containing_public_path } from "smc-util/misc";
 
-type HostInfo = immutable.Map<string, any>;
+export type HostInfo = immutable.Map<string, any>;
 
-class PublicPaths extends EventEmitter {
+export class PublicPaths extends EventEmitter {
   public is_ready: boolean = false;
   private synctable: any;
   private vhosts: { [hostname: string]: HostInfo } = {};
@@ -28,7 +28,7 @@ class PublicPaths extends EventEmitter {
   constructor(database: Database) {
     super();
 
-    bind_methods(this, ['is_public']); // it gets passed around
+    bind_methods(this, ["is_public"]); // it gets passed around
     this.database = database;
     this.do_init();
   }
@@ -44,6 +44,11 @@ class PublicPaths extends EventEmitter {
   public get(id: string): HostInfo | undefined {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get(id);
+  }
+
+  public get_all(): Map<string, any> {
+    if (!this.is_ready) throw Error("not yet ready");
+    return this.synctable.get();
   }
 
   private add_vhost(info: HostInfo): void {
@@ -185,18 +190,4 @@ export async function get_public_paths(
   }
   await once(the_public_paths, "ready");
   return the_public_paths;
-}
-
-export function get_public_paths0(database, cb) {
-  let the_public_paths;
-  if (the_public_paths != null) {
-    if (the_public_paths._is_ready) {
-      cb(undefined, the_public_paths);
-      return;
-    }
-  } else {
-    the_public_paths = new PublicPaths(database);
-  }
-
-  the_public_paths.on("ready", () => cb(undefined, the_public_paths));
 }
