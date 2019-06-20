@@ -11,14 +11,13 @@ But it might:
 
 */
 
-import { defaults, required } from "smc-util/misc";
+import { Database } from "./types";
 
-export async function public_access_request(opts): Promise<void> {
-  opts = defaults(opts, {
-    database: required,
-    project_id: required,
-    path: required
-  });
+export async function public_access_request(opts: {
+  database: Database;
+  project_id: string;
+  path: string;
+}): Promise<void> {
   // 1. check if valid
   // 2. increment database counter or log or something
 }

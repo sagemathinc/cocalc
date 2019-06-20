@@ -18,12 +18,12 @@ const { virtual_hosts } = require("./virtual-hosts");
 
 import { Database, Logger } from "./types";
 
-export function init(opts: {
+export async function init(opts: {
   database: Database;
   base_url: string;
   share_path: string;
   logger?: Logger;
-}): { http_server: any; express_router: any } {
+}): Promise<{ http_server: any; express_router: any }> {
   if (opts.logger != null) {
     opts.logger.debug(
       `initializing share server using share_path='${
@@ -41,7 +41,7 @@ export function init(opts: {
   const compression = require("compression");
   app.use(compression());
 
-  const vhost = virtual_hosts({
+  const vhost = await virtual_hosts({
     database: opts.database,
     share_path: opts.share_path,
     base_url: opts.base_url,
@@ -50,7 +50,7 @@ export function init(opts: {
 
   app.use(vhost);
 
-  router.get("/alive", function(_req, res) : void {
+  router.get("/alive", function(_req, res): void {
     if (!hub_register.database_is_working()) {
       // this will stop haproxy from routing traffic to us
       // until db connection starts working again.

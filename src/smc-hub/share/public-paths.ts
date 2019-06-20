@@ -191,17 +191,3 @@ export async function get_public_paths(
   await once(the_public_paths, "ready");
   return the_public_paths;
 }
-
-export function get_public_paths0(database, cb) {
-  let the_public_paths;
-  if (the_public_paths != null) {
-    if (the_public_paths._is_ready) {
-      cb(undefined, the_public_paths);
-      return;
-    }
-  } else {
-    the_public_paths = new PublicPaths(database);
-  }
-
-  the_public_paths.on("ready", () => cb(undefined, the_public_paths));
-}
