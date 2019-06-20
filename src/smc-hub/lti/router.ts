@@ -6,6 +6,8 @@ import { inspect } from "util";
 import * as querystring from "querystring";
 import * as jwksClient from "jwks-rsa";
 
+import { Database, Logger } from "./types";
+
 // use 'utf8' to get string instead of byte array
 const privateKEY = fs.readFileSync("./private.key", "utf8");
 
@@ -30,7 +32,7 @@ function getKey(header, callback) {
 
 var last_state = "";
 
-export function create_lti_router((opts: {
+export function create_lti_router(opts: {
   database: Database;
   path: string;
   logger?: Logger;
@@ -45,7 +47,7 @@ export function create_lti_router((opts: {
 
   if (opts.logger != null) {
     const logger = opts.logger;
-    dbg = (...args) => logger.debug("share_router: ", ...args);
+    dbg = (...args) => logger.debug("lti_router: ", ...args);
   } else {
     dbg = (..._args) => {};
   }
@@ -62,7 +64,7 @@ export function create_lti_router((opts: {
   // Tool Login URL
   // /Login – Receives the third party login request from a platform and sends the authentication request to the platform
   router.get("/login-lti", (req, res) => {
-    console.log("login-lti post get");
+    dbg("login-lti post get");
     res.send(`Got a GET request at login-lti ${inspect(req.query)}`);
   });
 
@@ -78,7 +80,7 @@ export function create_lti_router((opts: {
     const state = uuid.v4();
     last_state = state;
 
-    console.log("==============\nGiven token:", inspect(token));
+    dbg("==============\nGiven token:", inspect(token));
 
     // https://www.imsglobal.org/spec/security/v1p0/#step-2-authentication-request
     const auth_params = {
@@ -104,25 +106,25 @@ export function create_lti_router((opts: {
 
   // Tool Launch URL
   router.post("/launch-lti", (req, res) => {
-    console.log(req);
+    dbg(req);
     res.send("Got a POST request at launch-lti");
   });
 
   // Deep Linking Launch URL
   router.post("/launch-lti", (req, res) => {
-    console.log(
+    dbg(
       `Got a POST request at deep_link_launches with body: ${inspect(req.body)}`
     );
     if (req.body.state !== last_state) {
       console.warn(
         "ERROR LAST STATE != received state. Possible attack in progress"
       );
-      console.log(" -- Last state was " + last_state);
-      console.log(" -- But received " + req.body.state);
+      dbg(" -- Last state was " + last_state);
+      dbg(" -- But received " + req.body.state);
     } else if (req.body.error) {
       console.error(`Recieved error ${req.body.error}`);
     } else {
-      console.log("Matching state " + last_state);
+      dbg("Matching state " + last_state);
     }
     const options = { algorithms: ["RS256"] };
 
@@ -134,7 +136,7 @@ export function create_lti_router((opts: {
       }
       const nonce = uuid.v4();
 
-      console.log("==============\nGot token:", inspect(token));
+      dbg("==============\nGot token:", inspect(token));
       var redirect_url;
       if (
         !token[
@@ -185,7 +187,7 @@ export function create_lti_router((opts: {
       const deep_link_response_token = jwt.sign(jwt_data, privateKEY, {
         algorithm: "RS256"
       });
-      console.log("==============\n Sending JWT:", deep_link_response_token);
+      dbg("==============\n Sending JWT:", deep_link_response_token);
 
       const formatted_token = { JWT: deep_link_response_token };
       const query_string = querystring.stringify(formatted_token);
