@@ -76,6 +76,7 @@ export function build_command(
   const name: string = (function() {
     switch (engine) {
       case "PDFLaTeX":
+      case "PDFLaTeX (shell-escape)":
         return "pdf";
       case "XeLaTeX":
         return "xelatex";

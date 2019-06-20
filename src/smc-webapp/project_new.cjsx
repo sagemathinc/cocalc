@@ -234,9 +234,9 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    <Tip title='Terminal'  icon='terminal'
+                    <Tip title='Linux Terminal'  icon='terminal'
                         tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
-                        <NewFileButton icon='terminal' name='Terminal' on_click={@props.create_file} ext='term' />
+                        <NewFileButton icon='terminal' name='Linux Terminal' on_click={@props.create_file} ext='term' />
                     </Tip>
                     {<Tip title='X11 Desktop'   icon='window-restore'
                         tip='Create an X11 desktop for running graphical applications.'>
