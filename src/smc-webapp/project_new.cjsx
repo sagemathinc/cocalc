@@ -198,17 +198,21 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
                         tip='Create a professional quality technical paper that contains sophisticated mathematical formulas.'>
                         <NewFileButton icon='cc-icon-tex-file' name='LaTeX document' on_click={@props.create_file} ext='tex' />
                     </Tip> if available.latex}
+                    <Tip title='Linux terminal'  icon='terminal'
+                        tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.">
+                        <NewFileButton icon='terminal' name='Linux terminal' on_click={@props.create_file} ext='term' />
+                    </Tip>
                 </Col>
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    <Tip title='Manage a course'  placement='bottom'  icon='graduation-cap'
-                        tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
-                        <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
-                    </Tip>
                     <Tip title='Create a chatroom'  placement='bottom'  icon='comment'
                         tip='Create a chatroom for chatting with other collaborators on this project.'>
                         <NewFileButton icon='comment' name='Create a chatroom' on_click={@props.create_file} ext='sage-chat' />
+                    </Tip>
+                    <Tip title='Manage a course'  placement='bottom'  icon='graduation-cap'
+                        tip='If you are a teacher, click here to create a new course.  This is a file that you can add students and assignments to, and use to automatically create projects for everybody, send assignments to students, collect them, grade them, etc.'>
+                        <NewFileButton icon='graduation-cap' name='Manage a course' on_click={@props.create_file} ext='course' />
                     </Tip>
                 </Col>
             </Row>
@@ -234,29 +238,25 @@ exports.FileTypeSelector = FileTypeSelector = rclass ({name}) ->
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    <Tip title='Linux Terminal'  icon='terminal'
-                        tip="Create a command line terminal.  CoCalc includes a full interactive Linux command line console and color xterm.  Run command line software, vim, emacs and more.">
-                        <NewFileButton icon='terminal' name='Linux Terminal' on_click={@props.create_file} ext='term' />
-                    </Tip>
-                    {<Tip title='X11 Desktop'   icon='window-restore'
-                        tip='Create an X11 desktop for running graphical applications.'>
-                        <NewFileButton icon='window-restore' name='X11 Desktop' on_click={@props.create_file} ext='x11' />
+                    {<Tip title='X11 desktop'   icon='window-restore'
+                        tip='Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.'>
+                        <NewFileButton icon='window-restore' name='X11 desktop' on_click={@props.create_file} ext='x11' />
                     </Tip> if available.x11}
                    {@props.children}
                 </Col>
             </Row>
             <Row style={row_style}>
                 <Col sm={12}>
-                    {<Tip title={'Jupyter Server'}  icon={'cc-icon-ipynb'}
-                        tip={"Start a Jupyter notebook server..."}>
-                        <NewFileButton  name={'Jupyter Classic...'}
+                    {<Tip title={'Jupyter server'}  icon={'cc-icon-ipynb'}
+                        tip={"Start a Jupyter classic notebook server running from your project, which only project collaborators can access."}>
+                        <NewFileButton  name={'Jupyter classic server...'}
                         icon={'cc-icon-ipynb'}
                         on_click={=>@setState(show_jupyter_server_panel:true)}
                         disabled={@state.show_jupyter_server_panel}/>
                     </Tip> if available.jupyter_notebook}
-                    {<Tip title={'JupyterLab Server'} icon={'cc-icon-ipynb'}
-                        tip={'Start a JupyterLab server...'}>
-                        <NewFileButton name={'JupyterLab...'}
+                    {<Tip title={'JupyterLab server'} icon={'cc-icon-ipynb'}
+                        tip={'Start a JupyterLab server running from your project, which only project collaborators can access.'}>
+                        <NewFileButton name={'JupyterLab server...'}
                         icon={'cc-icon-ipynb'}
                         on_click={=>@setState(show_jupyterlab_server_panel:true)}
                         disabled={@state.show_jupyterlab_server_panel}/>
