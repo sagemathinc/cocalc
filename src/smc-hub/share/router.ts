@@ -5,15 +5,16 @@ Router for public share server.
 const PAGE_SIZE: number = 100;
 
 import * as os_path from "path";
-import { callback} from "awaiting";
+import { callback } from "awaiting";
 import * as express from "express";
 
 import { React } from "smc-webapp/app-framework";
-import { is_valid_uuid_string } from "smc-util/misc";
+import { filename_extension, is_valid_uuid_string } from "smc-util/misc2";
 
 import * as react_support from "./react";
 
 import { PublicPathsBrowser } from "smc-webapp/share/public-paths-browser";
+import { has_viewer } from "smc-webapp/share/public-path";
 import { IsPublicFunction, Page } from "smc-webapp/share/page";
 import { get_public_paths, PublicPaths, HostInfo } from "./public-paths";
 import { render_public_path } from "./render-public-path";
@@ -224,8 +225,17 @@ export function share_router(opts: {
     }
 
     const dir: string = path_to_files(project_id);
-    const { viewer } = req.query;
-    if (viewer != null) {
+    let { viewer } = req.query;
+    if (viewer == null) {
+      const ext = filename_extension(path);
+      if (has_viewer(ext)) {
+        viewer = "share";
+      } else {
+        viewer = "raw";
+      }
+    }
+
+    if (viewer != "raw") {
       render_public_path({
         req,
         res,

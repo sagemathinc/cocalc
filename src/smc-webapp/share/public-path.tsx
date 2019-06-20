@@ -33,6 +33,17 @@ const { parse_sagews } = require("../sagews/parse-sagews");
 
 import { PublicPathInfo } from "./public-path-info";
 
+export function has_viewer(ext: string): boolean {
+  return (
+    extensions.pdf.has(ext) ||
+    ext === "md" ||
+    extensions.html.has(ext) ||
+    ext === "ipynb" ||
+    ext === "sagews" ||
+    extensions.codemirror[ext]
+  );
+}
+
 interface Props {
   info?: Map<string, any>;
   content?: string;
@@ -85,51 +96,56 @@ export class PublicPath extends Component<Props> {
     if (this.props.content == null) {
       // This happens if the file is too big
       elt = this.render_too_big();
-    } else if (ext === "md") {
-      elt = (
-        <Markdown
-          value={this.props.content}
-          style={{ margin: "10px", display: "block" }}
-        />
-      );
-    } else if (extensions.html.has(ext)) {
-      elt = (
-        <HTML
-          value={this.props.content}
-          style={{ margin: "10px", display: "block" }}
-        />
-      );
-    } else if (ext === "ipynb") {
-      const name = file_editors.initialize(
-        path,
-        redux,
-        undefined,
-        true,
-        this.props.content
-      );
-      const Viewer = file_editors.generate(path, redux, undefined, true);
-      elt = <Viewer name={name} />;
-      const f = () => file_editors.remove(path, redux, undefined, true);
-      // TODO: should really happen after render; however, don't know how yet... so just wait a bit and do it.
-      // This is critical to do; otherwise, when the ipynb is updated, we'll see the old version.
-      setTimeout(f, 10000);
-    } else if (ext === "sagews") {
-      elt = (
-        <Worksheet
-          sagews={parse_sagews(this.props.content)}
-          style={{ margin: "30px" }}
-        />
-      );
-    } else if (extensions.codemirror[ext]) {
-      const options = fromJS(extensions.codemirror[ext]);
-      //options = options.set('lineNumbers', true)
-      elt = (
-        <CodeMirrorStatic
-          value={this.props.content}
-          options={options}
-          style={{ background: "white", margin: "10px 20px" }}
-        />
-      );
+    } else if (has_viewer(ext)) {
+      if (ext === "md") {
+        elt = (
+          <Markdown
+            value={this.props.content}
+            style={{ margin: "10px", display: "block" }}
+          />
+        );
+      } else if (extensions.html.has(ext)) {
+        elt = (
+          <HTML
+            value={this.props.content}
+            style={{ margin: "10px", display: "block" }}
+          />
+        );
+      } else if (ext === "ipynb") {
+        const name = file_editors.initialize(
+          path,
+          redux,
+          undefined,
+          true,
+          this.props.content
+        );
+        const Viewer = file_editors.generate(path, redux, undefined, true);
+        elt = <Viewer name={name} />;
+        const f = () => file_editors.remove(path, redux, undefined, true);
+        // TODO: should really happen after render; however, don't know how yet... so just wait a bit and do it.
+        // This is critical to do; otherwise, when the ipynb is updated, we'll see the old version.
+        setTimeout(f, 10000);
+      } else if (ext === "sagews") {
+        elt = (
+          <Worksheet
+            sagews={parse_sagews(this.props.content)}
+            style={{ margin: "30px" }}
+          />
+        );
+      } else if (extensions.codemirror[ext]) {
+        const options = fromJS(extensions.codemirror[ext]);
+        //options = options.set('lineNumbers', true)
+        elt = (
+          <CodeMirrorStatic
+            value={this.props.content}
+            options={options}
+            style={{ background: "white", margin: "10px 20px" }}
+          />
+        );
+      } else {
+        // should not happen
+        elt = <pre>{this.props.content}</pre>;
+      }
     } else {
       elt = <pre>{this.props.content}</pre>;
     }

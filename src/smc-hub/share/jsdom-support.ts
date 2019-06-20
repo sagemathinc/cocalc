@@ -26,9 +26,6 @@ g.navigator = DOM.window.navigator = { userAgent: "" };
 g.DEBUG = false;
 g.$ = g.jQuery = DOM.window.$ = jquery;
 
-log("jQuery plugin");
-require("./process-internal-links");
-
 log("Ensure the global variable window.CodeMirror is defined....");
 g.CodeMirror = DOM.window.CodeMirror = require("codemirror");
 

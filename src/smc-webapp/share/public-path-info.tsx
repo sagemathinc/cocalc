@@ -32,7 +32,7 @@ export class PublicPathInfo extends Component<Props> {
     return (
       <div className="pull-right" style={{ marginRight: "5px" }}>
         <a
-          href={href}
+          href={href + "?viewer=raw"}
           target="_blank"
           rel={raw_rel}
           style={{ textDecoration: "none" }}
