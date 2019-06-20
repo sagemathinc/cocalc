@@ -9,7 +9,6 @@ log = (...args) => console.log(...args);
 log("loading ts-node");
 require("ts-node").register({ cacheDirectory: "/tmp" });
 log("loading node-cjsx");
-require("coffee-cache");
 require("node-cjsx").transform();
 
 log("setting up jsDOM");
