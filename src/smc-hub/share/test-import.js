@@ -14,7 +14,7 @@ require("ts-node").register({
   cacheDirectory: process.env.HOME + "/.ts-node-cache"
 });
 require("node-cjsx").transform();
-require("../server");
+require("./server");
 require("smc-webapp/r_misc");
 require("smc-webapp/app-framework");
 require("react-dom/server");
