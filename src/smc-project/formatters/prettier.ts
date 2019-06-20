@@ -86,7 +86,7 @@ export async function run_prettier_string(
   logger: any
 ): Promise<string> {
   let pretty;
-  let ext: string;
+  let ext;
   logger.debug(`run_prettier_string options="${misc.to_json(options)}"`);
   switch (options.parser) {
     case "latex":
@@ -120,7 +120,7 @@ export async function run_prettier_string(
       pretty = await bib_format(str, options, logger);
       break;
     case "clang-format":
-      const ext = misc.filename_extension(path != null ? path : "");
+      ext = misc.filename_extension(path != null ? path : "");
       pretty = await clang_format(str, options, ext, logger);
       break;
     case "gofmt":

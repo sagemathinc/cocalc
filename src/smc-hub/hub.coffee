@@ -29,7 +29,7 @@ many HUBs running.
 require('coffee2-cache')
 
 # Make loading typescript just work.
-require('ts-node').register()
+require('ts-node').register({ cacheDirectory: process.env.HOME + '/.ts-node-cache' })
 
 DEBUG = false
 
@@ -571,7 +571,7 @@ exports.start_server = start_server = (cb) ->
             t0 = new Date()
             winston.debug("initializing the share server on port #{program.share_port}")
             winston.debug("...... (takes about 10 seconds) ......")
-            x = require('./share/server').init
+            x = await require('./share/server').init
                 database       : database
                 base_url       : BASE_URL
                 share_path     : program.share_path

@@ -2507,6 +2507,8 @@ Options for the 'query' API message must be sent as JSON object.
 A query is either _get_ (read from database), or _set_ (write to database).
 A query is _get_ if any query keys are null, otherwise the query is _set_.
 
+Note: queries with \`multi_response\` set to \`true\` are not supported.
+
 #### Examples of _get_ query:
 
 Get title and description for a project, given the project id.

@@ -112,7 +112,7 @@ export class About extends Component<AboutProps> {
         </li>
         <li>
           <b>Background capture of output:</b> works if no user has the notebook
-          open
+          open (<a href="https://github.com/jupyterlab/jupyterlab/issues/6545#issuecomment-501259211"  target="_blank" rel="noopener">discussion</a>)
         </li>
         <li>
           {" "}
