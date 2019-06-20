@@ -11,10 +11,10 @@ log("loading jsDOM...");
 const { JSDOM } = require("jsdom");
 
 log("creating DOM");
-const DOM = new JSDOM("<!DOCTYPE html>");
+const DOM = new JSDOM("<!DOCTYPE html>", { url: "http://localhost" });
 
 log("loading jQuery...");
-const jQuery = require("jquery")(DOM.window);
+const jquery = require("jquery")(DOM.window);
 
 const g: any = global as any;
 g.BACKEND = true;
@@ -24,7 +24,7 @@ g.document = DOM.window.document;
 g.navigator = DOM.window.navigator = { userAgent: "" };
 
 g.DEBUG = false;
-g.$ = g.jQuery = DOM.window.$ = jQuery;
+g.$ = g.jQuery = DOM.window.$ = jquery;
 
 log("Ensure the global variable window.CodeMirror is defined....");
 g.CodeMirror = DOM.window.CodeMirror = require("codemirror");
