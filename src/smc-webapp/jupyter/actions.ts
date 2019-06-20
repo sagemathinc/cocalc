@@ -500,17 +500,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return cell_list_needs_recompute;
   };
 
-  _syncdb_change = (changes: any) => {
+  _syncdb_change = async (changes: any) => {
     if (this.syncdb == null) return;
     this.store.emit("syncdb-before-change");
-    this.__syncdb_change(changes);
+    await this.__syncdb_change(changes);
     this.store.emit("syncdb-after-change");
     if (this.set_save_status != null) {
       this.set_save_status();
     }
   };
 
-  __syncdb_change = (changes: any): void => {
+  __syncdb_change = async (changes: any): Promise<void> => {
     if (this.syncdb == null) {
       return;
     }
@@ -518,7 +518,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     //@dbg("_syncdb_change")(JSON.stringify(changes?.toJS()))
     let cell_list_needs_recompute = false;
     if (changes != null) {
-      changes.forEach(key => {
+      changes.forEach(async key => {
         const record = this.syncdb.get_one(key);
         switch (key.get("type")) {
           case "cell":
@@ -535,8 +535,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               error.indexOf("file is currently being read or written") !== -1
             ) {
               // No longer relevant -- see https://github.com/sagemathinc/cocalc/issues/1742
-              this.syncdb.delete({ type: "fatal" });
-              this.syncdb.commit();
+              await this.syncdb.delete({ type: "fatal" });
+              await this.syncdb.commit();
             }
             break;
           case "nbconvert":
@@ -545,7 +545,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               this.nbconvert_change(this.store.get("nbconvert"), record);
             }
             // Now set in our store.
-            this.setState({ nbconvert: record });
+            await this.setState({ nbconvert: record });
             break;
           case "settings":
             if (record == null) {
