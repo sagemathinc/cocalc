@@ -34,7 +34,6 @@ var last_state = "";
 
 export function create_lti_router(opts: {
   database: Database;
-  path: string;
   logger?: Logger;
   base_url?: string;
 }) {
@@ -53,7 +52,6 @@ export function create_lti_router(opts: {
   }
 
   dbg("base_url = ", base_url);
-  dbg("path = ", opts.path);
 
   router = express.Router();
 
