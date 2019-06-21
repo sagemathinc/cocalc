@@ -7,8 +7,7 @@ const UPDATE_INTERVAL_S: number = 20;
 
 import { lstat } from "fs";
 import { execFile } from "child_process";
-
-import * as async from "async";
+import { callback, delay } from "awaiting";
 
 export function monitor(client) {
   return new MonitorPublicPaths(client);
@@ -23,13 +22,9 @@ interface Client {
 
 class MonitorPublicPaths {
   private client: Client;
-  private interval: NodeJS.Timer;
   private table: any;
 
   constructor(client: Client) {
-    this.dbg = this.dbg.bind(this);
-    this.update = this.update.bind(this);
-    this.update_path = this.update_path.bind(this);
     this.client = client;
     if (process.env.COCALC_EPHEMERAL_STATE === "yes") {
       // nothing to do -- can't do anything with public paths if can't write to db.
@@ -53,16 +48,22 @@ class MonitorPublicPaths {
       disabled: null
     };
     this.table = this.client.sync_table2({ public_paths: [pattern] });
+    this.update_loop(); // do not await!
+  }
 
-    dbg(`initializing find updater to run every ${UPDATE_INTERVAL_S} seconds`);
-    const dbg1 = this.dbg("do_update");
-    const do_update = (): void => {
-      dbg1("doing update...");
-      this.update(err => {
-        dbg1("finished an update", err);
-      });
-    };
-    this.interval = setInterval(do_update, UPDATE_INTERVAL_S * 1000);
+  private async update_loop(): Promise<void> {
+    const dbg = this.dbg("update_loop");
+    dbg(`run update every ${UPDATE_INTERVAL_S} seconds`);
+    while (this.table != null) {
+      try {
+        await this.update();
+        dbg("successful update");
+      } catch (err) {
+        dbg("error doing update", err);
+      }
+      await delay(UPDATE_INTERVAL_S * 1000);
+    }
+    dbg("this.table is null, so stopping update loop");
   }
 
   public close(): void {
@@ -74,13 +75,10 @@ class MonitorPublicPaths {
     d("closing...");
     this.table.close();
     delete this.table;
-    clearInterval(this.interval);
-    delete this.interval;
   }
 
-  update(cb: Function): void {
+  private async update(): Promise<void> {
     if (this.table == null || this.table.get_state() !== "connected") {
-      cb();
       return;
     }
     // const d = this.dbg("update");
@@ -98,93 +96,63 @@ class MonitorPublicPaths {
         });
       }
     });
-    async.mapLimit(work, 1, this.update_path, cb);
+    for (let w of work) {
+      await this.update_path(w);
+    }
   }
 
-  private update_path(
-    opts: { id: string; path: string; last_edited: number },
-    cb: Function
-  ): void {
+  private async update_path(opts: {
+    id: string;
+    path: string;
+    last_edited: number;
+  }): Promise<void> {
     let { id, path, last_edited } = opts;
-    // const d = this.dbg(`update_path('${path}')`);
+    //const d = this.dbg(`update_path('${path}')`);
     const d = function(..._args) {}; // too verbose...
     // If any file in the given path was modified after last_edited,
     // update last_edited to when the path was modified.
-    let changed: boolean = false;
+    let changed: boolean = false; // don't know yet
     let stats: any;
-    async.series(
-      [
-        cb => {
-          d("lstat");
-          lstat(path, (err, the_stats) => {
-            if (err) {
-              d("error (no such path?)", err);
-              cb(err);
-              return;
-            }
-            stats = the_stats;
-            if (stats.mtime.valueOf() > last_edited) {
-              d("clearly modified, since path changed");
-              changed = true;
-            }
-            cb();
-          });
-        },
-        cb => {
-          if (changed) {
-            // already determined above
-            cb();
-            return;
-          }
-          if (!stats.isDirectory()) {
-            // is file, but mtime older, so done.
-            cb();
-            return;
-          }
-          // Is a directory, and directory mtime hasn't changed; still possible
-          // a file in some subdir has changed, so have to do a full scan.
-          const days =
-            (new Date().valueOf() - last_edited) / (1000 * 60 * 60 * 24);
-          // This input to find will give return code 1 if and only if it finds a FILE
-          // modified since last_edited (since we know the path exists).
-          const args = [
-            process.env.HOME + "/" + path,
-            "-type",
-            "f",
-            "-mtime",
-            `-${days}`,
-            "-exec",
-            "false",
-            "{}",
-            "+"
-          ];
-          execFile("find", args, err => {
-            if (err != null ? (err as any).code : undefined) {
-              d("some files changed");
-              changed = true;
-            } else {
-              d("nothing changed");
-            }
-            cb();
-          });
-        },
-        cb => {
-          if (!changed) {
-            cb();
-          } else {
-            d("change -- update database table");
-            const last_edited = new Date();
-            this.table.set({ id, last_edited }, "shallow");
-            this.table.save(); // and also cause change to get saved to database.
-            // This can be more robust (if actually connected).
-            this.client.query({ query: { id, last_edited }, cb });
-          }
+    d("lstat");
+    stats = await callback(lstat, path);
+    if (stats.mtime.valueOf() > last_edited) {
+      d("clearly modified, since path changed");
+      changed = true;
+    }
+    if (!changed && stats.isDirectory()) {
+      // Is a directory, and directory mtime hasn't changed; still possible
+      // that there is a file in some subdir has changed, so have to do
+      // a full scan.
+      const days = (new Date().valueOf() - last_edited) / (1000 * 60 * 60 * 24);
+      // This input to find will give return code 1 if and only if it finds a FILE
+      // modified since last_edited (since we know the path exists).
+      const args = [
+        process.env.HOME + "/" + path,
+        "-type",
+        "f",
+        "-mtime",
+        `-${days}`,
+        "-exec",
+        "false",
+        "{}",
+        "+"
+      ];
+      try {
+        await callback(execFile, "find", args);
+      } catch (err) {
+        if ((err as any).code) {
+          d("some files changed");
+          changed = true;
+        } else {
+          d("nothing changed");
         }
-      ],
-      _err => {
-        // ignore _err
-        if (cb != null) cb();
       }
-    );
+    }
+    if (changed) {
+      d("change -- update database table");
+      const last_edited = new Date();
+      this.table.set({ id, last_edited }, "shallow");
+      await this.table.save(); // and also cause change to get saved to database.
+    }
   }
 }
