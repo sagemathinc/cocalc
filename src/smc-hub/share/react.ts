@@ -11,7 +11,9 @@ import "./jsdom-support";
 // by the Docker container when running in kubernetes.
 //# process.NODE_ENV="production"
 
-require("smc-webapp/r_misc").SHARE_SERVER = true;
+import { set_share_server } from "smc-webapp/r_misc/share-server";
+
+set_share_server(true);
 
 // Load katex jQuery plugin.
 require("smc-webapp/jquery-plugins/katex");

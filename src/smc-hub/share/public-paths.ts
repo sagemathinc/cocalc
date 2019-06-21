@@ -11,7 +11,7 @@ import { EventEmitter } from "events";
 import * as immutable from "immutable";
 import { Database } from "./types";
 import { callback2, once, retry_until_success } from "smc-util/async-utils";
-import { cmp, bind_methods  } from "smc-util/misc2";
+import { cmp, bind_methods } from "smc-util/misc2";
 import { containing_public_path } from "smc-util/misc";
 
 export type HostInfo = immutable.Map<string, any>;
@@ -28,7 +28,7 @@ export class PublicPaths extends EventEmitter {
   constructor(database: Database) {
     super();
 
-    bind_methods(this, ['is_public']); // it gets passed around
+    bind_methods(this, ["is_public"]); // it gets passed around
     this.database = database;
     this.do_init();
   }
@@ -44,6 +44,11 @@ export class PublicPaths extends EventEmitter {
   public get(id: string): HostInfo | undefined {
     if (!this.is_ready) throw Error("not yet ready");
     return this.synctable.get(id);
+  }
+
+  public get_all(): Map<string, any> {
+    if (!this.is_ready) throw Error("not yet ready");
+    return this.synctable.get();
   }
 
   private add_vhost(info: HostInfo): void {
@@ -125,7 +130,8 @@ export class PublicPaths extends EventEmitter {
   }
 
   // Immutables List of ids that sorts the public_paths from
-  // newest (last edited) to oldest
+  // newest (last edited) to oldest. This only includes paths
+  // that are not unlisted.
   public order(): immutable.List<string> {
     if (this._order != null) {
       return this._order;
@@ -134,7 +140,9 @@ export class PublicPaths extends EventEmitter {
     this.synctable
       .get()
       .forEach((info: immutable.Map<string, any>, id: string) => {
-        v.push([info.get("last_edited", 0), id]);
+        if (!info.get("unlisted")) {
+          v.push([info.get("last_edited", 0), id]);
+        }
       });
     v.sort((a, b) => -cmp(a[0], b[0]));
     const ids = v.map(x => x[1]);
@@ -185,18 +193,4 @@ export async function get_public_paths(
   }
   await once(the_public_paths, "ready");
   return the_public_paths;
-}
-
-export function get_public_paths0(database, cb) {
-  let the_public_paths;
-  if (the_public_paths != null) {
-    if (the_public_paths._is_ready) {
-      cb(undefined, the_public_paths);
-      return;
-    }
-  } else {
-    the_public_paths = new PublicPaths(database);
-  }
-
-  the_public_paths.on("ready", () => cb(undefined, the_public_paths));
 }

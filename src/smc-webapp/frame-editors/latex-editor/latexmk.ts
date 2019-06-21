@@ -43,6 +43,23 @@ export type Engine =
   | "XeLaTeX"
   | "LuaTex";
 
+export function get_engine_from_config(config: string): Engine | null {
+  switch (config.toLowerCase()) {
+    case "latex":
+    case "pdflatex":
+      return "PDFLaTeX";
+
+    case "xelatex":
+    case "xetex":
+      return "XeLaTeX";
+
+    case "lua":
+    case "luatex":
+      return "LuaTex";
+  }
+  return null;
+}
+
 export function build_command(
   engine: Engine,
   filename: string,
@@ -56,18 +73,23 @@ export function build_command(
   However, users hate errorstopmode, so we use nonstopmode, which can hang in rare cases with tikz.
   See https://github.com/sagemathinc/cocalc/issues/156
   */
-  let name: string = "pdf";
-  switch (engine) {
-    case "PDFLaTeX":
-      name = "pdf";
-      break;
-    case "XeLaTeX":
-      name = "xelatex";
-      break;
-    case "LuaTex":
-      name = "lualatex";
-      break;
-  }
+  const name: string = (function() {
+    switch (engine) {
+      case "PDFLaTeX":
+      case "PDFLaTeX (shell-escape)":
+        return "pdf";
+      case "XeLaTeX":
+        return "xelatex";
+      case "LuaTex":
+        return "lualatex";
+      default:
+        console.warn(
+          `LaTeX engine ${engine} unknown -- switching to fallback "PDFLaTeX"`
+        );
+        return "pdf";
+    }
+  })();
+
   if (knitr) {
     filename = change_filename_extension(filename, "tex");
   }
@@ -81,7 +103,7 @@ export function build_command(
     */
   const head = ["latexmk"];
 
-  // shell escale is potentially dangerous, but pretty much save when tamed inside a cocalc project
+  // shell escape is potentially dangerous, but pretty much save when tamed inside a cocalc project
   if (engine == ("PDFLaTeX (shell-escape)" as Engine)) {
     head.push("-e");
     // yes, this is in one piece. in a shell it would be enclosed in '...'

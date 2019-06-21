@@ -2,7 +2,7 @@
 Called when there is a request to access files/directories.
 
 It:
-   - does nothing...
+   - does nothing and is not currently used.
 
 But it might:
    - double check that request is currently allowed (use
@@ -11,16 +11,13 @@ But it might:
 
 */
 
-import { defaults, required } from "smc-util/misc";
+import { Database } from "./types";
 
-export function public_access_request(opts): void {
-  opts = defaults(opts, {
-    database: required,
-    project_id: required,
-    path: required,
-    cb: required
-  });
+export async function public_access_request(opts: {
+  database: Database;
+  project_id: string;
+  path: string;
+}): Promise<void> {
   // 1. check if valid
   // 2. increment database counter or log or something
-  opts.cb(undefined, true);
 }

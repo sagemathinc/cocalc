@@ -4,34 +4,32 @@ Support for virtual hosts.
 
 import * as os_path from "path";
 
-import { get_public_paths0, HostInfo, PublicPaths } from "./public-paths";
+import { get_public_paths, HostInfo, PublicPaths } from "./public-paths";
 import { render_static_path } from "./render-static-path";
 import * as util from "./util";
 import { is_authenticated } from "./authenticate";
 import { Database, Logger } from "./types";
 
-export function virtual_hosts(opts: {
+export async function virtual_hosts(opts: {
   database: Database;
   share_path: string;
   base_url: string;
   logger: Logger;
-}): Function {
+}): Promise<Function> {
   const dbg =
     opts.logger != null
       ? (...args) => opts.logger.debug("virtual_hosts: ", ...args)
       : (..._args) => {}; // don't log anything.
 
-  let public_paths: PublicPaths | undefined = undefined;
+  let public_paths: PublicPaths;
   dbg("getting_public_paths");
-  get_public_paths0(opts.database, function(err, x) {
-    if (err) {
-      // This is fatal and should be impossible...
-      dbg("get_public_paths - ERROR", err);
-    } else {
-      public_paths = x;
-      dbg("got_public_paths - initialized");
-    }
-  });
+  try {
+    public_paths = await get_public_paths(opts.database);
+    dbg("got_public_paths - initialized");
+  } catch (err) {
+    // This is fatal and should be impossible...
+    throw Error(`get_public_paths - ERROR - ${err}`);
+  }
 
   function middleware(req, res, next): void {
     let host: string | undefined;
@@ -46,9 +44,7 @@ export function virtual_hosts(opts: {
     }
     // dbg("host = ", host, 'req.url=', req.url)
     const info: HostInfo | undefined =
-      public_paths != null && host != null
-        ? public_paths.get_vhost(host)
-        : undefined;
+      host != null ? public_paths.get_vhost(host) : undefined;
     if (info == null) {
       // dbg("not a virtual host path")
       next();
@@ -56,7 +52,6 @@ export function virtual_hosts(opts: {
     }
 
     // TODO:
-    //   - worry about public_paths not being defined at first by delaying response like in router.cjsx?
     //   - should we bother with is_public check?
     //   - what about HTTP auth?
     let path = req.url;
