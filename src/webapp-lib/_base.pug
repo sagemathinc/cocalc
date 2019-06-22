@@ -223,12 +223,14 @@ html.no-js(lang="en")
             width      : 95%
             height     : 95%
 
-        nav.navbar.navbar-default .navbar-nav.features>li>a,
-        nav.navbar.navbar-default .navbar-nav.software>li>a
-          font-size: 1.5rem
-          padding: 5px 10px
-          &.documentation
-            color: $COL_BLUE_DOC
+        nav.navbar.navbar-default
+          .navbar-nav.features>li>a,
+          .navbar-nav.software>li>a,
+          .navbar-nav.policies>li>a
+            font-size: 1.5rem
+            padding: 5px 10px
+            &.documentation
+              color: $COL_BLUE_DOC
 
         div.navbar-menu
           display: inline-block
@@ -263,6 +265,11 @@ html.no-js(lang="en")
             height: auto!important;
             padding-bottom: 0;
             overflow: visible!important;
+
+        /* workaround, broken cocalc fonts */
+        i.fa
+          &.fa-linux
+            display: none
 
     script.
       function toggle_menu(menu) {
@@ -308,7 +315,7 @@ html.no-js(lang="en")
             li
               a.get-started(href=PREFIX + "app") Sign In
 
-        if navbar_active == 'features'
+        if navbar_active == 'features' || navbar_active == 'index'
           div.collapse.navbar-collapse
             ul.nav.navbar-nav.navbar-right.features
               li(class=subnavbar_highlight('jupyter'))
@@ -341,6 +348,16 @@ html.no-js(lang="en")
                 a(href=PREFIX + "doc/software-r.html") R Statistics
               li(class=subnavbar_highlight('software-julia'))
                 a(href=PREFIX + "doc/software-julia.html") Julia
+
+        if navbar_active == 'policies'
+          div.collapse.navbar-collapse
+            ul.nav.navbar-nav.navbar-right.policies
+              li(class=subnavbar_highlight('copyright'))
+                a(href=PREFIX + "policies/copyright.html") Copyright
+              li(class=subnavbar_highlight('privacy'))
+                a(href=PREFIX + "policies/privacy.html") Privacy
+              li(class=subnavbar_highlight('terms'))
+                a(href=PREFIX + "policies/terms.html") Terms
 
     block content
 
