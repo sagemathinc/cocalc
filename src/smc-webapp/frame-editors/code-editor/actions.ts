@@ -1039,7 +1039,14 @@ export class Actions<T = CodeEditorState> extends BaseActions<
   }
 
   help(type: string): void {
-    const url = WIKI_HELP_URL + type + "-help";
+    const url: string = (function() {
+      switch (type) {
+        case "terminal":
+          return "https://doc.cocalc.com/terminal.html";
+        default:
+          return WIKI_HELP_URL + type + "-help";
+      }
+    })();
     open_new_tab(url);
   }
 
