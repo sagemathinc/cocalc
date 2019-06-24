@@ -1975,6 +1975,7 @@ class exports.Client extends EventEmitter
                 @database.get_stripe_customer_id
                     account_id : @account_id
                     cb         : (err, customer_id) =>
+                        # note: customer_id could be undefined
                         @stripe_customer_id = customer_id  # cache for later
                         for x in @_stripe_customer_id_cbs
                             {id, cb} = x
@@ -2007,7 +2008,7 @@ class exports.Client extends EventEmitter
                 cb(err); return
             cb(undefined, customer_id)
 
-    # id : user's CoCalc account id
+    # id : message.id
     stripe_get_customer: (id, cb) =>
         dbg = @dbg("stripe_get_customer")
         dbg("getting id")
@@ -2626,13 +2627,8 @@ class exports.Client extends EventEmitter
         locals = {}
         async.series([
             (cb) =>
-                dbg("get stripe id")
-                @stripe_get_customer_id @account_id, (err, id) =>
-                    locals.id = id
-                    cb(err)
-            (cb) =>
                 dbg("get stripe customer data")
-                @stripe_get_customer locals.id, (err, stripe_customer) =>
+                @stripe_get_customer mesg.id, (err, stripe_customer) =>
                     locals.stripe_data = stripe_customer?.subscriptions?.data
                     cb(err)
             (cb) =>
