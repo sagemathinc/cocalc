@@ -1931,17 +1931,6 @@ class exports.Client extends EventEmitter
     ###
     Stripe-integration billing code
     ###
-    ensure_fields: (mesg, fields) =>
-        if not mesg.id?
-            return false
-        if typeof(fields) == 'string'
-            fields = fields.split(' ')
-        for f in fields
-            if not mesg[f.trim()]?
-                err = "invalid message; must have #{f} field"
-                @error_to_client(id:mesg.id, error:err)
-                return false
-        return true
 
     stripe_get_customer_id: (id, cb) =>  # id = message id
         # cb(err, customer_id)
