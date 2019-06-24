@@ -72,7 +72,7 @@ export class PublicPath extends Component<Props> {
     let elt;
     const { path } = this.props;
     const ext = filename_extension(path).toLowerCase();
-    const src = path_split(path).tail;
+    const src = path_split(path).tail + "?viewer=raw";
 
     if (extensions.image.has(ext)) {
       return <img src={src} />;
