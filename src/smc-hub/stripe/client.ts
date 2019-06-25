@@ -5,6 +5,7 @@ import * as message from "smc-util/message";
 import { available_upgrades, get_total_upgrades } from "smc-util/upgrades";
 
 const { get_stripe } = require("./connect");
+const { stripe_sales_tax } = require("./sales-tax");
 
 interface HubClient {
   account_id: string;
@@ -100,13 +101,26 @@ export class StripeClient {
     };
   }
 
+  // We use this, since converting stripe api calls to use async/await
+  // messes up the binding.
+  private async call_stripe_api(
+    objname: string,
+    method: string,
+    ...args
+  ): Promise<any> {
+    const obj = this.stripe[objname];
+    if (obj == null) throw Error(`unknown stripe objname "${objname}"`);
+    const f = obj[method];
+    if (f == null) throw Error(`unknown stripe method "${objname}.${method}"`);
+    return await callback(f.bind(obj), ...args);
+  }
+
   private async get_customer(): Promise<StripeCustomer> {
     const dbg = this.dbg("get_customer");
     dbg("getting customer id");
     const customer_id: string = await this.need_customer_id();
     dbg("now getting stripe customer object");
-    const f = this.stripe.customers.retrieve.bind(this.stripe.customers);
-    return await callback(f, customer_id);
+    return await this.call_stripe_api("customers", "retrieve", customer_id);
   }
 
   public async handle_mesg(mesg: Message): Promise<void> {
@@ -185,8 +199,9 @@ export class StripeClient {
       }
     };
 
-    const customer_id: string = (await callback(
-      this.stripe.customers.create,
+    const customer_id: string = (await this.call_stripe_api(
+      "customers",
+      "create",
       x
     )).id;
 
@@ -205,7 +220,7 @@ export class StripeClient {
     const dbg = this.dbg("add_card_to_existing_stripe_customer");
     dbg("add card to existing stripe customer");
     const customer_id = await this.need_customer_id();
-    await callback(this.stripe.customers.createCard, customer_id, {
+    await this.call_stripe_api("customers", "createCard", customer_id, {
       card: token
     });
 
@@ -221,7 +236,7 @@ export class StripeClient {
     if (customer_id == null)
       throw Error("no customer information so can't delete source");
 
-    await callback(this.stripe.customers.deleteCard, customer_id, card_id);
+    await this.call_stripe_api("customers", "deleteCard", customer_id, card_id);
     await this.update_database();
   }
 
@@ -231,10 +246,9 @@ export class StripeClient {
     const card_id: string = get_string_field(mesg, "card_id");
     const customer_id: string = await this.need_customer_id();
     dbg("now setting the default source in stripe");
-    await callback(this.stripe.customers.update, customer_id, {
+    await this.call_stripe_api("customers", "update", customer_id, {
       default_source: card_id
     });
-
     await this.update_database();
   }
 
@@ -262,8 +276,9 @@ export class StripeClient {
     if (customer_id == null)
       throw Error("no customer information so can't update source");
 
-    await callback(
-      this.stripe.customers.updateCard,
+    await this.call_stripe_api(
+      "customers",
+      "updateCard",
       customer_id,
       card_id,
       info
@@ -275,7 +290,7 @@ export class StripeClient {
   public async mesg_get_plans(_mesg: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_plans");
     dbg("get descriptions of plans that the user might subscribe to");
-    const plans = await callback(this.stripe.plans.list);
+    const plans = await this.call_stripe_api("plans", "list");
     return message.stripe_plans({ plans });
   }
 
@@ -301,12 +316,9 @@ export class StripeClient {
     };
 
     dbg("determine applicable tax");
-    const tax_rate = await callback2(
-      require("./stripe/sales-tax").stripe_sales_tax,
-      {
-        customer_id
-      }
-    );
+    const tax_rate = await callback2(stripe_sales_tax, {
+      customer_id
+    });
     dbg(`tax_rate = ${tax_rate}`);
     if (tax_rate) {
       // CRITICAL: if we don't just multiply by 100, since then sometimes
@@ -316,15 +328,16 @@ export class StripeClient {
     }
 
     dbg("add customer subscription to stripe");
-    const subscription = await callback(
-      this.stripe.customers.createSubscription,
+    const subscription = await this.call_stripe_api(
+      "customers",
+      "createSubscription",
       customer_id,
       options
     );
 
     if (schema.cancel_at_period_end) {
       dbg("Setting subscription to cancel at period end");
-      await callback(this.stripe.subscriptions.update, subscription.id, {
+      await this.call_stripe_api("subscriptions", "update", subscription.id, {
         cancel_at_period_end: true
       });
     }
@@ -334,8 +347,7 @@ export class StripeClient {
 
     if (options.coupon != null) {
       dbg("add coupon to customer history");
-      const { coupon, coupon_history } = await callback(
-        this.validate_coupon,
+      const { coupon, coupon_history } = await this.validate_coupon(
         options.coupon
       );
 
@@ -362,7 +374,7 @@ export class StripeClient {
     dbg("cancel the subscription at stripe");
     // This also returns the subscription, which lets
     // us easily get the metadata of all projects associated to this subscription.
-    await callback(this.stripe.subscriptions.update, subscription_id, {
+    await this.call_stripe_api("subscriptions", "update", subscription_id, {
       cancel_at_period_end: mesg.at_period_end
     });
 
@@ -381,8 +393,9 @@ export class StripeClient {
       plan: mesg.plan,
       coupon: mesg.coupon_id
     };
-    await callback(
-      this.stripe.customers.updateSubscription,
+    await this.call_stripe_api(
+      "customers",
+      "updateSubscription",
       customer_id,
       subscription_id,
       changes
@@ -407,8 +420,9 @@ export class StripeClient {
     const customer_id: string = await this.need_customer_id();
 
     const options = await this.stripe_api_pager_options(mesg);
-    const subscriptions = await callback(
-      this.stripe.customers.listSubscriptions,
+    const subscriptions = await this.call_stripe_api(
+      "customers",
+      "listSubscriptions",
       customer_id,
       options
     );
@@ -421,7 +435,7 @@ export class StripeClient {
 
     const coupon_id: string = get_string_field(mesg, "coupon_id");
 
-    const coupon = await callback(this.validate_coupon, coupon_id);
+    const coupon = await this.validate_coupon(coupon_id);
     return message.stripe_coupon({ coupon });
   }
 
@@ -434,8 +448,9 @@ export class StripeClient {
   ): Promise<{ coupon: Coupon; coupon_history: CouponHistory }> {
     const dbg = this.dbg("validate_coupon");
     dbg("retrieve the coupon");
-    const coupon: Coupon = await callback(
-      this.stripe.coupons.retrieve,
+    const coupon: Coupon = await this.call_stripe_api(
+      "coupons",
+      "retrieve",
       coupon_id
     );
 
@@ -473,7 +488,7 @@ export class StripeClient {
     dbg("get a list of charges for this customer");
 
     const options = await this.stripe_api_pager_options(mesg);
-    const charges = await callback(this.stripe.charges.list, options);
+    const charges = await this.call_stripe_api("charges", "list", options);
     return message.stripe_charges({ charges });
   }
 
@@ -481,14 +496,17 @@ export class StripeClient {
     const dbg = this.dbg("mesg_get_invoices");
     dbg("get a list of invoices for this customer");
     const options = await this.stripe_api_pager_options(mesg);
-    const invoices = await callback(this.stripe.invoices.list, options);
+    const invoices = await this.call_stripe_api("invoices", "list", options);
     return message.stripe_invoices({ invoices });
   }
 
   // This is not actually used **YET**.
   public async mesg_admin_create_invoice_item(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_admin_create_invoice_item");
-    await callback(this.client.assert_user_is_in_group, "admin");
+    await callback(
+      this.client.assert_user_is_in_group.bind(this.client),
+      "admin"
+    );
 
     dbg("check for existing stripe customer_id");
     const r = await callback2(this.client.database.get_account, {
@@ -524,7 +542,7 @@ export class StripeClient {
           account_id: mesg.account_id
         }
       };
-      const customer = await callback(this.stripe.customers.create, x);
+      const customer = await this.call_stripe_api("customers", "create", x);
       customer_id = customer.id;
       dbg("store customer id in our database");
       await callback2(this.client.database.set_stripe_customer_id, {
@@ -538,7 +556,7 @@ export class StripeClient {
     }
 
     dbg("now create the invoice item");
-    await callback(this.stripe.invoiceItems.create, {
+    await this.call_stripe_api("invoiceItems", "create", {
       customer: customer_id,
       amount: mesg.amount * 100,
       currency: "usd",
