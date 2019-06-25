@@ -1131,6 +1131,7 @@ CouponInfo = rclass
         coupon : rtypes.object
 
     render: ->
+        console.log("coupon = ", @props.coupon)
         <Row>
             <Col md={4}>
                 {@props.coupon.id}
@@ -1982,10 +1983,10 @@ BillingPage = rclass
     render_help_suggestion: ->
         <span>
             <Space/> If you have any questions at all, email <HelpEmailLink /> immediately.
-            <i>
-                <Space/> Contact us if you are purchasing a course subscription, but need a short trial
+            <b>
+                <Space/> Contact us if you are purchasing a course subscription and need a short trial
                 to test things out first.<Space/>
-            </i>
+            </b>
         </span>
 
     render_suggested_next_step: ->
@@ -1998,10 +1999,9 @@ BillingPage = rclass
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
                 <span>
-                    Click "Add Payment Method..." to add your credit card, then
-                    click "Add Subscription or Course Package..." and
-                    choose from either a monthly, yearly or semester-long plan.
-                    You will <b>not be charged</b> until you select a specific subscription then click
+                    If you are teaching a course, choose one of the course packages.
+                    If you need to upgrade your projects, choosing a recurring subscription.
+                    You will <b>not be charged</b> until you explicitly click
                     "Add Subscription or Course Package".
                     {help}
                 </span>
@@ -2019,9 +2019,8 @@ BillingPage = rclass
         else if subs == 0
             # have a payment source, but no subscriptions
             <span>
-                Click "Add Subscription or Course Package...", then
-                choose from either a monthly, yearly or semester-long plan (you may sign up for the
-                same subscription more than once to increase the number of upgrades).
+                Click "Add Subscription or Course Package...".   If you are teaching a course, choose one of the course packages.
+                    If you need to upgrade your projects, choosing a recurring subscription.
                 You will be charged only after you select a specific subscription and click
                 "Add Subscription or Course Package".
                 {help}

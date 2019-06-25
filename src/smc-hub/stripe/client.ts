@@ -441,7 +441,7 @@ export class StripeClient {
 
     const coupon_id: string = get_string_field(mesg, "coupon_id");
 
-    const coupon = await this.validate_coupon(coupon_id);
+    const { coupon } = await this.validate_coupon(coupon_id);
     return message.stripe_coupon({ coupon });
   }
 
